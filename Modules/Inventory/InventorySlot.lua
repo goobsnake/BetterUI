@@ -1,3 +1,10 @@
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+--
+--    BetterUI Inventory Slot Actions - Item Action Handling
+--    This file contains functions for handling item slot actions, including equip, use, bank, and craft bag operations
+--
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
 INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 
@@ -7,6 +14,12 @@ INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
 -- This is a way to overwrite the ItemSlotAction's primary command. This is done so that "TryUseItem" and other functions use "CallSecureProtected" when activated
+--- @param self table: The slot actions controller
+--- @param actionStringId number: The string ID for the action name
+--- @param actionCallback function: The callback function to execute
+--- @param actionType string: The type of action
+--- @param visibilityFunction function: Function to determine visibility
+--- @param options table: Additional options for the action
 local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, visibilityFunction, options)
     local actionName = actionStringId
     visibilityFunction = function()
@@ -150,21 +163,55 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                     end,
     }
 
-    local function FindSecondaryActionNumber(slotActionName)
-        for ACTION_NUM = 1, 9 do
-            local secondaryAction = slotActions:GetAction(ACTION_NUM, "secondary", nil)
-            if secondaryAction ~= nil then
-                self.actionName = secondaryAction[1]
-                --d(self.actionName)
-                --d(ACTION_NUM)
-                if self.actionName == GetString(slotActionName) then
-                    --d(self.actionName)
-                   -- d(ACTION_NUM)
-                    return ACTION_NUM
-                end
-            end
-        end
+    local function GetActionString(actionId)
+    return GetString(actionId)
+end
+
+local function IsPrimaryAction(actionName, actionStringId)
+    return actionName == GetActionString(actionStringId)
+end
+
+local function ShouldReplacePrimaryAction(primaryAction)
+    return IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
+           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+end
+
+local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
+    slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
+end
+
+local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+    if canUseItem then
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
+            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
+        slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function() TryUseItem(inventorySlot) end, "secondary", nil, {visibleWhenDead = false})
+    else
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
+            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
     end
+end
+
+local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
+    if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
+            function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNEQUIP) then
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_WITHDRAW) or IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_DEPOSIT) then
+        SetupSecureAction(slotActions, actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or SI_ITEM_ACTION_BANK_DEPOSIT,
+            function(...) TryBankItem(inventorySlot) end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+        SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
+            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
+    end
+end
 
     local function PrimaryCommandHasBind()
         return (self.actionName ~= nil) or self:HasSelectedAction()
@@ -177,65 +224,54 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
         if not inventorySlot then
             self.actionName = nil
-        else
-            ZO_InventorySlot_DiscoverSlotActionsFromActionList(inventorySlot, slotActions)
+            return
+        end
 
-            --SI_ITEM_ACTION_DESTROY
+        ZO_InventorySlot_DiscoverSlotActionsFromActionList(inventorySlot, slotActions)
 
-            local canUseItem
-            local primaryAction = slotActions:GetPrimaryActionName()
+        local primaryAction = slotActions:GetPrimaryActionName()
+        local canUseItem = false
 
-            if primaryAction then
-                self.actionName = primaryAction
-                if self.actionName == GetString(SI_ITEM_ACTION_USE) or 
-                    self.actionName == GetString(SI_ITEM_ACTION_EQUIP) or 
-                    self.actionName == GetString(SI_ITEM_ACTION_UNEQUIP) or 
-                    self.actionName == GetString(SI_ITEM_ACTION_BANK_WITHDRAW) or 
-                    self.actionName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT) or
-                    self.actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
-                    self.actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
-                    table.remove(slotActions.m_slotActions, 1)
-                    if CanItemMoveToCraftBag(inventorySlot) and self.actionName == GetString(SI_ITEM_ACTION_USE) then
-                        canUseItem = true
-                        table.remove(slotActions.m_slotActions, FindSecondaryActionNumber(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
+        -- Handle primary action replacement logic
+        if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
+            table.remove(slotActions.m_slotActions, 1)
+
+            if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) then
+                canUseItem = true
+                -- Remove craft bag action from secondary actions
+                for i = #slotActions.m_slotActions, 1, -1 do
+                    if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                        table.remove(slotActions.m_slotActions, i)
+                        break
                     end
                 end
-            elseif CanItemMoveToCraftBag(inventorySlot) then
-                    canUseItem = false
-                    self.actionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-                    table.remove(slotActions.m_slotActions, FindSecondaryActionNumber(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
-            else 
-                -- Needed for scenarios of stowing or moving all items in a category to the craftbag/bank and transitioning on an item that has no primaryAction (nil) - Removes action from controller button display
-                self.actionName = primaryAction
             end
-
-			-- Now check if the slot that has been found for the current item needs to be replaced with the CSP ones
-			if self.actionName == GetString(SI_ITEM_ACTION_USE) then
-                slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_USE), function(...) TryUseItem(inventorySlot) end, "primary", nil, {visibleWhenDead = false})
-			end
-			if self.actionName == GetString(SI_ITEM_ACTION_EQUIP) then
-				slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_EQUIP), function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end, "primary", nil, {visibleWhenDead = false})
-			end
-            if self.actionName == GetString(SI_ITEM_ACTION_UNEQUIP) then
-                slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_UNEQUIP), function(...) TryUnequipItem(inventorySlot) end, "primary", nil, {visibleWhenDead = false})
-            end
-			if self.actionName == GetString(SI_ITEM_ACTION_BANK_WITHDRAW) then
-				slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_BANK_WITHDRAW), function(...) TryBankItem(inventorySlot) end, "primary", nil, {visibleWhenDead = false})
-			end
-			if self.actionName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT) then
-				slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_BANK_DEPOSIT), function(...) TryBankItem(inventorySlot) end, "primary", nil, {visibleWhenDead = false})
-			end
-            if CanItemMoveToCraftBag(inventorySlot) and self.actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                if canUseItem then
-                    slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, "primary", nil, {visibleWhenDead = false})
-                    slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function() TryUseItem(inventorySlot) end, "secondary", nil, {visibleWhenDead = false})
-                else
-                    slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, "primary", nil, {visibleWhenDead = false})
+        elseif CanItemMoveToCraftBag(inventorySlot) then
+            self.actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+            -- Remove craft bag action from secondary actions
+            for i = #slotActions.m_slotActions, 1, -1 do
+                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                    table.remove(slotActions.m_slotActions, i)
+                    break
                 end
-            end 
-            if self.actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
-                slotActions:AddSlotPrimaryAction(GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, "primary", nil, {visibleWhenDead = false})
-            end 			
+            end
+        else
+            -- No primary action available
+            self.actionName = primaryAction
+            return
+        end
+
+        -- Set the action name for display
+        self.actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+
+        -- Setup secure actions based on action type
+        if primaryAction then
+            SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+        end
+
+        -- Handle craft bag specific logic
+        if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(self.actionName, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+            HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
         end
     end
 

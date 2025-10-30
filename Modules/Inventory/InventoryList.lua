@@ -1,3 +1,10 @@
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+--
+--    BetterUI Inventory List - UI Entry Setup and List Management
+--    This file contains functions for setting up inventory list entries, handling item display, and managing list operations
+--
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 local TEXTURE_EQUIP_ICON = "BetterUI/Modules/CIM/Images/inv_equip.dds"
 local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds"
 local TEXTURE_EQUIP_SLOT_ICON = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds"
@@ -200,83 +207,116 @@ function BETTERUI_CooldownSetup(control, data)
     end
 end
 
+--- Set up a gamepad inventory entry with all visual elements and data
+--- This is a performance-critical function called for every item in the inventory list
+--- @param control table: The UI control for the entry
+--- @param data table: The item data to display
+--- @param selected boolean: Whether this entry is currently selected
+--- @param reselectingDuringRebuild boolean: Whether this is a reselection during rebuild
+--- @param enabled boolean: Whether the entry is enabled
+--- @param active boolean: Whether the entry is active
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
-    if BETTERUI.Settings.Modules["CIM"].skinSize == "Medium" then
-        control:GetNamedChild("ItemType"):SetFont("ZoFontGamepadCondensed34")
-        control:GetNamedChild("Trait"):SetFont("ZoFontGamepadCondensed34")
-		control:GetNamedChild("Stat"):SetFont("ZoFontGamepadCondensed34")
-        control:GetNamedChild("Value"):SetFont("ZoFontGamepadCondensed34")
-    elseif BETTERUI.Settings.Modules["CIM"].skinSize == "Large" then
-        control:GetNamedChild("ItemType"):SetFont("ZoFontGamepad36")
-        control:GetNamedChild("Trait"):SetFont("ZoFontGamepad36")
-		control:GetNamedChild("Stat"):SetFont("ZoFontGamepad36")
-		control:GetNamedChild("Value"):SetFont("ZoFontGamepad36")
-    end
+    -- Cache frequently used values
+    local bagId = data.bagId
+    local slotIndex = data.slotIndex
+    local itemLink = GetItemLink(bagId, slotIndex)
+    local itemType = GetItemLinkItemType(itemLink)
+    local skinSize = BETTERUI.Settings.Modules["CIM"].skinSize
 
-    control:GetNamedChild("ItemType"):SetText(string.upper(data.bestItemTypeName))
-    local traitType = GetItemTrait(data.bagId, data.slotIndex)
-    control:GetNamedChild("Trait"):SetText(traitType == ITEM_TRAIT_TYPE_NONE and "-" or string.upper(GetString("SI_ITEMTRAITTYPE", traitType)))
-    local itemLink = GetItemLink(data.bagId, data.slotIndex)
-    local itemType = GetItemLinkItemType(itemLink) --GetItemType(bagId, slotIndex) 
-    if itemType == ITEMTYPE_RECIPE then
-        control:GetNamedChild("Stat"):SetText(IsItemLinkRecipeKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN))
-    elseif IsItemLinkBook(itemLink) then
-        control:GetNamedChild("Stat"):SetText(IsItemLinkBookKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN))
+    -- Set font sizes based on skin size (cached to avoid repeated calculations)
+    local itemTypeFont, traitFont, statFont, valueFont
+    if skinSize == "Medium" then
+        itemTypeFont = "ZoFontGamepadCondensed34"
+        traitFont = "ZoFontGamepadCondensed34"
+        statFont = "ZoFontGamepadCondensed34"
+        valueFont = "ZoFontGamepadCondensed34"
+    elseif skinSize == "Large" then
+        itemTypeFont = "ZoFontGamepad36"
+        traitFont = "ZoFontGamepad36"
+        statFont = "ZoFontGamepad36"
+        valueFont = "ZoFontGamepad36"
     else
-        control:GetNamedChild("Stat"):SetText((data.dataSource.statValue == 0) and "-" or data.dataSource.statValue)
+        itemTypeFont = "ZoFontGamepad27"
+        traitFont = "ZoFontGamepad27"
+        statFont = "ZoFontGamepad27"
+        valueFont = "ZoFontGamepad27"
     end
 
-    -- Replace the "Value" with the market price of the item (in yellow)
-    if(BETTERUI.Settings.Modules["Inventory"].showMarketPrice) and (SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() or SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing()) then
-        local itemLink = GetItemLink(data.bagId,data.slotIndex)
-        if itemLink then
-            local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
-            if marketPrice ~= nil and marketPrice > 0 then
-    			if isAverage then
-    				control:GetNamedChild("Value"):SetColor(1,0.5,0.5,1)
-    			else
-    				control:GetNamedChild("Value"):SetColor(1,0.75,0,1)
-    			end
-                control:GetNamedChild("Value"):SetText(ZO_CurrencyControl_FormatCurrency(math.floor(marketPrice), USE_SHORT_CURRENCY_FORMAT))
-            else
-                control:GetNamedChild("Value"):SetColor(1,1,1,1)
-                control:GetNamedChild("Value"):SetText(data.stackSellPrice)
-            end
+    local itemTypeControl = control:GetNamedChild("ItemType")
+    local traitControl = control:GetNamedChild("Trait")
+    local statControl = control:GetNamedChild("Stat")
+    local valueControl = control:GetNamedChild("Value")
+
+    itemTypeControl:SetFont(itemTypeFont)
+    traitControl:SetFont(traitFont)
+    statControl:SetFont(statFont)
+    valueControl:SetFont(valueFont)
+
+    -- Set item type
+    itemTypeControl:SetText(string.upper(data.bestItemTypeName))
+
+    -- Set trait information
+    local traitType = GetItemTrait(bagId, slotIndex)
+    traitControl:SetText(traitType == ITEM_TRAIT_TYPE_NONE and "-" or string.upper(GetString("SI_ITEMTRAITTYPE", traitType)))
+
+    -- Set stat information based on item type
+    local statText
+    if itemType == ITEMTYPE_RECIPE then
+        statText = IsItemLinkRecipeKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+    elseif IsItemLinkBook(itemLink) then
+        statText = IsItemLinkBookKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+    else
+        statText = (data.dataSource.statValue == 0) and "-" or data.dataSource.statValue
+    end
+    statControl:SetText(statText)
+
+    -- Handle market price display
+    if BETTERUI.Settings.Modules["Inventory"].showMarketPrice and
+       (SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() or SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing()) then
+
+        local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
+        if marketPrice and marketPrice > 0 then
+            valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
+            valueControl:SetText(ZO_CurrencyControl_FormatCurrency(math.floor(marketPrice), USE_SHORT_CURRENCY_FORMAT))
+        else
+            valueControl:SetColor(1, 1, 1, 1)
+            valueControl:SetText(data.stackSellPrice)
         end
     else
-        control:GetNamedChild("Value"):SetColor(1,1,1,1)
-        control:GetNamedChild("Value"):SetText(ZO_CurrencyControl_FormatCurrency(data.stackSellPrice, USE_SHORT_CURRENCY_FORMAT))
+        valueControl:SetColor(1, 1, 1, 1)
+        valueControl:SetText(ZO_CurrencyControl_FormatCurrency(data.stackSellPrice, USE_SHORT_CURRENCY_FORMAT))
     end
 
+    -- Setup remaining UI elements
     BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
+
     if control.highlight then
         if selected and data.highlight then
             control.highlight:SetTexture(data.highlight)
         end
         control.highlight:SetHidden(not selected or not data.highlight)
     end
+
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
-	if BETTERUI.Settings.Modules["CIM"].skinSize == "Medium" then
-        local iconControl = control:GetNamedChild("Icon")
-		iconControl:SetDimensions(42, 42)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -38, 0)         
+    -- Adjust icon dimensions based on skin size
+    local iconControl = control:GetNamedChild("Icon")
+    local equipIconControl = control:GetNamedChild("EquippedMain")
 
-        local equipIconControl = control:GetNamedChild("EquippedMain")
+    if skinSize == "Medium" then
+        iconControl:SetDimensions(42, 42)
+        iconControl:ClearAnchors()
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -38, 0)
         equipIconControl:SetDimensions(34, 28)
-    elseif BETTERUI.Settings.Modules["CIM"].skinSize == "Large" then
-        local iconControl = control:GetNamedChild("Icon")
-		iconControl:SetDimensions(48, 48)
+    elseif skinSize == "Large" then
+        iconControl:SetDimensions(48, 48)
         iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -32, 0)         
-
-        local equipIconControl = control:GetNamedChild("EquippedMain")
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -32, 0)
         equipIconControl:SetDimensions(36, 30)
-	end
+    end
 end
 
 local function GetCategoryTypeFromWeaponType(bagId, slotIndex)

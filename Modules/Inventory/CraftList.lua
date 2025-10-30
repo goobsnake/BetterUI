@@ -1,4 +1,14 @@
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+--
+--    BetterUI Craft Bag List - Craft Bag Inventory Management
+--    This file contains functions for managing the craft bag inventory list and filtering
+--
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
+--- Create a filter comparator function for craft bag items
+--- @param filterType number|table: The filter type(s) to apply
+--- @return function: A comparator function that returns true if the item matches the filter
 function GetFilterComparator(filterType)
 	return function(itemData)
 		if filterType then
@@ -46,47 +56,46 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
-            -- itemData is shared in several places and can write their own value of bestItemCategoryName.
-            -- We'll use bestGamepadItemCategoryName instead so there are no conflicts.
-            slotData.bestGamepadItemCategoryName = categorizationFunction(slotData)
-			slotData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(slotData)) 
-			slotData.bestItemCategoryName = slotData.bestGamepadItemCategoryName
-			slotData.itemCategoryName = slotData.bestGamepadItemCategoryName
-	
+            -- Set categorization data once
+            local categoryName = categorizationFunction(slotData)
+            slotData.bestGamepadItemCategoryName = categoryName
+            slotData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(slotData))
+            slotData.bestItemCategoryName = categoryName
+            slotData.itemCategoryName = categoryName
+
             table.insert(slotsTable, slotData)
         end
     end
 end
 
-function BETTERUI.Inventory.CraftList:RefreshList(filterType) 
-	self.list:Clear()
+function BETTERUI.Inventory.CraftList:RefreshList(filterType)
+    self.list:Clear()
 
-	self.itemFilterFunction = GetFilterComparator(filterType)
+    self.itemFilterFunction = GetFilterComparator(filterType)
+    local filteredDataTable = self:GenerateSlotTable()
 
-	filteredDataTable = self:GenerateSlotTable()
-	
-	table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
+    -- Sort the filtered data
+    table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
 
     local lastBestItemCategoryName
     for i, itemData in ipairs(filteredDataTable) do
-        local nextItemData = filteredDataTable[i + 1]
-
         local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
         data:InitializeInventoryVisualData(itemData)
 
-		data.bestItemCategoryName = itemData.bestItemCategoryName
-		data.itemCategoryName = itemData.bestItemCategoryName
-		data.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-		data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
+        -- Use the pre-calculated category name
+        data.bestItemCategoryName = itemData.bestItemCategoryName
+        data.itemCategoryName = itemData.bestItemCategoryName
+        data.bestItemTypeName = itemData.bestItemTypeName
+        data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
 
+        -- Set header only when category changes
         if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
             data:SetHeader(itemData.bestItemCategoryName)
+            lastBestItemCategoryName = itemData.bestItemCategoryName
         end
 
         self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-		
-        lastBestItemCategoryName = itemData.bestItemCategoryName
     end
-	
+
     self.list:Commit()
 end

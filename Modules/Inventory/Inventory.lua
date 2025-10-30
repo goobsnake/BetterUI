@@ -4,6 +4,13 @@ local _
 local BLOCK_TABBAR_CALLBACK = true
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+--
+--    BetterUI Inventory Class - Main Inventory Implementation
+--    This file contains the core inventory functionality, including item management, equip logic, and UI interactions
+--
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 local CATEGORY_ITEM_ACTION_MODE = 1
@@ -245,60 +252,88 @@ function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipabl
     return SHARED_INVENTORY:IsFilteredSlotDataEmpty(comparator, BAG_BACKPACK, BAG_WORN)
 end
 
+--- Attempt to equip an item, handling different equip types and bind-on-equip protection
+--- @param inventorySlot table: The inventory slot data containing item information
+--- @param isCallingFromActionDialog boolean: Whether this is called from an action dialog
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
     local equipType = inventorySlot.dataSource.equipType
+    local bagId = inventorySlot.dataSource.bagId
+    local slotIndex = inventorySlot.dataSource.slotIndex
 
-	-- Binding handling
-	local bound = IsItemBound(inventorySlot.dataSource.bagId, inventorySlot.dataSource.slotIndex)
-	local equipItemLink = GetItemLink(inventorySlot.dataSource.bagId, inventorySlot.dataSource.slotIndex)
-	local bindType = GetItemLinkBindType(equipItemLink)
+    -- Check if item is bound and handle bind-on-equip protection
+    local bound = IsItemBound(bagId, slotIndex)
+    local equipItemLink = GetItemLink(bagId, slotIndex)
+    local bindType = GetItemLinkBindType(equipItemLink)
 
-	local isBindCheckItem = false
-	local equipItemCallback = function() end
-	
-	-- Check if the current item is an armour (or two handed, where it doesn't need a dialog menu), if so, then just equip into it's slot
-    local armorType = GetItemArmorType(inventorySlot.dataSource.bagId, inventorySlot.dataSource.slotIndex)
-    if armorType ~= ARMORTYPE_NONE or equipType == EQUIP_TYPE_NECK then
-		equipItemCallback = function()
-        CallSecureProtected("RequestMoveItem",inventorySlot.dataSource.bagId, inventorySlot.dataSource.slotIndex, BAG_WORN, BETTERUI_GetEquipSlotForEquipType(equipType), 1)
-		end
-		
-		isBindCheckItem = true
-    elseif equipType == EQUIP_TYPE_COSTUME then
-        CallSecureProtected("RequestMoveItem",inventorySlot.dataSource.bagId, inventorySlot.dataSource.slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1)
-	else
-        -- Else, it's a weapon or poison or ring, so show a dialog so the user can pick either slot!
-		equipItemCallback = function()
-			local function showEquipSingleSlotItemDialog()
-				-- should check if ZO_Dialogs_IsShowingDialog
-				ZO_Dialogs_ShowDialog(BETTERUI_EQUIP_SLOT_DIALOG, {inventorySlot, self.isPrimaryWeapon}, {mainTextParams={GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)}}, true)
-			end
-			
-			if isCallingFromActionDialog ~= nil and isCallingFromActionDialog then
-				zo_callLater(showEquipSingleSlotItemDialog, DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION)
-			else
-				showEquipSingleSlotItemDialog()
-			end
-		end
-	
-		-- we check the binding dialog later
-		isBindCheckItem = false
-	end
-	
-	if not bound and bindType == BIND_TYPE_ON_EQUIP and isBindCheckItem and BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection then
-		local function promptForBindOnEquip()
-			ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_BOE", {callback=equipItemCallback}, {mainTextParams={equipItemLink}})
-		end
-		
-		if isCallingFromActionDialog ~= nil and isCallingFromActionDialog then
-			zo_callLater(promptForBindOnEquip, DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION)
-		else
-			promptForBindOnEquip()
-		end
-	else
-		equipItemCallback()
-	end
-	
+    local function showBindOnEquipDialog(callback)
+        if not bound and bindType == BIND_TYPE_ON_EQUIP and BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection then
+            local function promptForBindOnEquip()
+                ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_BOE", {callback = callback}, {mainTextParams = {equipItemLink}})
+            end
+            if isCallingFromActionDialog then
+                zo_callLater(promptForBindOnEquip, DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION)
+            else
+                promptForBindOnEquip()
+            end
+        else
+            callback()
+        end
+    end
+
+    -- Determine equip action based on item type
+    local function performEquipAction(mainSlot)
+        if equipType == EQUIP_TYPE_ONE_HAND then
+            if mainSlot then
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_MAIN_HAND, 1)
+            else
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_OFF_HAND, 1)
+            end
+        elseif equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND then
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_MAIN_HAND, 1)
+        elseif equipType == EQUIP_TYPE_OFF_HAND then
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_OFF_HAND, 1)
+        elseif equipType == EQUIP_TYPE_POISON then
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_POISON, 1)
+        elseif equipType == EQUIP_TYPE_RING then
+            if mainSlot then
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_RING1, 1)
+            else
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_RING2, 1)
+            end
+        end
+    end
+
+    -- Handle different equip types
+    if equipType == EQUIP_TYPE_COSTUME then
+        -- Costumes equip directly
+        showBindOnEquipDialog(function()
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1)
+        end)
+    elseif equipType == EQUIP_TYPE_ONE_HAND or equipType == EQUIP_TYPE_RING then
+        -- Items that need slot selection - show dialog
+        local function showEquipDialog()
+            ZO_Dialogs_ShowDialog(BETTERUI_EQUIP_SLOT_DIALOG, {inventorySlot, self.isPrimaryWeapon}, {mainTextParams = {GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)}}, true)
+        end
+
+        if isCallingFromActionDialog then
+            zo_callLater(showEquipDialog, DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION)
+        else
+            showEquipDialog()
+        end
+    else
+        -- Items that equip directly (weapons, armor, etc.)
+        local armorType = GetItemArmorType(bagId, slotIndex)
+        if armorType ~= ARMORTYPE_NONE or equipType == EQUIP_TYPE_NECK then
+            showBindOnEquipDialog(function()
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, BETTERUI_GetEquipSlotForEquipType(equipType), 1)
+            end)
+        else
+            -- Handle other weapon types
+            showBindOnEquipDialog(function()
+                performEquipAction(true)
+            end)
+        end
+    end
 end
 
 function BETTERUI.Inventory.Class:NewCategoryItem(categoryName, filterType, iconFile, FilterFunct)
@@ -700,10 +735,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     if self.categoryList:IsEmpty() then return end
 
     local function IsStolenItem(itemData)
-        local isStolen = itemData.stolen
-		if isStolen then
-			return isStolen
-		end
+        return itemData.stolen
     end
 
     local targetCategoryData = self.categoryList:GetTargetData()
@@ -735,48 +767,39 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         else
             filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(comparator, BAG_BACKPACK, BAG_WORN)
         end
-		local tempDataTable = {}
-        for i = 1, #filteredDataTable  do
-			local itemData = filteredDataTable[i]
-             --use custom categories
-			local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
-			if customCategory and not matched then 
-				itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-				itemData.bestItemCategoryName = AC_UNGROUPED_NAME
-				itemData.sortPriorityName = string.format("%03d%s", 999 , catName) 
-			else
-				if customCategory then
-					itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-					itemData.bestItemCategoryName = catName
-					itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority , catName) 
-				else
-					itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-					itemData.bestItemCategoryName = itemData.bestItemTypeName
-					itemData.sortPriorityName = itemData.bestItemCategoryName
-				end 
-			end
-			if itemData.bagId == BAG_WORN then
-				itemData.isEquippedInCurrentCategory = false
-				itemData.isEquippedInAnotherCategory = false
-				if itemData.slotIndex == filteredEquipSlot then
-					itemData.isEquippedInCurrentCategory = true
-				else
-					itemData.isEquippedInAnotherCategory = true
-				end
+        -- Process items and set up categories in a single pass
+        for i = 1, #filteredDataTable do
+            local itemData = filteredDataTable[i]
 
-				itemData.isHiddenByWardrobe = WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE)
-			else
---shadowcep[[
-				local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
---shadowcep]]
-				itemData.isEquippedInCurrentCategory = slotIndex and true or nil
+            -- Set up custom categories
+            local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
+            if customCategory and not matched then
+                itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+                itemData.bestItemCategoryName = AC_UNGROUPED_NAME
+                itemData.sortPriorityName = string.format("%03d%s", 999, catName)
+            elseif customCategory then
+                itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+                itemData.bestItemCategoryName = catName
+                itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority, catName)
+            else
+                itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+                itemData.bestItemCategoryName = itemData.bestItemTypeName
+                itemData.sortPriorityName = itemData.bestItemCategoryName
+            end
 
+            -- Handle equipped item status
+            if itemData.bagId == BAG_WORN then
+                itemData.isEquippedInCurrentCategory = (itemData.slotIndex == filteredEquipSlot)
+                itemData.isEquippedInAnotherCategory = (itemData.slotIndex ~= filteredEquipSlot)
+                itemData.isHiddenByWardrobe = WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE)
+            else
+                -- Check quickslot assignment
+                local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                itemData.isEquippedInCurrentCategory = slotIndex and true or nil
+            end
 
-			end
-			ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
-			table.insert(tempDataTable, itemData)
+            ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
         end
-		filteredDataTable = tempDataTable
     end
 
 	table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
@@ -827,7 +850,6 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     self.itemList:Commit()
-    self:RefreshCategoryList()
     
 end
 
@@ -1735,6 +1757,8 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	    	-- self.callLaterRightToolTip = "CallLaterFunction"..callLaterId
 
 	    	self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+	    	self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
+	    	self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
 
 	    	self:UpdateItemLeftTooltip(self.itemList.selectedData)
 
@@ -1756,6 +1780,8 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.actionMode = CRAFT_BAG_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader()
+			self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
+			self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
 			self:ActivateHeader()
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 
