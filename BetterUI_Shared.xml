@@ -5,14 +5,12 @@
             <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT"/>
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT"/>
         </Label>
-        <Cooldown name="BETTERUI_GamepadMenuEntryCooldownTemplate" inherits="ZO_DefaultCooldown" exludeFromResizeToFitExtents="true" pixelRoundingEnabled="false" virtual="true">
-            <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" />
-            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" />
+        <Cooldown name="BETTERUI_GamepadMenuEntryCooldownTemplate" inherits="ZO_DefaultCooldown" excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false" virtual="true">
+            <AnchorFill />
         </Cooldown>
         <Texture name="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" inherits="ZO_MultiIcon" excludeFromResizeToFitExtents="true" hidden="true" virtual="true">
             <Dimensions x="24" y="24" />
-           <!--  <Anchor point="CENTER" relativeTo="$(parent)Label" relativePoint="LEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET" /> -->
-           <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="-10" />
+            <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="BETTERUI_STATUS_INDICATOR_OFFSET_X" />
         </Texture>
 
 
@@ -42,22 +40,17 @@
 
         <Control name="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
             <OnInitialized>
-				ZO_SharedGamepadEntry_OnInitialized(self)
-				local function ComputeHeightFromLabelAndItemType(control)
-					local height = control.label:GetTextHeight()
-					local itemTypeControl = control:GetNamedChild("ItemType")
-					if itemTypeControl ~= nil then
-						local typeheight = itemTypeControl:GetTextHeight()
-						if height > typeheight then
-							return height
-						else
-							return typeheight
-						end
-					end
-					return height
-				end
-
-				self.GetHeight = ComputeHeightFromLabelAndItemType
+                ZO_SharedGamepadEntry_OnInitialized(self)
+                local function ComputeHeightFromLabelAndItemType(control)
+                    local height = control.label:GetTextHeight()
+                    local itemTypeControl = control:GetNamedChild("ItemType")
+                    if itemTypeControl then
+                        local typeHeight = itemTypeControl:GetTextHeight()
+                        height = height > typeHeight and height or typeHeight
+                    end
+                    return height
+                end
+                self.GetHeight = ComputeHeightFromLabelAndItemType
             </OnInitialized>
         </Control>
 
@@ -66,35 +59,35 @@
            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH"/>
             <Controls>
                 <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad42">
-                    <Anchor point="TOPLEFT" offsetX="87"/>
-					  <Dimensions x="540"/>
+                    <Anchor point="TOPLEFT" offsetX="BETTERUI_SUBMENU_LABEL_OFFSET_X"/>
+                    <Dimensions x="BETTERUI_SUBMENU_LABEL_WIDTH"/>
                 </Label>
                 <Texture name="$(parent)Icon" inherits="BETTERUI_MenuEntryIconTemplate" edgeColor="00000000">
                 </Texture>
 
                 <Texture name="$(parent)EquippedMain" textureFile="BetterUI/Templates/Images/inv_equip.dds" excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false">
                     <Dimensions x="28" y="24" />
-                    <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="-25" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="BETTERUI_EQUIPPED_ICON_OFFSET_X" />
                 </Texture>
 
                 <Texture name="$(parent)StatusIndicator" inherits="BETTERUI_GamepadMenuEntryStatusIndicationTemplate"/>
 
                 <Texture name="$(parent)PlayerLockedIcon" inherits="ZO_GamepadMenuEntryPlayerLockedTemplate" />
 
-                <!-- Will have to make the below more generic -->
-                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="NONE" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true"  wrapMode="ELLIPSIS">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="550"/>
-				      <Dimensions x="250"/>
+                <!-- Item information labels -->
+                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="NONE" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true" wrapMode="ELLIPSIS">
+                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_ITEM_TYPE_OFFSET_X"/>
+                    <Dimensions x="BETTERUI_ITEM_TYPE_WIDTH"/>
                 </Label>
                 <Label name="$(parent)Trait" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="810"/>
-                    <Dimensions x="160"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_TRAIT_OFFSET_X"/>
+                    <Dimensions x="BETTERUI_TRAIT_WIDTH"/>
                 </Label>
                 <Label name="$(parent)Stat" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="980"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_STAT_OFFSET_X"/>
                 </Label>
                 <Label name="$(parent)Value" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="0" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="1100"/>
+                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_VALUE_OFFSET_X"/>
                 </Label>
             </Controls>
         </Control>
