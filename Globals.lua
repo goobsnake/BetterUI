@@ -4,7 +4,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.77"
+BETTERUI.version = "2.80"
 
 -- Program Global (scope of BETTERUI, though) variable initialization
 BETTERUI.WindowManager = GetWindowManager()
@@ -52,15 +52,21 @@ function ddebug(str)
 	return d("|c0066ff[BETTERUI]|r "..str)
 end
 
+--- Rounds a number to specified decimal places
+--- @param number number: The number to round
+--- @param decimals number: Number of decimal places
+--- @return number: The rounded number or 0 if invalid input
 function BETTERUI.roundNumber(number, decimals)
-	if (number ~= nil or number ~= 0) and decimals ~= nil then
-    	local power = 10^decimals
-    	return string.format("%.2f", math.floor(number * power) / power)
-    else
-    	return 0
-    end
+	if number ~= nil and decimals ~= nil then
+		local power = 10^decimals
+		return string.format("%.2f", math.floor(number * power) / power)
+	else
+		return 0
+	end
 end
 
+--- Displays a message on screen using the center screen announce system
+--- @param message string: The message to display
 function BETTERUI.OnScreenMessage(message)
 	local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT)
 	messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
@@ -68,19 +74,29 @@ function BETTERUI.OnScreenMessage(message)
 	CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
 end
 
--- Thanks to Bart Kiers for this function :)
+--- Formats a number with comma separators (e.g., 1234567 -> 1,234,567)
+--- Thanks to Bart Kiers for this function
+--- @param number number: The number to format
+--- @return string: The formatted number string
 function BETTERUI.DisplayNumber(number)
-	  local i, j, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
-	  -- reverse the int-string and append a comma to all blocks of 3 digits
-	  int = int:reverse():gsub("(%d%d%d)", "%1,")
-	  -- reverse the int-string back remove an optional comma and put the
-	  -- optional minus and fractional part back
-	  return minus .. int:reverse():gsub("^,", "") .. fraction
+	local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
+	-- reverse the int-string and append a comma to all blocks of 3 digits
+	int = int:reverse():gsub("(%d%d%d)", "%1,")
+	-- reverse the int-string back remove an optional comma and put the
+	-- optional minus and fractional part back
+	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
-function BETTERUI.GetResearch()
+--- Populates research traits data with caching to avoid redundant API calls
+--- Only rebuilds data if forceRefresh is true or data hasn't been initialized
+--- @param forceRefresh boolean: Force a refresh of the research data
+function BETTERUI.GetResearch(forceRefresh)
+	if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then
+		return -- Use cached data
+	end
+
 	BETTERUI.ResearchTraits = {}
-	for i,craftType in pairs(BETTERUI.CONST.CraftingSkillTypes) do
+	for i, craftType in pairs(BETTERUI.CONST.CraftingSkillTypes) do
 		BETTERUI.ResearchTraits[craftType] = {}
 		for researchIndex = 1, GetNumSmithingResearchLines(craftType) do
 			local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftType, researchIndex)
@@ -93,9 +109,12 @@ function BETTERUI.GetResearch()
 	end
 end
 
+--- Custom item sort comparator for gamepad inventory
+--- @param left table: Left item data for comparison
+--- @param right table: Right item data for comparison
+--- @return boolean: True if left should come before right
 function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
-	local CUSTOM_GAMEPAD_ITEM_SORT =
-	{
+	local CUSTOM_GAMEPAD_ITEM_SORT = {
 		sortPriorityName  = { tiebreaker = "bestItemTypeName" },
 		bestItemTypeName = { tiebreaker = "name" },
 		name = { tiebreaker = "requiredLevel" },
@@ -107,43 +126,58 @@ function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
 	return ZO_TableOrderingFunction(left, right, "sortPriorityName", CUSTOM_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
 
+--- Gets market price for an item from various trading addons
+--- @param itemLink string: The item link to get price for
+--- @param stackCount number: Number of items (defaults to 1)
+--- @return number: The calculated price, or 0 if no price found
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
-    if itemLink then
-        if(stackCount == nil) then stackCount = 1 end
-
-        if MasterMerchant ~= nil and BETTERUI.Settings.Modules["Tooltips"].mmIntegration then 
-            local mmData = MasterMerchant:itemStats(itemLink, false)
-            if(mmData.avgPrice ~= nil and mmData.avgPrice > 0) then
-                return mmData.avgPrice * stackCount
-            end
-        end
-        if ArkadiusTradeTools ~= nil and BETTERUI.Settings.Modules["Tooltips"].attIntegration then 
-            local avgPrice = ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(itemLink, nil, nil)
-            if(avgPrice ~= nil and avgPrice > 0) then
-                return avgPrice * stackCount
-            end
-        end
-        if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
-            local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
-    		if(priceInfo ~= nil) then
-    			if priceInfo.Avg then
-    				return priceInfo.Avg * stackCount
-    			else
-    				return priceInfo.SuggestedPrice * stackCount
-    			end
-    		end
-    	end
-    	return 0
-    else
+    if not itemLink then return 0 end
+    if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Tooltips"] then
         return 0
     end
+
+    stackCount = stackCount or 1
+    local tooltipSettings = BETTERUI.Settings.Modules["Tooltips"]
+
+    -- Check MasterMerchant integration first (most commonly used)
+    if MasterMerchant ~= nil and tooltipSettings.mmIntegration then
+        local mmData = MasterMerchant:itemStats(itemLink, false)
+        if mmData and mmData.avgPrice and mmData.avgPrice > 0 then
+            return mmData.avgPrice * stackCount
+        end
+    end
+
+    -- Check Arkadius Trade Tools
+    if ArkadiusTradeTools ~= nil and tooltipSettings.attIntegration then
+        local avgPrice = ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(itemLink, nil, nil)
+        if avgPrice and avgPrice > 0 then
+            return avgPrice * stackCount
+        end
+    end
+
+    -- Check Tamriel Trade Centre
+    if TamrielTradeCentre ~= nil and tooltipSettings.ttcIntegration then
+        local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
+        if priceInfo then
+            if priceInfo.Avg then
+                return priceInfo.Avg * stackCount
+            elseif priceInfo.SuggestedPrice then
+                return priceInfo.SuggestedPrice * stackCount
+            end
+        end
+    end
+
+    return 0
 end
 
+--- Gets custom category information from AutoCategory addon if available
+--- @param itemData table: Item data containing bagId and slotIndex
+--- @return boolean, boolean, string, number: useCustomCategory, matched, categoryName, categoryPriority
 function BETTERUI.GetCustomCategory(itemData)
 	local useCustomCategory = false
---shadowcep[[
+	--shadowcep[[
 	if AutoCategory and AutoCategory.Inited then
---shadowcep]]
+	--shadowcep]]
 		useCustomCategory = true
 		local bagId = itemData.bagId
 		local slotIndex = itemData.slotIndex
@@ -154,6 +188,10 @@ function BETTERUI.GetCustomCategory(itemData)
 	return useCustomCategory, false, "", 0
 end
 
+--- Post-hooks a method on a control, calling the original method first, then the hook function
+--- @param control table: The UI control to hook
+--- @param method string: The method name to hook
+--- @param fn function: The hook function to call after the original
 function BETTERUI.PostHook(control, method, fn)
 	if control == nil then return end
 
@@ -164,26 +202,38 @@ function BETTERUI.PostHook(control, method, fn)
 	end
 end
 
+--- Hooks a method on a control with option to overwrite or call original first
+--- @param control table: The UI control to hook
+--- @param method string: The method name to hook
+--- @param postHookFunction function: The hook function to call
+--- @param overwriteOriginal boolean: If true, skips calling the original method
 function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
 	if control == nil then return end
 
 	local originalMethod = control[method]
 	control[method] = function(self, ...)
-		if(overwriteOriginal == false) then originalMethod(self, ...) end
+		if overwriteOriginal == false then originalMethod(self, ...) end
 		postHookFunction(self, ...)
 	end
 end
 
-function BETTERUI.RGBToHex(rgba)
-	r,g,b,a = unpack(rgba)
-	return string.format("%02x%02x%02x", r*255, g*255, b*255)
+--- Converts RGB color values to hexadecimal string
+--- @param rgb table: Table containing r, g, b values (0-1 range)
+--- @return string: Hexadecimal color string (e.g., "ff0000")
+function BETTERUI.RGBToHex(rgb)
+	local r, g, b = table.unpack(rgb)
+	return string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
+--- Creates a standardized module panel configuration for settings menus
+--- @param moduleName string: The name of the module
+--- @param moduleDesc string: The description of the module
+--- @return table: Panel configuration table for LibAddonMenu
 function Init_ModulePanel(moduleName, moduleDesc)
 	return {
 		type = "panel",
-		name = "|t24:24:/esoui/art/buttons/gamepad/xbox/nav_xbone_b.dds|t "..BETTERUI.name.." ("..moduleName..")",
-		displayName = "|c0066ffBETTERUI|r :: "..moduleDesc,
+		name = "|t24:24:/esoui/art/buttons/gamepad/xbox/nav_xbone_b.dds|t " .. BETTERUI.name .. " (" .. moduleName .. ")",
+		displayName = "|c0066ffBETTERUI|r :: " .. moduleDesc,
 		author = "prasoc, RockingDice, Goobsnake",
 		version = BETTERUI.version,
 		slashCommand = "/betterui",
