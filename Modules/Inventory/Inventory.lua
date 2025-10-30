@@ -1,3 +1,4 @@
+-- shadowcep: Patched for compatibility with ESO Update 34 (from fix by CinderDarkfire)
 local _
 
 local BLOCK_TABBAR_CALLBACK = true
@@ -765,7 +766,9 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 
 				itemData.isHiddenByWardrobe = WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE)
 			else
-				local slotIndex = GetItemCurrentActionBarSlot(itemData.bagId, itemData.slotIndex)
+--shadowcep[[
+				local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+--shadowcep]]
 				itemData.isEquippedInCurrentCategory = slotIndex and true or nil
 
 
@@ -1848,18 +1851,21 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             		if isQuickslot then
                 			--assign
                         --self:ShowQuickslot()
-                        local validSlot = GetFirstFreeValidSlotForItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
+--shadowcep[[
+                        local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                        local validSlot = GetFirstFreeValidSlotForItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, quickslot_wheel)
                         if validSlot then
-                            CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, validSlot)
+                            CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, validSlot, quickslot_wheel)
                         else
-                            --Quickslot order [12]=1,[11]=2,[10]=3,[9]=4,[16]=5,[15]=6,[14]=7,[13]=8
-                            local quickSlotIndex = GetItemCurrentActionBarSlot(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
+                            --Quickslot order [1]=SE,[2]=E,[3]=NE,[4]=N,[5]=NW,[6]=W,[7]=SW,[8]=S
+                            local quickSlotIndex = FindActionSlotMatchingItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, quickslot_wheel)
                             if quickSlotIndex then
-                                CallSecureProtected('ClearSlot', quickSlotIndex)
+                                CallSecureProtected('ClearSlot', quickSlotIndex, quickslot_wheel)
                             else
-                                CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, 12)
+                                CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, 4, quickslot_wheel)
                             end
                         end
+--shadowcep]]
                         zo_callLater(function() self:RefreshItemList() end, 250)
             		elseif not isQuestItem and filterType ~= ITEMFILTERTYPE_QUEST and filterType == ITEMFILTERTYPE_WEAPONS or filterType == ITEMFILTERTYPE_ARMOR or filterType == ITEMFILTERTYPE_JEWELRY then
             			--switch compare

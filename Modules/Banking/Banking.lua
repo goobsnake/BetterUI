@@ -1,3 +1,4 @@
+-- shadowcep: Patched for compatibility with ESO Update 34 (from fix by CinderDarkfire)
 local _
 
 local LIST_WITHDRAW = 1
@@ -188,7 +189,9 @@ function BETTERUI.Banking.Class:RefreshList()
                 itemData.sortPriorityName = itemData.bestItemCategoryName
             end
         end
-        local slotIndex = GetItemCurrentActionBarSlot(itemData.bagId, itemData.slotIndex)
+--shadowcep[[
+        local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex)
+--shadowcep]]
         itemData.isEquippedInCurrentCategory = slotIndex and true or nil
 
         table.insert(tempDataTable, itemData)

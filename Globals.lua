@@ -1,3 +1,4 @@
+-- shadowcep: Patched for compatibility with latest version of AutoCategory (fix by Friday_The13_rus)
 BETTERUI = {
 	ResearchTraits = {}
 }
@@ -140,7 +141,9 @@ end
 
 function BETTERUI.GetCustomCategory(itemData)
 	local useCustomCategory = false
-	if AutoCategory and AutoCategory.curSavedVars then
+--shadowcep[[
+	if AutoCategory and AutoCategory.Inited then
+--shadowcep]]
 		useCustomCategory = true
 		local bagId = itemData.bagId
 		local slotIndex = itemData.slotIndex

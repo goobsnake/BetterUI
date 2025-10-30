@@ -141,6 +141,12 @@ function BETTERUI.Tooltips.Setup()
 
 	Init("General", "General Interface")
 
+	if IsPrivateFunction('IsInUI') then
+		ZO_IsIngameUI = function()
+			return SCRIBING_DATA_MANAGER ~= nil
+		end
+	end
+
 	if BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog then
 		BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
 			self.mainKeybindDescriptor[3]["callback"] = function() self:Delete() end

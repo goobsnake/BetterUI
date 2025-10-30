@@ -1,3 +1,4 @@
+-- shadowcep: Patched for compatibility with ESO Update 33
 local _
 
 BETTERUI_TEST_SCENE_NAME = "BETTERUI_BANKING"
@@ -16,7 +17,10 @@ function BETTERUI.CIM.SetTooltipWidth(width)
     -- Setup the larger and offset LEFT_TOOLTIP and background fragment so that the new inventory fits!
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
    -- GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT.control:SetDimensions(50, 50)
-    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(3,GuiRoot,3, width+66, 52)
+--shadowcep[[
+    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT, width+66, 52)
+    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(BOTTOMLEFT,GuiRoot,BOTTOMLEFT, width+66, -125)
+--shadowcep]]
 end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()

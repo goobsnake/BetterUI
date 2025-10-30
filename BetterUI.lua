@@ -1,8 +1,14 @@
-local _
 local LAM = LibAddonMenu2
-local dirtyModules = false
 
 if BETTERUI == nil then BETTERUI = {} end
+
+function BETTERUI.UpdateCIMState()
+    if BETTERUI.Settings.Modules["Tooltips"].m_enabled or BETTERUI.Settings.Modules["Inventory"].m_enabled or BETTERUI.Settings.Modules["Banking"].m_enabled then
+        BETTERUI.Settings.Modules["CIM"].m_enabled = true
+    else
+        BETTERUI.Settings.Modules["CIM"].m_enabled = false
+    end
+end
 
 function BETTERUI.InitModuleOptions()
 
@@ -20,12 +26,7 @@ function BETTERUI.InitModuleOptions()
 			tooltip = "Vast improvements to the ingame tooltips and UI",
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].m_enabled end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].m_enabled = value
-						dirtyModules = true
-						if value == true then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = true
-		              	elseif not BETTERUI.Settings.Modules["Tooltips"].m_enabled and not BETTERUI.Settings.Modules["Inventory"].m_enabled and not BETTERUI.Settings.Modules["Banking"].m_enabled then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = false
-		                end
+						BETTERUI.UpdateCIMState()
 					end,
 			width = "full",
 			requiresReload = true,
@@ -36,12 +37,7 @@ function BETTERUI.InitModuleOptions()
 			tooltip = "Completely redesigns the gamepad's inventory interface",
 			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].m_enabled end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].m_enabled = value
-						dirtyModules = true
-						if value == true then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = true
-		              	elseif not BETTERUI.Settings.Modules["Tooltips"].m_enabled and not BETTERUI.Settings.Modules["Inventory"].m_enabled and not BETTERUI.Settings.Modules["Banking"].m_enabled then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = false
-		                end
+						BETTERUI.UpdateCIMState()
 		            end,
 			width = "full",
 			requiresReload = true,
@@ -52,12 +48,7 @@ function BETTERUI.InitModuleOptions()
 			tooltip = "Completely redesigns the gamepad's banking interface",
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].m_enabled end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].m_enabled = value
-						dirtyModules = true
-						if value == true then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = true
-		                elseif not BETTERUI.Settings.Modules["Tooltips"].m_enabled and not BETTERUI.Settings.Modules["Inventory"].m_enabled and not BETTERUI.Settings.Modules["Banking"].m_enabled then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = false
-		                end
+						BETTERUI.UpdateCIMState()
 		            end,
 			width = "full",
 			requiresReload = true,
@@ -67,8 +58,7 @@ function BETTERUI.InitModuleOptions()
 			name = "Enable |c0066FFDaily Writ module|r",
 			tooltip = "Displays the daily writ, and progress, at each crafting station",
 			getFunc = function() return BETTERUI.Settings.Modules["Writs"].m_enabled end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Writs"].m_enabled = value
-									dirtyModules = true  end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Writs"].m_enabled = value  end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -78,12 +68,9 @@ function BETTERUI.InitModuleOptions()
 			tooltip = "Enables added functionality to the completely redesigned \"Enhanced\" interfaces!",
 			getFunc = function() return BETTERUI.Settings.Modules["CIM"].m_enabled end,
 			setFunc = function(value) BETTERUI.Settings.Modules["CIM"].m_enabled = value
-						dirtyModules = true
-						if not BETTERUI.Settings.Modules["Tooltips"].m_enabled and not BETTERUI.Settings.Modules["Inventory"].m_enabled and not BETTERUI.Settings.Modules["Banking"].m_enabled then
-		                    BETTERUI.Settings.Modules["CIM"].m_enabled = false
-		                end
+						BETTERUI.UpdateCIMState()
 		            end,
-            disabled = function() return BETTERUI.Settings.Modules["CIM"].m_enabled or not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+            disabled = true,
 			width = "full",
 		},
 	}
@@ -135,11 +122,11 @@ function BETTERUI.Initialize(event, addon)
 
 	-- Has the settings savedvars JUST been applied? then re-init the module settings
 	if(BETTERUI.Settings.firstInstall) then
-		local m_CIM = BETTERUI.ModuleOptions(BETTERUI.CIM, BETTERUI.Settings.Modules["CIM"])
-		local m_Inventory = BETTERUI.ModuleOptions(BETTERUI.Inventory, BETTERUI.Settings.Modules["Inventory"])
-		local m_Banking = BETTERUI.ModuleOptions(BETTERUI.Banking, BETTERUI.Settings.Modules["Banking"])
-		local m_Writs = BETTERUI.ModuleOptions(BETTERUI.Writs, BETTERUI.Settings.Modules["Writs"])
-		local m_Tooltips = BETTERUI.ModuleOptions(BETTERUI.Tooltips, BETTERUI.Settings.Modules["Tooltips"])
+		BETTERUI.ModuleOptions(BETTERUI.CIM, BETTERUI.Settings.Modules["CIM"])
+		BETTERUI.ModuleOptions(BETTERUI.Inventory, BETTERUI.Settings.Modules["Inventory"])
+		BETTERUI.ModuleOptions(BETTERUI.Banking, BETTERUI.Settings.Modules["Banking"])
+		BETTERUI.ModuleOptions(BETTERUI.Writs, BETTERUI.Settings.Modules["Writs"])
+		BETTERUI.ModuleOptions(BETTERUI.Tooltips, BETTERUI.Settings.Modules["Tooltips"])
 
 		d("first install!")
 		BETTERUI.Settings.firstInstall = false
@@ -148,6 +135,7 @@ function BETTERUI.Initialize(event, addon)
 	BETTERUI.EventManager:UnregisterForEvent("BetterUIInitialize", EVENT_ADD_ON_LOADED)
 
 	BETTERUI.InitModuleOptions()
+	BETTERUI.UpdateCIMState()
 
 	if(IsInGamepadPreferredMode()) then
 		BETTERUI.LoadModules()
