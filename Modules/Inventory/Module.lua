@@ -588,18 +588,25 @@ end
 
 --- Sets up mouse wheel scrolling for tooltips
 local function SetupTooltipMouseWheel()
-    ZO_GamepadTooltipTopLevelLeftTooltipContainerTip:SetMouseEnabled(true)
-    ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll:SetMouseEnabled(true)
-    ZO_GamepadTooltipTopLevelLeftTooltipContainerTip:SetHandler("OnMouseWheel", function(self, delta)
-        local newScrollValue
-        if delta > 0 then
-            newScrollValue = self.scrollValue - BETTERUI.Settings.Modules["CIM"].rhScrollSpeed
-        else
-            newScrollValue = self.scrollValue + BETTERUI.Settings.Modules["CIM"].rhScrollSpeed
-        end
-        self.scrollValue = newScrollValue
-        self.scroll:SetVerticalScroll(newScrollValue)
-    end)
+	local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
+	local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
+	if tip and tipScroll then
+		tip:SetMouseEnabled(true)
+		tipScroll:SetMouseEnabled(true)
+		tip:SetHandler("OnMouseWheel", function(self, delta)
+			local speed = (BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].rhScrollSpeed) or 20
+			local newScrollValue
+			if delta > 0 then
+				newScrollValue = (self.scrollValue or 0) - speed
+			else
+				newScrollValue = (self.scrollValue or 0) + speed
+			end
+			self.scrollValue = newScrollValue
+			if self.scroll and self.scroll.SetVerticalScroll then
+				self.scroll:SetVerticalScroll(newScrollValue)
+			end
+		end)
+	end
 end
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 --

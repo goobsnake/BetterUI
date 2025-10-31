@@ -39,18 +39,6 @@ local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeSt
             stackCount = GetSlotStackSize(bagId, slotIndex)
         end
 
-        -- Turning on error suppression for guildstore browse/sell when using various item value tools like MM, ATT, etc.
-        -- Lua errors happen outside of this add-on
-        if BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress then 
-            if SCENE_MANAGER.scenes['gamepad_trading_house']:IsShowing() and gsErrorSuppress == 0 then
-                EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-                gsErrorSuppress = 1
-            elseif not SCENE_MANAGER.scenes['gamepad_trading_house']:IsShowing() and gsErrorSuppress == 1 then
-                EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-                gsErrorSuppress = 0
-            end
-        end 
-
         if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
             local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
             local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)

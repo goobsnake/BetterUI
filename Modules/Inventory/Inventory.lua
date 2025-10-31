@@ -1586,18 +1586,23 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
      local function OnInventoryUpdated(bagId)
         self:MarkDirty()
+        -- Debounce heavy updates to the next frame to batch rapid changes
+        if GetFrameTimeSeconds then
+            self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05
+        else
+            self.nextUpdateTimeSeconds = nil
+        end
+
         local currentList = self:GetCurrentList()
         if self.scene:IsShowing() then
-            -- we only want to update immediately if we are in the gamepad inventory scene
+            -- If an action dialog is open, keep the immediate update for correctness
             if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-                self:OnUpdate() --don't wait for next update loop in case item was destroyed and scene/keybinds need immediate update
+                self:OnUpdate() -- immediate to keep dialog/keybinds consistent
             else
-                if currentList == self.categoryList then
-                    self:RefreshCategoryList()
-                elseif currentList == self.itemList then
+                if currentList == self.itemList then
                     self:RefreshKeybinds()
                 end
-                RefreshSelectedData() --dialog will refresh selected when it hides, so only do it if it's not showing
+                RefreshSelectedData()
                 self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
             end
         end
@@ -1747,8 +1752,7 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 	BETTERUI.GenericHeader.SetEquippedIcons(self.header, GetEquippedItemInfo(EQUIP_SLOT_MAIN_HAND), GetEquippedItemInfo(EQUIP_SLOT_OFF_HAND), GetEquippedItemInfo(EQUIP_SLOT_POISON))
 	BETTERUI.GenericHeader.SetBackupEquippedIcons(self.header, GetEquippedItemInfo(EQUIP_SLOT_BACKUP_MAIN), GetEquippedItemInfo(EQUIP_SLOT_BACKUP_OFF), GetEquippedItemInfo(EQUIP_SLOT_BACKUP_POISON))
 
-    self:RefreshCategoryList()
-	BETTERUI.GenericFooter.Refresh(self)
+    BETTERUI.GenericFooter.Refresh(self)
 end
 
 function BETTERUI.Inventory:RefreshFooter()

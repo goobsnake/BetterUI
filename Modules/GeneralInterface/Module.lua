@@ -157,5 +157,21 @@ function BETTERUI.Tooltips.Setup()
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 
+	-- Move guild store error suppression to scene lifecycle to avoid frequent toggling during tooltip draws
+	if BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress then
+		local scene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_trading_house']
+		if scene then
+			scene:RegisterCallback("StateChange", function(oldState, newState)
+				if newState == SCENE_SHOWING then
+					EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
+					gsErrorSuppress = 1
+				elseif newState == SCENE_HIDDEN then
+					EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
+					gsErrorSuppress = 0
+				end
+			end)
+		end
+	end
+
 	if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["Tooltips"].chatHistory) end
 end
