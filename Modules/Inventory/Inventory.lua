@@ -365,12 +365,13 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		local usedBagSize = GetNumBagUsedSlots(BAG_BACKPACK)
 
 		for i = 1, usedBagSize do
-			local findJunk = IsItemJunk(BAG_BACKPACK, i)
-			local findStolen = IsItemStolen(BAG_BACKPACK, i)
-			if findStolen and not findJunk then
+			local isStolen = IsItemStolen(BAG_BACKPACK, i)
+			local isJunk = IsItemJunk(BAG_BACKPACK, i)
+			if isStolen and not isJunk then
 				return true
 			end
 		end
+		return false
 	end
 
     self.categoryList:Clear()
@@ -799,6 +800,15 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             end
 
             ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
+            
+            -- Cache expensive API calls for performance
+            itemData.cached_itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
+            itemData.cached_itemType = GetItemLinkItemType(itemData.cached_itemLink)
+            itemData.cached_setItem = GetItemLinkSetInfo(itemData.cached_itemLink, false)
+            itemData.cached_hasEnchantment = GetItemLinkEnchantInfo(itemData.cached_itemLink)
+            itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData.cached_itemLink)
+            itemData.cached_isBookKnown = IsItemLinkBookKnown(itemData.cached_itemLink)
+            itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex) and not itemData.stolen and itemData.quality ~= ITEM_QUALITY_TRASH
         end
     end
 
@@ -1007,7 +1017,6 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
 	local function ActionDialogSetup(dialog)
 		if self.scene:IsShowing() then 
-			--d("tt inv action setup")
 				dialog.entryList:SetOnSelectedDataChangedCallback(  function(list, selectedData)
 					self.itemActions:SetSelectedAction(selectedData and selectedData.action)
 				end)
@@ -1043,14 +1052,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
 				self:RefreshItemActions()
 
-				--ZO_ClearTable(parametricList)
 				if(self.categoryList:GetTargetData().showJunk ~= nil) then
 					self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary"}
 				else
 					self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
 				end
 
-				--self:RefreshItemActions()
 				local actions = self.itemActions:GetSlotActions()
 				local numActions = actions:GetNumSlotActions()
 
@@ -1069,9 +1076,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 						entryData = entryData,
 					}
 					
-					--if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
 					table.insert(parametricList, listItem)
-					--end
+					
 				end
 
 				dialog:setupFunc()
@@ -1080,7 +1086,6 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	end
 	local function ActionDialogFinish() 
 		if self.scene:IsShowing() then 
-			--d("tt inv action finish")
 			-- make sure to wipe out the keybinds added by 
     		self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 		 
@@ -1110,7 +1115,6 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	
 	local function ActionDialogButtonConfirm(dialog)
 		if self.scene:IsShowing() then 
-			--d(ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction))
 			
 			if (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) then
 				local targetData
@@ -1242,18 +1246,7 @@ function BETTERUI.Inventory.HookActionDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(SI_GAMEPAD_SELECT_OPTION),
             	callback = function(dialog)  
-      --       		if (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_DESTROY)) then
-						-- ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
-						-- local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-						-- local _, actualItemCount = GetItemInfo(bag, index)
-		    --     		if itemCount == 0 and actualItemCount > 1 then
-		    --         		itemCount = actualItemCount
-		    --     		end
-		    --     		local itemLink = GetItemLink(bag, index)
-		    --     		local dialogName = "DESTROY_ITEM_PROMPT"
-		    --     		ZO_Dialogs_ShowPlatformDialog(dialogName, nil, {mainTextParams = {itemLink, itemCount, GetString(SI_DESTROY_ITEM_CONFIRMATION)}})
-      --                   end
-      --               end           	
+     	           	
 					if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
 					   (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
 						CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
@@ -1491,7 +1484,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
 
                 	--update inventory window's header
                 	GAMEPAD_INVENTORY.isPrimaryWeapon = dialog.data[2]
-                	--d("abc", dialog.data[2])
+                	
                 	GAMEPAD_INVENTORY:RefreshHeader()
 
                 	--update dialog
@@ -1526,7 +1519,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	            -- don't refresh item actions if we are switching back to the category view
 	            -- otherwise we get keybindstrip errors (Item actions will try to add an "A" keybind
 	            -- and we already have an "A" keybind)
-	            --self:UpdateRightTooltip()
+	            
 	            self:RefreshItemActions()
 	        end
 	    elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
@@ -1628,7 +1621,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
 	local function CallbackSplitStackFinished()
 		--refresh list
 		if self.scene:IsShowing() then
-			--d("tt inv splited!")
+			
 			self:ToSavedPosition()
 		end
 	end
@@ -1659,8 +1652,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
             end
         end
     end
-
-	--self:SetDefaultSort(BETTERUI_ITEM_SORT_BY.SORT_NAME)
 
     control:RegisterForEvent(EVENT_CANCEL_MOUSE_REQUEST_DESTROY_ITEM, OnCancelDestroyItemRequest)
     control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
@@ -1708,7 +1699,7 @@ function BETTERUI.Inventory.Class:Switch()
         self:SwitchActiveList(INVENTORY_ITEM_LIST)
     else
         self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
-		--self:RefreshCraftBagList()
+		
     end
 end
 
@@ -1761,13 +1752,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	    	self:RefreshItemList()
 	    	self:UpdateItemLeftTooltip(self.itemList.selectedData)
 
-			--if self.callLaterLeftToolTip ~= nil then
-			--	EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-			--end
-			--
-			--local callLaterId = zo_callLater(function() self:UpdateItemLeftTooltip(self.itemList.selectedData) end, 100)
-			--self.callLaterLeftToolTip = "CallLaterFunction"..callLaterId
-
+			
 		elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then  
 			self:SetCurrentList(self.craftBagList)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
@@ -1784,7 +1769,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:RefreshCraftBagList()
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 
-			--TriggerTutorial(TUTORIAL_TRIGGER_CRAFT_BAG_OPENED)
+			
 		end 
 		self:RefreshKeybinds()
 	else
@@ -1874,8 +1859,6 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             		local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)                    
                     local filterType = GetItemFilterTypeInfo(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
             		if isQuickslot then
-                			--assign
-                        --self:ShowQuickslot()
 --shadowcep[[
                         local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
                         local validSlot = GetFirstFreeValidSlotForItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, quickslot_wheel)

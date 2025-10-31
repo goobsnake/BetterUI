@@ -32,9 +32,6 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
 
     if(self.m_contextMenuMode and (not options or options ~= "silent") and (not visibilityFunction or visibilityFunction())) then
         AddMenuItem(actionName, actionCallback)
-
-		--table.remove(ZO_Menu.items, 1) -- get rid of the old Primary menu item, leaving our replacement at the top
-		--ZO_Menu.itemPool:ReleaseObject(1)
     end
 end
 

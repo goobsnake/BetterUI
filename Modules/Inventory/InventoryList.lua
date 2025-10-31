@@ -61,18 +61,15 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
            labelTxt = labelTxt..zo_strformat(" |cFFFFFF(<<1>>)|r",data.stackCount)
         end
 
-        local itemData = GetItemLink(bagId, slotIndex)
+        local itemData = data.cached_itemLink or GetItemLink(bagId, slotIndex)
 
-        local setItem, _, _, _, _ = GetItemLinkSetInfo(itemData, false)
-        local hasEnchantment, _, _ = GetItemLinkEnchantInfo(itemData)
+        local setItem = data.cached_setItem or GetItemLinkSetInfo(itemData, false)
+        local hasEnchantment = data.cached_hasEnchantment or GetItemLinkEnchantInfo(itemData)
 
-        local currentItemType = GetItemLinkItemType(itemData) --GetItemType(bagId, slotIndex)
-        local isRecipeAndUnknown = false
-        if (currentItemType == ITEMTYPE_RECIPE) then
-            isRecipeAndUnknown = not IsItemLinkRecipeKnown(itemData)
-		end
+        local currentItemType = data.cached_itemType or GetItemLinkItemType(itemData)
+        local isRecipeAndUnknown = data.cached_isRecipeAndUnknown or ((currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData))
 
-		local isUnbound = not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH
+		local isUnbound = data.cached_isUnbound or (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
         if data.stolen then labelTxt = labelTxt.." |t16:16:/BetterUI/Modules/CIM/Images/inv_stolen.dds|t" end
 		if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then labelTxt = labelTxt.." |t16:16:/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t" end
@@ -125,10 +122,6 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     else
         equippedIcon:SetHidden(true)
     end
-	
-	-- if BETTERUI.Settings.Modules["CIM"].skinSize then
-	-- 	equippedIcon:SetDimensions(44, 42)
-	-- end
 end
 
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
@@ -218,11 +211,9 @@ end
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
-    -- Cache frequently used values
-    local bagId = data.bagId
-    local slotIndex = data.slotIndex
-    local itemLink = GetItemLink(bagId, slotIndex)
-    local itemType = GetItemLinkItemType(itemLink)
+    -- Use cached values for performance
+    local itemLink = data.cached_itemLink or GetItemLink(data.bagId, data.slotIndex)
+    local itemType = data.cached_itemType or GetItemLinkItemType(itemLink)
     local skinSize = BETTERUI.Settings.Modules["CIM"].skinSize
 
     -- Set font sizes based on skin size (cached to avoid repeated calculations)
@@ -264,9 +255,9 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Set stat information based on item type
     local statText
     if itemType == ITEMTYPE_RECIPE then
-        statText = IsItemLinkRecipeKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+        statText = data.cached_isRecipeAndUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
     elseif IsItemLinkBook(itemLink) then
-        statText = IsItemLinkBookKnown(itemLink) and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+        statText = data.cached_isBookKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
     else
         statText = (data.dataSource.statValue == 0) and "-" or data.dataSource.statValue
     end
