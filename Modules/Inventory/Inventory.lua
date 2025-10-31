@@ -1759,6 +1759,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	    	self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 	    	self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
 	    	self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
+	    	self:ToSavedPosition()
 
 	    	self:UpdateItemLeftTooltip(self.itemList.selectedData)
 
@@ -1783,6 +1784,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
 			self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
 			self:ActivateHeader()
+			self:ToSavedPosition()
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 
 			--TriggerTutorial(TUTORIAL_TRIGGER_CRAFT_BAG_OPENED)
