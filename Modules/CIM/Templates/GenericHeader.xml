@@ -38,6 +38,7 @@
             <OnInitialized>
                 ZO_GamepadTabBarTemplate_OnInitialized(self)
             </OnInitialized>
+            <OnMouseUp>ZO_ParametricScrollListEntry_OnMouseUp(self)</OnMouseUp>
             <Controls>
                 <Texture name="$(parent)Icon">
                      <Dimensions x="BETTERUI_TABBAR_ICON_WIDTH" y="BETTERUI_TABBAR_ICON_WIDTH"/>

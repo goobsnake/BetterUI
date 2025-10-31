@@ -71,6 +71,18 @@ end
 
 local TEXT_ALIGN_RIGHT = 2
 
+local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
+    if selectedData then
+        local categoryList = GAMEPAD_INVENTORY.categoryList
+        for i = 1, categoryList:GetNumEntries() do
+            if categoryList:GetEntryData(i) == selectedData then
+                categoryList:SetSelectedIndex(i)
+                break
+            end
+        end
+    end
+end
+
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
