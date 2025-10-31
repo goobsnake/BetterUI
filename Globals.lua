@@ -87,6 +87,48 @@ function BETTERUI.DisplayNumber(number)
 	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
+--- Abbreviates large numbers using k/m/b with configurable decimals.
+--- Rules:
+---  - >= 1,000 => k; show 0 decimals if exact integer (e.g., 1k), else 2 decimals (e.g., 1.24k)
+---  - >= 1,000,000 => m; always 2 decimals (e.g., 1.20m)
+---  - >= 1,000,000,000 => b; always 2 decimals (e.g., 1.20b)
+---  - < 1,000 uses DisplayNumber with separators
+--- @param n number
+--- @param defaultDecimals number|nil defaults to 2
+--- @return string
+function BETTERUI.AbbreviateNumber(n, defaultDecimals)
+	local abs = math.abs(n or 0)
+	local suffix = ""
+	local value = n or 0
+	local decimals = defaultDecimals or 2
+
+	if abs >= 1000000000 then
+		suffix = "b"
+		value = value / 1000000000
+		-- always 2 decimals for billions
+		decimals = 2
+	elseif abs >= 1000000 then
+		suffix = "m"
+		value = value / 1000000
+		-- always 2 decimals for millions
+		decimals = 2
+	elseif abs >= 1000 then
+		suffix = "k"
+		value = value / 1000
+		-- for thousands, show 0 decimals if integer, else 2
+		if value == math.floor(value) then
+			decimals = 0
+		else
+			decimals = 2
+		end
+	else
+		return BETTERUI.DisplayNumber(n or 0)
+	end
+
+	local fmt = "%0." .. tostring(decimals) .. "f"
+	return string.format(fmt, value) .. suffix
+end
+
 --- Populates research traits data with caching to avoid redundant API calls
 --- Only rebuilds data if forceRefresh is true or data hasn't been initialized
 --- @param forceRefresh boolean: Force a refresh of the research data

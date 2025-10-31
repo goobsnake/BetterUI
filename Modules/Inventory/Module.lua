@@ -14,6 +14,54 @@ local GENERAL_COLOR_OFF_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
+	-- Safe refresh helper: only refresh header/footer when inventory scene is visible
+	local function SafeRefresh(headerToo)
+		if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE.IsShowing and GAMEPAD_INVENTORY_ROOT_SCENE:IsShowing() then
+			if headerToo and GAMEPAD_INVENTORY.RefreshHeader then
+				GAMEPAD_INVENTORY:RefreshHeader(true)
+			end
+			if BETTERUI and BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh then
+				BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+			end
+		end
+	end
+
+	local function RecomputeCurrencyOrderString()
+		local inv = BETTERUI.Settings.Modules["Inventory"]
+		if not inv then return end
+		local defaultsOrderIdx = {
+			gold = 1, ap = 2, telvar = 3, keys = 4, transmute = 5,
+			crowns = 6, gems = 7, writs = 8, tickets = 9, outfit = 10,
+		}
+		local map = {
+			{ key = "gold",     orderKey = "orderCurrencyGold" },
+			{ key = "ap",       orderKey = "orderCurrencyAlliancePoints" },
+			{ key = "telvar",   orderKey = "orderCurrencyTelVar" },
+			{ key = "keys",     orderKey = "orderCurrencyUndauntedKeys" },
+			{ key = "transmute",orderKey = "orderCurrencyTransmute" },
+			{ key = "crowns",   orderKey = "orderCurrencyCrowns" },
+			{ key = "gems",     orderKey = "orderCurrencyCrownGems" },
+			{ key = "writs",    orderKey = "orderCurrencyWritVouchers" },
+			{ key = "tickets",  orderKey = "orderCurrencyEventTickets" },
+			{ key = "outfit",   orderKey = "orderCurrencyOutfitTokens" },
+		}
+		local items = {}
+		for _, m in ipairs(map) do
+			local v = tonumber(inv[m.orderKey]) or defaultsOrderIdx[m.key]
+			if v < 1 then v = 1 elseif v > 10 then v = 10 end
+			table.insert(items, { key = m.key, order = v, tiebreak = defaultsOrderIdx[m.key] })
+		end
+		table.sort(items, function(a,b)
+			if a.order == b.order then
+				return a.tiebreak < b.tiebreak
+			end
+			return a.order < b.order
+		end)
+		local out = {}
+		for i=1,#items do out[i] = items[i].key end
+		inv.currencyOrder = table.concat(out, ",")
+	end
+
 	local optionsTable = {
 		{
 			type = "checkbox",
@@ -50,136 +98,6 @@ local function Init(mId, moduleName)
 			requiresReload = true,
 		},
 		{
-			type = "submenu",
-			name = "Currency visibility",
-			reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
-			controls = {
-				{
-					type = "checkbox",
-					name = "Gold",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyGold = value
-						if GAMEPAD_INVENTORY then
-							GAMEPAD_INVENTORY:RefreshHeader(true)
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Alliance Points",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints = value
-						if GAMEPAD_INVENTORY then
-							GAMEPAD_INVENTORY:RefreshHeader(true)
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Tel Var Stones",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar = value
-						if GAMEPAD_INVENTORY then
-							GAMEPAD_INVENTORY:RefreshHeader(true)
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Crown Gems",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Crowns",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Transmute Crystals",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Writ Vouchers",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Event Tickets",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Undaunted Keys",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-				{
-					type = "checkbox",
-					name = "Outfit Change Tokens",
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens = value
-						if GAMEPAD_INVENTORY then
-							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
-						end
-					end,
-					width = "full",
-				},
-			},
-		},
-		{
 			type = "checkbox",
 			name = "Item Icon - Unbound Items",
 			tooltip = "Show an icon after unbound items",
@@ -206,9 +124,317 @@ local function Init(mId, moduleName)
 			width = "full",
 			requiresReload = true,
 		},
+		{
+			type = "submenu",
+			name = "Currency visibility",
+			reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
+			controls = {
+				{
+					type = "checkbox",
+					name = "Gold",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyGold = value
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Gold order",
+					tooltip = "Place Gold in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyGold or 1)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyGold = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Alliance Points",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints = value
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Alliance Points order",
+					tooltip = "Place Alliance Points in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyAlliancePoints or 2)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyAlliancePoints = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Tel Var Stones",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar = value
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Tel Var order",
+					tooltip = "Place Tel Var Stones in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTelVar or 3)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyTelVar = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(true)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Crown Gems",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Crown Gems order",
+					tooltip = "Place Crown Gems in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrownGems or 7)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrownGems = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Crowns",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Crowns order",
+					tooltip = "Place Crowns in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrowns or 6)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrowns = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Transmute Crystals",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Transmute order",
+					tooltip = "Place Transmute Crystals in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTransmute or 5)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyTransmute = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Writ Vouchers",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Writ Vouchers order",
+					tooltip = "Place Writ Vouchers in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyWritVouchers or 8)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyWritVouchers = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Event Tickets",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Event Tickets order",
+					tooltip = "Place Event Tickets in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyEventTickets or 9)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyEventTickets = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Undaunted Keys",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Undaunted Keys order",
+					tooltip = "Place Undaunted Keys in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyUndauntedKeys or 4)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyUndauntedKeys = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Outfit Change Tokens",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens = value
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+				{
+					type = "slider",
+					name = "Outfit Tokens order",
+					tooltip = "Place Outfit Change Tokens in order 1 (first) through 10 (last). If multiple currencies share the same number, a default tie-breaker is applied.",
+					min = 1,
+					max = 10,
+					step = 1,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens == false
+					end,
+					getFunc = function()
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyOutfitTokens or 10)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyOutfitTokens = zo_clamp(value, 1, 10)
+						RecomputeCurrencyOrderString()
+						SafeRefresh(false)
+					end,
+					width = "full",
+				},
+			},
+		},
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
+
 end
 
 --- Initialize inventory module settings with default values
@@ -234,6 +460,20 @@ function BETTERUI.Inventory.InitModule(m_options)
 	m_options["showCurrencyEventTickets"] = true
 	m_options["showCurrencyUndauntedKeys"] = true
 	m_options["showCurrencyOutfitTokens"] = true
+
+	-- Currency order numeric defaults (1..10) and fallback legacy string
+	m_options["orderCurrencyGold"] = 1
+	m_options["orderCurrencyAlliancePoints"] = 2
+	m_options["orderCurrencyTelVar"] = 3
+	m_options["orderCurrencyUndauntedKeys"] = 4
+	m_options["orderCurrencyTransmute"] = 5
+	m_options["orderCurrencyCrowns"] = 6
+	m_options["orderCurrencyCrownGems"] = 7
+	m_options["orderCurrencyWritVouchers"] = 8
+	m_options["orderCurrencyEventTickets"] = 9
+	m_options["orderCurrencyOutfitTokens"] = 10
+
+	m_options["currencyOrder"] = "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
 
 	return m_options
 end

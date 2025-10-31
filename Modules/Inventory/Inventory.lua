@@ -1697,12 +1697,46 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
         return data
     end
 
+    -- header helpers with abbreviated currency values
+    local function HeaderGoldText()
+        return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_MONEY))
+    end
+    local function HeaderAPText()
+        return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_ALLIANCE_POINTS))
+    end
+    local function HeaderTelVarText()
+        return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_TELVAR_STONES))
+    end
+
+    local function BuildHeaderDataForListWithAbbrev(listRef)
+        if listRef == self.categoryList then
+            return self.categoryHeaderData
+        end
+        local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}
+        local data = { titleText = function() return GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV) end }
+        local slot = 1
+        local function add(headerText, valueFunc)
+            if slot == 1 then data.data1HeaderText, data.data1Text = headerText, valueFunc
+            elseif slot == 2 then data.data2HeaderText, data.data2Text = headerText, valueFunc
+            elseif slot == 3 then data.data3HeaderText, data.data3Text = headerText, valueFunc
+            elseif slot == 4 then data.data4HeaderText, data.data4Text = headerText, valueFunc end
+            slot = slot + 1
+        end
+        if invSettings.showCurrencyGold ~= false then add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), HeaderGoldText) end
+        if listRef ~= self.craftBagList then
+            if invSettings.showCurrencyAlliancePoints ~= false then add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), HeaderAPText) end
+            if invSettings.showCurrencyTelVar ~= false then add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), HeaderTelVarText) end
+            add(GetString(SI_GAMEPAD_INVENTORY_CAPACITY), UpdateCapacityString)
+        end
+        return data
+    end
+
     if currentList == self.craftBagList then
-        headerData = BuildHeaderDataForList(self.craftBagList)
+        headerData = BuildHeaderDataForListWithAbbrev(self.craftBagList)
     elseif currentList == self.categoryList then
-        headerData = BuildHeaderDataForList(self.categoryList)
+        headerData = BuildHeaderDataForListWithAbbrev(self.categoryList)
     else
-        headerData = BuildHeaderDataForList(self.itemList)
+        headerData = BuildHeaderDataForListWithAbbrev(self.itemList)
     end
 
     BETTERUI.GenericHeader.Refresh(self.header, headerData, blockCallback)
