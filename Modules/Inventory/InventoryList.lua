@@ -212,8 +212,11 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
     -- Use cached values for performance
-    local itemLink = data.cached_itemLink or GetItemLink(data.bagId, data.slotIndex)
-    local itemType = data.cached_itemType or GetItemLinkItemType(itemLink)
+    local bagId = data.bagId or (data.dataSource and data.dataSource.bagId)
+    local slotIndex = data.slotIndex or (data.dataSource and data.dataSource.slotIndex)
+
+    local itemLink = data.cached_itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
+    local itemType = data.cached_itemType or (itemLink and GetItemLinkItemType(itemLink))
     local skinSize = BETTERUI.Settings.Modules["CIM"].skinSize
 
     -- Set font sizes based on skin size (cached to avoid repeated calculations)
@@ -249,7 +252,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
 
     -- Set trait information
-    local traitType = GetItemTrait(bagId, slotIndex)
+    local traitType = (bagId and slotIndex) and GetItemTrait(bagId, slotIndex) or ITEM_TRAIT_TYPE_NONE
     traitControl:SetText(traitType == ITEM_TRAIT_TYPE_NONE and "-" or string.upper(GetString("SI_ITEMTRAITTYPE", traitType)))
 
     -- Set stat information based on item type
@@ -259,7 +262,12 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     elseif IsItemLinkBook(itemLink) then
         statText = data.cached_isBookKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
     else
-        statText = (data.dataSource.statValue == 0) and "-" or data.dataSource.statValue
+        local statValue = data.dataSource and data.dataSource.statValue
+        if statValue == nil then
+            statText = "-"
+        else
+            statText = (statValue == 0) and "-" or statValue
+        end
     end
     statControl:SetText(statText)
 

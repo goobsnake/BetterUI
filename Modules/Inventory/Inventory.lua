@@ -46,7 +46,7 @@ end
 
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
-    local isHidden, highestPriorityVisualLayerThatIsShowing = WouldEquipmentBeHidden(equipSlot or EQUIP_SLOT_NONE)
+    local isHidden, highestPriorityVisualLayerThatIsShowing = WouldEquipmentBeHidden(equipSlot or EQUIP_SLOT_NONE, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
     local equipSlotText = ""
     local equipSlotTextHidden = ""
     local equippedHeader = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
@@ -590,6 +590,22 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
 		self:NewCategoryItem(SI_BETTERUI_INV_ITEM_FURNISHING, ITEMFILTERTYPE_FURNISHING, "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds")
 
+        -- New: Companion Items category to mirror ESOUI additions
+        if ITEMFILTERTYPE_COMPANION ~= nil then
+            local isListEmpty = self:IsItemListEmpty(nil, ITEMFILTERTYPE_COMPANION)
+            if not isListEmpty then
+                local name = GetString("SI_ITEMFILTERTYPE", ITEMFILTERTYPE_COMPANION)
+                local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds"
+                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(ZO_InventoryUtils_DoesNewItemMatchFilterType, ITEMFILTERTYPE_COMPANION, BAG_BACKPACK)
+                local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
+                data.filterType = ITEMFILTERTYPE_COMPANION
+                data:SetIconTintOnSelection(true)
+                self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
+                BETTERUI.GenericHeader.AddToList(self.header, data)
+                if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
+            end
+        end
+
 	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_MISC, ITEMFILTERTYPE_MISCELLANEOUS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds")
 
 	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_QUICKSLOT, ITEMFILTERTYPE_QUICKSLOT, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds")
@@ -792,7 +808,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             if itemData.bagId == BAG_WORN then
                 itemData.isEquippedInCurrentCategory = (itemData.slotIndex == filteredEquipSlot)
                 itemData.isEquippedInAnotherCategory = (itemData.slotIndex ~= filteredEquipSlot)
-                itemData.isHiddenByWardrobe = WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE)
+                itemData.isHiddenByWardrobe = WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
             else
                 -- Check quickslot assignment
                 local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
@@ -942,7 +958,7 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 		GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex, selectedEquipSlot)
 		GAMEPAD_TOOLTIPS:SetStatusLabelText(GAMEPAD_LEFT_TOOLTIP, GetString(SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE))
     elseif GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then
-    	BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
+    	BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, selectedEquipSlot)
     end
 
 	if selectedItemData ~= nil and selectedItemData.dataSource ~= nil and selectedData ~= nil then
