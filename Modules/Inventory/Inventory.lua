@@ -691,29 +691,9 @@ function BETTERUI.Inventory.Class:InitializeHeader()
         tabBarData = { parent = self, onNext = BETTERUI_TabBar_OnTabNext, onPrev = BETTERUI_TabBar_OnTabPrev }
     }
 
-    self.craftBagHeaderData = {
-		titleText = UpdateTitleText,
-        tabBarEntries = tabBarEntries,
-
-        data1HeaderText = GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS),
-        data1Text = UpdateGold,
-    }
-
-    self.itemListHeaderData = {
-        titleText = UpdateTitleText,
-
-        data1HeaderText = GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS),
-        data1Text = UpdateGold,
-
-        data2HeaderText = GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS),
-        data2Text = UpdateAlliancePoints,
-
-        data3HeaderText = GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES),
-        data3Text = UpdateTelvarStones,
-
-        data4HeaderText = GetString(SI_GAMEPAD_INVENTORY_CAPACITY),
-        data4Text = UpdateCapacityString,
-    }
+    -- Header data will be built dynamically in RefreshHeader based on settings
+    self.craftBagHeaderData = nil
+    self.itemListHeaderData = nil
 
 	BETTERUI.GenericHeader.Initialize(self.header, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
 	BETTERUI.GenericHeader.SetEquipText(self.header, self.isPrimaryWeapon)
@@ -1598,6 +1578,9 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
     self.control:RegisterForEvent(EVENT_MONEY_UPDATE, RefreshHeader)
     self.control:RegisterForEvent(EVENT_ALLIANCE_POINT_UPDATE, RefreshHeader)
     self.control:RegisterForEvent(EVENT_TELVAR_STONE_UPDATE, RefreshHeader)
+    if EVENT_CURRENCY_UPDATE then
+        self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, RefreshHeader)
+    end
     self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
     self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
@@ -1678,12 +1661,48 @@ end
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     local currentList = self:GetCurrentList()
     local headerData
+
+    local function BuildHeaderDataForList(listRef)
+        local data = { titleText = function() return GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV) end }
+        if listRef == self.categoryList then
+            -- Use existing category header (tab bar etc.)
+            data = self.categoryHeaderData
+        else
+            local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}
+            local slot = 1
+            local function add(headerText, valueFunc)
+                if slot == 1 then data.data1HeaderText, data.data1Text = headerText, valueFunc
+                elseif slot == 2 then data.data2HeaderText, data.data2Text = headerText, valueFunc
+                elseif slot == 3 then data.data3HeaderText, data.data3Text = headerText, valueFunc
+                elseif slot == 4 then data.data4HeaderText, data.data4Text = headerText, valueFunc end
+                slot = slot + 1
+            end
+
+            -- Show Gold/AP/Telvar according to settings (defaults true if nil)
+            if invSettings.showCurrencyGold ~= false then
+                add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), UpdateGold)
+            end
+            if listRef ~= self.craftBagList then
+                if invSettings.showCurrencyAlliancePoints ~= false then
+                    add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), UpdateAlliancePoints)
+                end
+                if invSettings.showCurrencyTelVar ~= false then
+                    add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), UpdateTelvarStones)
+                end
+                -- Capacity last for item list
+                add(GetString(SI_GAMEPAD_INVENTORY_CAPACITY), UpdateCapacityString)
+            end
+            -- For craft bag header, we only show Gold (if enabled); no capacity or others
+        end
+        return data
+    end
+
     if currentList == self.craftBagList then
-        headerData = self.craftBagHeaderData
+        headerData = BuildHeaderDataForList(self.craftBagList)
     elseif currentList == self.categoryList then
-        headerData = self.categoryHeaderData
+        headerData = BuildHeaderDataForList(self.categoryList)
     else
-        headerData = self.itemListHeaderData
+        headerData = BuildHeaderDataForList(self.itemList)
     end
 
     BETTERUI.GenericHeader.Refresh(self.header, headerData, blockCallback)

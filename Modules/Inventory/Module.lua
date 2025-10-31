@@ -50,6 +50,136 @@ local function Init(mId, moduleName)
 			requiresReload = true,
 		},
 		{
+			type = "submenu",
+			name = "Currency visibility",
+			reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
+			controls = {
+				{
+					type = "checkbox",
+					name = "Gold",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyGold = value
+						if GAMEPAD_INVENTORY then
+							GAMEPAD_INVENTORY:RefreshHeader(true)
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Alliance Points",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints = value
+						if GAMEPAD_INVENTORY then
+							GAMEPAD_INVENTORY:RefreshHeader(true)
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Tel Var Stones",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar = value
+						if GAMEPAD_INVENTORY then
+							GAMEPAD_INVENTORY:RefreshHeader(true)
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Crown Gems",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Crowns",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Transmute Crystals",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Writ Vouchers",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Event Tickets",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Undaunted Keys",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+				{
+					type = "checkbox",
+					name = "Outfit Change Tokens",
+					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens = value
+						if GAMEPAD_INVENTORY then
+							BETTERUI.GenericFooter.Refresh(GAMEPAD_INVENTORY)
+						end
+					end,
+					width = "full",
+				},
+			},
+		},
+		{
 			type = "checkbox",
 			name = "Item Icon - Unbound Items",
 			tooltip = "Show an icon after unbound items",
@@ -92,6 +222,18 @@ function BETTERUI.Inventory.InitModule(m_options)
 	m_options["showIconSetGear"] = true
 	m_options["showIconUnboundItem"] = true
 	m_options["quickDestroy"] = false
+
+	-- Currency visibility defaults
+	m_options["showCurrencyGold"] = true
+	m_options["showCurrencyAlliancePoints"] = true
+	m_options["showCurrencyTelVar"] = true
+	m_options["showCurrencyCrownGems"] = true
+	m_options["showCurrencyCrowns"] = true
+	m_options["showCurrencyTransmute"] = true
+	m_options["showCurrencyWritVouchers"] = true
+	m_options["showCurrencyEventTickets"] = true
+	m_options["showCurrencyUndauntedKeys"] = true
+	m_options["showCurrencyOutfitTokens"] = true
 
 	return m_options
 end
