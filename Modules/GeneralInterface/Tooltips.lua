@@ -1,32 +1,45 @@
 _G.gsErrorSuppress = 0
 local _
-    
-function BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG)
 
-    -- Get bag size
-    local bagSize = GetNumBagUsedSlots(BAG)
- 
-    -- Var to hold item matches
-    local itemMatches = 0
- 
-    -- Iterate through BAG
-    for i = 0, bagSize do
+-- Cached researchable trait counters per bag to avoid re-scanning on every tooltip
+local ResearchableTraitCache = {}
 
-        -- Get current item
-        local currentItem = GetItemLink(BAG, i)
- 
-        -- Check if current item is researchable
-        if(CanItemLinkBeTraitResearched(currentItem)) then
- 
-            -- Check if current item trait equals item's trait we're checking
-            if (GetItemLinkTraitInfo(currentItem) == GetItemLinkTraitInfo(itemLink)) then
-                itemMatches = itemMatches + 1
+-- Internal: build the cache for a specific bag
+local function BuildBagResearchCache(bagId)
+    local counts = {}
+    -- Prefer SHARED_INVENTORY cache to iterate only used slots
+    local items = SHARED_INVENTORY:GenerateFullSlotData(function() return true end, bagId)
+    for i = 1, #items do
+        local data = items[i]
+        local link = GetItemLink(data.bagId, data.slotIndex)
+        if link ~= nil and link ~= "" and CanItemLinkBeTraitResearched(link) then
+            local traitType = GetItemLinkTraitInfo(link)
+            if traitType and traitType ~= 0 then
+                counts[traitType] = (counts[traitType] or 0) + 1
             end
         end
     end
- 
-    -- return number of matches
-    return itemMatches;
+    ResearchableTraitCache[bagId] = counts
+end
+
+--- Returns the number of researchable items in the bag that share the same trait as itemLink.
+--- Uses a per-bag cache invalidated on inventory events for performance.
+function BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, bagId)
+    if not itemLink or not bagId then return 0 end
+    local traitType = GetItemLinkTraitInfo(itemLink)
+    if not traitType or traitType == 0 then return 0 end
+    if not ResearchableTraitCache[bagId] then
+        BuildBagResearchCache(bagId)
+    end
+    return (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
+end
+
+function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+    if bagId then
+        ResearchableTraitCache[bagId] = nil
+    else
+        ResearchableTraitCache = {}
+    end
 end
 
 local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeStackCount)
@@ -97,13 +110,22 @@ local function AddInventoryPreInfo(tooltip, itemLink)
         local traitString
         if(CanItemLinkBeTraitResearched(itemLink))  then
             -- Find owned items that can be researchable
-            if(BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_BACKPACK) > 0) then
+            if(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Inventory|r"
-            elseif(BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_BANK) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
+            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Bank|r"
-            elseif(BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_ONE) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_TWO) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_THREE) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_FOUR) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_FIVE) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_SIX) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_SEVEN) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_EIGHT) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_NINE) + BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
+            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FOUR)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FIVE)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SIX)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SEVEN)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_EIGHT)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_NINE)
+                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in House Bank|r"
-            elseif(BETTERUI.Tooltips.GetNumberOfMatchingItems(itemLink, BAG_WORN) > 0) then
+            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found Equipped|r"
             else
                 traitString = "|c00FF00Researchable|r"

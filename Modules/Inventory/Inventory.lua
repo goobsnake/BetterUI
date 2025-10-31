@@ -1665,44 +1665,7 @@ end
 
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     local currentList = self:GetCurrentList()
-    local headerData
 
-    local function BuildHeaderDataForList(listRef)
-        local data = { titleText = function() return GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV) end }
-        if listRef == self.categoryList then
-            -- Use existing category header (tab bar etc.)
-            data = self.categoryHeaderData
-        else
-            local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}
-            local slot = 1
-            local function add(headerText, valueFunc)
-                if slot == 1 then data.data1HeaderText, data.data1Text = headerText, valueFunc
-                elseif slot == 2 then data.data2HeaderText, data.data2Text = headerText, valueFunc
-                elseif slot == 3 then data.data3HeaderText, data.data3Text = headerText, valueFunc
-                elseif slot == 4 then data.data4HeaderText, data.data4Text = headerText, valueFunc end
-                slot = slot + 1
-            end
-
-            -- Show Gold/AP/Telvar according to settings (defaults true if nil)
-            if invSettings.showCurrencyGold ~= false then
-                add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), UpdateGold)
-            end
-            if listRef ~= self.craftBagList then
-                if invSettings.showCurrencyAlliancePoints ~= false then
-                    add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), UpdateAlliancePoints)
-                end
-                if invSettings.showCurrencyTelVar ~= false then
-                    add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), UpdateTelvarStones)
-                end
-                -- Capacity last for item list
-                add(GetString(SI_GAMEPAD_INVENTORY_CAPACITY), UpdateCapacityString)
-            end
-            -- For craft bag header, we only show Gold (if enabled); no capacity or others
-        end
-        return data
-    end
-
-    -- header helpers with abbreviated currency values
     local function HeaderGoldText()
         return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_MONEY))
     end
@@ -1713,10 +1676,12 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
         return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_TELVAR_STONES))
     end
 
-    local function BuildHeaderDataForListWithAbbrev(listRef)
+    local function BuildHeaderData(listRef, useAbbrev)
+        -- Category list uses prebuilt header with tab bar
         if listRef == self.categoryList then
             return self.categoryHeaderData
         end
+
         local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}
         local data = { titleText = function() return GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV) end }
         local slot = 1
@@ -1727,22 +1692,27 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
             elseif slot == 4 then data.data4HeaderText, data.data4Text = headerText, valueFunc end
             slot = slot + 1
         end
-        if invSettings.showCurrencyGold ~= false then add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), HeaderGoldText) end
+
+        local goldFunc = useAbbrev and HeaderGoldText or UpdateGold
+        local apFunc = useAbbrev and HeaderAPText or UpdateAlliancePoints
+        local tvFunc = useAbbrev and HeaderTelVarText or UpdateTelvarStones
+
+        if invSettings.showCurrencyGold ~= false then
+            add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), goldFunc)
+        end
         if listRef ~= self.craftBagList then
-            if invSettings.showCurrencyAlliancePoints ~= false then add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), HeaderAPText) end
-            if invSettings.showCurrencyTelVar ~= false then add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), HeaderTelVarText) end
+            if invSettings.showCurrencyAlliancePoints ~= false then
+                add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), apFunc)
+            end
+            if invSettings.showCurrencyTelVar ~= false then
+                add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), tvFunc)
+            end
             add(GetString(SI_GAMEPAD_INVENTORY_CAPACITY), UpdateCapacityString)
         end
         return data
     end
 
-    if currentList == self.craftBagList then
-        headerData = BuildHeaderDataForListWithAbbrev(self.craftBagList)
-    elseif currentList == self.categoryList then
-        headerData = BuildHeaderDataForListWithAbbrev(self.categoryList)
-    else
-        headerData = BuildHeaderDataForListWithAbbrev(self.itemList)
-    end
+    local headerData = BuildHeaderData(currentList, true) -- use abbreviated values by default
 
     BETTERUI.GenericHeader.Refresh(self.header, headerData, blockCallback)
 

@@ -173,5 +173,15 @@ function BETTERUI.Tooltips.Setup()
 		end
 	end
 
+	-- Invalidate researchable trait cache on inventory changes
+	local function invalidateCacheOnUpdate(_, bagId)
+		if BETTERUI and BETTERUI.Tooltips and BETTERUI.Tooltips.InvalidateResearchableTraitCache then
+			BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+		end
+	end
+
+	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvSingle", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, invalidateCacheOnUpdate)
+	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE, invalidateCacheOnUpdate)
+
 	if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["Tooltips"].chatHistory) end
 end
