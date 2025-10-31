@@ -1743,7 +1743,6 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
     		self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
     		self:RefreshCategoryList()
-    		self:RefreshItemList()
 
     		self:SetSelectedItemUniqueId(self.itemList:GetTargetData())
     		self.actionMode = ITEM_LIST_ACTION_MODE
@@ -1759,8 +1758,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	    	self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 	    	self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
 	    	self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
-	    	self:ToSavedPosition()
-
+	    	self:RefreshItemList()
 	    	self:UpdateItemLeftTooltip(self.itemList.selectedData)
 
 			--if self.callLaterLeftToolTip ~= nil then
@@ -1775,7 +1773,6 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
 			self:RefreshCategoryList()
-			self:RefreshCraftBagList()
 
 			self:SetSelectedItemUniqueId(self.craftBagList:GetTargetData())
 			self.actionMode = CRAFT_BAG_ACTION_MODE
@@ -1784,7 +1781,7 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
 			self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
 			self:ActivateHeader()
-			self:ToSavedPosition()
+			self:RefreshCraftBagList()
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 
 			--TriggerTutorial(TUTORIAL_TRIGGER_CRAFT_BAG_OPENED)
