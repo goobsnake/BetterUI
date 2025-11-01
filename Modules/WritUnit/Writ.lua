@@ -29,15 +29,24 @@ function BETTERUI.Writs.Update()
 			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
 				local qName,_,qDesc,_,_,qCompleted  = GetJournalQuestInfo(qId)
 				local currentWrit = -1
-
-				if string.find(string.lower(qName),'blacksmith') then currentWrit = CRAFTING_TYPE_BLACKSMITHING end
-				if string.find(string.lower(qName),'cloth') then currentWrit = CRAFTING_TYPE_CLOTHIER end
-				if string.find(string.lower(qName),'woodwork') then currentWrit = CRAFTING_TYPE_WOODWORKING end
-				if string.find(string.lower(qName),'enchant') then currentWrit = CRAFTING_TYPE_ENCHANTING end
-				if string.find(string.lower(qName),'provision') then currentWrit = CRAFTING_TYPE_PROVISIONING end
-				if string.find(string.lower(qName),'alchemist') then currentWrit = CRAFTING_TYPE_ALCHEMY end
-				if string.find(string.lower(qName),'jewelry') then currentWrit = CRAFTING_TYPE_JEWELRYCRAFTING end
-				if string.find(string.lower(qName),'witches') then currentWrit = CRAFTING_TYPE_PROVISIONING end
+				local q = string.lower(qName or "")
+				-- Order matters: last match wins as in the original chain
+				local patterns = {
+					{"blacksmith", CRAFTING_TYPE_BLACKSMITHING},
+					{"cloth", CRAFTING_TYPE_CLOTHIER},
+					{"woodwork", CRAFTING_TYPE_WOODWORKING},
+					{"enchant", CRAFTING_TYPE_ENCHANTING},
+					{"provision", CRAFTING_TYPE_PROVISIONING},
+					{"alchemist", CRAFTING_TYPE_ALCHEMY},
+					{"jewelry", CRAFTING_TYPE_JEWELRYCRAFTING},
+					{"witches", CRAFTING_TYPE_PROVISIONING},
+				}
+				for i = 1, #patterns do
+					local pat, craft = patterns[i][1], patterns[i][2]
+					if string.find(q, pat, 1, true) then
+						currentWrit = craft
+					end
+				end
 
 				if currentWrit ~= -1 then
 					BETTERUI.Writs.List[currentWrit] = { id = qId, writLines = BETTERUI.Writs.Get(qId) }

@@ -170,6 +170,11 @@ function BETTERUI.Banking.Class:RefreshList()
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checking_bags))
     --d("tt bank refreshed items: " .. #filteredDataTable)
     local tempDataTable = {}
+    -- Localize globals used in the loop for performance
+    local zo_strformat = zo_strformat
+    local GetBestItemCategoryDescription = GetBestItemCategoryDescription
+    local FindActionSlotMatchingItem = FindActionSlotMatchingItem
+    local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
     for i = 1, #filteredDataTable  do
         local itemData = filteredDataTable[i]
         --use custom categories
@@ -203,6 +208,8 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local currentBestCategoryName
 
+    local GetItemCooldownInfo = GetItemCooldownInfo
+    local ZO_GamepadEntryData = ZO_GamepadEntryData
     for i, itemData in ipairs(filteredDataTable) do
 
         local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
@@ -211,7 +218,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
         local remaining, duration
   
-        remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
+    remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
       
         if remaining > 0 and duration > 0 then
             data:SetCooldown(remaining, duration)

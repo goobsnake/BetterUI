@@ -154,17 +154,17 @@
         </Control>
 
 
-        <Control name="BETTERUI_HeaderRow_Template" inherits="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
-               <!--  <Dimensions y="32" /> -->
-                <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING"/>
-                <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH"/>
+    <Control name="BETTERUI_HeaderRow_Template" inherits="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
+           <!--  <Dimensions y="32" /> -->
+        <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING"/>
+        <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH"/>
 
-                <Controls>
-                    <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad27">
-                            <Anchor point="TOPLEFT" offsetX="15"/>
-                    </Label>
-                </Controls>
-        </Control>
+        <Controls>
+            <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad27">
+                <Anchor point="TOPLEFT" offsetX="15"/>
+            </Label>
+        </Controls>
+    </Control>
 
 
         <Control name="BETTERUI_GenericEntry_Template" inherits="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
@@ -297,7 +297,7 @@
                                 BETTERUI.Banking.Window:ToggleList(true)
                             </OnClicked>
                             <Controls>
-                                <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_WITHDRAW" horizontalAlignment="LEFT" inherits="BETTERUI_FooterTemplate">
+                                <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_WITHDRAW" horizontalAlignment="LEFT" inherits="BETTERUI_FooterTemplate" font="ZoFontGamepad54">
                                     <Anchor point="LEFT" offsetX="70" offsetY="-10"/>
                                 </Label>
                                 <Label name="$(parent)SpaceLabel" text="|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t 10/180" horizontalAlignment="RIGHT" inherits="BETTERUI_FooterSmallTemplate">
@@ -314,7 +314,6 @@
                 </Control>
 
                 <Control name="$(parent)Deposit">
-
                     <Anchor point="RIGHT" relativeTo="$(parent)DividerBottomT" relativePoint="TOPRIGHT" offsetX="0" offsetY="45"/>
                     <Controls>
                         <Button name="$(parent)Button">
@@ -324,7 +323,7 @@
                                 BETTERUI.Banking.Window:ToggleList(false)
                             </OnClicked>
                             <Controls>
-                                <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_DEPOSIT" horizontalAlignment="RIGHT" inherits="BETTERUI_FooterTemplate" color="444444">
+                                <Label name="$(parent)Label" text="SI_BETTERUI_BANKING_DEPOSIT" horizontalAlignment="RIGHT" inherits="BETTERUI_FooterTemplate" color="444444" font="ZoFontGamepad54">
                                     <Anchor point="RIGHT" offsetX="-100" offsetY="-10"/>
                                 </Label>
                                 <Label name="$(parent)SpaceLabel" text="|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t 70/112" horizontalAlignment="RIGHT" inherits="BETTERUI_FooterSmallTemplate">
@@ -333,9 +332,7 @@
                             </Controls>
                         </Button>
                         <Texture name="$(parent)Icon" textureFile="/esoui/art/bank/bank_tabicon_deposit_up.dds" level="2">
-
                             <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"/>
-
                             <Dimensions x="64" y="64" />
                         </Texture>
                     </Controls>

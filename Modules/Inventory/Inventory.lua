@@ -765,6 +765,19 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(comparator, BAG_BACKPACK, BAG_WORN)
         end
         -- Process items and set up categories in a single pass
+        -- Localize frequently used globals for performance inside tight loop
+        local GetItemLink = GetItemLink
+        local GetItemLinkItemType = GetItemLinkItemType
+        local GetItemLinkSetInfo = GetItemLinkSetInfo
+        local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
+        local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
+        local IsItemLinkBookKnown = IsItemLinkBookKnown
+        local IsItemBound = IsItemBound
+        local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+        local zo_strformat = zo_strformat
+        local GetBestItemCategoryDescription = GetBestItemCategoryDescription
+        local WouldEquipmentBeHidden = WouldEquipmentBeHidden
+        local FindActionSlotMatchingItem = FindActionSlotMatchingItem
         for i = 1, #filteredDataTable do
             local itemData = filteredDataTable[i]
 
@@ -808,6 +821,12 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         end
     end
 
+	local GetItemCooldownInfo = GetItemCooldownInfo
+	local GetQuestToolCooldownInfo = GetQuestToolCooldownInfo
+	local GetQuestItemCooldownInfo = GetQuestItemCooldownInfo
+	local ipairs = ipairs
+	local ZO_GamepadEntryData = ZO_GamepadEntryData
+	local ZO_InventoryUtils_DoesNewItemMatchFilterType = ZO_InventoryUtils_DoesNewItemMatchFilterType
 	table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
     local currentBestCategoryName
