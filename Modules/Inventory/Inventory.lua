@@ -29,19 +29,34 @@ BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
 local function BETTERUI_GetEquipSlotForEquipType(equipType)
-    local equipSlot
-	for i, testSlot in ZO_Character_EnumerateOrderedEquipSlots() do
-		local locked = IsLockedWeaponSlot(testSlot)
-		local isCorrectSlot = ZO_Character_DoesEquipSlotUseEquipType(testSlot, equipType)
-		local isActive = IsActiveCombatRelatedEquipmentSlot(testSlot)
-		if not locked and isCorrectSlot and isActive then --Main Hand
-			equipSlot = testSlot
-			break
-		else
-			equipSlot = testSlot -- Used for Backup weapon sets as they return false for isActive
-		end
+    -- Prefer the slot corresponding to the currently intended bar (primary/backup)
+    -- for combat-related equipment (weapons/poison). For armor/jewelry, primary/backup is irrelevant.
+    local wantPrimary = true
+    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.isPrimaryWeapon ~= nil then
+        wantPrimary = GAMEPAD_INVENTORY.isPrimaryWeapon
     end
-    return equipSlot
+
+    local lastMatchingSlot = nil
+    for _, testSlot in ZO_Character_EnumerateOrderedEquipSlots() do
+        local locked = IsLockedWeaponSlot(testSlot)
+        local isCorrectSlot = ZO_Character_DoesEquipSlotUseEquipType(testSlot, equipType)
+        if not locked and isCorrectSlot then
+            local isActive = IsActiveCombatRelatedEquipmentSlot(testSlot)
+            -- For weapon-like equip types, honor intended bar; otherwise return first match
+            if equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_OFF_HAND or equipType == EQUIP_TYPE_TWO_HAND or equipType == EQUIP_TYPE_POISON then
+                if wantPrimary and isActive then
+                    return testSlot
+                elseif not wantPrimary and not isActive then
+                    return testSlot
+                end
+                -- Keep a fallback in case we don't find the exact active/inactive match (edge cases)
+                lastMatchingSlot = testSlot
+            else
+                return testSlot
+            end
+        end
+    end
+    return lastMatchingSlot
 end
 
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
@@ -281,19 +296,21 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     end
 
     -- Determine equip action based on item type
-    local function performEquipAction(mainSlot)
+    local function performEquipAction(mainSlot, isPrimary)
+        -- isPrimary indicates which weapon bar to target (true = primary/front bar, false = backup/back bar)
+        local targetPrimary = (isPrimary ~= false)
         if equipType == EQUIP_TYPE_ONE_HAND then
             if mainSlot then
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_MAIN_HAND, 1)
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN, 1)
             else
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_OFF_HAND, 1)
+                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF, 1)
             end
         elseif equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND then
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_MAIN_HAND, 1)
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN, 1)
         elseif equipType == EQUIP_TYPE_OFF_HAND then
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_OFF_HAND, 1)
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF, 1)
         elseif equipType == EQUIP_TYPE_POISON then
-            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_POISON, 1)
+            CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetPrimary and EQUIP_SLOT_POISON or EQUIP_SLOT_BACKUP_POISON, 1)
         elseif equipType == EQUIP_TYPE_RING then
             if mainSlot then
                 CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_RING1, 1)
@@ -309,8 +326,10 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         showBindOnEquipDialog(function()
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_COSTUME, 1)
         end)
-    elseif equipType == EQUIP_TYPE_ONE_HAND or equipType == EQUIP_TYPE_RING then
-        -- Items that need slot selection - show dialog
+    elseif equipType == EQUIP_TYPE_ONE_HAND or equipType == EQUIP_TYPE_RING
+        or equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND
+        or equipType == EQUIP_TYPE_OFF_HAND or equipType == EQUIP_TYPE_POISON then
+        -- Weapons and rings: prompt to choose bar (primary/backup) and, if applicable, hand
         local function showEquipDialog()
             ZO_Dialogs_ShowDialog(BETTERUI_EQUIP_SLOT_DIALOG, {inventorySlot, self.isPrimaryWeapon}, {mainTextParams = {GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)}}, true)
         end
@@ -328,9 +347,9 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                 CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, BETTERUI_GetEquipSlotForEquipType(equipType), 1)
             end)
         else
-            -- Handle other weapon types
+            -- Fallback direct equip (should not be hit for weapon-like types now)
             showBindOnEquipDialog(function()
-                performEquipAction(true)
+                performEquipAction(true, self.isPrimaryWeapon)
             end)
         end
     end
