@@ -696,24 +696,28 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 			local actions = self.itemActions:GetSlotActions()
 			local numActions = actions:GetNumSlotActions()
 
-			for i = 1, numActions do
+            for i = 1, numActions do
 				local action = actions:GetSlotAction(i)
 				local actionName = actions:GetRawActionName(action)
 
-				local entryData = ZO_GamepadEntryData:New(actionName)
-				entryData:SetIconTintOnSelection(true)
-				entryData.action = action
-				entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                -- Hide Destroy/Delete in deposit mode (banker and house bank)
+                local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY)) or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+                if not (self.currentMode == LIST_DEPOSIT and isDestroy) then
+                    local entryData = ZO_GamepadEntryData:New(actionName)
+                    entryData:SetIconTintOnSelection(true)
+                    entryData.action = action
+                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
 
-				local listItem =
-				{
-					template = "ZO_GamepadItemEntryTemplate",
-					entryData = entryData,
-				}
-				
-                lastActionName = actionName
-				--if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
-				table.insert(parametricList, listItem)
+                    local listItem =
+                    {
+                        template = "ZO_GamepadItemEntryTemplate",
+                        entryData = entryData,
+                    }
+                    
+                    lastActionName = actionName
+                    --if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
+                    table.insert(parametricList, listItem)
+                end
 			end
 
 			dialog:setupFunc()

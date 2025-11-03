@@ -169,11 +169,7 @@ function BETTERUI_TabBar_OnTabNext(parent, successful)
         --parent:RefreshItemList()
 		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
 
-		if parent.categoryList.selectedData.text == GetString(SI_BETTERUI_INV_ITEM_JUNK) then
-			local messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_MARK_AS_JUNK_CATEGORY_WARNING))
-			local message = zo_strformat("<<1>>", messageText)
-			BETTERUI.OnScreenMessage(message)
-		end
+        -- Removed legacy on-screen warning when entering Junk category
 
         parent:ToSavedPosition()
     end
@@ -190,11 +186,7 @@ function BETTERUI_TabBar_OnTabPrev(parent, successful)
         --parent:RefreshItemList()
 		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
 
-		if parent.categoryList.selectedData.text == GetString(SI_BETTERUI_INV_ITEM_JUNK) then
-			local messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_MARK_AS_JUNK_CATEGORY_WARNING))
-			local message = zo_strformat("<<1>>", messageText)
-			BETTERUI.OnScreenMessage(message)
-		end
+        -- Removed legacy on-screen warning when entering Junk category
 
         parent:ToSavedPosition()
     end
@@ -1141,42 +1133,27 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end)
 
                 local function MarkAsJunk()
-                    local message
-                    local messageText
-                    if self.actionMode == CRAFT_BAG_ACTION_MODE then
-                        messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR))
-                        message = zo_strformat("<<1>>", messageText)
-                        BETTERUI.OnScreenMessage(message)
-                    else
-                        local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
-                        local isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
-                        if(isLocked == false) then
-                            SetItemIsJunk(target.bagId, target.slotIndex, true)
-                            -- Force cache update so HasAnyJunk and filters reflect immediately
-                            if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
-                                SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
-                            end
-                            -- Refresh list immediately
-                            self:RefreshItemList()
-                            -- Rebuild categories and header right away, plus a tiny follow-up for safety
-                            if self.scene:IsShowing() then
+                    -- Silent junk toggle: skip craft bag and locked errors messaging
+                    if self.actionMode == CRAFT_BAG_ACTION_MODE then return end
+                    local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+                    if not target then return end
+                    if IsItemPlayerLocked(target.bagId, target.slotIndex) then return end
+                    SetItemIsJunk(target.bagId, target.slotIndex, true)
+                    if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
+                        SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
+                    end
+                    self:RefreshItemList()
+                    if self.scene:IsShowing() then
+                        self:RefreshCategoryList()
+                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                        self:ActivateHeader()
+                        zo_callLater(function()
+                            if self and self.scene and self.scene:IsShowing() then
                                 self:RefreshCategoryList()
                                 self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                                -- Re-activate header to ensure LB/RB navigation remains responsive
                                 self:ActivateHeader()
-                                zo_callLater(function()
-                                    if self and self.scene and self.scene:IsShowing() then
-                                        self:RefreshCategoryList()
-                                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                                        self:ActivateHeader()
-                                    end
-                                end, 80)
                             end
-                        else
-                            messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR))
-                            message = zo_strformat("<<1>>", messageText)
-                            BETTERUI.OnScreenMessage(message)
-                        end
+                        end, 80)
                     end
                 end
                 local function UnmarkAsJunk()
@@ -1496,15 +1473,12 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
     end, 120)
 end
 
--- If force is true, skip Junk/quickDestroy gating
+-- If force is true, skip Junk gating (used by BetterUI confirmation)
 -- Returns true if an item was destroyed, false otherwise (no messaging)
 function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
     if not bagId or not slotIndex then return false end
-    local quickDestroy = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-        and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy
-
-    -- Allow destruction if item is junk or quick-destroy is enabled
-    if force or IsItemJunk(bagId, slotIndex) or quickDestroy then
+    -- Allow destruction if explicitly confirmed or the item is junk
+    if force or IsItemJunk(bagId, slotIndex) then
         -- Direct engine destroy path (matches the original working hook behavior)
         SetCursorItemSoundsEnabled(false)
         DestroyItem(bagId, slotIndex)
