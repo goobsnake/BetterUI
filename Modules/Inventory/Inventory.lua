@@ -1215,18 +1215,23 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     local action = actions:GetSlotAction(i)
                     local actionName = actions:GetRawActionName(action)
 
-                    local entryData = ZO_GamepadEntryData:New(actionName)
-                    -- Ensure consistent selection visuals for action rows
-                    entryData:SetIconTintOnSelection(true)
-                    entryData.action = action
-                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                    -- In banking scenes (standard or house), hide Destroy/Delete entirely
+                    local hideDestroy = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()
+                    local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY)) or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+                    if not (hideDestroy and isDestroy) then
+                        local entryData = ZO_GamepadEntryData:New(actionName)
+                        -- Ensure consistent selection visuals for action rows
+                        entryData:SetIconTintOnSelection(true)
+                        entryData.action = action
+                        entryData.setup = ZO_SharedGamepadEntry_OnSetup
 
-                    local listItem =
-                    {
-                        template = "ZO_GamepadItemEntryTemplate",
-                        entryData = entryData,
-                    }
-                    table.insert(parametricList, listItem)
+                        local listItem =
+                        {
+                            template = "ZO_GamepadItemEntryTemplate",
+                            entryData = entryData,
+                        }
+                        table.insert(parametricList, listItem)
+                    end
                 end
 
                 dialog:setupFunc()
@@ -1262,7 +1267,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 		end
 	end
 	
-    local function ActionDialogButtonConfirm(dialog)
+        local function ActionDialogButtonConfirm(dialog)
 		if self.scene:IsShowing() then 
             -- Handle embedded quickslot assignment mode
             if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
@@ -1288,8 +1293,48 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             end
 
             -- Removed legacy custom quickslot picker entry handling
+            -- Check for BetterUI synthetic Destroy entry first
+            local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
+            if selectedRow and selectedRow.isBetterUIDestroy then
+                local targetData
+                local actionMode = self.actionMode
+                if actionMode == ITEM_LIST_ACTION_MODE then
+                    targetData = self.itemList:GetTargetData()
+                elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                    targetData = self.craftBagList:GetTargetData()
+                else 
+                    targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+                end
+                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                if bag and slot then
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                    local link = GetItemLink(bag, slot)
+                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                end
+                return
+            end
 
-            if (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) then
+            local selectedActionName = ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction)
+            -- Intercept engine Destroy/Delete here to show our confirm dialog
+            if (selectedActionName == GetString(SI_ITEM_ACTION_DESTROY)) or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
+                local targetData
+                local actionMode = self.actionMode
+                if actionMode == ITEM_LIST_ACTION_MODE then
+                    targetData = self.itemList:GetTargetData()
+                elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                    targetData = self.craftBagList:GetTargetData()
+                else
+                    targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+                end
+                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                if bag and slot then
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                    local link = GetItemLink(bag, slot)
+                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                end
+                return
+            end
+            if (selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) then
 				local targetData
 			    local actionMode = self.actionMode
 			    if actionMode == ITEM_LIST_ACTION_MODE then
@@ -1451,26 +1496,40 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
     end, 120)
 end
 
+-- If force is true, skip Junk/quickDestroy gating
+-- Returns true if an item was destroyed, false otherwise (no messaging)
+function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
+    if not bagId or not slotIndex then return false end
+    local quickDestroy = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+        and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy
+
+    -- Allow destruction if item is junk or quick-destroy is enabled
+    if force or IsItemJunk(bagId, slotIndex) or quickDestroy then
+        -- Direct engine destroy path (matches the original working hook behavior)
+        SetCursorItemSoundsEnabled(false)
+        DestroyItem(bagId, slotIndex)
+        -- Proactively refresh inventory caches to reflect removal
+        if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
+            pcall(function() SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId) end)
+        end
+        -- UI refreshes (safe if scene present)
+        zo_callLater(function()
+            if GAMEPAD_INVENTORY then
+                if GAMEPAD_INVENTORY.RefreshItemList then GAMEPAD_INVENTORY:RefreshItemList() end
+                if GAMEPAD_INVENTORY.RefreshCategoryList then GAMEPAD_INVENTORY:RefreshCategoryList() end
+                if GAMEPAD_INVENTORY.RefreshHeader then GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK) end
+            end
+        end, 80)
+        return true
+    end
+    return false
+end
+
+-- Re-implement hook to bypass engine path that uses private PickupInventoryItem
 function BETTERUI.Inventory.HookDestroyItem()
     ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        local itemLink = GetItemLink(bag, index)
-		local message
-		local messageText
-        SetCursorItemSoundsEnabled(false)
-        if IsItemJunk(bag, index) or BETTERUI.Settings.Modules["Inventory"].quickDestroy then
-			messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_DESTROY))
-			message = zo_strformat("<<1>> [<<2>>]", messageText, itemLink)
-    		DestroyItem(bag, index)
-    		CHAT_SYSTEM:AddMessage(message)
-    		return true
-    	else
-			messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY))
-			message = zo_strformat("[<<1>>] <<2>>", itemLink, messageText)
-			BETTERUI.OnScreenMessage(message)
-            CHAT_SYSTEM:AddMessage(message)
-            return false
-    	end
+        return BETTERUI.Inventory.TryDestroyItem(bag, index, false)
     end
 end
 
@@ -1492,15 +1551,25 @@ function BETTERUI.Inventory.HookActionDialog()
 
             local entryData = ZO_GamepadEntryData:New(actionName)
             entryData:SetIconTintOnSelection(true)
-            entryData.action = action
             entryData.setup = ZO_SharedGamepadEntry_OnSetup
+            -- Intercept Destroy/Delete to route through BetterUI confirm dialog
+            local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY)) or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+            local inBankScene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()
+            if not (isDestroy and inBankScene) then
+                if isDestroy then
+                    entryData.isBetterUIDestroy = true
+                    entryData.action = nil -- prevent engine destroy from being selected/executed
+                else
+                    entryData.action = action
+                end
 
-            local listItem =
-            {
-                template = "ZO_GamepadItemEntryTemplate",
-                entryData = entryData,
-            }
-            table.insert(parametricList, listItem)
+                local listItem =
+                {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = entryData,
+                }
+                table.insert(parametricList, listItem)
+            end
         end
 
         dialog.finishedCallback = data.finishedCallback
@@ -1666,8 +1735,28 @@ function BETTERUI.Inventory.HookActionDialog()
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
                         return
                     end
-                    -- Handle Link to Chat explicitly even outside BetterUI override
+                    -- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
                     if ZO_InventorySlotActions and self and self.itemActions and self.itemActions.selectedAction then
+                        -- Check if the selected row is a BetterUI Destroy entry
+                        local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
+                        if selectedRow and selectedRow.isBetterUIDestroy then
+                            local targetData
+                            local actionMode = self.actionMode
+                            if actionMode == ITEM_LIST_ACTION_MODE then
+                                targetData = self.itemList:GetTargetData()
+                            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                                targetData = self.craftBagList:GetTargetData()
+                            else 
+                                targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+                            end
+                            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                            if bag and slot then
+                                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                                local itemLink = GetItemLink(bag, slot)
+                                ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = itemLink }, nil, true, true)
+                            end
+                            return
+                        end
                         local selectedActionName = ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction)
                         if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
                             local targetData
@@ -2083,13 +2172,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
 	end
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
 
-    local function OnCancelDestroyItemRequest()
-        if self.listWaitingOnDestroyRequest then
-            self.listWaitingOnDestroyRequest:Activate()
-            self.listWaitingOnDestroyRequest = nil
-        end
-        ZO_Dialogs_ReleaseDialog(ZO_GAMEPAD_CONFIRM_DESTROY_DIALOG)
-    end
+    -- Use base UI destroy lifecycle; no custom cancel handler required
 
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
        self:OnUpdate(currentFrameTimeSeconds)
@@ -2109,7 +2192,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         end
     end
 
-    control:RegisterForEvent(EVENT_CANCEL_MOUSE_REQUEST_DESTROY_ITEM, OnCancelDestroyItemRequest)
+    -- Do not intercept base destroy cancel events to avoid input blockage
     control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
     control:SetHandler("OnUpdate", OnUpdate)
 end
@@ -2518,5 +2601,55 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
                 end,
             },
         }
+    })
+end
+
+-- Simple confirmation dialog for destroying an item (entire stack)
+function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
+    ZO_Dialogs_RegisterCustomDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+    {
+        blockDirectionalInput = true,
+        canQueue = true,
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+            allowRightStickPassThrough = true,
+        },
+        title = {
+            text = function(dialog)
+                return GetString(SI_DESTROY_ITEM_PROMPT_TITLE) or "Destroy Item"
+            end,
+        },
+        mainText = {
+            text = function(dialog)
+                local link = dialog and dialog.data and dialog.data.itemLink
+                if link and link ~= "" then
+                    return zo_strformat("Are you sure you want to destroy <<1>>? This cannot be undone.", link)
+                end
+                return "Are you sure you want to destroy this item? This cannot be undone."
+            end,
+        },
+        buttons = {
+            { keybind = "DIALOG_NEGATIVE", text = GetString(SI_DIALOG_CANCEL) },
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                callback = function(dialog)
+                    local d = dialog and dialog.data
+                    if d and d.bagId and d.slotIndex then
+                        -- Force destruction on explicit user confirmation
+                        local destroyed = BETTERUI.Inventory.TryDestroyItem(d.bagId, d.slotIndex, true)
+                        -- Refresh lists shortly after to reflect removal
+                        if destroyed then
+                            zo_callLater(function()
+                                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                                    GAMEPAD_INVENTORY:RefreshItemList()
+                                end
+                            end, 120)
+                        end
+                    end
+                    ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")
+                end,
+            },
+        },
     })
 end
