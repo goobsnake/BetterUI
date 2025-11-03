@@ -1052,10 +1052,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 		if self.scene:IsShowing() then 
                 -- If invoked for quickslot assignment, render the wheel options inside this proven parametric dialog
                 if data and data.quickslotAssign and data.target then
-                    -- Change dialog title while assigning quickslots
-                    if dialog and dialog.info and dialog.info.title then
-                        dialog.info.title.text = "Assign Quickslots"
-                    end
+                    -- Title provided via dialog's dynamic title function; avoid overriding here
                     local parametricList = dialog.info.parametricList
                     ZO_ClearNumericallyIndexedTable(parametricList)
 
@@ -1138,9 +1135,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end
 
                 -- Default actions list setup
-                if dialog and dialog.info and dialog.info.title then
-                    dialog.info.title.text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND
-                end
+                -- Title provided via dialog's dynamic title function; avoid overriding here
                 dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
                     self.itemActions:SetSelectedAction(selectedData and selectedData.action)
                 end)
@@ -1491,10 +1486,7 @@ function BETTERUI.Inventory.HookActionDialog()
         setup = function(dialog, data) 
             -- Always handle our embedded quickslot mode here for robustness
             if data and data.quickslotAssign and data.target then
-                -- Change dialog title while assigning quickslots
-                if dialog and dialog.info and dialog.info.title then
-                    dialog.info.title.text = "Assign Quickslots"
-                end
+                -- Title provided via dialog's dynamic title function; avoid overriding here
                 local parametricList = dialog.info.parametricList
                 ZO_ClearNumericallyIndexedTable(parametricList)
 
@@ -1574,9 +1566,7 @@ function BETTERUI.Inventory.HookActionDialog()
             end
 
             -- Normal BetterUI override path when enabled/visible
-            if dialog and dialog.info and dialog.info.title then
-                dialog.info.title.text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND
-            end
+            -- Title provided via dialog's dynamic title function; avoid overriding here
             if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
                (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data)
