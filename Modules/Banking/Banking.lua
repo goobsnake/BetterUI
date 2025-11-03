@@ -562,6 +562,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- us to access this classes' members (through "self")
 
     local function UpdateSingle_Handler(eventId, bagId, slotId, isNewItem, itemSound)
+        -- If a coalesced refresh is in progress, skip intermediate updates to avoid UI stutter
+        if self._suppressListUpdates then
+            self.isDirty = true
+            return
+        end
         self:UpdateSingleItem(bagId, slotId)
         -- Categories can become empty/non-empty as items move; rebuild the header list
         self.bankCategories = ComputeVisibleBankCategories(self)
@@ -585,11 +590,19 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     local function OnEffectivelyShown()
         self:CurrentUsedBank()
         -- Rebuild categories on show in case bank type changed
-    self.bankCategories = ComputeVisibleBankCategories(self)
-        if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
-            self.currentCategoryIndex = 1
+        self.bankCategories = ComputeVisibleBankCategories(self)
+        -- Always default to "All Items" and first row on first open of the scene
+        self.currentCategoryIndex = 1
+        self.lastPositions[self.currentMode] = 1
+        if self.lastPositionsByCategory and self.bankCategories and #self.bankCategories > 0 then
+            local byMode = self.lastPositionsByCategory[self.currentMode]
+            if byMode then byMode["all"] = 1 end
         end
         self:RebuildHeaderCategories()
+        -- Force header to All Items (index 1) on scene open without animation
+        if self.headerGeneric and self.headerGeneric.tabBar then
+            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
+        end
         if self.isDirty then
             self:RefreshList()
         elseif self.selectedDataCallback then
@@ -844,9 +857,25 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 		toBag, toBagEmptyIndex = FindEmptySlotInBank()
 	end
 
+    local function beginCoalescedRefresh(delayMs)
+        -- Suppress intermediate refreshes and perform a single rebuild after item move settles
+        self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
+        local myToken = self._moveCoalesceToken
+        self._suppressListUpdates = true
+        zo_callLater(function()
+            if myToken ~= self._moveCoalesceToken then return end
+            self._suppressListUpdates = false
+            -- Recompute categories and refresh once
+            self.bankCategories = ComputeVisibleBankCategories(self)
+            self:RebuildHeaderCategories()
+            self:RefreshList()
+        end, delayMs or 100)
+    end
+
     if toBagEmptyIndex ~= nil then
         --good to move
-        CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
+    CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
+    beginCoalescedRefresh(100)
        if inSpinner then
            self:UpdateSpinnerConfirmation(false, self.list)
        end
@@ -875,6 +904,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             if toBagIndex then
                 --good to move item that already has a non-full stack in the destination bag
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+                beginCoalescedRefresh(100)
                 if inSpinner then
                     self:UpdateSpinnerConfirmation(false, self.list)
                 end
@@ -910,6 +940,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
             if toBagIndex and toBag then
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
+                beginCoalescedRefresh(100)
                 if inSpinner then
                     self:UpdateSpinnerConfirmation(false, self.list)
                 end
@@ -1317,10 +1348,18 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
     -- Rebuild categories when switching modes (Stage 1)
     self.bankCategories = ComputeVisibleBankCategories(self)
-    if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
-        self.currentCategoryIndex = 1
+    -- Always land on All Items + first item when switching modes
+    self.currentCategoryIndex = 1
+    self.lastPositions[self.currentMode] = 1
+    if self.lastPositionsByCategory and self.bankCategories and #self.bankCategories > 0 then
+        local byMode = self.lastPositionsByCategory[self.currentMode]
+        if byMode then byMode["all"] = 1 end
     end
-	self:RebuildHeaderCategories()
+    self:RebuildHeaderCategories()
+    -- Force header to All Items (index 1) when switching modes
+    if self.headerGeneric and self.headerGeneric.tabBar then
+        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
+    end
 	local footer = self.footer:GetNamedChild("Footer")
 	if(self.currentMode == LIST_WITHDRAW) then
 		footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
