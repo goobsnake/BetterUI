@@ -5,7 +5,7 @@ local LIST_WITHDRAW = 1
 local LIST_DEPOSIT  = 2
 local lastUsedBank = 0
 local currentUsedBank = 0
-local lastActionName
+-- removed unused lastActionName tracking
 local esoSubscriber
 
 -- Stage 1: Minimal banking categories for reduced scrolling
@@ -247,7 +247,7 @@ function BETTERUI.Banking.Class:RefreshList()
     if wasActive then
         self.list:Deactivate()
     end
-    lastActionName = nil
+    -- reset any transient state if needed (none currently)
     --d("tt refresh bank list")
     self.list:Clear()
     self:CurrentUsedBank()
@@ -305,7 +305,7 @@ function BETTERUI.Banking.Class:RefreshList()
         end        
     end
     --fix subscriber bank bag issue
-    checking_bags = {}
+    local checking_bags = {}
     local slotType
     if(self.currentMode == LIST_WITHDRAW) then
         if(currentUsedBank == BAG_BANK) then
@@ -571,9 +571,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     end
 
     local function UpdateCurrency_Handler()
+        -- Only update UI/keybinds when the banking scene is actually visible
+        if not (SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()) then
+            return
+        end
         self:RefreshFooter()
-		KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-		self:RefreshCurrencyTooltip()
+        if KEYBIND_STRIP then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        end
+        self:RefreshCurrencyTooltip()
     end
 
     local function OnEffectivelyShown()
@@ -606,6 +612,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self:CancelWithdrawDeposit(self.list)
         self.list:Deactivate()
         self.selector:Deactivate()
+        self.confirmationMode = false
+        -- Release focus from header tab bar and clear any update suppression flags
+        if self.headerGeneric and self.headerGeneric.tabBar then
+            self.headerGeneric.tabBar:Deactivate()
+        end
+        self._suppressListUpdates = false
+        self._suppressListUpdatesToken = nil
 
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -642,42 +655,7 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 
-function BETTERUI.Banking.Class:ActionsDialogSetup(dialog)
-	dialog.entryList:SetOnSelectedDataChangedCallback(  function(list, selectedData)
-		self.itemActions:SetSelectedAction(selectedData and selectedData.action)
-	end)
-
-    local parametricList = dialog.info.parametricList
-    ZO_ClearNumericallyIndexedTable(parametricList)
-
-    self:RefreshItemActions()
-
-    --self:RefreshItemActions()
-    local actions = self.itemActions:GetSlotActions()
-    local numActions = actions:GetNumSlotActions()
-
-    for i = 1, numActions do
-        local action = actions:GetSlotAction(i)
-        local actionName = actions:GetRawActionName(action)
-
-        local entryData = ZO_GamepadEntryData:New(actionName)
-        entryData:SetIconTintOnSelection(true)
-        entryData.action = action
-        entryData.setup = ZO_SharedGamepadEntry_OnSetup
-
-        local listItem =
-        {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = entryData,
-        }
-		
-		--if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
-        table.insert(parametricList, listItem)
-		--end
-    end
-
-    dialog:setupFunc()
-end
+-- Removed unused ActionsDialogSetup method; action dialog configuration is handled via InitializeActionsDialog callbacks
 
 function BETTERUI.Banking.Class:InitializeActionsDialog()
 	local function ActionDialogSetup(dialog)
@@ -696,7 +674,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 			local actions = self.itemActions:GetSlotActions()
 			local numActions = actions:GetNumSlotActions()
 
-            for i = 1, numActions do
+                for i = 1, numActions do
 				local action = actions:GetSlotAction(i)
 				local actionName = actions:GetRawActionName(action)
 
@@ -714,7 +692,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                         entryData = entryData,
                     }
                     
-                    lastActionName = actionName
                     --if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
                     table.insert(parametricList, listItem)
                 end
@@ -724,7 +701,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 		end
 	end
 
-	local function ActionDialogFinish() 
+        local function ActionDialogFinish() 
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
 			--d("tt bank action finish")
 			-- make sure to wipe out the keybinds added by actions
@@ -740,32 +717,28 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 			--if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
 			--	self:RefreshCategoryList()
 			--end
-		end
+        end
 	end
 	local function ActionDialogButtonConfirm(dialog)
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-			--d(ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction))
-            if (lastActionName ~= nil) then
-    			if ((ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) and (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) ~= nil)) then
-    				--Also perform bag stack!
-    				--StackBag(BAG_BACKPACK)
-    				--link in chat
-    				local targetData = self:GetList().selectedData
-    				local itemLink
-    				local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-    				if bag and slot then
-    					itemLink = GetItemLink(bag, slot)
-    				end
-    				if itemLink then
-    					ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
-    				end
-    			else
-    				self.itemActions:DoSelectedAction()
-    			end
+            --d(ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction))
+            local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
+            if not selectedAction then return end
+            local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
+            if selectedName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+                -- Link to chat
+                local targetData = self:GetList().selectedData
+                local itemLink
+                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                if bag and slot then
+                    itemLink = GetItemLink(bag, slot)
+                end
+                if itemLink then
+                    ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                end
             else
-                return
+                self.itemActions:DoSelectedAction()
             end
-            lastActionName = nil
 		end
 	end
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
@@ -774,25 +747,9 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 end
 
 
--- Thanks to Ayantir for the following method to quickly return the next free slotIndex!
-local tinyBagCache = {
-    [BAG_BACKPACK] = {},
-    [currentUsedBank] = {},
-}
-
--- Thanks Merlight & circonian, FindFirstEmptySlotInBag don't refresh in realtime.
+-- Find first empty slot in a bag
 local function FindEmptySlotInBag(bagId)
-    if false then
-        for slotIndex = 0, (GetBagSize(bagId) - 1) do
-            if not SHARED_INVENTORY.bagCache[bagId][slotIndex] and not tinyBagCache[bagId][slotIndex] then
-                tinyBagCache[bagId][slotIndex] = true
-                return slotIndex
-            end
-        end
-        return nil
-    else
-        return FindFirstEmptySlotInBag(bagId)
-    end
+    return FindFirstEmptySlotInBag(bagId)
 end
 
 local function FindEmptySlotInBank()
@@ -821,9 +778,11 @@ function BETTERUI.Banking.Class:ActivateSpinner()
     self.spinner:Activate()
     if(self:GetList() ~= nil) then
         self:GetList():Deactivate()
-
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
+        -- Only manipulate keybinds if our banking scene is visible
+        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+            KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
+        end
     end
 end
 
@@ -833,10 +792,13 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
     self.spinner:Deactivate()
     if(self:GetList() ~= nil) then
         self:GetList():Activate()
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-        self:EnsureHeaderKeybindsActive()
+        -- Only restore keybinds/header when the banking scene is visible
+        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+            KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+            self:EnsureHeaderKeybindsActive()
+        end
     end
 end
 
@@ -895,7 +857,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
              -- Get bag size
             local bagSize = GetBagSize(toBag)
             -- Iterate through BAG
-            for i = 0, bagSize do
+            for i = 0, bagSize - 1 do
                 local currentItemLink = GetItemLink(toBag, i)
                 -- Matches items from origin bag to destination bag
                 if currentItemLink == fromBagItemLink then
@@ -929,7 +891,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 -- Get bag size
                 local bagSize = GetBagSize(bank)
                 -- Iterate through BAG
-                for i = 0, bagSize do
+                for i = 0, bagSize - 1 do
                     local currentItemLink = GetItemLink(bank, i)
                     -- Matches items from origin bag to destination bag
                     if currentItemLink == fromBagItemLink then
@@ -1069,7 +1031,7 @@ end
 
 function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-    KEYBIND_STRIP:RemoveKeybindButton(self.coreKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end
 
 function BETTERUI.Banking.Class:ShowActions()
@@ -1230,7 +1192,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
 	ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.coreKeybinds, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON, function() self:HideSelector() end)
 
-	self.triggerSpinnerBinds = {}
+    -- removed unused self.triggerSpinnerBinds placeholder
     local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(self.list)
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
@@ -1432,6 +1394,16 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         self._suppressListUpdates = true
         -- Wait a short moment; if more changes occur, older timers abort via token check
         zo_callLater(function()
+            -- If the banking scene is no longer visible, drop this refresh to avoid
+            -- re-activating controls or keybinds while hidden
+            if not (SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()) then
+                -- clear suppression for safety
+                if self._suppressListUpdatesToken == myToken then
+                    self._suppressListUpdates = false
+                    self._suppressListUpdatesToken = nil
+                end
+                return
+            end
             if myToken ~= self._categoryChangeToken then
                 -- A newer selection occurred; let the latest timer handle refresh/suppression
                 return
