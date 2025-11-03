@@ -164,6 +164,8 @@ function BETTERUI.Banking.Class:RefreshFooter()
 end
 
 function BETTERUI.Banking.Class:RefreshList()
+    -- If we're in the middle of a tab selection animation, skip interim refreshes
+    if self._suppressListUpdates then return end
     lastActionName = nil
     --d("tt refresh bank list")
     self.list:OnUpdate()
@@ -1319,10 +1321,27 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
     self.bankHeaderData.tabBarData = { parent = self }
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)
-        -- Sync selected index to current category and refresh
+        -- Coalesce rapid tab changes: only refresh once after navigation settles
         self.currentCategoryIndex = list.selectedIndex or 1
-        self:UpdateHeaderTitle()
-        self:RefreshList()
+        self._categoryChangeToken = (self._categoryChangeToken or 0) + 1
+        local myToken = self._categoryChangeToken
+        -- Assert suppression tied to this token
+        self._suppressListUpdatesToken = myToken
+        self._suppressListUpdates = true
+        -- Wait a short moment; if more changes occur, older timers abort via token check
+        zo_callLater(function()
+            if myToken ~= self._categoryChangeToken then
+                -- A newer selection occurred; let the latest timer handle refresh/suppression
+                return
+            end
+            -- We're the latest change; clear suppression and refresh once
+            if self._suppressListUpdates and self._suppressListUpdatesToken == myToken then
+                self._suppressListUpdates = false
+                self._suppressListUpdatesToken = nil
+            end
+            self:UpdateHeaderTitle()
+            self:RefreshList()
+        end, 100) -- ~6 frames; avoids loading intermediate categories during wrap
     end
 
     -- Ensure tabbar exists then clear and repopulate

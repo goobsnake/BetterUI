@@ -191,10 +191,10 @@
             </Controls>
         </Control>
 
-		<Label name="BETTERUI_GenericColumn_Label" inherits="BETTERUI_GenericColumn_TextTemplate BETTERUI_HeaderTitleAnchors" text="..." virtual="true">
-                <Anchor point="LEFT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMLEFT" offsetX="28" />
-                <Anchor point="RIGHT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMRIGHT" offsetX="2" offsetY="95" />
-         </Label>
+    <Label name="BETTERUI_GenericColumn_Label" inherits="BETTERUI_GenericColumn_TextTemplate BETTERUI_HeaderTitleAnchors" text="..." virtual="true">
+        <Anchor point="LEFT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMLEFT" offsetX="28" />
+        <Anchor point="RIGHT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMRIGHT" offsetX="2" offsetY="109" />
+     </Label>
 
         <Control name="BETTERUI_GenericInterfaceHeader" resizeToFitDescendents="true" virtual="true">
             <Anchor point="TOPLEFT" />
@@ -205,6 +205,12 @@
                     <Anchor point="TOPLEFT" offsetY="100" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING"/>
                     <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" />
                     <Controls>
+                        <!-- Selected background arrow, matching inventory header -->
+                        <Button name="$(parent)SelectedBg">
+                            <Dimensions x="50" y="25"/>
+                            <Anchor point="CENTER" relativeTo="$(parent)" offsetY="32"/>
+                            <Textures normal="BetterUI/Modules/CIM/Images/select_tabbar.dds"/>
+                        </Button>
                         <Button name="$(parent)LeftIcon" hidden="true">
                             <Dimensions x="50" y="50"/>
                             <Anchor point="LEFT" relativeTo="$(parent)"/>
@@ -217,7 +223,7 @@
                         </Button>
                         <Button name="$(parent)RightIcon" hidden="true">
                             <Dimensions x="50" y="50"/>
-                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-25"/>
+                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-5"/>
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_RB.dds"/>
                             <OnClicked>
                                 if self:GetParent().scrollList then
@@ -228,11 +234,11 @@
 
                         <Control name="$(parent)DividerBottomF" inherits="BETTERUI_GamepadHeaderHorizontalDivider">
                             <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="0" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="77" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="93" />
                         </Control>
                         <Control name="$(parent)DividerBottomS" inherits="BETTERUI_GamepadHeaderHorizontalDivider">
                             <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" offsetX="0" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="81" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="86" />
                         </Control>
                     </Controls>
                 </Control>
@@ -247,7 +253,7 @@
 
                 <Control name="$(parent)DividerBottom" inherits="BETTERUI_GamepadHeaderHorizontalDivider">
                     <Anchor point="LEFT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMLEFT" offsetX="0" />
-                    <Anchor point="RIGHT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="110" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="124" />
                 </Control>
             </Controls>
         </Control>
