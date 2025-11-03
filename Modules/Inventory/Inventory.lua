@@ -1049,72 +1049,150 @@ end
 
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
-	local function ActionDialogSetup(dialog)
+    local function ActionDialogSetup(dialog, data)
 		if self.scene:IsShowing() then 
-				dialog.entryList:SetOnSelectedDataChangedCallback(  function(list, selectedData)
-					self.itemActions:SetSelectedAction(selectedData and selectedData.action)
-				end)
+                -- If invoked for quickslot assignment, render the wheel options inside this proven parametric dialog
+                if data and data.quickslotAssign and data.target then
+                    local parametricList = dialog.info.parametricList
+                    ZO_ClearNumericallyIndexedTable(parametricList)
 
-				local function MarkAsJunk()
-					local message
-        			local messageText
-    				if self.actionMode == CRAFT_BAG_ACTION_MODE then
-						messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR))
-						message = zo_strformat("<<1>>", messageText)
-						BETTERUI.OnScreenMessage(message)
-    				else
-						local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
-						local isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
-						if(isLocked == false) then
-							SetItemIsJunk(target.bagId, target.slotIndex, true)
-							self:RefreshItemList()
-						else
-							messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR))
-							message = zo_strformat("<<1>>", messageText)
-							BETTERUI.OnScreenMessage(message)
-						end
-					end
-				end
-				local function UnmarkAsJunk()
-					local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
-					SetItemIsJunk(target.bagId, target.slotIndex, false)
-					self:RefreshItemList()
-				end
+                    local target = data.target
+                    local hasUnassign = false
+                    local assignedIndex = nil
+                    if FindActionSlotMatchingItem then
+                        assignedIndex = FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                        if assignedIndex then
+                            hasUnassign = true
+                            local unassignEntry = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_REMOVE))
+                            unassignEntry:SetIconTintOnSelection(true)
+                            unassignEntry.isUnassign = true
+                            unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
+                            table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = unassignEntry })
+                        end
+                    end
 
-				local parametricList = dialog.info.parametricList
-				ZO_ClearNumericallyIndexedTable(parametricList)
+                    for slotIndex = 1, 8 do
+                        local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
+                        if not icon or icon == "" then
+                            icon = "/esoui/art/quickslots/quickslot_empty.dds"
+                        end
+                        local label
+                        if slotIndex == 4 then label = "North"
+                        elseif slotIndex == 3 then label = "Northeast"
+                        elseif slotIndex == 2 then label = "East"
+                        elseif slotIndex == 1 then label = "Southeast"
+                        elseif slotIndex == 8 then label = "South"
+                        elseif slotIndex == 7 then label = "Southwest"
+                        elseif slotIndex == 6 then label = "West"
+                        elseif slotIndex == 5 then label = "Northwest" end
 
-				self:RefreshItemActions()
+                        local entryData = ZO_GamepadEntryData:New(label or tostring(slotIndex), icon)
+                        entryData:SetIconTintOnSelection(true)
+                        entryData.slotIndex = slotIndex
+                        entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                        table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = entryData })
+                    end
 
-				if(self.categoryList:GetTargetData().showJunk ~= nil) then
-					self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary"}
-				else
-					self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
-				end
+                    dialog.quickslotTarget = target
+                    dialog:setupFunc()
+                    if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
+                        local offset = hasUnassign and 1 or 0
+                        if assignedIndex then
+                            dialog.entryList:SetSelectedIndexWithoutAnimation(math.max(1, math.min(8 + offset, assignedIndex + offset)), true, false)
+                        else
+                            dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
+                        end
+                    end
+                    return
+                end
 
-				local actions = self.itemActions:GetSlotActions()
-				local numActions = actions:GetNumSlotActions()
+                -- Default actions list setup
+                dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
+                    self.itemActions:SetSelectedAction(selectedData and selectedData.action)
+                end)
 
-				for i = 1, numActions do
-					local action = actions:GetSlotAction(i)
-					local actionName = actions:GetRawActionName(action)
+                local function MarkAsJunk()
+                    local message
+                    local messageText
+                    if self.actionMode == CRAFT_BAG_ACTION_MODE then
+                        messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR))
+                        message = zo_strformat("<<1>>", messageText)
+                        BETTERUI.OnScreenMessage(message)
+                    else
+                        local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+                        local isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
+                        if(isLocked == false) then
+                            SetItemIsJunk(target.bagId, target.slotIndex, true)
+                            self:RefreshItemList()
+                        else
+                            messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR))
+                            message = zo_strformat("<<1>>", messageText)
+                            BETTERUI.OnScreenMessage(message)
+                        end
+                    end
+                end
+                local function UnmarkAsJunk()
+                    local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+                    SetItemIsJunk(target.bagId, target.slotIndex, false)
+                    self:RefreshItemList()
+                end
 
-					local entryData = ZO_GamepadEntryData:New(actionName)
-					entryData:SetIconTintOnSelection(true)
-					entryData.action = action
-					entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                local parametricList = dialog.info.parametricList
+                ZO_ClearNumericallyIndexedTable(parametricList)
 
-					local listItem =
-					{
-						template = "ZO_GamepadItemEntryTemplate",
-						entryData = entryData,
-					}
-					
-					table.insert(parametricList, listItem)
-					
-				end
+                -- Insert a BetterUI "Assign Quickslot..." action at the top when the current item is quickslottable
+                local function IsQuickslottableItem(sd)
+                    if not sd or not sd.bagId or not sd.slotIndex then return false end
+                    if sd.bagId ~= BAG_BACKPACK then return false end
+                    if IsValidItemForSlot and IsValidItemForSlot(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return true end
+                    local ft = GetItemFilterTypeInfo(sd.bagId, sd.slotIndex)
+                    if ft == ITEMFILTERTYPE_CONSUMABLE or ft == ITEMFILTERTYPE_QUICKSLOT then return true end
+                    if FindActionSlotMatchingItem and FindActionSlotMatchingItem(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then return true end
+                    return false
+                end
 
-				dialog:setupFunc()
+                local currentList = self:GetCurrentList()
+                local targetData = currentList and currentList:GetTargetData()
+                if IsQuickslottableItem(targetData) then
+                    local quickslotEntryData = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN), "")
+                    quickslotEntryData:SetIconTintOnSelection(true)
+                    quickslotEntryData.actionCustom = "BUI_QUICKSLOT_PICKER"
+                    quickslotEntryData.setup = ZO_SharedGamepadEntry_OnSetup
+                    table.insert(parametricList, {
+                        template = "ZO_GamepadItemEntryTemplate",
+                        entryData = quickslotEntryData,
+                    })
+                end
+
+                self:RefreshItemActions()
+
+                if(self.categoryList:GetTargetData().showJunk ~= nil) then
+                    self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary"}
+                else
+                    self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
+                end
+
+                local actions = self.itemActions:GetSlotActions()
+                local numActions = actions:GetNumSlotActions()
+
+                for i = 1, numActions do
+                    local action = actions:GetSlotAction(i)
+                    local actionName = actions:GetRawActionName(action)
+
+                    local entryData = ZO_GamepadEntryData:New(actionName)
+                    entryData:SetIconTintOnSelection(true)
+                    entryData.action = action
+                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+
+                    local listItem =
+                    {
+                        template = "ZO_GamepadItemEntryTemplate",
+                        entryData = entryData,
+                    }
+                    table.insert(parametricList, listItem)
+                end
+
+                dialog:setupFunc()
 	
 		end
 	end
@@ -1147,10 +1225,48 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 		end
 	end
 	
-	local function ActionDialogButtonConfirm(dialog)
+    local function ActionDialogButtonConfirm(dialog)
 		if self.scene:IsShowing() then 
-			
-			if (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) then
+            -- Handle embedded quickslot assignment mode
+            if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
+                local target = dialog.data.target or dialog.quickslotTarget
+                if target then
+                    local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                    local selected = dialog.entryList:GetTargetData()
+                    if selected and selected.isUnassign then
+                        local assigned = FindActionSlotMatchingItem and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+                        if assigned then
+                            CallSecureProtected('ClearSlot', assigned, quickslot_wheel)
+                            if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_BACK) end
+                        end
+                    else
+                        local wheelSlotIndex = (selected and selected.slotIndex) or 4
+                        CallSecureProtected('SelectSlotItem', target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
+                        if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD) end
+                    end
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                    zo_callLater(function() if GAMEPAD_INVENTORY then GAMEPAD_INVENTORY:RefreshItemList() end end, 150)
+                end
+                return
+            end
+
+            -- If user picked the BetterUI quickslot picker entry from the default actions list, open our dialog now
+            if dialog and dialog.entryList then
+                local selected = dialog.entryList:GetTargetData()
+                if selected and selected.actionCustom == "BUI_QUICKSLOT_PICKER" then
+                    local currentList = self:GetCurrentList()
+                    local td = currentList and currentList:GetTargetData()
+                    if td and td.bagId and td.slotIndex then
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                        zo_callLater(function()
+                            self:ShowQuickslotAssignDialog(td.bagId, td.slotIndex)
+                        end, 50)
+                        return
+                    end
+                end
+            end
+
+            if (ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction) == GetString(SI_ITEM_ACTION_LINK_TO_CHAT)) then
 				local targetData
 			    local actionMode = self.actionMode
 			    if actionMode == ITEM_LIST_ACTION_MODE then
@@ -1177,6 +1293,139 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
 	
+end
+
+-- Quickslot assignment dialog allowing the user to choose a wheel slot (1..8)
+function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
+    local SLOT_LABELS = {
+        [1] = "Southeast",
+        [2] = "East",
+        [3] = "Northeast",
+        [4] = "North",
+        [5] = "Northwest",
+        [6] = "West",
+        [7] = "Southwest",
+        [8] = "South",
+    }
+
+    ZO_Dialogs_RegisterCustomDialog("BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
+    {
+        blockDirectionalInput = true,
+        canQueue = true,
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+            allowRightStickPassThrough = true,
+        },
+        title = {
+            text = function(dialog)
+                return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+            end,
+        },
+        setup = function(dialog, data)
+            local parametricList = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(parametricList)
+
+            -- If this item is currently assigned, add an Unassign action as the first row (avoids needing a tertiary button)
+            local hasUnassign = false
+            local assignedIndexForUnassign = nil
+            if data and data.target and FindActionSlotMatchingItem then
+                assignedIndexForUnassign = FindActionSlotMatchingItem(data.target.bagId, data.target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                if assignedIndexForUnassign then
+                    hasUnassign = true
+                    local entryData = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_REMOVE))
+                    entryData:SetIconTintOnSelection(true)
+                    entryData.isUnassign = true
+                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                    table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = entryData })
+                end
+            end
+
+            for slotIndex = 1, 8 do
+                local icon
+                if GetSlotTexture then
+                    icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                end
+                if not icon or icon == "" then
+                    icon = "/esoui/art/quickslots/quickslot_empty.dds"
+                end
+
+                local entryData = ZO_GamepadEntryData:New(SLOT_LABELS[slotIndex] or tostring(slotIndex), icon)
+                entryData:SetIconTintOnSelection(true)
+                entryData.slotIndex = slotIndex
+                entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = entryData })
+            end
+
+            dialog:setupFunc()
+            -- Preselect currently assigned slot index if this item is already on the wheel
+            if data and data.target and FindActionSlotMatchingItem then
+                local assignedIndex = FindActionSlotMatchingItem(data.target.bagId, data.target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                if assignedIndex and dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
+                    local offset = hasUnassign and 1 or 0
+                    dialog.entryList:SetSelectedIndexWithoutAnimation(math.max(1, math.min(8 + offset, assignedIndex + offset)), true, false)
+                elseif dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
+                    dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
+                end
+            end
+        end,
+        mainText = {
+            text = function(dialog)
+                if dialog and dialog.data and dialog.data.target then
+                    local t = dialog.data.target
+                    local name = GetItemName(t.bagId, t.slotIndex)
+                    if name and name ~= "" then
+                        return zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
+                    end
+                end
+                return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+            end,
+        },
+        parametricList = {},
+        buttons = {
+            { keybind = "DIALOG_NEGATIVE", text = GetString(SI_DIALOG_CANCEL) },
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                callback = function(dialog)
+                    local target = dialog.data and dialog.data.target
+                    if target and target.bagId and target.slotIndex then
+                        local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                        local selected = dialog.entryList and dialog.entryList.GetTargetData and dialog.entryList:GetTargetData()
+                        if selected and selected.isUnassign then
+                            local assigned = FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+                            if assigned then
+                                CallSecureProtected('ClearSlot', assigned, quickslot_wheel)
+                                if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_BACK) end
+                            end
+                        else
+                            local wheelSlotIndex = selected and selected.slotIndex or 4 -- fallback to North (4)
+                            CallSecureProtected('SelectSlotItem', target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
+                            if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD) end
+                        end
+                        ZO_Dialogs_ReleaseDialogOnButtonPress('BETTERUI_QUICKSLOT_ASSIGN_DIALOG')
+                        zo_callLater(function() if GAMEPAD_INVENTORY then GAMEPAD_INVENTORY:RefreshItemList() end end, 150)
+                    end
+                end,
+            },
+        },
+    })
+end
+
+function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
+    -- Open the standard Actions dialog in embedded quickslot mode (matches the Y-button prompt UX)
+    local data = { quickslotAssign = true, target = { bagId = bagId, slotIndex = slotIndex } }
+    if ZO_Dialogs_IsShowing(BETTERUI_EQUIP_SLOT_DIALOG) then
+        ZO_Dialogs_ReleaseDialog(BETTERUI_EQUIP_SLOT_DIALOG)
+    end
+    zo_callLater(function()
+        ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
+        -- As a fallback, if the embedded dialog still doesn't appear, show our custom parametric dialog
+        zo_callLater(function()
+            if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                ZO_Dialogs_ShowDialog("BETTERUI_QUICKSLOT_ASSIGN_DIALOG", { target = { bagId = bagId, slotIndex = slotIndex } }, nil, true, true)
+            end
+        end, 220)
+    end, 120)
 end
 
 function BETTERUI.Inventory.HookDestroyItem()
@@ -1238,37 +1487,94 @@ function BETTERUI.Inventory.HookActionDialog()
 
     ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG,
     {
-        setup = function(...) 
-			if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
-			   (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
-				CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ...)
-				return
-			end
-			--original function
-			ActionsDialogSetup(...) 
-		end,
-        gamepadInfo =
-        {
-            dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
-        },
+        blockDirectionalInput = true,
+        canQueue = true,
+        setup = function(dialog, data) 
+            -- Always handle our embedded quickslot mode here for robustness
+            if data and data.quickslotAssign and data.target then
+                local parametricList = dialog.info.parametricList
+                ZO_ClearNumericallyIndexedTable(parametricList)
+
+                local target = data.target
+                local hasUnassign = false
+                local assignedIndex = nil
+                if FindActionSlotMatchingItem then
+                    assignedIndex = FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                    if assignedIndex then
+                        hasUnassign = true
+                        local unassignEntry = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_REMOVE))
+                        unassignEntry:SetIconTintOnSelection(true)
+                        unassignEntry.isUnassign = true
+                        unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
+                        table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = unassignEntry })
+                    end
+                end
+
+                local function slotLabel(idx)
+                    if idx == 4 then return "North"
+                    elseif idx == 3 then return "Northeast"
+                    elseif idx == 2 then return "East"
+                    elseif idx == 1 then return "Southeast"
+                    elseif idx == 8 then return "South"
+                    elseif idx == 7 then return "Southwest"
+                    elseif idx == 6 then return "West"
+                    elseif idx == 5 then return "Northwest" end
+                    return tostring(idx)
+                end
+
+                for slotIndex = 1, 8 do
+                    local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
+                    if not icon or icon == "" then
+                        icon = "/esoui/art/quickslots/quickslot_empty.dds"
+                    end
+                    local entryData = ZO_GamepadEntryData:New(slotLabel(slotIndex), icon)
+                    entryData:SetIconTintOnSelection(true)
+                    entryData.slotIndex = slotIndex
+                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                    table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = entryData })
+                end
+
+                dialog.quickslotTarget = target
+                dialog:setupFunc()
+                if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
+                    local offset = hasUnassign and 1 or 0
+                    if assignedIndex then
+                        dialog.entryList:SetSelectedIndexWithoutAnimation(math.max(1, math.min(8 + offset, assignedIndex + offset)), true, false)
+                    else
+                        dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
+                    end
+                end
+                return
+            end
+
+            -- Normal BetterUI override path when enabled/visible
+            if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
+               (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
+                CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data)
+                return
+            end
+            -- Original function
+            ActionsDialogSetup(dialog, data) 
+        end,
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title =
         {
             text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND,
         },
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback =  function(dialog)
-			if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
-			   (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
-				CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
-				return
-			end
-			--original function
-			dialog.itemActions = nil
-			if dialog.finishedCallback then
-				dialog.finishedCallback()
-			end
-			dialog.finishedCallback = nil
-		end,
+            if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
+               (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
+                CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
+                return
+            end
+            --original function
+            dialog.itemActions = nil
+            if dialog.finishedCallback then
+                dialog.finishedCallback()
+            end
+            dialog.finishedCallback = nil
+        end,
 
         buttons =
         {
@@ -1279,15 +1585,36 @@ function BETTERUI.Inventory.HookActionDialog()
             {
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(SI_GAMEPAD_SELECT_OPTION),
-            	callback = function(dialog)  
-     	           	
-					if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
-					   (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
-						CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
-						return
-					end
-					--original function
-					dialog.itemActions:DoSelectedAction()
+                callback = function(dialog)  
+                    -- Handle embedded quickslot mode regardless of BetterUI override gating
+                    if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
+                        local target = dialog.data.target or dialog.quickslotTarget
+                        if target then
+                            local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                            local selected = dialog.entryList:GetTargetData()
+                            if selected and selected.isUnassign then
+                                local assigned = FindActionSlotMatchingItem and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+                                if assigned then
+                                    CallSecureProtected('ClearSlot', assigned, quickslot_wheel)
+                                    if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_BACK) end
+                                end
+                            else
+                                local wheelSlotIndex = (selected and selected.slotIndex) or 4
+                                CallSecureProtected('SelectSlotItem', target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
+                                if SOUNDS and PlaySound then PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD) end
+                            end
+                            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                            zo_callLater(function() if GAMEPAD_INVENTORY then GAMEPAD_INVENTORY:RefreshItemList() end end, 150)
+                        end
+                        return
+                    end
+                    if (BETTERUI.Settings.Modules["Inventory"].m_enabled and SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing() ) or
+                       (BETTERUI.Settings.Modules["Banking"].m_enabled and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() ) then
+                        CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
+                        return
+                    end
+                    --original function
+                    dialog.itemActions:DoSelectedAction()
                 end,
             },
         },
@@ -1594,6 +1921,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
     self:InitializeItemActions()
     self:InitializeActionsDialog()
+    self:InitializeQuickslotAssignDialog()
 
     local function RefreshHeader()
         if not self.control:IsHidden() then
@@ -1897,13 +2225,24 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             name = function()
             	if self.actionMode == ITEM_LIST_ACTION_MODE then
             		--bag mode
-            		local isQuickslot = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUICKSLOT)
-                    local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)            		
-                    local filterType = GetItemFilterTypeInfo(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
-                    if isQuickslot then
+	        		local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)					
+                    local function IsQuickslottable(sd)
+                        if not sd or not sd.bagId or not sd.slotIndex then return false end
+                        if IsValidItemForSlot then
+                            local ok = IsValidItemForSlot(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                            if ok then return true end
+                        end
+                        local ft = GetItemFilterTypeInfo(sd.bagId, sd.slotIndex)
+                        if ft == ITEMFILTERTYPE_CONSUMABLE or ft == ITEMFILTERTYPE_QUICKSLOT then return true end
+                        if FindActionSlotMatchingItem then
+                            return FindActionSlotMatchingItem(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) ~= nil
+                        end
+                        return false
+                    end
+                    if IsQuickslottable(self.itemList.selectedData) then
             			--assign
             			return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
-            		elseif not isQuestItem and filterType == ITEMFILTERTYPE_WEAPONS or filterType == ITEMFILTERTYPE_ARMOR or filterType == ITEMFILTERTYPE_JEWELRY then
+					elseif not isQuestItem then
             			--switch compare
             			return GetString(SI_BETTERUI_INV_SWITCH_INFO)
                     else 
@@ -1936,34 +2275,25 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             callback = function()
             	if self.actionMode == ITEM_LIST_ACTION_MODE then
             		--bag mode
-            		local isQuickslot = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUICKSLOT)
-            		local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)                    
-                    local filterType = GetItemFilterTypeInfo(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
-            		if isQuickslot then
---shadowcep[[
-                        local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-                        local validSlot = GetFirstFreeValidSlotForItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, quickslot_wheel)
-                        if validSlot then
-                            CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, validSlot, quickslot_wheel)
-                        else
-                            --Quickslot order [1]=SE,[2]=E,[3]=NE,[4]=N,[5]=NW,[6]=W,[7]=SW,[8]=S
-                            local quickSlotIndex = FindActionSlotMatchingItem(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, quickslot_wheel)
-                            if quickSlotIndex then
-                                CallSecureProtected('ClearSlot', quickSlotIndex, quickslot_wheel)
-                            else
-                                CallSecureProtected('SelectSlotItem', self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex, 4, quickslot_wheel)
-                            end
+	        		local function IsQuickslottable(sd)
+                        if not sd or not sd.bagId or not sd.slotIndex then return false end
+                        if IsValidItemForSlot then
+                            local ok = IsValidItemForSlot(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                            if ok then return true end
                         end
---shadowcep]]
-                        zo_callLater(function() self:RefreshItemList() end, 250)
-            		elseif not isQuestItem and filterType ~= ITEMFILTERTYPE_QUEST and filterType == ITEMFILTERTYPE_WEAPONS or filterType == ITEMFILTERTYPE_ARMOR or filterType == ITEMFILTERTYPE_JEWELRY then
+                        local ft = GetItemFilterTypeInfo(sd.bagId, sd.slotIndex)
+                        if ft == ITEMFILTERTYPE_CONSUMABLE or ft == ITEMFILTERTYPE_QUICKSLOT then return true end
+                        if FindActionSlotMatchingItem then
+                            return FindActionSlotMatchingItem(sd.bagId, sd.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) ~= nil
+                        end
+                        return false
+                    end
+					if IsQuickslottable(self.itemList.selectedData) then
+                        -- Open BetterUI quickslot assignment dialog to let user pick the wheel slot visually
+                        self:ShowQuickslotAssignDialog(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
+					else
             			--switch compare
             			self:SwitchInfo()
-                    else 
-                        local itemLink = GetItemLink(self.itemList.selectedData.bagId, self.itemList.selectedData.slotIndex)
-                        if itemLink then
-                            ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
-                        end
             		end 
             	elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
             		--craftbag mode
