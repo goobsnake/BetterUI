@@ -722,8 +722,7 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 
 	BETTERUI.GenericFooter.Initialize(self)
 	BETTERUI.GenericFooter.Refresh(self)
-	--self.header.tabBar:SetDefaultSelectedIndex(1)
-	 
+
 end
 
 function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
@@ -1193,9 +1192,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     local actionName = actions:GetRawActionName(action)
 
                     local entryData = ZO_GamepadEntryData:New(actionName)
-                    -- Flash all non-current slots; keep the currently assigned slot steady
-                    local shouldFlash = (assignedIndex ~= nil) and (slotIndex ~= assignedIndex)
-                    entryData:SetIconTintOnSelection(shouldFlash or true)
+                    -- Ensure consistent selection visuals for action rows
+                    entryData:SetIconTintOnSelection(true)
                     entryData.action = action
                     entryData.setup = ZO_SharedGamepadEntry_OnSetup
 
@@ -2207,13 +2205,6 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
     		self.actionMode = ITEM_LIST_ACTION_MODE
     		self:RefreshItemActions()
 
-    		-- if self.callLaterRightToolTip ~= nil then
-    		-- 	EVENT_MANAGER:UnregisterForUpdate(self.callLaterRightToolTip)
-    		-- end
-
-	    	-- local callLaterId = zo_callLater(function() self:UpdateRightTooltip() end, 100)
-	    	-- self.callLaterRightToolTip = "CallLaterFunction"..callLaterId
-
 	    	self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 	    	self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
 	    	self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
@@ -2277,7 +2268,30 @@ end
 -- Keybinds --
 --------------
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
-	self.mainKeybindStripDescriptor = {
+    -- Helper used by X-button name/callback to decide if an item is quickslottable
+    local function IsQuickslottable(sd)
+        if not sd or not sd.bagId or not sd.slotIndex then return false end
+        local bag, slot = sd.bagId, sd.slotIndex
+        -- Already assigned is always eligible
+        if FindActionSlotMatchingItem and FindActionSlotMatchingItem(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
+            return true
+        end
+        -- Exclude quest items explicitly
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUEST) then
+            return false
+        end
+        -- Prefer the UI's own quickslot filter (captures true quickslottables reliably)
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUICKSLOT) then
+            return true
+        end
+        -- Engine validation as a secondary check
+        if IsValidItemForSlot and IsValidItemForSlot(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
+            return true
+        end
+        return false
+    end
+
+    self.mainKeybindStripDescriptor = {
 		--X Button for Quick Action
 		{
 			alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -2285,27 +2299,6 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             	if self.actionMode == ITEM_LIST_ACTION_MODE then
             		--bag mode
 	        		local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)					
-                    local function IsQuickslottable(sd)
-                        if not sd or not sd.bagId or not sd.slotIndex then return false end
-                        local bag, slot = sd.bagId, sd.slotIndex
-                        -- Already assigned is always eligible
-                        if FindActionSlotMatchingItem and FindActionSlotMatchingItem(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-                            return true
-                        end
-                        -- Exclude quest items explicitly
-                        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUEST) then
-                            return false
-                        end
-                        -- Prefer the UI's own quickslot filter (captures true quickslottables reliably)
-                        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUICKSLOT) then
-                            return true
-                        end
-                        -- Engine validation as a secondary check
-                        if IsValidItemForSlot and IsValidItemForSlot(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-                            return true
-                        end
-                        return false
-                    end
                     local target = self.itemList.selectedData
                     local ft = (target and target.bagId and target.slotIndex) and GetItemFilterTypeInfo(target.bagId, target.slotIndex) or nil
                     if IsQuickslottable(target) then
@@ -2328,15 +2321,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             visible = function()
                 if self.actionMode == ITEM_LIST_ACTION_MODE then
                     if self.itemList.selectedData then
-                        local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)                                        
-                        if not isQuestItem then
-                            return true
-                        else
-                            return false
-                        end
-                    else
-                        return false
+                        local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)
+                        return not isQuestItem
                     end
+                    return false
                 elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
                     return true
                 end
@@ -2344,23 +2332,6 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             callback = function()
             	if self.actionMode == ITEM_LIST_ACTION_MODE then
             		--bag mode
-		        local function IsQuickslottable(sd)
-                        if not sd or not sd.bagId or not sd.slotIndex then return false end
-                        local bag, slot = sd.bagId, sd.slotIndex
-                        if FindActionSlotMatchingItem and FindActionSlotMatchingItem(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-                            return true
-                        end
-                        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUEST) then
-                            return false
-                        end
-                        if ZO_InventoryUtils_DoesNewItemMatchFilterType and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUICKSLOT) then
-                            return true
-                        end
-                        if IsValidItemForSlot and IsValidItemForSlot(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
-                            return true
-                        end
-                        return false
-                    end
                     local target = self.itemList.selectedData
                     local ft = (target and target.bagId and target.slotIndex) and GetItemFilterTypeInfo(target.bagId, target.slotIndex) or nil
                     if IsQuickslottable(target) then
