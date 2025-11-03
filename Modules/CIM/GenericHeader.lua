@@ -157,10 +157,13 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     end
 
     if control.tabBar then
-        if(blockTabBarCallbacks) then
-            control.tabBar:RemoveOnSelectedDataChangedCallback(TabBar_OnDataChanged)
-        else
-            control.tabBar:SetOnSelectedDataChangedCallback(TabBar_OnDataChanged)
+        local onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
+        if onChange then
+            if(blockTabBarCallbacks) then
+                control.tabBar:RemoveOnSelectedDataChangedCallback(onChange)
+            else
+                control.tabBar:SetOnSelectedDataChangedCallback(onChange)
+            end
         end
         if data.activatedCallback then
             control.tabBar:SetOnActivatedChangedFunction(data.activatedCallback)
@@ -168,7 +171,7 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
 
         control.tabBar:Commit()
         if(blockTabBarCallbacks) then
-            control.tabBar:SetOnSelectedDataChangedCallback(TabBar_OnDataChanged)
+            control.tabBar:SetOnSelectedDataChangedCallback(onChange)
         end
     end
 end

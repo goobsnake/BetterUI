@@ -1,4 +1,4 @@
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","Inventory")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","All Items")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","Materials")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_QUICKSLOT","Quickslot")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","Weapons")
@@ -28,7 +28,7 @@ ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT","DEPOSIT")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_TO_TEMPLATE","Go To <<1>>")
 
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_CB","Crafting Bag")
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV","Inventory")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV","All Items")
 
 ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Switch Info") 
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Equip")

@@ -21,6 +21,18 @@ local BANK_CATEGORY_DEFS = {
     { key = "misc",       name = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS },
 }
 
+-- Icon mapping for header display (reuse inventory category icons)
+local BANK_CATEGORY_ICONS = {
+    all        = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
+    weapons    = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds",
+    apparel    = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds",
+    jewelry    = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds",
+    consumable = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds",
+    materials  = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds",
+    furnishing = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds",
+    misc       = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
+}
+
 local function BuildBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
@@ -158,21 +170,24 @@ function BETTERUI.Banking.Class:RefreshList()
     self.list:Clear()
     self:CurrentUsedBank()
 
+    -- Update the header title with current category
+    if self.UpdateHeaderTitle then
+        self:UpdateHeaderTitle()
+    end
+
     -- We have to add 2 rows to the list, one for Withdraw/Deposit GOLD and one for Withdraw/Deposit TEL-VAR
     local wdString = self.currentMode == LIST_WITHDRAW and GetString(SI_BETTERUI_BANKING_WITHDRAW) or GetString(SI_BETTERUI_BANKING_DEPOSIT)
     wdString = zo_strformat("<<Z:1>>", wdString)
-    -- Stage 1: Show current category name as an informational header row
-    if self.bankCategories and #self.bankCategories > 0 then
-        local cat = self.bankCategories[self.currentCategoryIndex or 1]
-        if cat and cat.name then
-            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label = zo_strformat("|cFFFFFF<<1>>: <<2>>|r", GetString(SI_GAMEPAD_INVENTORY_CATEGORY_HEADER), cat.name)})
-        end
-    end
+    -- Header tab bar now shows category; no extra list header row needed
+    -- Only show currency transfer rows when on the All Items category
+    local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if(currentUsedBank == BAG_BANK) then
-        self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_GOLD) ..  "|r", currencyType = CURT_MONEY})
-        self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_TEL_VAR) ..  "|r", currencyType = CURT_TELVAR_STONES})
-        self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT) ..  "|r", currencyType = CURT_ALLIANCE_POINTS})
-        self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER) ..  "|r", currencyType = CURT_WRIT_VOUCHERS})
+        if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then
+            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_GOLD) ..  "|r", currencyType = CURT_MONEY})
+            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_TEL_VAR) ..  "|r", currencyType = CURT_TELVAR_STONES})
+            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT) ..  "|r", currencyType = CURT_ALLIANCE_POINTS})
+            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER) ..  "|r", currencyType = CURT_WRIT_VOUCHERS})
+        end
     else
         if(self.currentMode == LIST_WITHDRAW) then
             if(GetNumBagUsedSlots(currentUsedBank) == 0) then
@@ -299,6 +314,11 @@ function BETTERUI.Banking.Class:RefreshList()
     self:ReturnToSaved()
     self:UpdateActions()
     self:RefreshFooter()
+    -- Ensure keybind visibility reflects current (possibly empty) list state immediately
+    if KEYBIND_STRIP then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+    end
 end
 
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
@@ -313,8 +333,19 @@ local function OnItemSelectedChange(self, list, selectedData)
 	if not SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
 		return
 	end
+    if not selectedData then
+        -- No selection (empty list). Default to item keybinds and clear tooltip.
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        self:UpdateActions()
+        return
+    end
+    -- Only treat currency header rows when the active category is All Items
+    local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if(currentUsedBank == BAG_BANK) then
-        if(selectedData.label ~= nil) then
+        if(selectedData.label ~= nil and activeCategoryForHeader and activeCategoryForHeader.key == "all") then
             -- Yes! We are, so add the "withdraw/deposit gold/telvar" keybinds here
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
@@ -328,13 +359,21 @@ local function OnItemSelectedChange(self, list, selectedData)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
 
-            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            if selectedData.bagId and selectedData.slotIndex then
+                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            else
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            end
         end
     else
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+        if selectedData.bagId and selectedData.slotIndex then
+            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+        else
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        end
         self:RefreshCurrencyTooltip()
     end
 	self:UpdateActions()
@@ -383,6 +422,16 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
     self.currentCategoryIndex = 1
 
+    -- Base header title (used as fallback); header title will show selected category like inventory
+    self.headerBaseTitle = "Advanced Banking"
+
+    -- Initialize the banking header with a tab bar similar to inventory
+    self.headerGeneric = self.header:GetNamedChild("Header") or self.header
+    BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
+    self:RebuildHeaderCategories()
+
+    -- EnsureHeaderKeybindsActive is defined on the class below; keep calls here
+
     self.selectedDataCallback = OnItemSelectedChange
 
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
@@ -420,12 +469,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
             self.currentCategoryIndex = 1
         end
+        self:RebuildHeaderCategories()
         if self.isDirty then
             self:RefreshList()
         elseif self.selectedDataCallback then
             self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
         end
         self.list:Activate()
+        -- Ensure our keybind groups and header tab bar are active on first show
+        self:AddKeybinds()
 	
 		if wykkydsToolbar then
 			wykkydsToolbar:SetHidden(true)
@@ -666,6 +718,7 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
         KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+        self:EnsureHeaderKeybindsActive()
     end
 end
 
@@ -867,7 +920,11 @@ function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
 end
 
 function BETTERUI.Banking.Class:UpdateActions()
-    local targetData = self:GetList().selectedData
+    local targetData = self:GetList() and self:GetList().selectedData or nil
+    if not targetData then
+        self.itemActions:SetInventorySlot(nil)
+        return
+    end
     -- since SetInventorySlot also adds/removes keybinds, the order which we call these 2 functions is important
     -- based on whether we are looking at an item or a faux-item
     if ZO_GamepadBanking.IsEntryDataCurrencyRelated(targetData) then
@@ -884,6 +941,7 @@ function BETTERUI.Banking.Class:AddKeybinds()
 	KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
 	KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
 	self:UpdateActions()
+    self:EnsureHeaderKeybindsActive()
 end
 
 function BETTERUI.Banking.Class:RemoveKeybinds()
@@ -913,37 +971,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
 		return
 	end
 	
-	self.coreKeybinds = {
+    self.coreKeybinds = {
                 alignment = KEYBIND_STRIP_ALIGN_LEFT,
-                {
-                    name = function()
-                        local hasMulti = self.bankCategories and #self.bankCategories > 1
-                        if not hasMulti then return "" end
-                        local cat = self.bankCategories[self.currentCategoryIndex or 1]
-                        return zo_strformat("<<1>>: <<2>>", GetString(SI_GAMEPAD_INVENTORY_CATEGORY_HEADER), (cat and cat.name) or "")
-                    end,
-                    keybind = "UI_SHORTCUT_LEFT_SHOULDER",
-                    visible = function()
-                        return self.bankCategories and #self.bankCategories > 1
-                    end,
-                    callback = function()
-                        self:CycleCategory(-1)
-                    end,
-                },
-                {
-                    name = function()
-                        local hasMulti = self.bankCategories and #self.bankCategories > 1
-                        if not hasMulti then return "" end
-                        return GetString(SI_GAMEPAD_SELECT_OPTION)
-                    end,
-                    keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
-                    visible = function()
-                        return self.bankCategories and #self.bankCategories > 1
-                    end,
-                    callback = function()
-                        self:CycleCategory(1)
-                    end,
-                },
 		        {
 		            name = GetString(SI_BETTERUI_BANKING_TOGGLE_LIST),
 		            keybind = "UI_SHORTCUT_SECONDARY",
@@ -998,6 +1027,9 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             keybind = "UI_SHORTCUT_LEFT_STICK",
             order = 1500,
             disabledDuringSceneHiding = true,
+            visible = function()
+                return self.list and not self.list:IsEmpty()
+            end,
             callback = function()				
                 if(self.currentMode == LIST_WITHDRAW) then
                     if(currentUsedBank == BAG_BANK) then
@@ -1074,7 +1106,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON, function() self:HideSelector() end)
 
 	self.triggerSpinnerBinds = {}
-	local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(self.list)
+    local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(self.list)
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
 
@@ -1117,7 +1149,32 @@ end
 
 function BETTERUI.Banking.Class:ReturnToSaved()
     self:CurrentUsedBank()
+    -- If there are no entries, avoid selecting index 1 (which would error)
+    local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
+    if totalEntries == 0 then
+        -- Default to item keybinds and clear tooltip
+        if KEYBIND_STRIP then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        end
+        if GAMEPAD_TOOLTIPS then
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        end
+        return
+    end
     local lastPosition = self.lastPositions[self.currentMode]
+    if self.bankCategories and #self.bankCategories > 0 then
+        local cat = self.bankCategories[self.currentCategoryIndex or 1]
+        if cat then
+            local byMode = self.lastPositionsByCategory[self.currentMode]
+            if byMode and byMode[cat.key] then
+                lastPosition = byMode[cat.key]
+            end
+        end
+    end
+    -- Default and clamp to valid range to avoid nil or OOB indices
+    lastPosition = zo_clamp(tonumber(lastPosition) or 1, 1, totalEntries)
     -- Prefer per-category saved index when available (Stage 1)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
@@ -1197,6 +1254,7 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
         self.currentCategoryIndex = 1
     end
+	self:RebuildHeaderCategories()
 	local footer = self.footer:GetNamedChild("Footer")
 	if(self.currentMode == LIST_WITHDRAW) then
 		footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
@@ -1222,13 +1280,82 @@ function BETTERUI.Banking.Class:CycleCategory(delta)
     if idx < 1 then idx = count end
     if idx > count then idx = 1 end
     self:SaveListPosition()
-    self.currentCategoryIndex = idx
-    self:RefreshList()
+    -- Drive selection via header tabbar; onSelectedChanged will handle refresh
+    if self.headerGeneric and self.headerGeneric.tabBar then
+        self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+    else
+        self.currentCategoryIndex = idx
+        self:RefreshList()
+    end
+end
+
+-- Update only the header title text with current category
+function BETTERUI.Banking.Class:UpdateHeaderTitle()
+    local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    if cat and cat.name then
+        -- Match inventory: use default title color (white), no custom color tags
+        self:SetTitle(zo_strformat("<<1>>", cat.name))
+    else
+        self:SetTitle(self.headerBaseTitle or "Advanced Banking")
+    end
+end
+
+-- Ensure the header tab bar's LB/RB keybinds are active (idempotent)
+function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    if tabBar and tabBar.keybindStripDescriptor then
+        tabBar:Activate()
+    end
+end
+
+-- Build/refresh the header tab bar entries for banking categories
+function BETTERUI.Banking.Class:RebuildHeaderCategories()
+    if not (self.header and self.bankCategories) then return end
+    -- Prepare header data and entries
+    self.bankHeaderData = self.bankHeaderData or {}
+    self.bankHeaderData.titleText = function()
+        local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+        return (cat and cat.name) or GetString(SI_BETTERUI_INV_ITEM_ALL)
+    end
+    self.bankHeaderData.tabBarData = { parent = self }
+    self.bankHeaderData.onSelectedChanged = function(list, selectedData)
+        -- Sync selected index to current category and refresh
+        self.currentCategoryIndex = list.selectedIndex or 1
+        self:UpdateHeaderTitle()
+        self:RefreshList()
+    end
+
+    -- Ensure tabbar exists then clear and repopulate
+    if not self.headerGeneric.tabBar then
+        BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    end
+    if self.headerGeneric.tabBar then
+        self.headerGeneric.tabBar:Clear()
+    end
+    for i = 1, #self.bankCategories do
+        local cat = self.bankCategories[i]
+        local icon = BANK_CATEGORY_ICONS[cat.key] or BANK_CATEGORY_ICONS.all
+        local entryData = ZO_GamepadEntryData:New(cat.name, icon)
+        entryData.filterType = cat.filterType -- influences icon tint like inventory
+        entryData:SetIconTintOnSelection(true)
+        BETTERUI.GenericHeader.AddToList(self.headerGeneric, entryData)
+    end
+    BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    -- Select the current category in the header
+    if self.headerGeneric.tabBar then
+        local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
+        self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+    end
+    -- Update title to match
+    self:UpdateHeaderTitle()
+    self:EnsureHeaderKeybindsActive()
 end
 
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
-    BETTERUI.Banking.Window:SetTitle("|c0066FFBanking Enhanced|r")
+    BETTERUI.Banking.Window:SetTitle("|c0066FFAdvanced Banking|r")
+    -- Initialize header with categories & selection immediately
+    BETTERUI.Banking.Window:RebuildHeaderCategories()
 
 
     -- Set the column headings up, maybe put them into a table?
