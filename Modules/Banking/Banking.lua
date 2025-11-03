@@ -8,6 +8,43 @@ local currentUsedBank = 0
 local lastActionName
 local esoSubscriber
 
+-- Stage 1: Minimal banking categories for reduced scrolling
+-- Mirrors Inventory's high-level categories; restricted to Furnishings in Furniture Vault
+local BANK_CATEGORY_DEFS = {
+    { key = "all",        name = SI_BETTERUI_INV_ITEM_ALL,        filterType = nil },
+    { key = "weapons",    name = SI_BETTERUI_INV_ITEM_WEAPONS,    filterType = ITEMFILTERTYPE_WEAPONS },
+    { key = "apparel",    name = SI_BETTERUI_INV_ITEM_APPAREL,    filterType = ITEMFILTERTYPE_ARMOR },
+    { key = "jewelry",    name = SI_BETTERUI_INV_ITEM_JEWELRY,    filterType = ITEMFILTERTYPE_JEWELRY },
+    { key = "consumable", name = SI_BETTERUI_INV_ITEM_CONSUMABLE, filterType = ITEMFILTERTYPE_CONSUMABLE },
+    { key = "materials",  name = SI_BETTERUI_INV_ITEM_MATERIALS,  filterType = ITEMFILTERTYPE_CRAFTING },
+    { key = "furnishing", name = SI_BETTERUI_INV_ITEM_FURNISHING, filterType = ITEMFILTERTYPE_FURNISHING },
+    { key = "misc",       name = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS },
+}
+
+local function BuildBankCategories(isFurnitureVault)
+    if isFurnitureVault then
+        return {
+            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING },
+        }
+    end
+    local out = {}
+    for i = 1, #BANK_CATEGORY_DEFS do
+        local def = BANK_CATEGORY_DEFS[i]
+        out[#out+1] = { key = def.key, name = GetString(def.name), filterType = def.filterType }
+    end
+    return out
+end
+
+local function DoesItemMatchBankCategory(itemData, category)
+    if not category or category.key == "all" then
+        return true
+    end
+    if category.filterType then
+        return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, category.filterType)
+    end
+    return true
+end
+
 local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
     local weaponType = GetItemWeaponType(bagId, slotIndex)
     if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
@@ -124,6 +161,13 @@ function BETTERUI.Banking.Class:RefreshList()
     -- We have to add 2 rows to the list, one for Withdraw/Deposit GOLD and one for Withdraw/Deposit TEL-VAR
     local wdString = self.currentMode == LIST_WITHDRAW and GetString(SI_BETTERUI_BANKING_WITHDRAW) or GetString(SI_BETTERUI_BANKING_DEPOSIT)
     wdString = zo_strformat("<<Z:1>>", wdString)
+    -- Stage 1: Show current category name as an informational header row
+    if self.bankCategories and #self.bankCategories > 0 then
+        local cat = self.bankCategories[self.currentCategoryIndex or 1]
+        if cat and cat.name then
+            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label = zo_strformat("|cFFFFFF<<1>>: <<2>>|r", GetString(SI_GAMEPAD_INVENTORY_CATEGORY_HEADER), cat.name)})
+        end
+    end
     if(currentUsedBank == BAG_BANK) then
         self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_GOLD) ..  "|r", currencyType = CURT_MONEY})
         self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_TEL_VAR) ..  "|r", currencyType = CURT_TELVAR_STONES})
@@ -175,8 +219,12 @@ function BETTERUI.Banking.Class:RefreshList()
     local GetBestItemCategoryDescription = GetBestItemCategoryDescription
     local FindActionSlotMatchingItem = FindActionSlotMatchingItem
     local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+    local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     for i = 1, #filteredDataTable  do
         local itemData = filteredDataTable[i]
+        if activeCategory and not DoesItemMatchBankCategory(itemData, activeCategory) then
+            -- skip items not in the selected category
+        else
         --use custom categories
         local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
         if customCategory and not matched then
@@ -201,6 +249,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
         table.insert(tempDataTable, itemData)
         ZO_InventorySlot_SetType(itemData, slotType)
+        end
     end
     filteredDataTable = tempDataTable
     
@@ -327,6 +376,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
+    -- Per-category selection persistence (Stage 1)
+    self.lastPositionsByCategory = { [LIST_WITHDRAW] = {}, [LIST_DEPOSIT] = {} }
+
+    -- Initialize categories (Stage 1)
+    self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+    self.currentCategoryIndex = 1
 
     self.selectedDataCallback = OnItemSelectedChange
 
@@ -360,6 +415,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function OnEffectivelyShown()
         self:CurrentUsedBank()
+        -- Rebuild categories on show in case bank type changed
+        self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+        if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
+            self.currentCategoryIndex = 1
+        end
         if self.isDirty then
             self:RefreshList()
         elseif self.selectedDataCallback then
@@ -855,6 +915,35 @@ function BETTERUI.Banking.Class:InitializeKeybind()
 	
 	self.coreKeybinds = {
                 alignment = KEYBIND_STRIP_ALIGN_LEFT,
+                {
+                    name = function()
+                        local hasMulti = self.bankCategories and #self.bankCategories > 1
+                        if not hasMulti then return "" end
+                        local cat = self.bankCategories[self.currentCategoryIndex or 1]
+                        return zo_strformat("<<1>>: <<2>>", GetString(SI_GAMEPAD_INVENTORY_CATEGORY_HEADER), (cat and cat.name) or "")
+                    end,
+                    keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+                    visible = function()
+                        return self.bankCategories and #self.bankCategories > 1
+                    end,
+                    callback = function()
+                        self:CycleCategory(-1)
+                    end,
+                },
+                {
+                    name = function()
+                        local hasMulti = self.bankCategories and #self.bankCategories > 1
+                        if not hasMulti then return "" end
+                        return GetString(SI_GAMEPAD_SELECT_OPTION)
+                    end,
+                    keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+                    visible = function()
+                        return self.bankCategories and #self.bankCategories > 1
+                    end,
+                    callback = function()
+                        self:CycleCategory(1)
+                    end,
+                },
 		        {
 		            name = GetString(SI_BETTERUI_BANKING_TOGGLE_LIST),
 		            keybind = "UI_SHORTCUT_SECONDARY",
@@ -1017,11 +1106,28 @@ end
 function BETTERUI.Banking.Class:SaveListPosition()
     -- Able to return to the current position again!
     self.lastPositions[self.currentMode] = self.list.selectedIndex
+    if self.bankCategories and #self.bankCategories > 0 then
+        local cat = self.bankCategories[self.currentCategoryIndex or 1]
+        if cat then
+            local byMode = self.lastPositionsByCategory[self.currentMode]
+            byMode[cat.key] = self.list.selectedIndex
+        end
+    end
 end
 
 function BETTERUI.Banking.Class:ReturnToSaved()
     self:CurrentUsedBank()
     local lastPosition = self.lastPositions[self.currentMode]
+    -- Prefer per-category saved index when available (Stage 1)
+    if self.bankCategories and #self.bankCategories > 0 then
+        local cat = self.bankCategories[self.currentCategoryIndex or 1]
+        if cat then
+            local byMode = self.lastPositionsByCategory[self.currentMode]
+            if byMode and byMode[cat.key] then
+                lastPosition = byMode[cat.key]
+            end
+        end
+    end
     if(self.currentMode == LIST_WITHDRAW) then
         if(lastUsedBank ~= currentUsedBank) then
             self.list:SetSelectedIndexWithoutAnimation(1, true, false)
@@ -1086,6 +1192,11 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self:SaveListPosition()
 
 	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
+    -- Rebuild categories when switching modes (Stage 1)
+    self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+    if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
+        self.currentCategoryIndex = 1
+    end
 	local footer = self.footer:GetNamedChild("Footer")
 	if(self.currentMode == LIST_WITHDRAW) then
 		footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
@@ -1101,6 +1212,18 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 	--KEYBIND_STRIP:UpdateKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
 	self:RefreshList()
+end
+
+-- Stage 1: Category cycling via shoulder buttons
+function BETTERUI.Banking.Class:CycleCategory(delta)
+    if not (self.bankCategories and #self.bankCategories > 1) then return end
+    local count = #self.bankCategories
+    local idx = (self.currentCategoryIndex or 1) + delta
+    if idx < 1 then idx = count end
+    if idx > count then idx = 1 end
+    self:SaveListPosition()
+    self.currentCategoryIndex = idx
+    self:RefreshList()
 end
 
 function BETTERUI.Banking.Init()
