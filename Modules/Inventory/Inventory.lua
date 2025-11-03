@@ -1152,7 +1152,26 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         local isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
                         if(isLocked == false) then
                             SetItemIsJunk(target.bagId, target.slotIndex, true)
+                            -- Force cache update so HasAnyJunk and filters reflect immediately
+                            if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
+                                SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
+                            end
+                            -- Refresh list immediately
                             self:RefreshItemList()
+                            -- Rebuild categories and header right away, plus a tiny follow-up for safety
+                            if self.scene:IsShowing() then
+                                self:RefreshCategoryList()
+                                self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                                -- Re-activate header to ensure LB/RB navigation remains responsive
+                                self:ActivateHeader()
+                                zo_callLater(function()
+                                    if self and self.scene and self.scene:IsShowing() then
+                                        self:RefreshCategoryList()
+                                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                                        self:ActivateHeader()
+                                    end
+                                end, 80)
+                            end
                         else
                             messageText = ZO_ERROR_COLOR:Colorize(GetString(SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR))
                             message = zo_strformat("<<1>>", messageText)
@@ -1163,7 +1182,17 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 local function UnmarkAsJunk()
                     local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
                     SetItemIsJunk(target.bagId, target.slotIndex, false)
+                    -- Force cache update so HasAnyJunk and filters reflect immediately
+                    if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
+                        SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
+                    end
+                    -- Refresh list immediately and update categories/header
                     self:RefreshItemList()
+                    if self.scene:IsShowing() then
+                        self:RefreshCategoryList()
+                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                        self:ActivateHeader()
+                    end
                 end
 
                 local parametricList = dialog.info.parametricList
@@ -2017,6 +2046,16 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
                 end
                 RefreshSelectedData()
                 self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                -- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly
+                if not self._pendingCategoryListRefresh then
+                    self._pendingCategoryListRefresh = true
+                    zo_callLater(function()
+                        self._pendingCategoryListRefresh = false
+                        if self.scene:IsShowing() then
+                            self:RefreshCategoryList()
+                        end
+                    end, 80)
+                end
             end
         end
     end

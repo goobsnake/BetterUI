@@ -19,6 +19,11 @@ local BANK_CATEGORY_DEFS = {
     { key = "materials",  name = SI_BETTERUI_INV_ITEM_MATERIALS,  filterType = ITEMFILTERTYPE_CRAFTING },
     { key = "furnishing", name = SI_BETTERUI_INV_ITEM_FURNISHING, filterType = ITEMFILTERTYPE_FURNISHING },
     { key = "misc",       name = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS },
+    -- Additional inventory-parity categories (only shown if items exist)
+    -- Companion items exist only on newer APIs; guard with presence check when building
+    { key = "companion",  name = SI_ITEMFILTERTYPE_COMPANION,      filterType = ITEMFILTERTYPE_COMPANION, optional = true },
+    -- Junk is not a filterType; handled specially in DoesItemMatchBankCategory
+    { key = "junk",       name = SI_BETTERUI_INV_ITEM_JUNK,       filterType = nil, special = "junk" },
 }
 
 -- Icon mapping for header display (reuse inventory category icons)
@@ -31,18 +36,33 @@ local BANK_CATEGORY_ICONS = {
     materials  = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds",
     furnishing = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds",
     misc       = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
+    companion  = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds",
+    junk       = "esoui/art/inventory/inventory_tabicon_junk_up.dds",
 }
 
-local function BuildBankCategories(isFurnitureVault)
+-- Build the full set of bank categories (unfiltered). Furniture vault is restricted to Furnishing.
+local function BuildAllBankCategories(isFurnitureVault)
+    -- Always include 'All Items' to ensure a non-empty tab bar and a safe default,
+    -- even for special bank types (e.g., house storage/furniture vault).
     if isFurnitureVault then
         return {
+            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil },
             { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING },
         }
     end
     local out = {}
     for i = 1, #BANK_CATEGORY_DEFS do
         local def = BANK_CATEGORY_DEFS[i]
-        out[#out+1] = { key = def.key, name = GetString(def.name), filterType = def.filterType }
+        -- Skip optional categories if the filter type constant isn't available in this API
+        if not def.optional or (def.optional and def.filterType ~= nil) then
+            local name
+            if type(def.name) == "number" then
+                name = GetString(def.name)
+            else
+                name = tostring(def.name)
+            end
+            out[#out+1] = { key = def.key, name = name, filterType = def.filterType, special = def.special }
+        end
     end
     return out
 end
@@ -50,6 +70,9 @@ end
 local function DoesItemMatchBankCategory(itemData, category)
     if not category or category.key == "all" then
         return true
+    end
+    if category.special == "junk" then
+        return itemData.isJunk == true
     end
     if category.filterType then
         return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, category.filterType)
@@ -105,6 +128,59 @@ local function GetBestItemCategoryDescription(itemData)
 	end
 	
 	return fullDesc
+end
+
+-- Compute which categories have at least one item for the current mode and bank context.
+local function ComputeVisibleBankCategories(self)
+    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
+    local allCategories = BuildAllBankCategories(isFurnitureVault)
+    -- Always include 'all' explicitly so currency rows can appear even if no items
+    local visibility = {}
+    for _, c in ipairs(allCategories) do visibility[c.key] = false end
+    visibility["all"] = true
+
+    -- Determine which bags to scan based on mode
+    local bags = {}
+    local slotType
+    if self.currentMode == LIST_WITHDRAW then
+        if currentUsedBank == BAG_BANK then
+            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+        else
+            bags = { currentUsedBank }
+        end
+        slotType = SLOT_TYPE_BANK_ITEM
+    else
+        bags = { BAG_BACKPACK }
+        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+    end
+
+    -- Exclude stolen items from banking list per existing behavior
+    local function IsNotStolenItem(itemData)
+        return not itemData.stolen
+    end
+    local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
+    -- Mark visibility by scanning once
+    for i = 1, #data do
+        local itemData = data[i]
+        -- Ensure isJunk is available on itemData (comes from SHARED_INVENTORY)
+        for _, cat in ipairs(allCategories) do
+            if cat.key ~= "all" then
+                if DoesItemMatchBankCategory(itemData, cat) then
+                    visibility[cat.key] = true
+                end
+            end
+        end
+    end
+
+    -- Build the final ordered list with only visible categories
+    local out = {}
+    for _, cat in ipairs(allCategories) do
+        if visibility[cat.key] then
+            out[#out+1] = cat
+        end
+    end
+    -- If furniture vault, ensure only furnishing remains (already handled in BuildAllBankCategories)
+    return out
 end
 
 local function SetupLabelListing(control, data)
@@ -166,9 +242,13 @@ end
 function BETTERUI.Banking.Class:RefreshList()
     -- If we're in the middle of a tab selection animation, skip interim refreshes
     if self._suppressListUpdates then return end
+    -- Temporarily deactivate to avoid parametric scroll list update races while rebuilding
+    local wasActive = self.list:IsActive()
+    if wasActive then
+        self.list:Deactivate()
+    end
     lastActionName = nil
     --d("tt refresh bank list")
-    self.list:OnUpdate()
     self.list:Clear()
     self:CurrentUsedBank()
 
@@ -185,10 +265,29 @@ function BETTERUI.Banking.Class:RefreshList()
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if(currentUsedBank == BAG_BANK) then
         if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then
-            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_GOLD) ..  "|r", currencyType = CURT_MONEY})
-            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_TEL_VAR) ..  "|r", currencyType = CURT_TELVAR_STONES})
-            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT) ..  "|r", currencyType = CURT_ALLIANCE_POINTS})
-            self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF"..wdString.." " .. GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER) ..  "|r", currencyType = CURT_WRIT_VOUCHERS})
+            -- Build currency transfer rows dynamically; guard older APIs without ZO_BANKABLE_CURRENCIES
+            local labelByCurrency = {
+                [CURT_MONEY] = GetString(SI_BETTERUI_CURRENCY_GOLD),
+                [CURT_TELVAR_STONES] = GetString(SI_BETTERUI_CURRENCY_TEL_VAR),
+                [CURT_ALLIANCE_POINTS] = GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT),
+                [CURT_WRIT_VOUCHERS] = GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER),
+            }
+            local bankableList = {}
+            if type(ZO_BANKABLE_CURRENCIES) == "table" then
+                -- Prefer array-style if available
+                if (rawget(ZO_BANKABLE_CURRENCIES, 1) ~= nil) then
+                    bankableList = ZO_BANKABLE_CURRENCIES
+                else
+                    for _, v in pairs(ZO_BANKABLE_CURRENCIES) do table.insert(bankableList, v) end
+                end
+            end
+            if #bankableList == 0 then
+                bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
+            end
+            for _, currencyType in ipairs(bankableList) do
+                local label = labelByCurrency[currencyType] or (GetCurrencyName and GetCurrencyName(currencyType, true, false)) or tostring(currencyType)
+                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label = "|cFFFFFF"..wdString.." ".. tostring(label) .."|r", currencyType = currencyType})
+            end
         end
     else
         if(self.currentMode == LIST_WITHDRAW) then
@@ -237,6 +336,7 @@ function BETTERUI.Banking.Class:RefreshList()
     local FindActionSlotMatchingItem = FindActionSlotMatchingItem
     local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    local showJunkCategory = (activeCategory and activeCategory.key == "junk") or false
     for i = 1, #filteredDataTable  do
         local itemData = filteredDataTable[i]
         if activeCategory and not DoesItemMatchBankCategory(itemData, activeCategory) then
@@ -296,7 +396,7 @@ function BETTERUI.Banking.Class:RefreshList()
         data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
         data.isJunk = itemData.isJunk
 
-        if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
+    if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
          
             if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
                 currentBestCategoryName = data.bestGamepadItemCategoryName
@@ -313,6 +413,14 @@ function BETTERUI.Banking.Class:RefreshList()
     end
 
     self.list:Commit()
+    -- If list becomes empty, deactivate to avoid parametric list moving errors
+    local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
+    if entryCount == 0 then
+        self.list:Deactivate()
+    else
+        -- Ensure the list is active when there are items to navigate
+        self.list:Activate()
+    end
     self:ReturnToSaved()
     self:UpdateActions()
     self:RefreshFooter()
@@ -421,7 +529,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.lastPositionsByCategory = { [LIST_WITHDRAW] = {}, [LIST_DEPOSIT] = {} }
 
     -- Initialize categories (Stage 1)
-    self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+    self:CurrentUsedBank()
+    self.bankCategories = ComputeVisibleBankCategories(self)
     self.currentCategoryIndex = 1
 
     -- Base header title (used as fallback); header title will show selected category like inventory
@@ -454,9 +563,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function UpdateSingle_Handler(eventId, bagId, slotId, isNewItem, itemSound)
         self:UpdateSingleItem(bagId, slotId)
-		self:RefreshList()
+        -- Categories can become empty/non-empty as items move; rebuild the header list
+        self.bankCategories = ComputeVisibleBankCategories(self)
+        self:RebuildHeaderCategories()
+        self:RefreshList()
         self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
-	end
+    end
 
     local function UpdateCurrency_Handler()
         self:RefreshFooter()
@@ -467,7 +579,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     local function OnEffectivelyShown()
         self:CurrentUsedBank()
         -- Rebuild categories on show in case bank type changed
-        self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+    self.bankCategories = ComputeVisibleBankCategories(self)
         if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
             self.currentCategoryIndex = 1
         end
@@ -725,7 +837,12 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
 end
 
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
-	local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(list:GetSelectedData())
+    local selectedData = list and list:GetSelectedData() or nil
+    if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
+        -- Nothing to move (empty list, header row, or currency row)
+        return
+    end
+    local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local stackCount = GetSlotStackSize(fromBag, fromBagIndex)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     local toBag
@@ -1056,9 +1173,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                         self:MoveItem(self.list)
                     end,
                     visible = function()
-                        return true
+                        return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and self.list:GetSelectedData().bagId ~= nil
                     end,
-                    enabled = true,
+                    enabled = function()
+                        return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and self.list:GetSelectedData().bagId ~= nil
+                    end,
                 },
     }
 
@@ -1215,36 +1334,15 @@ end
 
 -- Go through and get the item which has been passed to us through the event
 function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
-    if GetSlotStackSize(bagId, slotIndex) > 0 then
-        self:RefreshList()
-        return
-    else 
-        self:RefreshList()
-    end
-    
-    for index = 1, #self.list.dataList do
-        if self.list.dataList[index].bagId == bagId and self.list.dataList[index].slotIndex == slotIndex then
-            self:RemoveItemStack(index)
-            break
-        end
-    end
+    -- Rebuild the list from the shared inventory cache rather than mutating
+    -- the parametric list internals while it's animating/moving.
+    self:RefreshList()
 end
 
 -- This is the final function for the Event "EVENT_INVENTORY_SINGLE_SLOT_UPDATE".
 function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
-
-    if(itemIndex >= #self.list.dataList) then
-      self.list:MovePrevious()
-    end
-    table.remove(self.list.dataList,itemIndex)
-    table.remove(self.list.templateList,itemIndex)
-    table.remove(self.list.prePadding,itemIndex)
-    table.remove(self.list.postPadding,itemIndex)
-    table.remove(self.list.preSelectedOffsetAdditionalPadding,itemIndex)
-    table.remove(self.list.postSelectedOffsetAdditionalPadding,itemIndex)
-    table.remove(self.list.selectedCenterOffset,itemIndex)
-
-    self:RefreshList()
+        -- Avoid directly mutating the parametric list while it may be moving; just refresh.
+        self:RefreshList()
 end
 
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
@@ -1252,7 +1350,7 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 
 	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
     -- Rebuild categories when switching modes (Stage 1)
-    self.bankCategories = BuildBankCategories(IsFurnitureVault(GetBankingBag()))
+    self.bankCategories = ComputeVisibleBankCategories(self)
     if not self.currentCategoryIndex or self.currentCategoryIndex < 1 or self.currentCategoryIndex > #self.bankCategories then
         self.currentCategoryIndex = 1
     end
