@@ -2235,8 +2235,13 @@ function BETTERUI.Inventory.Class:Initialize(control)
 
     -- Use base UI destroy lifecycle; no custom cancel handler required
 
+    -- Guard update loop so we only process while the inventory scene is visible.
+    -- Prevents nil access inside RefreshItemActions when the scene is hidden but
+    -- the control still ticks (reported by a user; mirrors ESO base patterns).
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
-       self:OnUpdate(currentFrameTimeSeconds)
+        if self.scene and self.scene:IsShowing() then
+            self:OnUpdate(currentFrameTimeSeconds)
+        end
     end
 
     self.trySetClearNewFlagCallback =   function(callId)
