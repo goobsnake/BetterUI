@@ -1,4 +1,11 @@
-Current Release - 2.80 Changes:
+Current Release - 2.81 Changes:
+
+[INDENT]1. Fixed: Error when moving stacked items around in the bank. *FulciLives thanks for reporting
+2. Fixed: Error when opening a Writhing Reward Coffer. *shadowcep thanks for reporting
+[/INDENT]
+
+
+2.80 Changes:
 
 [INDENT]1. Improved: Major codebase documentation and code cleanup for maintainability (all modules).
 2. Fixed: Mark as junk logic and tab header ordering in inventory.
