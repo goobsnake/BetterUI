@@ -599,7 +599,7 @@ local function SetupTooltipMouseWheel()
 		tip:SetMouseEnabled(true)
 		tipScroll:SetMouseEnabled(true)
 		tip:SetHandler("OnMouseWheel", function(self, delta)
-			local speed = (BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].rhScrollSpeed) or 20
+			local speed = (BETTERUI.Settings.Modules["CIM"].rhScrollSpeed) or 20
 			local newScrollValue
 			if delta > 0 then
 				newScrollValue = (self.scrollValue or 0) - speed

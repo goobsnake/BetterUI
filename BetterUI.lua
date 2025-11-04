@@ -4,9 +4,7 @@ if BETTERUI == nil then BETTERUI = {} end
 
 --- Updates the Common Interface Module (CIM) state based on dependent modules. CIM is automatically enabled if any of the Tooltips, Inventory, or Banking modules are enabled, since it provides shared UI components like parametric scroll lists and headers.
 function BETTERUI.UpdateCIMState()
-	local settings = BETTERUI.Settings and BETTERUI.Settings.Modules
-	if not settings then return end
-
+	local settings = BETTERUI.Settings.Modules
 	local shouldEnable = settings["Tooltips"].m_enabled or
 	                    settings["Inventory"].m_enabled or
 	                    settings["Banking"].m_enabled
@@ -106,11 +104,7 @@ function BETTERUI.LoadModules()
 	-- Initialize research data once
 	BETTERUI.GetResearch()
 
-	local settings = BETTERUI.Settings and BETTERUI.Settings.Modules
-	if not settings then
-		ddebug("Error: Settings not available")
-		return
-	end
+	local settings = BETTERUI.Settings.Modules
 
 	-- Initialize CIM-dependent modules
 	if settings["CIM"].m_enabled then

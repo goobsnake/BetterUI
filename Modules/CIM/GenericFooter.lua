@@ -10,7 +10,7 @@ end
 --- Refreshes the footer display with current bag capacities and currency amounts, arranging currencies dynamically based on user settings
 function BETTERUI.GenericFooter:Refresh()
 	-- a hack until I completely generalize these functions... 
-	local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}
+	local invSettings = BETTERUI.Settings.Modules["Inventory"]
 
 	local function setLabel(labelControl, enabled, text)
 		labelControl:SetHidden(not enabled)
@@ -34,7 +34,7 @@ function BETTERUI.GenericFooter:Refresh()
 		setLabel(self.footer.OutfitLabel, invSettings.showCurrencyOutfitTokens ~= false, zo_strformat("OUTFIT: |c00FF00<<1>>|r |t24:24:<<2>>|t", BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_STYLE_STONES, CURRENCY_LOCATION_ACCOUNT)), GetCurrencyGamepadIcon(CURT_STYLE_STONES)))
 
     		-- Dynamic layout: order left-to-right, top row then bottom row based on user order
-		local orderStr = (BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].currencyOrder) or "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
+	local orderStr = BETTERUI.Settings.Modules["Inventory"].currencyOrder or "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
 		local map = {
 			gold = { name = "GoldLabel", enabledKey = "showCurrencyGold" },
 			ap = { name = "APLabel", enabledKey = "showCurrencyAlliancePoints" },
@@ -106,7 +106,7 @@ function BETTERUI.GenericFooter:Refresh()
 		setChild("OutfitLabel", invSettings.showCurrencyOutfitTokens ~= false, zo_strformat("OUTFIT: |c00FF00<<1>>|r |t24:24:<<2>>|t", BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_STYLE_STONES, CURRENCY_LOCATION_ACCOUNT)), GetCurrencyGamepadIcon(CURT_STYLE_STONES)))
 
 		-- Dynamic layout in fallback path
-		local orderStr = (BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].currencyOrder) or "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
+	local orderStr = BETTERUI.Settings.Modules["Inventory"].currencyOrder or "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
 		local map = {
 			gold = "GoldLabel", ap = "APLabel", telvar = "TVLabel", gems = "GemsLabel", transmute = "TCLabel",
 			crowns = "CrownsLabel", writs = "WritsLabel", tickets = "TicketsLabel", keys = "KeysLabel", outfit = "OutfitLabel",
