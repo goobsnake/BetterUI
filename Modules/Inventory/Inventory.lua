@@ -259,6 +259,30 @@ function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipabl
     return SHARED_INVENTORY:IsFilteredSlotDataEmpty(comparator, BAG_BACKPACK, BAG_WORN)
 end
 
+-- Robust check for any junk in the backpack using the shared inventory cache,
+-- with a direct IsItemJunk fallback as a safety net.
+local function HasAnyJunkInBackpack()
+    -- Prefer shared inventory cache, which we explicitly refresh after junk toggles.
+    if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
+        local function IsJunkSlot(slotData)
+            return slotData and slotData.isJunk == true and slotData.bagId == BAG_BACKPACK
+        end
+        local junkSlots = SHARED_INVENTORY:GenerateFullSlotData(IsJunkSlot, BAG_BACKPACK)
+        if type(junkSlots) == "table" and #junkSlots > 0 then
+            return true
+        end
+    end
+
+    -- Fallback to direct bag scan if needed (should be rare).
+    local size = GetBagSize(BAG_BACKPACK) or 0
+    for slotIndex = 0, size - 1 do
+        if IsItemJunk(BAG_BACKPACK, slotIndex) then
+            return true
+        end
+    end
+    return false
+end
+
 --- Attempt to equip an item, handling different equip types and bind-on-equip protection
 --- @param inventorySlot table: The inventory slot data containing item information
 --- @param isCallingFromActionDialog boolean: Whether this is called from an action dialog
@@ -653,7 +677,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         end
 
         do
-            if(HasAnyJunk(BAG_BACKPACK, false)) then
+            if HasAnyJunkInBackpack() then
                 local isListEmpty = self:IsItemListEmpty(nil, nil)
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_JUNK)
@@ -1138,6 +1162,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
                     if not target then return end
                     if IsItemPlayerLocked(target.bagId, target.slotIndex) then return end
+                    -- Close the actions dialog to restore header/keybind focus
+                    if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                    end
                     SetItemIsJunk(target.bagId, target.slotIndex, true)
                     if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
                         SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
@@ -1147,17 +1175,31 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         self:RefreshCategoryList()
                         self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                         self:ActivateHeader()
+                        self:RefreshKeybinds()
+                        if self.header and self.header.tabBar then
+                            self.header.tabBar:Activate()
+                            self.header.tabBar:Commit()
+                        end
                         zo_callLater(function()
                             if self and self.scene and self.scene:IsShowing() then
                                 self:RefreshCategoryList()
                                 self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                                 self:ActivateHeader()
+                                self:RefreshKeybinds()
+                                if self.header and self.header.tabBar then
+                                    self.header.tabBar:Activate()
+                                    self.header.tabBar:Commit()
+                                end
                             end
-                        end, 80)
+                        end, 100)
                     end
                 end
                 local function UnmarkAsJunk()
                     local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+                    -- Close the actions dialog to restore header/keybind focus
+                    if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                    end
                     SetItemIsJunk(target.bagId, target.slotIndex, false)
                     -- Force cache update so HasAnyJunk and filters reflect immediately
                     if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
@@ -1169,6 +1211,23 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         self:RefreshCategoryList()
                         self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                         self:ActivateHeader()
+                        self:RefreshKeybinds()
+                        if self.header and self.header.tabBar then
+                            self.header.tabBar:Activate()
+                            self.header.tabBar:Commit()
+                        end
+                        zo_callLater(function()
+                            if self and self.scene and self.scene:IsShowing() then
+                                self:RefreshCategoryList()
+                                self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                                self:ActivateHeader()
+                                self:RefreshKeybinds()
+                                if self.header and self.header.tabBar then
+                                    self.header.tabBar:Activate()
+                                    self.header.tabBar:Commit()
+                                end
+                            end
+                        end, 100)
                     end
                 end
 
@@ -1179,10 +1238,21 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
                 self:RefreshItemActions()
 
-                if(self.categoryList:GetTargetData().showJunk ~= nil) then
-                    self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary"}
-                else
-                    self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
+                do
+                    local target = (self.actionMode == ITEM_LIST_ACTION_MODE) and (self.itemList and self.itemList:GetTargetData()) or nil
+                    local isLocked = false
+                    if target and target.bagId and target.slotIndex then
+                        isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
+                    end
+                    if(self.categoryList:GetTargetData().showJunk ~= nil) then
+                        -- Unmark should remain available even if locked
+                        self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary"}
+                    else
+                        -- Hide Mark as Junk when the item is locked
+                        if not isLocked then
+                            self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
+                        end
+                    end
                 end
 
                 local actions = self.itemActions:GetSlotActions()
@@ -1195,7 +1265,15 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     -- In banking scenes (standard or house), hide Destroy/Delete entirely
                     local hideDestroy = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()
                     local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY)) or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
-                    if not (hideDestroy and isDestroy) then
+                    -- Hide Mark as Junk for locked items
+                    local hideMarkJunk = false
+                    do
+                        local target = (self.actionMode == ITEM_LIST_ACTION_MODE) and (self.itemList and self.itemList:GetTargetData()) or nil
+                        if target and target.bagId and target.slotIndex and actionName == GetString(SI_ITEM_ACTION_MARK_AS_JUNK) then
+                            hideMarkJunk = IsItemPlayerLocked(target.bagId, target.slotIndex)
+                        end
+                    end
+                    if not (hideDestroy and isDestroy) and not hideMarkJunk then
                         local entryData = ZO_GamepadEntryData:New(actionName)
                         -- Ensure consistent selection visuals for action rows
                         entryData:SetIconTintOnSelection(true)
