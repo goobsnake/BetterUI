@@ -931,6 +931,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     self.itemList:Commit()
+    self:RefreshCategoryList()
     
 end
 
@@ -1189,32 +1190,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                     end
                     SetItemIsJunk(target.bagId, target.slotIndex, true)
-                    if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
-                        SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
-                    end
                     self:RefreshItemList()
-                    if self.scene:IsShowing() then
-                        self:RefreshCategoryList()
-                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                        self:ActivateHeader()
-                        self:RefreshKeybinds()
-                        if self.header and self.header.tabBar then
-                            self.header.tabBar:Activate()
-                            self.header.tabBar:Commit()
-                        end
-                        zo_callLater(function()
-                            if self and self.scene and self.scene:IsShowing() then
-                                self:RefreshCategoryList()
-                                self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                                self:ActivateHeader()
-                                self:RefreshKeybinds()
-                                if self.header and self.header.tabBar then
-                                    self.header.tabBar:Activate()
-                                    self.header.tabBar:Commit()
-                                end
-                            end
-                        end, 100)
-                    end
                 end
                 local function UnmarkAsJunk()
                     local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
@@ -1223,34 +1199,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                     end
                     SetItemIsJunk(target.bagId, target.slotIndex, false)
-                    -- Force cache update so HasAnyJunk and filters reflect immediately
-                    if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
-                        SHARED_INVENTORY:PerformFullUpdateOnBagCache(BAG_BACKPACK)
-                    end
-                    -- Refresh list immediately and update categories/header
                     self:RefreshItemList()
-                    if self.scene:IsShowing() then
-                        self:RefreshCategoryList()
-                        self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                        self:ActivateHeader()
-                        self:RefreshKeybinds()
-                        if self.header and self.header.tabBar then
-                            self.header.tabBar:Activate()
-                            self.header.tabBar:Commit()
-                        end
-                        zo_callLater(function()
-                            if self and self.scene and self.scene:IsShowing() then
-                                self:RefreshCategoryList()
-                                self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                                self:ActivateHeader()
-                                self:RefreshKeybinds()
-                                if self.header and self.header.tabBar then
-                                    self.header.tabBar:Activate()
-                                    self.header.tabBar:Commit()
-                                end
-                            end
-                        end, 100)
-                    end
                 end
 
                 local parametricList = dialog.info.parametricList
@@ -2351,6 +2300,7 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 	BETTERUI.GenericHeader.SetEquippedIcons(self.header, GetEquippedItemInfo(EQUIP_SLOT_MAIN_HAND), GetEquippedItemInfo(EQUIP_SLOT_OFF_HAND), GetEquippedItemInfo(EQUIP_SLOT_POISON))
 	BETTERUI.GenericHeader.SetBackupEquippedIcons(self.header, GetEquippedItemInfo(EQUIP_SLOT_BACKUP_MAIN), GetEquippedItemInfo(EQUIP_SLOT_BACKUP_OFF), GetEquippedItemInfo(EQUIP_SLOT_BACKUP_POISON))
 
+    self:RefreshCategoryList()
     BETTERUI.GenericFooter.Refresh(self)
 end
 
@@ -2406,15 +2356,13 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
     		self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
     		self:RefreshCategoryList()
+    		self:RefreshItemList()
 
     		self:SetSelectedItemUniqueId(self.itemList:GetTargetData())
     		self.actionMode = ITEM_LIST_ACTION_MODE
     		self:RefreshItemActions()
 
 	    	self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-	    	self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
-	    	self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
-	    	self:RefreshItemList()
 	    	self:UpdateItemLeftTooltip(self.itemList.selectedData)
 
 			
@@ -2423,15 +2371,12 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
 			self:RefreshCategoryList()
+			self:RefreshCraftBagList()
 
 			self:SetSelectedItemUniqueId(self.craftBagList:GetTargetData())
 			self.actionMode = CRAFT_BAG_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader()
-			self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
-			self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
-			self:ActivateHeader()
-			self:RefreshCraftBagList()
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 
 			
