@@ -70,6 +70,15 @@ local function Init(mId, moduleName)
 		-- Removed quick destroy setting; deletion now goes through BetterUI's confirmation dialog
 		{
 			type = "checkbox",
+			name = "Enable quick destroy functionality",
+			tooltip = "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog!",
+			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].quickDestroy end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].quickDestroy = value end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = "Use triggers to move to next item type",
 			tooltip = "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type",
 			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip end,
@@ -443,7 +452,7 @@ function BETTERUI.Inventory.InitModule(m_options)
 	m_options["showIconEnchantment"] = true
 	m_options["showIconSetGear"] = true
 	m_options["showIconUnboundItem"] = true
-	-- quickDestroy removed; BetterUI uses a confirmation dialog for deletes
+	m_options["quickDestroy"] = false
 
 	-- Currency visibility defaults
 	m_options["showCurrencyGold"] = true
