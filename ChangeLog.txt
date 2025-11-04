@@ -1,0 +1,219 @@
+Current Release - 2.80 Changes:
+
+[INDENT]1. Improved: Major codebase documentation and comment cleanup for maintainability (all modules).
+2. Fixed: Mark as junk logic and tab header ordering in inventory.
+3. Fixed: Stuck gamepad controls due to spinner and dialogue name population issues.
+4. Fixed: Withdraw and deposit text sizing in banking UI.
+5. Improved: Banking UI transitions, category support, and house bank handling.
+6. Improved: Inventory and banking category performance and optimizations.
+7. Added: Currency display toggles and ordering options in inventory and banking.
+8. Added: Quickslot system revamp and companion item support.
+9. Changed: Switching bags now defaults to "all" category; inventory and banking now mirror category logic.
+10. Miscellaneous bug fixes, code cleanup, and minor feature enhancements across inventory, banking, and general interface modules.
+[/INDENT]
+
+
+2.77 Changes:
+
+[INDENT]1. Implemented: API Bump for Flames of Ambition
+2. Fixed: Lua errors caused by the deprecated RefreshActiveKeybinds function have been fixed *Thanks shadowcep for the temporary fix
+3. Fixed: Occasional Lua errors caused when using item actions with the RefreshActiveKeybinds fix above have been fixed.
+4: Fixed: The Inventory & Banking keybind strips now refresh correctly when performing various actions. You should no longer need to exit these scenes and reload to get the proper buttons to appear.
+[/INDENT]
+
+
+2.76 Changes:
+
+[INDENT]1. Fixed: The Guild Store error suppression feature was not working unless the user had MM & ATT installed. *Thanks Aragorn79 for reporting
+[/INDENT]
+
+
+2.75 Changes:
+
+[INDENT]1. Implemented: API Bump for Markath
+2. Implemented: ATT Guild Store error messages will now be suppressed if you enable the "Guild Store Error Suppression" feature. *Previously this just worked for MM related guild store error messages
+[/INDENT]
+
+
+2.74 Changes:
+
+[INDENT]1. Fixed: Restored TTC item price display in BetterUI due to a change to the TTC add-on
+[/INDENT]
+
+
+2.73 Changes:
+
+[INDENT]1. Fixed: Stolen inventory category will no longer show empty if all stolen items are moved to junk
+2. Fixed: Item comparisons for backup equipped weapons should work now
+3. Implemented: Updated API version for the Stornthorn dlc
+[/INDENT]
+
+
+2.72 Changes:
+
+[INDENT]1. Implemented: Bumped API for upcoming Greymoor expansion
+2. Implemented: Added JP localization files *Thanks Kuroko137
+3. Implemented: Added Arkadius' Trade Tools tooltip & inventory item value average pricing
+4. Implemented: Robust tooltip and various on-screen messaging
+5. Fixed: Numerous issues with Craftbag stow, retrieve and use actions have been fixed to prevent LUA errors
+6. Fixed: Autocategory custom category startup error
+7. Changed: Junk & Stolen inventory categories are now standard/always enabled instead of configurable
+8. Changed: Inventory tab category wrapping is now standard/always enabled instead of configurable
+9. Changed: Inventory attribute icons are now standard/always enabled instead of configurable
+10. Changed: All "core" features are enabled by default on first install (Better user experience for first time install)
+11. Removed: Libstub references have been removed from code
+12. Removed: Lots of code cleanup and deleted many unused image files to lower add-on package size
+13. Removed: Gamepad Buddy, Alpha Gear and Gear Changer support have been removed due to either those add-ons being deprecated or time needed to fix prior support[/INDENT]
+
+
+2.71 Changes:
+
+[INDENT]1. Implemented: Added new "quick destroy" feature to the Enhanced Inventory settings - New setting is disabled by default, but when enabled it'll allow you to delete any item without confirmation. 
+* Use caution when this setting is enabled!
+
+2. Changed: To circumvent the new insecure dialog errors when destroying items, I've made all items be required to be marked as junk before they can be destroyed.
+* You can always enable the new quick destroy feature if this change becomes an annoyance but be cautioned the new quick destroy feature will not give a confirmation prompt, so accidental destroys "could" happen.[/INDENT]
+
+
+2.70 Changes:
+
+[INDENT]1. Implemented: Added "Link to Chat" back as the default "X" button for any inventory item not associated with "Equip", "Use", "Assign", etc.
+2. Changed: When Enhanced Inventory is enabled, retrieving items from the Craftbag will now retrieve the full stack count up to the max inventory stack count (200).
+* You can split these stacks in your inventory once retrieved and you can also stow these items back to the Craftbag if needed.[/INDENT]
+
+
+2.69 Changes:
+
+[INDENT]1. Implemented: API bump to 100029
+2. Implemented: Added more tooltip & item list font size options - Thanks for contributing SSyl
+3. Implemented: Added option to suppress error messages when accessing the Guildstore if MasterMerchant is installed
+4. Implemented: Added Witches Festival provisioning writ's to the writ module
+5. Changed: Removed bundled libs - Addon now requires a seperate download of LibAddonMenu to work
+6. Changed: When Enhanced Inventory is enabled, the Quickslot assignments are now done within the inventory screen. 
+*The add-on will now search for any free Quickslot assignment slots and assign it to that slot first. If no slots are free and you hit the assign button, it will assign the item to the top Quickslot slot, overwriting whatever was there. If you hit the assign button on any Quickslot item that is currently assigned, it will remove that Quickslot assignment. If you have any collectibles assigned to the Quickslots, you will have to remove or change them via the collections area.
+code).[/INDENT]
+
+
+2.68 Changes:
+
+[INDENT]1. Implemented: API bump to 100028
+2. Implemented: Added more currency options to the Inventory footer screen - Includes new Undaunted Key currency[/INDENT]
+
+
+2.67 Changes:
+
+[INDENT]1. Implemented: Added equipped items and stolen items inventory tabs[/INDENT]
+
+
+2.66 Changes:
+
+[INDENT]1. Implemented: Bumped API and lib versions to latest and greatest
+2. Changed: MasterMerchant and Tamriel Trade Centre prices are now near the top of the tooltip for easier view of prices. Stack Counts and their total price recommendations are now shown on the tooltips for all inventory/banking/guildstore/store screens.[/INDENT]
+
+
+2.65 Changes:
+
+[INDENT]1. Fixed: Lib files will now be referenced correctly to the ones bundled with BetterUI, preventing load up LUA errors - Issue was occurring if the user had no other addons installed that were bundled with the libs BetterUI needs (Somewhat rare since most addons share these common libs)[/INDENT]
+
+
+2.64 Changes:
+
+[INDENT]1. Implemented: The BetterUI add-on is now compatible with Bandits User Interface (or vice versa)
+2 Fixed: Tabbing through craft bag categories would display an interface error. *Thanks virtus753 for reporting
+3. Fixed: In some instances the ReloadUI button display would not show in the BetterUI settings. I've added a permanent button.[/INDENT]
+
+
+2.63 Changes:
+
+[INDENT]1. Revamped: The add-on settings screen has gone through a significant revamp to make the settings easier to find and toggle on/off. I felt the add-on settings area was too busy and made features difficult to find or understand. 
+2. Removed: Broken or redundant features/settings along with a fair amount of unused code have been removed. If I've removed a setting/feature that you feel is a must have, I'll explore adding it back in.
+3. Fixed: Removing the last item in an inventory category will no longer display an error and cause the add-on UI glitch out to the point where a /reloadui or logout was required. 
+*Thanks Tyrobius for pointing out with steps to replicate!
+4. Fixed: "Bank is full" or "Inventory is full" messages will no longer occur if the item being moved can stack with an existing item inside the full bank or bag. (Fix isn't perfect but works) 
+*Thanks OP88 for pointing it out.
+5. Fixed: Item stack count graphic will no longer get stuck if exiting the bank or inventory screens using a hotkey other then the "B" button. This could sometimes cause weird behavior when returning those UI screens or with character movements.[/INDENT]
+
+
+2.62 Changes:
+
+[INDENT]1. Fixed: Master Merchant and TTC integration were inadvertently disabled - Options are now located in the "General Interface" section of the addon settings.[/INDENT]
+
+
+2.61 Changes:
+
+[INDENT]1. Implemented : Bumped API version to 100026
+2. Fixed: Fixed inventory & craft bag tab scrolling due to API 100026 (Wrathstone) changes
+3. Fixed an issue: Fixed banking items not displaying correctly and various UI elements being out of place due to API 100026 (Wrathstone) changes
+4. Removed: BetterUI's prior guild store functionality & UI have been removed in favor of ZOS's newly revamped & implemented gamepad guildstore UI
+*Too much work would have been needed to get BetterUI's guildstore funcitonality working correctly and honestly the revamped gamepad guildstore UI is pretty good.[/INDENT]
+
+
+2.60 Changes:
+
+[INDENT]1. Implemented: Tamriel Trade Center data (Suggested Price and AVG/MIN/MAX price) will now display on all item tooltips as long as the Enhanced Guild Store feature is enabled. **You must have the Tamriel Trade Center addon installed
+2. Fixed: The quickslots keybind will now show up properly for any applicable items[/INDENT]
+
+
+2.59 Changes:
+
+[INDENT]1. Implemented: Updated API level to 100025 / Murkmire
+2. Implemented : Event Tickets now show up on the Inventory currency footer
+3. Implemented : On screen message is now displayed when you attempt to mark a locked item as junk
+4. Implemented : On screen message is now displayed when you attempt to mark a craft bag item as junk
+5. Implemented : On screen and chat message is now displayed when you attempt to delete a protected item (Items from the crown store, crown crates or daily rewards) - A work around, for now, to the previous LUA error. You'll need to mark these items as junk and then delete
+6. Removed: Crown and Gem currencies no longer show up on the Inventory currency footer
+7. Changed: The mark as junk feature is now enabled by default when using the Enhanced Inventory feature
+8. Fixed: Linking items to chat when Enhanced Banking or Enhanced Inventory are not enabled should no longer cause an error
+9. Fixed: Linking items to chat from the craft bag works again
+10. Fixed: Linking items to chat while they are marked as junk should no longer cause an error
+11. Fixed: When an inventory category (ie armor, materials, etc.) no longer has any items in it, an error will no longer occur[/INDENT]
+
+
+2.58 Changes:
+
+[INDENT]1. Implemented: Updated API level to 100024 / Wolfhunter
+2. Fixed : Guild Store item lists are now using the new API and are no longer causing a LUA error[/INDENT]
+
+
+2.57 Changes:
+
+[INDENT]1. Improved: Inventory footer bar view now shows more currency options like Transmute Crystals, Crowns, Crown Gems and Writs
+2. Improved: Added a furnishings tab on the inventory screen
+3. Changed: Split up style materials and trait gems into their own categories for the Craft Bag
+4. Fixed: Using and selecting the action button, while in the banking screen, will no longer cause an error when the action was done on the withdraw or deposit currencies section
+5. Fixed: The junk item category tab icon will now display or be removed in real time without needing to re-enter the inventory screen[/INDENT]
+
+
+2.56 Changes:
+
+[INDENT]1. Changed: Researchable crafting traits will now display if you already own an tem with that trait in your Inventory, Bank, House Bank or is Equipped (in that order) instead of displaying "Duplicate"
+2. Fixed: Jewelry crafting traits now correctly display on the item tooltip if they are researchable or not
+3. Fixed: Top tooltip equipped status text has been adjusted so it is no longer cutoff when an outfit or costume is enabled.
+4. Fixed: Item traits like ornate or intricate will no longer show up as a known researchable trait.[/INDENT]
+
+
+2.55 Changes:
+
+[INDENT]1. Fixed: Jewelry Writ info was not showing up. *Thanks saccarius
+2. Fixed: Occasional error happening during NPC banking interaction dialogue[/INDENT]
+
+
+2.54 Changes:
+
+[INDENT]1. Fixed: ZO_GamepadInventory.lua:1362: end expected. *Thanks Khaelgor/Azzuryon
+2. Fixed: Updated most localization files with the "Jewelry" inventory label so that the inventory label displays correctly in-game
+3. Fixed: Switching from the Bank to the House bank or vice-versa and withdrawing items too quickly would cause an error
+4. General Improvements: Cleaned up Banking code logic in some areas[/INDENT]
+
+
+2.53 Changes:
+
+[INDENT]1. Fixed: The withdraw keybinds for the House Bank were removed by accident[/INDENT]
+
+2.52 Changes:
+
+[INDENT]1. Implemented: Support for Home Bank/Storage!
+2. Implemented: Support for a new Inventory filter for Jewelry
+3. Implemented: Support for viewing Jewelry Crafting materials in the Craft Bag
+4. Implemented: Bumped API to 100023/Summerset
+5. A few misc bug fixes[/INDENT]
