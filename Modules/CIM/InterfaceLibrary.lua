@@ -92,10 +92,15 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
 end
 
 function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
-    if(toggleValue) then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.triggerSpinnerBinds)
-    else
+    -- Safely toggle a spinner-specific keybind group if one is explicitly provided by a subclass.
+    -- Many modules (e.g., Banking) manage spinner keybinds themselves; in those cases this is a no-op.
+    if not self.triggerSpinnerBinds or next(self.triggerSpinnerBinds) == nil then return end
+    if toggleValue then
+        -- Spinner just activated: show its keybinds (if provided by the subclass)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.triggerSpinnerBinds)
+    else
+        -- Spinner deactivated: remove spinner keybinds (if present)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.triggerSpinnerBinds)
     end
 end
 

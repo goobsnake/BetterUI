@@ -1,6 +1,6 @@
 Current Release - 2.80 Changes:
 
-[INDENT]1. Improved: Major codebase documentation and comment cleanup for maintainability (all modules).
+[INDENT]1. Improved: Major codebase documentation and code cleanup for maintainability (all modules).
 2. Fixed: Mark as junk logic and tab header ordering in inventory.
 3. Fixed: Stuck gamepad controls due to spinner and dialogue name population issues.
 4. Fixed: Withdraw and deposit text sizing in banking UI.
@@ -8,8 +8,9 @@ Current Release - 2.80 Changes:
 6. Improved: Inventory and banking category performance and optimizations.
 7. Added: Currency display toggles and ordering options in inventory and banking.
 8. Added: Quickslot system revamp and companion item support.
-9. Changed: Switching bags now defaults to "all" category; inventory and banking now mirror category logic.
-10. Miscellaneous bug fixes, code cleanup, and minor feature enhancements across inventory, banking, and general interface modules.
+9. Added: Item deletion now uses a side panel confirmation dialogue - No longer forced to mark things as junk first.
+10. Changed: Switching bags now defaults to "all" category; inventory and banking now mirror category logic.
+11. Miscellaneous bug fixes, code cleanup, and minor feature enhancements across inventory, banking, and general interface modules.
 [/INDENT]
 
 
