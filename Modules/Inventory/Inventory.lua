@@ -152,13 +152,20 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
             local callLaterId = zo_callLater(function() self:UpdateItemLeftTooltip(self._currentList.selectedData) end, INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS)
             self.callLaterLeftToolTip = "CallLaterFunction"..callLaterId
         else
-            self._currentList:SetSelectedIndexWithoutAnimation(1, true, false)
+            -- No entries in the current list; avoid forcing a selection on an empty list.
+            -- Let the caller handle switching back to the category view if appropriate.
+            if GAMEPAD_TOOLTIPS then GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP) end
+            if self._currentList.Deactivate then self._currentList:Deactivate() end
+            return
         end
     end
 end
 
 function BETTERUI_TabBar_OnTabNext(parent, successful)
     if(successful) then
+        if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+            return
+        end
         parent:SaveListPosition()
 
         parent.categoryList.targetSelectedIndex = WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
@@ -176,6 +183,9 @@ function BETTERUI_TabBar_OnTabNext(parent, successful)
 end
 function BETTERUI_TabBar_OnTabPrev(parent, successful)
     if(successful) then
+        if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+            return
+        end
         parent:SaveListPosition()
 
         parent.categoryList.targetSelectedIndex = WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
@@ -257,8 +267,11 @@ local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilter
 end
 
 function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
-    local comparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
-    return SHARED_INVENTORY:IsFilteredSlotDataEmpty(comparator, BAG_BACKPACK, BAG_WORN)
+    local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
+    local function comparatorExcludingJunk(itemData)
+        return baseComparator(itemData) and not itemData.isJunk
+    end
+    return SHARED_INVENTORY:IsFilteredSlotDataEmpty(comparatorExcludingJunk, BAG_BACKPACK, BAG_WORN)
 end
 
 -- Robust check for any junk in the backpack using the shared inventory cache,
@@ -1394,7 +1407,13 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 if bag and slot then
                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                     local link = GetItemLink(bag, slot)
-                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                    -- Quick destroy: if enabled, bypass confirmation and junk gating
+                    local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                    if quick then
+                        BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                    else
+                        ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                    end
                 end
                 return
             end
@@ -1590,7 +1609,11 @@ end
 function BETTERUI.Inventory.HookDestroyItem()
     ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        return BETTERUI.Inventory.TryDestroyItem(bag, index, false)
+        local force = false
+        if BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] then
+            force = BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+        end
+        return BETTERUI.Inventory.TryDestroyItem(bag, index, force)
     end
 end
 
@@ -1814,7 +1837,12 @@ function BETTERUI.Inventory.HookActionDialog()
                             if bag and slot then
                                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                                 local itemLink = GetItemLink(bag, slot)
-                                ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = itemLink }, nil, true, true)
+                                local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                                if quick then
+                                    BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                                else
+                                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = itemLink }, nil, true, true)
+                                end
                             end
                             return
                         end

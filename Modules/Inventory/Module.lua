@@ -67,7 +67,7 @@ local function Init(mId, moduleName)
 	end
 
 	local optionsTable = {
-		-- Removed quick destroy setting; deletion now goes through BetterUI's confirmation dialog
+		-- Quick Destroy is available as an opt-in setting; default remains off for safety.
 		{
 			type = "checkbox",
 			name = "Enable quick destroy functionality",
