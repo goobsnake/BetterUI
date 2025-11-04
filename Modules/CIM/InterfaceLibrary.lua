@@ -14,13 +14,10 @@ local function WrapInt(value, min, max)
 end
 
 function BETTERUI.CIM.SetTooltipWidth(width)
-    -- Setup the larger and offset LEFT_TOOLTIP and background fragment so that the new inventory fits!
+    -- Setup the larger and offset LEFT_TOOLTIP and background fragment so that the new inventory fits
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
-   -- GAMEPAD_LEFT_TOOLTIP_BACKGROUND_FRAGMENT.control:SetDimensions(50, 50)
---shadowcep[[
     GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT, width+66, 52)
     GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(BOTTOMLEFT,GuiRoot,BOTTOMLEFT, width+66, -125)
---shadowcep]]
 end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
@@ -85,13 +82,8 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
     self.confirmationMode = activateSpinner
     if activateSpinner then
         self:ActivateSpinner()
-        --self.spinner:AnchorToSelectedListEntry(list)
-        --ZO_GamepadGenericHeader_Deactivate(self.header)
-
     else
         self:DeactivateSpinner()
-        --ZO_GamepadGenericHeader_Activate(self.header)
-
     end
 
     list:RefreshVisible()
@@ -170,11 +162,6 @@ end
 
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
-    -- self.list.selectedDataCallback = function(list, selectedData)
-    --     ddebug("SetOnSelectedDataChangedCallback called")
-    --     self.currentSelection = selectedData
-    --     self:OnItemSelectedChange(selectedData)
-    -- end
     self:GetList():RefreshVisible()
 end
 

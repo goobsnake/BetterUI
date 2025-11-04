@@ -1,5 +1,8 @@
 local _
 
+--- Retrieves the writ conditions for a given quest ID, formatting them with colors
+--- @param qId number: The quest ID
+--- @return string: The concatenated writ lines
 function BETTERUI.Writs.Get(qId)
 	writLines = {}
 	writConcate = ''
@@ -22,6 +25,7 @@ function BETTERUI.Writs.Get(qId)
 	return writConcate
 end
 
+--- Updates the list of active writs by scanning journal quests
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
 	for qId=1, MAX_JOURNAL_QUESTS do
@@ -56,6 +60,8 @@ function BETTERUI.Writs.Update()
 	end
 end
 
+--- Shows the writ panel for a specific writ type
+--- @param writType number: The crafting type of the writ
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
@@ -66,6 +72,7 @@ function BETTERUI.Writs.Show(writType)
 	end
 end
 
+--- Hides the writ panel
 function BETTERUI.Writs.Hide()
 	BETTERUI_WritsPanel:SetHidden(true)
 end

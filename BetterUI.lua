@@ -2,7 +2,7 @@ local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
---- Updates the Common Interface Module state based on dependent modules
+--- Updates the Common Interface Module (CIM) state based on dependent modules. CIM is automatically enabled if any of the Tooltips, Inventory, or Banking modules are enabled, since it provides shared UI components like parametric scroll lists and headers.
 function BETTERUI.UpdateCIMState()
 	local settings = BETTERUI.Settings and BETTERUI.Settings.Modules
 	if not settings then return end
@@ -13,7 +13,7 @@ function BETTERUI.UpdateCIMState()
 	settings["CIM"].m_enabled = shouldEnable
 end
 
---- Initializes the master module options panel
+--- Initializes the master module options panel using LibAddonMenu2. Creates checkboxes for enabling/disabling each BetterUI module, with tooltips explaining their functionality.
 function BETTERUI.InitModuleOptions()
 	local panelData = Init_ModulePanel("Master", "Master Addon Settings")
 
@@ -97,8 +97,7 @@ function BETTERUI.ModuleOptions(m_namespace, m_options)
 	return m_namespace
 end
 
---- Loads and initializes all enabled BetterUI modules
---- Only performs initialization once, subsequent calls are no-ops
+--- Loads and initializes all enabled BetterUI modules. This includes setting up UI elements, registering event handlers, and hooking into ESO's systems. Initialization only happens once to prevent duplicate setup, and modules are loaded conditionally based on their enabled state and dependencies.
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
 
@@ -139,7 +138,7 @@ function BETTERUI.LoadModules()
 	BETTERUI._initialized = true
 end
 
---- Main initialization function called when the addon loads
+--- Main initialization function called when the addon loads. Handles loading saved variables from ESO's settings system, setting up default settings on first install by calling each module's InitModule function, registering the options panel, updating CIM state, and loading modules if the player is in gamepad mode.
 --- @param event string: The event type
 --- @param addon string: The addon name that triggered the event
 function BETTERUI.Initialize(event, addon)

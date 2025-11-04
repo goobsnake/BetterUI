@@ -12,7 +12,6 @@ BETTERUI.EventManager = GetEventManager()
 
 -- pseudo-Class definitions
 BETTERUI.CONST = {}
---BETTERUI.Lib = {}
 BETTERUI.CIM = {}
 
 BETTERUI.GenericHeader = {}
@@ -129,7 +128,7 @@ function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 	return string.format(fmt, value) .. suffix
 end
 
---- Populates research traits data with caching to avoid redundant API calls
+--- Populates research traits data with caching to avoid redundant API calls. Research traits track which item traits (like 'sharp' or 'divine') the player has researched for each crafting skill, used for displaying research status in tooltips.
 --- Only rebuilds data if forceRefresh is true or data hasn't been initialized
 --- @param forceRefresh boolean: Force a refresh of the research data
 function BETTERUI.GetResearch(forceRefresh)
@@ -168,7 +167,7 @@ function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
 	return ZO_TableOrderingFunction(left, right, "sortPriorityName", CUSTOM_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
 
---- Gets market price for an item from various trading addons
+--- Gets market price for an item from various trading addons (MasterMerchant, Arkadius Trade Tools, Tamriel Trade Centre). Checks each addon in order and returns the average price multiplied by stack count, or 0 if no pricing data is available.
 --- @param itemLink string: The item link to get price for
 --- @param stackCount number: Number of items (defaults to 1)
 --- @return number: The calculated price, or 0 if no price found
@@ -212,7 +211,7 @@ function BETTERUI.GetMarketPrice(itemLink, stackCount)
     return 0
 end
 
---- Gets custom category information from AutoCategory addon if available
+--- Gets custom category information from the AutoCategory addon if available. AutoCategory is a third-party addon that allows custom inventory categorization rules based on item properties.
 --- @param itemData table: Item data containing bagId and slotIndex
 --- @return boolean, boolean, string, number: useCustomCategory, matched, categoryName, categoryPriority
 function BETTERUI.GetCustomCategory(itemData)
@@ -230,7 +229,7 @@ function BETTERUI.GetCustomCategory(itemData)
 	return useCustomCategory, false, "", 0
 end
 
---- Post-hooks a method on a control, calling the original method first, then the hook function
+--- Post-hooks a method on a UI control, ensuring the original method runs first, then the hook function. Useful for extending existing ESO UI behavior without breaking it.
 --- @param control table: The UI control to hook
 --- @param method string: The method name to hook
 --- @param fn function: The hook function to call after the original
@@ -244,7 +243,7 @@ function BETTERUI.PostHook(control, method, fn)
 	end
 end
 
---- Hooks a method on a control with option to overwrite or call original first
+--- Hooks a method on a UI control with flexible options. If overwriteOriginal is false, calls the original method first; otherwise, replaces it entirely. Used for modifying ESO's UI systems safely.
 --- @param control table: The UI control to hook
 --- @param method string: The method name to hook
 --- @param postHookFunction function: The hook function to call
@@ -259,7 +258,7 @@ function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
 	end
 end
 
---- Converts RGB color values to hexadecimal string
+--- Converts RGB color values (0-1 range) to a hexadecimal string for use in ESO's color formatting system.
 --- @param rgb table: Table containing r, g, b values (0-1 range)
 --- @return string: Hexadecimal color string (e.g., "ff0000")
 function BETTERUI.RGBToHex(rgb)
@@ -267,7 +266,7 @@ function BETTERUI.RGBToHex(rgb)
 	return string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
---- Creates a standardized module panel configuration for settings menus
+--- Creates a standardized module panel configuration for settings menus using LibAddonMenu2, including author, version, and slash command details.
 --- @param moduleName string: The name of the module
 --- @param moduleDesc string: The description of the module
 --- @return table: Panel configuration table for LibAddonMenu

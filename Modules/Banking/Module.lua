@@ -2,6 +2,9 @@ local _
 local LAM = LibAddonMenu2
 
 local changed = false
+--- Initializes the settings panel for the Banking module
+--- @param mId string: Module ID for panel registration
+--- @param moduleName string: Display name for the module
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
@@ -41,6 +44,9 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
+--- Initializes default settings for the Banking module
+--- @param m_options table: The options table to initialize
+--- @return table: The initialized options table
 function BETTERUI.Banking.InitModule(m_options)
 	m_options["showIconEnchantment"] = true
 	m_options["showIconSetGear"] = true
@@ -48,6 +54,7 @@ function BETTERUI.Banking.InitModule(m_options)
 	return m_options
 end
 
+--- Sets up the Banking module by initializing settings and calling init function
 function BETTERUI.Banking.Setup()
 
 	Init("Bank", "Banking")

@@ -42,6 +42,7 @@ end
 
 
 BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
+--- Creates a new vertical parametric scroll list instance
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -90,6 +91,7 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     return list
 end
 
+--- Initializes the vertical parametric scroll list with default settings
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
     ZO_ParametricScrollList.Initialize(self, control, PARAMETRIC_SCROLL_LIST_VERTICAL, ZO_GamepadOnDefaultScrollListActivatedChanged)
     self:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)
@@ -100,6 +102,7 @@ function BETTERUI_VerticalParametricScrollList:Initialize(control)
 end
 
 BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollList:Subclass()
+--- Creates a new vertical item parametric scroll list instance
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)
@@ -108,16 +111,19 @@ end
 
 BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
+--- Creates a new horizontal scroll list for gamepad
 function BETTERUI_HorizontalScrollList_Gamepad:New(...)
     return ZO_HorizontalScrollList.New(self, ...)
 end
 
+--- Initializes the horizontal scroll list with template and functions
 function BETTERUI_HorizontalScrollList_Gamepad:Initialize(control, templateName, numVisibleEntries, setupFunction, equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     ZO_HorizontalScrollList.Initialize(self, control, templateName, numVisibleEntries, setupFunction, equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     self:SetActive(true)
     self.movementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
 end
 
+--- Updates the anchors and positions of the scroll list controls
 function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffsetX, initialUpdate, reselectingDuringRebuild)
     if self.isUpdatingAnchors then return end
     self.isUpdatingAnchors = true
@@ -174,11 +180,13 @@ function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffse
     end
 end
 
+--- Sets the callback function for when activation state changes
 function BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction(onActivatedChangedFunction)
     self.onActivatedChangedFunction = onActivatedChangedFunction
     self.dirty = true
 end
 
+--- Commits the scroll list changes and updates arrow visibility
 function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     ZO_HorizontalScrollList.Commit(self)
 
@@ -187,6 +195,7 @@ function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     self.rightArrow:SetHidden(hideArrows)
 end
 
+--- Sets the active state of the scroll list, activating/deactivating directional input
 function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     if (self.active ~= active) or self.dirty then
         self.active = active
@@ -226,6 +235,7 @@ function BETTERUI_HorizontalScrollList_Gamepad:UpdateDirectionalInput()
 end
 
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
+--- Creates a new horizontal parametric scroll list instance
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
     local list = ZO_ParametricScrollList.New(self, control, PARAMETRIC_SCROLL_LIST_HORIZONTAL, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
@@ -252,6 +262,7 @@ function BETTERUI_HorizontalListRow_Initialize(self, setupFunction, equalityFunc
 end
 
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
+--- Creates a new tab bar scroll list instance with navigation icons
 function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     local list = BETTERUI_HorizontalParametricScrollList.New(self, control, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     list:EnableAnimation(true)
@@ -393,6 +404,7 @@ end
 
 local SUB_LIST_CENTER_OFFSET = -50
 BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass()
+--- Creates a new vertical parametric scroll list sub-list instance for nested menus
 function BETTERUI_VerticalParametricScrollListSubList:New(control, parentList, parentKeybinds, onDataChosen)
     local manager = BETTERUI_VerticalParametricScrollList.New(self, control, parentList, parentKeybinds, onDataChosen)
     return manager
@@ -456,6 +468,7 @@ end
 
 BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
+--- Creates a new gamepad parametric list screen instance
 function BETTERUI_Gamepad_ParametricList_Screen:New(...)
     local object = ZO_Gamepad_ParametricList_Screen.New(self)
     object:Initialize(...)

@@ -35,6 +35,8 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
     end
 end
 
+--- Attempts to unequip an item from the specified inventory slot
+--- @param inventorySlot table: The inventory slot data
 local function TryUnequipItem(inventorySlot)
     local equipSlot = ZO_Inventory_GetSlotIndex(inventorySlot)
     UnequipItem(equipSlot)
@@ -60,6 +62,8 @@ local function TryUseItem(inventorySlot)
     end
 end
 
+--- Attempts to bank an item, either depositing or withdrawing based on current banking state
+--- @param inventorySlot table: The inventory slot data
 local function TryBankItem(inventorySlot)
     if(PLAYER_INVENTORY:IsBanking()) then
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -122,11 +126,18 @@ local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
     end
 end
 
+--- Checks if an item can be moved to the craft bag
+--- @param inventorySlot table: The inventory slot data
+--- @return boolean: True if the item can be moved to craft bag
 local function CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
 end
 
+--- Initializes the slot actions controller with custom primary action handling
+--- @param alignmentOverride any: Override for keybind alignment
+--- @param additionalMouseOverbinds table: Additional mouse over keybinds
+--- @param useKeybindStrip boolean: Whether to use keybind strip
 function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additionalMouseOverbinds, useKeybindStrip)
     self.alignment = KEYBIND_STRIP_ALIGN_RIGHT
 

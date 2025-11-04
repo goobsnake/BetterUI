@@ -1,6 +1,9 @@
 local _
 local LAM = LibAddonMenu2
 
+--- Initializes the settings panel for the General Interface module
+--- @param mId string: Module ID for panel registration
+--- @param moduleName string: Display name for the module
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "General Interface Settings")
 
@@ -126,6 +129,9 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
+--- Initializes default settings for the Tooltips module
+--- @param m_options table: The options table to initialize
+--- @return table: The initialized options table
 function BETTERUI.Tooltips.InitModule(m_options)
     m_options["chatHistory"] = 200
     m_options["showStyleTrait"] = true
@@ -137,6 +143,7 @@ function BETTERUI.Tooltips.InitModule(m_options)
     return m_options
 end
 
+--- Sets up the Tooltips module by initializing settings, hooking tooltips, and registering event handlers
 function BETTERUI.Tooltips.Setup()
 
 	Init("General", "General Interface")

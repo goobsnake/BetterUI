@@ -11,6 +11,9 @@ local LAM = LibAddonMenu2
 local GENERAL_COLOR_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1
 local GENERAL_COLOR_OFF_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3
 
+--- Initializes the settings panel for the Inventory module
+--- @param mId string: Module ID for panel registration
+--- @param moduleName string: Display name for the module
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
@@ -26,6 +29,7 @@ local function Init(mId, moduleName)
 		end
 	end
 
+	--- Recomputes the currency order string based on user settings and default priorities. Creates a comma-separated list of currency keys in the order they should appear, handling ties with default sort order.
 	local function RecomputeCurrencyOrderString()
 		local inv = BETTERUI.Settings.Modules["Inventory"]
 		if not inv then return end
@@ -476,7 +480,7 @@ end
 --
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Sets up tooltip styles based on the configured tooltip size
+--- Sets up tooltip styles based on the configured tooltip size. Adjusts font sizes, colors, and layout properties for small, medium, large, or default sizes to improve readability and fit more information.
 local function SetupTooltipStyles()
     if BETTERUI.Settings.Modules["CIM"].tooltipSize == "Small" then
         ZO_TOOLTIP_STYLES["topSection"] = {
@@ -578,7 +582,7 @@ local function SetupTooltipStyles()
     end
 end
 
---- Sets up mouse wheel scrolling for tooltips
+--- Sets up mouse wheel scrolling for tooltips. Hooks the tooltip control to respond to mouse wheel events, allowing players to scroll through long tooltip text that exceeds the display area.
 local function SetupTooltipMouseWheel()
 	local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
 	local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
@@ -607,6 +611,7 @@ end
 --
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 
+--- Sets up the Inventory module by replacing the default gamepad inventory with a custom implementation
 function BETTERUI.Inventory.Setup()
 	Init("Inventory", "Inventory")
 

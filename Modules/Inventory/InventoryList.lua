@@ -22,6 +22,10 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
     uniqueId = { isId64 = true },
 }
 
+--- Default item sort comparator for gamepad inventory
+--- @param left table: Left item data
+--- @param right table: Right item data
+--- @return boolean: True if left should come before right
 function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
@@ -29,6 +33,10 @@ end
 
 
 
+--- Sets up the label for a shared gamepad entry with icons and formatting
+--- @param label table: The label control
+--- @param data table: The entry data
+--- @param selected boolean: Whether the entry is selected
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
     if label then
@@ -91,6 +99,10 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     end
 end
 
+--- Sets up icons for equipped and new item status
+--- @param statusIndicator table: The status indicator control
+--- @param equippedIcon table: The equipped icon control
+--- @param data table: The entry data
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
 
     statusIndicator:ClearIcons()
@@ -124,6 +136,11 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     end
 end
 
+--- Sets up the icon for a shared gamepad entry
+--- @param icon table: The icon control
+--- @param stackCountLabel table: The stack count label
+--- @param data table: The entry data
+--- @param selected boolean: Whether the entry is selected
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
         if data.iconUpdateFn then
@@ -165,6 +182,16 @@ function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selec
     end
 end
 
+--- Sets up cooldown display on a control
+--- @param control table: The control to apply cooldown to
+--- @param remaining number: Remaining cooldown time
+--- @param duration number: Total cooldown duration
+--- @param cooldownType number: Type of cooldown display
+--- @param timeType number: Type of time display
+--- @param useLeadingEdge boolean: Whether to use leading edge
+--- @param alpha number: Alpha value
+--- @param desaturation number: Desaturation value
+--- @param preservePreviousCooldown boolean: Whether to preserve previous cooldown
 function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType, useLeadingEdge, alpha, desaturation, preservePreviousCooldown)
     local inCooldownNow = remaining > 0 and duration > 0
     if inCooldownNow then
@@ -180,6 +207,9 @@ function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType,
     control.cooldown:SetHidden(not inCooldownNow)
 end
 
+--- Sets up cooldown for a control based on data
+--- @param control table: The control
+--- @param data table: The data containing cooldown info
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"
     if control.cooldown then

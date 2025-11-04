@@ -41,6 +41,8 @@ local BANK_CATEGORY_ICONS = {
 }
 
 -- Build the full set of bank categories (unfiltered). Furniture vault is restricted to Furnishing.
+--- Build the full list of bank categories.
+--- If in a furniture vault, restrict to All + Furnishing; otherwise mirror inventory categories (plus optional companion).
 local function BuildAllBankCategories(isFurnitureVault)
     -- Always include 'All Items' to ensure a non-empty tab bar and a safe default,
     -- even for special bank types (e.g., house storage/furniture vault).
@@ -67,6 +69,7 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
+--- Return true if itemData belongs to the given bank category (filter type or special junk)
 local function DoesItemMatchBankCategory(itemData, category)
     if not category or category.key == "all" then
         return true
@@ -131,6 +134,8 @@ local function GetBestItemCategoryDescription(itemData)
 end
 
 -- Compute which categories have at least one item for the current mode and bank context.
+--- Compute the subset of categories that actually contain items for the current bank mode.
+--- Always keeps All visible so currencies render; excludes stolen items from banking lists.
 local function ComputeVisibleBankCategories(self)
     local isFurnitureVault = IsFurnitureVault(GetBankingBag())
     local allCategories = BuildAllBankCategories(isFurnitureVault)
@@ -704,8 +709,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                         template = "ZO_GamepadItemEntryTemplate",
                         entryData = entryData,
                     }
-                    
-                    --if actionName ~= "Use" and actionName ~= "Equip" and i ~= 1 then
                     table.insert(parametricList, listItem)
                 end
 			end
@@ -723,13 +726,10 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 		
 			self:RefreshItemActions()
 			
-			--refresh so keybinds react to newly selected item
-			--self:RefreshActiveKeybinds()
+            -- refresh so keybinds react to newly selected item
 
 			self:RefreshList()
-			--if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
-			--	self:RefreshCategoryList()
-			--end
+            
         end
 	end
 	local function ActionDialogButtonConfirm(dialog)

@@ -1,11 +1,13 @@
 local _
 
+--- Initializes the generic footer by setting up the footer control reference
 function BETTERUI.GenericFooter:Initialize()
 	if(self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
 	if(self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
+--- Refreshes the footer display with current bag capacities and currency amounts, arranging currencies dynamically based on user settings
 function BETTERUI.GenericFooter:Refresh()
 	-- a hack until I completely generalize these functions... 
 	local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] or {}

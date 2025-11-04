@@ -46,10 +46,18 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
     uniqueId = { isId64 = true },
 }
 
+--- Default item sort comparator for craft list
+--- @param left table: Left item data
+--- @param right table: Right item data
+--- @return boolean: True if left should come before right
 local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
 
+--- Adds slot data to the table if it passes the filter
+--- @param slotsTable table: The table to add to
+--- @param inventoryType number: The inventory type
+--- @param slotIndex number: The slot index
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
@@ -68,6 +76,8 @@ function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryTy
     end
 end
 
+--- Refreshes the craft list with filtered and sorted items
+--- @param filterType number|table: The filter type(s)
 function BETTERUI.Inventory.CraftList:RefreshList(filterType)
     self.list:Clear()
 

@@ -26,6 +26,7 @@ function Anchor:New(pointOnMe, targetId, pointOnTarget, offsetX, offsetY)
 end
 
 
+--- Setup function for tab bar entries: hides label, shows icon, tints when needed
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
     local label = control:GetNamedChild("Label")
     label:SetHidden(true)
@@ -50,6 +51,7 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
 
 end
 
+--- Initialize the header control and (optionally) create the tab bar
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
     control.controls =
         {
@@ -83,10 +85,12 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
+--- Add an entry to the tab bar list using the BetterUI tab template
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
 
+--- Set the primary equip text in the header (main vs backup)
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("EquipText")
     if isEquipMain then
@@ -97,6 +101,7 @@ function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
+--- Set the backup equip text in the header (main vs backup)
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupEquipText")
     if isEquipMain then
@@ -108,12 +113,14 @@ function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
+--- Update the header title text
 function BETTERUI.GenericHeader.SetTitleText(control, titleText)
     local titleTextControl = control:GetNamedChild("TitleContainer"):GetNamedChild("Title")
     titleTextControl:SetText(titleText)
 end
 
 
+--- Populate current equipped icons for the main bar (with defaults when empty)
 function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
 	local equipMainControl = control:GetNamedChild("TitleContainer"):GetNamedChild("MainHandIcon")
 	local equipOffControl = control:GetNamedChild("TitleContainer"):GetNamedChild("OffHandIcon")
@@ -126,6 +133,7 @@ function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, e
 	if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
 end
 
+--- Populate current equipped icons for the backup bar (with defaults when empty)
 function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
     local equipMainControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupMainHandIcon")
     local equipOffControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupOffHandIcon")
@@ -138,10 +146,8 @@ function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equip
     if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
 end
 
+--- Refresh the header with provided data; optionally block tab bar callbacks during rebuild
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
-	--ddebug("LOL")
-	--d(data)
-	
 	control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 
     local tabBarControl = control.controls[TABBAR]

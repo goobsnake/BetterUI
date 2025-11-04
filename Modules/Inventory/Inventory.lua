@@ -200,6 +200,8 @@ function BETTERUI.Inventory.Class:SaveListPosition()
 	end 
 end
 
+--- Build the category list UI and wire up selection/target callbacks
+--- Responds to category selection by switching between item and craft bag lists
 function BETTERUI.Inventory.Class:InitializeCategoryList()
 
     self.categoryList = self:AddList("Category", SetupCategoryList)
@@ -208,7 +210,7 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
 	--self.categoryList:SetDefaultSelectedIndex(1)
 	----self.categoryList:SetDefaultSelectedIndex(2)
 
-    --Match the tooltip to the selected data because it looks nicer
+    -- Match the tooltip to the selected data because it looks nicer
     local function OnSelectedCategoryChanged(list, selectedData)
 	    if selectedData ~= nil and self.scene:IsShowing() then
 		    self:UpdateCategoryLeftTooltip(selectedData)
@@ -286,6 +288,9 @@ end
 --- Attempt to equip an item, handling different equip types and bind-on-equip protection
 --- @param inventorySlot table: The inventory slot data containing item information
 --- @param isCallingFromActionDialog boolean: Whether this is called from an action dialog
+--- Attempt to equip an item in gamepad inventory, handling bind-on-equip, bar/hand choices
+--- inventorySlot: parametric entry for the selected item
+--- isCallingFromActionDialog: true when invoked from the Y actions dialog (defers dialogs slightly)
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
     local equipType = inventorySlot.dataSource.equipType
     local bagId = inventorySlot.dataSource.bagId
@@ -389,12 +394,14 @@ function BETTERUI.Inventory.Class:NewCategoryItem(categoryName, filterType, icon
     end
 end
 
+--- Rebuild category tabs based on current list (backpack vs craft bag) and item presence
+--- Ensures All Items is always present; includes Stolen/Junk when items exist
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 
 	local function BETTERUI_InventoryUtils_All()
 		return true
 	end
-    --local currentPosition = self.header.tabBar.
+    --
 
 	local function IsStolenAndNotJunk()
 		local usedBagSize = GetNumBagUsedSlots(BAG_BACKPACK)
@@ -700,6 +707,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     self.header.tabBar:Commit()
 end
 
+--- Initialize the gamepad header with tab bar and currency rows used by the inventory
 function BETTERUI.Inventory.Class:InitializeHeader()
     local function UpdateTitleText()
 		return GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB or SI_BETTERUI_INV_ACTION_INV)
@@ -761,6 +769,7 @@ function BETTERUI.Inventory.Class:RefreshCraftBagList()
 end
 
 
+--- Build and sort the item list for the selected category, setting headers and cached fields
 function BETTERUI.Inventory.Class:RefreshItemList()
     self.itemList:Clear()
     if self.categoryList:IsEmpty() then return end
@@ -905,7 +914,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 			else
 				self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
 			end
-        end
+    end
     end
 
     self.itemList:Commit()
@@ -974,7 +983,7 @@ end
 
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData
-	--local selectedEquipSlot = BETTERUI_GetEquipSlotForEquipType(selectedItemData.dataSource.equipType)
+    --
 	local selectedEquipSlot
 
 	if self:GetCurrentList() == self.itemList then
@@ -985,7 +994,7 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 		selectedEquipSlot = 0
 	end
 
-    --local equipSlotHasItem = select(2, GetEquippedItemInfo(selectedEquipSlot))
+    --
 
     if selectedItemData ~= nil then
 		GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex, selectedEquipSlot)
@@ -1022,7 +1031,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 			self.callLaterLeftToolTip = "CallLaterFunction"..callLaterId
 			
 		    self:PrepareNextClearNewStatus(selectedData)
-		    --self.itemList:RefreshVisible()
+            --
 		    --self:UpdateRightTooltip()
 			self:RefreshKeybinds()
 	    end
