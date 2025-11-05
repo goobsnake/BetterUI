@@ -176,8 +176,6 @@ function BETTERUI_TabBar_OnTabNext(parent, successful)
         --parent:RefreshItemList()
 		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
 
-        -- Removed legacy on-screen warning when entering Junk category
-
         parent:ToSavedPosition()
     end
 end
@@ -195,8 +193,6 @@ function BETTERUI_TabBar_OnTabPrev(parent, successful)
 
         --parent:RefreshItemList()
 		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-        -- Removed legacy on-screen warning when entering Junk category
 
         parent:ToSavedPosition()
     end
@@ -396,10 +392,11 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
 
     local isListEmpty = self:IsItemListEmpty(nil, filterType)
     if not isListEmpty then
+        local name
         if filterType == nil then
-            local name = GetString(SI_BETTERUI_INV_ITEM_ALL)
+            name = GetString(SI_BETTERUI_INV_ITEM_ALL)
         else
-            local name = GetString("SI_ITEMFILTERTYPE", filterType)
+            name = GetString("SI_ITEMFILTERTYPE", filterType)
         end
 
         local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
@@ -651,14 +648,26 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
 	    self:NewCategoryItem(ITEMFILTERTYPE_QUICKSLOT, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds")
 
-        self:NewCategoryItem(ITEMFILTERTYPE_QUEST, "esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds")
+        do
+			local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
+			if next(questCache) then
+				local name = GetString(SI_GAMEPAD_INVENTORY_QUEST_ITEMS)
+				local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quest.dds"
+				local data = ZO_GamepadEntryData:New(name, iconFile)
+				data.filterType = ITEMFILTERTYPE_QUEST
+				data:SetIconTintOnSelection(true)
+				self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
+				BETTERUI.GenericHeader.AddToList(self.header, data)
+				if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
+			end
+		end
 
         do
 			if IsStolenAndNotJunk() then
                 local isListEmpty = self:IsItemListEmpty(nil, nil)
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
-                    local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_stolenitem.dds"
+                    local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"
                     local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_BACKPACK)
                     local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                     data.showStolen = true
@@ -901,7 +910,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 			else
 				self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
 			end
-    end
+        end
     end
 
     self.itemList:Commit()
