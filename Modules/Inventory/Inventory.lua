@@ -426,6 +426,9 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		return false
 	end
 	
+	-- Store the current selected index before clearing so we can restore it
+	local previousSelectedIndex = self.categoryList.selectedIndex
+	
     self.categoryList:Clear()
     self.header.tabBar:Clear()
 
@@ -620,7 +623,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             if usedBagSize > 0 then
                 local name = GetString(SI_BETTERUI_INV_ITEM_EQUIPPED)
                 local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_equipped.dds"
-                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_WORN)
+                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_WORN)
                 local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                 data.showEquipped = true
                 data:SetIconTintOnSelection(true)
@@ -668,7 +671,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
                     local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_BACKPACK)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
                     local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                     data.showStolen = true
                     data:SetIconTintOnSelection(true)
@@ -685,7 +688,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_JUNK)
                     local iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds"
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_BACKPACK)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
                     local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                     data.showJunk = true
                     data:SetIconTintOnSelection(true)
@@ -697,6 +700,15 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         end
 
 		self.populatedCategoryPos = true
+	end
+	
+	-- Restore the previously selected category, or default to the first item if the index is out of bounds
+	if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= #self.categoryList.dataList then
+		self.categoryList:SetSelectedIndexWithoutAnimation(previousSelectedIndex, true, false)
+		self.header.tabBar:SetSelectedIndexWithoutAnimation(previousSelectedIndex, true, false)
+	elseif #self.categoryList.dataList > 0 then
+		self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
+		self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
 	end
 
     self.categoryList:Commit()
@@ -871,45 +883,51 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     local currentBestCategoryName
 
     for i, itemData in ipairs(filteredDataTable) do
+        -- Ensure name and icon are available, with fallbacks for missing data
+        local itemName = itemData.name
+        local itemIcon = itemData.iconFile or itemData.icon
+        
+        -- Skip invalid items with missing critical data
+        if itemName and itemIcon then
+            local data = ZO_GamepadEntryData:New(itemName, itemIcon)
+			data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
+            data:InitializeInventoryVisualData(itemData)
 
-        local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
-		data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
-        data:InitializeInventoryVisualData(itemData)
-
-        local remaining, duration
-        if isQuestItem then
-            if itemData.toolIndex then
-                remaining, duration = GetQuestToolCooldownInfo(itemData.questIndex, itemData.toolIndex)
-            elseif itemData.stepIndex and itemData.conditionIndex then
-                remaining, duration = GetQuestItemCooldownInfo(itemData.questIndex, itemData.stepIndex, itemData.conditionIndex)
+            local remaining, duration
+            if isQuestItem then
+                if itemData.toolIndex then
+                    remaining, duration = GetQuestToolCooldownInfo(itemData.questIndex, itemData.toolIndex)
+                elseif itemData.stepIndex and itemData.conditionIndex then
+                    remaining, duration = GetQuestItemCooldownInfo(itemData.questIndex, itemData.stepIndex, itemData.conditionIndex)
+                end
+            else
+                remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
             end
-        else
-            remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
-        end
 
-        if remaining > 0 and duration > 0 then
-            data:SetCooldown(remaining, duration)
-        end
+            if remaining > 0 and duration > 0 then
+                data:SetCooldown(remaining, duration)
+            end
 
-		data.bestItemCategoryName = itemData.bestItemCategoryName
-		data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
-        data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
-        data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
-        data.isJunk = itemData.isJunk
+			data.bestItemCategoryName = itemData.bestItemCategoryName
+			data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
+            data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
+            data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
+            data.isJunk = itemData.isJunk
 
-        if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
-		
-			if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
-				currentBestCategoryName = data.bestGamepadItemCategoryName
-				data:SetHeader(currentBestCategoryName)
-				if AutoCategory then
-					self.itemList:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
+            if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
+			
+				if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
+					currentBestCategoryName = data.bestGamepadItemCategoryName
+					data:SetHeader(currentBestCategoryName)
+					if AutoCategory then
+						self.itemList:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
+					else
+						self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
+					end
 				else
 					self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
 				end
-			else
-				self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-			end
+            end
         end
     end
 
