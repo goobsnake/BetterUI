@@ -255,7 +255,6 @@ function BETTERUI.Banking.Class:RefreshList()
     -- reset any transient state if needed (none currently)
     --d("tt refresh bank list")
     self.list:Clear()
-    self:CurrentUsedBank()
 
     -- Update the header title with current category
     if self.UpdateHeaderTitle then
@@ -530,8 +529,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
-    -- Per-category selection persistence (Stage 1)
-    self.lastPositionsByCategory = { [LIST_WITHDRAW] = {}, [LIST_DEPOSIT] = {} }
+    -- Per-category selection persistence (shared across modes in a session)
+    self.lastPositionsByCategory = {}
 
     -- Initialize categories (Stage 1)
     self:CurrentUsedBank()
@@ -599,10 +598,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         -- Always default to "All Items" and first row on first open of the scene
         self.currentCategoryIndex = 1
         self.lastPositions[self.currentMode] = 1
-        if self.lastPositionsByCategory and self.bankCategories and #self.bankCategories > 0 then
-            local byMode = self.lastPositionsByCategory[self.currentMode]
-            if byMode then byMode["all"] = 1 end
-        end
         self:RebuildHeaderCategories()
         -- Force header to All Items (index 1) on scene open without animation
         if self.headerGeneric and self.headerGeneric.tabBar then
@@ -616,7 +611,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.list:Activate()
         -- Ensure our keybind groups and header tab bar are active on first show
         self:AddKeybinds()
-	
+
 		if wykkydsToolbar then
 			wykkydsToolbar:SetHidden(true)
 		end
@@ -640,13 +635,16 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-	
+
 		if wykkydsToolbar then
 			wykkydsToolbar:SetHidden(false)
 		end
 
         self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+        
+        -- Reset category positions when leaving the bank so next visit starts fresh
+        self.lastPositionsByCategory = {}
 	end
 
     local selectorContainer = self.control:GetNamedChild("Container"):GetNamedChild("InputContainer")
@@ -1256,11 +1254,11 @@ end
 function BETTERUI.Banking.Class:SaveListPosition()
     -- Able to return to the current position again!
     self.lastPositions[self.currentMode] = self.list.selectedIndex
+    -- Save per-category position for current category (shared across modes during session)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
         if cat then
-            local byMode = self.lastPositionsByCategory[self.currentMode]
-            byMode[cat.key] = self.list.selectedIndex
+            self.lastPositionsByCategory[cat.key] = self.list.selectedIndex
         end
     end
 end
@@ -1282,27 +1280,17 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         return
     end
     local lastPosition = self.lastPositions[self.currentMode]
+    -- Prefer per-category saved index when available (shared across modes in session)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
         if cat then
-            local byMode = self.lastPositionsByCategory[self.currentMode]
-            if byMode and byMode[cat.key] then
-                lastPosition = byMode[cat.key]
+            if self.lastPositionsByCategory and self.lastPositionsByCategory[cat.key] then
+                lastPosition = self.lastPositionsByCategory[cat.key]
             end
         end
     end
     -- Default and clamp to valid range to avoid nil or OOB indices
     lastPosition = zo_clamp(tonumber(lastPosition) or 1, 1, totalEntries)
-    -- Prefer per-category saved index when available (Stage 1)
-    if self.bankCategories and #self.bankCategories > 0 then
-        local cat = self.bankCategories[self.currentCategoryIndex or 1]
-        if cat then
-            local byMode = self.lastPositionsByCategory[self.currentMode]
-            if byMode and byMode[cat.key] then
-                lastPosition = byMode[cat.key]
-            end
-        end
-    end
     if(self.currentMode == LIST_WITHDRAW) then
         if(lastUsedBank ~= currentUsedBank) then
             self.list:SetSelectedIndexWithoutAnimation(1, true, false)
@@ -1346,19 +1334,19 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self:SaveListPosition()
 
 	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
-    -- Rebuild categories when switching modes (Stage 1)
+    -- Rebuild categories when switching modes
     self.bankCategories = ComputeVisibleBankCategories(self)
-    -- Always land on All Items + first item when switching modes
-    self.currentCategoryIndex = 1
-    self.lastPositions[self.currentMode] = 1
-    if self.lastPositionsByCategory and self.bankCategories and #self.bankCategories > 0 then
-        local byMode = self.lastPositionsByCategory[self.currentMode]
-        if byMode then byMode["all"] = 1 end
+    -- Keep the current category index (persist across modes), or default to 1 if index is out of bounds
+    local prevCategoryIndex = self.currentCategoryIndex or 1
+    if prevCategoryIndex > #self.bankCategories then
+        prevCategoryIndex = 1
     end
+    self.currentCategoryIndex = prevCategoryIndex
+    self.lastPositions[self.currentMode] = 1
     self:RebuildHeaderCategories()
-    -- Force header to All Items (index 1) when switching modes
+    -- Update header to reflect persisted category (no animation)
     if self.headerGeneric and self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
+        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(prevCategoryIndex, true, false)
     end
 	local footer = self.footer:GetNamedChild("Footer")
 	if(self.currentMode == LIST_WITHDRAW) then
