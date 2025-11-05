@@ -1,4 +1,13 @@
-Current Release - 2.81 Changes:
+Current Release - 2.82 Changes:
+
+[INDENT]1. Fixed: Navigation issues when moving things to and from Junk
+2. Fixed: Errors when an inventory category becomes empty/nil *shadowcep thanks for reporting
+3. Added: Brought back the option for "Quick" deleting items per requests
+4. Added: Banking categories will now persist between Withdrawl & Deposit scenes - Exiting the bank will default back to the "All Items" category upon return
+[/INDENT] 
+
+
+2.81 Changes:
 
 [INDENT]1. Fixed: Error when moving stacked items around in the bank. *FulciLives thanks for reporting
 2. Fixed: Error when opening a Writhing Reward Coffer. *shadowcep thanks for reporting
