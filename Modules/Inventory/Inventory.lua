@@ -396,7 +396,12 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
 
     local isListEmpty = self:IsItemListEmpty(nil, filterType)
     if not isListEmpty then
-        local name = GetString("SI_ITEMFILTERTYPE", filterType)
+        if filterType == nil then
+            local name = GetString(SI_BETTERUI_INV_ITEM_ALL)
+        else
+            local name = GetString("SI_ITEMFILTERTYPE", filterType)
+        end
+
         local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
         local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
         data.filterType = filterType
