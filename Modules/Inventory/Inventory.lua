@@ -389,14 +389,14 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     end
 end
 
-function BETTERUI.Inventory.Class:NewCategoryItem(categoryName, filterType, iconFile, FilterFunct)
+function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
     if FilterFunct == nil then
         FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
     end
 
     local isListEmpty = self:IsItemListEmpty(nil, filterType)
     if not isListEmpty then
-        local name = GetString(categoryName)
+        local name = GetString("SI_ITEMFILTERTYPE", filterType)
         local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
         local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
         data.filterType = filterType
@@ -411,11 +411,6 @@ end
 --- Ensures All Items is always present; includes Stolen/Junk when items exist
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 
-	local function BETTERUI_InventoryUtils_All()
-		return true
-	end
-    --
-
 	local function IsStolenAndNotJunk()
 		local usedBagSize = GetNumBagUsedSlots(BAG_BACKPACK)
 
@@ -428,7 +423,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 		return false
 	end
-
+	
     self.categoryList:Clear()
     self.header.tabBar:Clear()
 
@@ -616,14 +611,14 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		self.populatedCraftPos = true
 	else
 
-		self:NewCategoryItem(SI_BETTERUI_INV_ITEM_ALL, nil, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds")
+		self:NewCategoryItem(nil, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds")
 
         do
             local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
             if usedBagSize > 0 then
                 local name = GetString(SI_BETTERUI_INV_ITEM_EQUIPPED)
                 local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_equipped.dds"
-                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(BETTERUI_InventoryUtils_All, nil, BAG_WORN)
+                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_WORN)
                 local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                 data.showEquipped = true
                 data:SetIconTintOnSelection(true)
@@ -633,51 +628,25 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             end
         end
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_WEAPONS, ITEMFILTERTYPE_WEAPONS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds")
+	    self:NewCategoryItem(ITEMFILTERTYPE_WEAPONS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds")
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_APPAREL, ITEMFILTERTYPE_ARMOR, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds")
+	    self:NewCategoryItem(ITEMFILTERTYPE_ARMOR, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds")
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_JEWELRY, ITEMFILTERTYPE_JEWELRY, "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds")
+	    self:NewCategoryItem(ITEMFILTERTYPE_JEWELRY, "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds")
 
-		self:NewCategoryItem(SI_BETTERUI_INV_ITEM_CONSUMABLE, ITEMFILTERTYPE_CONSUMABLE, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds")
+		self:NewCategoryItem(ITEMFILTERTYPE_CONSUMABLE, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds")
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_MATERIALS, ITEMFILTERTYPE_CRAFTING, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds")
+	    self:NewCategoryItem(ITEMFILTERTYPE_CRAFTING, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds")
 
-		self:NewCategoryItem(SI_BETTERUI_INV_ITEM_FURNISHING, ITEMFILTERTYPE_FURNISHING, "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds")
+		self:NewCategoryItem(ITEMFILTERTYPE_FURNISHING, "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds")
 
-        -- New: Companion Items category to mirror ESOUI additions
-        if ITEMFILTERTYPE_COMPANION ~= nil then
-            local isListEmpty = self:IsItemListEmpty(nil, ITEMFILTERTYPE_COMPANION)
-            if not isListEmpty then
-                local name = GetString("SI_ITEMFILTERTYPE", ITEMFILTERTYPE_COMPANION)
-                local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds"
-                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(ZO_InventoryUtils_DoesNewItemMatchFilterType, ITEMFILTERTYPE_COMPANION, BAG_BACKPACK)
-                local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-                data.filterType = ITEMFILTERTYPE_COMPANION
-                data:SetIconTintOnSelection(true)
-                self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-                BETTERUI.GenericHeader.AddToList(self.header, data)
-                if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
-            end
-        end
+        self:NewCategoryItem(ITEMFILTERTYPE_COMPANION, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds")
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_MISC, ITEMFILTERTYPE_MISCELLANEOUS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds")
+	    self:NewCategoryItem(ITEMFILTERTYPE_MISCELLANEOUS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds")
 
-	    self:NewCategoryItem(SI_BETTERUI_INV_ITEM_QUICKSLOT, ITEMFILTERTYPE_QUICKSLOT, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds")
-        
-        do
-			local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-			if next(questCache) then
-				local name = GetString(SI_GAMEPAD_INVENTORY_QUEST_ITEMS)
-				local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds"
-				local data = ZO_GamepadEntryData:New(name, iconFile)
-				data.filterType = ITEMFILTERTYPE_QUEST
-				data:SetIconTintOnSelection(true)
-				self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-				BETTERUI.GenericHeader.AddToList(self.header, data)
-				if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
-			end
-		end
+	    self:NewCategoryItem(ITEMFILTERTYPE_QUICKSLOT, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds")
+
+        self:NewCategoryItem(ITEMFILTERTYPE_QUEST, "esoui/art/inventory/gamepad/gp_inventory_icon_quest.dds")
 
         do
 			if IsStolenAndNotJunk() then
@@ -685,7 +654,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
                     local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_stolenitem.dds"
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(BETTERUI_InventoryUtils_All, nil, BAG_BACKPACK)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_BACKPACK)
                     local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                     data.showStolen = true
                     data:SetIconTintOnSelection(true)
@@ -702,7 +671,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                 if not isListEmpty then
                     local name = GetString(SI_BETTERUI_INV_ITEM_JUNK)
                     local iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds"
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(BETTERUI_InventoryUtils_All, nil, BAG_BACKPACK)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(true, nil, BAG_BACKPACK)
                     local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
                     data.showJunk = true
                     data:SetIconTintOnSelection(true)
