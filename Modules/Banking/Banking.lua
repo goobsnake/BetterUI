@@ -573,8 +573,33 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
         self:UpdateSingleItem(bagId, slotId)
         -- Categories can become empty/non-empty as items move; rebuild the header list
+        -- Capture the current category KEY before recomputing categories
+        local prevCategoryKey = nil
+        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+            local prevCat = self.bankCategories[self.currentCategoryIndex]
+            if prevCat then
+                prevCategoryKey = prevCat.key
+            end
+        end
         self.bankCategories = ComputeVisibleBankCategories(self)
+        -- Check if the captured category key still exists in the new list
+        if prevCategoryKey then
+            local categoryStillExists = false
+            for i, cat in ipairs(self.bankCategories) do
+                if cat.key == prevCategoryKey then
+                    categoryStillExists = true
+                    break
+                end
+            end
+            if not categoryStillExists then
+                -- Category became empty, force to All Items
+                self.currentCategoryIndex = 1
+            end
+        end
+        -- Suppress callback during rebuild when category has changed
+        self._suppressHeaderCallback = true
         self:RebuildHeaderCategories()
+        self._suppressHeaderCallback = false
         self:RefreshList()
         self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
     end
@@ -860,12 +885,37 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
         local myToken = self._moveCoalesceToken
         self._suppressListUpdates = true
+        -- Capture the current category KEY before the delayed refresh (categories will change)
+        local prevCategoryKey = nil
+        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+            local prevCat = self.bankCategories[self.currentCategoryIndex]
+            if prevCat then
+                prevCategoryKey = prevCat.key
+            end
+        end
         zo_callLater(function()
             if myToken ~= self._moveCoalesceToken then return end
             self._suppressListUpdates = false
             -- Recompute categories and refresh once
             self.bankCategories = ComputeVisibleBankCategories(self)
+            -- Check if the captured category key still exists in the new list
+            if prevCategoryKey then
+                local categoryStillExists = false
+                for i, cat in ipairs(self.bankCategories) do
+                    if cat.key == prevCategoryKey then
+                        categoryStillExists = true
+                        break
+                    end
+                end
+                if not categoryStillExists then
+                    -- Category became empty, force to All Items
+                    self.currentCategoryIndex = 1
+                end
+            end
+            -- Suppress callback during rebuild when category has changed
+            self._suppressHeaderCallback = true
             self:RebuildHeaderCategories()
+            self._suppressHeaderCallback = false
             self:RefreshList()
         end, delayMs or 100)
     end
@@ -1354,13 +1404,19 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     
     -- Try to find the same category key in the new mode; if not found, default to All Items (index 1)
     local newCategoryIndex = 1  -- Default to All Items
+    local categoryFound = false
     if prevCategoryKey then
         for i, cat in ipairs(self.bankCategories) do
             if cat.key == prevCategoryKey then
                 newCategoryIndex = i
+                categoryFound = true
                 break
             end
         end
+    end
+    -- If category doesn't exist in new mode, ensure we default to All Items
+    if not categoryFound then
+        newCategoryIndex = 1
     end
     -- Clamp the index to valid range BEFORE setting it
     self.currentCategoryIndex = zo_clamp(newCategoryIndex, 1, #self.bankCategories)
@@ -1439,6 +1495,10 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         if self._justToggledMode then
             return
         end
+        -- Skip callback during rebuild to prevent override after category removal
+        if self._suppressHeaderCallback then
+            return
+        end
         -- Coalesce rapid tab changes: only refresh once after navigation settles
         self.currentCategoryIndex = list.selectedIndex or 1
         self._categoryChangeToken = (self._categoryChangeToken or 0) + 1
@@ -1495,7 +1555,10 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         if self._justToggledMode then
             self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, false)
         else
+            -- Suppress callback during rebuild to prevent it overriding our selection
+            self._suppressHeaderCallback = true
             self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+            self._suppressHeaderCallback = false
         end
     end
     -- Update title to match
