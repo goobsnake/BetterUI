@@ -1279,6 +1279,11 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         end
         return
     end
+    -- Skip restoration logic if we just toggled modes - category is already set correctly
+    if self._justToggledMode then
+        self.list:SetSelectedIndexWithoutAnimation(1, true, false)
+        return
+    end
     local lastPosition = self.lastPositions[self.currentMode]
     -- Prefer per-category saved index when available (shared across modes in session)
     if self.bankCategories and #self.bankCategories > 0 then
@@ -1333,21 +1338,39 @@ end
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self:SaveListPosition()
 
-	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
-    -- Rebuild categories when switching modes
-    self.bankCategories = ComputeVisibleBankCategories(self)
-    -- Keep the current category index (persist across modes), or default to 1 if index is out of bounds
+    -- Capture the category KEY from CURRENT mode before switching
+    local prevCategoryKey = nil
     local prevCategoryIndex = self.currentCategoryIndex or 1
-    if prevCategoryIndex > #self.bankCategories then
-        prevCategoryIndex = 1
+    if self.bankCategories and prevCategoryIndex <= #self.bankCategories then
+        local prevCat = self.bankCategories[prevCategoryIndex]
+        if prevCat then
+            prevCategoryKey = prevCat.key
+        end
     end
-    self.currentCategoryIndex = prevCategoryIndex
+
+	self.currentMode = toWithdraw and LIST_WITHDRAW or LIST_DEPOSIT
+    -- Rebuild categories for the NEW mode
+    self.bankCategories = ComputeVisibleBankCategories(self)
+    
+    -- Try to find the same category key in the new mode; if not found, default to All Items (index 1)
+    local newCategoryIndex = 1  -- Default to All Items
+    if prevCategoryKey then
+        for i, cat in ipairs(self.bankCategories) do
+            if cat.key == prevCategoryKey then
+                newCategoryIndex = i
+                break
+            end
+        end
+    end
+    -- Clamp the index to valid range BEFORE setting it
+    self.currentCategoryIndex = zo_clamp(newCategoryIndex, 1, #self.bankCategories)
+    
+    -- Reset list position to first item in the new mode
     self.lastPositions[self.currentMode] = 1
+    -- Flag that we just toggled so RebuildHeaderCategories uses animation-free selection
+    self._justToggledMode = true
     self:RebuildHeaderCategories()
-    -- Update header to reflect persisted category (no animation)
-    if self.headerGeneric and self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(prevCategoryIndex, true, false)
-    end
+    self._justToggledMode = false
 	local footer = self.footer:GetNamedChild("Footer")
 	if(self.currentMode == LIST_WITHDRAW) then
 		footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
@@ -1412,6 +1435,10 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
     self.bankHeaderData.tabBarData = { parent = self }
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)
+        -- Skip callback during mode toggle to prevent override
+        if self._justToggledMode then
+            return
+        end
         -- Coalesce rapid tab changes: only refresh once after navigation settles
         self.currentCategoryIndex = list.selectedIndex or 1
         self._categoryChangeToken = (self._categoryChangeToken or 0) + 1
@@ -1464,7 +1491,12 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- Select the current category in the header
     if self.headerGeneric.tabBar then
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
-        self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+        -- During mode toggle, use animation-free selection to avoid callback interference
+        if self._justToggledMode then
+            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, false)
+        else
+            self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+        end
     end
     -- Update title to match
     self:UpdateHeaderTitle()
