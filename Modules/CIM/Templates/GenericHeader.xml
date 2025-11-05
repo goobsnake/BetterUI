@@ -300,7 +300,7 @@
                             <Anchor point="LEFT" relativeTo="$(parent)"/>
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_LB.dds"/>
                             <OnClicked>
-                                TRADING_HOUSE_GAMEPAD.m_header.tabBar:MovePrevious()
+                                TRADING_HOUSE_GAMEPAD.m_header.tabBar:MovePrevious(true)
                             </OnClicked>
                         </Button>
                         <Button name="$(parent)RightIcon">
@@ -308,7 +308,7 @@
                             <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-50"/>
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_RB.dds"/>
                             <OnClicked>
-                                TRADING_HOUSE_GAMEPAD.m_header.tabBar:MoveNext()
+                                TRADING_HOUSE_GAMEPAD.m_header.tabBar:MoveNext(true)
                             </OnClicked>
                         </Button>
 
