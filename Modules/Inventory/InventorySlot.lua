@@ -63,9 +63,6 @@ function TryUseItem(inventorySlot)
     end
 end
 
--- Global table to store action callbacks that will be called from secure context
-_G.BETTERUI_ACTION_CALLBACKS = {}
-
 --- @param inventorySlot table: The inventory slot data
 local function TryBankItem(inventorySlot)
     if(PLAYER_INVENTORY:IsBanking()) then
@@ -353,9 +350,6 @@ end
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
-            else
-                -- Unknown action (e.g., "Open Skills" for special items)
-                -- The wrapped discovered action will be used by DoPrimaryAction() automatically
             end
         end
 
