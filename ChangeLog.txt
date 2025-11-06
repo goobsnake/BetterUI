@@ -1,4 +1,13 @@
-Current Release - 2.82 Changes:
+Current Release - 2.83 Changes:
+
+[INDENT]1. Fixed: Skill Respecification scrolls should no longer give an error and actually work within BetterUI
+2. Fixed: LB and RB navigation within the Guild Store *FulciLives thanks for reporting
+3. Fixed: Various container opening issues - Still testing as I find different container items
+4. Improved: Misc performance due to code cleanup and redundant function calls
+[/INDENT] 
+
+
+2.82 Changes:
 
 [INDENT]1. Fixed: Navigation issues when moving things to and from Junk
 2. Fixed: Errors when an inventory category becomes empty/nil *shadowcep thanks for reporting
