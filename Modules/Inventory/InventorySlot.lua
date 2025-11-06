@@ -42,27 +42,30 @@ local function TryUnequipItem(inventorySlot)
     UnequipItem(equipSlot)
 end
 
--- Our overwritten TryUseItem allows us to call it securely
-local function TryUseItem(inventorySlot) 
+-- Override the engine's TryUseItem to use CallSecureProtected for private functions
+-- This ensures that special item callbacks (like TryStartSkillRespec) work correctly
+function TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
         if inventorySlot then
             if inventorySlot.toolIndex then
-                UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
+                CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
             elseif inventorySlot.conditionIndex then
-                UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
             end
         end
     else
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         local usable, onlyFromActionSlot = IsItemUsable(bag, index)
         if usable and not onlyFromActionSlot then
-            CallSecureProtected("UseItem",bag, index) -- the problem with the slots gets solved here!
+            CallSecureProtected("UseItem", bag, index)
         end
     end
 end
 
---- Attempts to bank an item, either depositing or withdrawing based on current banking state
+-- Global table to store action callbacks that will be called from secure context
+_G.BETTERUI_ACTION_CALLBACKS = {}
+
 --- @param inventorySlot table: The inventory slot data
 local function TryBankItem(inventorySlot)
     if(PLAYER_INVENTORY:IsBanking()) then
@@ -190,14 +193,58 @@ local function ShouldReplacePrimaryAction(primaryAction)
 end
 
 local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
-    slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
+    -- For USE actions, we must ensure UseItem/UseQuestItem is called via CallSecureProtected
+    -- actionStringId is the raw string constant (e.g., SI_ITEM_ACTION_USE), not the localized string
+    if actionStringId == SI_ITEM_ACTION_USE then
+        -- Create a wrapper that calls the secure protected function
+        local secureCallback = function()
+            local slotType = ZO_InventorySlot_GetType(inventorySlot)
+            if slotType == SLOT_TYPE_QUEST_ITEM then
+                if inventorySlot then
+                    if inventorySlot.toolIndex then
+                        CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                    elseif inventorySlot.conditionIndex then
+                        CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                    end
+                end
+            else
+                local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+                if usable and not onlyFromActionSlot then
+                    CallSecureProtected("UseItem", bag, index)
+                end
+            end
+        end
+        slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), secureCallback, "primary", nil, {visibleWhenDead = false})
+    else
+        -- For non-USE actions, use the callback as-is
+        slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
+    end
 end
 
 local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     if canUseItem then
         SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
             function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
-        slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function() TryUseItem(inventorySlot) end, "secondary", nil, {visibleWhenDead = false})
+        -- USE as secondary action - also need to be secure
+        slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function()
+            local slotType = ZO_InventorySlot_GetType(inventorySlot)
+            if slotType == SLOT_TYPE_QUEST_ITEM then
+                if inventorySlot then
+                    if inventorySlot.toolIndex then
+                        CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                    elseif inventorySlot.conditionIndex then
+                        CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                    end
+                end
+            else
+                local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+                if usable and not onlyFromActionSlot then
+                    CallSecureProtected("UseItem", bag, index)
+                end
+            end
+        end, "secondary", nil, {visibleWhenDead = false})
     else
         SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
             function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
@@ -237,8 +284,32 @@ end
 
         ZO_InventorySlot_DiscoverSlotActionsFromActionList(inventorySlot, slotActions)
 
+        -- For special items like "Open Skills", replace the discovered callback with a secure version
+        -- The engine's callbacks may call functions that require secure context
+        local INDEX_ACTION_CALLBACK = 2
+        for i, action in ipairs(slotActions.m_slotActions) do
+            local actionName = action[1]
+            
+            -- For "Open Skills", replace with a secure wrapper that uses the item properly
+            if actionName == "Open Skills" then
+                local wrappedCallback = function()
+                    if inventorySlot then
+                        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                        -- Use CallSecureProtected to consume the item securely
+                        CallSecureProtected("UseItem", bag, index)
+                    end
+                end
+                action[INDEX_ACTION_CALLBACK] = wrappedCallback
+            end
+        end
+
         local primaryAction = slotActions:GetPrimaryActionName()
         local canUseItem = false
+
+        -- If no primary action was identified by the engine, use the first discovered action
+        if not primaryAction and #slotActions.m_slotActions > 0 then
+            primaryAction = slotActions.m_slotActions[1][1]
+        end
 
         -- Handle primary action replacement logic
         if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
@@ -263,9 +334,9 @@ end
                     break
                 end
             end
-        else
-            -- No primary action available
-            self.actionName = primaryAction
+        elseif not primaryAction then
+            -- No primary action available and not a craft bag item
+            self.actionName = nil
             return
         end
 
@@ -274,7 +345,18 @@ end
 
         -- Setup secure actions based on action type
         if primaryAction then
-            SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+            -- Check if this is a known action type we handle
+            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
+               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
+               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
+               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
+               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
+               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+            else
+                -- Unknown action (e.g., "Open Skills" for special items)
+                -- The wrapped discovered action will be used by DoPrimaryAction() automatically
+            end
         end
 
         -- Handle craft bag specific logic
