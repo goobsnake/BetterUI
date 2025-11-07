@@ -131,6 +131,127 @@ function BETTERUI.Interface.Window:InitializeList(listName)
     self:GetList().universalPostPadding = 5
 end
 
+-- Add a gamepad text-search header (lightweight copy of ZO_Gamepad_ParametricList_Screen:AddSearch behavior)
+-- textSearchKeybindStripDescriptor is optional; onTextSearchTextChangedCallback(text) will be called when text changes
+function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, onTextSearchTextChangedCallback)
+    -- Create the header editbox control from the common virtual template
+    if not self.header then return end
+    self.textSearchKeybindStripDescriptor = textSearchKeybindStripDescriptor
+    self.textSearchHeaderControl = CreateControlFromVirtual("$(parent)SearchContainer", self.header, "ZO_Gamepad_TextSearch_HeaderEditbox")
+    -- ZO_TextSearch_Header_Gamepad is provided by the engine's common gamepad libraries
+    if ZO_TextSearch_Header_Gamepad then
+    self.textSearchHeaderFocus = ZO_TextSearch_Header_Gamepad:New(self.textSearchHeaderControl, onTextSearchTextChangedCallback)
+    -- Keep the callback so callers can recreate the control under GuiRoot if needed
+    self.textSearchCallback = onTextSearchTextChangedCallback
+        -- Treat this as the header focus control for the window
+        if not self.headerFocus then
+            self.headerFocus = self.textSearchHeaderFocus
+            -- movement controller not required here, but keep a placeholder
+            if not self.movementController then
+                if ZO_MovementController then
+                    self.movementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_VERTICAL)
+                end
+            end
+        end
+
+        if ZO_GamepadGenericHeader_SetHeaderFocusControl then
+            ZO_GamepadGenericHeader_SetHeaderFocusControl(self.header, self.textSearchHeaderControl)
+        end
+
+        -- Make the search control slightly larger and mouse-interactive so PC users can click it
+        -- Scale the whole control (icon + entry) for a cleaner quick tweak
+        if self.textSearchHeaderControl.SetScale then
+            self.textSearchHeaderControl:SetScale(1.12)
+        end
+        -- Ensure the control accepts mouse input and focuses the header search when clicked
+        if self.textSearchHeaderControl.SetMouseEnabled then
+            self.textSearchHeaderControl:SetMouseEnabled(true)
+        end
+        self.textSearchHeaderControl:SetHandler("OnMouseUp", function()
+            if self.textSearchHeaderFocus and self.textSearchHeaderFocus.SetFocused then
+                self.textSearchHeaderFocus:SetFocused(true)
+            end
+        end)
+
+        -- Try to enable mouse and click-to-focus on common child names (edit box or icon)
+        local childCandidates = { "Edit", "TextField", "SearchEdit", "Input", "Entry", "EditBox", "SearchIcon", "Icon", "Texture", "InputContainer" }
+        for _, name in ipairs(childCandidates) do
+            if self.textSearchHeaderControl.GetNamedChild then
+                local child = self.textSearchHeaderControl:GetNamedChild(name)
+                if child then
+                    if child.SetMouseEnabled then child:SetMouseEnabled(true) end
+                    if child.SetHandler then
+                        child:SetHandler("OnMouseUp", function()
+                            if self.textSearchHeaderFocus and self.textSearchHeaderFocus.SetFocused then
+                                self.textSearchHeaderFocus:SetFocused(true)
+                            end
+                        end)
+                    end
+                    -- enlarge icon/texture children if possible
+                    if child.SetDimensions then
+                        pcall(function() child:SetDimensions(28, 28) end)
+                    end
+                end
+            end
+        end
+
+        -- Register for narration if available
+        if SCREEN_NARRATION_MANAGER and self.textSearchHeaderFocus then
+            local textSearchHeaderNarrationInfo =
+            {
+                headerNarrationFunction = function()
+                    if self.GetHeaderNarration then
+                        return self:GetHeaderNarration()
+                    end
+                    return nil
+                end,
+                resultsNarrationFunction = function()
+                    local narrations = {}
+                    local currentList = self:GetList()
+                    if currentList and currentList.IsEmpty and currentList:IsEmpty() then
+                        local noItemText = ""
+                        if currentList.GetNoItemText then
+                            noItemText = currentList:GetNoItemText()
+                        end
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(noItemText))
+                    end
+                    return narrations
+                end,
+            }
+            SCREEN_NARRATION_MANAGER:RegisterTextSearchHeader(self.textSearchHeaderFocus, textSearchHeaderNarrationInfo)
+        end
+    end
+end
+
+function BETTERUI.Interface.Window:IsTextSearchEntryHidden()
+    if self.textSearchHeaderControl then
+        return self.textSearchHeaderControl:IsHidden()
+    end
+    return true
+end
+
+function BETTERUI.Interface.Window:SetTextSearchEntryHidden(isHidden)
+    if self.textSearchHeaderControl then
+        self.textSearchHeaderControl:SetHidden(isHidden)
+    end
+end
+
+function BETTERUI.Interface.Window:SetTextSearchFocused(isFocused)
+    if self.textSearchHeaderFocus and self.headerFocus then
+        self.textSearchHeaderFocus:SetFocused(isFocused)
+    end
+end
+
+function BETTERUI.Interface.Window:ClearSearchText()
+    if self.textSearchHeaderFocus then
+        self.textSearchHeaderFocus:ClearText()
+    end
+end
+
+function BETTERUI.Interface.Window:IsSearchFocused()
+    return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
+end
+
 -- Overridden
 function BETTERUI.Interface.Window:RefreshList()
 end

@@ -373,7 +373,48 @@ function BETTERUI.Banking.Class:RefreshList()
         end
     end
     filteredDataTable = tempDataTable
-    
+
+    -- Apply text search filtering after item/category metadata has been computed so names/categories are accurate
+    if self.searchQuery and tostring(self.searchQuery) ~= "" then
+        local q = tostring(self.searchQuery):lower()
+        local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+        local matches = {}
+
+        -- Optional debug logging: enable by setting self.searchDebug = true in-game
+        if self.searchDebug then
+            pcall(function()
+                d("[BETTERUI.search] query='" .. tostring(self.searchQuery) .. "' activeCategory='" .. tostring(activeCategory and activeCategory.key or "<nil>") .. "'")
+                d("[BETTERUI.search] initial count=" .. tostring(#filteredDataTable))
+            end)
+        end
+
+        for i = 1, #filteredDataTable do
+            local it = filteredDataTable[i]
+            -- If an active non-all category is selected, skip items that do not belong to it
+            if not activeCategory or activeCategory.key == "all" or DoesItemMatchBankCategory(it, activeCategory) then
+                local name = tostring(it.name or "")
+                local cat = tostring(it.bestItemCategoryName or "")
+                local lname = name:lower()
+                local lcat = cat:lower()
+                if string.find(lname, q, 1, true) or string.find(lcat, q, 1, true) then
+                    table.insert(matches, it)
+                end
+            end
+        end
+
+        if self.searchDebug then
+            pcall(function()
+                d("[BETTERUI.search] matches=" .. tostring(#matches))
+                for mi = 1, math.min(10, #matches) do
+                    local m = matches[mi]
+                    d("[BETTERUI.search] match["..mi.."]=" .. tostring(m.name) .. " (cat=" .. tostring(m.bestItemCategoryName) .. ")")
+                end
+            end)
+        end
+
+        filteredDataTable = matches
+    end
+
     table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
     local currentBestCategoryName
@@ -544,6 +585,38 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.headerGeneric = self.header:GetNamedChild("Header") or self.header
     BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
     self:RebuildHeaderCategories()
+
+    -- Add gamepad text search support; callback updates searchQuery and refreshes the list
+    -- Uses the AddSearch helper added to BETTERUI.Interface.Window
+    if self.AddSearch then
+        self:AddSearch(nil, function(editOrText)
+            -- Normalize the OnTextChanged argument: engine passes the editBox control, others may pass a string.
+            local query = ""
+            if type(editOrText) == "string" then
+                query = editOrText
+            elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
+                query = editOrText:GetText() or ""
+            elseif editOrText and type(editOrText) == "userdata" then
+                local ok, txt = pcall(function() return editOrText:GetText() end)
+                if ok and txt then
+                    query = txt
+                else
+                    query = tostring(editOrText)
+                end
+            else
+                query = tostring(editOrText or "")
+            end
+
+            self.searchQuery = query or ""
+            -- When search changes, reset selection to top and refresh
+            self:SaveListPosition()
+            self:RefreshList()
+        end)
+        -- Position the search control appropriately beneath the header/title
+        if self.PositionSearchControl then
+            self:PositionSearchControl()
+        end
+    end
 
     -- EnsureHeaderKeybindsActive is defined on the class below; keep calls here
 
@@ -1470,6 +1543,39 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
     else
         self:SetTitle(self.headerBaseTitle or "Advanced Banking")
     end
+    -- Reposition the search control so it sits under the header/title (above the list)
+    if self.PositionSearchControl then
+        self:PositionSearchControl()
+    end
+end
+
+-- Position the text search control directly beneath the header/title so it appears
+-- above the list rows (currency/withdraw/deposit). Keeps the search visible for all categories.
+function BETTERUI.Banking.Class:PositionSearchControl()
+    if not self.textSearchHeaderControl then return end
+    -- Clear existing anchors then attach below the visible header area
+    self.textSearchHeaderControl:ClearAnchors()
+    local anchorTarget = self.headerGeneric or self.header
+    -- Try to anchor under the header's TitleContainer if present, otherwise under the header itself
+    local titleContainer = nil
+    if anchorTarget and anchorTarget.GetNamedChild then
+        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
+    end
+    local parentForAnchor = titleContainer or anchorTarget
+    if parentForAnchor then
+        -- Use a small downward offset so the search sits visually below the header
+        -- Provide a horizontal offset so the search doesn't sit on top of the LB icon
+        local yOffset = 8
+        local xOffset = self.searchXOffset or 48
+        -- Anchor left with an X offset, and inset the right anchor slightly so control width remains reasonable
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, -8, yOffset)
+    else
+        -- Fallback: anchor to header control bottom
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
+    end
+    self.textSearchHeaderControl:SetHidden(false)
 end
 
 -- Ensure the header tab bar's LB/RB keybinds are active (idempotent)
@@ -1569,6 +1675,15 @@ end
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
     BETTERUI.Banking.Window:SetTitle("|c0066FFAdvanced Banking|r")
+    -- Enable search debug logging by default for troubleshooting (toggle off later)
+    BETTERUI.Banking.Window.searchDebug = true
+    -- Immediate confirmation so the user knows debug is active (guarded)
+    pcall(function()
+        if d then d("[BETTERUI] searchDebug enabled") end
+    end)
+    pcall(function()
+        if ZO_Alert then ZO_Alert(UI_ALERT_CATEGORY_INFO, SOUNDS.NONE, "BETTERUI: search debug enabled") end
+    end)
     -- Initialize header with categories & selection immediately
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
