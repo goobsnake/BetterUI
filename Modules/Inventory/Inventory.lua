@@ -1191,7 +1191,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                     end
                     SetItemIsJunk(target.bagId, target.slotIndex, true)
-                    self:RefreshItemList()
+                    -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
+                    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
+                    if self and self.RefreshItemActions then pcall(function() self:RefreshItemActions() end) end
+                    if self and self.RefreshKeybinds then pcall(function() self:RefreshKeybinds() end) end
                 end
                 -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
                 -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
@@ -1202,7 +1207,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                     end
                     SetItemIsJunk(target.bagId, target.slotIndex, false)
-                    self:RefreshItemList()
+                    -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
+                    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
+                    if self and self.RefreshItemActions then pcall(function() self:RefreshItemActions() end) end
+                    if self and self.RefreshKeybinds then pcall(function() self:RefreshKeybinds() end) end
                 end
 
                 local parametricList = dialog.info.parametricList
