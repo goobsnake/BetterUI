@@ -2445,29 +2445,31 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 
     self.mainKeybindStripDescriptor = {
 		--X Button for Quick Action
-		{
-			alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
-            	if self.actionMode == ITEM_LIST_ACTION_MODE then
-            		--bag mode
-	        		local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)					
+                local n = ""
+                if self.actionMode == ITEM_LIST_ACTION_MODE then
+                    --bag mode
+                    local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)
                     local target = self.itemList.selectedData
                     local ft = (target and target.bagId and target.slotIndex) and GetItemFilterTypeInfo(target.bagId, target.slotIndex) or nil
                     if IsQuickslottable(target) then
-            			--assign
-            			return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
-					elseif not isQuestItem and (ft == ITEMFILTERTYPE_WEAPONS or ft == ITEMFILTERTYPE_ARMOR or ft == ITEMFILTERTYPE_JEWELRY) then
-            			--switch compare
-            			return GetString(SI_BETTERUI_INV_SWITCH_INFO)
-                    else 
-                        return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
-            		end 
-            	elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
-            		--craftbag mode
-            		return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
-            	else
-            		return ""
-            	end
+                        --assign
+                        n = GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+                    elseif not isQuestItem and (ft == ITEMFILTERTYPE_WEAPONS or ft == ITEMFILTERTYPE_ARMOR or ft == ITEMFILTERTYPE_JEWELRY) then
+                        --switch compare
+                        n = GetString(SI_BETTERUI_INV_SWITCH_INFO)
+                    else
+                        n = GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+                    end
+                elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+                    --craftbag mode
+                    n = GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+                else
+                    n = ""
+                end
+                return n or ""
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
@@ -2549,8 +2551,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         --R Stick for Switching Bags
         {
             name = function()
-				return zo_strformat(GetString(SI_BETTERUI_INV_ACTION_TO_TEMPLATE), GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_INV or SI_BETTERUI_INV_ACTION_CB))
-			end,
+                local s = zo_strformat(GetString(SI_BETTERUI_INV_ACTION_TO_TEMPLATE), GetString(self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_INV or SI_BETTERUI_INV_ACTION_CB))
+                return s or ""
+            end,
         	alignment = KEYBIND_STRIP_ALIGN_RIGHT,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             disabledDuringSceneHiding = true,

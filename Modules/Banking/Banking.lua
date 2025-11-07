@@ -1203,10 +1203,13 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()
                 local cost = GetNextBankUpgradePrice()
+                local text
                 if GetCarriedCurrencyAmount(CURT_MONEY) >= cost then
-                    return zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_CurrencyControl_FormatCurrency(cost), ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
+                    text = zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_CurrencyControl_FormatCurrency(cost), ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
+                else
+                    text = zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_ERROR_COLOR:Colorize(ZO_CurrencyControl_FormatCurrency(cost)), ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
                 end
-                return zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_ERROR_COLOR:Colorize(ZO_CurrencyControl_FormatCurrency(cost)), ZO_GAMEPAD_GOLD_ICON_FORMAT_24)
+                return text or ""
             end,
             visible = function()
                 return IsBankUpgradeAvailable()
@@ -1262,7 +1265,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     self.withdrawDepositKeybinds = {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
                 {
-                    name = function() return (self.currentMode == LIST_WITHDRAW) and GetString(SI_BETTERUI_BANKING_WITHDRAW) or GetString(SI_BETTERUI_BANKING_DEPOSIT) end,
+                    name = function()
+                        local n = (self.currentMode == LIST_WITHDRAW) and GetString(SI_BETTERUI_BANKING_WITHDRAW) or GetString(SI_BETTERUI_BANKING_DEPOSIT)
+                        return n or ""
+                    end,
                     keybind = "UI_SHORTCUT_PRIMARY",
                     callback = function()
                         self:SaveListPosition()
@@ -1305,7 +1311,14 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     self.currencyKeybinds = {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
                 {
-                    name = function() return self:GetList().selectedData.label end,
+                    name = function()
+                        local lbl = nil
+                        local list = self:GetList()
+                        if list and list.selectedData then
+                            lbl = list.selectedData.label
+                        end
+                        return lbl or ""
+                    end,
                     keybind = "UI_SHORTCUT_PRIMARY",
                     callback = function()
                         self:SaveListPosition()

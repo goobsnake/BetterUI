@@ -147,15 +147,18 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     self.slotActions = slotActions
     self.useKeybindStrip = useKeybindStrip == nil and true or useKeybindStrip
 
-    local primaryCommand =
+        local primaryCommand =
     {
         alignment = alignmentOverride,
         name = function()
+            local n = nil
             if(self.selectedAction) then
-                return slotActions:GetRawActionName(self.selectedAction)
+                n = slotActions:GetRawActionName(self.selectedAction)
             end
-
-            return self.actionName or ""
+            if not n then
+                n = self.actionName
+            end
+            return n or ""
         end,
         keybind = "UI_SHORTCUT_PRIMARY",
         order = 500,
@@ -364,11 +367,12 @@ end
     if additionalMouseOverbinds then
         local mouseOverCommand, mouseOverCommandIsVisible
         for i=1, #additionalMouseOverbinds do
-            mouseOverCommand =
+                mouseOverCommand =
             {
                 alignment = alignmentOverride,
                 name = function()
-                    return slotActions:GetKeybindActionName(i)
+                    local n = slotActions:GetKeybindActionName(i)
+                    return n or ""
                 end,
                 keybind = additionalMouseOverbinds[i],
                 callback = function() slotActions:DoKeybindAction(i) end,
