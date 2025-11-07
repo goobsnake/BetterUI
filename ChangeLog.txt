@@ -1,4 +1,13 @@
-Current Release - 2.83 Changes:
+Current Release - 2.84 Changes:
+
+[INDENT]1. Fixed: Correct add-on version number present for tools like Minion
+2. Fixed: Various nil errors around in-game icons should be fixed
+3. Fixed: Locking & unlocking an item shouldn't cause the LB and RB navigation to stop functioning
+4. Added: Banking item search bar working with mouse & keyboard - Navigation transtions and full controller support still a WIP
+[/INDENT]  
+
+
+2.83 Changes:
 
 [INDENT]1. Fixed: Skill Respecification scrolls should no longer give an error and actually work within BetterUI
 2. Fixed: LB and RB navigation within the Guild Store *FulciLives thanks for reporting
