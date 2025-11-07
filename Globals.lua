@@ -128,6 +128,14 @@ function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 	return string.format(fmt, value) .. suffix
 end
 
+--- Safely returns an icon path string or empty string if nil to avoid passing nil into ESO icon-format helpers.
+--- @param iconPath string|nil: Path to the icon texture
+--- @return string: iconPath or empty string
+function BETTERUI.SafeIcon(iconPath)
+	if iconPath == nil then return "" end
+	return iconPath
+end
+
 --- Populates research traits data with caching to avoid redundant API calls. Research traits track which item traits (like 'sharp' or 'divine') the player has researched for each crafting skill, used for displaying research status in tooltips.
 --- Only rebuilds data if forceRefresh is true or data hasn't been initialized
 --- @param forceRefresh boolean: Force a refresh of the research data
