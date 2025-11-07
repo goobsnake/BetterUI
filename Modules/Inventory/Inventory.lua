@@ -1193,6 +1193,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     SetItemIsJunk(target.bagId, target.slotIndex, true)
                     self:RefreshItemList()
                 end
+                -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
+                -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
                 local function UnmarkAsJunk()
                     local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
                     -- Close the actions dialog to restore header/keybind focus
@@ -1223,6 +1225,47 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         -- Hide Mark as Junk when the item is locked
                         if not isLocked then
                             self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions+1] = {GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary"}
+                        end
+                    end
+                    -- Ensure engine-provided Lock/Unlock callbacks release the dialog first.
+                    -- We do this by wrapping the discovered slot action callbacks rather than injecting synthetic entries.
+                    -- This preserves the engine entries (so they remain visible) while ensuring the dialog is released
+                    -- before the original behavior runs (which fixes header/keybind/tab focus issues).
+                    do
+                        local actions = self.itemActions:GetSlotActions()
+                        local numActions = actions:GetNumSlotActions()
+                        for i = 1, numActions do
+                            local action = actions:GetSlotAction(i)
+                            local actionName = actions:GetRawActionName(action)
+                            if actionName == GetString(SI_ITEM_ACTION_MARK_AS_LOCKED) or actionName == GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED) then
+                                -- Find the corresponding entry inside the backing m_slotActions table and wrap its callback
+                                for j, slotAction in ipairs(actions.m_slotActions) do
+                                    if slotAction and slotAction[1] == actionName then
+                                        local origCallback = slotAction[2]
+                                        slotAction[2] = function(...)
+                                            if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                                                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                                            end
+                                            -- Call original callback in protected context if it exists
+                                            if origCallback then
+                                                origCallback(...)
+                                            end
+                                            -- Immediately refresh item list and actions to restore UI/keybind state
+                                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                                                GAMEPAD_INVENTORY:RefreshItemList()
+                                            end
+                                            if self and self.RefreshItemActions then
+                                                pcall(function() self:RefreshItemActions() end)
+                                            end
+                                            if self and self.RefreshKeybinds then
+                                                pcall(function() self:RefreshKeybinds() end)
+                                            end
+                                        end
+                                        -- Only wrap the first matching entry (there should typically be one)
+                                        break
+                                    end
+                                end
+                            end
                         end
                     end
                 end
