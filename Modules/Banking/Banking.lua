@@ -1,11 +1,9 @@
--- shadowcep: Patched for compatibility with ESO Update 34 (from fix by CinderDarkfire)
 local _
 
 local LIST_WITHDRAW = 1
 local LIST_DEPOSIT  = 2
 local lastUsedBank = 0
 local currentUsedBank = 0
--- removed unused lastActionName tracking
 local esoSubscriber
 
 -- Stage 1: Minimal banking categories for reduced scrolling
@@ -226,8 +224,7 @@ end
 function BETTERUI.Banking.Class:RefreshFooter()
 
     if(currentUsedBank == BAG_BANK) then
-            --d(IsHouseBankBag())
-            --IsBankOpen()
+        --IsBankOpen()
         self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat("|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t <<1>>",zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK))))
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat("|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK), GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK))))
     else
@@ -253,7 +250,7 @@ function BETTERUI.Banking.Class:RefreshList()
         self.list:Deactivate()
     end
     -- reset any transient state if needed (none currently)
-    --d("tt refresh bank list")
+    
     self.list:Clear()
 
     -- Update the header title with current category
@@ -308,7 +305,6 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end        
     end
-    --fix subscriber bank bag issue
     local checking_bags = {}
     local slotType
     if(self.currentMode == LIST_WITHDRAW) then
@@ -332,7 +328,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     --excludes stolen items
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checking_bags))
-    --d("tt bank refreshed items: " .. #filteredDataTable)
+    
     local tempDataTable = {}
     -- Localize globals used in the loop for performance
     local zo_strformat = zo_strformat
@@ -363,9 +359,7 @@ function BETTERUI.Banking.Class:RefreshList()
                 itemData.sortPriorityName = itemData.bestItemCategoryName
             end
         end
---shadowcep[[
-        local slotIndex = FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex)
---shadowcep]]
+        
         itemData.isEquippedInCurrentCategory = slotIndex and true or nil
 
         table.insert(tempDataTable, itemData)
@@ -380,14 +374,7 @@ function BETTERUI.Banking.Class:RefreshList()
         local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
         local matches = {}
 
-        -- Optional debug logging: enable by setting self.searchDebug = true in-game
-        if self.searchDebug then
-            pcall(function()
-                d("[BETTERUI.search] query='" .. tostring(self.searchQuery) .. "' activeCategory='" .. tostring(activeCategory and activeCategory.key or "<nil>") .. "'")
-                d("[BETTERUI.search] initial count=" .. tostring(#filteredDataTable))
-            end)
-        end
-
+        
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             -- If an active non-all category is selected, skip items that do not belong to it
@@ -402,16 +389,7 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end
 
-        if self.searchDebug then
-            pcall(function()
-                d("[BETTERUI.search] matches=" .. tostring(#matches))
-                for mi = 1, math.min(10, #matches) do
-                    local m = matches[mi]
-                    d("[BETTERUI.search] match["..mi.."]=" .. tostring(m.name) .. " (cat=" .. tostring(m.bestItemCategoryName) .. ")")
-                end
-            end)
-        end
-
+        
         filteredDataTable = matches
     end
 
@@ -552,7 +530,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 	local function CallbackSplitStackFinished()
 		--refresh list
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-			--d("tt bank split")
+        
 			SHARED_INVENTORY:PerformFullUpdateOnBagCache(currentUsedBank)
             self:RefreshList()
 			self:ReturnToSaved()
@@ -769,13 +747,13 @@ function BETTERUI.Banking.Class:RefreshItemActions()
 end
 
 
--- Removed unused ActionsDialogSetup method; action dialog configuration is handled via InitializeActionsDialog callbacks
+ 
 
 function BETTERUI.Banking.Class:InitializeActionsDialog()
 	local function ActionDialogSetup(dialog)
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
 	
-			--d("tt bank action setup")
+            
 			dialog.entryList:SetOnSelectedDataChangedCallback(  function(list, selectedData)
 			self.itemActions:SetSelectedAction(selectedData and selectedData.action)
 			end)
@@ -815,7 +793,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
         local function ActionDialogFinish() 
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-			--d("tt bank action finish")
+            
 			-- make sure to wipe out the keybinds added by actions
 			self:AddKeybinds()
 			--restore the selected inventory item
@@ -830,7 +808,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 	end
 	local function ActionDialogButtonConfirm(dialog)
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-            --d(ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction))
+            
             local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
             if not selectedAction then return end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
@@ -1165,10 +1143,10 @@ function BETTERUI.Banking.Class:UpdateActions()
     -- since SetInventorySlot also adds/removes keybinds, the order which we call these 2 functions is important
     -- based on whether we are looking at an item or a faux-item
     if ZO_GamepadBanking.IsEntryDataCurrencyRelated(targetData) then
-		--d("tt currency")
+        
         self.itemActions:SetInventorySlot(nil)
     else
-		--d("tt targetData, slotType:" .. targetData.slotType)
+        
         self.itemActions:SetInventorySlot(targetData)
     end
 end
@@ -1675,15 +1653,6 @@ end
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
     BETTERUI.Banking.Window:SetTitle("|c0066FFAdvanced Banking|r")
-    -- Enable search debug logging by default for troubleshooting (toggle off later)
-    BETTERUI.Banking.Window.searchDebug = true
-    -- Immediate confirmation so the user knows debug is active (guarded)
-    pcall(function()
-        if d then d("[BETTERUI] searchDebug enabled") end
-    end)
-    pcall(function()
-        if ZO_Alert then ZO_Alert(UI_ALERT_CATEGORY_INFO, SOUNDS.NONE, "BETTERUI: search debug enabled") end
-    end)
     -- Initialize header with categories & selection immediately
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
@@ -1700,5 +1669,4 @@ function BETTERUI.Banking.Init()
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
     esoSubscriber = IsESOPlusSubscriber()
-    --tw = BETTERUI.Banking.Window --dev mode
 end
