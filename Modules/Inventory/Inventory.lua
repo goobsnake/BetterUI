@@ -1234,6 +1234,15 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     end
                     if self and self.RefreshItemActions then pcall(function() self:RefreshItemActions() end) end
                     if self and self.RefreshKeybinds then pcall(function() self:RefreshKeybinds() end) end
+                    -- Ensure the main keybind descriptor becomes active after toggling junk
+                    pcall(function()
+                        if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                            pcall(function() self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end)
+                            zo_callLater(function()
+                                pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                            end, 40)
+                        end
+                    end)
                 end
                 -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
                 -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
@@ -1250,6 +1259,15 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     end
                     if self and self.RefreshItemActions then pcall(function() self:RefreshItemActions() end) end
                     if self and self.RefreshKeybinds then pcall(function() self:RefreshKeybinds() end) end
+                    -- Ensure the main keybind descriptor becomes active after toggling junk
+                    pcall(function()
+                        if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                            pcall(function() self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end)
+                            zo_callLater(function()
+                                pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                            end, 40)
+                        end
+                    end)
                 end
 
                 local parametricList = dialog.info.parametricList
@@ -1307,6 +1325,15 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                                             if self and self.RefreshKeybinds then
                                                 pcall(function() self:RefreshKeybinds() end)
                                             end
+                                            -- Ensure the main keybind descriptor is active after lock/unlock flows
+                                            pcall(function()
+                                                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                                                    pcall(function() self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end)
+                                                    zo_callLater(function()
+                                                        pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                                                    end, 40)
+                                                end
+                                            end)
                                         end
                                         -- Only wrap the first matching entry (there should typically be one)
                                         break
@@ -2304,6 +2331,11 @@ end
                 self:RefreshKeybinds()
             elseif self.mainKeybindStripDescriptor then
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+                -- Ensure the main group is active on initial load to prevent missing shoulder navigation.
+                pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                zo_callLater(function()
+                    pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                end, 40)
             end
         end)
     end, 60)
@@ -2782,6 +2814,11 @@ function BETTERUI.Inventory.Class:OnLeaveHeader()
         if self.mainKeybindStripDescriptor then
             KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
             pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
+            -- Ensure the main group is active after leaving header
+            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+            zo_callLater(function()
+                pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+            end, 40)
         end
     end)
 end
