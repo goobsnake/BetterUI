@@ -154,8 +154,16 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
         else
             -- No entries in the current list; avoid forcing a selection on an empty list.
             -- Let the caller handle switching back to the category view if appropriate.
+            -- No entries in the current list. Previously we deactivated the list which
+            -- left the UI dimmed/out-of-focus when the player quickly switched
+            -- categories while a text filter was active. Instead of deactivating
+            -- the current list, switch focus back to the category list so the
+            -- header/tab stays active and keybinds remain correct.
             if GAMEPAD_TOOLTIPS then GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP) end
-            if self._currentList.Deactivate then self._currentList:Deactivate() end
+            -- Ensure we land back on the category view (this will also refresh header/keybinds)
+            if self.SwitchActiveList then
+                pcall(function() self:SwitchActiveList(INVENTORY_CATEGORY_LIST) end)
+            end
             return
         end
     end
