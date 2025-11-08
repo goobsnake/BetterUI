@@ -62,3 +62,4 @@ ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "Item must be retrieved
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "Item is locked and cannot be marked as junk!")
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "You destroy")
 ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "Search")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Clear Search")

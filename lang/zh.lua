@@ -61,3 +61,4 @@ ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY", "请先标记为垃
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "必须先从手工艺袋中取出物品！")
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "商品已锁定，不能标记为垃圾！")
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "你毁了")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "清除搜索")

@@ -61,3 +61,4 @@ ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY", "Пожалуйст
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "Предмет должен быть сначала извлечен из Craft Bag!")
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "Элемент заблокирован и не может быть помечен как мусор!")
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "Ты уничтожаешь")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Очистить поиск")

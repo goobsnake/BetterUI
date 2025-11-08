@@ -61,3 +61,4 @@ ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY", "ジャンクに分
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "アイテムをクラフトバッグから回収してください")
 ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "保護されているアイテムのためジャンクに分類できません")
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "破壊しました - ")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "検索をクリア")

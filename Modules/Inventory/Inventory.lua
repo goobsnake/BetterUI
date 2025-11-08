@@ -199,11 +199,15 @@ function BETTERUI_TabBar_OnTabPrev(parent, successful)
 end
 
 function BETTERUI.Inventory.Class:SaveListPosition()
-	if self:GetCurrentList() == self.itemList then
-	    self.categoryPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
-	else
-		self.categoryCraftPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
-	end 
+    -- Guard against nil lists/indices (can happen during scene hide/teardown)
+    if not self.categoryList or not self.categoryList.selectedIndex then return end
+    if not self._currentList or not self._currentList.selectedIndex then return end
+
+    if self:GetCurrentList() == self.itemList then
+        self.categoryPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
+    else
+        self.categoryCraftPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
+    end 
 end
 
 --- Build the category list UI and wire up selection/target callbacks
@@ -1971,6 +1975,16 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
 			self.callLaterLeftToolTip = nil
 		end
+        -- Clear persistent search when leaving the inventory scene so it does
+        -- not persist when the player backs out and later re-enters the scene.
+        pcall(function()
+            self.searchQuery = ""
+            if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
+                BETTERUI.Interface.Window.ClearSearchText(self)
+            elseif self.ClearSearchText then
+                self:ClearSearchText()
+            end
+        end)
         -- nothing to remove for search hold behavior here
     end
 end
@@ -2286,6 +2300,20 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
 end
 
+    -- Ensure keybinds (including the Clear Search prompt) are updated once
+    -- deferred initialization finishes. Some UI elements become visible only
+    -- after a short delay; refreshing keybinds here prevents the Clear Search
+    -- button from not appearing until the player scrolls the list.
+    zo_callLater(function()
+        pcall(function()
+            if self.RefreshKeybinds then
+                self:RefreshKeybinds()
+            elseif self.mainKeybindStripDescriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+            end
+        end)
+    end, 60)
+
 function BETTERUI.Inventory.Class:Initialize(control)
     GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, ZO_GAMEPAD_HEADER_TABBAR_CREATE, false, GAMEPAD_INVENTORY_ROOT_SCENE)
@@ -2438,6 +2466,21 @@ function BETTERUI.Inventory.Class:Initialize(control)
         end
         -- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).
     end
+
+    -- After Initialize completes the search control and descriptors should exist.
+    -- Force a short delayed refresh of the main keybind group so visibility
+    -- predicates (like the Clear Search QUATERNARY) get evaluated with the
+    -- newly-created `textSearchHeaderControl`. This fixes the case where the
+    -- clear prompt didn't appear until the list was interacted with.
+    zo_callLater(function()
+        pcall(function()
+            if self.RefreshKeybinds then
+                self:RefreshKeybinds()
+            elseif self.mainKeybindStripDescriptor then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+            end
+        end)
+    end, 40)
 end
 
 
@@ -2902,25 +2945,39 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 self:Switch()
             end,
         },
-        --[[
-        -- Support hold on QUATERNARY (and NEGATIVE) as alternative hold-to-search buttons.
-        -- Commented out per request to preserve logic but disable the runtime binding.
+        -- Support QUATERNARY as a quick Clear Search key when the header search control is visible.
         {
             name = function()
-                return GetString(SI_BETTERUI_GAMEPAD_SEARCH_HOLD) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Search"
+                return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Clear"
             end,
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_QUATERNARY",
+            disabledDuringSceneHiding = true,
             visible = function()
-                return self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())
+                return self.textSearchHeaderControl ~= nil
             end,
             callback = function()
-                if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
-                    pcall(function() BETTERUI.Interface.Window.SetTextSearchFocused(self, true) end)
+                if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
+                -- Prefer the shared BetterUI ClearSearchText helper if available, otherwise fall back to self:ClearSearchText
+                if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
+                    pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
+                elseif self.ClearSearchText then
+                    pcall(function() self:ClearSearchText() end)
                 end
+                -- After clearing search, restore the standard inventory keybinds
+                pcall(function()
+                    if self.textSearchKeybindStripDescriptor then
+                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+                    end
+                end)
+                pcall(function()
+                    if self.mainKeybindStripDescriptor then
+                        KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
+                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
+                    end
+                end)
             end,
         },
-        ]]
         -- Removed NEGATIVE hold descriptor - using QUATERNARY only per settings
 	}
 
