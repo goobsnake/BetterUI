@@ -2452,6 +2452,12 @@ function BETTERUI.Inventory.Class:Initialize(control)
                     if self.mainKeybindStripDescriptor then
                         KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
                         pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
+                        -- Ensure the main group becomes the active keybind set for this screen.
+                        pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                        -- Re-assert after a short delay to avoid races with other delayed cleanup.
+                        zo_callLater(function()
+                            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                        end, 40)
                     end
                 end)
             end)
@@ -2978,6 +2984,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     if self.mainKeybindStripDescriptor then
                         KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
                         pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
+                        -- Make sure the main group is active so LB/RB navigation remains available.
+                        pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                        -- Re-assert after a short delay in case other delayed handlers run.
+                        zo_callLater(function()
+                            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
+                        end, 40)
                     end
                 end)
             end,
