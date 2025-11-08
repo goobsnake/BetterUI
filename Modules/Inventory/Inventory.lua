@@ -753,7 +753,7 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 	BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
 
 	BETTERUI.GenericFooter.Initialize(self)
-	BETTERUI.GenericFooter.Refresh(self)
+    
 
 end
 
@@ -878,7 +878,25 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 	local ipairs = ipairs
 	local ZO_GamepadEntryData = ZO_GamepadEntryData
 	local ZO_InventoryUtils_DoesNewItemMatchFilterType = ZO_InventoryUtils_DoesNewItemMatchFilterType
-	table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
+
+    -- Apply text search filtering after item/category metadata has been computed so names/categories are accurate
+    if self.searchQuery and tostring(self.searchQuery) ~= "" then
+        local q = tostring(self.searchQuery):lower()
+        local matches = {}
+        for i = 1, #filteredDataTable do
+            local it = filteredDataTable[i]
+            local name = tostring(it.name or "")
+            local cat = tostring(it.bestItemCategoryName or "")
+            local lname = name:lower()
+            local lcat = cat:lower()
+            if string.find(lname, q, 1, true) or string.find(lcat, q, 1, true) then
+                table.insert(matches, it)
+            end
+        end
+        filteredDataTable = matches
+    end
+
+    table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
     local currentBestCategoryName
 
@@ -961,6 +979,17 @@ end
 
 
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
+    -- Guard: selectedData may be a category/header entry without bag/slot fields.
+    -- Avoid calling inventory helper functions on non-item rows which expect item tables.
+    if not selectedData or (not selectedData.bagId and not selectedData.questIndex and not selectedData.toolIndex and not selectedData.dataSource) then
+        -- Clear tooltips when there's no valid item selected
+        if GAMEPAD_TOOLTIPS then
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
+        end
+        return
+    end
+
     if selectedData then
         GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
         if ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_QUEST) then
@@ -1903,6 +1932,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
         end
 
         ZO_InventorySlot_SetUpdateCallback(function() self:RefreshItemActions() end)
+        -- search is handled via hold callbacks on X/Y; no separate A-based keybind group required
     elseif newState == SCENE_HIDING then
         ZO_InventorySlot_SetUpdateCallback(nil)
         self:Deactivate()
@@ -1912,11 +1942,11 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
             wykkydsToolbar:SetHidden(false)
 		end
 
-		if self.callLaterLeftToolTip ~= nil then
-			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-			self.callLaterLeftToolTip = nil
-		end
-		
+        if self.callLaterLeftToolTip ~= nil then
+            EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
+            self.callLaterLeftToolTip = nil
+        end
+        -- search hold behavior is part of main keybind descriptors; nothing to remove here
     elseif newState == SCENE_HIDDEN then
         self:SwitchActiveList(nil)
         BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
@@ -1935,6 +1965,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
 			self.callLaterLeftToolTip = nil
 		end
+        -- nothing to remove for search hold behavior here
     end
 end
 
@@ -2292,6 +2323,37 @@ function BETTERUI.Inventory.Class:Initialize(control)
     -- Do not intercept base destroy cancel events to avoid input blockage
     control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
     control:SetHandler("OnUpdate", OnUpdate)
+
+    -- Add gamepad text search support using the shared helper (from BETTERUI.Interface.Window)
+    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.AddSearch then
+        BETTERUI.Interface.Window.AddSearch(self, nil, function(editOrText)
+            -- Normalize the OnTextChanged argument like Banking does
+            local query = ""
+            if type(editOrText) == "string" then
+                query = editOrText
+            elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
+                query = editOrText:GetText() or ""
+            elseif editOrText and type(editOrText) == "userdata" then
+                local ok, txt = pcall(function() return editOrText:GetText() end)
+                if ok and txt then
+                    query = txt
+                else
+                    query = tostring(editOrText)
+                end
+            else
+                query = tostring(editOrText or "")
+            end
+
+            self.searchQuery = query or ""
+            -- When search changes, reset selection to top and refresh
+            self:SaveListPosition()
+            self:RefreshItemList()
+        end)
+        if self.PositionSearchControl then
+            self:PositionSearchControl()
+        end
+        -- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).
+    end
 end
 
 
@@ -2356,6 +2418,46 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 
     self:RefreshCategoryList()
     BETTERUI.GenericFooter.Refresh(self)
+    -- Reposition the search control so it sits under the header/title (above the list)
+    if self.PositionSearchControl then
+        self:PositionSearchControl()
+    end
+end
+
+function BETTERUI.Inventory.Class:PositionSearchControl()
+    if not self.textSearchHeaderControl then return end
+    self.textSearchHeaderControl:ClearAnchors()
+    local anchorTarget = self.header
+    local titleContainer = nil
+    if anchorTarget and anchorTarget.GetNamedChild then
+        local candidates = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" }
+        for _, name in ipairs(candidates) do
+            local ok, c = pcall(function() return anchorTarget:GetNamedChild(name) end)
+            if ok and c then
+                titleContainer = c
+                break
+            end
+        end
+        if not titleContainer then
+            local ok, h = pcall(function() return anchorTarget:GetNamedChild("Header") end)
+            if ok and h and h.GetNamedChild then
+                local ok2, tc = pcall(function() return h:GetNamedChild("TitleContainer") end)
+                if ok2 and tc then titleContainer = tc end
+            end
+        end
+    end
+    local parentForAnchor = titleContainer or anchorTarget
+    if parentForAnchor then
+        -- Slightly closer and more vertically centered to align with the LB icon
+        local yOffset = -2
+        local xOffset = self.searchXOffset or 33
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, -4, yOffset)
+    else
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
+    end
+    self.textSearchHeaderControl:SetHidden(false)
 end
 
 function BETTERUI.Inventory:RefreshFooter()
@@ -2497,6 +2599,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
     end
 
     self.mainKeybindStripDescriptor = {
+            -- Primary (A) reserved for item primary actions (equip/use/etc.).
 		--X Button for Quick Action
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -2525,6 +2628,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return n or ""
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
+            -- (no hold callbacks here; tap behavior preserved)
             visible = function()
                 if self.actionMode == ITEM_LIST_ACTION_MODE then
                     if self.itemList.selectedData then
@@ -2574,6 +2678,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             name = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND),
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_TERTIARY",
+            -- (no hold callbacks here; tap behavior preserved)
             order = 1000,
             visible = function()
             	if self.actionMode == ITEM_LIST_ACTION_MODE then
@@ -2614,6 +2719,23 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 self:Switch()
             end,
         },
+        -- Support hold on QUATERNARY (and NEGATIVE) as alternative hold-to-search buttons.
+        {
+            name = function()
+                return GetString(SI_BETTERUI_GAMEPAD_SEARCH_HOLD) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Search"
+            end,
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            visible = function()
+                return self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())
+            end,
+            callback = function()
+                if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
+                    pcall(function() BETTERUI.Interface.Window.SetTextSearchFocused(self, true) end)
+                end
+            end,
+        },
+        -- Removed NEGATIVE hold descriptor - using QUATERNARY only per settings
 	}
 
 	ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
