@@ -245,6 +245,12 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
     end
 
     self.categoryList:SetOnTargetDataChangedCallback(OnTargetCategoryChanged)
+
+    -- Note: Previously this code attempted to hide the search whenever the
+    -- category list activated in order to prevent the search from being
+    -- highlighted. That approach caused navigation/confusion in some flows.
+    -- We removed the hide/wrap behavior and now rely on header-enter handling
+    -- to focus the search when appropriate.
 end
 
 local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
@@ -2410,6 +2416,15 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 
     BETTERUI.GenericHeader.Refresh(self.header, headerData, blockCallback)
 
+    -- Ensure the header's focus control includes the search control when present.
+    -- We no longer try to hide or remove the search from header focus here; instead
+    -- the header-enter lifecycle will programmatically focus the search when the
+    -- user actually enters the header. This avoids navigation surprises while
+    -- browsing categories but still allows the user to navigate to the search.
+    if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
+        pcall(function() ZO_GamepadGenericHeader_SetHeaderFocusControl(self.header, self.textSearchHeaderControl) end)
+    end
+
 	
 	BETTERUI.GenericHeader.SetEquipText(self.header, self.isPrimaryWeapon)
 	BETTERUI.GenericHeader.SetBackupEquipText(self.header, self.isPrimaryWeapon)
@@ -2546,6 +2561,28 @@ end
 function BETTERUI.Inventory.Class:ActivateHeader()
     ZO_GamepadGenericHeader_Activate(self.header)
     self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex, true, false)
+end
+
+-- Override header-enter lifecycle to auto-focus the text search when the header is entered.
+function BETTERUI.Inventory.Class:OnEnterHeader()
+    -- Call base implementation to preserve tooltip/keybind behavior
+    if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
+        pcall(function() ZO_GamepadInventory.OnEnterHeader(self) end)
+    else
+        -- Fallback to parametric list behavior if base is absent
+        pcall(function() ZO_Gamepad_ParametricList_Screen.OnEnterHeader(self) end)
+    end
+
+    -- If a text-search header exists, ensure it is given keyboard/focus so that
+    -- the user can immediately start typing when they navigate to the header.
+    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
+        pcall(function() BETTERUI.Interface.Window.SetTextSearchFocused(self, true) end)
+    else
+        -- Try the standard method if available on the class
+        if self.SetTextSearchFocused then
+            pcall(function() self:SetTextSearchFocused(true) end)
+        end
+    end
 end
 
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
