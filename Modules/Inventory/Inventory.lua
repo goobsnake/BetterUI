@@ -108,10 +108,7 @@ local function SetupCategoryList(list)
     list:AddDataTemplate("BETTERUI_GamepadItemEntryTemplate", ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
-function BETTERUI_InventoryUtils_MatchWeapons(itemData)
-    return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_WEAPONS) or
-		   ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_CONSUMABLE) -- weapons now include consumables
-end
+-- NOTE: The old helper BETTERUI_InventoryUtils_MatchWeapons was removed as it's unused.
 
 local function WrapValue(newValue, maxValue)
     if(newValue < 1) then return maxValue end
@@ -127,7 +124,6 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 			self:RefreshItemList()
         else
             self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
-            --self._currentList:RefreshList()
             self:RefreshCraftBagList()
         end
     end
@@ -181,7 +177,6 @@ function BETTERUI_TabBar_OnTabNext(parent, successful)
         parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
         parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
 
-        --parent:RefreshItemList()
 		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
 
         parent:ToSavedPosition()
@@ -224,9 +219,6 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
 
     self.categoryList = self:AddList("Category", SetupCategoryList)
     self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
-
-	--self.categoryList:SetDefaultSelectedIndex(1)
-	----self.categoryList:SetDefaultSelectedIndex(2)
 
     -- Match the tooltip to the selected data because it looks nicer
     local function OnSelectedCategoryChanged(list, selectedData)
@@ -1092,10 +1084,8 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 			local callLaterId = zo_callLater(function() self:UpdateItemLeftTooltip(selectedData) end, INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS)
 			self.callLaterLeftToolTip = "CallLaterFunction"..callLaterId
 			
-		    self:PrepareNextClearNewStatus(selectedData)
-            --
-		    --self:UpdateRightTooltip()
-			self:RefreshKeybinds()
+        self:PrepareNextClearNewStatus(selectedData)
+        self:RefreshKeybinds()
 	    end
     end)
 
@@ -1985,14 +1975,10 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		end
         -- Clear persistent search when leaving the inventory scene so it does
         -- not persist when the player backs out and later re-enters the scene.
-        pcall(function()
-            self.searchQuery = ""
-            if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-                BETTERUI.Interface.Window.ClearSearchText(self)
-            elseif self.ClearSearchText then
-                self:ClearSearchText()
-            end
-        end)
+        -- Use centralized helper to clear persistent search state when leaving scene
+        if self.ClearTextSearch then
+            self:ClearTextSearch()
+        end
         -- nothing to remove for search hold behavior here
     end
 end
@@ -2381,12 +2367,10 @@ function BETTERUI.Inventory.Class:Initialize(control)
                 visible = function()
                     return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
                 end,
-                callback = function()
-                    -- Clear the search text via the window helper if available
-                    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-                        pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
-                    elseif self.ClearSearchText then
-                        pcall(function() self:ClearSearchText() end)
+                    callback = function()
+                    -- Clear the search text via centralized helper
+                    if self.ClearTextSearch then
+                        self:ClearTextSearch()
                     end
                     -- Ensure the Clear-only keybind group remains active after clearing
                     pcall(function()
@@ -2602,6 +2586,20 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
     end
     self.textSearchHeaderControl:SetHidden(false)
+end
+
+-- Centralized helper to clear the text search UI and internal state.
+-- Consolidates repeated checks/calls to the shared BetterUI helper or
+-- the local ClearSearchText method.
+function BETTERUI.Inventory.Class:ClearTextSearch()
+    -- Ensure internal state is cleared
+    self.searchQuery = ""
+    -- Prefer shared helper if available
+    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
+        pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
+    elseif self.ClearSearchText then
+        pcall(function() self:ClearSearchText() end)
+    end
 end
 
 function BETTERUI.Inventory:RefreshFooter()
@@ -2966,11 +2964,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
-                -- Prefer the shared BetterUI ClearSearchText helper if available, otherwise fall back to self:ClearSearchText
-                if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-                    pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
-                elseif self.ClearSearchText then
-                    pcall(function() self:ClearSearchText() end)
+                -- Use centralized helper to clear the search and restore keybinds
+                if self.ClearTextSearch then
+                    self:ClearTextSearch()
                 end
                 -- After clearing search, restore the standard inventory keybinds
                 pcall(function()
