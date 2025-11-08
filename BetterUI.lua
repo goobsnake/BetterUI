@@ -101,6 +101,115 @@ function BETTERUI.LoadModules()
 
 	ddebug("Initializing BETTERUI...")
 
+	-- Apply runtime safety patches for ESO API issues (e.g., nil icon paths).
+	-- These are applied early and only once to avoid modifying esoui/ files.
+	if not BETTERUI._patchesApplied then
+		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
+		if type(zo_iconFormat) == "function" then
+			local _orig_zo_iconFormat = zo_iconFormat
+			zo_iconFormat = function(path, width, height)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconFormat(path, width, height)
+				end)
+				return ok and res or ""
+			end
+		end
+
+		if type(zo_iconFormatInheritColor) == "function" then
+			local _orig_zo_iconFormatInheritColor = zo_iconFormatInheritColor
+			zo_iconFormatInheritColor = function(path, width, height)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconFormatInheritColor(path, width, height)
+				end)
+				return ok and res or ""
+			end
+		end
+
+		if type(zo_iconTextFormat) == "function" then
+			local _orig_zo_iconTextFormat = zo_iconTextFormat
+			zo_iconTextFormat = function(path, width, height, text, inheritColor, noGrammar)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconTextFormat(path, width, height, text, inheritColor, noGrammar)
+				end)
+				return ok and res or tostring(text or "")
+			end
+		end
+
+		if type(zo_iconTextFormatAlignedRight) == "function" then
+			local _orig_zo_iconTextFormatAlignedRight = zo_iconTextFormatAlignedRight
+			zo_iconTextFormatAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconTextFormatAlignedRight(path, width, height, text, inheritColor, noGrammar)
+				end)
+				return ok and res or tostring(text or "")
+			end
+		end
+
+		if type(zo_iconTextFormatNoSpace) == "function" then
+			local _orig_zo_iconTextFormatNoSpace = zo_iconTextFormatNoSpace
+			zo_iconTextFormatNoSpace = function(path, width, height, text, inheritColor)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconTextFormatNoSpace(path, width, height, text, inheritColor)
+				end)
+				return ok and res or tostring(text or "")
+			end
+		end
+
+		if type(zo_iconTextFormatNoSpaceAlignedRight) == "function" then
+			local _orig_zo_iconTextFormatNoSpaceAlignedRight = zo_iconTextFormatNoSpaceAlignedRight
+			zo_iconTextFormatNoSpaceAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
+				if path == nil then path = "" end
+				local ok, res = pcall(function()
+					return _orig_zo_iconTextFormatNoSpaceAlignedRight(path, width, height, text, inheritColor, noGrammar)
+				end)
+				return ok and res or tostring(text or "")
+			end
+		end
+
+		-- Patch 2: Wrap ZO_KeybindStrip:HandleDuplicateAddKeybind to safely evaluate descriptor names.
+		-- The original function calls GetKeybindDescriptorDebugIdentifier on descriptors, which can
+		-- call formatting helpers (like zo_iconFormat) with nil paths. We wrap this to silently
+		-- handle any errors. On error, we attempt to remove the conflicting descriptor so the
+		-- new one can be registered, restoring keybind strip functionality.
+		if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
+			local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
+			ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
+				local ok, res = pcall(function()
+					return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
+				end)
+				-- If the call succeeded, return normally
+				if ok then return res end
+				
+				-- If the call failed, attempt a safe recovery by removing the conflicting descriptor
+				-- so the new keybind can be registered. This ensures LB/RB navigation is restored
+				-- even when duplicate handling errors occur.
+				pcall(function()
+					if existingButtonOrEtherealDescriptor then
+						local descriptor = existingButtonOrEtherealDescriptor
+						-- If it's a button control, extract the descriptor
+						if type(descriptor) == "userdata" and descriptor.keybindButtonDescriptor then
+							descriptor = descriptor.keybindButtonDescriptor
+						end
+						-- Attempt removal
+						if descriptor and self.RemoveKeybindButton then
+							self:RemoveKeybindButton(descriptor, stateIndex)
+						end
+					end
+				end)
+				
+				-- Do not log to chat/debug as per user requirement. The keybind strip will
+				-- continue, and duplicate handling was attempted (even if it failed gracefully).
+			end
+		end
+
+		BETTERUI._patchesApplied = true
+	end
+
 	-- Initialize research data once
 	BETTERUI.GetResearch()
 
