@@ -202,6 +202,31 @@ function BETTERUI.LoadModules()
 					end
 				end)
 				
+				-- Schedule a deferred re-add of the new keybind to handle timing edge cases where
+				-- removal and re-add happen too quickly in the same frame. This is especially important
+				-- during scene transitions (like search enter/exit) where multiple duplicate keybind
+				-- errors may occur in quick succession. Use zo_callLater with a 0ms delay to defer
+				-- until the next frame cycle, ensuring the removal has settled.
+				pcall(function()
+					if zo_callLater and type(zo_callLater) == "function" then
+						zo_callLater(function()
+							pcall(function()
+								-- Only re-add if not already present
+								if self and self.HasKeybindButton then
+									local present = self:HasKeybindButton(keybindButtonDescriptor, stateIndex)
+									if not present then
+										self:AddKeybindButton(keybindButtonDescriptor, stateIndex)
+										-- Force update keybind strip layout to ensure buttons are visible
+										if self.UpdateAnchors then
+											self:UpdateAnchors()
+										end
+									end
+								end
+							end)
+						end, 0)
+					end
+				end)
+				
 				-- Do not log to chat/debug as per user requirement. The keybind strip will
 				-- continue, and duplicate handling was attempted (even if it failed gracefully).
 			end
