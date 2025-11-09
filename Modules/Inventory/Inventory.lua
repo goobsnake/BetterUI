@@ -783,7 +783,7 @@ end
 
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
 	-- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
-	self.craftBagList:RefreshList(self.categoryList:GetTargetData().filterType)
+    self.craftBagList:RefreshList(self.categoryList:GetTargetData().filterType, self.searchQuery)
 end
 
 
@@ -889,17 +889,17 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 	local ZO_GamepadEntryData = ZO_GamepadEntryData
 	local ZO_InventoryUtils_DoesNewItemMatchFilterType = ZO_InventoryUtils_DoesNewItemMatchFilterType
 
-    -- Apply text search filtering after item/category metadata has been computed so names/categories are accurate
+    -- Apply text search filtering after item/category metadata has been computed so names/categories are accurate.
+    -- For consistency with the craft-bag, restrict inventory filtering to item name only so
+    -- short queries don't match category/type strings like "(Alchemy)" unintentionally.
     if self.searchQuery and tostring(self.searchQuery) ~= "" then
         local q = tostring(self.searchQuery):lower()
         local matches = {}
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             local name = tostring(it.name or "")
-            local cat = tostring(it.bestItemCategoryName or "")
             local lname = name:lower()
-            local lcat = cat:lower()
-            if string.find(lname, q, 1, true) or string.find(lcat, q, 1, true) then
+            if string.find(lname, q, 1, true) then
                 table.insert(matches, it)
             end
         end
@@ -2439,9 +2439,14 @@ function BETTERUI.Inventory.Class:Initialize(control)
             end
 
             self.searchQuery = query or ""
-            -- When search changes, reset selection to top and refresh
+            -- When search changes, reset selection to top and refresh the active list
             self:SaveListPosition()
-            self:RefreshItemList()
+            -- If craft bag is currently active, refresh craft bag list so filtering is immediate
+            if self:GetCurrentList() == self.craftBagList then
+                self:RefreshCraftBagList()
+            else
+                self:RefreshItemList()
+            end
         end)
         if self.PositionSearchControl then
             self:PositionSearchControl()
@@ -2453,6 +2458,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
             local editBox = self.textSearchHeaderFocus:GetEditBox()
             local origOnFocusGained = editBox:GetHandler("OnFocusGained")
             local origOnFocusLost = editBox:GetHandler("OnFocusLost")
+            local origOnTextChanged = editBox:GetHandler("OnTextChanged")
             
             editBox:SetHandler("OnFocusGained", function(eb)
                 -- Fire original handler if any
@@ -2492,6 +2498,35 @@ function BETTERUI.Inventory.Class:Initialize(control)
                         end, 40)
                     end
                 end)
+            end)
+
+            -- Targeted OnTextChanged handler: perform a local immediate craft-bag refresh
+            -- when the engine's text-search manager will not run its background search
+            -- (for example, single-character queries). This avoids editing engine
+            -- files while allowing craft-bag filtering to feel instant for short queries.
+            editBox:SetHandler("OnTextChanged", function(eb)
+                -- Preserve original handler behavior first
+                if origOnTextChanged then pcall(function() origOnTextChanged(eb) end) end
+
+                local txt = ""
+                local ok, t = pcall(function() return eb:GetText() end)
+                if ok and t then txt = t end
+
+                -- Mirror AddSearch normalization
+                self.searchQuery = txt or ""
+
+                -- Only force a local refresh for the craft-bag when the engine
+                -- will not perform background filtering (to avoid doubling work).
+                local willEngineFilter = false
+                if ZO_TextSearchManager and ZO_TextSearchManager.CanFilterByText then
+                    -- Use the raw text to decide (avoids needing the engine search context)
+                    willEngineFilter = ZO_TextSearchManager.CanFilterByText(self.searchQuery)
+                end
+
+                if self:GetCurrentList() == self.craftBagList and not willEngineFilter then
+                    pcall(function() self:SaveListPosition() end)
+                    pcall(function() self:RefreshCraftBagList() end)
+                end
             end)
         end
         -- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).

@@ -78,11 +78,28 @@ end
 
 --- Refreshes the craft list with filtered and sorted items
 --- @param filterType number|table: The filter type(s)
-function BETTERUI.Inventory.CraftList:RefreshList(filterType)
+function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     self.list:Clear()
 
     self.itemFilterFunction = GetFilterComparator(filterType)
     local filteredDataTable = self:GenerateSlotTable()
+
+    -- Apply text search filtering when requested (case-insensitive substring match on item name only)
+    -- NOTE: we intentionally exclude category/type fields from the craft-bag search so
+    -- short queries (single-character) don't match engine-provided type strings like "(Alchemy)".
+    if searchQuery and tostring(searchQuery) ~= "" then
+        local q = tostring(searchQuery):lower()
+        local matches = {}
+        for i = 1, #filteredDataTable do
+            local it = filteredDataTable[i]
+            local name = tostring(it.name or "")
+            local lname = name:lower()
+            if string.find(lname, q, 1, true) then
+                table.insert(matches, it)
+            end
+        end
+        filteredDataTable = matches
+    end
 
     -- Sort the filtered data
     table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
