@@ -2649,11 +2649,21 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
     end
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        -- Slightly closer and more vertically centered to align with the LB icon
-        local yOffset = -2
-        local xOffset = self.searchXOffset or 33
+        -- Adjust these values here to tweak the search control's position and size
+        -- xOffset: horizontal offset from the header's left edge (moves control right)
+        -- yOffset: vertical offset from the header's bottom (positive moves down)
+        -- rightInset: inset applied to the right anchor (negative moves left)
+        local cfg = {
+            xOffset = 51,
+            yOffset = 1,
+            rightInset = -4,
+        }
+        local yOffset = (cfg and cfg.yOffset)
+        local xOffset = (cfg and cfg.xOffset)
+        local rightInset = (cfg and cfg.rightInset)
+        -- TOPLEFT uses xOffset, TOPRIGHT uses rightInset so the control width is constrained
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, -4, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)

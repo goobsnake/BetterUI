@@ -1554,13 +1554,21 @@ function BETTERUI.Banking.Class:PositionSearchControl()
     end
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        -- Use a small downward offset so the search sits visually below the header
-        -- Provide a horizontal offset so the search doesn't sit on top of the LB icon
-        local yOffset = 8
-        local xOffset = self.searchXOffset or 48
+        -- Adjust these values here to tweak the search control's position and size
+        -- xOffset: horizontal offset from the header's left edge (moves control right)
+        -- yOffset: vertical offset from the header's bottom (positive moves down)
+        -- rightInset: inset applied to the right anchor (negative moves left)
+        local cfg = {
+            xOffset = 48,
+            yOffset = 8,
+            rightInset = -8,
+        }
+        local yOffset = (cfg and cfg.yOffset)
+        local xOffset = (cfg and cfg.xOffset)
+        local rightInset = (cfg and cfg.rightInset)
         -- Anchor left with an X offset, and inset the right anchor slightly so control width remains reasonable
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, -8, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
         -- Fallback: anchor to header control bottom
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
