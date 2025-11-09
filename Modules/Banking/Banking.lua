@@ -335,6 +335,14 @@ function BETTERUI.Banking.Class:RefreshList()
     local GetBestItemCategoryDescription = GetBestItemCategoryDescription
     local FindActionSlotMatchingItem = FindActionSlotMatchingItem
     local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+    -- Localize item/link related APIs and recipe/book checks to avoid global lookups
+    local GetItemLink = GetItemLink
+    local GetItemLinkItemType = GetItemLinkItemType
+    local GetItemLinkSetInfo = GetItemLinkSetInfo
+    local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
+    local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
+    local IsItemLinkBookKnown = IsItemLinkBookKnown
+    local IsItemBound = IsItemBound
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     local showJunkCategory = (activeCategory and activeCategory.key == "junk") or false
     for i = 1, #filteredDataTable  do
@@ -361,6 +369,21 @@ function BETTERUI.Banking.Class:RefreshList()
         end
         
         itemData.isEquippedInCurrentCategory = slotIndex and true or nil
+
+        -- Cache expensive/commonly used item link information so downstream
+        -- rendering (shared code in InventoryList) can rely on these fields
+        -- being present (fixes motif/recipe known/unknown display in bank).
+        -- Only compute when missing to reduce work during rapid refreshes/scrolling.
+        if not itemData.cached_itemLink then
+            local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
+            itemData.cached_itemLink = itemLink
+            itemData.cached_itemType = itemLink and GetItemLinkItemType(itemLink) or nil
+            itemData.cached_setItem = itemLink and GetItemLinkSetInfo(itemLink, false) or nil
+            itemData.cached_hasEnchantment = itemLink and GetItemLinkEnchantInfo(itemLink) or nil
+            itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE) and not (itemLink and IsItemLinkRecipeKnown(itemLink))
+            itemData.cached_isBookKnown = itemLink and IsItemLinkBookKnown(itemLink) or nil
+            itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex) and not itemData.stolen and itemData.quality ~= ITEM_QUALITY_TRASH
+        end
 
         table.insert(tempDataTable, itemData)
         ZO_InventorySlot_SetType(itemData, slotType)
