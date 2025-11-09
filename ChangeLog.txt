@@ -2,9 +2,18 @@ Current Release - 2.85 Changes:
 
 [INDENT]1. Fixed: Workaround fixes to a potential ESO API bug related to zo_iconFormat & ZO_KeybindStrip causing errors when users would perform certain skill purchases or upgrades
 2. Fixed: Some additional inventory navigation issues after performing certain actions like lock, unlock, mark as junk, etc.
-2. Fixed: Motifs and recipes should show their correct known status within the bank
+3. Fixed: Motifs and recipes should show their correct known status within the bank
 4. Added: Search bar functionality added to the inventory scene
 5. Added: Search bar functionality added to the craft bag scene
+[/INDENT]
+
+
+2.84 Changes:
+
+[INDENT]1. Fixed: Corrected add-on version number present for tools like Minion
+2. Fixed: Various nil errors around in-game icons should be fixed
+3. Fixed: Locking & unlocking an item shouldn't cause the LB and RB navigation to stop functioning
+4. Added: Banking item search bar working with mouse & keyboard - Navigation transtions and full controller support still a WIP
 [/INDENT]  
 
 
