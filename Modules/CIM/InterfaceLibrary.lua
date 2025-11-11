@@ -22,6 +22,12 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
         return not context.textSearchHeaderControl:IsHidden()
     end
 
+    local function HasSearchText()
+        if not context then return false end
+        local text = context.searchQuery
+        return text ~= nil and tostring(text) ~= ""
+    end
+
     return {
         {
             name = function()
@@ -35,7 +41,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             end,
             callback = function()
                 if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus(true)
+                    context:ExitSearchFocus(HasSearchText())
                 end
             end,
         },
@@ -54,7 +60,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
                 return HasVisibleSearchControl()
             end,
             callback = function()
-                local hasText = context and context.searchQuery and tostring(context.searchQuery) ~= ""
+                local hasText = HasSearchText()
                 if hasText then
                     if context and context.ClearTextSearch then
                         context:ClearTextSearch()
@@ -78,7 +84,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             end,
             callback = function()
                 if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus(true)
+                    context:ExitSearchFocus(HasSearchText())
                 end
             end,
         },
