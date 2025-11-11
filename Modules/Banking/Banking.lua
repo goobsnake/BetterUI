@@ -465,9 +465,11 @@ function BETTERUI.Banking.Class:RefreshList()
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if entryCount == 0 then
         self.list:Deactivate()
-    else
-        -- Ensure the list is active when there are items to navigate
+    elseif not self:IsHeaderActive() then
+        -- Keep the list active only when the search header is not focused
         self.list:Activate()
+    else
+        self.list:Deactivate()
     end
     self:ReturnToSaved()
     self:UpdateActions()
@@ -686,7 +688,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
     local function SelectionChangedCallback(list, selectedData)
-        if self._searchModeActive then
+        if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
             local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
             if hasText then
                 self:ExitSearchFocus(true)
@@ -796,6 +798,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.list:Deactivate()
         self.selector:Deactivate()
         self.confirmationMode = false
+        self:DeactivateSearchDirectionalInput()
         -- Release focus from header tab bar and clear any update suppression flags
         if self.headerGeneric and self.headerGeneric.tabBar then
             self.headerGeneric.tabBar:Deactivate()
@@ -1778,6 +1781,8 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     if self.SetTextSearchFocused then
         pcall(function() self:SetTextSearchFocused(true) end)
     end
+
+    self:ActivateSearchDirectionalInput()
 end
 
 function BETTERUI.Banking.Class:LeaveSearchMode()
@@ -1816,6 +1821,8 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     end
 
     pcall(function() self:RefreshActiveKeybinds() end)
+
+    self:DeactivateSearchDirectionalInput()
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus(selectTopResult)
@@ -1936,6 +1943,48 @@ function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if tabBar and tabBar.keybindStripDescriptor then
         tabBar:Activate()
+    end
+end
+
+function BETTERUI.Banking.Class:EnsureSearchDirectionalHandler()
+    if self._searchDirectionalHandler then
+        return self._searchDirectionalHandler
+    end
+    if not DIRECTIONAL_INPUT then return nil end
+
+    local handler = {}
+    handler.owner = self
+    handler.movementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_VERTICAL)
+    function handler:UpdateDirectionalInput()
+        local owner = self.owner
+        if not owner or not owner._searchModeActive then return end
+        if not owner:IsHeaderActive() then return end
+        local result = self.movementController:CheckMovement()
+        if result == MOVEMENT_CONTROLLER_MOVE_NEXT then
+            owner:ExitSearchFocus(true)
+        end
+    end
+
+    self._searchDirectionalHandler = handler
+    return handler
+end
+
+function BETTERUI.Banking.Class:ActivateSearchDirectionalInput()
+    local handler = self:EnsureSearchDirectionalHandler()
+    if not handler or self._searchDirectionalActive then return end
+    if handler.movementController and handler.movementController.Reset then
+        handler.movementController:Reset()
+    end
+    self._searchDirectionalActive = true
+    DIRECTIONAL_INPUT:Activate(handler)
+end
+
+function BETTERUI.Banking.Class:DeactivateSearchDirectionalInput()
+    if not self._searchDirectionalActive or not self._searchDirectionalHandler then return end
+    self._searchDirectionalActive = false
+    DIRECTIONAL_INPUT:Deactivate(self._searchDirectionalHandler)
+    if self._searchDirectionalHandler.movementController and self._searchDirectionalHandler.movementController.Reset then
+        self._searchDirectionalHandler.movementController:Reset()
     end
 end
 
