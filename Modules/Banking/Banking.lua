@@ -38,6 +38,19 @@ local BANK_CATEGORY_ICONS = {
     junk       = "esoui/art/inventory/inventory_tabicon_junk_up.dds",
 }
 
+local function EnsureKeybindGroupAdded(descriptor)
+    if not descriptor or not KEYBIND_STRIP then return end
+    local groups = KEYBIND_STRIP.keybindButtonGroups or {}
+    for _, group in ipairs(groups) do
+        if group == descriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+            return
+        end
+    end
+    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+end
+
 -- Build the full set of bank categories (unfiltered). Furniture vault is restricted to Furnishing.
 --- Build the full list of bank categories.
 --- If in a furniture vault, restrict to All + Furnishing; otherwise mirror inventory categories (plus optional companion).
@@ -600,26 +613,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
             end,
             callback = function()
-                -- Clear the search text via centralized helper
                 if self.ClearTextSearch then
                     self:ClearTextSearch()
                 end
-                -- Restore banking keybind groups
-                pcall(function()
-                    if self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                end)
-                pcall(function()
-                    if self.coreKeybinds then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
-                    end
-                    if self.withdrawDepositKeybinds then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end)
-                    end
-                end)
+                self.searchQuery = ""
+                self:RefreshList()
+                self:ExitSearchFocus(false)
             end,
         },
     }
@@ -665,31 +664,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
-            -- Remove the main banking keybind groups and add Clear-only group
-            pcall(function()
-                if self.coreKeybinds then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds) end
-                if self.withdrawDepositKeybinds then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds) end
-            end)
-            pcall(function()
-                if self.textSearchKeybindStripDescriptor then
-                    KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.textSearchKeybindStripDescriptor) end)
-                end
-            end)
+            self:EnterSearchMode()
         end)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
-            -- Restore main banking keybind groups and remove Clear-only
-            pcall(function()
-                if self.textSearchKeybindStripDescriptor then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor) end
-            end)
-            pcall(function()
-                if self.coreKeybinds then KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds); pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end) end
-                if self.withdrawDepositKeybinds then KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds); pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end) end
-                -- Ensure header LB/RB remain active
-                pcall(function() self:EnsureHeaderKeybindsActive() end)
-            end)
+            self:LeaveSearchMode()
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
@@ -1727,6 +1707,87 @@ function BETTERUI.Banking.Class:ClearTextSearch()
     end
 end
 
+function BETTERUI.Banking.Class:EnterSearchMode()
+    if self._searchModeActive then return end
+    self._searchModeActive = true
+
+    pcall(function()
+        if self.coreKeybinds then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+        end
+        if self.withdrawDepositKeybinds then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+        end
+    end)
+
+    if self.textSearchKeybindStripDescriptor then
+        pcall(function() EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor) end)
+    end
+
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate then
+        if not self.textSearchHeaderFocus:IsActive() then
+            pcall(function() self.textSearchHeaderFocus:Activate() end)
+        end
+    end
+
+    if self.SetTextSearchFocused then
+        pcall(function() self:SetTextSearchFocused(true) end)
+    end
+end
+
+function BETTERUI.Banking.Class:LeaveSearchMode()
+    if not self._searchModeActive then return end
+    self._searchModeActive = false
+
+    pcall(function()
+        if self.textSearchKeybindStripDescriptor then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        end
+    end)
+
+    pcall(function()
+        if self.coreKeybinds then
+            EnsureKeybindGroupAdded(self.coreKeybinds)
+        end
+        if self.withdrawDepositKeybinds then
+            EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+        end
+    end)
+
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
+        if self.textSearchHeaderFocus:IsActive() then
+            pcall(function() self.textSearchHeaderFocus:Deactivate() end)
+        end
+    end
+
+    if self.SetTextSearchFocused then
+        pcall(function() self:SetTextSearchFocused(false) end)
+    end
+
+    pcall(function() self:EnsureHeaderKeybindsActive() end)
+end
+
+function BETTERUI.Banking.Class:ExitSearchFocus(selectTopResult)
+    self:LeaveSearchMode()
+
+    if selectTopResult then
+        local list = self.list
+        if list and list.SetSelectedIndexWithoutAnimation then
+            local count = 0
+            if list.GetNumItems then
+                count = list:GetNumItems()
+            elseif list.GetNumEntries then
+                count = list:GetNumEntries()
+            elseif list.dataList then
+                count = #list.dataList
+            end
+            if count > 0 then
+                pcall(function() list:SetSelectedIndexWithoutAnimation(1, true, false) end)
+            end
+        end
+    end
+end
+
 -- Position the text search control directly beneath the header/title so it appears
 -- above the list rows (currency/withdraw/deposit). Keeps the search visible for all categories.
 function BETTERUI.Banking.Class:PositionSearchControl()
@@ -1767,22 +1828,11 @@ end
 -- Override header-enter lifecycle to auto-focus the text search when header is entered.
 function BETTERUI.Banking.Class:OnEnterHeader()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
-        -- Remove main banking keybind groups BEFORE calling base
-        pcall(function()
-            if self.coreKeybinds then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds) end
-            if self.withdrawDepositKeybinds then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds) end
-        end)
+        self:EnterSearchMode()
 
         -- Call base implementation if present
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
             pcall(function() BETTERUI.Interface.Window.OnEnterHeader(self) end)
-        end
-
-        -- Focus the search input control (if helper exists)
-        if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
-            pcall(function() BETTERUI.Interface.Window.SetTextSearchFocused(self, true) end)
-        elseif self.SetTextSearchFocused then
-            pcall(function() self:SetTextSearchFocused(true) end)
         end
 
         -- Ensure only the Clear keybind group remains visible shortly after entering header
@@ -1824,20 +1874,11 @@ function BETTERUI.Banking.Class:OnEnterHeader()
 end
 
 function BETTERUI.Banking.Class:OnLeaveHeader()
-    -- Call base implementation if present
+    self:LeaveSearchMode()
+
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnLeaveHeader then
         pcall(function() BETTERUI.Interface.Window.OnLeaveHeader(self) end)
     end
-
-    -- Restore main keybind groups when leaving header
-    pcall(function()
-        if self.textSearchKeybindStripDescriptor then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor) end
-    end)
-    pcall(function()
-        if self.coreKeybinds then KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds); pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end) end
-        if self.withdrawDepositKeybinds then KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds); pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end) end
-        pcall(function() self:EnsureHeaderKeybindsActive() end)
-    end)
 end
 
 -- Ensure the header tab bar's LB/RB keybinds are active (idempotent)

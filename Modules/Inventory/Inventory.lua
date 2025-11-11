@@ -27,6 +27,19 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
+local function EnsureKeybindGroupAdded(descriptor)
+    if not descriptor or not KEYBIND_STRIP then return end
+    local groups = KEYBIND_STRIP.keybindButtonGroups or {}
+    for _, group in ipairs(groups) do
+        if group == descriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+            return
+        end
+    end
+    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+end
+
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
 local function BETTERUI_GetEquipSlotForEquipType(equipType)
     -- Prefer the slot corresponding to the currently intended bar (primary/backup)
@@ -2392,30 +2405,56 @@ function BETTERUI.Inventory.Class:Initialize(control)
         -- Store the descriptor on self immediately so callbacks can reference it.
         self.textSearchKeybindStripDescriptor = {
             {
-                name = function() return GetString(SI_BETTERUI_CLEAR_SEARCH) or "Clear" end,
+                name = function()
+                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                end,
+                alignment = KEYBIND_STRIP_ALIGN_LEFT,
+                keybind = "UI_SHORTCUT_PRIMARY",
+                disabledDuringSceneHiding = true,
+                visible = function()
+                    return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
+                end,
+                callback = function()
+                    self:ExitSearchFocus(true)
+                end,
+            },
+            {
+                name = function()
+                    local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
+                    if hasText then
+                        return GetString(SI_BETTERUI_CLEAR_SEARCH) or "Clear"
+                    end
+                    return GetString(SI_GAMEPAD_BACK_OPTION)
+                end,
                 alignment = KEYBIND_STRIP_ALIGN_RIGHT,
                 keybind = "UI_SHORTCUT_NEGATIVE",
                 disabledDuringSceneHiding = true,
                 visible = function()
                     return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
                 end,
-                    callback = function()
-                    -- Clear the search text via centralized helper
-                    if self.ClearTextSearch then
-                        self:ClearTextSearch()
+                callback = function()
+                    local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
+                    if hasText then
+                        if self.ClearTextSearch then
+                            self:ClearTextSearch()
+                        end
+                    else
+                        self:ExitSearchFocus()
                     end
-                    -- Ensure the Clear-only keybind group remains active after clearing
-                    pcall(function()
-                        if self.mainKeybindStripDescriptor then
-                            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
-                        end
-                    end)
-                    pcall(function()
-                        if self.textSearchKeybindStripDescriptor then
-                            KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.textSearchKeybindStripDescriptor) end)
-                        end
-                    end)
+                end,
+            },
+            {
+                name = function()
+                    return GetString(SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN) or "Down"
+                end,
+                alignment = KEYBIND_STRIP_ALIGN_LEFT,
+                keybind = "UI_SHORTCUT_DOWN",
+                disabledDuringSceneHiding = true,
+                visible = function()
+                    return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
+                end,
+                callback = function()
+                    self:ExitSearchFocus(true)
                 end,
             },
         }
@@ -2459,45 +2498,22 @@ function BETTERUI.Inventory.Class:Initialize(control)
             local origOnFocusGained = editBox:GetHandler("OnFocusGained")
             local origOnFocusLost = editBox:GetHandler("OnFocusLost")
             local origOnTextChanged = editBox:GetHandler("OnTextChanged")
+            local origOnKeyDown = editBox:GetHandler("OnKeyDown")
             
             editBox:SetHandler("OnFocusGained", function(eb)
                 -- Fire original handler if any
                 if origOnFocusGained then origOnFocusGained(eb) end
-                -- Remove main keybind group and add Clear-only group
-                pcall(function()
-                    if self.mainKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
-                    end
-                end)
-                pcall(function()
-                    if self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.textSearchKeybindStripDescriptor) end)
-                    end
-                end)
+                if not self:IsHeaderActive() then
+                    self:RequestEnterHeader()
+                end
             end)
             
             editBox:SetHandler("OnFocusLost", function(eb)
                 -- Fire original handler if any
                 if origOnFocusLost then origOnFocusLost(eb) end
-                -- Remove Clear-only group and restore main keybind group
-                pcall(function()
-                    if self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                end)
-                pcall(function()
-                    if self.mainKeybindStripDescriptor then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
-                        -- Ensure the main group becomes the active keybind set for this screen.
-                        pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-                        -- Re-assert after a short delay to avoid races with other delayed cleanup.
-                        zo_callLater(function()
-                            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-                        end, 40)
-                    end
-                end)
+                if self:IsHeaderActive() then
+                    self:RequestLeaveHeader()
+                end
             end)
 
             -- Targeted OnTextChanged handler: perform a local immediate craft-bag refresh
@@ -2526,6 +2542,20 @@ function BETTERUI.Inventory.Class:Initialize(control)
                 if self:GetCurrentList() == self.craftBagList and not willEngineFilter then
                     pcall(function() self:SaveListPosition() end)
                     pcall(function() self:RefreshCraftBagList() end)
+                end
+            end)
+
+            editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
+                if origOnKeyDown then
+                    local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+                    if handled then
+                        return handled
+                    end
+                end
+
+                if command == "UI_SHORTCUT_DOWN" then
+                    self:ExitSearchFocus(true)
+                    return true
                 end
             end)
         end
@@ -2775,97 +2805,59 @@ end
 
 -- Override header-enter lifecycle to auto-focus the text search when the header is entered.
 function BETTERUI.Inventory.Class:OnEnterHeader()
-    -- If a text-search header exists, we handle keybinds specially
-    if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
-        -- Remove the main keybind group BEFORE calling base, so base doesn't re-add it
-        pcall(function()
-            if self.mainKeybindStripDescriptor then
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
-            end
-        end)
-
-        -- Now call base implementation (this may add keybinds we'll override)
-        if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
-            pcall(function() ZO_GamepadInventory.OnEnterHeader(self) end)
-        else
-            pcall(function() ZO_Gamepad_ParametricList_Screen.OnEnterHeader(self) end)
-        end
-
-        -- Focus the search (engine may add default keybinds for text input)
-        if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
-            pcall(function() BETTERUI.Interface.Window.SetTextSearchFocused(self, true) end)
-        elseif self.SetTextSearchFocused then
-            pcall(function() self:SetTextSearchFocused(true) end)
-        end
-
-        -- Immediately strip out all other keybinds and ensure only Clear remains
-        zo_callLater(function()
-            pcall(function()
-                local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
-                if keybindGroups then
-                    for i = #keybindGroups, 1, -1 do
-                        local group = keybindGroups[i]
-                        -- Remove anything that's not our Clear keybind
-                        if group and group ~= self.textSearchKeybindStripDescriptor then
-                            KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                        end
-                    end
-                end
-            end)
-            
-            -- Ensure our Clear keybind is added
-            pcall(function()
-                if self.textSearchKeybindStripDescriptor then
-                    local keybindGroups = KEYBIND_STRIP.keybindButtonGroups or {}
-                    local isAdded = false
-                    for _, group in ipairs(keybindGroups) do
-                        if group == self.textSearchKeybindStripDescriptor then
-                            isAdded = true
-                            break
-                        end
-                    end
-                    if not isAdded then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                end
-            end)
-        end, 20)
+    if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
+        ZO_GamepadInventory.OnEnterHeader(self)
     else
-        -- No search header, use normal base behavior
-        if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
-            pcall(function() ZO_GamepadInventory.OnEnterHeader(self) end)
-        else
-            pcall(function() ZO_Gamepad_ParametricList_Screen.OnEnterHeader(self) end)
+        ZO_Gamepad_ParametricList_Screen.OnEnterHeader(self)
+    end
+
+    if self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden() then
+        if self.textSearchHeaderFocus and not self.textSearchHeaderFocus:IsActive() then
+            self.textSearchHeaderFocus:Activate()
+        end
+        if self.SetTextSearchFocused then
+            self:SetTextSearchFocused(true)
         end
     end
 end
 
 function BETTERUI.Inventory.Class:OnLeaveHeader()
-    -- Call base implementation to preserve tooltip/keybind behavior
     if ZO_GamepadInventory and ZO_GamepadInventory.OnLeaveHeader then
-        pcall(function() ZO_GamepadInventory.OnLeaveHeader(self) end)
+        ZO_GamepadInventory.OnLeaveHeader(self)
     else
-        pcall(function() ZO_Gamepad_ParametricList_Screen.OnLeaveHeader(self) end)
+        ZO_Gamepad_ParametricList_Screen.OnLeaveHeader(self)
     end
 
-    -- Restore main keybind group when leaving the header
-    pcall(function()
-        if self.textSearchKeybindStripDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus:IsActive() then
+        self.textSearchHeaderFocus:Deactivate()
+    end
+end
+
+function BETTERUI.Inventory.Class:ExitSearchFocus(selectTopResult)
+    if self:IsHeaderActive() then
+        self:RequestLeaveHeader()
+    end
+
+    if not selectTopResult then
+        return
+    end
+
+    if self.searchQuery and tostring(self.searchQuery) ~= "" then
+        local currentList = self:GetCurrentList()
+        if currentList and currentList.SetSelectedIndexWithoutAnimation then
+            local count = 0
+            if currentList.GetNumItems then
+                count = currentList:GetNumItems()
+            elseif currentList.GetNumEntries then
+                count = currentList:GetNumEntries()
+            elseif currentList.dataList then
+                count = #currentList.dataList
+            end
+            if count > 0 then
+                pcall(function() currentList:SetSelectedIndexWithoutAnimation(1, true, false) end)
+            end
         end
-    end)
-    pcall(function()
-        if self.mainKeybindStripDescriptor then
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
-            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
-            -- Ensure the main group is active after leaving header
-            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-            zo_callLater(function()
-                pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-            end, 40)
-        end
-    end)
+    end
 end
 
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)

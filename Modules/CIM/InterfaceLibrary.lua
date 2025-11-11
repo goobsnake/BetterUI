@@ -172,9 +172,7 @@ function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, o
 
         -- Make the search control slightly larger and mouse-interactive so PC users can click it
         -- Scale the whole control (icon + entry) for a cleaner quick tweak
-        if self.textSearchHeaderControl.SetScale then
-            self.textSearchHeaderControl:SetScale(1.12)
-        end
+        -- Keep default scale so the highlight visuals match native gamepad UI
         -- Ensure the control accepts mouse input and focuses the header search when clicked
         if self.textSearchHeaderControl.SetMouseEnabled then
             self.textSearchHeaderControl:SetMouseEnabled(true)
@@ -251,7 +249,46 @@ end
 function BETTERUI.Interface.Window:SetTextSearchFocused(isFocused)
     if self.textSearchHeaderFocus and self.headerFocus then
         self.textSearchHeaderFocus:SetFocused(isFocused)
+        pcall(function()
+            -- Bring search control to front so it's visible and not layered behind header elements
+            if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then
+                pcall(function() self.textSearchHeaderControl:BringWindowToFront() end)
+            end
+        end)
     end
+end
+
+function BETTERUI.Interface.Window:GetActiveList()
+    if self.GetCurrentList then
+        local ok, list = pcall(function() return self:GetCurrentList() end)
+        if ok then
+            return list
+        end
+    end
+    return self.list
+end
+
+function BETTERUI.Interface.Window:ActivateSearchHeader()
+    if self.textSearchHeaderFocus and not self._searchHeaderActive then
+        self._searchHeaderActive = true
+        self.textSearchHeaderFocus:Activate()
+        pcall(function()
+            if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then
+                self.textSearchHeaderControl:BringWindowToFront()
+            end
+        end)
+    end
+end
+
+function BETTERUI.Interface.Window:DeactivateSearchHeader()
+    if self.textSearchHeaderFocus and self._searchHeaderActive then
+        self._searchHeaderActive = false
+        self.textSearchHeaderFocus:Deactivate()
+    end
+end
+
+function BETTERUI.Interface.Window:IsSearchHeaderActive()
+    return self._searchHeaderActive == true
 end
 
 function BETTERUI.Interface.Window:ClearSearchText()
