@@ -1,6 +1,90 @@
 -- shadowcep: Patched for compatibility with ESO Update 33
 local _
 
+BETTERUI.Interface = BETTERUI.Interface or {}
+
+function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
+    if not descriptor or not KEYBIND_STRIP then return end
+    local groups = KEYBIND_STRIP.keybindButtonGroups or {}
+    for _, group in ipairs(groups) do
+        if group == descriptor then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+            return
+        end
+    end
+    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
+end
+
+function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
+    local function HasVisibleSearchControl()
+        if not context or not context.textSearchHeaderControl then return false end
+        return not context.textSearchHeaderControl:IsHidden()
+    end
+
+    return {
+        {
+            name = function()
+                return GetString(SI_GAMEPAD_SELECT_OPTION)
+            end,
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            keybind = "UI_SHORTCUT_PRIMARY",
+            disabledDuringSceneHiding = true,
+            visible = function()
+                return HasVisibleSearchControl()
+            end,
+            callback = function()
+                if context and context.ExitSearchFocus then
+                    context:ExitSearchFocus(true)
+                end
+            end,
+        },
+        {
+            name = function()
+                local hasText = context and context.searchQuery and tostring(context.searchQuery) ~= ""
+                if hasText then
+                    return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION)
+                end
+                return GetString(SI_GAMEPAD_BACK_OPTION)
+            end,
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            keybind = "UI_SHORTCUT_NEGATIVE",
+            disabledDuringSceneHiding = true,
+            visible = function()
+                return HasVisibleSearchControl()
+            end,
+            callback = function()
+                local hasText = context and context.searchQuery and tostring(context.searchQuery) ~= ""
+                if hasText then
+                    if context and context.ClearTextSearch then
+                        context:ClearTextSearch()
+                    end
+                else
+                    if context and context.ExitSearchFocus then
+                        context:ExitSearchFocus()
+                    end
+                end
+            end,
+        },
+        {
+            name = function()
+                return GetString(SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN) or "Down"
+            end,
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            keybind = "UI_SHORTCUT_DOWN",
+            disabledDuringSceneHiding = true,
+            visible = function()
+                return HasVisibleSearchControl()
+            end,
+            callback = function()
+                if context and context.ExitSearchFocus then
+                    context:ExitSearchFocus(true)
+                end
+            end,
+        },
+    }
+end
+
 BETTERUI_TEST_SCENE_NAME = "BETTERUI_BANKING"
 
 local BANKING_INTERACTION =

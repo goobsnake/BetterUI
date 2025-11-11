@@ -27,18 +27,7 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
-local function EnsureKeybindGroupAdded(descriptor)
-    if not descriptor or not KEYBIND_STRIP then return end
-    local groups = KEYBIND_STRIP.keybindButtonGroups or {}
-    for _, group in ipairs(groups) do
-        if group == descriptor then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
-            return
-        end
-    end
-    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
-end
+local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
 local function BETTERUI_GetEquipSlotForEquipType(equipType)
@@ -2403,61 +2392,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         -- header is active the parametric screen will swap to this group so the
         -- only visible button is the Clear action (B).
         -- Store the descriptor on self immediately so callbacks can reference it.
-        self.textSearchKeybindStripDescriptor = {
-            {
-                name = function()
-                    return GetString(SI_GAMEPAD_SELECT_OPTION)
-                end,
-                alignment = KEYBIND_STRIP_ALIGN_LEFT,
-                keybind = "UI_SHORTCUT_PRIMARY",
-                disabledDuringSceneHiding = true,
-                visible = function()
-                    return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
-                end,
-                callback = function()
-                    self:ExitSearchFocus(true)
-                end,
-            },
-            {
-                name = function()
-                    local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-                    if hasText then
-                        return GetString(SI_BETTERUI_CLEAR_SEARCH) or "Clear"
-                    end
-                    return GetString(SI_GAMEPAD_BACK_OPTION)
-                end,
-                alignment = KEYBIND_STRIP_ALIGN_RIGHT,
-                keybind = "UI_SHORTCUT_NEGATIVE",
-                disabledDuringSceneHiding = true,
-                visible = function()
-                    return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
-                end,
-                callback = function()
-                    local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-                    if hasText then
-                        if self.ClearTextSearch then
-                            self:ClearTextSearch()
-                        end
-                    else
-                        self:ExitSearchFocus()
-                    end
-                end,
-            },
-            {
-                name = function()
-                    return GetString(SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN) or "Down"
-                end,
-                alignment = KEYBIND_STRIP_ALIGN_LEFT,
-                keybind = "UI_SHORTCUT_DOWN",
-                disabledDuringSceneHiding = true,
-                visible = function()
-                    return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
-                end,
-                callback = function()
-                    self:ExitSearchFocus(true)
-                end,
-            },
-        }
+        self.textSearchKeybindStripDescriptor = CreateSearchKeybindDescriptor(self)
 
         BETTERUI.Interface.Window.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
             -- Normalize the OnTextChanged argument like Banking does
@@ -2511,8 +2446,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
             editBox:SetHandler("OnFocusLost", function(eb)
                 -- Fire original handler if any
                 if origOnFocusLost then origOnFocusLost(eb) end
-                if self:IsHeaderActive() then
-                    self:RequestLeaveHeader()
+                local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
+                if hasText then
+                    self:ExitSearchFocus(true)
+                else
+                    self:ExitSearchFocus()
                 end
             end)
 

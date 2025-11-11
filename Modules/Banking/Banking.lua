@@ -38,18 +38,8 @@ local BANK_CATEGORY_ICONS = {
     junk       = "esoui/art/inventory/inventory_tabicon_junk_up.dds",
 }
 
-local function EnsureKeybindGroupAdded(descriptor)
-    if not descriptor or not KEYBIND_STRIP then return end
-    local groups = KEYBIND_STRIP.keybindButtonGroups or {}
-    for _, group in ipairs(groups) do
-        if group == descriptor then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
-            return
-        end
-    end
-    KEYBIND_STRIP:AddKeybindButtonGroup(descriptor)
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
-end
+local EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded
+local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 
 -- Build the full set of bank categories (unfiltered). Furniture vault is restricted to Furnishing.
 --- Build the full list of bank categories.
@@ -601,27 +591,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     -- Add gamepad text search support; callback updates searchQuery and refreshes the list
     -- Uses the AddSearch helper added to BETTERUI.Interface.Window
-    -- Provide a dedicated keybind group for the text-search header (Clear-only) so
-    -- when the search is focused we can temporarily replace the main banking keybinds.
-    self.textSearchKeybindStripDescriptor = {
-        {
-            name = function() return GetString(SI_BETTERUI_CLEAR_SEARCH) or "Clear" end,
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
-            keybind = "UI_SHORTCUT_NEGATIVE",
-            disabledDuringSceneHiding = true,
-            visible = function()
-                return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
-            end,
-            callback = function()
-                if self.ClearTextSearch then
-                    self:ClearTextSearch()
-                end
-                self.searchQuery = ""
-                self:RefreshList()
-                self:ExitSearchFocus(false)
-            end,
-        },
-    }
+    -- Provide a dedicated keybind group for the text-search header so that when
+    -- the search is focused we can temporarily replace the main banking keybinds.
+    self.textSearchKeybindStripDescriptor = CreateSearchKeybindDescriptor(self)
 
     if self.AddSearch then
         -- Register search. Pass our descriptor so AddSearch can wire keybinds appropriately.
@@ -661,6 +633,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local origOnFocusGained = editBox:GetHandler("OnFocusGained")
         local origOnFocusLost = editBox:GetHandler("OnFocusLost")
         local origOnTextChanged = editBox:GetHandler("OnTextChanged")
+        local origOnKeyDown = editBox:GetHandler("OnKeyDown")
 
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
@@ -673,7 +646,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
-            self:ExitSearchFocus(false)
+            local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
+            if hasText then
+                self:ExitSearchFocus(true)
+            else
+                self:ExitSearchFocus()
+            end
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
@@ -686,6 +664,20 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             pcall(function() self:SaveListPosition() end)
             pcall(function() self:RefreshList() end)
         end)
+
+        editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
+            if origOnKeyDown then
+                local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+                if handled then
+                    return handled
+                end
+            end
+
+            if command == "UI_SHORTCUT_DOWN" then
+                self:ExitSearchFocus(true)
+                return true
+            end
+        end)
     end
 
     -- EnsureHeaderKeybindsActive is defined on the class below; keep calls here
@@ -694,6 +686,16 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
     local function SelectionChangedCallback(list, selectedData)
+        if self._searchModeActive then
+            local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
+            if hasText then
+                self:ExitSearchFocus(true)
+            else
+                self:ExitSearchFocus()
+            end
+            return
+        end
+
         local selectedControl = list:GetSelectedControl()
         if self.selectedDataCallback then
             self:selectedDataCallback(selectedControl, selectedData)
@@ -743,8 +745,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self._suppressHeaderCallback = true
         self:RebuildHeaderCategories()
         self._suppressHeaderCallback = false
-        self:RefreshList()
-        self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
+    self:RefreshList()
+    self:RefreshActiveKeybinds()
     end
 
     local function UpdateCurrency_Handler()
@@ -773,8 +775,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
         if self.isDirty then
             self:RefreshList()
-        elseif self.selectedDataCallback then
-            self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
+        else
+            self:RefreshActiveKeybinds()
         end
         self.list:Activate()
         -- Ensure our keybind groups and header tab bar are active on first show
@@ -1737,6 +1739,19 @@ function BETTERUI.Banking.Class:RequestLeaveHeader()
     end
 end
 
+function BETTERUI.Banking.Class:RefreshActiveKeybinds()
+    if not (self.selectedDataCallback and self.list) then return end
+    local selectedControl = nil
+    if self.list.GetSelectedControl then
+        selectedControl = self.list:GetSelectedControl()
+    end
+    local selectedData = nil
+    if self.list.GetSelectedData then
+        selectedData = self.list:GetSelectedData()
+    end
+    self:selectedDataCallback(selectedControl, selectedData)
+end
+
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -1800,11 +1815,7 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
         pcall(function() self.list:Activate() end)
     end
 
-    if self.selectedDataCallback and self.list and self.list.GetSelectedControl and self.list.GetSelectedData then
-        pcall(function()
-            self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
-        end)
-    end
+    pcall(function() self:RefreshActiveKeybinds() end)
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus(selectTopResult)
