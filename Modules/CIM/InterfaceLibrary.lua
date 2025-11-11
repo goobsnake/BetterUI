@@ -155,7 +155,19 @@ function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, o
         end
 
         if ZO_GamepadGenericHeader_SetHeaderFocusControl then
-            ZO_GamepadGenericHeader_SetHeaderFocusControl(self.header, self.textSearchHeaderControl)
+            -- Try the most specific focusable target first (the tabBar control
+            -- created by BETTERUI_TabBarScrollList), then the generic header
+            -- control, then the root header control. This covers modules that
+            -- initialize the header/tabbar on different child controls.
+            local headerTarget = nil
+            if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
+                headerTarget = self.headerGeneric.tabBar.control
+            elseif self.headerGeneric then
+                headerTarget = self.headerGeneric
+            else
+                headerTarget = self.header
+            end
+            ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, self.textSearchHeaderControl)
         end
 
         -- Make the search control slightly larger and mouse-interactive so PC users can click it
