@@ -1095,6 +1095,18 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
 	self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)    
 
+    local emptyText = "Nothing in list"
+    local listControl = self.itemList and self.itemList.control
+    if listControl and listControl.GetNamedChild then
+        local noItemsLabel = listControl:GetNamedChild("NoItemsLabel")
+        if noItemsLabel and noItemsLabel.GetText then
+            local defaultText = noItemsLabel:GetText()
+            if defaultText and defaultText ~= "" then
+                emptyText = defaultText
+            end
+        end
+    end
+    self.itemList:SetNoItemText(emptyText)
 end
 
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
@@ -2769,6 +2781,19 @@ function BETTERUI.Inventory.Class:OnLeaveHeader()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus:IsActive() then
         self.textSearchHeaderFocus:Deactivate()
     end
+
+    zo_callLater(function()
+        if self.scene and self.scene:IsShowing() then
+            pcall(function() self:EnsureHeaderKeybindsActive() end)
+        end
+    end, 0)
+end
+
+function BETTERUI.Inventory.Class:EnsureHeaderKeybindsActive()
+    local tabBar = self.header and self.header.tabBar
+    if tabBar and tabBar.keybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+    end
 end
 
 function BETTERUI.Inventory.Class:ExitSearchFocus(selectTopResult)
@@ -2796,6 +2821,12 @@ function BETTERUI.Inventory.Class:ExitSearchFocus(selectTopResult)
             end
         end
     end
+
+    zo_callLater(function()
+        if self.scene and self.scene:IsShowing() then
+            pcall(function() self:EnsureHeaderKeybindsActive() end)
+        end
+    end, 0)
 end
 
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
