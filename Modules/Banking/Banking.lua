@@ -664,12 +664,16 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
-            self:EnterSearchMode()
+            if self.RequestEnterHeader then
+                self:RequestEnterHeader()
+            else
+                self:EnterSearchMode()
+            end
         end)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
-            self:LeaveSearchMode()
+            self:ExitSearchFocus(false)
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
@@ -1707,6 +1711,32 @@ function BETTERUI.Banking.Class:ClearTextSearch()
     end
 end
 
+function BETTERUI.Banking.Class:IsHeaderActive()
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
+        local ok, active = pcall(function() return self.textSearchHeaderFocus:IsActive() end)
+        if ok then
+            return active
+        end
+    end
+    return self._searchModeActive == true
+end
+
+function BETTERUI.Banking.Class:RequestEnterHeader()
+    if self.OnEnterHeader then
+        self:OnEnterHeader()
+    else
+        self:EnterSearchMode()
+    end
+end
+
+function BETTERUI.Banking.Class:RequestLeaveHeader()
+    if self.OnLeaveHeader then
+        self:OnLeaveHeader()
+    else
+        self:LeaveSearchMode()
+    end
+end
+
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -1765,10 +1795,24 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     end
 
     pcall(function() self:EnsureHeaderKeybindsActive() end)
+
+    if self.list and not self.list:IsActive() then
+        pcall(function() self.list:Activate() end)
+    end
+
+    if self.selectedDataCallback and self.list and self.list.GetSelectedControl and self.list.GetSelectedData then
+        pcall(function()
+            self:selectedDataCallback(self.list:GetSelectedControl(), self.list:GetSelectedData())
+        end)
+    end
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus(selectTopResult)
-    self:LeaveSearchMode()
+    if self:IsHeaderActive() then
+        self:RequestLeaveHeader()
+    else
+        self:LeaveSearchMode()
+    end
 
     if selectTopResult then
         local list = self.list
@@ -1837,6 +1881,9 @@ function BETTERUI.Banking.Class:OnEnterHeader()
 
         -- Ensure only the Clear keybind group remains visible shortly after entering header
         zo_callLater(function()
+            if not self._searchModeActive then return end
+            if not KEYBIND_STRIP then return end
+
             pcall(function()
                 local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
                 if keybindGroups then
@@ -1848,22 +1895,14 @@ function BETTERUI.Banking.Class:OnEnterHeader()
                     end
                 end
             end)
-            pcall(function()
-                if self.textSearchKeybindStripDescriptor then
-                    local keybindGroups = KEYBIND_STRIP.keybindButtonGroups or {}
-                    local isAdded = false
-                    for _, group in ipairs(keybindGroups) do
-                        if group == self.textSearchKeybindStripDescriptor then
-                            isAdded = true
-                            break
-                        end
-                    end
-                    if not isAdded then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                end
-            end)
+
+            if not self._searchModeActive then return end
+
+            if self.textSearchKeybindStripDescriptor then
+                pcall(function()
+                    EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+                end)
+            end
         end, 20)
     else
         -- Fallback to base behavior if no text search available
