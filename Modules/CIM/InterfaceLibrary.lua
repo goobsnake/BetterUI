@@ -41,7 +41,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             end,
             callback = function()
                 if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus(HasSearchText())
+                    context:ExitSearchFocus()
                 end
             end,
         },
@@ -84,7 +84,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             end,
             callback = function()
                 if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus(HasSearchText())
+                    context:ExitSearchFocus()
                 end
             end,
         },

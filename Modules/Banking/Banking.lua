@@ -465,15 +465,13 @@ function BETTERUI.Banking.Class:RefreshList()
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if entryCount == 0 then
         self.list:Deactivate()
-    elseif not self:IsHeaderActive() then
-        -- Keep the list active only when the search header is not focused
-        self.list:Activate()
     else
-        self.list:Deactivate()
+        self.list:Activate()
     end
     self:ReturnToSaved()
     self:UpdateActions()
     self:RefreshFooter()
+
     -- Ensure keybind visibility reflects current (possibly empty) list state immediately
     if KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
@@ -648,12 +646,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
-            local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-            if hasText then
-                self:ExitSearchFocus(true)
-            else
                 self:ExitSearchFocus()
-            end
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
@@ -676,12 +669,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
 
             if command == "UI_SHORTCUT_DOWN" then
-                local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-                if hasText then
-                    self:ExitSearchFocus(true)
-                else
-                    self:ExitSearchFocus()
-                end
+                self:ExitSearchFocus()
                 return true
             end
         end)
@@ -696,8 +684,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
 
             if shortcut == "UI_SHORTCUT_DOWN" then
-                local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-                self:ExitSearchFocus(hasText)
+                self:ExitSearchFocus()
                 return true
             end
         end)
@@ -710,12 +697,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
-            local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-            if hasText then
-                self:ExitSearchFocus(true)
-            else
-                self:ExitSearchFocus()
-            end
+            self:ExitSearchFocus()
             return
         end
 
@@ -1754,14 +1736,6 @@ function BETTERUI.Banking.Class:RequestEnterHeader()
     end
 end
 
-function BETTERUI.Banking.Class:RequestLeaveHeader()
-    if self.OnLeaveHeader then
-        self:OnLeaveHeader()
-    else
-        self:LeaveSearchMode()
-    end
-end
-
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end
     local selectedControl = nil
@@ -1836,39 +1810,10 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
 
     pcall(function() self:EnsureHeaderKeybindsActive() end)
 
-    if self.list and not self.list:IsActive() then
-        pcall(function() self.list:Activate() end)
-    end
-
     pcall(function() self:RefreshActiveKeybinds() end)
     pcall(function() self:UpdateActions() end)
 
     -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
-end
-
-function BETTERUI.Banking.Class:ExitSearchFocus(selectTopResult)
-    if self:IsHeaderActive() then
-        self:RequestLeaveHeader()
-    else
-        self:LeaveSearchMode()
-    end
-
-    if selectTopResult then
-        local list = self.list
-        if list and list.SetSelectedIndexWithoutAnimation then
-            local count = 0
-            if list.GetNumItems then
-                count = list:GetNumItems()
-            elseif list.GetNumEntries then
-                count = list:GetNumEntries()
-            elseif list.dataList then
-                count = #list.dataList
-            end
-            if count > 0 then
-                pcall(function() list:SetSelectedIndexWithoutAnimation(1, true, false) end)
-            end
-        end
-    end
 end
 
 -- Position the text search control directly beneath the header/title so it appears
@@ -1906,6 +1851,10 @@ function BETTERUI.Banking.Class:PositionSearchControl()
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
     end
     self.textSearchHeaderControl:SetHidden(false)
+end
+
+function BETTERUI.Banking.Class:ExitSearchFocus()
+    self:LeaveSearchMode()
 end
 
 -- Override header-enter lifecycle to auto-focus the text search when header is entered.
@@ -1948,14 +1897,6 @@ function BETTERUI.Banking.Class:OnEnterHeader()
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
             pcall(function() BETTERUI.Interface.Window.OnEnterHeader(self) end)
         end
-    end
-end
-
-function BETTERUI.Banking.Class:OnLeaveHeader()
-    self:LeaveSearchMode()
-
-    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnLeaveHeader then
-        pcall(function() BETTERUI.Interface.Window.OnLeaveHeader(self) end)
     end
 end
 

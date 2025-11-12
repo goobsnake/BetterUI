@@ -2458,12 +2458,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
             editBox:SetHandler("OnFocusLost", function(eb)
                 -- Fire original handler if any
                 if origOnFocusLost then origOnFocusLost(eb) end
-                local hasText = self.searchQuery and tostring(self.searchQuery) ~= ""
-                if hasText then
-                    self:ExitSearchFocus(true)
-                else
                     self:ExitSearchFocus()
-                end
             end)
 
             -- Targeted OnTextChanged handler: perform a local immediate craft-bag refresh
@@ -2504,7 +2499,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
                 end
 
                 if command == "UI_SHORTCUT_DOWN" then
-                    self:ExitSearchFocus(true)
+                    self:ExitSearchFocus()
                     return true
                 end
             end)
@@ -2796,7 +2791,7 @@ function BETTERUI.Inventory.Class:EnsureHeaderKeybindsActive()
     end
 end
 
-function BETTERUI.Inventory.Class:ExitSearchFocus(selectTopResult)
+function BETTERUI.Inventory.Class:ExitSearchFocus()
     if self:IsHeaderActive() then
         self:RequestLeaveHeader()
     end
