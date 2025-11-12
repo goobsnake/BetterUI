@@ -1,4 +1,11 @@
-Current Release - 2.85 Changes:
+Current Release - 2.86 Changes:
+
+[INDENT]1. Fixed: Inventory and Bank item search functionality should be more consistent between the two
+2. Fixed: Placeholder
+[/INDENT]
+
+
+2.85 Changes:
 
 [INDENT]1. Fixed: Workaround fixes to a potential ESO API bug related to zo_iconFormat & ZO_KeybindStrip causing errors when users would perform certain skill purchases or upgrades
 2. Fixed: Some additional inventory navigation issues after performing certain actions like lock, unlock, mark as junk, etc.

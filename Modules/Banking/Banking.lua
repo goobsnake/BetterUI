@@ -818,6 +818,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
         
+        -- Clear search text when exiting the banking scene
+        self.searchQuery = ""
+        if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
+            self.textSearchHeaderFocus:GetEditBox():SetText("")
+        end
+
         -- Reset category positions when leaving the bank so next visit starts fresh
         self.lastPositionsByCategory = {}
 	end
