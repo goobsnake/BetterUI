@@ -225,15 +225,6 @@ function BETTERUI_HorizontalScrollList_Gamepad:Deactivate()
     self:SetActive(false)
 end
 
-function BETTERUI_HorizontalScrollList_Gamepad:UpdateDirectionalInput()
-    local result = self.movementController:CheckMovement()
-    if result == MOVEMENT_CONTROLLER_MOVE_NEXT then
-        self:MoveLeft()
-    elseif result == MOVEMENT_CONTROLLER_MOVE_PREVIOUS then
-        self:MoveRight()
-    end
-end
-
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
 --- Creates a new horizontal parametric scroll list instance
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
