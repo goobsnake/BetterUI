@@ -461,12 +461,9 @@ function BETTERUI.Banking.Class:RefreshList()
     end
 
     self.list:Commit()
-    -- If the list becomes empty, or the search header currently owns focus,
-    -- keep the parametric list deactivated so navigation/input stays with the
-    -- search control. This mirrors Inventory behaviour where the edit box
-    -- remains highlighted until the player leaves it.
+    -- If list becomes empty, deactivate to avoid parametric list moving errors
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
-    if entryCount == 0 or self._searchModeActive then
+    if entryCount == 0 then
         self.list:Deactivate()
     else
         self.list:Activate()
@@ -672,11 +669,23 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
 
             if command == "UI_SHORTCUT_DOWN" then
-                -- Exit search focus but do not consume the directional input here.
-                -- Let the engine handle the navigation so selection/navigation continues
-                -- to work outside this scene after leaving search focus.
                 self:ExitSearchFocus()
-                return false
+                return true
+            end
+        end)
+
+        local origOnShortcut = editBox:GetHandler("OnShortcut")
+        editBox:SetHandler("OnShortcut", function(eb, shortcut)
+            if origOnShortcut then
+                local handled = origOnShortcut(eb, shortcut)
+                if handled then
+                    return handled
+                end
+            end
+
+            if shortcut == "UI_SHORTCUT_DOWN" then
+                self:ExitSearchFocus()
+                return true
             end
         end)
     end
@@ -787,9 +796,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     end
 
     local function OnEffectivelyHidden()
-        if self._searchModeActive then
-            self:ExitSearchFocus()
-        end
         self:LastUsedBank()
         self:CancelWithdrawDeposit(self.list)
         self.list:Deactivate()
@@ -1760,9 +1766,6 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         if self.withdrawDepositKeybinds then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
         end
-        if self.currencyKeybinds then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        end
     end)
 
     if self.textSearchKeybindStripDescriptor then
@@ -1795,6 +1798,10 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
             EnsureKeybindGroupAdded(self.coreKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
         end
+        if self.withdrawDepositKeybinds then
+            EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        end
     end)
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
@@ -1807,41 +1814,11 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
         pcall(function() self:SetTextSearchFocused(false) end)
     end
 
-    -- Ensure at least one item is selected in the list after exiting search mode
-    pcall(function()
-        if self.list and self.list.dataList and #self.list.dataList > 0 then
-            local sel = nil
-            if self.list.GetSelectedData then
-                sel = self.list:GetSelectedData()
-            end
-            if not sel then
-                if self.list.SetSelectedIndexWithoutAnimation then
-                    self.list:SetSelectedIndexWithoutAnimation(1, true, false)
-                elseif self.list.SetSelectedIndex then
-                    self.list:SetSelectedIndex(1, true, false)
-                end
-            end
-        end
-    end)
+    pcall(function() self:EnsureHeaderKeybindsActive() end)
 
-    -- Reactivate the item list so navigation resumes immediately after leaving search focus
-    pcall(function()
-        if not (SCENE_MANAGER and SCENE_MANAGER.scenes) then return end
-        local scene = SCENE_MANAGER.scenes['gamepad_banking']
-        if not (scene and scene:IsShowing()) then
-            return
-        end
-        if self.list and self.list.Activate then
-            local shouldActivate = true
-            if self.list.IsActive then
-                local ok, active = pcall(function() return self.list:IsActive() end)
-                shouldActivate = not (ok and active)
-            end
-            if shouldActivate then
-                self.list:Activate()
-            end
-        end
-    end)
+    pcall(function() self:RefreshActiveKeybinds() end)
+    pcall(function() self:UpdateActions() end)
+
     -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
 end
 
@@ -1883,56 +1860,7 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus()
-    local function selectFirstEntryIfNeeded()
-        if not (self.searchQuery and tostring(self.searchQuery) ~= "") then
-            return
-        end
-
-        local list = self.list
-        if not list then return end
-
-        local count = 0
-        if list.GetNumItems then
-            count = list:GetNumItems()
-        elseif list.GetNumEntries then
-            count = list:GetNumEntries()
-        elseif list.dataList then
-            count = #list.dataList
-        end
-
-        if count == 0 then return end
-
-        if list.SetSelectedIndexWithoutAnimation then
-            pcall(function() list:SetSelectedIndexWithoutAnimation(1, true, false) end)
-        elseif list.SetSelectedIndex then
-            pcall(function() list:SetSelectedIndex(1, true, false) end)
-        end
-    end
-
-    local handledHeader = false
-    if self:IsHeaderActive() then
-        if self.RequestLeaveHeader then
-            self:RequestLeaveHeader()
-            handledHeader = true
-        end
-    end
-
-    if not handledHeader and self._searchModeActive then
-        self:LeaveSearchMode()
-    elseif handledHeader and self._searchModeActive then
-        -- Some inherited implementations may not change _searchModeActive; ensure we leave search mode.
-        self:LeaveSearchMode()
-    end
-
-    selectFirstEntryIfNeeded()
-
-    zo_callLater(function()
-        if not (SCENE_MANAGER and SCENE_MANAGER.scenes) then return end
-        local scene = SCENE_MANAGER.scenes['gamepad_banking']
-        if scene and scene:IsShowing() then
-            pcall(function() self:EnsureHeaderKeybindsActive() end)
-        end
-    end, 0)
+    self:LeaveSearchMode()
 end
 
 -- Override header-enter lifecycle to auto-focus the text search when header is entered.

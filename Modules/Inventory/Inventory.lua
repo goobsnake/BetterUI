@@ -2499,11 +2499,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
                 end
 
                 if command == "UI_SHORTCUT_DOWN" then
-                    -- Exit search focus but don't consume the directional input here.
-                    -- Allow the engine to handle navigation so Up/Down keep working
-                    -- outside of this screen after leaving the search focus.
                     self:ExitSearchFocus()
-                    return false
+                    return true
                 end
             end)
         end
