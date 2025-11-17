@@ -649,9 +649,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
-            if self._searchModeActive or (self.textSearchHeaderFocus and self.textSearchHeaderFocus:IsActive()) then
                 self:ExitSearchFocus()
-            end
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
@@ -666,9 +664,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end)
 
         editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
-            local handledByOriginal = false
             if origOnKeyDown then
-                handledByOriginal = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+                local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+                if handled then
+                    return handled
+                end
             end
 
             if command == "UI_SHORTCUT_DOWN" then
@@ -677,10 +677,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 -- to work outside this scene after leaving search focus.
                 self:ExitSearchFocus()
                 return false
-            end
-
-            if handledByOriginal then
-                return handledByOriginal
             end
         end)
     end
@@ -794,24 +790,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if self._searchModeActive then
             self:ExitSearchFocus()
         end
-        -- Regardless of current mode, guarantee the search focus/keybinds are released so
-        -- directional navigation remains responsive after leaving the banking scene.
-        self._searchModeActive = false
-        pcall(function()
-            if self.textSearchHeaderFocus and self.textSearchHeaderFocus:IsActive() then
-                self.textSearchHeaderFocus:Deactivate()
-            end
-        end)
-        pcall(function()
-            if self.SetTextSearchFocused then
-                self:SetTextSearchFocused(false)
-            end
-        end)
-        pcall(function()
-            if KEYBIND_STRIP and self.textSearchKeybindStripDescriptor then
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-            end
-        end)
         self:LastUsedBank()
         self:CancelWithdrawDeposit(self.list)
         self.list:Deactivate()
@@ -1369,12 +1347,24 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                         if self.ClearTextSearch then
                             self:ClearTextSearch()
                         end
-                        if self._searchModeActive then
-                            self:ExitSearchFocus()
-                        else
-                            pcall(function() self:RefreshActiveKeybinds() end)
-                            pcall(function() self:UpdateActions() end)
-                        end
+                        -- After clearing search, restore the standard banking keybinds
+                        pcall(function()
+                            if self.textSearchKeybindStripDescriptor then
+                                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+                            end
+                        end)
+                        pcall(function()
+                            if self.coreKeybinds then
+                                KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+                                pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
+                            end
+                        end)
+                        pcall(function()
+                            if self.withdrawDepositKeybinds then
+                                KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+                                pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end)
+                            end
+                        end)
                     end,
                 },
                {
@@ -1893,7 +1883,11 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus()
-    local function focusFirstEntry()
+    local function selectFirstEntryIfNeeded()
+        if not (self.searchQuery and tostring(self.searchQuery) ~= "") then
+            return
+        end
+
         local list = self.list
         if not list then return end
 
@@ -1908,38 +1902,29 @@ function BETTERUI.Banking.Class:ExitSearchFocus()
 
         if count == 0 then return end
 
-        local hasSelection = false
-        if list.GetSelectedData then
-            local ok, data = pcall(function() return list:GetSelectedData() end)
-            hasSelection = ok and data ~= nil
-        elseif list.GetSelectedIndex then
-            local ok, idx = pcall(function() return list:GetSelectedIndex() end)
-            hasSelection = ok and idx ~= nil
+        if list.SetSelectedIndexWithoutAnimation then
+            pcall(function() list:SetSelectedIndexWithoutAnimation(1, true, false) end)
+        elseif list.SetSelectedIndex then
+            pcall(function() list:SetSelectedIndex(1, true, false) end)
         end
-
-        if not hasSelection then
-            if list.SetSelectedIndexWithoutAnimation then
-                pcall(function() list:SetSelectedIndexWithoutAnimation(1, true, false) end)
-            elseif list.SetSelectedIndex then
-                pcall(function() list:SetSelectedIndex(1, true, false) end)
-            end
-        end
-
-        pcall(function() self:RefreshActiveKeybinds() end)
-        pcall(function() self:UpdateActions() end)
     end
 
     local handledHeader = false
-    if self:IsHeaderActive() and self.RequestLeaveHeader then
-        self:RequestLeaveHeader()
-        handledHeader = true
+    if self:IsHeaderActive() then
+        if self.RequestLeaveHeader then
+            self:RequestLeaveHeader()
+            handledHeader = true
+        end
     end
 
-    if self._searchModeActive then
+    if not handledHeader and self._searchModeActive then
+        self:LeaveSearchMode()
+    elseif handledHeader and self._searchModeActive then
+        -- Some inherited implementations may not change _searchModeActive; ensure we leave search mode.
         self:LeaveSearchMode()
     end
 
-    focusFirstEntry()
+    selectFirstEntryIfNeeded()
 
     zo_callLater(function()
         if not (SCENE_MANAGER and SCENE_MANAGER.scenes) then return end
