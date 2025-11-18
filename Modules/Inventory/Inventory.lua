@@ -425,18 +425,25 @@ end
 --- Ensures All Items is always present; includes Stolen/Junk when items exist
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 
-	local function IsStolenAndNotJunk()
-		local usedBagSize = GetNumBagUsedSlots(BAG_BACKPACK)
+    local function IsStolenAndNotJunk()
+        if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
+            local function Filter(slotData)
+                return slotData and slotData.bagId == BAG_BACKPACK and slotData.stolen and not slotData.isJunk
+            end
+            local stolenSlots = SHARED_INVENTORY:GenerateFullSlotData(Filter, BAG_BACKPACK)
+            if type(stolenSlots) == "table" and #stolenSlots > 0 then
+                return true
+            end
+        end
 
-		for i = 1, usedBagSize do
-			local isStolen = IsItemStolen(BAG_BACKPACK, i)
-			local isJunk = IsItemJunk(BAG_BACKPACK, i)
-			if isStolen and not isJunk then
-				return true
-			end
-		end
-		return false
-	end
+        local bagSize = GetBagSize(BAG_BACKPACK) or 0
+        for slotIndex = 0, bagSize - 1 do
+            if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
+                return true
+            end
+        end
+        return false
+    end
 	
 	-- Store the current selected index before clearing so we can restore it
 	local previousSelectedIndex = self.categoryList.selectedIndex
@@ -679,18 +686,15 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
         do
 			if IsStolenAndNotJunk() then
-                local isListEmpty = self:IsItemListEmpty(nil, nil)
-                if not isListEmpty then
-                    local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
-                    local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
-                    local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-                    data.showStolen = true
-                    data:SetIconTintOnSelection(true)
-                    self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-                    BETTERUI.GenericHeader.AddToList(self.header, data)
-                    if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
-                end
+                local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
+                local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"
+                local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
+                local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
+                data.showStolen = true
+                data:SetIconTintOnSelection(true)
+                self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
+                BETTERUI.GenericHeader.AddToList(self.header, data)
+                if not self.populatedCategoryPos then self.categoryPositions[#self.categoryPositions+1] = 1 end
             end
         end
 
