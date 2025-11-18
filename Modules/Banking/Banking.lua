@@ -862,174 +862,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
         end)
 
-        -- Debug: dump DIRECTIONAL_INPUT table entries to see who owns directional input
-        pcall(function()
-            if not DIRECTIONAL_INPUT then
-                ddebug("Banking: DIRECTIONAL_INPUT is nil")
-                return
-            end
-            ddebug("Banking: DIRECTIONAL_INPUT tostring="..tostring(DIRECTIONAL_INPUT))
-            local count = 0
-            for k, v in pairs(DIRECTIONAL_INPUT) do
-                count = count + 1
-                local vstr = ""
-                -- avoid huge dumps; just tostring values
-                pcall(function() vstr = tostring(v) end)
-                ddebug("Banking: DIRECTIONAL_INPUT["..tostring(k).."] = "..vstr)
-            end
-            ddebug("Banking: DIRECTIONAL_INPUT fields count="..tostring(count))
-        end)
-
-        -- Attempt to proactively deactivate our list from directional input if it remains registered.
-        pcall(function()
-            if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and self.list then
-                local ok, listening = pcall(function() return DIRECTIONAL_INPUT:IsListening(self.list) end)
-                if ok and listening then
-                    ddebug("Banking: DIRECTIONAL_INPUT still listening to our list; deactivating list owner")
-                    pcall(function() DIRECTIONAL_INPUT:Deactivate(self.list) end)
-                else
-                    ddebug("Banking: DIRECTIONAL_INPUT not listening to our list; no deactivate needed")
-                end
-            end
-        end)
-
-        -- More detailed diagnostics: enumerate inputObjects, inputControls and queuedActivationOperations
-        pcall(function()
-            if not DIRECTIONAL_INPUT then
-                ddebug("Banking: DIRECTIONAL_INPUT is nil (detailed diagnostic)")
-                return
-            end
-
-            -- Helper to try calls safely
-            local safeTostring = function(v)
-                local ok, s = pcall(function() return tostring(v) end)
-                if ok and s then return s end
-                return "<tostring failed>"
-            end
-
-            -- Check possible field name variants (engine uses lowercase in library but dump may show other keys)
-            local checkArrays = {
-                {name = "inputObjects"},
-                {name = "InputObjects"},
-            }
-            for _, entry in ipairs(checkArrays) do
-                local arr = DIRECTIONAL_INPUT[entry.name]
-                if arr and type(arr) == "table" then
-                    ddebug("Banking: DIRECTIONAL_INPUT."..entry.name.." count="..tostring(#arr))
-                    for i = 1, #arr do
-                        local obj = arr[i]
-                        ddebug("Banking: DIRECTIONAL_INPUT."..entry.name.."["..tostring(i).."] = "..safeTostring(obj))
-                        -- If this looks like a control, try a few safe control queries
-                        pcall(function()
-                            if type(obj) == "userdata" then
-                                local okName, name = pcall(function() return obj:GetName() end)
-                                if okName and name then ddebug("Banking:   control:GetName() = "..tostring(name)) end
-                                local okHidden, hidden = pcall(function() return obj:IsControlHidden() end)
-                                if okHidden then ddebug("Banking:   control:IsControlHidden() = "..tostring(hidden)) end
-                                local okParent, parent = pcall(function() return obj:GetParent() end)
-                                if okParent and parent then ddebug("Banking:   control:GetParent() = "..safeTostring(parent)) end
-                            end
-                        end)
-                    end
-                end
-            end
-
-            -- Input controls array (parallel to inputObjects)
-            local checkControls = {"inputControls", "InputControls"}
-            for _, n in ipairs(checkControls) do
-                local ctrs = DIRECTIONAL_INPUT[n]
-                if ctrs and type(ctrs) == "table" then
-                    ddebug("Banking: DIRECTIONAL_INPUT."..n.." count="..tostring(#ctrs))
-                    for i = 1, #ctrs do
-                        local c = ctrs[i]
-                        ddebug("Banking: DIRECTIONAL_INPUT."..n.."["..tostring(i).."] = "..safeTostring(c))
-                        pcall(function()
-                            if type(c) == "userdata" then
-                                local okName, name = pcall(function() return c:GetName() end)
-                                if okName and name then ddebug("Banking:   control:GetName() = "..tostring(name)) end
-                                local okHidden, hidden = pcall(function() return c:IsControlHidden() end)
-                                if okHidden then ddebug("Banking:   control:IsControlHidden() = "..tostring(hidden)) end
-                            end
-                        end)
-                    end
-                end
-            end
-
-            -- queuedActivationOperations (may contain objects/controls waiting to be activated/deactivated)
-            local qname = "queuedActivationOperations"
-            local queued = DIRECTIONAL_INPUT[qname]
-            if queued and type(queued) == "table" then
-                ddebug("Banking: DIRECTIONAL_INPUT."..qname.." count="..tostring(#queued))
-                for i = 1, #queued do
-                    local op = queued[i]
-                    if op and type(op) == "table" then
-                        local a = op.activate
-                        local obj = op.object
-                        local ctl = op.control
-                        ddebug("Banking: queued["..tostring(i).."] activate="..tostring(a) .. " object="..safeTostring(obj) .. " control="..safeTostring(ctl))
-                        pcall(function()
-                            if type(obj) == "userdata" then
-                                local okName, name = pcall(function() return obj:GetName() end)
-                                if okName and name then ddebug("Banking:   queued.object:GetName()="..tostring(name)) end
-                            end
-                            if type(ctl) == "userdata" then
-                                local okName, name = pcall(function() return ctl:GetName() end)
-                                if okName and name then ddebug("Banking:   queued.control:GetName()="..tostring(name)) end
-                            end
-                        end)
-                    else
-                        ddebug("Banking: queued["..tostring(i).."] = "..safeTostring(op))
-                    end
-                end
-            end
-        end)
-
-        -- Additional diagnostics: check active edit control and which input devices are consumed
-        pcall(function()
-            local okHas, has = pcall(function() return HasActiveEditControl() end)
-            if okHas then
-                ddebug("Banking: HasActiveEditControl = "..tostring(has))
-            else
-                ddebug("Banking: HasActiveEditControl() call failed")
-            end
-
-            -- Try to fetch the active edit control if possible
-            local okGet, active = pcall(function() if GetActiveEditControl then return GetActiveEditControl() end end)
-            if okGet and active then
-                ddebug("Banking: GetActiveEditControl tostring="..tostring(active))
-                pcall(function()
-                    if type(active) == "userdata" then
-                        local okName, name = pcall(function() return active:GetName() end)
-                        if okName and name then ddebug("Banking: ActiveEditControl:GetName() = "..tostring(name)) end
-                        local okText, text = pcall(function() return active:GetText() end)
-                        if okText then ddebug("Banking: ActiveEditControl:GetText() = "..tostring(text)) end
-                    end
-                end)
-            else
-                if not okGet then ddebug("Banking: GetActiveEditControl() call failed") end
-            end
-
-            -- Enumerate consumed input devices table if present
-            local consumed = DIRECTIONAL_INPUT.inputDeviceConsumed or DIRECTIONAL_INPUT.inputDeviceConsumed
-            if consumed and type(consumed) == "table" then
-                ddebug("Banking: DIRECTIONAL_INPUT.inputDeviceConsumed entries:")
-                for k, v in pairs(consumed) do
-                    ddebug("Banking:   inputDeviceConsumed["..tostring(k).."] = "..tostring(v))
-                end
-            else
-                ddebug("Banking: DIRECTIONAL_INPUT.inputDeviceConsumed not present or not a table")
-            end
-
-            -- If overlay helpers exist, log their state
-            pcall(function()
-                if WasGamepadLeftStickConsumedByOverlay then
-                    ddebug("Banking: WasGamepadLeftStickConsumedByOverlay() = "..tostring(WasGamepadLeftStickConsumedByOverlay()))
-                end
-                if WasGamepadRightStickConsumedByOverlay then
-                    ddebug("Banking: WasGamepadRightStickConsumedByOverlay() = "..tostring(WasGamepadRightStickConsumedByOverlay()))
-                end
-            end)
-        end)
+        -- Dump DIRECTIONAL_INPUT diagnostic info (consolidated helper)
+        pcall(function() self:DumpDirectionalInputDiagnostics() end)
         -- Extra safety: remove any lingering search keybind group and re-enable directional input
         pcall(function()
             if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
@@ -1048,6 +882,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
         -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
+        -- Delayed fallback to re-enable list directional input (avoid re-adding keybinds)
         pcall(function()
             zo_callLater(function()
                 pcall(function()
@@ -1059,51 +894,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                         self.list:SetDirectionalInputEnabled(true)
                         ddebug("Banking: delayed re-enable of self.list directional input executed")
                     end
-                    -- Re-assert keybind groups to ensure they're present after any race
-                    if KEYBIND_STRIP then
-                        if self.coreKeybinds then
-                            pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds) end)
-                            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
-                        end
-                        if self.withdrawDepositKeybinds then
-                            pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds) end)
-                            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end)
-                        end
-                    end
                 end)
-            end, 50)
+            end, directionalFixDelayMs)
         end)
 
-        -- Aggressive cleanup: deactivate any DIRECTIONAL_INPUT owners that are not the engine's GuiRoot/ClientInput.
-        -- This is destructive but requested: it will attempt to remove any non-engine owner that may be blocking input.
-        pcall(function()
-            zo_callLater(function()
-                pcall(function()
-                    if not DIRECTIONAL_INPUT then return end
-                    local objs = DIRECTIONAL_INPUT.inputObjects
-                    local ctrls = DIRECTIONAL_INPUT.inputControls
-                    if not objs or type(objs) ~= "table" then return end
-                    for i = #objs, 1, -1 do
-                        local obj = objs[i]
-                        local ctl = (ctrls and ctrls[i]) or nil
-                        local skip = false
-                        -- Skip deactivating engine client input (likely control is GuiRoot)
-                        if type(ctl) == "userdata" then
-                            local okName, name = pcall(function() return ctl:GetName() end)
-                            if okName and tostring(name) == "GuiRoot" then
-                                skip = true
-                            end
-                        end
-                        if not skip then
-                            ddebug("Banking: aggressive cleanup: deactivating owner="..tostring(obj).." control="..tostring(ctl))
-                            pcall(function() DIRECTIONAL_INPUT:Deactivate(obj) end)
-                        else
-                            ddebug("Banking: aggressive cleanup: skipping engine owner control="..tostring(ctl))
-                        end
-                    end
-                end)
-            end, 60)
-        end)
+        -- Aggressive cleanup: attempt to deactivate selected DIRECTIONAL_INPUT owners (safer)
+        pcall(function() self:AggressiveDirectionalCleanup() end)
 
         -- Clear search text when exiting the banking scene
         self.searchQuery = ""
@@ -1151,6 +947,162 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
             return ok
         end
+    end
+
+    -- Configuration for directional input fix timing (ms)
+    local directionalFixDelayMs = 60
+
+    -- Consolidated diagnostic helper: dumps DIRECTIONAL_INPUT internal arrays and related state
+    local function DumpDirectionalInputDiagnostics()
+        pcall(function()
+            if not DIRECTIONAL_INPUT then
+                ddebug("Banking: DIRECTIONAL_INPUT is nil (dump)")
+                return
+            end
+            ddebug("Banking: DIRECTIONAL_INPUT tostring="..tostring(DIRECTIONAL_INPUT))
+            -- Quick field listing
+            local count = 0
+            for k, v in pairs(DIRECTIONAL_INPUT) do
+                count = count + 1
+            end
+            ddebug("Banking: DIRECTIONAL_INPUT fields count="..tostring(count))
+
+            local safeTostring = function(v)
+                local ok, s = pcall(function() return tostring(v) end)
+                if ok and s then return s end
+                return "<tostring failed>"
+            end
+
+            local function dumpArray(name)
+                local arr = DIRECTIONAL_INPUT[name]
+                if arr and type(arr) == "table" then
+                    ddebug("Banking: DIRECTIONAL_INPUT."..name.." count="..tostring(#arr))
+                    for i = 1, #arr do
+                        local v = arr[i]
+                        ddebug("Banking: DIRECTIONAL_INPUT."..name.."["..tostring(i).."] = "..safeTostring(v))
+                        pcall(function()
+                            if type(v) == "userdata" then
+                                local okName, name = pcall(function() return v:GetName() end)
+                                if okName and name then ddebug("Banking:   control:GetName() = "..tostring(name)) end
+                                local okHidden, hidden = pcall(function() return v:IsControlHidden() end)
+                                if okHidden then ddebug("Banking:   control:IsControlHidden() = "..tostring(hidden)) end
+                            end
+                        end)
+                    end
+                end
+            end
+
+            dumpArray("inputObjects")
+            dumpArray("inputControls")
+            dumpArray("InputObjects")
+            dumpArray("InputControls")
+
+            local queued = DIRECTIONAL_INPUT.queuedActivationOperations
+            if queued and type(queued) == "table" then
+                ddebug("Banking: DIRECTIONAL_INPUT.queuedActivationOperations count="..tostring(#queued))
+                for i = 1, #queued do
+                    local op = queued[i]
+                    if op and type(op) == "table" then
+                        ddebug("Banking: queued["..tostring(i).."] activate="..tostring(op.activate) .. " object="..safeTostring(op.object) .. " control="..safeTostring(op.control))
+                    end
+                end
+            end
+
+            -- Active edit control / input device state
+            pcall(function()
+                local okHas, has = pcall(function() return HasActiveEditControl() end)
+                if okHas then ddebug("Banking: HasActiveEditControl = "..tostring(has)) end
+                if GetActiveEditControl then
+                    local okGet, active = pcall(function() return GetActiveEditControl() end)
+                    if okGet and active then
+                        ddebug("Banking: GetActiveEditControl tostring="..safeTostring(active))
+                        pcall(function()
+                            if type(active) == "userdata" then
+                                local okName, name = pcall(function() return active:GetName() end)
+                                if okName and name then ddebug("Banking: ActiveEditControl:GetName() = "..tostring(name)) end
+                                local okText, text = pcall(function() return active:GetText() end)
+                                if okText then ddebug("Banking: ActiveEditControl:GetText() = "..tostring(text)) end
+                            end
+                        end)
+                    end
+                end
+                if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputDeviceConsumed and type(DIRECTIONAL_INPUT.inputDeviceConsumed) == "table" then
+                    for k, v in pairs(DIRECTIONAL_INPUT.inputDeviceConsumed) do
+                        ddebug("Banking:   inputDeviceConsumed["..tostring(k).."] = "..tostring(v))
+                    end
+                end
+                if WasGamepadLeftStickConsumedByOverlay then ddebug("Banking: WasGamepadLeftStickConsumedByOverlay() = "..tostring(WasGamepadLeftStickConsumedByOverlay())) end
+                if WasGamepadRightStickConsumedByOverlay then ddebug("Banking: WasGamepadRightStickConsumedByOverlay() = "..tostring(WasGamepadRightStickConsumedByOverlay())) end
+            end)
+        end)
+    end
+
+    -- Aggressive cleanup helper: deactivates selected owners based on safer pattern matching
+    local function AggressiveDirectionalCleanupImpl()
+        pcall(function()
+            if not DIRECTIONAL_INPUT then return end
+            local objs = DIRECTIONAL_INPUT.inputObjects
+            local ctrls = DIRECTIONAL_INPUT.inputControls
+            if not objs or type(objs) ~= "table" then return end
+
+            local patterns = {"BETTERUI", "Wykkyds", "ZO_", "Gamepad", "ZOGamepad", "BetterUI"}
+
+            for i = #objs, 1, -1 do
+                local obj = objs[i]
+                local ctl = (ctrls and ctrls[i]) or nil
+                local skipEngine = false
+                pcall(function()
+                    if obj == CLIENT_INPUT then
+                        skipEngine = true
+                    end
+                    if type(ctl) == "userdata" then
+                        local okName, name = pcall(function() return ctl:GetName() end)
+                        if okName and tostring(name) == "GuiRoot" then
+                            skipEngine = true
+                        end
+                    end
+                end)
+                if skipEngine then
+                    ddebug("Banking: aggressive cleanup: skipping engine owner control="..tostring(ctl))
+                else
+                    -- Decide whether to allow deactivation based on patterns or hidden controls
+                    local allow = false
+                    pcall(function()
+                        if type(ctl) == "userdata" then
+                            local okName, name = pcall(function() return ctl:GetName() end)
+                            if okName and name then
+                                for _, pat in ipairs(patterns) do
+                                    if string.find(tostring(name), pat, 1, true) then allow = true break end
+                                end
+                            end
+                            if not allow then
+                                local okHidden, hidden = pcall(function() return ctl:IsControlHidden() end)
+                                if okHidden and hidden then allow = true end
+                            end
+                        end
+                        if not allow then
+                            -- check object tostring for patterns
+                            local s = tostring(obj)
+                            for _, pat in ipairs(patterns) do
+                                if string.find(s, pat, 1, true) then allow = true break end
+                            end
+                        end
+                    end)
+                    if allow then
+                        ddebug("Banking: aggressive cleanup: deactivating owner="..tostring(obj).." control="..tostring(ctl))
+                        pcall(function() DIRECTIONAL_INPUT:Deactivate(obj) end)
+                    else
+                        ddebug("Banking: aggressive cleanup: skipping non-matching owner="..tostring(obj).." control="..tostring(ctl))
+                    end
+                end
+            end
+        end)
+    end
+
+    -- Expose helpers on self for calls inside handlers
+    self.DumpDirectionalInputDiagnostics = DumpDirectionalInputDiagnostics
+    self.AggressiveDirectionalCleanup = function()
+        zo_callLater(function() AggressiveDirectionalCleanupImpl() end, directionalFixDelayMs + 10)
     end
 
     self.control:SetHandler("OnEffectivelyShown", OnEffectivelyShown)
