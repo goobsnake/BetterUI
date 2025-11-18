@@ -718,17 +718,33 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		self.populatedCategoryPos = true
 	end
 	
-	-- Restore the previously selected category, or default to the first item if the index is out of bounds
-	if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= #self.categoryList.dataList then
-		self.categoryList:SetSelectedIndexWithoutAnimation(previousSelectedIndex, true, false)
-		self.header.tabBar:SetSelectedIndexWithoutAnimation(previousSelectedIndex, true, false)
-	elseif #self.categoryList.dataList > 0 then
-		self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
-		self.header.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
-	end
+    local desiredIndex
+    local categoryCount = #self.categoryList.dataList
+    if categoryCount > 0 then
+        if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= categoryCount then
+            desiredIndex = previousSelectedIndex
+        else
+            desiredIndex = 1
+        end
+    end
 
     self.categoryList:Commit()
     self.header.tabBar:Commit()
+
+    if desiredIndex then
+        self.categoryList:SetSelectedIndexWithoutAnimation(desiredIndex, true, false)
+        local headerTabBar = self.header and self.header.tabBar
+        if headerTabBar then
+            local headerCount = #headerTabBar.dataList
+            if headerCount > 0 then
+                local clampedIndex = zo_clamp(desiredIndex, 1, headerCount)
+                headerTabBar:SetSelectedIndexWithoutAnimation(clampedIndex, true, false)
+                headerTabBar.targetSelectedIndex = clampedIndex
+            end
+        end
+    end
+
+    self:EnsureHeaderKeybindsActive()
 end
 
 --- Initialize the gamepad header with tab bar and currency rows used by the inventory
