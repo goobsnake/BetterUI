@@ -471,12 +471,6 @@ function BETTERUI.Banking.Class:RefreshList()
     self:ReturnToSaved()
     self:UpdateActions()
     self:RefreshFooter()
-
-    -- Ensure keybind visibility reflects current (possibly empty) list state immediately
-    if KEYBIND_STRIP then
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-    end
 end
 
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
@@ -695,6 +689,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
+            -- Process the keybind update for currency rows BEFORE exiting search focus
+            -- This ensures the correct keybinds (currencyKeybinds or withdrawDepositKeybinds) are applied
+            if selectedData then
+                local selectedControl = list:GetSelectedControl()
+                if self.selectedDataCallback then
+                    self:selectedDataCallback(selectedControl, selectedData)
+                end
+            end
+            -- Now exit search focus
             self:ExitSearchFocus()
             return
         end
@@ -1485,11 +1488,9 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                                 pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
                             end
                         end)
+                        -- Restore keybinds based on current selection (handles currency rows properly)
                         pcall(function()
-                            if self.withdrawDepositKeybinds then
-                                KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-                                pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end)
-                            end
+                            self:RefreshActiveKeybinds()
                         end)
                     end,
                 },
@@ -1872,7 +1873,8 @@ function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if self.list.GetSelectedData then
         selectedData = self.list:GetSelectedData()
     end
-    self:selectedDataCallback(selectedControl, selectedData)
+    -- Call the callback with self as the context so OnItemSelectedChange receives it properly
+    self.selectedDataCallback(self, selectedControl, selectedData)
 end
 
 function BETTERUI.Banking.Class:EnterSearchMode()
@@ -1914,15 +1916,18 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
         end
     end)
 
+    -- Add back core keybinds and ensure coreKeybinds group is added
     pcall(function()
         if self.coreKeybinds then
             EnsureKeybindGroupAdded(self.coreKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
         end
-        if self.withdrawDepositKeybinds then
-            EnsureKeybindGroupAdded(self.withdrawDepositKeybinds)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-        end
+    end)
+
+    -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
+    -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
+    pcall(function()
+        self:RefreshActiveKeybinds()
     end)
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
@@ -1937,7 +1942,6 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
 
     pcall(function() self:EnsureHeaderKeybindsActive() end)
 
-    pcall(function() self:RefreshActiveKeybinds() end)
     pcall(function() self:UpdateActions() end)
 
     -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
