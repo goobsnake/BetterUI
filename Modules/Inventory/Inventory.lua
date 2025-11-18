@@ -3012,27 +3012,14 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.ClearTextSearch then
                     self:ClearTextSearch()
                 end
-                -- After clearing search, restore the standard inventory keybinds
-                pcall(function()
-                    if self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                end)
-                pcall(function()
-                    if self.mainKeybindStripDescriptor then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.mainKeybindStripDescriptor)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor) end)
-                        -- Make sure the main group is active so LB/RB navigation remains available.
-                        pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-                        -- Re-assert after a short delay in case other delayed handlers run.
-                        zo_callLater(function()
-                            pcall(function() if self.SetActiveKeybinds then self:SetActiveKeybinds(self.mainKeybindStripDescriptor) end end)
-                        end, 40)
-                    end
-                end)
+                if self._searchModeActive then
+                    self:ExitSearchFocus()
+                else
+                    pcall(function() self:RefreshActiveKeybinds() end)
+                    pcall(function() self:UpdateActions() end)
+                end
             end,
         },
-        -- Removed NEGATIVE hold descriptor - using QUATERNARY only per settings
 	}
 
 	ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
