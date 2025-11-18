@@ -637,6 +637,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
+            pcall(function() ddebug("Banking: EditBox OnFocusGained; text='"..tostring(eb:GetText()).."'") end)
             if self.RequestEnterHeader then
                 self:RequestEnterHeader()
             else
@@ -646,6 +647,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
+                pcall(function() ddebug("Banking: EditBox OnFocusLost; text='"..tostring(eb:GetText()).."'") end)
                 self:ExitSearchFocus()
         end)
 
@@ -656,8 +658,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             if ok and t then txt = t end
             self.searchQuery = txt or ""
             -- Refresh list immediately on text change
-            pcall(function() self:SaveListPosition() end)
+           -- pcall(function() self:SaveListPosition() end)
             pcall(function() self:RefreshList() end)
+            pcall(function() ddebug("Banking: EditBox OnTextChanged; searchQuery='"..tostring(self.searchQuery).."' listDirEnabled='"..tostring(self.list and self.list.IsDirectionalInputEnabled and pcall(function() return self.list:IsDirectionalInputEnabled() end) or "nil").."'") end)
         end)
 
         editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
@@ -668,6 +671,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 end
             end
 
+            pcall(function() ddebug("Banking: EditBox OnKeyDown; key='"..tostring(key).."' command='"..tostring(command).."'") end)
             if command == "UI_SHORTCUT_DOWN" then
                 self:ExitSearchFocus()
                 return true
@@ -683,6 +687,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 end
             end
 
+            pcall(function() ddebug("Banking: EditBox OnShortcut; shortcut='"..tostring(shortcut).."'") end)
             if shortcut == "UI_SHORTCUT_DOWN" then
                 self:ExitSearchFocus()
                 return true
@@ -793,6 +798,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         self.control:RegisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, UpdateSingle_Handler)
         self:RefreshList()
+        pcall(function()
+            local msg = "Banking: OnEffectivelyShown; searchQuery='"..tostring(self.searchQuery).."'"
+            if self.list and self.list.IsDirectionalInputEnabled then
+                local ok, dir = pcall(function() return self.list:IsDirectionalInputEnabled() end)
+                msg = msg.." listDirEnabled='"..tostring(dir).."'"
+            end
+            ddebug(msg)
+        end)
     end
 
     local function OnEffectivelyHidden()
@@ -818,6 +831,280 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
         
+        -- Ensure we exit any active search mode so keybinds/focus are restored
+        pcall(function() ddebug("Banking: OnEffectivelyHidden - attempting to leave search mode; searchQuery='"..tostring(self.searchQuery).."'") end)
+        pcall(function()
+            if self.LeaveSearchMode then
+                self:LeaveSearchMode()
+            elseif self.ExitSearchFocus then
+                -- fallback
+                self:ExitSearchFocus()
+            end
+        end)
+        pcall(function() ddebug("Banking: OnEffectivelyHidden - left search mode") end)
+
+        -- Debug: dump KEYBIND_STRIP groups to see if any search/keybind group remains
+        pcall(function()
+            if not KEYBIND_STRIP then
+                ddebug("Banking: KEYBIND_STRIP is nil")
+                return
+            end
+            local groups = KEYBIND_STRIP.keybindButtonGroups
+            if not groups then
+                ddebug("Banking: KEYBIND_STRIP.keybindButtonGroups is nil")
+                return
+            end
+            ddebug("Banking: KEYBIND_STRIP groups count="..tostring(#groups))
+            for i = 1, #groups do
+                local g = groups[i]
+                local matchesSearch = (g == self.textSearchKeybindStripDescriptor)
+                ddebug("Banking: KEYBIND_STRIP group["..tostring(i).."]="..tostring(g).." matchesSearch="..tostring(matchesSearch))
+            end
+        end)
+
+        -- Debug: dump DIRECTIONAL_INPUT table entries to see who owns directional input
+        pcall(function()
+            if not DIRECTIONAL_INPUT then
+                ddebug("Banking: DIRECTIONAL_INPUT is nil")
+                return
+            end
+            ddebug("Banking: DIRECTIONAL_INPUT tostring="..tostring(DIRECTIONAL_INPUT))
+            local count = 0
+            for k, v in pairs(DIRECTIONAL_INPUT) do
+                count = count + 1
+                local vstr = ""
+                -- avoid huge dumps; just tostring values
+                pcall(function() vstr = tostring(v) end)
+                ddebug("Banking: DIRECTIONAL_INPUT["..tostring(k).."] = "..vstr)
+            end
+            ddebug("Banking: DIRECTIONAL_INPUT fields count="..tostring(count))
+        end)
+
+        -- Attempt to proactively deactivate our list from directional input if it remains registered.
+        pcall(function()
+            if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and self.list then
+                local ok, listening = pcall(function() return DIRECTIONAL_INPUT:IsListening(self.list) end)
+                if ok and listening then
+                    ddebug("Banking: DIRECTIONAL_INPUT still listening to our list; deactivating list owner")
+                    pcall(function() DIRECTIONAL_INPUT:Deactivate(self.list) end)
+                else
+                    ddebug("Banking: DIRECTIONAL_INPUT not listening to our list; no deactivate needed")
+                end
+            end
+        end)
+
+        -- More detailed diagnostics: enumerate inputObjects, inputControls and queuedActivationOperations
+        pcall(function()
+            if not DIRECTIONAL_INPUT then
+                ddebug("Banking: DIRECTIONAL_INPUT is nil (detailed diagnostic)")
+                return
+            end
+
+            -- Helper to try calls safely
+            local safeTostring = function(v)
+                local ok, s = pcall(function() return tostring(v) end)
+                if ok and s then return s end
+                return "<tostring failed>"
+            end
+
+            -- Check possible field name variants (engine uses lowercase in library but dump may show other keys)
+            local checkArrays = {
+                {name = "inputObjects"},
+                {name = "InputObjects"},
+            }
+            for _, entry in ipairs(checkArrays) do
+                local arr = DIRECTIONAL_INPUT[entry.name]
+                if arr and type(arr) == "table" then
+                    ddebug("Banking: DIRECTIONAL_INPUT."..entry.name.." count="..tostring(#arr))
+                    for i = 1, #arr do
+                        local obj = arr[i]
+                        ddebug("Banking: DIRECTIONAL_INPUT."..entry.name.."["..tostring(i).."] = "..safeTostring(obj))
+                        -- If this looks like a control, try a few safe control queries
+                        pcall(function()
+                            if type(obj) == "userdata" then
+                                local okName, name = pcall(function() return obj:GetName() end)
+                                if okName and name then ddebug("Banking:   control:GetName() = "..tostring(name)) end
+                                local okHidden, hidden = pcall(function() return obj:IsControlHidden() end)
+                                if okHidden then ddebug("Banking:   control:IsControlHidden() = "..tostring(hidden)) end
+                                local okParent, parent = pcall(function() return obj:GetParent() end)
+                                if okParent and parent then ddebug("Banking:   control:GetParent() = "..safeTostring(parent)) end
+                            end
+                        end)
+                    end
+                end
+            end
+
+            -- Input controls array (parallel to inputObjects)
+            local checkControls = {"inputControls", "InputControls"}
+            for _, n in ipairs(checkControls) do
+                local ctrs = DIRECTIONAL_INPUT[n]
+                if ctrs and type(ctrs) == "table" then
+                    ddebug("Banking: DIRECTIONAL_INPUT."..n.." count="..tostring(#ctrs))
+                    for i = 1, #ctrs do
+                        local c = ctrs[i]
+                        ddebug("Banking: DIRECTIONAL_INPUT."..n.."["..tostring(i).."] = "..safeTostring(c))
+                        pcall(function()
+                            if type(c) == "userdata" then
+                                local okName, name = pcall(function() return c:GetName() end)
+                                if okName and name then ddebug("Banking:   control:GetName() = "..tostring(name)) end
+                                local okHidden, hidden = pcall(function() return c:IsControlHidden() end)
+                                if okHidden then ddebug("Banking:   control:IsControlHidden() = "..tostring(hidden)) end
+                            end
+                        end)
+                    end
+                end
+            end
+
+            -- queuedActivationOperations (may contain objects/controls waiting to be activated/deactivated)
+            local qname = "queuedActivationOperations"
+            local queued = DIRECTIONAL_INPUT[qname]
+            if queued and type(queued) == "table" then
+                ddebug("Banking: DIRECTIONAL_INPUT."..qname.." count="..tostring(#queued))
+                for i = 1, #queued do
+                    local op = queued[i]
+                    if op and type(op) == "table" then
+                        local a = op.activate
+                        local obj = op.object
+                        local ctl = op.control
+                        ddebug("Banking: queued["..tostring(i).."] activate="..tostring(a) .. " object="..safeTostring(obj) .. " control="..safeTostring(ctl))
+                        pcall(function()
+                            if type(obj) == "userdata" then
+                                local okName, name = pcall(function() return obj:GetName() end)
+                                if okName and name then ddebug("Banking:   queued.object:GetName()="..tostring(name)) end
+                            end
+                            if type(ctl) == "userdata" then
+                                local okName, name = pcall(function() return ctl:GetName() end)
+                                if okName and name then ddebug("Banking:   queued.control:GetName()="..tostring(name)) end
+                            end
+                        end)
+                    else
+                        ddebug("Banking: queued["..tostring(i).."] = "..safeTostring(op))
+                    end
+                end
+            end
+        end)
+
+        -- Additional diagnostics: check active edit control and which input devices are consumed
+        pcall(function()
+            local okHas, has = pcall(function() return HasActiveEditControl() end)
+            if okHas then
+                ddebug("Banking: HasActiveEditControl = "..tostring(has))
+            else
+                ddebug("Banking: HasActiveEditControl() call failed")
+            end
+
+            -- Try to fetch the active edit control if possible
+            local okGet, active = pcall(function() if GetActiveEditControl then return GetActiveEditControl() end end)
+            if okGet and active then
+                ddebug("Banking: GetActiveEditControl tostring="..tostring(active))
+                pcall(function()
+                    if type(active) == "userdata" then
+                        local okName, name = pcall(function() return active:GetName() end)
+                        if okName and name then ddebug("Banking: ActiveEditControl:GetName() = "..tostring(name)) end
+                        local okText, text = pcall(function() return active:GetText() end)
+                        if okText then ddebug("Banking: ActiveEditControl:GetText() = "..tostring(text)) end
+                    end
+                end)
+            else
+                if not okGet then ddebug("Banking: GetActiveEditControl() call failed") end
+            end
+
+            -- Enumerate consumed input devices table if present
+            local consumed = DIRECTIONAL_INPUT.inputDeviceConsumed or DIRECTIONAL_INPUT.inputDeviceConsumed
+            if consumed and type(consumed) == "table" then
+                ddebug("Banking: DIRECTIONAL_INPUT.inputDeviceConsumed entries:")
+                for k, v in pairs(consumed) do
+                    ddebug("Banking:   inputDeviceConsumed["..tostring(k).."] = "..tostring(v))
+                end
+            else
+                ddebug("Banking: DIRECTIONAL_INPUT.inputDeviceConsumed not present or not a table")
+            end
+
+            -- If overlay helpers exist, log their state
+            pcall(function()
+                if WasGamepadLeftStickConsumedByOverlay then
+                    ddebug("Banking: WasGamepadLeftStickConsumedByOverlay() = "..tostring(WasGamepadLeftStickConsumedByOverlay()))
+                end
+                if WasGamepadRightStickConsumedByOverlay then
+                    ddebug("Banking: WasGamepadRightStickConsumedByOverlay() = "..tostring(WasGamepadRightStickConsumedByOverlay()))
+                end
+            end)
+        end)
+        -- Extra safety: remove any lingering search keybind group and re-enable directional input
+        pcall(function()
+            if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+            end
+        end)
+
+        pcall(function()
+            local ok, list = pcall(function() return self:GetList() end)
+            if ok and list and list.SetDirectionalInputEnabled then
+                list:SetDirectionalInputEnabled(true)
+            elseif self.list and self.list.SetDirectionalInputEnabled then
+                self.list:SetDirectionalInputEnabled(true)
+            end
+        end)
+
+        -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
+        -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
+        pcall(function()
+            zo_callLater(function()
+                pcall(function()
+                    local ok, list = pcall(function() return self:GetList() end)
+                    if ok and list and list.SetDirectionalInputEnabled then
+                        list:SetDirectionalInputEnabled(true)
+                        ddebug("Banking: delayed re-enable of list directional input executed")
+                    elseif self.list and self.list.SetDirectionalInputEnabled then
+                        self.list:SetDirectionalInputEnabled(true)
+                        ddebug("Banking: delayed re-enable of self.list directional input executed")
+                    end
+                    -- Re-assert keybind groups to ensure they're present after any race
+                    if KEYBIND_STRIP then
+                        if self.coreKeybinds then
+                            pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds) end)
+                            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
+                        end
+                        if self.withdrawDepositKeybinds then
+                            pcall(function() KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds) end)
+                            pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds) end)
+                        end
+                    end
+                end)
+            end, 50)
+        end)
+
+        -- Aggressive cleanup: deactivate any DIRECTIONAL_INPUT owners that are not the engine's GuiRoot/ClientInput.
+        -- This is destructive but requested: it will attempt to remove any non-engine owner that may be blocking input.
+        pcall(function()
+            zo_callLater(function()
+                pcall(function()
+                    if not DIRECTIONAL_INPUT then return end
+                    local objs = DIRECTIONAL_INPUT.inputObjects
+                    local ctrls = DIRECTIONAL_INPUT.inputControls
+                    if not objs or type(objs) ~= "table" then return end
+                    for i = #objs, 1, -1 do
+                        local obj = objs[i]
+                        local ctl = (ctrls and ctrls[i]) or nil
+                        local skip = false
+                        -- Skip deactivating engine client input (likely control is GuiRoot)
+                        if type(ctl) == "userdata" then
+                            local okName, name = pcall(function() return ctl:GetName() end)
+                            if okName and tostring(name) == "GuiRoot" then
+                                skip = true
+                            end
+                        end
+                        if not skip then
+                            ddebug("Banking: aggressive cleanup: deactivating owner="..tostring(obj).." control="..tostring(ctl))
+                            pcall(function() DIRECTIONAL_INPUT:Deactivate(obj) end)
+                        else
+                            ddebug("Banking: aggressive cleanup: skipping engine owner control="..tostring(ctl))
+                        end
+                    end
+                end)
+            end, 60)
+        end)
+
         -- Clear search text when exiting the banking scene
         self.searchQuery = ""
         if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
@@ -1717,6 +2004,7 @@ end
 -- Centralized helper to clear the text search UI and internal state.
 function BETTERUI.Banking.Class:ClearTextSearch()
     self.searchQuery = ""
+    pcall(function() ddebug("Banking: ClearTextSearch() called") end)
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
         pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
     elseif self.ClearSearchText then
@@ -1759,6 +2047,8 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
 
+    pcall(function() ddebug("Banking: EnterSearchMode() called; searchQuery='"..tostring(self.searchQuery).."'") end)
+
     pcall(function()
         if self.coreKeybinds then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
@@ -1787,6 +2077,20 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
 
+    pcall(function() ddebug("Banking: LeaveSearchMode() called; searchQuery='"..tostring(self.searchQuery).."'") end)
+
+    pcall(function() ddebug("Banking: LeaveSearchMode() finished; keybinds restored") end)
+    pcall(function()
+        if KEYBIND_STRIP and KEYBIND_STRIP.keybindButtonGroups then
+            local groups = KEYBIND_STRIP.keybindButtonGroups
+            ddebug("Banking: (LeaveSearchMode) KEYBIND_STRIP groups count="..tostring(#groups))
+            for i = 1, #groups do
+                ddebug("Banking: (LeaveSearchMode) group["..tostring(i).."]="..tostring(groups[i]))
+            end
+        else
+            ddebug("Banking: (LeaveSearchMode) KEYBIND_STRIP or groups nil")
+        end
+    end)
     pcall(function()
         if self.textSearchKeybindStripDescriptor then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
@@ -1860,6 +2164,7 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 end
 
 function BETTERUI.Banking.Class:ExitSearchFocus()
+    pcall(function() ddebug("Banking: ExitSearchFocus() called") end)
     self:LeaveSearchMode()
 end
 
