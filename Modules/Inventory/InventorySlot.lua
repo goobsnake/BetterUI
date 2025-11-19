@@ -166,7 +166,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             if self.selectedAction then
                 self:DoSelectedAction()
             else
-                slotActions:DoPrimaryAction()
+                if slotActions._betterui_primaryOverride then
+                    slotActions._betterui_primaryOverride()
+                else
+                    slotActions:DoPrimaryAction()
+                end
             end
         end,
         visible =   function()
@@ -190,6 +194,9 @@ local function ShouldReplacePrimaryAction(primaryAction)
            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+           -- Note: Split stack is intentionally NOT included here so it remains
+           -- available in the Y (actions) list. We still wire it up as a
+           -- primary action below so A can invoke the split dialog when needed.
 end
 
 local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
@@ -269,6 +276,12 @@ local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
 end
 
     local function PrimaryCommandHasBind()
+        -- Avoid showing the primary (A) bind when the primary action is "Link to Chat",
+        -- because the X button already exposes this action in the inventory UI and
+        -- duplicating it on A is redundant and confusing.
+        if self.actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+            return false
+        end
         return (self.actionName ~= nil) or self:HasSelectedAction()
     end
 
@@ -340,6 +353,19 @@ end
             return
         end
 
+        -- If the primary action is Split Stack, set a lightweight per-slot override
+        -- so the A button will invoke the engine split flow while leaving the
+        -- action present in the Y (actions) list.
+        if primaryAction and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
+            slotActions._betterui_primaryOverride = function()
+                if ZO_InventorySlot_TrySplitStack then
+                    ZO_InventorySlot_TrySplitStack(inventorySlot)
+                end
+            end
+        else
+            slotActions._betterui_primaryOverride = nil
+        end
+
         -- Set the action name for display
         self.actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
 
@@ -352,6 +378,11 @@ end
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+            end
+            -- Ensure Split Stack also gets wired as a primary action so A will
+            -- open the split dialog while leaving the action available in Y.
+            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
         end
