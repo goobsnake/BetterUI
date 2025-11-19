@@ -4,9 +4,9 @@ Current Release - 2.86 Changes:
 2. Fixed: Inventory category navigation issues after a category is added or removed
 3. Fixed: Stolen item category should always appear when stolen items are in the inventory
 4. Fixed: The search bar "Clear Text" button should no longer remove the default action if the user is highlighting an item
-5. Updated: Adjusted some translations in the language/localization files
-
+5. Changed: Adjusted some translations in the language/localization files
 [/INDENT]
+
 
 2.85 Changes:
 
