@@ -1591,13 +1591,26 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					canMarkJunk = CanItemBeMarkedAsJunk(target.bagId, target.slotIndex)
 						and (GetItemActorCategory(target.bagId, target.slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION)
 				end
-				if self.categoryList:GetTargetData().showJunk ~= nil then
-					-- Unmark should remain available even if locked
-					self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk, "secondary")
-				else
-					-- Hide Mark as Junk when the item is locked
-					if not isLocked and canMarkJunk then
-						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk, "secondary")
+				-- Do not show Mark/Unmark as Junk for quest items (they are not junkable)
+				local isQuestItem = false
+				if target then
+					-- Use the shared helper to determine if this is a quest item row
+					if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+						isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+					else
+						isQuestItem = (target.questIndex ~= nil) or (target.toolIndex ~= nil)
+					end
+				end
+
+				if not isQuestItem then
+					if self.categoryList:GetTargetData().showJunk ~= nil then
+						-- Unmark should remain available even if locked
+						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk, "secondary")
+					else
+						-- Hide Mark as Junk when the item is locked
+						if not isLocked and canMarkJunk then
+							self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk, "secondary")
+						end
 					end
 				end
 				-- Ensure engine-provided Lock/Unlock callbacks release the dialog first.
