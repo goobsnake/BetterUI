@@ -272,6 +272,14 @@ local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
         SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
             function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SPLIT_STACK) then
+        -- Wire Split Stack as a primary action so A can open the split dialog while
+        -- leaving the action present in the Y actions list.
+        slotActions:AddSlotPrimaryAction(GetActionString(SI_ITEM_ACTION_SPLIT_STACK), function()
+            if ZO_InventorySlot_TrySplitStack then
+                ZO_InventorySlot_TrySplitStack(inventorySlot)
+            end
+        end, "primary", nil, {visibleWhenDead = false})
     end
 end
 
@@ -339,10 +347,6 @@ end
                     end
                 end
             end
-        elseif CanItemMoveToCraftBag(inventorySlot) then
-            self.actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-            -- Leave any discovered craft-bag entries intact for now; we'll
-            -- deduplicate and/or replace them later when enforcing primary action.
         elseif not primaryAction then
             -- No primary action available and not a craft bag item
             self.actionName = nil
@@ -367,9 +371,8 @@ end
 
         -- If this item can be moved to the craft bag, force the craft-bag
         -- "Stow" action to be the primary/top action (A and first in Y list).
-        -- We remove any existing duplicates from the discovered action list
-        -- and then use the existing helper to set up the secure primary/secondary
-        -- actions so behavior matches engine expectations.
+        -- Remove any discovered craft-bag entries (to avoid duplicates) and
+        -- use the helper to add the secure primary/secondary actions.
         if CanItemMoveToCraftBag(inventorySlot) then
             -- Remove any existing craft-bag entries to avoid duplicates
             for i = #slotActions.m_slotActions, 1, -1 do
@@ -408,10 +411,7 @@ end
             end
         end
 
-        -- Handle craft bag specific logic
-        if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(self.actionName, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) and not handledCraftBag then
-            HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-        end
+        -- (Craft-bag handling is consolidated above; nothing needed here.)
 
         -- Deduplicate discovered slot actions by name so we don't show the same
         -- action (for example, "Stow") multiple times in the Y actions menu.
