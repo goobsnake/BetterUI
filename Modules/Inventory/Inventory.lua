@@ -1593,13 +1593,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				end
 				if self.categoryList:GetTargetData().showJunk ~= nil then
 					-- Unmark should remain available even if locked
-					self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions + 1] =
-						{ GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK), UnmarkAsJunk, "secondary" }
+					self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk, "secondary")
 				else
 					-- Hide Mark as Junk when the item is locked
 					if not isLocked and canMarkJunk then
-						self.itemActions.slotActions.m_slotActions[#self.itemActions.slotActions.m_slotActions + 1] =
-							{ GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK), MarkAsJunk, "secondary" }
+						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk, "secondary")
 					end
 				end
 				-- Ensure engine-provided Lock/Unlock callbacks release the dialog first.

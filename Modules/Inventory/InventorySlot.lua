@@ -326,7 +326,6 @@ end
 
     local primaryAction = slotActions:GetPrimaryActionName()
     local canUseItem = false
-    local handledCraftBag = false
 
         -- If no primary action was identified by the engine, use the first discovered action
         if not primaryAction and #slotActions.m_slotActions > 0 then
@@ -383,7 +382,6 @@ end
 
             -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
             HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-            handledCraftBag = true
             -- We forced Stow to be primary; clear any prior split-stack override so
             -- the A key invokes the newly-added Stow primary rather than the old
             -- split-stack override which may still be set earlier.
