@@ -316,8 +316,9 @@ end
             end
         end
 
-        local primaryAction = slotActions:GetPrimaryActionName()
-        local canUseItem = false
+    local primaryAction = slotActions:GetPrimaryActionName()
+    local canUseItem = false
+    local handledCraftBag = false
 
         -- If no primary action was identified by the engine, use the first discovered action
         if not primaryAction and #slotActions.m_slotActions > 0 then
@@ -340,13 +341,8 @@ end
             end
         elseif CanItemMoveToCraftBag(inventorySlot) then
             self.actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-            -- Remove craft bag action from secondary actions
-            for i = #slotActions.m_slotActions, 1, -1 do
-                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                    table.remove(slotActions.m_slotActions, i)
-                    break
-                end
-            end
+            -- Leave any discovered craft-bag entries intact for now; we'll
+            -- deduplicate and/or replace them later when enforcing primary action.
         elseif not primaryAction then
             -- No primary action available and not a craft bag item
             self.actionName = nil
@@ -369,6 +365,31 @@ end
         -- Set the action name for display
         self.actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
 
+        -- If this item can be moved to the craft bag, force the craft-bag
+        -- "Stow" action to be the primary/top action (A and first in Y list).
+        -- We remove any existing duplicates from the discovered action list
+        -- and then use the existing helper to set up the secure primary/secondary
+        -- actions so behavior matches engine expectations.
+        if CanItemMoveToCraftBag(inventorySlot) then
+            -- Remove any existing craft-bag entries to avoid duplicates
+            for i = #slotActions.m_slotActions, 1, -1 do
+                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                    table.remove(slotActions.m_slotActions, i)
+                end
+            end
+
+            -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
+            HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+            handledCraftBag = true
+            -- We forced Stow to be primary; clear any prior split-stack override so
+            -- the A key invokes the newly-added Stow primary rather than the old
+            -- split-stack override which may still be set earlier.
+            slotActions._betterui_primaryOverride = nil
+
+            -- Ensure the displayed action name is "Stow"
+            self.actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+        end
+
         -- Setup secure actions based on action type
         if primaryAction then
             -- Check if this is a known action type we handle
@@ -388,8 +409,25 @@ end
         end
 
         -- Handle craft bag specific logic
-        if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(self.actionName, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+        if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(self.actionName, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) and not handledCraftBag then
             HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+        end
+
+        -- Deduplicate discovered slot actions by name so we don't show the same
+        -- action (for example, "Stow") multiple times in the Y actions menu.
+        do
+            local seen = {}
+            for i = #slotActions.m_slotActions, 1, -1 do
+                local entry = slotActions.m_slotActions[i]
+                local name = entry and entry[1]
+                if name and seen[name] then
+                    table.remove(slotActions.m_slotActions, i)
+                else
+                    if name then
+                        seen[name] = true
+                    end
+                end
+            end
         end
     end
 
