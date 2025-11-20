@@ -28,6 +28,78 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
+local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
+local COMPANION_EQUIP_PATCH_RETRY_MS = 400
+local companionEquipPatchQueued = false
+local companionEquipPatchRetryPending = false
+
+local function AttemptCompanionEquipPatch()
+	local class = _G["ZO_CompanionEquipment_Gamepad"]
+	if not class then
+		if ddebug then ddebug("AttemptCompanionEquipPatch: ZO_CompanionEquipment_Gamepad not present") end
+		return false
+	end
+	if class._betterui_tryEquipPatched then
+		return true
+	end
+	local orig = class.TryEquipItem
+	if type(orig) ~= "function" then
+		if ddebug then ddebug("AttemptCompanionEquipPatch: TryEquipItem is not function") end
+		return false
+	end
+	class.TryEquipItem = function(self, inventorySlot)
+		if self and self.selectedEquipSlot and inventorySlot then
+			local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+			if sourceBag and sourceSlot then
+				local function DoEquip()
+					if ddebug then ddebug("companion DoEquip - calling CallSecureProtected") end
+					CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN, self.selectedEquipSlot, 1)
+				end
+				if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
+					local itemDisplayQuality = GetItemDisplayQuality(sourceBag, sourceSlot)
+					local itemDisplayQualityColor = GetItemQualityColor(itemDisplayQuality)
+					ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_ITEM", { onAcceptCallback = DoEquip }, { mainTextParams = { itemDisplayQualityColor:Colorize(GetItemName(sourceBag, sourceSlot)) } })
+				else
+					DoEquip()
+				end
+				return
+			end
+		end
+		if ddebug then ddebug("companion TryEquipItem: falling back to orig") end
+		return orig(self, inventorySlot)
+	end
+	class._betterui_tryEquipPatched = true
+	if ddebug then ddebug("companion equip patched") end
+	return true
+end
+
+local function EnsureCompanionEquipPatched()
+	if AttemptCompanionEquipPatch() then
+		if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
+			EVENT_MANAGER:UnregisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED)
+		end
+		companionEquipPatchQueued = false
+		companionEquipPatchRetryPending = false
+		return true
+	end
+	if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent and not companionEquipPatchQueued then
+			companionEquipPatchQueued = true
+			if ddebug then ddebug("EnsureCompanionEquipPatched: registering PLAYER_ACTIVATED hook") end
+		EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
+			companionEquipPatchQueued = false
+			EnsureCompanionEquipPatched()
+		end)
+	end
+	if not companionEquipPatchRetryPending and zo_callLater then
+			companionEquipPatchRetryPending = true
+			if ddebug then ddebug("EnsureCompanionEquipPatched: scheduling retry in " .. tostring(COMPANION_EQUIP_PATCH_RETRY_MS) .. " ms") end
+		zo_callLater(function()
+			companionEquipPatchRetryPending = false
+			EnsureCompanionEquipPatched()
+		end, COMPANION_EQUIP_PATCH_RETRY_MS)
+	end
+	return false
+end
 
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
 local function BETTERUI_GetEquipSlotForEquipType(equipType)
@@ -1884,6 +1956,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
 				end
 			else
+				if ddebug and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing() then
+					ddebug("ActionDialog confirm: invoking dialog.itemActions:DoSelectedAction in companion scene; patched=" .. tostring(_G["ZO_CompanionEquipment_Gamepad"] and _G["ZO_CompanionEquipment_Gamepad"]._betterui_tryEquipPatched))
+				end
 				self.itemActions:DoSelectedAction()
 			end
 		end
@@ -1891,7 +1966,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
+	-- Ensure our secure companion equip override is applied (with retries if needed)
+	EnsureCompanionEquipPatched()
 end
+
+-- Expose the patch helper so other initialization flows can trigger it regardless
+BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 
 -- Quickslot assignment dialog allowing the user to choose a wheel slot (1..8)
 function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
@@ -2254,6 +2334,14 @@ function BETTERUI.Inventory.HookActionDialog()
 					end
 				end
 				return
+			end
+			-- Debug: if the selected action is Equip and the companion scene is active, check if patch is present
+			if selectedActionName == GetString(SI_ITEM_ACTION_EQUIP) then
+				local isCompanionSceneShowing = SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+				if isCompanionSceneShowing then
+					local patched = _G["ZO_CompanionEquipment_Gamepad"] and _G["ZO_CompanionEquipment_Gamepad"]._betterui_tryEquipPatched
+					if ddebug then ddebug("Equip in companion scene via dialog; patched=" .. tostring(patched)) end
+				end
 			end
 
 			-- Normal BetterUI override path when enabled/visible

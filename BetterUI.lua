@@ -310,6 +310,10 @@ function BETTERUI.Initialize(event, addon)
 	else
 		BETTERUI._initialized = false
 	end
+	-- Ensure companion equip patch is queued even if modules didn't hook above
+	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
+		BETTERUI.Inventory.EnsureCompanionEquipPatched()
+	end
 end
 
 -- Register event handlers for addon initialization and gamepad mode changes
