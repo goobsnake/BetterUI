@@ -177,8 +177,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                         return slotActions:CheckPrimaryActionVisibility() or self:HasSelectedAction()
                     end,
     }
+end
 
-    local function GetActionString(actionId)
+local function GetActionString(actionId)
     return GetString(actionId)
 end
 
@@ -281,7 +282,12 @@ local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
             end
         end, "primary", nil, {visibleWhenDead = false})
     end
-end
+
+    local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+    if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+            -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
+            return
+    end
 
     local function PrimaryCommandHasBind()
         -- Avoid showing the primary (A) bind when the primary action is "Link to Chat",

@@ -36,7 +36,6 @@ local companionEquipPatchRetryPending = false
 local function AttemptCompanionEquipPatch()
 	local class = _G["ZO_CompanionEquipment_Gamepad"]
 	if not class then
-		if ddebug then ddebug("AttemptCompanionEquipPatch: ZO_CompanionEquipment_Gamepad not present") end
 		return false
 	end
 	if class._betterui_tryEquipPatched then
@@ -44,7 +43,6 @@ local function AttemptCompanionEquipPatch()
 	end
 	local orig = class.TryEquipItem
 	if type(orig) ~= "function" then
-		if ddebug then ddebug("AttemptCompanionEquipPatch: TryEquipItem is not function") end
 		return false
 	end
 	class.TryEquipItem = function(self, inventorySlot)
@@ -52,7 +50,6 @@ local function AttemptCompanionEquipPatch()
 			local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
 			if sourceBag and sourceSlot then
 				local function DoEquip()
-					if ddebug then ddebug("companion DoEquip - calling CallSecureProtected") end
 					CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN, self.selectedEquipSlot, 1)
 				end
 				if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
@@ -65,11 +62,10 @@ local function AttemptCompanionEquipPatch()
 				return
 			end
 		end
-		if ddebug then ddebug("companion TryEquipItem: falling back to orig") end
+        
 		return orig(self, inventorySlot)
 	end
 	class._betterui_tryEquipPatched = true
-	if ddebug then ddebug("companion equip patched") end
 	return true
 end
 
@@ -84,7 +80,7 @@ local function EnsureCompanionEquipPatched()
 	end
 	if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent and not companionEquipPatchQueued then
 			companionEquipPatchQueued = true
-			if ddebug then ddebug("EnsureCompanionEquipPatched: registering PLAYER_ACTIVATED hook") end
+            
 		EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
 			companionEquipPatchQueued = false
 			EnsureCompanionEquipPatched()
@@ -92,7 +88,7 @@ local function EnsureCompanionEquipPatched()
 	end
 	if not companionEquipPatchRetryPending and zo_callLater then
 			companionEquipPatchRetryPending = true
-			if ddebug then ddebug("EnsureCompanionEquipPatched: scheduling retry in " .. tostring(COMPANION_EQUIP_PATCH_RETRY_MS) .. " ms") end
+            
 		zo_callLater(function()
 			companionEquipPatchRetryPending = false
 			EnsureCompanionEquipPatched()
@@ -1695,6 +1691,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					for i = 1, numActions do
 						local action = actions:GetSlotAction(i)
 						local actionName = actions:GetRawActionName(action)
+						local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
 						if
 							actionName == GetString(SI_ITEM_ACTION_MARK_AS_LOCKED)
 							or actionName == GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED)
@@ -1873,16 +1870,23 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			-- Removed legacy custom quickslot picker entry handling
 			-- Check for BetterUI synthetic Destroy entry first
 			local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
-			if selectedRow and selectedRow.isBetterUIDestroy then
-				local targetData
-				local actionMode = self.actionMode
-				if actionMode == ITEM_LIST_ACTION_MODE then
-					targetData = self.itemList:GetTargetData()
-				elseif actionMode == CRAFT_BAG_ACTION_MODE then
-					targetData = self.craftBagList:GetTargetData()
-				else
-					targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
-				end
+						if selectedRow and selectedRow.isBetterUIDestroy then
+							local targetData
+							-- Prefer dialog-local target data when available (companion scene uses dialog targets)
+							if dialog.data and dialog.data.target then
+								targetData = dialog.data.target
+							elseif dialog.entryList and dialog.entryList.GetTargetData then
+								targetData = dialog.entryList:GetTargetData()
+							else
+								local actionMode = self and self.actionMode or nil
+								if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
+									targetData = self.itemList:GetTargetData()
+								elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
+									targetData = self.craftBagList:GetTargetData()
+								elseif self and self.categoryList then
+									targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+								end
+							end
 				local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 				if bag and slot then
 					ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
@@ -1898,7 +1902,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				return
 			end
 
-			local selectedActionName = ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction)
+			local selectedActionName = ZO_InventorySlotActions:GetRawActionName(dialog.itemActions.selectedAction)
 			-- Intercept engine Destroy/Delete here to show our confirm dialog
 			if
 				(selectedActionName == GetString(SI_ITEM_ACTION_DESTROY))
@@ -1937,7 +1941,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				end
 				return
 			end
-			if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+						if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+							local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+							if isCompanionSceneShowing then
+								-- Link to chat is intentionally disabled in the companion equipment scene
+								return
+							end
 				local targetData
 				local actionMode = self.actionMode
 				if actionMode == ITEM_LIST_ACTION_MODE then
@@ -1956,10 +1965,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
 				end
 			else
-				if ddebug and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing() then
-					ddebug("ActionDialog confirm: invoking dialog.itemActions:DoSelectedAction in companion scene; patched=" .. tostring(_G["ZO_CompanionEquipment_Gamepad"] and _G["ZO_CompanionEquipment_Gamepad"]._betterui_tryEquipPatched))
-				end
-				self.itemActions:DoSelectedAction()
+                
+				dialog.itemActions:DoSelectedAction()
 			end
 		end
 	end
@@ -2189,6 +2196,7 @@ end
 
 function BETTERUI.Inventory.HookActionDialog()
 	local function ActionsDialogSetup(dialog, data)
+		local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
 		dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
 			data.itemActions:SetSelectedAction(selectedData and selectedData.action)
 		end)
@@ -2214,6 +2222,10 @@ function BETTERUI.Inventory.HookActionDialog()
 				and SCENE_MANAGER.scenes["gamepad_banking"]
 				and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
 			if not (isDestroy and inBankScene) then
+				-- When in the companion equipment scene, hide the 'Link to Chat' action to avoid insecure SendChatMessage calls
+				if actionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+					-- skip adding this action entirely
+				else
 				if isDestroy then
 					entryData.isBetterUIDestroy = true
 					entryData.action = nil -- prevent engine destroy from being selected/executed
@@ -2221,11 +2233,12 @@ function BETTERUI.Inventory.HookActionDialog()
 					entryData.action = action
 				end
 
-				local listItem = {
-					template = "ZO_GamepadItemEntryTemplate",
-					entryData = entryData,
-				}
-				table.insert(parametricList, listItem)
+					local listItem = {
+						template = "ZO_GamepadItemEntryTemplate",
+						entryData = entryData,
+					}
+					table.insert(parametricList, listItem)
+				end
 			end
 		end
 
@@ -2336,13 +2349,7 @@ function BETTERUI.Inventory.HookActionDialog()
 				return
 			end
 			-- Debug: if the selected action is Equip and the companion scene is active, check if patch is present
-			if selectedActionName == GetString(SI_ITEM_ACTION_EQUIP) then
-				local isCompanionSceneShowing = SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-				if isCompanionSceneShowing then
-					local patched = _G["ZO_CompanionEquipment_Gamepad"] and _G["ZO_CompanionEquipment_Gamepad"]._betterui_tryEquipPatched
-					if ddebug then ddebug("Equip in companion scene via dialog; patched=" .. tostring(patched)) end
-				end
-			end
+            
 
 			-- Normal BetterUI override path when enabled/visible
 			-- Title provided via dialog's dynamic title function; avoid overriding here
@@ -2454,7 +2461,7 @@ function BETTERUI.Inventory.HookActionDialog()
 						return
 					end
 					-- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
-					if ZO_InventorySlotActions and self and self.itemActions and self.itemActions.selectedAction then
+					if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
 						-- Check if the selected row is a BetterUI Destroy entry
 						local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
 						if selectedRow and selectedRow.isBetterUIDestroy then
@@ -2491,16 +2498,23 @@ function BETTERUI.Inventory.HookActionDialog()
 							return
 						end
 						local selectedActionName =
-							ZO_InventorySlotActions:GetRawActionName(self.itemActions.selectedAction)
+							ZO_InventorySlotActions:GetRawActionName(dialog.itemActions.selectedAction)
 						if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
 							local targetData
-							local actionMode = self.actionMode
-							if actionMode == ITEM_LIST_ACTION_MODE then
-								targetData = self.itemList:GetTargetData()
-							elseif actionMode == CRAFT_BAG_ACTION_MODE then
-								targetData = self.craftBagList:GetTargetData()
+							-- Prefer dialog-local target data when available (companion scene uses dialog-targets)
+							if dialog.data and dialog.data.target then
+								targetData = dialog.data.target
+							elseif dialog.entryList and dialog.entryList.GetTargetData then
+								targetData = dialog.entryList:GetTargetData()
 							else
-								targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+								local actionMode = self and self.actionMode or nil
+								if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
+									targetData = self.itemList:GetTargetData()
+								elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
+									targetData = self.craftBagList:GetTargetData()
+								elseif self and self.categoryList then
+									targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+								end
 							end
 							local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 							if bag and slot then
