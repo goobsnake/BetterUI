@@ -177,7 +177,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                         return slotActions:CheckPrimaryActionVisibility() or self:HasSelectedAction()
                     end,
     }
-end
 
 local function GetActionString(actionId)
     return GetString(actionId)
