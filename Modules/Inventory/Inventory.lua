@@ -1828,146 +1828,131 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	end
 
 	local function ActionDialogButtonConfirm(dialog)
-		if self.scene:IsShowing() then
-			-- Handle embedded quickslot assignment mode
-			if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
-				local target = dialog.data.target or dialog.quickslotTarget
-				if target then
-					local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-					local selected = dialog.entryList:GetTargetData()
-					if selected and selected.isUnassign then
-						local assigned = FindActionSlotMatchingItem
-							and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
-						if assigned then
-							CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
-							if SOUNDS and PlaySound then
-								PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-							end
-						end
-					else
-						local wheelSlotIndex = (selected and selected.slotIndex) or 4
-						CallSecureProtected(
-							"SelectSlotItem",
-							target.bagId,
-							target.slotIndex,
-							wheelSlotIndex,
-							quickslot_wheel
-						)
+		if not (self.scene and self.scene:IsShowing()) then return end
+
+		-- Handle embedded quickslot assignment mode
+		if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
+			local target = dialog.data.target or dialog.quickslotTarget
+			if target then
+				local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+				local selected = dialog.entryList:GetTargetData()
+				if selected and selected.isUnassign then
+					local assigned = FindActionSlotMatchingItem and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+					if assigned then
+						CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
 						if SOUNDS and PlaySound then
-							PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+							PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
 						end
 					end
-					ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-					zo_callLater(function()
-						if GAMEPAD_INVENTORY then
-							GAMEPAD_INVENTORY:RefreshItemList()
-						end
-					end, 150)
-				end
-				return
-			end
-
-			-- Removed legacy custom quickslot picker entry handling
-			-- Check for BetterUI synthetic Destroy entry first
-			local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
-						if selectedRow and selectedRow.isBetterUIDestroy then
-							local targetData
-							-- Prefer dialog-local target data when available (companion scene uses dialog targets)
-							if dialog.data and dialog.data.target then
-								targetData = dialog.data.target
-							elseif dialog.entryList and dialog.entryList.GetTargetData then
-								targetData = dialog.entryList:GetTargetData()
-							else
-								local actionMode = self and self.actionMode or nil
-								if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
-									targetData = self.itemList:GetTargetData()
-								elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-									targetData = self.craftBagList:GetTargetData()
-								elseif self and self.categoryList then
-									targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
-								end
-							end
-				local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-				if bag and slot then
-					ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-					local link = GetItemLink(bag, slot)
-					ZO_Dialogs_ShowDialog(
-						"BETTERUI_CONFIRM_DESTROY_DIALOG",
-						{ bagId = bag, slotIndex = slot, itemLink = link },
-						nil,
-						true,
-						true
-					)
-				end
-				return
-			end
-
-			local selectedActionName = ZO_InventorySlotActions:GetRawActionName(dialog.itemActions.selectedAction)
-			-- Intercept engine Destroy/Delete here to show our confirm dialog
-			if
-				(selectedActionName == GetString(SI_ITEM_ACTION_DESTROY))
-				or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE))
-			then
-				local targetData
-				local actionMode = self.actionMode
-				if actionMode == ITEM_LIST_ACTION_MODE then
-					targetData = self.itemList:GetTargetData()
-				elseif actionMode == CRAFT_BAG_ACTION_MODE then
-					targetData = self.craftBagList:GetTargetData()
 				else
-					targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
-				end
-				local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-				if bag and slot then
-					ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-					local link = GetItemLink(bag, slot)
-					-- Quick destroy: if enabled, bypass confirmation and junk gating
-					local quick = BETTERUI
-						and BETTERUI.Settings
-						and BETTERUI.Settings.Modules
-						and BETTERUI.Settings.Modules["Inventory"]
-						and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
-					if quick then
-						BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
-					else
-						ZO_Dialogs_ShowDialog(
-							"BETTERUI_CONFIRM_DESTROY_DIALOG",
-							{ bagId = bag, slotIndex = slot, itemLink = link },
-							nil,
-							true,
-							true
-						)
+					local wheelSlotIndex = (selected and selected.slotIndex) or 4
+					CallSecureProtected("SelectSlotItem", target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
+					if SOUNDS and PlaySound then
+						PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 					end
 				end
-				return
+				ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+				zo_callLater(function()
+					if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+						GAMEPAD_INVENTORY:RefreshItemList()
+					end
+				end, 150)
 			end
-						if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
-							local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-							if isCompanionSceneShowing then
-								-- Link to chat is intentionally disabled in the companion equipment scene
-								return
-							end
-				local targetData
-				local actionMode = self.actionMode
-				if actionMode == ITEM_LIST_ACTION_MODE then
+			return
+		end
+
+		-- Handle BetterUI synthetic Destroy entry
+		local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
+		if selectedRow and selectedRow.isBetterUIDestroy then
+			local targetData
+			if dialog and dialog.data and dialog.data.target then
+				targetData = dialog.data.target
+			elseif dialog.entryList and dialog.entryList.GetTargetData then
+				targetData = dialog.entryList:GetTargetData()
+			else
+				local actionMode = self and self.actionMode or nil
+				if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
 					targetData = self.itemList:GetTargetData()
-				elseif actionMode == CRAFT_BAG_ACTION_MODE then
+				elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
 					targetData = self.craftBagList:GetTargetData()
-				else
+				elseif self and self.categoryList then
 					targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
 				end
-				local itemLink
-				local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-				if bag and slot then
-					itemLink = GetItemLink(bag, slot)
+			end
+			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+			if bag and slot then
+				ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+				local link = GetItemLink(bag, slot)
+				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+				if quick then
+					BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+				else
+					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
 				end
+			end
+			return
+		end
+
+		-- Determine the selected action name (prefer dialog.itemActions, fallback to self.itemActions)
+		local actionController = (dialog and dialog.itemActions) or (self and self.itemActions) or nil
+		local selectedActionName = nil
+		if actionController and actionController.selectedAction then
+			selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController.selectedAction)
+		end
+
+		-- Intercept engine Destroy/Delete
+		if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
+			local targetData
+			local actionMode = self.actionMode
+			if actionMode == ITEM_LIST_ACTION_MODE then
+				targetData = self.itemList:GetTargetData()
+			elseif actionMode == CRAFT_BAG_ACTION_MODE then
+				targetData = self.craftBagList:GetTargetData()
+			else
+				targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+			end
+			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+			if bag and slot then
+				ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+				local link = GetItemLink(bag, slot)
+				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+				if quick then
+					BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+				else
+					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+				end
+			end
+			return
+		end
+
+		-- Link to chat handling; hide for companion scene
+		if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+			local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+			if isCompanionSceneShowing then
+				return
+			end
+			local targetData
+			local actionMode = self.actionMode
+			if actionMode == ITEM_LIST_ACTION_MODE then
+				targetData = self.itemList:GetTargetData()
+			elseif actionMode == CRAFT_BAG_ACTION_MODE then
+				targetData = self.craftBagList:GetTargetData()
+			else
+				targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+			end
+			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+			if bag and slot then
+				local itemLink = GetItemLink(bag, slot)
 				if itemLink then
 					ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
 				end
-			else
-                
-				dialog.itemActions:DoSelectedAction()
 			end
+			return
+		end
+
+		-- Fallback to original action on the action controller (dialog or self)
+		if actionController and actionController.DoSelectedAction then
+			actionController:DoSelectedAction()
 		end
 	end
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
@@ -2497,8 +2482,18 @@ function BETTERUI.Inventory.HookActionDialog()
 							end
 							return
 						end
-						local selectedActionName =
-							ZO_InventorySlotActions:GetRawActionName(dialog.itemActions.selectedAction)
+						local selectedActionName = nil
+						do
+							local actionController = nil
+							if dialog and dialog.itemActions then
+								actionController = dialog.itemActions
+							elseif self and self.itemActions then
+								actionController = self.itemActions
+							end
+							if actionController and actionController.selectedAction then
+								selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController.selectedAction)
+							end
+						end
 						if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
 							local targetData
 							-- Prefer dialog-local target data when available (companion scene uses dialog-targets)
@@ -2527,7 +2522,17 @@ function BETTERUI.Inventory.HookActionDialog()
 						end
 					end
 					--original function
-					dialog.itemActions:DoSelectedAction()
+					do
+						local actionController = nil
+						if dialog and dialog.itemActions then
+							actionController = dialog.itemActions
+						elseif self and self.itemActions then
+							actionController = self.itemActions
+						end
+						if actionController and actionController.DoSelectedAction then
+							actionController:DoSelectedAction()
+						end
+					end
 				end,
 			},
 		},

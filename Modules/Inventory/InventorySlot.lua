@@ -178,114 +178,115 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                     end,
     }
 
-local function GetActionString(actionId)
-    return GetString(actionId)
-end
+    local function GetActionString(actionId)
+        return GetString(actionId)
+    end
 
-local function IsPrimaryAction(actionName, actionStringId)
-    return actionName == GetActionString(actionStringId)
-end
+    local function IsPrimaryAction(actionName, actionStringId)
+        return actionName == GetActionString(actionStringId)
+    end
 
-local function ShouldReplacePrimaryAction(primaryAction)
-    return IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
-           IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
-           -- Note: Split stack is intentionally NOT included here so it remains
-           -- available in the Y (actions) list. We still wire it up as a
-           -- primary action below so A can invoke the split dialog when needed.
-end
+    local function ShouldReplacePrimaryAction(primaryAction)
+        return IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
+            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+            -- Note: Split stack is intentionally NOT included here so it remains
+            -- available in the Y (actions) list. We still wire it up as a
+            -- primary action below so A can invoke the split dialog when needed.
+    end
 
-local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
-    -- For USE actions, we must ensure UseItem/UseQuestItem is called via CallSecureProtected
-    -- actionStringId is the raw string constant (e.g., SI_ITEM_ACTION_USE), not the localized string
-    if actionStringId == SI_ITEM_ACTION_USE then
-        -- Create a wrapper that calls the secure protected function
-        local secureCallback = function()
-            local slotType = ZO_InventorySlot_GetType(inventorySlot)
-            if slotType == SLOT_TYPE_QUEST_ITEM then
-                if inventorySlot then
-                    if inventorySlot.toolIndex then
-                        CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
-                    elseif inventorySlot.conditionIndex then
-                        CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+    local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
+        -- For USE actions, we must ensure UseItem/UseQuestItem is called via CallSecureProtected
+        -- actionStringId is the raw string constant (e.g., SI_ITEM_ACTION_USE), not the localized string
+        if actionStringId == SI_ITEM_ACTION_USE then
+            -- Create a wrapper that calls the secure protected function
+            local secureCallback = function()
+                local slotType = ZO_InventorySlot_GetType(inventorySlot)
+                if slotType == SLOT_TYPE_QUEST_ITEM then
+                    if inventorySlot then
+                        if inventorySlot.toolIndex then
+                            CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                        elseif inventorySlot.conditionIndex then
+                            CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                        end
+                    end
+                else
+                    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                    local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+                    if usable and not onlyFromActionSlot then
+                        CallSecureProtected("UseItem", bag, index)
                     end
                 end
-            else
-                local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-                local usable, onlyFromActionSlot = IsItemUsable(bag, index)
-                if usable and not onlyFromActionSlot then
-                    CallSecureProtected("UseItem", bag, index)
-                end
             end
+            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), secureCallback, "primary", nil, {visibleWhenDead = false})
+        else
+            -- For non-USE actions, use the callback as-is
+            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
         end
-        slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), secureCallback, "primary", nil, {visibleWhenDead = false})
-    else
-        -- For non-USE actions, use the callback as-is
-        slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
     end
-end
 
-local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-    if canUseItem then
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
-            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
-        -- USE as secondary action - also need to be secure
-        slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function()
-            local slotType = ZO_InventorySlot_GetType(inventorySlot)
-            if slotType == SLOT_TYPE_QUEST_ITEM then
-                if inventorySlot then
-                    if inventorySlot.toolIndex then
-                        CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
-                    elseif inventorySlot.conditionIndex then
-                        CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+    local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+        if canUseItem then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
+                function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
+            -- USE as secondary action - also need to be secure
+            slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function()
+                local slotType = ZO_InventorySlot_GetType(inventorySlot)
+                if slotType == SLOT_TYPE_QUEST_ITEM then
+                    if inventorySlot then
+                        if inventorySlot.toolIndex then
+                            CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                        elseif inventorySlot.conditionIndex then
+                            CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                        end
+                    end
+                else
+                    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                    local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+                    if usable and not onlyFromActionSlot then
+                        CallSecureProtected("UseItem", bag, index)
                     end
                 end
-            else
-                local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-                local usable, onlyFromActionSlot = IsItemUsable(bag, index)
-                if usable and not onlyFromActionSlot then
-                    CallSecureProtected("UseItem", bag, index)
+            end, "secondary", nil, {visibleWhenDead = false})
+        else
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
+                function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
+        end
+    end
+
+    local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
+        if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
+                function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNEQUIP) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_WITHDRAW) or IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_DEPOSIT) then
+            SetupSecureAction(slotActions, actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or SI_ITEM_ACTION_BANK_DEPOSIT,
+                function(...) TryBankItem(inventorySlot) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
+                function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SPLIT_STACK) then
+            -- Wire Split Stack as a primary action so A can open the split dialog while
+            -- leaving the action present in the Y actions list.
+            slotActions:AddSlotPrimaryAction(GetActionString(SI_ITEM_ACTION_SPLIT_STACK), function()
+                if ZO_InventorySlot_TrySplitStack then
+                    ZO_InventorySlot_TrySplitStack(inventorySlot)
                 end
-            end
-        end, "secondary", nil, {visibleWhenDead = false})
-    else
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
-            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
-    end
-end
+            end, "primary", nil, {visibleWhenDead = false})
+        end
 
-local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
-    if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
-            function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end, inventorySlot)
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNEQUIP) then
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end, inventorySlot)
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_WITHDRAW) or IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_DEPOSIT) then
-        SetupSecureAction(slotActions, actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or SI_ITEM_ACTION_BANK_DEPOSIT,
-            function(...) TryBankItem(inventorySlot) end, inventorySlot)
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
-        SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
-            function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
-    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SPLIT_STACK) then
-        -- Wire Split Stack as a primary action so A can open the split dialog while
-        -- leaving the action present in the Y actions list.
-        slotActions:AddSlotPrimaryAction(GetActionString(SI_ITEM_ACTION_SPLIT_STACK), function()
-            if ZO_InventorySlot_TrySplitStack then
-                ZO_InventorySlot_TrySplitStack(inventorySlot)
-            end
-        end, "primary", nil, {visibleWhenDead = false})
-    end
-
-    local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-    if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
-            -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
-            return
+        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+        if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+                -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
+                return
+        end
     end
 
     local function PrimaryCommandHasBind()
