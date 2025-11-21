@@ -7,7 +7,7 @@ Current Release - 2.86 Changes:
 5. Fixed: Items in the craftbag and companion items in general no longer show the option to mark as junk when its not supported
 6. Fixed: Companion menu actions like "Equip" should work without giving an error
 7. Changed: Adjusted some translations in the language/localization files
-8. Changed: Disabled some infrequently used actions in the companion menu like "Link to chat" and "Destroy"
+8. Changed: Disabled some infrequently used actions in the companion menu like "Link to chat" and "Destroy" to prevent lua errors
 9. Changed: Items in inventory that have "Split stack" as their primary action should show this default action now
 [/INDENT]
 
