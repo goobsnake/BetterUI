@@ -3432,7 +3432,24 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
 			self:RefreshCategoryList()
+			-- Always land on the first category and first item when switching lists
+			if self.categoryList and self.categoryList.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
+				end)
+			end
+			if self.header and self.header.tabBar and self.header.tabBar.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+				end)
+			end
+			-- Refresh item list after the category/tab selection so it matches the selected category
 			self:RefreshItemList()
+			if self.itemList and self.itemList.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.itemList:SetSelectedIndexWithoutAnimation(1, true, false)
+				end)
+			end
 
 			self:SetSelectedItemUniqueId(self.itemList:GetTargetData())
 			self.actionMode = ITEM_LIST_ACTION_MODE
@@ -3445,7 +3462,24 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
 			self:RefreshCategoryList()
+			-- Always land on the first category and first craft bag item when switching lists
+			if self.categoryList and self.categoryList.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
+				end)
+			end
+			if self.header and self.header.tabBar and self.header.tabBar.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+				end)
+			end
+			-- Refresh craft bag list after the category/tab selection so it matches the selected category
 			self:RefreshCraftBagList()
+			if self.craftBagList and self.craftBagList.SetSelectedIndexWithoutAnimation then
+				pcall(function()
+					self.craftBagList:SetSelectedIndexWithoutAnimation(1, true, false)
+				end)
+			end
 
 			self:SetSelectedItemUniqueId(self.craftBagList:GetTargetData())
 			self.actionMode = CRAFT_BAG_ACTION_MODE
