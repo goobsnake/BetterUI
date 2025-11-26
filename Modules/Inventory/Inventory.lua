@@ -232,58 +232,117 @@ local function WrapValue(newValue, maxValue)
 	return newValue
 end
 
+-- Helper: compute a stable key for a category entry so we can restore by key when categories are rebuilt
+local function GetCategoryKey(categoryData)
+	if not categoryData then return nil end
+	if categoryData.filterType ~= nil then
+		return "f:" .. tostring(categoryData.filterType)
+	end
+	if categoryData.onClickDirection then
+		return "dir:" .. tostring(categoryData.onClickDirection)
+	end
+	if categoryData.text then
+		return "t:" .. tostring(categoryData.text)
+	end
+	return "idx:" .. tostring(categoryData.index or "")
+end
+
+local function FindCategoryIndexByKey(self, key)
+	if not key or not self.categoryList or not self.categoryList.dataList then return nil end
+	for i, d in ipairs(self.categoryList.dataList) do
+		if GetCategoryKey(d) == key then
+			return i
+		end
+	end
+	return nil
+end
+
+-- Safe helper for GetTargetData calls (guards against lists without method)
+local function SafeGetTargetData(list)
+	if not list then return nil end
+	if list.GetTargetData and type(list.GetTargetData) == "function" then
+		return list:GetTargetData()
+	end
+	return list.selectedData
+end
+
 function BETTERUI.Inventory.Class:ToSavedPosition()
-	local lastPosition
-	if self.categoryList.selectedData ~= nil then
-		if not self.categoryList:GetTargetData().onClickDirection then
-			self:SwitchActiveList(INVENTORY_ITEM_LIST)
-			self:RefreshItemList()
-		else
-			self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
-			self:RefreshCraftBagList()
-		end
-	end
-
-	if self:GetCurrentList() == self.itemList then
-		lastPosition = self.categoryPositions[self.categoryList.selectedIndex]
+	-- Determine if we're on inventory or craft bag based on current category
+	local catData = self.categoryList and self.categoryList.selectedData
+	if not catData then return end
+	
+	local isCraftBag = catData.onClickDirection ~= nil
+	local currentList = isCraftBag and self.craftBagList or self.itemList
+	
+	-- Set current list and refresh for the current category
+	if isCraftBag then
+		self:SetCurrentList(self.craftBagList)
+		self:RefreshCraftBagList()
 	else
-		lastPosition = self.categoryCraftPositions[self.categoryList.selectedIndex]
+		self:SetCurrentList(self.itemList)
+		self:RefreshItemList()
+	end
+	
+	-- Get category key for position lookup
+	local key = GetCategoryKey(catData)
+	local lastPosition = 1
+	
+	if isCraftBag then
+		-- Restore craft bag item position for this category ONLY if previously saved
+		if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
+			lastPosition = self.savedCraftBagPositionsByKey[key]
+			-- Prefer unique id restore if available
+			if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
+				local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
+				local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
+				if dataList then
+					for i, entry in ipairs(dataList) do
+						if entry and entry.uniqueId == uid then
+							lastPosition = i
+							break
+						end
+					end
+				end
+			end
+		end
+	else
+		-- Restore inventory item position for this category ONLY if previously saved
+		if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
+			lastPosition = self.savedInventoryPositionsByKey[key]
+			-- Prefer unique id restore if available
+			if self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
+				local uid = self.savedInventorySelectedItemUniqueByKey[key]
+				local dataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
+				if dataList then
+					for i, entry in ipairs(dataList) do
+						if entry and entry.uniqueId == uid then
+							lastPosition = i
+							break
+						end
+					end
+				end
+			end
+		end
 	end
 
-	if lastPosition ~= nil and self._currentList.dataList ~= nil then
-		lastPosition = (#self._currentList.dataList > lastPosition) and lastPosition or #self._currentList.dataList
-
-		if lastPosition ~= nil and #self._currentList.dataList > 0 then
-			self._currentList:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
-
-			GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-			if self.callLaterLeftToolTip ~= nil then
-				EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-			end
-
-			local callLaterId = zo_callLater(function()
-				self:UpdateItemLeftTooltip(self._currentList.selectedData)
-			end, INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS)
-			self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
-		else
-			-- No entries in the current list; avoid forcing a selection on an empty list.
-			-- Let the caller handle switching back to the category view if appropriate.
-			-- No entries in the current list. Previously we deactivated the list which
-			-- left the UI dimmed/out-of-focus when the player quickly switched
-			-- categories while a text filter was active. Instead of deactivating
-			-- the current list, switch focus back to the category list so the
-			-- header/tab stays active and keybinds remain correct.
-			if GAMEPAD_TOOLTIPS then
-				GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-			end
-			-- Ensure we land back on the category view (this will also refresh header/keybinds)
-			if self.SwitchActiveList then
-				pcall(function()
-					self:SwitchActiveList(INVENTORY_CATEGORY_LIST)
-				end)
-			end
-			return
+	-- Apply the position to the current list
+	local dataList = currentList.list and currentList.list.dataList or currentList.dataList
+	if dataList and #dataList > 0 then
+		lastPosition = zo_clamp(lastPosition, 1, #dataList)
+		-- Use inner list for SetSelectedIndexWithoutAnimation if available (craftBagList wraps inner list)
+		local innerList = currentList.list or currentList
+		if innerList.SetSelectedIndexWithoutAnimation then
+			innerList:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
 		end
+		
+		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+		if self.callLaterLeftToolTip then
+			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
+		end
+		local callLaterId = zo_callLater(function()
+			self:UpdateItemLeftTooltip(currentList.selectedData)
+		end, INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS)
+		self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
 	end
 end
 
@@ -326,18 +385,42 @@ function BETTERUI_TabBar_OnTabPrev(parent, successful)
 end
 
 function BETTERUI.Inventory.Class:SaveListPosition()
-	-- Guard against nil lists/indices (can happen during scene hide/teardown)
-	if not self.categoryList or not self.categoryList.selectedIndex then
-		return
-	end
-	if not self._currentList or not self._currentList.selectedIndex then
-		return
-	end
-
-	if self:GetCurrentList() == self.itemList then
-		self.categoryPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
+	-- Guard against nil state
+	if not self.categoryList or not self.categoryList.selectedData then return end
+	
+	local catData = self.categoryList.selectedData
+	local key = GetCategoryKey(catData)
+	if not key then return end
+	
+	local isCraftBag = catData.onClickDirection ~= nil
+	
+	-- Get the correct list and its inner list (craftBagList wraps an inner list)
+	local currentList = isCraftBag and self.craftBagList or self.itemList
+	local innerList = currentList and (currentList.list or currentList)
+	
+	if not innerList or not innerList.selectedIndex then return end
+	
+	local itemIndex = innerList.selectedIndex or 1
+	local itemUniqueId = innerList.selectedData and innerList.selectedData.uniqueId
+	
+	if isCraftBag then
+		-- Save craft bag state (completely independent from inventory)
+		self.savedCraftBagCategoryKey = key
+		self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
+		self.savedCraftBagPositionsByKey[key] = itemIndex
+		if itemUniqueId then
+			self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
+			self.savedCraftBagSelectedItemUniqueByKey[key] = itemUniqueId
+		end
 	else
-		self.categoryCraftPositions[self.categoryList.selectedIndex] = self._currentList.selectedIndex
+		-- Save inventory state (completely independent from craft bag)
+		self.savedInventoryCategoryKey = key
+		self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
+		self.savedInventoryPositionsByKey[key] = itemIndex
+		if itemUniqueId then
+			self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
+			self.savedInventorySelectedItemUniqueByKey[key] = itemUniqueId
+		end
 	end
 end
 
@@ -1037,7 +1120,9 @@ end
 
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
 	-- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
-	self.craftBagList:RefreshList(self.categoryList:GetTargetData().filterType, self.searchQuery)
+	local craftCategoryTarget = SafeGetTargetData(self.categoryList)
+	local craftFilter = craftCategoryTarget and craftCategoryTarget.filterType or nil
+	self.craftBagList:RefreshList(craftFilter, self.searchQuery)
 end
 
 --- Build and sort the item list for the selected category, setting headers and cached fields
@@ -1051,12 +1136,12 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 		return itemData.stolen
 	end
 
-	local targetCategoryData = self.categoryList:GetTargetData()
+	local targetCategoryData = SafeGetTargetData(self.categoryList)
 	local filteredEquipSlot = targetCategoryData.equipSlot
 	local nonEquipableFilterType = targetCategoryData.filterType
-	local showJunkCategory = (self.categoryList:GetTargetData().showJunk ~= nil)
-	local showEquippedCategory = (self.categoryList:GetTargetData().showEquipped ~= nil)
-	local showStolenCategory = (self.categoryList:GetTargetData().showStolen ~= nil)
+	local showJunkCategory = (targetCategoryData and targetCategoryData.showJunk ~= nil)
+	local showEquippedCategory = (targetCategoryData and targetCategoryData.showEquipped ~= nil)
+	local showStolenCategory = (targetCategoryData and targetCategoryData.showStolen ~= nil)
 	local filteredDataTable
 
 	local isQuestItem = nonEquipableFilterType == ITEMFILTERTYPE_QUEST
@@ -1550,7 +1635,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				if self.actionMode == CRAFT_BAG_ACTION_MODE then
 					return
 				end
-				local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+				local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
 				if not target then
 					return
 				end
@@ -1602,7 +1687,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			-- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
 			-- so we no longer inject or maintain synthetic lock/unlock helper functions here.
 			local function UnmarkAsJunk()
-				local target = GAMEPAD_INVENTORY.itemList:GetTargetData()
+				local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
 				-- Close the actions dialog to restore header/keybind focus
 				if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
 					ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
@@ -1648,7 +1733,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
 			do
 				local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
-						and (self.itemList and self.itemList:GetTargetData())
+						and (self.itemList and SafeGetTargetData(self.itemList))
 					or nil
 				local isLocked = false
 				if target and target.bagId and target.slotIndex then
@@ -1671,7 +1756,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				end
 
 				if not isQuestItem then
-					if self.categoryList:GetTargetData().showJunk ~= nil then
+					local tmpCat = SafeGetTargetData(self.categoryList)
+					if tmpCat and tmpCat.showJunk ~= nil then
 						-- Unmark should remain available even if locked
 						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk, "secondary")
 					else
@@ -1765,7 +1851,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				local hideMarkJunk = false
 				do
 					local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
-							and (self.itemList and self.itemList:GetTargetData())
+							and (self.itemList and SafeGetTargetData(self.itemList))
 						or nil
 					if
 						target
@@ -1808,7 +1894,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				--if we refresh item actions we will get a keybind conflict
 				local currentList = self:GetCurrentList()
 				if currentList then
-					local targetData = currentList:GetTargetData()
+					local targetData = SafeGetTargetData(currentList)
 					if currentList == self.categoryList then
 						targetData = self:GenerateItemSlotData(targetData)
 					end
@@ -1835,7 +1921,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			local target = dialog.data.target or dialog.quickslotTarget
 			if target then
 				local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-				local selected = dialog.entryList:GetTargetData()
+				local selected = SafeGetTargetData(dialog.entryList)
 				if selected and selected.isUnassign then
 					local assigned = FindActionSlotMatchingItem and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
 					if assigned then
@@ -1862,21 +1948,21 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 		end
 
 		-- Handle BetterUI synthetic Destroy entry
-		local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
+	local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
 		if selectedRow and selectedRow.isBetterUIDestroy then
 			local targetData
 			if dialog and dialog.data and dialog.data.target then
 				targetData = dialog.data.target
 			elseif dialog.entryList and dialog.entryList.GetTargetData then
-				targetData = dialog.entryList:GetTargetData()
+				targetData = SafeGetTargetData(dialog.entryList)
 			else
 				local actionMode = self and self.actionMode or nil
 				if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
-					targetData = self.itemList:GetTargetData()
+					targetData = SafeGetTargetData(self.itemList)
 				elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-					targetData = self.craftBagList:GetTargetData()
+					targetData = SafeGetTargetData(self.craftBagList)
 				elseif self and self.categoryList then
-					targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+					targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
 				end
 			end
 			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
@@ -1905,11 +1991,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			local targetData
 			local actionMode = self.actionMode
 			if actionMode == ITEM_LIST_ACTION_MODE then
-				targetData = self.itemList:GetTargetData()
+				targetData = SafeGetTargetData(self.itemList)
 			elseif actionMode == CRAFT_BAG_ACTION_MODE then
-				targetData = self.craftBagList:GetTargetData()
+				targetData = SafeGetTargetData(self.craftBagList)
 			else
-				targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+				targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
 			end
 			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 			if bag and slot then
@@ -1934,11 +2020,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			local targetData
 			local actionMode = self.actionMode
 			if actionMode == ITEM_LIST_ACTION_MODE then
-				targetData = self.itemList:GetTargetData()
+				targetData = SafeGetTargetData(self.itemList)
 			elseif actionMode == CRAFT_BAG_ACTION_MODE then
-				targetData = self.craftBagList:GetTargetData()
+				targetData = SafeGetTargetData(self.craftBagList)
 			else
-				targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+				targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
 			end
 			local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 			if bag and slot then
@@ -2073,7 +2159,7 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
 						local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
 						local selected = dialog.entryList
 							and dialog.entryList.GetTargetData
-							and dialog.entryList:GetTargetData()
+							and SafeGetTargetData(dialog.entryList)
 						if selected and selected.isUnassign then
 							local assigned = FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
 							if assigned then
@@ -2400,7 +2486,7 @@ function BETTERUI.Inventory.HookActionDialog()
 						local target = dialog.data.target or dialog.quickslotTarget
 						if target then
 							local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-							local selected = dialog.entryList:GetTargetData()
+							local selected = SafeGetTargetData(dialog.entryList)
 							if selected and selected.isUnassign then
 								local assigned = FindActionSlotMatchingItem
 									and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
@@ -2448,16 +2534,16 @@ function BETTERUI.Inventory.HookActionDialog()
 					-- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
 					if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
 						-- Check if the selected row is a BetterUI Destroy entry
-						local selectedRow = dialog.entryList and dialog.entryList:GetTargetData()
+						local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
 						if selectedRow and selectedRow.isBetterUIDestroy then
 							local targetData
 							local actionMode = self.actionMode
 							if actionMode == ITEM_LIST_ACTION_MODE then
-								targetData = self.itemList:GetTargetData()
+								targetData = SafeGetTargetData(self.itemList)
 							elseif actionMode == CRAFT_BAG_ACTION_MODE then
-								targetData = self.craftBagList:GetTargetData()
+								targetData = SafeGetTargetData(self.craftBagList)
 							else
-								targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+								targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
 							end
 							local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 							if bag and slot then
@@ -2500,15 +2586,15 @@ function BETTERUI.Inventory.HookActionDialog()
 							if dialog.data and dialog.data.target then
 								targetData = dialog.data.target
 							elseif dialog.entryList and dialog.entryList.GetTargetData then
-								targetData = dialog.entryList:GetTargetData()
+								targetData = SafeGetTargetData(dialog.entryList)
 							else
 								local actionMode = self and self.actionMode or nil
 								if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
-									targetData = self.itemList:GetTargetData()
+									targetData = SafeGetTargetData(self.itemList)
 								elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-									targetData = self.craftBagList:GetTargetData()
+									targetData = SafeGetTargetData(self.craftBagList)
 								elseif self and self.categoryList then
-									targetData = self:GenerateItemSlotData(self.categoryList:GetTargetData())
+									targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
 								end
 							end
 							local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
@@ -2582,6 +2668,10 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			self.callLaterLeftToolTip = nil
 		end
 		-- search hold behavior is part of main keybind descriptors; nothing to remove here
+		-- Save the current list position so it can be restored when the scene is shown again
+		pcall(function()
+			self:SaveListPosition()
+		end)
 	elseif newState == SCENE_HIDDEN then
 		self:SwitchActiveList(nil)
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
@@ -2607,6 +2697,10 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			self:ClearTextSearch()
 		end
 		-- nothing to remove for search hold behavior here
+		-- Save the current list position so it can be restored when the scene is shown again
+		pcall(function()
+			self:SaveListPosition()
+		end)
 	end
 end
 
@@ -2883,7 +2977,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 			self:RefreshCraftBagList()
 			self:RefreshItemActions()
 		else -- CATEGORY_ITEM_ACTION_MODE
-			self:UpdateCategoryLeftTooltip(self.categoryList:GetTargetData())
+			self:UpdateCategoryLeftTooltip(SafeGetTargetData(self.categoryList))
 		end
 	end
 end
@@ -2931,8 +3025,17 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	end
 
 	self:RefreshCategoryList()
+	-- Initialize saved category indices and keys for inventory and craft bag
+	self.savedInventoryCategoryIndex = self.categoryList and self.categoryList.selectedIndex or 1
+	self.savedInventoryCategoryKey = nil
+	self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
+	self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
+	self.savedCraftBagCategoryIndex = nil
+	self.savedCraftBagCategoryKey = nil
+	self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
+	self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
 
-	self:SetSelectedItemUniqueId(self:GenerateItemSlotData(self.categoryList:GetTargetData()))
+	self:SetSelectedItemUniqueId(self:GenerateItemSlotData(SafeGetTargetData(self.categoryList)))
 	self:RefreshHeader()
 	self:ActivateHeader()
 
@@ -3385,7 +3488,8 @@ function BETTERUI.Inventory:RefreshFooter()
 end
 
 function BETTERUI.Inventory.Class:Select()
-	if not self.categoryList:GetTargetData().onClickDirection then
+	local catTarget = SafeGetTargetData(self.categoryList)
+	if not catTarget or not catTarget.onClickDirection then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)
 	else
 		self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
@@ -3403,6 +3507,13 @@ end
 function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	if listDescriptor == self.currentListType then
 		return
+	end
+
+	-- Save the current list position before switching so positions are restored correctly later
+	if self.currentListType then
+		pcall(function()
+			self:SaveListPosition()
+		end)
 	end
 
 	self.previousListType = self.currentListType
@@ -3430,58 +3541,120 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 		if listDescriptor == INVENTORY_ITEM_LIST then
 			self:SetCurrentList(self.itemList)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-
 			self:RefreshCategoryList()
-			-- Always land on the first category and first item when switching lists
-			if self.categoryList and self.categoryList.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
-				end)
+			
+			-- ALWAYS restore saved inventory category when switching to inventory
+			local targetIndex = 1
+			if self.savedInventoryCategoryKey then
+				local idx = FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
+				if idx then targetIndex = idx end
 			end
-			if self.header and self.header.tabBar and self.header.tabBar.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
-				end)
+			-- Validate target is an inventory category, otherwise find first inventory category
+			if not self.categoryList.dataList[targetIndex] or self.categoryList.dataList[targetIndex].onClickDirection then
+				for i, d in ipairs(self.categoryList.dataList) do
+					if not d.onClickDirection then
+						targetIndex = i
+						break
+					end
+				end
 			end
-			-- Refresh item list after the category/tab selection so it matches the selected category
+			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
+			
+			-- Sync header tab
+			if self.header and self.header.tabBar then
+				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+			end
+			
+			-- Refresh and restore item position
 			self:RefreshItemList()
-			if self.itemList and self.itemList.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.itemList:SetSelectedIndexWithoutAnimation(1, true, false)
-				end)
+			local key = GetCategoryKey(self.categoryList.selectedData)
+			local itemIndex = 1
+			-- Only restore saved position if one exists for this category
+			if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
+				itemIndex = self.savedInventoryPositionsByKey[key]
+				-- Prefer unique ID restoration
+				if self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
+					local uid = self.savedInventorySelectedItemUniqueByKey[key]
+					local dataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
+					if dataList then
+						for i, entry in ipairs(dataList) do
+							if entry and entry.uniqueId == uid then
+								itemIndex = i
+								break
+							end
+						end
+					end
+				end
+			end
+			local invDataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
+			if invDataList and #invDataList > 0 then
+				self.itemList:SetSelectedIndexWithoutAnimation(zo_clamp(itemIndex, 1, #invDataList), true, false)
 			end
 
-			self:SetSelectedItemUniqueId(self.itemList:GetTargetData())
+			self:SetSelectedItemUniqueId(SafeGetTargetData(self.itemList))
 			self.actionMode = ITEM_LIST_ACTION_MODE
 			self:RefreshItemActions()
-
 			self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 			self:UpdateItemLeftTooltip(self.itemList.selectedData)
+			
 		elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
 			self:SetCurrentList(self.craftBagList)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-
 			self:RefreshCategoryList()
-			-- Always land on the first category and first craft bag item when switching lists
-			if self.categoryList and self.categoryList.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.categoryList:SetSelectedIndexWithoutAnimation(1, true, false)
-				end)
+			
+			-- ALWAYS restore saved craft bag category when switching to craft bag
+			local targetIndex = 1
+			if self.savedCraftBagCategoryKey then
+				local idx = FindCategoryIndexByKey(self, self.savedCraftBagCategoryKey)
+				if idx then targetIndex = idx end
 			end
-			if self.header and self.header.tabBar and self.header.tabBar.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
-				end)
+			-- Validate target is a craft bag category, otherwise find first craft bag category
+			if not self.categoryList.dataList[targetIndex] or not self.categoryList.dataList[targetIndex].onClickDirection then
+				for i, d in ipairs(self.categoryList.dataList) do
+					if d.onClickDirection then
+						targetIndex = i
+						break
+					end
+				end
 			end
-			-- Refresh craft bag list after the category/tab selection so it matches the selected category
+			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
+			
+			-- Sync header tab
+			if self.header and self.header.tabBar then
+				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+			end
+			
+			-- Refresh and restore item position
 			self:RefreshCraftBagList()
-			if self.craftBagList and self.craftBagList.SetSelectedIndexWithoutAnimation then
-				pcall(function()
-					self.craftBagList:SetSelectedIndexWithoutAnimation(1, true, false)
-				end)
+			local key = GetCategoryKey(self.categoryList.selectedData)
+			local itemIndex = 1
+			-- Only restore saved position if one exists for this category
+			if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
+				itemIndex = self.savedCraftBagPositionsByKey[key]
+				-- Prefer unique ID restoration
+				if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
+					local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
+					local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
+					if dataList then
+						for i, entry in ipairs(dataList) do
+							if entry and entry.uniqueId == uid then
+								itemIndex = i
+								break
+							end
+						end
+					end
+				end
+			end
+			local craftDataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
+			if craftDataList and #craftDataList > 0 then
+				-- craftBagList wraps an inner list; call SetSelectedIndexWithoutAnimation on the inner list
+				local innerList = self.craftBagList.list or self.craftBagList
+				if innerList.SetSelectedIndexWithoutAnimation then
+					innerList:SetSelectedIndexWithoutAnimation(zo_clamp(itemIndex, 1, #craftDataList), true, false)
+				end
 			end
 
-			self:SetSelectedItemUniqueId(self.craftBagList:GetTargetData())
+			self:SetSelectedItemUniqueId(SafeGetTargetData(self.craftBagList))
 			self.actionMode = CRAFT_BAG_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader()
@@ -3722,7 +3895,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 					end
 				elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
 					--craftbag mode
-					local targetData = self.craftBagList:GetTargetData()
+					local targetData = SafeGetTargetData(self.craftBagList)
 					local itemLink
 					local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
 					if bag and slot then
@@ -3743,7 +3916,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 			order = 1000,
 			visible = function()
 				if self.actionMode == ITEM_LIST_ACTION_MODE then
-					return self.selectedItemUniqueId ~= nil or self.itemList:GetTargetData() ~= nil
+					return self.selectedItemUniqueId ~= nil or SafeGetTargetData(self.itemList) ~= nil
 				elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
 					return self.selectedItemUniqueId ~= nil
 				end
