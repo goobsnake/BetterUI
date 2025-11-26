@@ -134,6 +134,14 @@ local function CanItemMoveToCraftBag(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
 end
 
+--- Checks if the inventory slot is currently in the craft bag (not regular inventory)
+--- @param inventorySlot table: The inventory slot data
+--- @return boolean: True if the item is in the craft bag
+local function IsSlotInCraftBag(inventorySlot)
+    local slotType = ZO_InventorySlot_GetType(inventorySlot)
+    return slotType == SLOT_TYPE_CRAFT_BAG_ITEM
+end
+
 --- Initializes the slot actions controller with custom primary action handling
 --- @param alignmentOverride any: Override for keybind alignment
 --- @param additionalMouseOverbinds table: Additional mouse over keybinds
@@ -342,7 +350,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
             table.remove(slotActions.m_slotActions, 1)
 
-            if CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) then
+            -- Only apply Stow logic for items NOT already in the craft bag
+            if not IsSlotInCraftBag(inventorySlot) and CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) then
                 canUseItem = true
                 -- Remove craft bag action from secondary actions
                 for i = #slotActions.m_slotActions, 1, -1 do
@@ -374,11 +383,24 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         -- Set the action name for display
         self.actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
 
-        -- If this item can be moved to the craft bag, force the craft-bag
-        -- "Stow" action to be the primary/top action (A and first in Y list).
-        -- Remove any discovered craft-bag entries (to avoid duplicates) and
-        -- use the helper to add the secure primary/secondary actions.
-        if CanItemMoveToCraftBag(inventorySlot) then
+        -- Handle craft bag vs inventory actions:
+        -- - In CRAFT BAG: "Retrieve" should be primary, "Stow" should NOT appear
+        -- - In INVENTORY: "Stow" should be primary for eligible items
+        local isInCraftBag = IsSlotInCraftBag(inventorySlot)
+        
+        if isInCraftBag then
+            -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
+            for i = #slotActions.m_slotActions, 1, -1 do
+                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                    table.remove(slotActions.m_slotActions, i)
+                end
+            end
+            -- Ensure Retrieve is primary action
+            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                self.actionName = GetActionString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+            end
+        elseif CanItemMoveToCraftBag(inventorySlot) then
+            -- INVENTORY VIEW: Force "Stow" as primary for eligible items
             -- Remove any existing craft-bag entries to avoid duplicates
             for i = #slotActions.m_slotActions, 1, -1 do
                 if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then

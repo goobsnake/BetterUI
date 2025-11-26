@@ -1,4 +1,12 @@
-Current Release - 2.86 Changes:
+Current Release - 2.87 Changes:
+
+[INDENT]1. Fixed: Inventory and craftbag saved categories and item positions should work much more consistently
+2. Fixed: Craftbag items should no longer default to "Stow" as their primary action
+3. Fixed: Containers opened in a specific inventory category should keep you in that category 
+[/INDENT]
+
+
+2.86 Changes:
 
 [INDENT]1. Fixed: Inventory and Bank item search bar functionality should be more consistent between the two
 2. Fixed: Inventory category navigation issues after a category is added or removed

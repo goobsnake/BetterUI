@@ -274,7 +274,7 @@ function BETTERUI.Initialize(event, addon)
 	if addon ~= BETTERUI.name then return end
 
 	-- Load saved variables
-	BETTERUI.Settings = ZO_SavedVars:New("BetterUISavedVars", 2.80, nil, BETTERUI.DefaultSettings)
+	BETTERUI.Settings = ZO_SavedVars:New("BetterUISavedVars", 2.87, nil, BETTERUI.DefaultSettings)
 
 	-- Initialize module settings on first install
 	if BETTERUI.Settings.firstInstall then

@@ -4,7 +4,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.86"
+BETTERUI.version = "2.87"
 
 -- Program Global (scope of BETTERUI, though) variable initialization
 BETTERUI.WindowManager = GetWindowManager()
