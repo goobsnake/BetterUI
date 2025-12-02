@@ -1,6 +1,5 @@
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","全アイテム")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","素材")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_QUICKSLOT","クイックスロット")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","武器")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL","防具")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY","アクセサリ")
@@ -20,7 +19,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP","サブハンド")
 ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT","武器を切り替え")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN","クイックスロットに割り当て")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN","メイン")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP","予備")
 ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW","引き出し")
 ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT","預け入れ")
@@ -56,12 +54,6 @@ ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "ジャンクから除外
 ZO_CreateStringId("SI_BETTERUI_ACTION_MARK_AS_JUNK", "ジャンクに分類")  
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "既知") 
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "未知")
-ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_CATEGORY_WARNING", "ジャンクのアイテムは削除時に確認メッセージが表示されません")
-ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY", "ジャンクに分類してから破壊してください")
-ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "アイテムをクラフトバッグから回収してください")
-ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "保護されているアイテムのためジャンクに分類できません")
-ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "破壊しました")
-ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "検索")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "検索をクリア")
 
 -- Enhanced Nameplates

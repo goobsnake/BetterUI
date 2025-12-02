@@ -1,6 +1,5 @@
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","Все предметы")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","Материалы")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_QUICKSLOT","Быстрый доступ")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","Оружие")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL","Снаряжение")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY","Драгоценности")
@@ -19,8 +18,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP","Левая рука")
  
 ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT","Сменить оружие")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN","Назначить на быстрый слот")
- 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN","Основной")
+
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP","Резерв")
 ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW","Снять")
 ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT","Положить")
@@ -56,12 +54,6 @@ ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "Убрать из хла
 ZO_CreateStringId("SI_BETTERUI_ACTION_MARK_AS_JUNK", "Отметить как хлам") 
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "Изучен") 
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "Не изучен")
-ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_CATEGORY_WARNING", "Предметы из раздела \"Хлам\" удаляются без подтверждения!")
-ZO_CreateStringId("SI_BETTERUI_MSG_MARK_AS_JUNK_TO_DESTROY", "Сначала отметьте предмет как хлам, чтобы уничтожить его!")
-ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_CRAFTBAG_ERROR", "Сначала заберите предмет из ремесленной сумки!")
-ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "Предмет заблокирован и не может быть помечен как хлам!")
-ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "Вы уничтожаете")
-ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "Поиск")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Очистить поиск")
 
 -- Enhanced Nameplates

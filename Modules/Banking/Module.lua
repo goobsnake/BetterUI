@@ -193,7 +193,8 @@ local function Init(mId, moduleName)
 					type = "dropdown",
 					name = GetString(SI_BETTERUI_BANK_NAME_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP),
-					choices = {"Small", "Default", "Medium", "Large", "XLarge"},
+					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
+					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
 					getFunc = function()
 						return BETTERUI.Settings.Modules["Banking"].nameFontSize or BETTERUI.Banking.DEFAULTS.nameFontSize
 					end,
@@ -251,7 +252,8 @@ local function Init(mId, moduleName)
 					type = "dropdown",
 					name = GetString(SI_BETTERUI_BANK_COLUMN_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP),
-					choices = {"Small", "Default", "Medium", "Large", "XLarge"},
+					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
+					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
 					getFunc = function()
 						return BETTERUI.Settings.Modules["Banking"].columnFontSize or BETTERUI.Banking.DEFAULTS.columnFontSize
 					end,
