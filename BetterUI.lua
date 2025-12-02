@@ -262,6 +262,11 @@ function BETTERUI.LoadModules()
 		BETTERUI.Tooltips.Setup()
 	end
 
+	-- Initialize Enhanced Nameplates module (independent of gamepad mode)
+	if BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
+		BETTERUI.Nameplates.Setup()
+	end
+
 	ddebug("Finished! BETTERUI is loaded")
 	BETTERUI._initialized = true
 end
@@ -283,7 +288,8 @@ function BETTERUI.Initialize(event, addon)
 			{"Inventory", BETTERUI.Inventory},
 			{"Banking", BETTERUI.Banking},
 			{"Writs", BETTERUI.Writs},
-			{"Tooltips", BETTERUI.Tooltips}
+			{"Tooltips", BETTERUI.Tooltips},
+			{"Nameplates", BETTERUI.Nameplates}
 		}
 
 		for _, moduleInfo in ipairs(modules) do

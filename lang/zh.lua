@@ -63,3 +63,17 @@ ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "物品已被锁定�
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "你摧毁了")
 ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "搜索")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "清除搜索")
+
+-- Enhanced Nameplates
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "增强名牌")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "自定义玩家和NPC名牌的字体、样式和大小。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "启用增强名牌")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "切换增强名牌功能。启用后，自定义字体设置将应用于所有名牌。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "名牌字体")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "选择用于名牌的字体。包括自定义字体和ESO内置字体。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "字体样式")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "选择名牌文字的样式效果（轮廓、阴影等）。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "调整名牌文字的大小。默认值为16。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置重置为默认值。")

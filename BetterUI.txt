@@ -42,7 +42,28 @@ Modules\Inventory\Inventory.lua
 Modules\Inventory\Module.lua
 
 ; Module: General Interface Improvements
+Modules\GeneralInterface\fonts\Cinzel-Bold.ttf
+Modules\GeneralInterface\fonts\CinzelDecorative-Bold.ttf
+Modules\GeneralInterface\fonts\UncialAntiqua-Regular.ttf
+Modules\GeneralInterface\fonts\MedievalSharp.ttf
+Modules\GeneralInterface\fonts\IMFellEnglishSC-Regular.ttf
+Modules\GeneralInterface\fonts\Almendra-Bold.ttf
+Modules\GeneralInterface\fonts\PirataOne-Regular.ttf
+Modules\GeneralInterface\fonts\Metamorphous-Regular.ttf
+Modules\GeneralInterface\fonts\Fondamento-Italic.ttf
+Modules\GeneralInterface\fonts\GrenzeGotisch-Bold.ttf
+Modules\GeneralInterface\fonts\Vollkorn-Bold.ttf
+Modules\GeneralInterface\fonts\Cardo-Bold.ttf
+Modules\GeneralInterface\fonts\CormorantGaramond-Bold.ttf
+Modules\GeneralInterface\fonts\Spectral-Bold.ttf
+Modules\GeneralInterface\fonts\CrimsonText-Bold.ttf
+Modules\GeneralInterface\fonts\DellaRespira-Regular.ttf
+Modules\GeneralInterface\fonts\CormorantSC-Bold.ttf
+Modules\GeneralInterface\fonts\OldStandardTT-Bold.ttf
+Modules\GeneralInterface\fonts\Eczar-Bold.ttf
+Modules\GeneralInterface\fonts\SortsMillGoudy-Regular.ttf
 Modules\GeneralInterface\Tooltips.lua
+Modules\GeneralInterface\Nameplates.lua
 Modules\GeneralInterface\Module.lua
 
 ; Module: Banking

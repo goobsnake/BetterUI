@@ -63,3 +63,17 @@ ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "Item is locked and c
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "You destroy")
 ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "Search")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Clear Search")
+
+-- Enhanced Nameplates
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Enhanced Nameplates")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Customize nameplate fonts, styles, and sizes for player and NPC nameplates.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Enable Enhanced Nameplates")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "Toggle the Enhanced Nameplates feature. When enabled, custom font settings will be applied to all nameplates.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Nameplate Font")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Select the font to use for nameplates. Includes both custom and ESO built-in fonts.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "Select the style effect for nameplate text (outline, shadow, etc).")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Font Size")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Adjust the size of nameplate text. Default is 16.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate settings to their default values.")

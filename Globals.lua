@@ -36,6 +36,10 @@ BETTERUI.Tooltips = {
 
 }
 
+BETTERUI.Nameplates = {
+
+}
+
 BETTERUI.Settings = {}
 
 BETTERUI.DefaultSettings = {

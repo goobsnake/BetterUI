@@ -63,3 +63,17 @@ ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "保護されてい�
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "破壊しました")
 ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "検索")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "検索をクリア")
+
+-- Enhanced Nameplates
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "ネームプレート強化")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "プレイヤーとNPCのネームプレートのフォント、スタイル、サイズをカスタマイズします。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "ネームプレート強化を有効にする")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "ネームプレート強化機能を切り替えます。有効にすると、カスタムフォント設定がすべてのネームプレートに適用されます。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "ネームプレートフォント")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "ネームプレートに使用するフォントを選択します。カスタムフォントとESOの組み込みフォントの両方が含まれます。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "フォントスタイル")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "ネームプレートテキストのスタイル効果（アウトライン、影など）を選択します。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "フォントサイズ")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "ネームプレートテキストのサイズを調整します。デフォルトは16です。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネームプレート設定をデフォルト値にリセットします。")

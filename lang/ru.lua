@@ -63,3 +63,17 @@ ZO_CreateStringId("SI_BETTERUI_MSG_JUNK_ITEMLOCKED_ERROR", "Предмет за�
 ZO_CreateStringId("SI_BETTERUI_MSG_DESTROY", "Вы уничтожаете")
 ZO_CreateStringId("SI_BETTERUI_GAMEPAD_SEARCH_HOLD", "Поиск")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Очистить поиск")
+
+-- Enhanced Nameplates
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Улучшенные таблички")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Настройте шрифты, стили и размеры табличек с именами игроков и NPC.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Включить улучшенные таблички")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "Переключить функцию улучшенных табличек. При включении пользовательские настройки шрифта будут применены ко всем табличкам.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Шрифт табличек")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Выберите шрифт для табличек. Включает как пользовательские, так и встроенные шрифты ESO.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Стиль шрифта")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "Выберите эффект стиля для текста табличек (контур, тень и т.д.).")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Настройте размер текста табличек. По умолчанию 16.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить все настройки табличек к значениям по умолчанию.")

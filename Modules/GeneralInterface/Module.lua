@@ -124,9 +124,144 @@ local function Init(mId, moduleName)
             requiresReload = true,
             default = "Default",
         },
+		-- ============================================================================
+		-- ENHANCED NAMEPLATES SETTINGS
+		-- ============================================================================
+		{
+			type = "header",
+			name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
+			width = "full",
+		},
+		{
+			type = "description",
+			text = GetString(SI_BETTERUI_NAMEPLATES_DESC),
+			width = "full",
+		},
+		{
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_NAMEPLATES_ENABLED),
+			tooltip = GetString(SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP),
+			default = false,
+			getFunc = function()
+				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled
+			end,
+			setFunc = function(value)
+				if BETTERUI.Settings.Modules["Nameplates"] then
+					BETTERUI.Settings.Modules["Nameplates"].enabled = value
+					if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged then
+						BETTERUI.Nameplates.OnEnabledChanged(value)
+					end
+				end
+			end,
+			width = "full",
+		},
+		{
+			type = "dropdown",
+			name = GetString(SI_BETTERUI_NAMEPLATES_FONT),
+			tooltip = GetString(SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP),
+			choices = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_CHOICES or {},
+			choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {},
+			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.font,
+			getFunc = function()
+				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].font
+			end,
+			setFunc = function(value)
+				if BETTERUI.Settings.Modules["Nameplates"] then
+					BETTERUI.Settings.Modules["Nameplates"].font = value
+					if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+						BETTERUI.Nameplates.ApplyCurrentSettings()
+					end
+				end
+			end,
+			disabled = function()
+				return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+			end,
+			width = "full",
+			scrollable = true,
+		},
+		{
+			type = "dropdown",
+			name = GetString(SI_BETTERUI_NAMEPLATES_STYLE),
+			tooltip = GetString(SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP),
+			choices = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_CHOICES or {},
+			choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_VALUES or {},
+			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.style,
+			getFunc = function()
+				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].style
+			end,
+			setFunc = function(value)
+				if BETTERUI.Settings.Modules["Nameplates"] then
+					BETTERUI.Settings.Modules["Nameplates"].style = value
+					if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+						BETTERUI.Nameplates.ApplyCurrentSettings()
+					end
+				end
+			end,
+			disabled = function()
+				return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+			end,
+			width = "full",
+		},
+		{
+			type = "slider",
+			name = GetString(SI_BETTERUI_NAMEPLATES_SIZE),
+			tooltip = GetString(SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP),
+			min = 8,
+			max = 64,
+			step = 1,
+			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.size or 16,
+			getFunc = function()
+				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].size or 16
+			end,
+			setFunc = function(value)
+				if BETTERUI.Settings.Modules["Nameplates"] then
+					BETTERUI.Settings.Modules["Nameplates"].size = value
+					if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+						BETTERUI.Nameplates.ApplyCurrentSettings()
+					end
+				end
+			end,
+			disabled = function()
+				return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+			end,
+			width = "full",
+		},
+		{
+			type = "button",
+			name = GetString(SI_BETTERUI_NAMEPLATES_RESET),
+			tooltip = GetString(SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP),
+			func = function()
+				if BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Nameplates then
+					local defaults = BETTERUI.Nameplates.DEFAULTS
+					BETTERUI.Settings.Modules["Nameplates"].font = defaults.font
+					BETTERUI.Settings.Modules["Nameplates"].style = defaults.style
+					BETTERUI.Settings.Modules["Nameplates"].size = defaults.size
+					if BETTERUI.Nameplates.ApplyCurrentSettings then
+						BETTERUI.Nameplates.ApplyCurrentSettings()
+					end
+				end
+			end,
+			disabled = function()
+				return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+			end,
+			width = "half",
+		},
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
+end
+
+--- Initializes default settings for the Nameplates module
+--- @param m_options table: The options table to initialize
+--- @return table: The initialized options table
+function BETTERUI.Nameplates.InitModule(m_options)
+    m_options = m_options or {}
+    local defaults = BETTERUI.Nameplates.DEFAULTS
+    m_options.enabled = defaults.enabled
+    m_options.font = defaults.font
+    m_options.style = defaults.style
+    m_options.size = defaults.size
+    return m_options
 end
 
 --- Initializes default settings for the Tooltips module
