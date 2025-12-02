@@ -70,7 +70,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "自定义玩家和NPC名牌的
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "启用增强名牌")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "切换增强名牌功能。启用后，自定义字体设置将应用于所有名牌。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "名牌字体")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "选择用于名牌的字体。包括自定义字体和ESO内置字体。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "从ESO内置字体中选择名牌字体。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "选择名牌文字的样式效果（轮廓、阴影等）。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")

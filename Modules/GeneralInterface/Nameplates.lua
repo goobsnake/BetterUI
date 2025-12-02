@@ -1,70 +1,24 @@
 --- BetterUI Enhanced Nameplates Module
---- Provides customizable nameplate fonts, styles, and sizes for both keyboard and gamepad modes
-
--- ============================================================================
--- CONSTANTS
--- ============================================================================
+--- Provides customizable nameplate fonts, styles, and sizes for keyboard and gamepad modes
+--- Note: ESO Update 41+ requires .slug format fonts. Only built-in ESO fonts are supported.
 
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 
---- Font choices displayed in the settings dropdown
+-- ESO built-in fonts (these have .slug versions and work with nameplate APIs)
 BETTERUI.Nameplates.FONT_CHOICES = {
-    -- Custom fonts bundled with BetterUI
-    "Cinzel Bold",
-    "Cinzel Decorative Bold",
-    "Uncial Antiqua",
-    "MedievalSharp",
-    "IM Fell English SC",
-    "Almendra Bold",
-    "Pirata One",
-    "Metamorphous",
-    "Fondamento Italic",
-    "Grenze Gotisch Bold",
-    "Vollkorn Bold",
-    "Cardo Bold",
-    "Cormorant Garamond Bold",
-    "Spectral Bold",
-    "Crimson Text Bold",
-    "Della Respira",
-    "Cormorant SC Bold",
-    "Old Standard TT Bold",
-    "Eczar Bold",
-    "Sorts Mill Goudy",
-    -- ESO built-in fonts
-    "Univers 57 (ESO Default)",
-    "Univers 67 (ESO Bold)",
+    "Univers 57 (Default)",
+    "Univers 67 (Bold)",
     "Futura Condensed Light",
     "Futura Condensed Medium",
     "Futura Condensed Bold",
     "Prose Antique",
     "Handwritten Bold",
     "Trajan Pro",
+    "Skyrim Handwritten",
+    "Consolas",
 }
 
---- Font file paths corresponding to FONT_CHOICES
 BETTERUI.Nameplates.FONT_VALUES = {
-    -- Custom fonts bundled with BetterUI (Fantasy/Medieval)
-    "BetterUI/Modules/GeneralInterface/fonts/Cinzel-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/CinzelDecorative-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/UncialAntiqua-Regular.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/MedievalSharp.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/IMFellEnglishSC-Regular.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Almendra-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/PirataOne-Regular.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Metamorphous-Regular.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Fondamento-Italic.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/GrenzeGotisch-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Vollkorn-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Cardo-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/CormorantGaramond-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Spectral-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/CrimsonText-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/DellaRespira-Regular.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/CormorantSC-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/OldStandardTT-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/Eczar-Bold.ttf",
-    "BetterUI/Modules/GeneralInterface/fonts/SortsMillGoudy-Regular.ttf",
-    -- ESO built-in fonts
     "EsoUI/Common/Fonts/Univers57.otf",
     "EsoUI/Common/Fonts/Univers67.otf",
     "EsoUI/Common/Fonts/FTN47.otf",
@@ -73,9 +27,11 @@ BETTERUI.Nameplates.FONT_VALUES = {
     "EsoUI/Common/Fonts/ProseAntiquePSMT.otf",
     "EsoUI/Common/Fonts/Handwritten_Bold.otf",
     "EsoUI/Common/Fonts/TrajanPro-Regular.otf",
+    "EsoUI/Common/Fonts/Skyrim_Handwritten.otf",
+    "EsoUI/Common/Fonts/consola.otf",
 }
 
---- Font style display names
+-- Font style options (maps to ESO FONT_STYLE_* constants)
 BETTERUI.Nameplates.FONTSTYLE_CHOICES = {
     "Normal",
     "Outline",
@@ -85,74 +41,71 @@ BETTERUI.Nameplates.FONTSTYLE_CHOICES = {
     "Soft Shadow (Thin)",
 }
 
---- Font style values (ESO string constants)
 BETTERUI.Nameplates.FONTSTYLE_VALUES = {
-    "normal",
-    "outline",
-    "thick-outline",
-    "shadow",
-    "soft-shadow-thick",
-    "soft-shadow-thin",
+    FONT_STYLE_NORMAL or 0,
+    FONT_STYLE_OUTLINE or 1,
+    FONT_STYLE_THICK_OUTLINE or 2,
+    FONT_STYLE_SHADOW or 3,
+    FONT_STYLE_SOFT_SHADOW_THICK or 4,
+    FONT_STYLE_SOFT_SHADOW_THIN or 5,
 }
 
---- Default settings for Enhanced Nameplates
+-- Default settings
 BETTERUI.Nameplates.DEFAULTS = {
     enabled = false,
     font = "EsoUI/Common/Fonts/Univers67.otf",
-    style = "soft-shadow-thin",
+    style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
     size = 16,
 }
 
--- ============================================================================
--- LOCAL FUNCTIONS
--- ============================================================================
+-- Legacy migration: converts old string style values to numeric enums
+local STYLE_STRING_TO_ENUM = {
+    ["normal"] = FONT_STYLE_NORMAL or 0,
+    ["outline"] = FONT_STYLE_OUTLINE or 1,
+    ["thick-outline"] = FONT_STYLE_THICK_OUTLINE or 2,
+    ["shadow"] = FONT_STYLE_SHADOW or 3,
+    ["soft-shadow-thick"] = FONT_STYLE_SOFT_SHADOW_THICK or 4,
+    ["soft-shadow-thin"] = FONT_STYLE_SOFT_SHADOW_THIN or 5,
+}
 
---- Gets the current nameplate settings from saved variables
---- @return table: The current nameplate settings
+-- Converts legacy string style to numeric enum
+local function NormalizeStyleValue(style)
+    if type(style) == "string" then
+        return STYLE_STRING_TO_ENUM[style] or (FONT_STYLE_SOFT_SHADOW_THIN or 5)
+    end
+    return style
+end
+
+-- Retrieves current nameplate settings from saved variables
 local function GetSettings()
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Nameplates"] then
-        return BETTERUI.Settings.Modules["Nameplates"]
+        local settings = BETTERUI.Settings.Modules["Nameplates"]
+        if type(settings.style) == "string" then
+            settings.style = NormalizeStyleValue(settings.style)
+        end
+        return settings
     end
     return BETTERUI.Nameplates.DEFAULTS
 end
 
---- Applies the nameplate font settings to the game
---- Handles both keyboard and gamepad modes automatically
---- @param font string: The font file path
---- @param style string: The font style string
---- @param size number: The font size
+-- Applies font settings to both keyboard and gamepad nameplate modes
 local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then return end
-    
-    -- Construct the font string in ESO format: "path|size|style"
-    local fontString = font .. "|" .. tostring(size) .. "|" .. style
-    
-    if IsInGamepadPreferredMode() then
-        local currentFont, currentStyle = GetNameplateGamepadFont()
-        if currentFont ~= font or currentStyle ~= style then
-            SetNameplateGamepadFont(fontString, style)
-        end
-    else
-        local currentFont, currentStyle = GetNameplateKeyboardFont()
-        if currentFont ~= font or currentStyle ~= style then
-            SetNameplateKeyboardFont(fontString, style)
-        end
-    end
+    style = NormalizeStyleValue(style)
+    local fontString = font .. "|" .. tostring(size)
+    SetNameplateKeyboardFont(fontString, style)
+    SetNameplateGamepadFont(fontString, style)
 end
 
---- Sets up event handlers for the Enhanced Nameplates feature
---- @param enabled boolean: Whether to register or unregister events
+-- Registers/unregisters event handlers for reapplying fonts on zone changes
 local function SetupEvents(enabled)
     if enabled then
-        -- Re-apply font settings when player enters a new zone or activates
         EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
             local settings = GetSettings()
             if settings.enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
         end)
-        
-        -- Re-apply when gamepad mode changes
         EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
             local settings = GetSettings()
             if settings.enabled then
@@ -165,28 +118,24 @@ local function SetupEvents(enabled)
     end
 end
 
---- Resets nameplate font to ESO defaults
+-- Resets nameplates to ESO default font
 local function ResetToDefaults()
     local defaults = BETTERUI.Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
---- Sets up the Enhanced Nameplates module
---- Called during addon initialization
+-- PUBLIC API --
+
+-- Initializes the Enhanced Nameplates module on addon load
 function BETTERUI.Nameplates.Setup()
     local settings = GetSettings()
-    
-    -- Apply settings if enabled
     if settings.enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
         SetupEvents(true)
     end
-    
-    ddebug("Enhanced Nameplates module loaded")
 end
 
---- Called when the enabled setting is changed from the settings panel
---- @param enabled boolean: The new enabled state
+-- Called when the enabled checkbox is toggled in settings
 function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     SetupEvents(enabled)
     if enabled then
@@ -197,14 +146,12 @@ function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     end
 end
 
---- Returns whether the Enhanced Nameplates feature is currently enabled
---- @return boolean: True if enabled
+-- Returns whether Enhanced Nameplates is currently enabled
 function BETTERUI.Nameplates.IsEnabled()
     return GetSettings().enabled
 end
 
---- Applies current nameplate settings from saved variables
---- Called by settings panel when font, style, or size changes
+-- Applies current settings from saved variables (called when settings change)
 function BETTERUI.Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.enabled then

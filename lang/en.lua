@@ -70,7 +70,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Customize nameplate fonts, sty
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Enable Enhanced Nameplates")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "Toggle the Enhanced Nameplates feature. When enabled, custom font settings will be applied to all nameplates.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Nameplate Font")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Select the font to use for nameplates. Includes both custom and ESO built-in fonts.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Select the font for nameplates from ESO's built-in fonts.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "Select the style effect for nameplate text (outline, shadow, etc).")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Font Size")

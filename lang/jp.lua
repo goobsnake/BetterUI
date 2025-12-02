@@ -70,7 +70,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "プレイヤーとNPCのネー
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "ネームプレート強化を有効にする")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "ネームプレート強化機能を切り替えます。有効にすると、カスタムフォント設定がすべてのネームプレートに適用されます。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "ネームプレートフォント")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "ネームプレートに使用するフォントを選択します。カスタムフォントとESOの組み込みフォントの両方が含まれます。")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "ネームプレートに使用するフォントをESOの組み込みフォントから選択します。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "ネームプレートテキストのスタイル効果（アウトライン、影など）を選択します。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "フォントサイズ")

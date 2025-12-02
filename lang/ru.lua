@@ -70,7 +70,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Настройте шрифт�
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Включить улучшенные таблички")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "Переключить функцию улучшенных табличек. При включении пользовательские настройки шрифта будут применены ко всем табличкам.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Шрифт табличек")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Выберите шрифт для табличек. Включает как пользовательские, так и встроенные шрифты ESO.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Выберите шрифт для табличек из встроенных шрифтов ESO.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "Выберите эффект стиля для текста табличек (контур, тень и т.д.).")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")

@@ -257,10 +257,11 @@ end
 function BETTERUI.Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS
-    m_options.enabled = defaults.enabled
-    m_options.font = defaults.font
-    m_options.style = defaults.style
-    m_options.size = defaults.size
+    -- Only set defaults if not already present (preserve existing settings)
+    if m_options.enabled == nil then m_options.enabled = defaults.enabled end
+    if m_options.font == nil then m_options.font = defaults.font end
+    if m_options.style == nil then m_options.style = defaults.style end
+    if m_options.size == nil then m_options.size = defaults.size end
     return m_options
 end
 
