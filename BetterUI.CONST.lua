@@ -48,12 +48,6 @@ BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT = BETTERUI_GAMEPAD_DEFAUL
 BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 
 -- ============================================================================
--- ACTION MODES
--- ============================================================================
-
-CATEGORY_ITEM_ACTION_MODE = 1
-
--- ============================================================================
 -- XML TEMPLATE VALUES (Column Layout)
 -- ============================================================================
 

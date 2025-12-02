@@ -5,8 +5,8 @@ local _
 
 -- Gets formatted writ conditions for a quest (colored by completion)
 function BETTERUI.Writs.Get(qId)
-	writLines = {}
-	writConcate = ''
+	local writLines = {}
+	local writConcate = ''
 	for lineId = 1, GetJournalQuestNumConditions(qId,1) do
 		local writLine,current,maximum,_,complete = GetJournalQuestConditionInfo(qId,1,lineId)
 		local colour

@@ -13,17 +13,6 @@ local DIVIDER_PIPPED    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 
 local GENERIC_HEADER_INFO_LABEL_HEIGHT = 33
 
-BETTERUI_GAMEPAD_CONTENT_HEADER_DIVIDER_INFO_BOTTOM_PADDING_Y = GENERIC_HEADER_INFO_LABEL_HEIGHT
-BETTERUI_GAMEPAD_CONTENT_DIVIDER_INFO_PADDING_Y = 50
-
-local Anchor = ZO_Object:Subclass()
-function Anchor:New(pointOnMe, targetId, pointOnTarget, offsetX, offsetY)
-    local object = ZO_Object.New(self)
-    object.targetId = targetId
-    object.anchor = ZO_Anchor:New(pointOnMe, nil, pointOnTarget, offsetX, offsetY)
-    return object
-end
-
 
 --- Setup function for tab bar entries: hides label, shows icon, tints when needed
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)

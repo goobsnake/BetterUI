@@ -240,23 +240,6 @@ function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChanged
     return list
 end
 
-function BETTERUI_HorizontalListEntrySetup(control, data, selected, reselectingDuringRebuild, enabled, selectedFromParent)
-      control:SetText(data.text)
-
-    local color = selectedFromParent and ZO_SELECTED_TEXT or ZO_DISABLED_TEXT
-    control:SetColor(color:UnpackRGBA())
-end
-
-function BETTERUI_HorizontalListRow_Initialize(self, setupFunction, equalityFunction)
-    self.GetHeight = function(control)
-                         return 50
-                     end
-    self.label = self:GetNamedChild("Name")
-    self.horizontalListControl = self:GetNamedChild("HorizontalList")
-    self.horizontalListObject = BETTERUI_HorizontalScrollList_Gamepad:New(self.horizontalListControl, "ZO_GamepadHorizontalListEntry", 1, setupFunction, equalityFunction)
-    self.horizontalListObject:SetAllowWrapping(true)
-end
-
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 --- Creates a new tab bar scroll list instance with navigation icons
 function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)

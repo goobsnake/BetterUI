@@ -111,8 +111,6 @@ function BETTERUI.Banking.GetColumnFontDescriptor()
 	end
 end
 
-local changed = false
-
 -- Initializes settings panel for Banking module
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
@@ -125,7 +123,6 @@ local function Init(mId, moduleName)
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconUnboundItem = value
-				changed = true
 			end,
 			width = "full",
 			requiresReload = true,
@@ -137,7 +134,6 @@ local function Init(mId, moduleName)
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconEnchantment end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconEnchantment = value
-				changed = true
 			end,
 			width = "full",
 			requiresReload = true,
@@ -149,7 +145,6 @@ local function Init(mId, moduleName)
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconSetGear end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconSetGear = value
-				changed = true
 			end,
 			width = "full",
 			requiresReload = true,

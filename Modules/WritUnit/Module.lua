@@ -2,15 +2,6 @@
 -- Displays daily writ progress at crafting stations
 
 local _
-local LAM = LibAddonMenu2
-
--- Initializes settings panel for Writ module
-local function Init(mId, moduleName)
-	local panelData = Init_ModulePanel(moduleName, "Writ Settings")
-
-	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
-	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
-end
 
 -- Initializes Writs default settings
 function BETTERUI.Writs.InitModule(m_options)

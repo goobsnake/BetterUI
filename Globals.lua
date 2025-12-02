@@ -7,7 +7,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.87"
+BETTERUI.version = "2.88"
 
 -- ESO API references
 BETTERUI.WindowManager = GetWindowManager()
@@ -68,15 +68,6 @@ function BETTERUI.roundNumber(number, decimals)
 	else
 		return 0
 	end
-end
-
---- Displays a message on screen using the center screen announce system
---- @param message string: The message to display
-function BETTERUI.OnScreenMessage(message)
-	local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT)
-	messageParams:SetCSAType(CENTER_SCREEN_ANNOUNCE_TYPE_COUNTDOWN)
-	messageParams:SetText(message)
-	CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
 end
 
 --- Formats a number with comma separators (e.g., 1234567 -> 1,234,567)
@@ -270,14 +261,6 @@ function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
 		if overwriteOriginal == false then originalMethod(self, ...) end
 		postHookFunction(self, ...)
 	end
-end
-
---- Converts RGB color values (0-1 range) to a hexadecimal string for use in ESO's color formatting system.
---- @param rgb table: Table containing r, g, b values (0-1 range)
---- @return string: Hexadecimal color string (e.g., "ff0000")
-function BETTERUI.RGBToHex(rgb)
-	local r, g, b = table.unpack(rgb)
-	return string.format("%02x%02x%02x", r * 255, g * 255, b * 255)
 end
 
 --- Creates a standardized module panel configuration for settings menus using LibAddonMenu2, including author, version, and slash command details.
