@@ -174,19 +174,22 @@
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH"/>
 
             <Controls>
-                <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad27">
+                <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad27" wrapMode="ELLIPSIS">
                         <Anchor point="TOPLEFT" offsetX="28"/>
                 </Label>
                 <Texture name="$(parent)Icon" inherits="BETTERUI_MenuEntryIconTemplate" edgeColor="00000000">
                 </Texture>
-                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="NONE" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
+                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="NONE" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true" wrapMode="ELLIPSIS">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Label" offsetX="485"/>
+                    <Dimensions x="180" y="40"/>
                 </Label>
-                <Label name="$(parent)Stat" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
+                <Label name="$(parent)Stat" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true" wrapMode="ELLIPSIS">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Label" offsetX="679"/>
+                    <Dimensions x="60" y="40"/>
                 </Label>
-                <Label name="$(parent)Value" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="0" font="ZoFontGamepad27" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
+                <Label name="$(parent)Value" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="0" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true" wrapMode="ELLIPSIS">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Label" offsetX="744"/>
+                    <Dimensions x="80" y="40"/>
                 </Label>
             </Controls>
         </Control>

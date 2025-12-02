@@ -77,3 +77,58 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Font Size")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Adjust the size of nameplate text. Default is 16.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate settings to their default values.")
+
+-- Inventory Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Font Customization")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Customize fonts for the inventory list. Set different fonts for the Name column and other columns (Type, Trait, Stat, Value).")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "Reset all inventory font settings to default values.")
+
+-- Inventory Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "Select the font for item names.")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
+
+-- Inventory Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SUBMENU", "Other Columns Font (Type, Trait, Stat, Value)")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Select the font for column data (Type, Trait, Stat, Value).")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
+
+-- Banking Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Font Customization")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Customize fonts for the banking list. Set different fonts for the Name column and other columns (Type, Trait, Stat, Value).")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "Reset all banking font settings to default values.")
+
+-- Banking Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "Select the font for item names.")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
+
+-- Banking Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SUBMENU", "Other Columns Font (Type, Trait, Stat, Value)")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Select the font for column data (Type, Trait, Stat, Value).")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
+
+-- Shared Font Size Options
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Small")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "Default")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Medium")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Large")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "XLarge")

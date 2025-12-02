@@ -4,7 +4,7 @@
 
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 
--- ESO built-in fonts (these have .slug versions and work with nameplate APIs)
+-- ESO built-in fonts
 BETTERUI.Nameplates.FONT_CHOICES = {
     "Univers 57 (Default)",
     "Univers 67 (Bold)",
@@ -123,8 +123,6 @@ local function ResetToDefaults()
     local defaults = BETTERUI.Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
-
--- PUBLIC API --
 
 -- Initializes the Enhanced Nameplates module on addon load
 function BETTERUI.Nameplates.Setup()

@@ -118,15 +118,23 @@ BETTERUI_TRAIT_OFFSET_X = 810
 
 --- Trait label width
 --- @type number
-BETTERUI_TRAIT_WIDTH = 160
+BETTERUI_TRAIT_WIDTH = 180
 
 --- Stat label offset from main label
 --- @type number
-BETTERUI_STAT_OFFSET_X = 980
+BETTERUI_STAT_OFFSET_X = 1000
+
+--- Stat label width
+--- @type number
+BETTERUI_STAT_WIDTH = 130
 
 --- Value label offset from main label
 --- @type number
-BETTERUI_VALUE_OFFSET_X = 1100
+BETTERUI_VALUE_OFFSET_X = 1150
+
+--- Value label width
+--- @type number
+BETTERUI_VALUE_WIDTH = 120
 
 --- Equipped icon offset from main icon
 --- @type number

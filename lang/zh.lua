@@ -77,3 +77,58 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "调整名牌文字的大小。默认值为16。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置为默认")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置重置为默认值。")
+
+-- Inventory Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "自定义物品栏列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "将所有物品栏字体设置重置为默认值。")
+
+-- Inventory Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "名称列字体")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "字体")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "选择物品名称的字体。")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "大小")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "选择物品名称的字体大小。")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "选择物品名称的字体样式。")
+
+-- Inventory Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SUBMENU", "其他列字体（类型、特性、属性、价值）")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "字体")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "选择列数据（类型、特性、属性、价值）的字体。")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "大小")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据的字体大小。")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
+
+-- Banking Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "字体自定义")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "自定义银行列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "将所有银行字体设置重置为默认值。")
+
+-- Banking Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "名称列字体")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "字体")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "选择物品名称的字体。")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "大小")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "选择物品名称的字体大小。")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "选择物品名称的字体样式。")
+
+-- Banking Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SUBMENU", "其他列字体（类型、特性、属性、价值）")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "字体")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "选择列数据（类型、特性、属性、价值）的字体。")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "大小")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据的字体大小。")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
+
+-- Shared Font Size Options
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "小")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "默认")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "中")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "大")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "特大")

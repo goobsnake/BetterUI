@@ -191,11 +191,9 @@ end
 
 local function SetupLabelListing(control, data)
     control:GetNamedChild("Label"):SetText(data.label)
-    if BETTERUI.Settings.Modules["CIM"].skinSize == "Medium" then
-        control:GetNamedChild("Label"):SetFont("ZoFontGamepadCondensed34")
-    elseif BETTERUI.Settings.Modules["CIM"].skinSize == "Large" then
-        control:GetNamedChild("Label"):SetFont("ZoFontGamepad36")
-    end 
+    -- Use Banking module's custom font descriptor for Name column
+    local font = BETTERUI.Banking.GetNameFontDescriptor()
+    control:GetNamedChild("Label"):SetFont(font)
 end
 
 BETTERUI.Banking.Class = BETTERUI.Interface.Window:Subclass()

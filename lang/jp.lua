@@ -77,3 +77,58 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "フォントサイズ")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "ネームプレートテキストのサイズを調整します。デフォルトは16です。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "デフォルトにリセット")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネームプレート設定をデフォルト値にリセットします。")
+
+-- Inventory Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "フォントカスタマイズ")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "インベントリリストのフォントをカスタマイズします。名前列と他の列（タイプ、特性、ステータス、価値）に異なるフォントを設定できます。")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "すべてのインベントリフォント設定をデフォルト値にリセットします。")
+
+-- Inventory Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "名前列フォント")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "フォント")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "アイテム名のフォントを選択します。")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "サイズ")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "アイテム名のフォントサイズを選択します。")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "アイテム名のフォントスタイルを選択します。")
+
+-- Inventory Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SUBMENU", "他の列フォント（タイプ、特性、ステータス、価値）")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "フォント")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "列データ（タイプ、特性、ステータス、価値）のフォントを選択します。")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "サイズ")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "列データのフォントサイズを選択します。")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "列データのフォントスタイルを選択します。")
+
+-- Banking Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "フォントカスタマイズ")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "銀行リストのフォントをカスタマイズします。名前列と他の列（タイプ、特性、ステータス、価値）に異なるフォントを設定できます。")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "すべての銀行フォント設定をデフォルト値にリセットします。")
+
+-- Banking Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "名前列フォント")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "フォント")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "アイテム名のフォントを選択します。")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "サイズ")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "アイテム名のフォントサイズを選択します。")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "アイテム名のフォントスタイルを選択します。")
+
+-- Banking Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SUBMENU", "他の列フォント（タイプ、特性、ステータス、価値）")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "フォント")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "列データ（タイプ、特性、ステータス、価値）のフォントを選択します。")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "サイズ")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "列データのフォントサイズを選択します。")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "列データのフォントスタイルを選択します。")
+
+-- Shared Font Size Options
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "小")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "デフォルト")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "中")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "大")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "特大")

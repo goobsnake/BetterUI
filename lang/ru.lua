@@ -77,3 +77,58 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Настройте размер текста табличек. По умолчанию 16.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить все настройки табличек к значениям по умолчанию.")
+
+-- Inventory Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Настройте шрифты для списка инвентаря. Установите разные шрифты для столбца Название и других столбцов (Тип, Черта, Стат, Цена).")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "Сбросить все настройки шрифтов инвентаря к значениям по умолчанию.")
+
+-- Inventory Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "Шрифт столбца Название")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "Шрифт")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "Выберите шрифт для названий предметов.")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "Размер")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для названий предметов.")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для названий предметов.")
+
+-- Inventory Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SUBMENU", "Шрифт других столбцов (Тип, Черта, Стат, Цена)")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "Шрифт")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Выберите шрифт для данных столбцов (Тип, Черта, Стат, Цена).")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "Размер")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для данных столбцов.")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
+
+-- Banking Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Настройка шрифтов")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Настройте шрифты для списка банка. Установите разные шрифты для столбца Название и других столбцов (Тип, Черта, Стат, Цена).")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "Сбросить все настройки шрифтов банка к значениям по умолчанию.")
+
+-- Banking Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "Шрифт столбца Название")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "Шрифт")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "Выберите шрифт для названий предметов.")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "Размер")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для названий предметов.")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для названий предметов.")
+
+-- Banking Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SUBMENU", "Шрифт других столбцов (Тип, Черта, Стат, Цена)")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "Шрифт")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Выберите шрифт для данных столбцов (Тип, Черта, Стат, Цена).")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "Размер")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для данных столбцов.")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
+
+-- Shared Font Size Options
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Маленький")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "По умолчанию")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Средний")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Большой")
+ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "Очень большой")

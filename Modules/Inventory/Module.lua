@@ -11,6 +11,97 @@ local LAM = LibAddonMenu2
 local GENERAL_COLOR_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1
 local GENERAL_COLOR_OFF_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3
 
+-- Shared font choices for Inventory (same as Nameplates for consistency)
+BETTERUI.Inventory = BETTERUI.Inventory or {}
+BETTERUI.Inventory.FONT_CHOICES = {
+	"Univers 57 (Default)",
+	"Univers 67 (Bold)",
+	"Futura Condensed Light",
+	"Futura Condensed Medium",
+	"Futura Condensed Bold",
+	"Prose Antique",
+	"Handwritten Bold",
+	"Trajan Pro",
+	"Skyrim Handwritten",
+	"Consolas",
+}
+
+BETTERUI.Inventory.FONT_VALUES = {
+	"EsoUI/Common/Fonts/Univers57.otf",
+	"EsoUI/Common/Fonts/Univers67.otf",
+	"EsoUI/Common/Fonts/FTN47.otf",
+	"EsoUI/Common/Fonts/FTN57.otf",
+	"EsoUI/Common/Fonts/FTN87.otf",
+	"EsoUI/Common/Fonts/ProseAntiquePSMT.otf",
+	"EsoUI/Common/Fonts/Handwritten_Bold.otf",
+	"EsoUI/Common/Fonts/TrajanPro-Regular.otf",
+	"EsoUI/Common/Fonts/Skyrim_Handwritten.otf",
+	"EsoUI/Common/Fonts/consola.otf",
+}
+
+BETTERUI.Inventory.FONTSTYLE_CHOICES = {
+	"Normal",
+	"Outline",
+	"Thick Outline",
+	"Shadow",
+	"Soft Shadow (Thick)",
+	"Soft Shadow (Thin)",
+}
+
+-- Font style string values for ESO font descriptor format
+BETTERUI.Inventory.FONTSTYLE_VALUES = {
+	"",                    -- Normal (no style suffix)
+	"outline",             -- Outline
+	"thick-outline",       -- Thick Outline
+	"shadow",              -- Shadow
+	"soft-shadow-thick",   -- Soft Shadow (Thick)
+	"soft-shadow-thin",    -- Soft Shadow (Thin)
+}
+
+BETTERUI.Inventory.DEFAULTS = {
+	nameFont = "EsoUI/Common/Fonts/FTN57.otf",
+	nameFontSize = "Default",
+	nameFontStyle = "",
+	columnFont = "EsoUI/Common/Fonts/FTN57.otf",
+	columnFontSize = "Default",
+	columnFontStyle = "",
+}
+
+-- Converts size string to pixel value
+local function GetFontSizeValue(sizeStr)
+	if sizeStr == "XLarge" then
+		return 36
+	elseif sizeStr == "Large" then
+		return 32
+	elseif sizeStr == "Medium" then
+		return 28
+	elseif sizeStr == "Small" then
+		return 20
+	else
+		return 24  -- Default
+	end
+end
+
+-- Returns font descriptor for Name column: "fontPath|size|style"
+function BETTERUI.Inventory.GetNameFontDescriptor()
+	local s = BETTERUI.Settings.Modules["Inventory"]
+	local d = BETTERUI.Inventory.DEFAULTS
+	local path = s.nameFont or d.nameFont
+	local size = GetFontSizeValue(s.nameFontSize or d.nameFontSize)
+	local style = s.nameFontStyle or d.nameFontStyle
+	return style ~= "" and string.format("%s|%d|%s", path, size, style) or string.format("%s|%d", path, size)
+end
+
+-- Returns font descriptor for column labels (Type, Trait, Stat, Value): "fontPath|size|style"
+function BETTERUI.Inventory.GetColumnFontDescriptor()
+	local s = BETTERUI.Settings.Modules["Inventory"]
+	local d = BETTERUI.Inventory.DEFAULTS
+	local path = s.columnFont or d.columnFont
+	local size = GetFontSizeValue(s.columnFontSize or d.columnFontSize)
+	local style = s.columnFontStyle or d.columnFontStyle
+	return style ~= "" and string.format("%s|%d|%s", path, size, style) or string.format("%s|%d", path, size)
+end
+
 --- Initializes the settings panel for the Inventory module
 --- @param mId string: Module ID for panel registration
 --- @param moduleName string: Display name for the module
@@ -29,7 +120,7 @@ local function Init(mId, moduleName)
 		end
 	end
 
-	--- Recomputes the currency order string based on user settings and default priorities. Creates a comma-separated list of currency keys in the order they should appear, handling ties with default sort order.
+	--- Recomputes the currency order string based on user settings and default priorities
 	local function RecomputeCurrencyOrderString()
 		local inv = BETTERUI.Settings.Modules["Inventory"]
 		if not inv then return end
@@ -436,6 +527,150 @@ local function Init(mId, moduleName)
 				},
 			},
 		},
+		-- Font Customization Section (at bottom)
+		{
+			type = "header",
+			name = GetString(SI_BETTERUI_INV_FONT_HEADER),
+			width = "full",
+		},
+		{
+			type = "description",
+			text = GetString(SI_BETTERUI_INV_FONT_DESC),
+			width = "full",
+		},
+		-- ========== NAME COLUMN FONT SETTINGS ==========
+		{
+			type = "submenu",
+			name = GetString(SI_BETTERUI_INV_NAME_FONT_SUBMENU),
+			controls = {
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_NAME_FONT),
+					tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_TOOLTIP),
+					choices = BETTERUI.Inventory.FONT_CHOICES,
+					choicesValues = BETTERUI.Inventory.FONT_VALUES,
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].nameFont or BETTERUI.Inventory.DEFAULTS.nameFont
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].nameFont = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					scrollable = true,
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.nameFont,
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE),
+					tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP),
+					choices = {"Small", "Default", "Medium", "Large", "XLarge"},
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].nameFontSize or BETTERUI.Inventory.DEFAULTS.nameFontSize
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.nameFontSize,
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_NAME_FONT_STYLE),
+					tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP),
+					choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
+					choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].nameFontStyle or BETTERUI.Inventory.DEFAULTS.nameFontStyle
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].nameFontStyle = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.nameFontStyle,
+				},
+			},
+		},
+		-- ========== OTHER COLUMNS FONT SETTINGS (Type, Trait, Stat, Value) ==========
+		{
+			type = "submenu",
+			name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SUBMENU),
+			controls = {
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_COLUMN_FONT),
+					tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP),
+					choices = BETTERUI.Inventory.FONT_CHOICES,
+					choicesValues = BETTERUI.Inventory.FONT_VALUES,
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].columnFont or BETTERUI.Inventory.DEFAULTS.columnFont
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].columnFont = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					scrollable = true,
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.columnFont,
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE),
+					tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP),
+					choices = {"Small", "Default", "Medium", "Large", "XLarge"},
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].columnFontSize or BETTERUI.Inventory.DEFAULTS.columnFontSize
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.columnFontSize,
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_INV_COLUMN_FONT_STYLE),
+					tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP),
+					choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
+					choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
+					getFunc = function()
+						return BETTERUI.Settings.Modules["Inventory"].columnFontStyle or BETTERUI.Inventory.DEFAULTS.columnFontStyle
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].columnFontStyle = value
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "full",
+					requiresReload = true,
+					default = BETTERUI.Inventory.DEFAULTS.columnFontStyle,
+				},
+			},
+		},
+		{
+			type = "button",
+			name = GetString(SI_BETTERUI_INV_FONT_RESET),
+			tooltip = GetString(SI_BETTERUI_INV_FONT_RESET_TOOLTIP),
+			func = function()
+				local d = BETTERUI.Inventory.DEFAULTS
+				local s = BETTERUI.Settings.Modules["Inventory"]
+				s.nameFont = d.nameFont
+				s.nameFontSize = d.nameFontSize
+				s.nameFontStyle = d.nameFontStyle
+				s.columnFont = d.columnFont
+				s.columnFontSize = d.columnFontSize
+				s.columnFontStyle = d.columnFontStyle
+			end,
+			disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+			width = "half",
+		},
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -453,6 +688,44 @@ function BETTERUI.Inventory.InitModule(m_options)
 	m_options["showIconSetGear"] = true
 	m_options["showIconUnboundItem"] = true
 	m_options["quickDestroy"] = false
+
+	-- Font customization - Name column settings
+	local defaults = BETTERUI.Inventory.DEFAULTS
+	m_options["nameFont"] = m_options["nameFont"] or defaults.nameFont
+	m_options["nameFontSize"] = m_options["nameFontSize"] or defaults.nameFontSize
+	m_options["nameFontStyle"] = m_options["nameFontStyle"] or defaults.nameFontStyle
+	
+	-- Font customization - Other columns settings (Type, Trait, Stat, Value)
+	m_options["columnFont"] = m_options["columnFont"] or defaults.columnFont
+	m_options["columnFontSize"] = m_options["columnFontSize"] or defaults.columnFontSize
+	m_options["columnFontStyle"] = m_options["columnFontStyle"] or defaults.columnFontStyle
+	
+	-- Migrate old settings to new format if present
+	if m_options["font"] and not m_options["nameFont"] then
+		m_options["nameFont"] = m_options["font"]
+		m_options["columnFont"] = m_options["font"]
+	end
+	if m_options["skinSize"] and not m_options["nameFontSize"] then
+		m_options["nameFontSize"] = m_options["skinSize"]
+		m_options["columnFontSize"] = m_options["skinSize"]
+	end
+	if m_options["fontStyle"] and not m_options["nameFontStyle"] then
+		-- Handle migration from old numeric style to string
+		local oldStyle = m_options["fontStyle"]
+		if type(oldStyle) == "number" then
+			local styleMap = {
+				[0] = "",
+				[1] = "outline",
+				[2] = "thick-outline",
+				[3] = "shadow",
+				[4] = "soft-shadow-thick",
+				[5] = "soft-shadow-thin",
+			}
+			oldStyle = styleMap[oldStyle] or defaults.nameFontStyle
+		end
+		m_options["nameFontStyle"] = oldStyle
+		m_options["columnFontStyle"] = oldStyle
+	end
 
 	-- Currency visibility defaults
 	m_options["showCurrencyGold"] = true
@@ -489,106 +762,67 @@ end
 --
 -------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Sets up tooltip styles based on the configured tooltip size. Adjusts font sizes, colors, and layout properties for small, medium, large, or default sizes to improve readability and fit more information.
+--- Sets up tooltip styles based on CIM's tooltipSize setting.
 local function SetupTooltipStyles()
-    if BETTERUI.Settings.Modules["CIM"].tooltipSize == "Small" then
-        ZO_TOOLTIP_STYLES["topSection"] = {
-            layoutPrimaryDirection = "up",
-            layoutSecondaryDirection = "right",
-            widthPercent = 100,
-            childSpacing = 1,
-            fontSize = 22,
-            height = 64,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["flavorText"] = {
-            fontSize = 22,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairStat"] = {
-            fontSize = 22,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairValue"] = {
-            fontSize = 30,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["title"] = {
-            fontSize = 32,
-            customSpacing = 8,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["bodyDescription"] = {
-            fontSize = 22,
-        }
-    elseif BETTERUI.Settings.Modules["CIM"].tooltipSize == "Medium" then
-        ZO_TOOLTIP_STYLES["topSection"] = {
-            layoutPrimaryDirection = "up",
-            layoutSecondaryDirection = "right",
-            widthPercent = 100,
-            childSpacing = 1,
-            fontSize = 25,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["flavorText"] = {
-            fontSize = 34,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairStat"] = {
-            fontSize = 27,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairValue"] = {
-            fontSize = 38,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["title"] = {
-            fontSize = 34,
-            customSpacing = 8,
-            widthPercent = 100,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["bodyDescription"] = {
-            fontSize = 34,
-        }
-    elseif BETTERUI.Settings.Modules["CIM"].tooltipSize == "Large" then
-        ZO_TOOLTIP_STYLES["topSection"] = {
-            layoutPrimaryDirection = "up",
-            layoutSecondaryDirection = "right",
-            widthPercent = 100,
-            childSpacing = 1,
-            fontSize = 27,
-            height = 64,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["flavorText"] = {
-            fontSize = 38,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairStat"] = {
-            fontSize = 27,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_OFF_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["statValuePairValue"] = {
-            fontSize = 42,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["title"] = {
-            fontSize = 38,
-            customSpacing = 8,
-            widthPercent = 100,
-            uppercase = true,
-            fontColorField = GENERAL_COLOR_WHITE,
-        }
-        ZO_TOOLTIP_STYLES["bodyDescription"] = {
-            fontSize = 38,
-        }
+    local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or "Default"
+    
+    -- Convert size setting to pixel values
+    local baseFontSize, titleFontSize, valueFontSize
+    if tooltipSize == "Small" then
+        baseFontSize = 20
+        titleFontSize = 26
+        valueFontSize = 24
+    elseif tooltipSize == "Medium" then
+        baseFontSize = 28
+        titleFontSize = 34
+        valueFontSize = 32
+    elseif tooltipSize == "Large" then
+        baseFontSize = 32
+        titleFontSize = 38
+        valueFontSize = 36
+    elseif tooltipSize == "XLarge" then
+        baseFontSize = 36
+        titleFontSize = 42
+        valueFontSize = 40
+    else -- Default
+        baseFontSize = 24
+        titleFontSize = 30
+        valueFontSize = 28
     end
+    
+    -- Apply tooltip styles with size adjustments
+    ZO_TOOLTIP_STYLES["topSection"] = {
+        layoutPrimaryDirection = "up",
+        layoutSecondaryDirection = "right",
+        widthPercent = 100,
+        childSpacing = 1,
+        fontSize = baseFontSize,
+        height = 64,
+        uppercase = true,
+        fontColorField = GENERAL_COLOR_OFF_WHITE,
+    }
+    ZO_TOOLTIP_STYLES["flavorText"] = {
+        fontSize = baseFontSize,
+    }
+    ZO_TOOLTIP_STYLES["statValuePairStat"] = {
+        fontSize = baseFontSize,
+        uppercase = true,
+        fontColorField = GENERAL_COLOR_OFF_WHITE,
+    }
+    ZO_TOOLTIP_STYLES["statValuePairValue"] = {
+        fontSize = valueFontSize,
+        fontColorField = GENERAL_COLOR_WHITE,
+    }
+    ZO_TOOLTIP_STYLES["title"] = {
+        fontSize = titleFontSize,
+        customSpacing = 8,
+        widthPercent = 100,
+        uppercase = true,
+        fontColorField = GENERAL_COLOR_WHITE,
+    }
+    ZO_TOOLTIP_STYLES["bodyDescription"] = {
+        fontSize = baseFontSize,
+    }
 end
 
 --- Sets up mouse wheel scrolling for tooltips. Hooks the tooltip control to respond to mouse wheel events, allowing players to scroll through long tooltip text that exceeds the display area.

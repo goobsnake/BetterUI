@@ -102,22 +102,9 @@ local function Init(mId, moduleName)
             type = "dropdown",
             name = "Tooltip font size",
 			tooltip = "Allows more or less item information to be displayed at once in tooltips",
-			choices = {"Small", "Medium", "Large", "Default"},
+			choices = {"Small", "Default", "Medium", "Large", "XLarge"},
             getFunc = function() return BETTERUI.Settings.Modules["CIM"].tooltipSize end,
             setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value
-                      end,
-            disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
-            width = "full",
-            requiresReload = true,
-            default = "Default",
-        },
-        {
-            type = "dropdown",
-            name = "Interface and item list font size",
-			tooltip = "Changes the font size of listed items in the inventory and bank. Different sizes make you see more or less items at once.",
-			choices = {"Default", "Medium", "Large"},
-            getFunc = function() return BETTERUI.Settings.Modules["CIM"].skinSize end,
-            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].skinSize = value
                       end,
             disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
             width = "full",

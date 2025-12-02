@@ -11,6 +11,53 @@ local TEXTURE_EQUIP_SLOT_ICON = "BetterUI/Modules/CIM/Images/inv_equip_quickslot
 local NEW_ICON_TEXTURE = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
 
 local USE_SHORT_CURRENCY_FORMAT = true
+
+--- Formats a number into abbreviated form (K, M, B) with up to 4 significant digits
+--- @param value number: The number to format
+--- @return string: Formatted string like "1.12K", "12.3K", "123K", "1.23M", etc.
+local function FormatAbbreviatedNumber(value)
+    if not value or value == 0 then
+        return "0"
+    end
+    
+    local absValue = math.abs(value)
+    local sign = value < 0 and "-" or ""
+    
+    if absValue >= 1000000000 then
+        -- Billions
+        local num = absValue / 1000000000
+        if num >= 100 then
+            return sign .. string.format("%.0fB", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fB", num)
+        else
+            return sign .. string.format("%.2fB", num)
+        end
+    elseif absValue >= 1000000 then
+        -- Millions
+        local num = absValue / 1000000
+        if num >= 100 then
+            return sign .. string.format("%.0fM", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fM", num)
+        else
+            return sign .. string.format("%.2fM", num)
+        end
+    elseif absValue >= 1000 then
+        -- Thousands
+        local num = absValue / 1000
+        if num >= 100 then
+            return sign .. string.format("%.0fK", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fK", num)
+        else
+            return sign .. string.format("%.2fK", num)
+        end
+    else
+        -- Less than 1000, show as-is
+        return sign .. tostring(math.floor(absValue))
+    end
+end
  
 local DEFAULT_GAMEPAD_ITEM_SORT =
 {
@@ -40,12 +87,13 @@ end
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
     if label then
-    	local font = "ZoFontGamepad27"
-		if BETTERUI.Settings.Modules["CIM"].skinSize == "Medium" then
-            font = "ZoFontGamepad36"
-        elseif BETTERUI.Settings.Modules["CIM"].skinSize == "Large" then
-            font = "ZoFontGamepad42"
-		end
+    	-- Determine which scene is active and use appropriate font settings
+    	local font
+    	if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+    		font = BETTERUI.Banking.GetNameFontDescriptor()
+    	else
+    		font = BETTERUI.Inventory.GetNameFontDescriptor()
+    	end
 		label:SetFont(font)
 		
         if data.modifyTextType then
@@ -247,25 +295,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     local itemLink = data.cached_itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
     local itemType = data.cached_itemType or (itemLink and GetItemLinkItemType(itemLink))
-    local skinSize = BETTERUI.Settings.Modules["CIM"].skinSize
-
-    -- Set font sizes based on skin size (cached to avoid repeated calculations)
-    local itemTypeFont, traitFont, statFont, valueFont
-    if skinSize == "Medium" then
-        itemTypeFont = "ZoFontGamepadCondensed34"
-        traitFont = "ZoFontGamepadCondensed34"
-        statFont = "ZoFontGamepadCondensed34"
-        valueFont = "ZoFontGamepadCondensed34"
-    elseif skinSize == "Large" then
-        itemTypeFont = "ZoFontGamepad36"
-        traitFont = "ZoFontGamepad36"
-        statFont = "ZoFontGamepad36"
-        valueFont = "ZoFontGamepad36"
+    
+    -- Determine which scene is active and use appropriate column font settings
+    local columnFont
+    if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+    	columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
     else
-        itemTypeFont = "ZoFontGamepad27"
-        traitFont = "ZoFontGamepad27"
-        statFont = "ZoFontGamepad27"
-        valueFont = "ZoFontGamepad27"
+    	columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
     end
 
     local itemTypeControl = control:GetNamedChild("ItemType")
@@ -273,10 +309,11 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local statControl = control:GetNamedChild("Stat")
     local valueControl = control:GetNamedChild("Value")
 
-    itemTypeControl:SetFont(itemTypeFont)
-    traitControl:SetFont(traitFont)
-    statControl:SetFont(statFont)
-    valueControl:SetFont(valueFont)
+    -- Apply column font
+    itemTypeControl:SetFont(columnFont)
+    traitControl:SetFont(columnFont)
+    statControl:SetFont(columnFont)
+    valueControl:SetFont(columnFont)
 
     -- Set item type
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
@@ -308,14 +345,14 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
-            valueControl:SetText(ZO_CurrencyControl_FormatCurrency(math.floor(marketPrice), USE_SHORT_CURRENCY_FORMAT))
+            valueControl:SetText(FormatAbbreviatedNumber(math.floor(marketPrice)))
         else
             valueControl:SetColor(1, 1, 1, 1)
-            valueControl:SetText(data.stackSellPrice)
+            valueControl:SetText(FormatAbbreviatedNumber(data.stackSellPrice))
         end
     else
         valueControl:SetColor(1, 1, 1, 1)
-        valueControl:SetText(ZO_CurrencyControl_FormatCurrency(data.stackSellPrice, USE_SHORT_CURRENCY_FORMAT))
+        valueControl:SetText(FormatAbbreviatedNumber(data.stackSellPrice))
     end
 
     -- Setup remaining UI elements
@@ -331,16 +368,17 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
-    -- Adjust icon dimensions based on skin size
+    -- Adjust icon dimensions based on CIM skin size setting
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
+    local cimSkinSize = BETTERUI.Settings.Modules["CIM"].skinSize or "Default"
 
-    if skinSize == "Medium" then
+    if cimSkinSize == "Medium" then
         iconControl:SetDimensions(42, 42)
         iconControl:ClearAnchors()
         iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -38, 0)
         equipIconControl:SetDimensions(34, 28)
-    elseif skinSize == "Large" then
+    elseif cimSkinSize == "Large" then
         iconControl:SetDimensions(48, 48)
         iconControl:ClearAnchors()
         iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -32, 0)
