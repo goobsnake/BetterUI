@@ -1,9 +1,5 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    BetterUI Inventory Module - Configuration and Setup
---    This module handles inventory-related settings and initializes the custom inventory system
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- BetterUI Inventory Module - Settings and Configuration
+-- Handles inventory settings panel, font customization, and currency display options
 
 local _
 local LAM = LibAddonMenu2

@@ -1,9 +1,12 @@
+-- BetterUI General Interface Module
+-- Settings panel for tooltips, chat history, nameplates, and third-party integrations
+
 local _
 local LAM = LibAddonMenu2
 
---- Initializes the settings panel for the General Interface module
---- @param mId string: Module ID for panel registration
---- @param moduleName string: Display name for the module
+-- Initializes settings panel for General Interface options
+--- @param mId string: Module ID
+--- @param moduleName string: Display name
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "General Interface Settings")
 
@@ -238,9 +241,9 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
---- Initializes default settings for the Nameplates module
---- @param m_options table: The options table to initialize
---- @return table: The initialized options table
+-- Initializes Nameplates default settings (preserves existing values)
+--- @param m_options table: Options table
+--- @return table: Initialized options
 function BETTERUI.Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS
@@ -252,9 +255,9 @@ function BETTERUI.Nameplates.InitModule(m_options)
     return m_options
 end
 
---- Initializes default settings for the Tooltips module
---- @param m_options table: The options table to initialize
---- @return table: The initialized options table
+-- Initializes Tooltips default settings
+--- @param m_options table: Options table
+--- @return table: Initialized options
 function BETTERUI.Tooltips.InitModule(m_options)
     m_options["chatHistory"] = 200
     m_options["showStyleTrait"] = true
@@ -266,7 +269,7 @@ function BETTERUI.Tooltips.InitModule(m_options)
     return m_options
 end
 
---- Sets up the Tooltips module by initializing settings, hooking tooltips, and registering event handlers
+-- Sets up Tooltips module: registers hooks, event handlers, and scene callbacks
 function BETTERUI.Tooltips.Setup()
 
 	Init("General", "General Interface")

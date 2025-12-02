@@ -1,11 +1,10 @@
-﻿local _
+﻿-- BetterUI Generic Header
+-- Modified header class for inventory with tab bar navigation
+-- Supports category switching via BETTERUI_TabBarScrollList
 
--- A modified header class for the inventory system.
--- Has the added functionality of a tabbar (of type BETTERUI_TabBarScrollList)
+local _
 
------------------------------------------------------------------------------
-
--- Alias the control names to make the code less verbose and more readable.
+-- Control alias constants for readability
 local TABBAR            = ZO_GAMEPAD_HEADER_CONTROLS.TABBAR
 local TITLE             = ZO_GAMEPAD_HEADER_CONTROLS.TITLE
 local TITLE_BASELINE    = ZO_GAMEPAD_HEADER_CONTROLS.TITLE_BASELINE

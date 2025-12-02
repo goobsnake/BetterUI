@@ -1,8 +1,11 @@
+-- BetterUI Main Entry Point
+-- Handles module initialization, settings panel registration, and runtime patches
+
 local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
---- Updates the Common Interface Module (CIM) state based on dependent modules. CIM is automatically enabled if any of the Tooltips, Inventory, or Banking modules are enabled, since it provides shared UI components like parametric scroll lists and headers.
+-- Updates CIM state based on dependent modules (auto-enable when any UI module is active)
 function BETTERUI.UpdateCIMState()
 	local settings = BETTERUI.Settings.Modules
 	local shouldEnable = settings["Tooltips"].m_enabled or
@@ -11,7 +14,7 @@ function BETTERUI.UpdateCIMState()
 	settings["CIM"].m_enabled = shouldEnable
 end
 
---- Initializes the master module options panel using LibAddonMenu2. Creates checkboxes for enabling/disabling each BetterUI module, with tooltips explaining their functionality.
+-- Initializes module options panel with enable/disable checkboxes
 function BETTERUI.InitModuleOptions()
 	local panelData = Init_ModulePanel("Master", "Master Addon Settings")
 
@@ -84,10 +87,10 @@ function BETTERUI.InitModuleOptions()
 	LAM:RegisterOptionControls("BETTERUI_".."Modules", optionsTable)
 end
 
---- Initializes module settings by calling the module's InitModule function
---- @param m_namespace table: The module namespace table
---- @param m_options table: The module options table
---- @return table: The initialized module namespace
+-- Calls module's InitModule function to set up default options
+--- @param m_namespace table: Module namespace
+--- @param m_options table: Module options table
+--- @return table: Initialized module namespace
 function BETTERUI.ModuleOptions(m_namespace, m_options)
 	if m_namespace and m_namespace.InitModule then
 		m_options = m_namespace.InitModule(m_options)
@@ -95,14 +98,13 @@ function BETTERUI.ModuleOptions(m_namespace, m_options)
 	return m_namespace
 end
 
---- Loads and initializes all enabled BetterUI modules. This includes setting up UI elements, registering event handlers, and hooking into ESO's systems. Initialization only happens once to prevent duplicate setup, and modules are loaded conditionally based on their enabled state and dependencies.
+-- Loads and initializes all enabled modules (called once on gamepad mode)
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
 
 	ddebug("Initializing BETTERUI...")
 
-	-- Apply runtime safety patches for ESO API issues (e.g., nil icon paths).
-	-- These are applied early and only once to avoid modifying esoui/ files.
+	-- Apply runtime safety patches for ESO API issues (nil icon paths)
 	if not BETTERUI._patchesApplied then
 		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
 		if type(zo_iconFormat) == "function" then
@@ -271,11 +273,11 @@ function BETTERUI.LoadModules()
 	BETTERUI._initialized = true
 end
 
---- Main initialization function called when the addon loads. Handles loading saved variables from ESO's settings system, setting up default settings on first install by calling each module's InitModule function, registering the options panel, updating CIM state, and loading modules if the player is in gamepad mode.
---- @param event string: The event type
---- @param addon string: The addon name that triggered the event
+-- Main addon initialization (called on EVENT_ADD_ON_LOADED)
+--- @param event string: Event type
+--- @param addon string: Addon name that triggered the event
 function BETTERUI.Initialize(event, addon)
-	-- Filter for just BETTERUI addon event as EVENT_ADD_ON_LOADED is addon-blind
+	-- Only handle our own addon load event
 	if addon ~= BETTERUI.name then return end
 
 	-- Load saved variables
@@ -322,6 +324,6 @@ function BETTERUI.Initialize(event, addon)
 	end
 end
 
--- Register event handlers for addon initialization and gamepad mode changes
+-- Event handlers for initialization and gamepad mode changes
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED, function(...) BETTERUI.Initialize(...) end)
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name.."_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function(code, inGamepad) BETTERUI.LoadModules() end)

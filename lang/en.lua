@@ -1,3 +1,7 @@
+-- BetterUI English Localization
+-- String IDs for UI labels, tooltips, and messages
+
+-- Inventory Categories
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","All Items")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","Materials")
 ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","Weapons")

@@ -1,56 +1,58 @@
--- shadowcep: Patched for compatibility with latest version of AutoCategory (fix by Friday_The13_rus)
+-- BetterUI Globals
+-- Core addon namespace and module definitions
+-- Compatibility patch by Friday_The13_rus for AutoCategory integration
+
 BETTERUI = {
-	ResearchTraits = {}
+	ResearchTraits = {}  -- Cached research trait data per craft type
 }
 
 BETTERUI.name = "BetterUI"
 BETTERUI.version = "2.87"
 
--- Program Global (scope of BETTERUI, though) variable initialization
+-- ESO API references
 BETTERUI.WindowManager = GetWindowManager()
 BETTERUI.EventManager = GetEventManager()
 
--- pseudo-Class definitions
-BETTERUI.CONST = {}
-BETTERUI.CIM = {}
+-- Module namespaces
+BETTERUI.CONST = {}   -- Constants and configuration values
+BETTERUI.CIM = {}     -- Common Interface Module
 
-BETTERUI.GenericHeader = {}
-BETTERUI.GenericFooter = {}
-BETTERUI.Interface = {}
-BETTERUI.Interface.Window = {}
+-- UI component modules
+BETTERUI.GenericHeader = {}        -- Custom header for inventory/banking
+BETTERUI.GenericFooter = {}        -- Custom footer with currency display
+BETTERUI.Interface = {}            -- Base interface utilities
+BETTERUI.Interface.Window = {}     -- Window management class
 
+-- Feature modules
 BETTERUI.Inventory = {
-	List = {},
-	Class = {},
+	List = {},   -- Inventory list implementation
+	Class = {},  -- Main inventory class
 }
 
 BETTERUI.Writs = {
-	List = {}
+	List = {}    -- Active writ quest tracking
 }
 
 BETTERUI.Banking = {
-	Class = {}
+	Class = {}   -- Banking interface class
 }
 
-BETTERUI.Tooltips = {
+BETTERUI.Tooltips = {}   -- Tooltip enhancements (pricing, traits)
+BETTERUI.Nameplates = {} -- Enhanced nameplate customization
 
-}
-
-BETTERUI.Nameplates = {
-
-}
-
+-- Settings storage
 BETTERUI.Settings = {}
 
+-- Default settings template (AceDB-style wildcard defaults)
 BETTERUI.DefaultSettings = {
 	firstInstall = true,
 	Modules = {
-		["*"] = { -- Module setting template
-			m_enabled = true
-		}
+		["*"] = { m_enabled = true }  -- All modules enabled by default
 	}
 }
 
+--- Prints a debug message to chat with BetterUI prefix
+--- @param str string: Message to display
 function ddebug(str)
 	return d("|c0066ff[BETTERUI]|r "..str)
 end

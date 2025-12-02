@@ -1,25 +1,12 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    BetterUI Inventory Slot Actions - Item Action Handling
---    This file contains functions for handling item slot actions, including equip, use, bank, and craft bag operations
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- BetterUI Inventory Slot Actions
+-- Item action handling: equip, use, bank, and craft bag operations
 
 INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
 INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 
--- Main class definition is here
--- Note: these classes WILL be removed in the near future!
-
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
--- This is a way to overwrite the ItemSlotAction's primary command. This is done so that "TryUseItem" and other functions use "CallSecureProtected" when activated
---- @param self table: The slot actions controller
---- @param actionStringId number: The string ID for the action name
---- @param actionCallback function: The callback function to execute
---- @param actionType string: The type of action
---- @param visibilityFunction function: Function to determine visibility
---- @param options table: Additional options for the action
+-- Inserts a primary action at the front of the slot actions table
 local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, visibilityFunction, options)
     local actionName = actionStringId
     visibilityFunction = function()

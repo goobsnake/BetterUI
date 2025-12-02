@@ -1,6 +1,8 @@
--- Templated from "common/gamepad/zo_gamepadparametricscrolllisttemplates.lua" in order to heavily alter the function of the scrollList.
-    -- Any better way to do this? please contact me!
+-- BetterUI Parametric Scroll List Templates
+-- Custom scroll list implementations for gamepad UI
+-- Based on ZO_GamepadParametricScrollListTemplates with enhanced functionality
 
+-- Tab bar movement types (extends ZO_PARAMETRIC_MOVEMENT_TYPES)
 ZO_TABBAR_MOVEMENT_TYPES =
 {
     PAGE_FORWARD = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST,
@@ -17,10 +19,13 @@ ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS =
     [ZO_TABBAR_MOVEMENT_TYPES.PAGE_BACK] = SOUNDS.GAMEPAD_PAGE_BACK,
     [ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED] = SOUNDS.GAMEPAD_PAGE_NAVIGATION_FAILED,
 }
+
+-- Plays navigation sound for scroll list movement
 local function GamepadParametricScrollListPlaySound(movementType)
     PlaySound(ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS[movementType])
 end
 
+-- Scroll list orientation constants
 PARAMETRIC_SCROLL_LIST_VERTICAL = true
 PARAMETRIC_SCROLL_LIST_HORIZONTAL = false
 BETTERUI_VERTICAL_PARAMETRIC_LIST_DEFAULT_FADE_GRADIENT_SIZE = 32

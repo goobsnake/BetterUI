@@ -1,10 +1,10 @@
---- BetterUI Enhanced Nameplates Module
---- Provides customizable nameplate fonts, styles, and sizes for keyboard and gamepad modes
---- Note: ESO Update 41+ requires .slug format fonts. Only built-in ESO fonts are supported.
+-- BetterUI Enhanced Nameplates
+-- Custom nameplate fonts, styles, and sizes for keyboard/gamepad modes
+-- Note: ESO Update 41+ uses .slug fonts; only built-in ESO fonts supported
 
 BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 
--- ESO built-in fonts
+-- Available ESO built-in fonts
 BETTERUI.Nameplates.FONT_CHOICES = {
     "Univers 57 (Default)",
     "Univers 67 (Bold)",
@@ -31,7 +31,7 @@ BETTERUI.Nameplates.FONT_VALUES = {
     "EsoUI/Common/Fonts/consola.otf",
 }
 
--- Font style options (maps to ESO FONT_STYLE_* constants)
+-- Font style options (ESO FONT_STYLE_* constants)
 BETTERUI.Nameplates.FONTSTYLE_CHOICES = {
     "Normal",
     "Outline",
@@ -50,7 +50,7 @@ BETTERUI.Nameplates.FONTSTYLE_VALUES = {
     FONT_STYLE_SOFT_SHADOW_THIN or 5,
 }
 
--- Default settings
+-- Default nameplate settings
 BETTERUI.Nameplates.DEFAULTS = {
     enabled = false,
     font = "EsoUI/Common/Fonts/Univers67.otf",
@@ -58,7 +58,7 @@ BETTERUI.Nameplates.DEFAULTS = {
     size = 16,
 }
 
--- Legacy migration: converts old string style values to numeric enums
+-- Legacy migration: string style values to numeric enums
 local STYLE_STRING_TO_ENUM = {
     ["normal"] = FONT_STYLE_NORMAL or 0,
     ["outline"] = FONT_STYLE_OUTLINE or 1,
@@ -76,7 +76,7 @@ local function NormalizeStyleValue(style)
     return style
 end
 
--- Retrieves current nameplate settings from saved variables
+-- Gets current settings from saved variables
 local function GetSettings()
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Nameplates"] then
         local settings = BETTERUI.Settings.Modules["Nameplates"]
@@ -88,7 +88,7 @@ local function GetSettings()
     return BETTERUI.Nameplates.DEFAULTS
 end
 
--- Applies font settings to both keyboard and gamepad nameplate modes
+-- Applies font settings to keyboard and gamepad nameplates
 local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then return end
     style = NormalizeStyleValue(style)
@@ -97,7 +97,7 @@ local function ApplyNameplateFont(font, style, size)
     SetNameplateGamepadFont(fontString, style)
 end
 
--- Registers/unregisters event handlers for reapplying fonts on zone changes
+-- Manages event handlers for reapplying fonts on zone/mode changes
 local function SetupEvents(enabled)
     if enabled then
         EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
@@ -118,13 +118,13 @@ local function SetupEvents(enabled)
     end
 end
 
--- Resets nameplates to ESO default font
+-- Resets to ESO default nameplate font
 local function ResetToDefaults()
     local defaults = BETTERUI.Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
--- Initializes the Enhanced Nameplates module on addon load
+-- Module setup (called on addon load)
 function BETTERUI.Nameplates.Setup()
     local settings = GetSettings()
     if settings.enabled then
@@ -133,7 +133,7 @@ function BETTERUI.Nameplates.Setup()
     end
 end
 
--- Called when the enabled checkbox is toggled in settings
+-- Handles enable/disable toggle from settings
 function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     SetupEvents(enabled)
     if enabled then
@@ -144,12 +144,12 @@ function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     end
 end
 
--- Returns whether Enhanced Nameplates is currently enabled
+-- Returns whether Enhanced Nameplates is enabled
 function BETTERUI.Nameplates.IsEnabled()
     return GetSettings().enabled
 end
 
--- Applies current settings from saved variables (called when settings change)
+-- Applies current settings (called when settings change)
 function BETTERUI.Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.enabled then

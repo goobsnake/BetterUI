@@ -1,8 +1,13 @@
+-- BetterUI Banking Module
+-- Settings panel and font customization for enhanced banking interface
+
 local _
 local LAM = LibAddonMenu2
 
--- Shared font choices for Banking (same as Nameplates for consistency)
+-- Module initialization
 BETTERUI.Banking = BETTERUI.Banking or {}
+
+-- Available font choices (ESO built-in fonts)
 BETTERUI.Banking.FONT_CHOICES = {
 	"Univers 57 (Default)",
 	"Univers 67 (Bold)",
@@ -38,7 +43,7 @@ BETTERUI.Banking.FONTSTYLE_CHOICES = {
 	"Soft Shadow (Thin)",
 }
 
--- Font style string values for ESO font descriptor format
+-- Font style values for ESO font descriptor format
 BETTERUI.Banking.FONTSTYLE_VALUES = {
 	"",                    -- Normal (no style suffix)
 	"outline",             -- Outline
@@ -59,9 +64,7 @@ BETTERUI.Banking.DEFAULTS = {
 	columnFontStyle = "",
 }
 
---- Helper function to convert size string to pixel value
---- @param sizeStr string: Size setting ("Small", "Default", "Medium", "Large", "XLarge")
---- @return number: Font size in pixels
+-- Converts size string to pixel value
 local function GetFontSizeValue(sizeStr)
 	if sizeStr == "XLarge" then
 		return 36
@@ -76,8 +79,7 @@ local function GetFontSizeValue(sizeStr)
 	end
 end
 
---- Builds a font descriptor string for the Name column
---- @return string: Font descriptor string in format "fontPath|size|style"
+-- Returns font descriptor string for Name column
 function BETTERUI.Banking.GetNameFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
@@ -93,8 +95,7 @@ function BETTERUI.Banking.GetNameFontDescriptor()
 	end
 end
 
---- Builds a font descriptor for column labels (Type, Trait, Stat, Value)
---- @return string: Font descriptor string in format "fontPath|size|style"
+-- Returns font descriptor string for column labels (Type, Trait, Stat, Value)
 function BETTERUI.Banking.GetColumnFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
@@ -112,9 +113,7 @@ end
 
 local changed = false
 
---- Initializes the settings panel for the Banking module
---- @param mId string: Module ID for panel registration
---- @param moduleName string: Display name for the module
+-- Initializes settings panel for Banking module
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
@@ -307,9 +306,9 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
---- Initializes default settings for the Banking module
---- @param m_options table: The options table to initialize
---- @return table: The initialized options table
+-- Initializes Banking default settings (handles legacy migration)
+--- @param m_options table: Options table
+--- @return table: Initialized options
 function BETTERUI.Banking.InitModule(m_options)
 	m_options["showIconEnchantment"] = true
 	m_options["showIconSetGear"] = true
@@ -355,7 +354,7 @@ function BETTERUI.Banking.InitModule(m_options)
 	return m_options
 end
 
---- Sets up the Banking module by initializing settings and calling init function
+-- Sets up Banking module
 function BETTERUI.Banking.Setup()
 
 	Init("Bank", "Banking")

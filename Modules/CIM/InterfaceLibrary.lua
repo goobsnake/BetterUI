@@ -1,8 +1,12 @@
--- shadowcep: Patched for compatibility with ESO Update 33
+-- BetterUI Interface Library
+-- Base window class and UI utilities for gamepad inventory/banking
+-- Compatibility patches for ESO Update 33+
+
 local _
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
+-- Ensures a keybind descriptor is added to the keybind strip (handles duplicates)
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor or not KEYBIND_STRIP then return end
     local groups = KEYBIND_STRIP.keybindButtonGroups or {}
@@ -16,6 +20,9 @@ function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
 end
 
+-- Creates keybind descriptors for text search functionality
+--- @param context table: The search context object
+--- @return table: Array of keybind descriptors
 function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     local function HasVisibleSearchControl()
         if not context or not context.textSearchHeaderControl then return false end
@@ -103,8 +110,9 @@ local function WrapInt(value, min, max)
     return (zo_floor(value) - min) % (max - min + 1) + min
 end
 
+-- Sets tooltip panel width and repositions left tooltip accordingly
 function BETTERUI.CIM.SetTooltipWidth(width)
-    -- Setup the larger and offset LEFT_TOOLTIP and background fragment so that the new inventory fits
+    -- Adjust background fragment and tooltip anchors for custom inventory width
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
     GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT, width+66, 52)
     GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(BOTTOMLEFT,GuiRoot,BOTTOMLEFT, width+66, -125)

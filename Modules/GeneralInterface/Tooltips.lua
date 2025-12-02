@@ -1,10 +1,14 @@
-_G.gsErrorSuppress = 0
+-- BetterUI Tooltips
+-- Adds pricing info (MM, ATT, TTC) and research status to item tooltips
+-- Includes caching for performance on inventory-heavy operations
+
+_G.gsErrorSuppress = 0  -- Global flag for guild store error suppression
 local _
 
--- Cached researchable trait counters per bag to avoid re-scanning on every tooltip
+-- Per-bag cache of researchable trait counts (invalidated on inventory events)
 local ResearchableTraitCache = {}
 
--- Internal: build the cache for a specific bag
+-- Builds cache of researchable trait counts for a specific bag
 local function BuildBagResearchCache(bagId)
     local counts = {}
     -- Prefer SHARED_INVENTORY cache to iterate only used slots
@@ -22,8 +26,7 @@ local function BuildBagResearchCache(bagId)
     ResearchableTraitCache[bagId] = counts
 end
 
---- Returns the number of researchable items in the bag that share the same trait as itemLink.
---- Uses a per-bag cache invalidated on inventory events for performance.
+-- Returns count of researchable items matching itemLink's trait in specified bag
 function BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
@@ -44,12 +47,7 @@ function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
     end
 end
 
---- Adds pricing information from trading addons to the tooltip after the main item info
---- @param tooltip table: The tooltip control
---- @param itemLink string: The item link
---- @param bagId number: The bag ID
---- @param slotIndex number: The slot index
---- @param storeStackCount number: Stack count for store items
+-- Adds trading addon price info to tooltip (TTC, MM, ATT)
 local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeStackCount)
     if itemLink then
         local stackCount
@@ -113,9 +111,7 @@ local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeSt
     end
 end
 
---- Adds style and trait research information to the tooltip before the main item info
---- @param tooltip table: The tooltip control
---- @param itemLink string: The item link
+-- Adds item style and research status to tooltip
 local function AddInventoryPreInfo(tooltip, itemLink)
     if itemLink and BETTERUI.Settings.Modules["Tooltips"].showStyleTrait then
         local traitString
@@ -158,14 +154,7 @@ local function AddInventoryPreInfo(tooltip, itemLink)
     end
 end
 
---- Hooks tooltip layout methods to inject custom information display. This allows BetterUI to add market prices, research status, and other custom data to tooltips by intercepting ESO's tooltip rendering.
---- @param tooltipControl table: The tooltip control to hook
---- @param method string: The primary layout method name
---- @param linkFunc function: Function to get item link for primary method
---- @param method2 string: Secondary layout method name
---- @param linkFunc2 function: Function to get bag/slot for secondary method
---- @param method3 string: Tertiary layout method name
---- @param linkFunc3 function: Function to get store data for tertiary method
+-- Hooks tooltip layout methods to inject pricing and research info
 function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local newMethod = tooltipControl[method]
     local newMethod2 = tooltipControl[method2]
@@ -196,25 +185,15 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
     end
 end
 
---- Returns the item link as is
---- @param itemLink string: The item link
---- @return string: The item link
+-- Passthrough helpers for tooltip hook data extraction
 function BETTERUI.ReturnItemLink(itemLink)
     return itemLink
 end
 
---- Returns the bag ID and slot index
---- @param bagId number: The bag ID
---- @param slotIndex number: The slot index
---- @return number, number: bagId, slotIndex
 function BETTERUI.ReturnSelectedData(bagId, slotIndex)
     return bagId, slotIndex
 end
 
---- Returns the store item link and stack count
---- @param storeItemLink string: The store item link
---- @param storeStackCount number: The stack count
---- @return string, number: storeItemLink, storeStackCount
 function BETTERUI.ReturnStoreSearch(storeItemLink, storeStackCount)
     return storeItemLink, storeStackCount
 end

@@ -1,9 +1,5 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    BetterUI Inventory List - UI Entry Setup and List Management
---    This file contains functions for setting up inventory list entries, handling item display, and managing list operations
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- BetterUI Inventory List - Entry Setup and Display
+-- Functions for setting up inventory list entries and handling item display
 
 local TEXTURE_EQUIP_ICON = "BetterUI/Modules/CIM/Images/inv_equip.dds"
 local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds"

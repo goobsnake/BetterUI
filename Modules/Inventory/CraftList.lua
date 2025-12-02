@@ -1,14 +1,11 @@
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    BetterUI Craft Bag List - Craft Bag Inventory Management
---    This file contains functions for managing the craft bag inventory list and filtering
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- BetterUI Craft Bag List
+-- Manages craft bag inventory filtering and display
 
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
---- Create a filter comparator function for craft bag items
---- @param filterType number|table: The filter type(s) to apply
---- @return function: A comparator function that returns true if the item matches the filter
+
+-- Creates a filter comparator for craft bag items
+--- @param filterType number|table: Filter type(s) to apply
+--- @return function: Returns true if item matches filter
 function GetFilterComparator(filterType)
 	return function(itemData)
 		if filterType then

@@ -1,15 +1,19 @@
+-- BetterUI Generic Footer
+-- Footer component showing bag capacities and currency amounts
+-- Currency display order is configurable via settings
+
 local _
 
---- Initializes the generic footer by setting up the footer control reference
+-- Initializes footer control reference
 function BETTERUI.GenericFooter:Initialize()
 	if(self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
 	if(self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
---- Refreshes the footer display with current bag capacities and currency amounts, arranging currencies dynamically based on user settings
+-- Refreshes footer with bag capacities and currencies (uses dynamic ordering)
 function BETTERUI.GenericFooter:Refresh()
-	-- a hack until I completely generalize these functions... 
+	-- Reference inventory settings for currency visibility/order
 	local invSettings = BETTERUI.Settings.Modules["Inventory"]
 
 	local function setLabel(labelControl, enabled, text)

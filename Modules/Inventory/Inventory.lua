@@ -1,38 +1,38 @@
--- shadowcep: Patched for compatibility with ESO Update 34 (from fix by CinderDarkfire)
+-- BetterUI Inventory Class - Main Implementation
+-- Core inventory functionality: item management, equipping, and UI interactions
+-- Compatibility patches for ESO Update 34 (CinderDarkfire)
+
 local _
 
 local BLOCK_TABBAR_CALLBACK = true
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    BetterUI Inventory Class - Main Inventory Implementation
---    This file contains the core inventory functionality, including item management, equip logic, and UI interactions
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
-
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
+-- Action mode constants
 local CATEGORY_ITEM_ACTION_MODE = 1
 local ITEM_LIST_ACTION_MODE = 2
 local CRAFT_BAG_ACTION_MODE = 3
 
+-- Timing constants
 local DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION = 300
-
 local INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS = 300
 
+-- List type identifiers
 local INVENTORY_CATEGORY_LIST = "categoryList"
 local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
+-- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
 local COMPANION_EQUIP_PATCH_RETRY_MS = 400
 local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
+-- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
 local function AttemptCompanionEquipPatch()
 	local class = _G["ZO_CompanionEquipment_Gamepad"]
 	if not class then
