@@ -214,9 +214,9 @@
                             <Anchor point="CENTER" relativeTo="$(parent)" offsetY="32"/>
                             <Textures normal="BetterUI/Modules/CIM/Images/select_tabbar.dds"/>
                         </Button>
-                        <Button name="$(parent)LeftIcon" hidden="true">
-                            <Dimensions x="50" y="50"/>
-                            <Anchor point="LEFT" relativeTo="$(parent)"/>
+                        <Button name="$(parent)LeftIcon">
+                            <Dimensions x="60" y="60"/>
+                            <Anchor point="LEFT" relativeTo="$(parent)" offsetY="5"/>
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_LB.dds"/>
                             <OnClicked>
                                 if self:GetParent().scrollList then
@@ -224,9 +224,9 @@
                                 end
                             </OnClicked>
                         </Button>
-                        <Button name="$(parent)RightIcon" hidden="true">
-                            <Dimensions x="50" y="50"/>
-                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-5"/>
+                        <Button name="$(parent)RightIcon">
+                            <Dimensions x="60" y="60"/>
+                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-5" offsetY="5"/>
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_RB.dds"/>
                             <OnClicked>
                                 if self:GetParent().scrollList then

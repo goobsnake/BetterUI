@@ -30,6 +30,35 @@ BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = 1325
 BETTERUI_TABBAR_ICON_WIDTH = 50
 
 -- ============================================================================
+-- CATEGORY CAROUSEL (Tab Bar Icons)
+-- Used for the rotating category icon bar in Inventory and Banking headers
+-- ============================================================================
+
+-- Default carousel settings (used by Inventory)
+BETTERUI_CAROUSEL_START_OFFSET = 710       -- Horizontal position of first category icon (increase to move right)
+BETTERUI_CAROUSEL_ITEM_SPACING = 50        -- Space between each category icon
+BETTERUI_CAROUSEL_VERTICAL_OFFSET = 12     -- Vertical offset to align icons with LB/RB buttons (increase to move down)
+
+-- Banking-specific carousel overrides (nil means use default)
+BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705   -- Horizontal position for banking carousel (increase to move right)
+BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1  -- Vertical offset for banking (lower value moves icons up)
+
+-- ============================================================================
+-- SEARCH BAR POSITIONING
+-- Controls the position of the search input field in headers
+-- ============================================================================
+
+-- Inventory search bar position
+BETTERUI_INV_SEARCH_X_OFFSET = 56          -- Horizontal offset from left edge (increase to move right)
+BETTERUI_INV_SEARCH_Y_OFFSET = 1           -- Vertical offset from header bottom (increase to move down)
+BETTERUI_INV_SEARCH_RIGHT_INSET = -4       -- Right edge inset (more negative = narrower search bar)
+
+-- Banking search bar position
+BETTERUI_BANK_SEARCH_X_OFFSET = 58         -- Horizontal offset from left edge (increase to move right)
+BETTERUI_BANK_SEARCH_Y_OFFSET = 15         -- Vertical offset from header bottom (increase to move down)
+BETTERUI_BANK_SEARCH_RIGHT_INSET = -8      -- Right edge inset (more negative = narrower search bar)
+
+-- ============================================================================
 -- LIST ENTRY DIMENSIONS
 -- ============================================================================
 

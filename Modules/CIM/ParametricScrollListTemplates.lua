@@ -266,7 +266,99 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     list:InitializeKeybindStripDescriptors()
     list.control = control
     list:SetPlaySoundFunction(GamepadParametricScrollListPlaySound)
+    
+    -- Enable carousel mode: selected item stays at left, items rotate in order
+    -- Default values from BetterUI.CONST.lua can be overridden per-context via carouselConfig
+    list.carouselMode = true
+    list.carouselStartOffset = BETTERUI_CAROUSEL_START_OFFSET
+    list.carouselItemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING
+    list.carouselVerticalOffset = BETTERUI_CAROUSEL_VERTICAL_OFFSET
+    
     return list
+end
+
+--- Override UpdateAnchors to implement carousel rotation behavior
+--- In carousel mode, the selected item is always positioned at the left (after LB icon),
+--- and other items are arranged in circular order to the right
+function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialUpdate, reselectingDuringRebuild, blockSelectionChangedCallback)
+    if not self.carouselMode then
+        -- Use default behavior if carousel mode is disabled
+        return ZO_ParametricScrollList.UpdateAnchors(self, continousTargetOffset, initialUpdate, reselectingDuringRebuild, blockSelectionChangedCallback)
+    end
+    
+    self.visibleControls, self.unseenControls = self.unseenControls, self.visibleControls
+    ZO_ClearTable(self.visibleControls)
+    
+    local numItems = #self.dataList
+    if numItems == 0 then return end
+    
+    local newSelectedDataIndex = zo_round(continousTargetOffset)
+    local selectedDataChanged = self.selectedIndex ~= newSelectedDataIndex
+    local oldSelectedData = self.selectedData
+    
+    -- Play sound on selection change
+    if self.soundEnabled and not self.jumping and selectedDataChanged and oldSelectedData then
+        if newSelectedDataIndex > self.selectedIndex then
+            self.onPlaySoundFunction(ZO_PARAMETRIC_MOVEMENT_TYPES.MOVE_NEXT)
+        else
+            self.onPlaySoundFunction(ZO_PARAMETRIC_MOVEMENT_TYPES.MOVE_PREVIOUS)
+        end
+    end
+    
+    self.selectedData = self:GetDataForDataIndex(newSelectedDataIndex)
+    self.selectedIndex = newSelectedDataIndex
+    
+    -- Calculate animation offset for smooth transitions
+    local baseOffset = newSelectedDataIndex - continousTargetOffset
+    local animationOffset = baseOffset * self.carouselItemSpacing
+    
+    -- Position items in carousel order starting from the selected item
+    local currentOffset = self.carouselStartOffset + animationOffset
+    
+    for i = 0, numItems - 1 do
+        -- Calculate the actual data index in circular order starting from selected
+        local dataIndex = ((newSelectedDataIndex - 1 + i) % numItems) + 1
+        
+        local control, justCreated = self:AcquireControlAtDataIndex(dataIndex)
+        self.unseenControls[control] = nil
+        self.visibleControls[control] = true
+        
+        local isSelected = (dataIndex == newSelectedDataIndex)
+        
+        if justCreated or selectedDataChanged or initialUpdate then
+            self:RunSetupOnControl(control, dataIndex, isSelected, reselectingDuringRebuild, self.enabled, self.active)
+        end
+        
+        -- Apply parametric function if exists
+        local parametricFunction = self:GetParametricFunctionForDataIndex(dataIndex)
+        if parametricFunction then
+            parametricFunction(control, i, baseOffset)
+        end
+        
+        -- Position the control horizontally, with vertical offset to align with LB/RB icons
+        local verticalOffset = self.carouselVerticalOffset or 5
+        control:ClearAnchors()
+        control:SetAnchor(LEFT, self.scrollControl, LEFT, currentOffset, verticalOffset)
+        
+        -- Move to next position
+        local controlWidth = control:GetWidth()
+        if controlWidth == 0 then controlWidth = self.carouselItemSpacing end
+        currentOffset = currentOffset + controlWidth
+    end
+    
+    -- Release unused controls
+    for control in pairs(self.unseenControls) do
+        self:ReleaseControl(control)
+    end
+    ZO_ClearTable(self.unseenControls)
+    
+    -- Fire selection changed callback
+    if (self.selectedData ~= oldSelectedData or initialUpdate) and not blockSelectionChangedCallback then
+        self:FireCallbacks("SelectedDataChanged", self, self.selectedData, oldSelectedData, nil, self.targetSelectedIndex)
+        if self.onSelectedDataChangedCallback then
+            self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, reselectingDuringRebuild)
+        end
+    end
 end
 function BETTERUI_TabBarScrollList:Activate()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)

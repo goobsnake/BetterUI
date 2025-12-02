@@ -150,6 +150,22 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
     end
 
+    -- Apply carousel configuration if provided in data
+    if control.tabBar and data.carouselConfig then
+        if data.carouselConfig.startOffset then
+            control.tabBar.carouselStartOffset = data.carouselConfig.startOffset
+        end
+        if data.carouselConfig.verticalOffset then
+            control.tabBar.carouselVerticalOffset = data.carouselConfig.verticalOffset
+        end
+        if data.carouselConfig.itemSpacing then
+            control.tabBar.carouselItemSpacing = data.carouselConfig.itemSpacing
+        end
+        if data.carouselConfig.enabled ~= nil then
+            control.tabBar.carouselMode = data.carouselConfig.enabled
+        end
+    end
+
     if control.tabBar then
         local onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
         if onChange then

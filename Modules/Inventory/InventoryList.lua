@@ -364,21 +364,37 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
-    -- Adjust icon dimensions based on CIM skin size setting
+    -- Adjust icon dimensions based on inventory font size setting
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
-    local cimSkinSize = BETTERUI.Settings.Modules["CIM"].skinSize or "Default"
+    local invSettings = BETTERUI.Settings.Modules["Inventory"]
+    local fontSizeSetting = invSettings and invSettings.nameFontSize or "Default"
 
-    if cimSkinSize == "Medium" then
-        iconControl:SetDimensions(42, 42)
+    if fontSizeSetting == "Small" then
+        iconControl:SetDimensions(28, 28)
         iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -38, 0)
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -44, 0)
+        equipIconControl:SetDimensions(26, 22)
+    elseif fontSizeSetting == "Medium" then
+        iconControl:SetDimensions(38, 38)
+        iconControl:ClearAnchors()
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -40, 0)
+        equipIconControl:SetDimensions(32, 26)
+    elseif fontSizeSetting == "Large" then
+        iconControl:SetDimensions(44, 44)
+        iconControl:ClearAnchors()
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -36, 0)
         equipIconControl:SetDimensions(34, 28)
-    elseif cimSkinSize == "Large" then
-        iconControl:SetDimensions(48, 48)
+    elseif fontSizeSetting == "XLarge" then
+        iconControl:SetDimensions(50, 50)
         iconControl:ClearAnchors()
         iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -32, 0)
-        equipIconControl:SetDimensions(36, 30)
+        equipIconControl:SetDimensions(38, 32)
+    else -- Default
+        iconControl:SetDimensions(34, 34)
+        iconControl:ClearAnchors()
+        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -42, 0)
+        equipIconControl:SetDimensions(28, 24)
     end
 end
 

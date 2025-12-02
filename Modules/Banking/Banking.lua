@@ -1959,18 +1959,10 @@ function BETTERUI.Banking.Class:PositionSearchControl()
     end
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        -- Adjust these values here to tweak the search control's position and size
-        -- xOffset: horizontal offset from the header's left edge (moves control right)
-        -- yOffset: vertical offset from the header's bottom (positive moves down)
-        -- rightInset: inset applied to the right anchor (negative moves left)
-        local cfg = {
-            xOffset = 48,
-            yOffset = 8,
-            rightInset = -8,
-        }
-        local yOffset = (cfg and cfg.yOffset)
-        local xOffset = (cfg and cfg.xOffset)
-        local rightInset = (cfg and cfg.rightInset)
+        -- Search bar position configured in BetterUI.CONST.lua
+        local xOffset = BETTERUI_BANK_SEARCH_X_OFFSET
+        local yOffset = BETTERUI_BANK_SEARCH_Y_OFFSET
+        local rightInset = BETTERUI_BANK_SEARCH_RIGHT_INSET
         -- Anchor left with an X offset, and inset the right anchor slightly so control width remains reasonable
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
@@ -2047,6 +2039,13 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         return (cat and cat.name) or GetString(SI_BETTERUI_INV_ITEM_ALL)
     end
     self.bankHeaderData.tabBarData = { parent = self }
+    -- Carousel configuration for banking - uses constants from BetterUI.CONST.lua
+    self.bankHeaderData.carouselConfig = {
+        enabled = true,
+        startOffset = BETTERUI_BANKING_CAROUSEL_START_OFFSET,
+        verticalOffset = BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET,
+        itemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING,
+    }
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)
         -- Skip callback during mode toggle to prevent override
         if self._justToggledMode then
