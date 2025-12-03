@@ -1472,11 +1472,6 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList:SetSortFunction(BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
 	self.itemList:SetOnSelectedDataChangedCallback(function(list, selectedData)
-		-- Auto-exit search mode when list gets selection (like Banking UI)
-		if self:IsHeaderActive() and list and list.IsActive and list:IsActive() then
-			self:ExitSearchFocus()
-		end
-		
 		if selectedData ~= nil and self.scene:IsShowing() then
 			self.currentlySelectedData = selectedData
 
@@ -1517,11 +1512,6 @@ end
 
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
 	local function OnSelectedDataCallback(list, selectedData)
-		-- Auto-exit search mode when list gets selection (like Banking UI)
-		if self:IsHeaderActive() and list and list.IsActive and list:IsActive() then
-			self:ExitSearchFocus()
-		end
-		
 		if selectedData ~= nil and self.scene:IsShowing() then
 			self.currentlySelectedData = selectedData
 			self:UpdateItemLeftTooltip(selectedData)
@@ -3327,49 +3317,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
 					return true
 				end
 			end)
-			
-			-- Add mouse wheel handler to exit search focus when scrolling down
-			-- Set on both the header control and the edit box to ensure mouse wheel is captured
-			local function handleSearchMouseWheel(control, delta, ctrl, alt, shift, command)
-				-- Scrolling down (delta < 0) should exit search and go back to list
-				if delta < 0 then
-					-- First lose edit box focus to trigger OnFocusLost
-					if self.textSearchHeaderFocus then
-						local eb = self.textSearchHeaderFocus:GetEditBox()
-						if eb and eb.LoseFocus then
-							eb:LoseFocus()
-						end
-					end
-					self:ExitSearchFocus()
-					-- Activate the current list and move to first item
-					local currentList = self:GetCurrentList()
-					if currentList then
-						if currentList.Activate and not currentList:IsActive() then
-							currentList:Activate()
-						end
-						if currentList.MoveNext then
-							currentList:MoveNext()
-						end
-					end
-					return true -- indicate event was handled
-				end
-				return false
-			end
-			
-			if self.textSearchHeaderControl then
-				if self.textSearchHeaderControl.SetMouseEnabled then
-					self.textSearchHeaderControl:SetMouseEnabled(true)
-				end
-				self.textSearchHeaderControl:SetHandler("OnMouseWheel", handleSearchMouseWheel)
-			end
-			
-			-- Also set on the edit box directly
-			if editBox then
-				if editBox.SetMouseEnabled then
-					editBox:SetMouseEnabled(true)
-				end
-				editBox:SetHandler("OnMouseWheel", handleSearchMouseWheel)
-			end
 		end
 		-- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).
 	end
@@ -3879,17 +3826,8 @@ function BETTERUI.Inventory.Class:ExitSearchFocus()
 	-- Ensure proper keybinds are restored after a short delay
 	zo_callLater(function()
 		if self.scene and self.scene:IsShowing() then
-			pcall(function()
-				self:EnsureHeaderKeybindsActive()
-			end)
-			pcall(function()
-				self:RefreshKeybinds()
-			end)
-			-- Double-check list is active
-			local list = self:GetCurrentList()
-			if list and list.Activate and (not list.IsActive or not list:IsActive()) then
-				pcall(function() list:Activate() end)
-			end
+			self:EnsureHeaderKeybindsActive()
+			self:RefreshKeybinds()
 		end
 	end, 0)
 end

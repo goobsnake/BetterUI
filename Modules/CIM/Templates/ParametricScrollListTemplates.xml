@@ -33,30 +33,15 @@
                     end
                 elseif self.scrollList and not self.scrollList.active and delta &lt; 0 then
                     -- List is not active (header/search is active) and scrolling down
-                    -- Try to exit header and return to list
-                    local owner = self.scrollList.owner
+                    -- Exit search and return to list
+                    local owner = self.scrollList.owner or GAMEPAD_INVENTORY
                     if owner then
                         if owner.ExitSearchFocus then
                             owner:ExitSearchFocus()
-                        end
-                        if owner.RequestLeaveHeader then
+                        elseif owner.RequestLeaveHeader then
                             owner:RequestLeaveHeader()
                         end
-                    elseif GAMEPAD_INVENTORY then
-                        if GAMEPAD_INVENTORY.ExitSearchFocus then
-                            GAMEPAD_INVENTORY:ExitSearchFocus()
-                        end
-                        if GAMEPAD_INVENTORY.RequestLeaveHeader then
-                            GAMEPAD_INVENTORY:RequestLeaveHeader()
-                        end
                     end
-                    -- Activate the list after a brief delay to let exit complete
-                    local listRef = self.scrollList
-                    zo_callLater(function()
-                        if listRef and listRef.Activate then
-                            listRef:Activate()
-                        end
-                    end, 10)
                 end
             </OnMouseWheel>
 
