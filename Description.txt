@@ -1,0 +1,77 @@
+[COLOR="darkorange"][B][SIZE=3]LOCALIZATIONS:[/SIZE][/B][/COLOR]
+
+[IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/usa-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/uk-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/germany-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/spain-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/france-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/russia-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/japan-icon.png[/IMG][IMG]http://icons.iconarchive.com/icons/iconscity/flags/32/china-icon.png[/IMG]
+
+
+[COLOR="darkorange"][SIZE=3][B]REQUIREMENTS:[/B][/SIZE][/COLOR]
+
+[INDENT]1. [URL="https://esoui.com/downloads/info7-LibAddonMenu.html"]LibAddonMenu[/URL] is required for this add-on to load and for the add-on's in-game settings.[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]GENERAL INTERFACE IMPROVEMENTS:[/SIZE][/B][/COLOR]
+
+[INDENT]1. [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]Arkadius' Trade Tools[/URL] average price embedded in the item tooltip[/INDENT]
+[INDENT]2. [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL] average price embedded in the item tooltip[/INDENT]
+[INDENT]3. [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]Tamriel Trade Centre[/URL] average price embedded in the item tooltip[/INDENT]
+[INDENT]4. Guild Store error suppression for MM/ATT compatibility[/INDENT]
+[INDENT]5. Display item style and trait research knowledge in the item tooltip[/INDENT]
+[INDENT]6. Configurable tooltip font size (Small, Default, Medium, Large, XLarge)[/INDENT]
+[INDENT]7. Adjustable chat window history buffer size[/INDENT]
+[INDENT]8. Remove "delete" dialog confirmation when deleting mail[/INDENT]
+[INDENT]9. Configurable trigger button scroll speed and mouse scroll speed[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]ENHANCED NAMEPLATES:[/SIZE][/B][/COLOR]
+
+[INDENT]1. Customizable nameplate fonts for player & NPC nameplates[/INDENT]
+[INDENT]2. Configurable font styles (Normal, Outline, Shadow, etc.)[/INDENT]
+[INDENT]3. Adjustable font sizes (8-64 pixels)[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]REVAMPED GAMEPAD INVENTORY:[/SIZE][/B][/COLOR]
+
+[INDENT]1. All Items, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk & Stolen item categories[/INDENT]
+[INDENT]2. ESO+ Craft Bag support with full category navigation[/INDENT]
+[INDENT]3. Companion inventory support[/INDENT]
+[INDENT]4. Persistent currency display with visibility toggles and custom ordering[/INDENT]
+[INDENT]5. Currency visibility presets (Default, PvP Focus, Crafter Focus, Events Focus)[/INDENT]
+[INDENT]6. Supported currencies: Gold, Alliance Points, Tel Var, Undaunted Keys, Transmute Crystals, Crowns, Crown Gems, Writ Vouchers, Event Tickets, Outfit Tokens[/INDENT]
+[INDENT]7. Replace item value with average market prices from ATT, MM or TTC[/INDENT]
+[INDENT]8. Quickslot assignments directly from inventory[/INDENT]
+[INDENT]9. Side panel confirmation dialogue for item deletion[/INDENT]
+[INDENT]10. Quick destroy option available for fast item removal (use with caution!)[/INDENT]
+[INDENT]11. Bind on Equip protection warning before equipping[/INDENT]
+[INDENT]12. Item icons for unbound items, enchanted items, and set gear[/INDENT]
+[INDENT]13. Text search filtering by item name[/INDENT]
+[INDENT]14. Navigate to next item type using trigger buttons[/INDENT]
+[INDENT]15. Font customization for item names and column data (Type, Trait, Stat, Value)[/INDENT]
+[INDENT]16. Carousel-style category tab navigation[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]REVAMPED GAMEPAD BANKING:[/SIZE][/B][/COLOR]
+
+[INDENT]1. Supports personal bank, guild bank, and home chest storage[/INDENT]
+[INDENT]2. Full item withdrawal and deposit functionality with currency support[/INDENT]
+[INDENT]3. Item categories matching inventory (All Items, Weapons, Apparel, Jewelry, etc.)[/INDENT]
+[INDENT]4. Persistent category selection between Withdraw & Deposit modes[/INDENT]
+[INDENT]5. Item icons for unbound items, enchanted items, and set gear[/INDENT]
+[INDENT]6. Motif and recipe known/unknown status display[/INDENT]
+[INDENT]7. Text search filtering by item name[/INDENT]
+[INDENT]8. Font customization for item names and column data (Type, Trait, Stat, Value)[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]DAILY WRIT INTEGRATION:[/SIZE][/B][/COLOR]
+
+[INDENT]1. Displays the daily writ and its progress at each crafting station[/INDENT]
+
+
+[SIZE="3"][COLOR="darkorange"][B]GITHUB PAGE:[/B][/COLOR][/SIZE]
+
+[URL]https://github.com/goobsnake/BetterUI[/URL]
+
+* This is a continuation of Prasoc's & RockingDice's prior work! Anyone looking to contribute, feel free to message me or submit a pull request. Help is definitely wanted for this massive add-on.
+
+
+[COLOR="darkorange"][SIZE=3][B]DONATIONS:[/B][/SIZE][/COLOR]
+
+[URL="https://www.paypal.me/goobsnake"][IMG]https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-medium.png[/IMG][/URL]
