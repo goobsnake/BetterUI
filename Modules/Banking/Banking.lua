@@ -774,8 +774,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.lastPositions[self.currentMode] = 1
         self:RebuildHeaderCategories()
         -- Force header to All Items (index 1) on scene open without animation
+        -- Suppress callback to avoid double refresh since we call RefreshList below
         if self.headerGeneric and self.headerGeneric.tabBar then
-            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, false)
+            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
         end
         if self.isDirty then
             self:RefreshList()
@@ -2109,7 +2110,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
         -- During mode toggle, use animation-free selection to avoid callback interference
         if self._justToggledMode then
-            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, false)
+            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
         else
             -- Suppress callback during rebuild to prevent it overriding our selection
             self._suppressHeaderCallback = true

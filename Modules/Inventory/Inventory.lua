@@ -346,42 +346,52 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 	end
 end
 
-function BETTERUI_TabBar_OnTabNext(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
+-- Callback when tabBar selection changes - syncs categoryList and refreshes item list
+-- This replaces the old BETTERUI_TabBar_OnTabNext/Prev callbacks which caused double-navigation
+local function TabBar_OnSelectionChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
+	if not selectedData then return end
+	
+	-- Get the parent (inventory instance) from the list
+	local parent = list.parent
+	if not parent then return end
+	
+	-- Find the index of the selected data in the categoryList
+	local categoryList = parent.categoryList
+	if not categoryList or not categoryList.dataList then return end
+	
+	local newIndex = nil
+	for i, data in ipairs(categoryList.dataList) do
+		if data == selectedData then
+			newIndex = i
+			break
 		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
 	end
-end
-function BETTERUI_TabBar_OnTabPrev(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
-		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		--parent:RefreshItemList()
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
+	
+	if not newIndex then return end
+	
+	-- Skip if this is just a rebuild/initialization, not actual navigation
+	if reselectingDuringRebuild then return end
+	
+	-- Check if the index actually changed
+	local oldIndex = categoryList.selectedIndex or 1
+	if newIndex == oldIndex then return end
+	
+	-- Save current item position before switching categories
+	parent:SaveListPosition()
+	
+	-- Sync categoryList to match tabBar's selection (directly set, don't animate)
+	categoryList.targetSelectedIndex = newIndex
+	categoryList.selectedIndex = newIndex
+	categoryList.selectedData = selectedData
+	categoryList.defaultSelectedIndex = newIndex
+	
+	-- Update header title
+	if selectedData.text then
+		BETTERUI.GenericHeader.SetTitleText(parent.header, selectedData.text)
 	end
+	
+	-- Refresh item list for the new category
+	parent:ToSavedPosition()
 end
 
 function BETTERUI.Inventory.Class:SaveListPosition()
@@ -1043,20 +1053,37 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 	end
 
+	-- Temporarily remove the callback before commit to prevent it firing with wrong selection
+	local headerTabBar = self.header and self.header.tabBar
+	local savedCallback = nil
+	if headerTabBar then
+		savedCallback = headerTabBar.onSelectedDataChangedCallback
+		headerTabBar:RemoveOnSelectedDataChangedCallback(savedCallback)
+	end
+	
 	self.categoryList:Commit()
 	self.header.tabBar:Commit()
 
 	if desiredIndex then
 		self.categoryList:SetSelectedIndexWithoutAnimation(desiredIndex, true, false)
-		local headerTabBar = self.header and self.header.tabBar
 		if headerTabBar then
 			local headerCount = #headerTabBar.dataList
 			if headerCount > 0 then
 				local clampedIndex = zo_clamp(desiredIndex, 1, headerCount)
-				headerTabBar:SetSelectedIndexWithoutAnimation(clampedIndex, true, false)
+				-- Pass true for dontCallSelectedDataChangedCallback to avoid triggering list refresh during rebuild
+				headerTabBar:SetSelectedIndexWithoutAnimation(clampedIndex, true, true)
 				headerTabBar.targetSelectedIndex = clampedIndex
+				-- Force carousel to update visual positions
+				if headerTabBar.UpdateAnchors then
+					headerTabBar:UpdateAnchors(clampedIndex, true, false)
+				end
 			end
 		end
+	end
+	
+	-- Restore the callback after selection is set
+	if headerTabBar and savedCallback then
+		headerTabBar:SetOnSelectedDataChangedCallback(savedCallback)
 	end
 
 	self:EnsureHeaderKeybindsActive()
@@ -1088,7 +1115,9 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 	self.categoryHeaderData = {
 		titleText = UpdateTitleText,
 		tabBarEntries = tabBarEntries,
-		tabBarData = { parent = self, onNext = BETTERUI_TabBar_OnTabNext, onPrev = BETTERUI_TabBar_OnTabPrev },
+		tabBarData = { parent = self },
+		-- Use the unified selection callback instead of separate onNext/onPrev
+		onSelectedChanged = TabBar_OnSelectionChanged,
 	}
 
 	-- Header data will be built dynamically in RefreshHeader based on settings
@@ -1443,6 +1472,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList:SetSortFunction(BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
 	self.itemList:SetOnSelectedDataChangedCallback(function(list, selectedData)
+		-- Auto-exit search mode when list gets selection (like Banking UI)
+		if self:IsHeaderActive() and list and list.IsActive and list:IsActive() then
+			self:ExitSearchFocus()
+		end
+		
 		if selectedData ~= nil and self.scene:IsShowing() then
 			self.currentlySelectedData = selectedData
 
@@ -1483,6 +1517,11 @@ end
 
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
 	local function OnSelectedDataCallback(list, selectedData)
+		-- Auto-exit search mode when list gets selection (like Banking UI)
+		if self:IsHeaderActive() and list and list.IsActive and list:IsActive() then
+			self:ExitSearchFocus()
+		end
+		
 		if selectedData ~= nil and self.scene:IsShowing() then
 			self.currentlySelectedData = selectedData
 			self:UpdateItemLeftTooltip(selectedData)
@@ -3288,6 +3327,49 @@ function BETTERUI.Inventory.Class:Initialize(control)
 					return true
 				end
 			end)
+			
+			-- Add mouse wheel handler to exit search focus when scrolling down
+			-- Set on both the header control and the edit box to ensure mouse wheel is captured
+			local function handleSearchMouseWheel(control, delta, ctrl, alt, shift, command)
+				-- Scrolling down (delta < 0) should exit search and go back to list
+				if delta < 0 then
+					-- First lose edit box focus to trigger OnFocusLost
+					if self.textSearchHeaderFocus then
+						local eb = self.textSearchHeaderFocus:GetEditBox()
+						if eb and eb.LoseFocus then
+							eb:LoseFocus()
+						end
+					end
+					self:ExitSearchFocus()
+					-- Activate the current list and move to first item
+					local currentList = self:GetCurrentList()
+					if currentList then
+						if currentList.Activate and not currentList:IsActive() then
+							currentList:Activate()
+						end
+						if currentList.MoveNext then
+							currentList:MoveNext()
+						end
+					end
+					return true -- indicate event was handled
+				end
+				return false
+			end
+			
+			if self.textSearchHeaderControl then
+				if self.textSearchHeaderControl.SetMouseEnabled then
+					self.textSearchHeaderControl:SetMouseEnabled(true)
+				end
+				self.textSearchHeaderControl:SetHandler("OnMouseWheel", handleSearchMouseWheel)
+			end
+			
+			-- Also set on the edit box directly
+			if editBox then
+				if editBox.SetMouseEnabled then
+					editBox:SetMouseEnabled(true)
+				end
+				editBox:SetHandler("OnMouseWheel", handleSearchMouseWheel)
+			end
 		end
 		-- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).
 	end
@@ -3552,9 +3634,13 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			end
 			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
 			
-			-- Sync header tab
+			-- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
 			if self.header and self.header.tabBar then
-				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, true)
+				-- Force carousel to update visual positions
+				if self.header.tabBar.UpdateAnchors then
+					self.header.tabBar:UpdateAnchors(self.categoryList.selectedIndex or 1, true, false)
+				end
 			end
 			
 			-- Refresh and restore item position
@@ -3587,6 +3673,13 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.actionMode = ITEM_LIST_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+			
+			-- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
+			local selectedCatData = self.categoryList.selectedData
+			if selectedCatData and selectedCatData.text then
+				BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
+			end
+			
 			self:UpdateItemLeftTooltip(self.itemList.selectedData)
 			
 		elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
@@ -3611,9 +3704,15 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			end
 			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
 			
-			-- Sync header tab
+			-- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
 			if self.header and self.header.tabBar then
-				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, false)
+				local headerTabBar = self.header.tabBar
+				local idx = self.categoryList.selectedIndex or 1
+				headerTabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
+				-- Force carousel to update visual positions
+				if headerTabBar.UpdateAnchors then
+					headerTabBar:UpdateAnchors(idx, true, false)
+				end
 			end
 			
 			-- Refresh and restore item position
@@ -3650,6 +3749,13 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.actionMode = CRAFT_BAG_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader()
+			
+			-- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
+			local selectedCatData = self.categoryList.selectedData
+			if selectedCatData and selectedCatData.text then
+				BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
+			end
+			
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 		end
 		self:RefreshKeybinds()
@@ -3703,22 +3809,56 @@ end
 
 function BETTERUI.Inventory.Class:EnsureHeaderKeybindsActive()
 	local tabBar = self.header and self.header.tabBar
-	if tabBar and tabBar.keybindStripDescriptor then
-		BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+	if tabBar then
+		-- Ensure the tabBar is active so LB/RB navigation works
+		if tabBar.Activate and not tabBar.active then
+			tabBar:Activate()
+		end
+		-- Ensure keybinds are registered
+		if tabBar.keybindStripDescriptor then
+			BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+		end
 	end
 end
 
 function BETTERUI.Inventory.Class:ExitSearchFocus()
+	-- Remove search keybinds first (like Banking does)
+	pcall(function()
+		if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+			KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+		end
+	end)
+	
+	-- Add back main keybinds
+	pcall(function()
+		if self.mainKeybindStripDescriptor then
+			BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
+			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+		end
+	end)
+	
+	-- Deactivate the search header focus
+	if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
+		if self.textSearchHeaderFocus:IsActive() then
+			pcall(function() self.textSearchHeaderFocus:Deactivate() end)
+		end
+	end
+	
+	-- Leave header if active
 	if self:IsHeaderActive() then
 		self:RequestLeaveHeader()
 	end
 
-	if not selectTopResult then
-		return
+	-- Activate the current list so it receives input
+	local currentList = self:GetCurrentList()
+	if currentList then
+		if currentList.Activate and (not currentList.IsActive or not currentList:IsActive()) then
+			pcall(function() currentList:Activate() end)
+		end
 	end
 
-	if self.searchQuery and tostring(self.searchQuery) ~= "" then
-		local currentList = self:GetCurrentList()
+	-- Optionally select top result
+	if selectTopResult and self.searchQuery and tostring(self.searchQuery) ~= "" then
 		if currentList and currentList.SetSelectedIndexWithoutAnimation then
 			local count = 0
 			if currentList.GetNumItems then
@@ -3736,11 +3876,20 @@ function BETTERUI.Inventory.Class:ExitSearchFocus()
 		end
 	end
 
+	-- Ensure proper keybinds are restored after a short delay
 	zo_callLater(function()
 		if self.scene and self.scene:IsShowing() then
 			pcall(function()
 				self:EnsureHeaderKeybindsActive()
 			end)
+			pcall(function()
+				self:RefreshKeybinds()
+			end)
+			-- Double-check list is active
+			local list = self:GetCurrentList()
+			if list and list.Activate and (not list.IsActive or not list:IsActive()) then
+				pcall(function() list:Activate() end)
+			end
 		end
 	end, 0)
 end

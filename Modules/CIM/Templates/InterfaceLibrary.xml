@@ -3,12 +3,39 @@
 
         <Control name="BETTERUI_Generic_ScrollListTemplate" mouseEnabled="true" virtual="true">
             <OnMouseWheel>
-                if self.scrollList.active then
+                if self.scrollList and self.scrollList.active then
                     if delta > 0 then
-                        self.scrollList:MovePrevious()
+                        local atTop = self.scrollList:GetSelectedIndex() == 1
+                        local succeeded = self.scrollList:MovePrevious()
+                        -- If at top and MovePrevious fails, try to enter header/search
+                        if atTop and not succeeded then
+                            local owner = self.scrollList.owner
+                            if owner and owner.RequestEnterHeader then
+                                owner:RequestEnterHeader()
+                            end
+                        end
                     else
                         self.scrollList:MoveNext()
                     end
+                elseif self.scrollList and not self.scrollList.active and delta &lt; 0 then
+                    -- List is not active (header/search is active) and scrolling down
+                    -- Try to exit header and return to list
+                    local owner = self.scrollList.owner
+                    if owner then
+                        if owner.ExitSearchFocus then
+                            owner:ExitSearchFocus()
+                        end
+                        if owner.RequestLeaveHeader then
+                            owner:RequestLeaveHeader()
+                        end
+                    end
+                    -- Activate the list after a brief delay to let exit complete
+                    local listRef = self.scrollList
+                    zo_callLater(function()
+                        if listRef and listRef.Activate then
+                            listRef:Activate()
+                        end
+                    end, 10)
                 end
             </OnMouseWheel>
 

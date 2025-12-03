@@ -438,7 +438,21 @@ end
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
+    -- Force carousel visual update after index change
+    if self.carouselMode and self.UpdateAnchors then
+        self:UpdateAnchors(selectedIndex, false, false)
+    end
 end
+
+function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled, dontCallSelectedDataChangedCallback)
+    ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled, dontCallSelectedDataChangedCallback)
+    self:RefreshPips()
+    -- Force carousel visual update after index change
+    if self.carouselMode and self.UpdateAnchors then
+        self:UpdateAnchors(selectedIndex, true, false)
+    end
+end
+
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingBackward()
     local succeeded = ZO_ParametricScrollList.MovePrevious(self)
@@ -449,6 +463,10 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
     end
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_BACK)
+        -- Force carousel visual update after movement
+        if self.carouselMode and self.UpdateAnchors then
+            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
+        end
     elseif not suppressFailSound then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
     end
@@ -466,6 +484,10 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     end
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_FORWARD)
+        -- Force carousel visual update after movement
+        if self.carouselMode and self.UpdateAnchors then
+            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
+        end
     elseif not suppressFailSound then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
     end

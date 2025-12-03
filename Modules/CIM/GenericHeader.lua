@@ -149,6 +149,10 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
 
         control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
     end
+    
+    -- Always ensure scrollList alias is set on the UI control so XML OnClicked handlers work
+    -- This must be outside the creation block in case the control was recreated or refreshed
+    tabBarControl.scrollList = control.tabBar
 
     -- Apply carousel configuration if provided in data
     if control.tabBar and data.carouselConfig then
