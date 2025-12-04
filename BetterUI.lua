@@ -291,7 +291,8 @@ function BETTERUI.Initialize(event, addon)
 			{"Banking", BETTERUI.Banking},
 			{"Writs", BETTERUI.Writs},
 			{"Tooltips", BETTERUI.Tooltips},
-			{"Nameplates", BETTERUI.Nameplates}
+			{"Nameplates", BETTERUI.Nameplates},
+			{"Orbs", BETTERUI.Orbs}
 		}
 
 		for _, moduleInfo in ipairs(modules) do
@@ -303,6 +304,14 @@ function BETTERUI.Initialize(event, addon)
 
 		ddebug("First install detected - initializing module settings")
 		BETTERUI.Settings.firstInstall = false
+	end
+
+	-- Ensure Orbs module settings exist for existing users (added in later update)
+	if BETTERUI.Settings.Modules["Orbs"] == nil then
+		BETTERUI.Settings.Modules["Orbs"] = {}
+	end
+	if BETTERUI.Orbs and BETTERUI.Orbs.InitModule then
+		BETTERUI.Orbs.InitModule(BETTERUI.Settings.Modules["Orbs"])
 	end
 
 	-- Unregister the initialization event

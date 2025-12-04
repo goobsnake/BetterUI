@@ -236,9 +236,110 @@ local function Init(mId, moduleName)
 			end,
 			width = "half",
 		},
+		-- ============================================================================
+		-- BETTERUI ORBS SETTINGS
+		-- ============================================================================
+		{
+			type = "header",
+			name = GetString(SI_BETTERUI_ORBS_HEADER),
+			width = "full",
+		},
+		{
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ORBS_ENABLED),
+			tooltip = GetString(SI_BETTERUI_ORBS_ENABLED_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].enabled end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Orbs"].enabled = value
+				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
+					BETTERUI.Orbs.ApplySettings()
+				end
+			end,
+			width = "full",
+		},
+		{
+			type = "slider",
+			name = GetString(SI_BETTERUI_ORBS_SCALE),
+			tooltip = GetString(SI_BETTERUI_ORBS_SCALE_TOOLTIP),
+			min = 0.8,
+			max = 2.0,
+			step = 0.05,
+			decimals = 2,
+			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].scale end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Orbs"].scale = value
+				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
+					BETTERUI.Orbs.ApplySettings()
+				end
+			end,
+			disabled = function() return not BETTERUI.Settings.Modules["Orbs"].enabled end,
+			default = 1.15,
+		},
+		{
+			type = "slider",
+			name = GetString(SI_BETTERUI_ORBS_OFFSET),
+			tooltip = GetString(SI_BETTERUI_ORBS_OFFSET_TOOLTIP),
+			min = -300,
+			max = 300,
+			step = 5,
+			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].offsetY end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Orbs"].offsetY = value
+				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
+					BETTERUI.Orbs.ApplySettings()
+				end
+			end,
+			disabled = function() return not BETTERUI.Settings.Modules["Orbs"].enabled end,
+			default = 40,
+		},
+		{
+			type = "checkbox",
+			name = GetString(BETTERUI_ORBS_USE_CUSTOM_TEXTURES),
+			tooltip = GetString(BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].useCustomTextures end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Orbs"].useCustomTextures = value
+				ReloadUI()
+			end,
+			width = "full",
+			warning = "Requires Reload UI",
+		},
+        {
+            type = "checkbox",
+            name = GetString(BETTERUI_ORBS_DOUBLE_BAR),
+            tooltip = GetString(BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP),
+            getFunc = function() return BETTERUI.Settings.Modules["Orbs"].doubleBarEnabled end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["Orbs"].doubleBarEnabled = value
+                ReloadUI()
+            end,
+            width = "full",
+            warning = "Requires Reload UI",
+        },
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
+end
+
+-- Initializes Orbs default settings
+--- @param m_options table: Options table
+--- @return table: Initialized options
+function BETTERUI.Orbs.InitModule(m_options)
+    m_options = m_options or {}
+    local defaults = {
+        enabled = false,
+        scale = 1.15,
+        offsetY = 80,
+        useHDTextures = false,
+        customTextureBasePath = "",
+    }
+    -- Only set defaults if not already present
+    if m_options.enabled == nil then m_options.enabled = defaults.enabled end
+    if m_options.scale == nil then m_options.scale = defaults.scale end
+    if m_options.offsetY == nil then m_options.offsetY = defaults.offsetY end
+    if m_options.useHDTextures == nil then m_options.useHDTextures = defaults.useHDTextures end
+    if m_options.customTextureBasePath == nil then m_options.customTextureBasePath = defaults.customTextureBasePath end
+    return m_options
 end
 
 -- Initializes Nameplates default settings (preserves existing values)

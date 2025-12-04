@@ -33,6 +33,13 @@ Modules\CIM\Templates\InterfaceLibrary.xml
 Modules\CIM\InterfaceLibrary.lua
 Modules\CIM\Module.lua
 
+; Module: General Interface Improvements
+Modules\GeneralInterface\Tooltips.lua
+Modules\GeneralInterface\Nameplates.lua
+Modules\GeneralInterface\BetterUIOrbs.lua
+Modules\GeneralInterface\BetterUIOrbs.xml
+Modules\GeneralInterface\Module.lua
+
 ; Module: Inventory Enhanced
 Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\InventoryList.lua
@@ -40,12 +47,6 @@ Modules\Inventory\InventorySlot.lua
 Modules\Inventory\CraftList.lua
 Modules\Inventory\Inventory.lua
 Modules\Inventory\Module.lua
-
-; Module: General Interface Improvements
-; NOTE: Custom TTF fonts removed - ESO nameplates only support OTF format (built-in fonts)
-Modules\GeneralInterface\Tooltips.lua
-Modules\GeneralInterface\Nameplates.lua
-Modules\GeneralInterface\Module.lua
 
 ; Module: Banking
 Modules\Banking\Images\nav_vert.dds
