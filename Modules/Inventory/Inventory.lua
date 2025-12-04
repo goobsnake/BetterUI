@@ -25,6 +25,53 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
+local function WrapValue(value, max)
+	if value < 1 then
+		return max
+	elseif value > max then
+		return 1
+	end
+	return value
+end
+
+local function BETTERUI_TabBar_OnTabNext(parent, successful)
+	if successful then
+		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+			return
+		end
+		parent:SaveListPosition()
+
+		parent.categoryList.targetSelectedIndex =
+			WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
+		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
+		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
+		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
+
+		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+
+		parent:ToSavedPosition()
+	end
+end
+
+local function BETTERUI_TabBar_OnTabPrev(parent, successful)
+	if successful then
+		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+			return
+		end
+		parent:SaveListPosition()
+
+		parent.categoryList.targetSelectedIndex =
+			WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
+		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
+		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
+		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
+
+		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+
+		parent:ToSavedPosition()
+	end
+end
+
 -- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
@@ -1112,13 +1159,24 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 		},
 	}
 
+	local isCarousel = not BETTERUI.Settings.Modules["Inventory"].enableLegacyNavigation
+
 	self.categoryHeaderData = {
 		titleText = UpdateTitleText,
 		tabBarEntries = tabBarEntries,
 		tabBarData = { parent = self },
-		-- Use the unified selection callback instead of separate onNext/onPrev
-		onSelectedChanged = TabBar_OnSelectionChanged,
+		carouselConfig = {
+			enabled = isCarousel,
+		},
 	}
+
+	if isCarousel then
+		self.categoryHeaderData.onSelectedChanged = TabBar_OnSelectionChanged
+	else
+		self.categoryHeaderData.tabBarData.onNext = BETTERUI_TabBar_OnTabNext
+		self.categoryHeaderData.tabBarData.onPrev = BETTERUI_TabBar_OnTabPrev
+		self.categoryHeaderData.onSelectedChanged = function() end
+	end
 
 	-- Header data will be built dynamically in RefreshHeader based on settings
 	self.craftBagHeaderData = nil

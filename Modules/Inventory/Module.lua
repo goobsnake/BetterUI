@@ -244,6 +244,15 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
+			name = GetString(SI_BETTERUI_USE_LEGACY_NAV),
+			tooltip = GetString(SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].enableLegacyNavigation end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].enableLegacyNavigation = value end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = "Use triggers to move to next item type",
 			tooltip = "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type",
 			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip end,

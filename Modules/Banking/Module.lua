@@ -118,6 +118,15 @@ local function Init(mId, moduleName)
 	local optionsTable = {
 		{
 			type = "checkbox",
+			name = GetString(SI_BETTERUI_USE_LEGACY_NAV),
+			tooltip = GetString(SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["Banking"].enableLegacyNavigation end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].enableLegacyNavigation = value end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = "Item Icon - Unbound Items",
 			tooltip = "Show an icon after unbound items.",
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem end,
