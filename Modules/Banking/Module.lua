@@ -118,10 +118,10 @@ local function Init(mId, moduleName)
 	local optionsTable = {
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_USE_LEGACY_NAV),
-			tooltip = GetString(SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Banking"].enableLegacyNavigation end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].enableLegacyNavigation = value end,
+			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
+			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["Banking"].enableCarousel end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].enableCarousel = value end,
 			width = "full",
 			requiresReload = true,
 		},

@@ -182,5 +182,5 @@ ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP", "Enable this to u
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "Enable Double Action Bar")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "Displays the double action bar background and an active bar indicator. Useful if you use addons like Fancy Action Bar or just want the visual aesthetic.")
 
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "Navigation de catégorie classique")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "Utilisez la navigation par barre d'onglets classique au lieu du style carrousel moderne.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Navigation de catégorie classique")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Utilisez la navigation par barre d'onglets classique au lieu du style carrousel moderne.")

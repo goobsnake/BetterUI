@@ -182,5 +182,5 @@ ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP", "Habilite esto pa
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "Habilitar doble barra de acción")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "Muestra el fondo de la doble barra de acción y un indicador de barra activa. Útil si usa complementos como Fancy Action Bar o simplemente desea la estética visual.")
 
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "Navegación de Categoría Clásica")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "Usa la navegación clásica de barra de pestañas en lugar del estilo moderno de carrusel.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Navegación de Categoría Clásica")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Usa la navegación clásica de barra de pestañas en lugar del estilo moderno de carrusel.")

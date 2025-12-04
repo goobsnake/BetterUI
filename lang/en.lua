@@ -358,5 +358,5 @@ ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "Enable Double Action Bar")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "Displays the double action bar background and an active bar indicator. Useful if you use addons like Fancy Action Bar or just want the visual aesthetic.")
 
 -- Navigation Settings
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "Legacy Category Navigation")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "Use the classic tab bar navigation instead of the modern carousel style.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Enable Carousel Navigation")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Use the modern carousel style navigation instead of the classic tab bar.")

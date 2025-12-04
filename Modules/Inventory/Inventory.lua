@@ -1159,7 +1159,7 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 		},
 	}
 
-	local isCarousel = not BETTERUI.Settings.Modules["Inventory"].enableLegacyNavigation
+	local isCarousel = BETTERUI.Settings.Modules["Inventory"].enableCarousel
 
 	self.categoryHeaderData = {
 		titleText = UpdateTitleText,

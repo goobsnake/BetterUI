@@ -181,5 +181,5 @@ ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES", "カスタムテクスチ
 ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP", "これを有効にすると、'BetterUI/Modules/GeneralInterface/CustomOrbTextures' のテクスチャが使用されます。正しいファイル名で独自のテクスチャをそこに配置する必要があります。")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "ダブルアクションバーを有効化")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "ダブルアクションバーの背景とアクティブバーのインジケーターを表示します。Fancy Action Barのようなアドオンを使用している場合や、単に見た目を良くしたい場合に便利です。")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "クラシックカテゴリナビゲーション")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "モダンなカルーセルスタイルの代わりに、クラシックなタブバーナビゲーションを使用します。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "クラシックカテゴリナビゲーション")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "モダンなカルーセルスタイルの代わりに、クラシックなタブバーナビゲーションを使用します。")

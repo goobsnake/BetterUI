@@ -182,5 +182,5 @@ ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP", "Aktivieren, um T
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "Doppelte Aktionsleiste aktivieren")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "Zeigt den Hintergrund der doppelten Aktionsleiste und einen Indikator für die aktive Leiste an. Nützlich, wenn Sie Addons wie Fancy Action Bar verwenden oder einfach die Optik mögen.")
 
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "Klassische Kategorienavigation")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "Verwende die klassische Tab-Leisten-Navigation anstelle des modernen Karussell-Stils.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Klassische Kategorienavigation")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Verwende die klassische Tab-Leisten-Navigation anstelle des modernen Karussell-Stils.")

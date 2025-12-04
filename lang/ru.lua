@@ -181,5 +181,5 @@ ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES", "Использовать
 ZO_CreateStringId("BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP", "Включите, чтобы использовать текстуры из 'BetterUI/Modules/GeneralInterface/CustomOrbTextures'. Вы должны поместить туда свои текстуры с правильными именами файлов.")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR", "Включить двойную панель действий")
 ZO_CreateStringId("BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP", "Отображает фон двойной панели действий и индикатор активной панели. Полезно, если вы используете аддоны, такие как Fancy Action Bar, или просто хотите улучшить внешний вид.")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV", "Классическая навигация по категориям")
-ZO_CreateStringId("SI_BETTERUI_USE_LEGACY_NAV_TOOLTIP", "Использовать классическую навигацию по вкладкам вместо современного стиля карусели.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Классическая навигация по категориям")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Использовать классическую навигацию по вкладкам вместо современного стиля карусели.")
