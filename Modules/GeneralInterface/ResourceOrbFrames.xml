@@ -1,6 +1,6 @@
 <GuiXml>
     <Animations>
-        <AnimationTimeline name="BetterUIOrbsGlowAnim" playbackType="2" loopCount="255"
+        <AnimationTimeline name="ResourceOrbFramesGlowAnim" playbackType="2" loopCount="255"
             enabled="true">
             <Animations>
                 <AlphaAnimation startAlpha="0.5" endAlpha="0.9" duration="700">
@@ -14,7 +14,31 @@
 
     <Controls>
 
-        <Control name="BetterUI_OrbLabel_Template" virtual="true">
+        <Control name="ResourceOrbFrames_BackBarButton_Template" virtual="true">
+            <Dimensions x="50" y="50" />
+            <Controls>
+                <Texture name="$(parent)Icon" linkEnabled="true" layer="1">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)Cooldown" hidden="true" layer="1" level="2"
+                    textureFile="esoui/art/actionbar/actionslot_cooldown.dds" color="000000"
+                    alpha="0.7">
+                    <AnchorFill />
+                    <TextureCoords left="0" right="1" top="0" bottom="1" />
+                </Texture>
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGameBold" layer="1"
+                    level="3"
+                    verticalAlignment="1" horizontalAlignment="1" color="ffffff">
+                    <AnchorFill />
+                </Label>
+                <Texture name="$(parent)Border"
+                    textureFile="esoui/art/actionbar/abilityframe64_up.dds" layer="2">
+                    <AnchorFill />
+                </Texture>
+            </Controls>
+        </Control>
+
+        <Control name="ResourceOrbFrames_OrbLabel_Template" virtual="true">
             <Dimensions x="50" y="50" />
             <Controls>
                 <Texture textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/LabelBorder.dds"
@@ -28,7 +52,7 @@
             </Controls>
         </Control>
 
-        <Control name="BetterUI_OrbsDouble_Keyboard" virtual="true">
+        <Control name="ResourceOrbFrames_Double_Keyboard" virtual="true">
             <Dimensions x="404" y="256" />
             <Controls>
 
@@ -40,6 +64,44 @@
                                 relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-58" />
                             <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-58" />
+                        </Control>
+
+                        <Control name="$(grandparent)BackBarContainer" hidden="true">
+                            <Dimensions x="260" y="50" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-110" />
+                            <Controls>
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"
+                                        offsetX="0" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button6"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                                </Control>
+                            </Controls>
                         </Control>
                     </Controls>
                 </Texture>
@@ -99,7 +161,8 @@
             </Controls>
         </Control>
 
-        <Control name="BetterUI_OrbsDouble_Gamepad" inherits="BetterUI_OrbsDouble_Keyboard"
+        <Control name="ResourceOrbFrames_Double_Gamepad"
+            inherits="ResourceOrbFrames_Double_Keyboard"
             virtual="true">
             <Dimensions x="605" y="256" />
             <Controls>
@@ -111,12 +174,16 @@
                             <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-73" />
                         </Control>
+                        <Control name="$(grandparent)BackBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="3" offsetY="-125" />
+                        </Control>
                     </Controls>
                 </Texture>
             </Controls>
         </Control>
 
-        <Control name="BetterUI_OrbsSingle_Keyboard" virtual="true">
+        <Control name="ResourceOrbFrames_Single_Keyboard" virtual="true">
             <Dimensions x="400" y="256" />
             <Controls>
                 <Texture name="$(parent)BgMiddle"
@@ -154,16 +221,17 @@
             </Controls>
         </Control>
 
-        <Control name="BetterUI_OrbsSingle_Gamepad" inherits="BetterUI_OrbsSingle_Keyboard"
+        <Control name="ResourceOrbFrames_Single_Gamepad"
+            inherits="ResourceOrbFrames_Single_Keyboard"
             virtual="true">
             <Dimensions x="560" y="256" />
         </Control>
 
-        <TopLevelControl name="BetterUIOrbs">
+        <TopLevelControl name="ResourceOrbFrames">
             <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0"
                 offsetY="0" />
             <OnInitialized>
-                BetterUIOrbs_Initialize(self)
+                ResourceOrbFrames_Initialize(self)
             </OnInitialized>
             <Controls>
 
@@ -180,6 +248,43 @@
                                 relativePoint="BOTTOMLEFT" offsetX="0" offsetY="-13" />
                             <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-13" />
+                        </Control>
+                        <Control name="$(grandparent)BackBarContainer" hidden="true">
+                            <Dimensions x="260" y="50" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-65" />
+                            <Controls>
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"
+                                        offsetX="0" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button6"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                                </Control>
+                            </Controls>
                         </Control>
                     </Controls>
                 </Texture>
@@ -263,7 +368,7 @@
                             <Dimensions x="166" y="166" />
                         </Texture>
 
-                        <Control inherits="BetterUI_OrbLabel_Template">
+                        <Control inherits="ResourceOrbFrames_OrbLabel_Template">
                             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"
                                 offsetX="-12" offsetY="-28" />
                         </Control>
@@ -282,7 +387,7 @@
                             <Dimensions x="150" y="150" />
                         </Texture>
 
-                        <Control inherits="BetterUI_OrbLabel_Template" hidden="true">
+                        <Control inherits="ResourceOrbFrames_OrbLabel_Template" hidden="true">
                             <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"
                                 offsetX="12" offsetY="-28" />
                             <Controls>
@@ -346,7 +451,7 @@
                                     <Dimensions x="166" y="166" />
                                 </Texture>
 
-                                <Control inherits="BetterUI_OrbLabel_Template">
+                                <Control inherits="ResourceOrbFrames_OrbLabel_Template">
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)"
                                         relativePoint="TOPLEFT" offsetX="-12" offsetY="-28" />
                                 </Control>
@@ -395,7 +500,7 @@
                                     <Dimensions x="75" y="150" />
                                     <TextureCoords left="0.5" right="0" top="0" bottom="1" />
                                 </Texture>
-                                <Control inherits="BetterUI_OrbLabel_Template">
+                                <Control inherits="ResourceOrbFrames_OrbLabel_Template">
                                     <Anchor point="TOPRIGHT" relativeTo="$(parent)"
                                         relativePoint="TOPRIGHT" offsetX="12" offsetY="-28" />
                                 </Control>
