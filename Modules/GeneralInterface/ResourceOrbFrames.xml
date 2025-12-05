@@ -137,17 +137,17 @@
                 <Texture name="$(parent)OrnamentLeft"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentLeft.dds"
                     layer="1" level="501">
-                    <Dimensions x="200" y="200" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgLeft"
-                        relativePoint="BOTTOMLEFT" offsetX="90" offsetY="0" />
+                    <Dimensions x="465" y="465" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbHealth"
+                        relativePoint="CENTER" offsetX="-135" offsetY="-85" />
                 </Texture>
 
                 <Texture name="$(parent)OrnamentRight"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentRight.dds"
                     layer="1" level="501">
-                    <Dimensions x="200" y="200" />
+                    <Dimensions x="480" y="480" />
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgRight"
-                        relativePoint="BOTTOMRIGHT" offsetX="-90" offsetY="0" />
+                        relativePoint="BOTTOMRIGHT" offsetX="-200" offsetY="55" />
                 </Texture>
 
                 <Texture name="$(parent)ActiveBarIndicator"
@@ -300,17 +300,17 @@
                 <Texture name="$(parent)OrnamentLeft"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentLeft.dds"
                     layer="1" level="501">
-                    <Dimensions x="200" y="200" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgLeft"
-                        relativePoint="BOTTOMLEFT" offsetX="75" offsetY="0" />
+                    <Dimensions x="465" y="465" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbHealth"
+                        relativePoint="CENTER" offsetX="-135" offsetY="-85" />
                 </Texture>
 
                 <Texture name="$(parent)OrnamentRight"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentRight.dds"
                     layer="1" level="501">
-                    <Dimensions x="200" y="200" />
+                    <Dimensions x="480" y="480" />
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgRight"
-                        relativePoint="BOTTOMRIGHT" offsetX="-75" offsetY="0" />
+                        relativePoint="BOTTOMRIGHT" offsetX="-200" offsetY="55" />
                 </Texture>
 
                 <StatusBar name="$(parent)FoodBar" color="ba4d09" mouseEnabled="true" layer="0"
