@@ -1,16 +1,5 @@
 <GuiXml>
-    <Animations>
-        <AnimationTimeline name="ResourceOrbFramesGlowAnim" playbackType="2" loopCount="255"
-            enabled="true">
-            <Animations>
-                <AlphaAnimation startAlpha="0.5" endAlpha="0.9" duration="700">
-                    <EasingFunction>
-                        return ZO_LinearEase(progress)
-                    </EasingFunction>
-                </AlphaAnimation>
-            </Animations>
-        </AnimationTimeline>
-    </Animations>
+
 
     <Controls>
 
@@ -41,11 +30,8 @@
         <Control name="ResourceOrbFrames_OrbLabel_Template" virtual="true">
             <Dimensions x="50" y="50" />
             <Controls>
-                <Texture textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/LabelBorder.dds"
-                    layer="1" level="3">
-                    <AnchorFill />
-                </Texture>
-                <Label name="$(grandparent)Label" font="ZoFontGame" layer="1" level="3"
+
+                <Label name="$(grandparent)Label" font="ZoFontGame" layer="1" level="20"
                     verticalAlignment="1" horizontalAlignment="1">
                     <AnchorFill />
                 </Label>
@@ -116,14 +102,6 @@
                     <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
                         relativePoint="BOTTOMRIGHT" offsetX="30" offsetY="-17" />
                 </Control>
-
-                <StatusBar name="$(parent)FoodBar">
-                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMLEFT" offsetX="7" offsetY="-114" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-114" />
-                </StatusBar>
-
                 <Texture name="$(parent)OrnamentLeft"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentLeft.dds"
                     layer="1" level="501">
@@ -139,14 +117,13 @@
                     <Anchor point="CENTER" relativeTo="$(parent)OrbResource"
                         relativePoint="CENTER" offsetX="0" offsetY="0" />
                 </Texture>
+                <StatusBar name="$(parent)FoodBar">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMLEFT" offsetX="7" offsetY="-114" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-114" />
+                </StatusBar>
 
-                <Texture name="$(parent)ActiveBarIndicator"
-                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/ActiveBarIndicator.dds"
-                    layer="1" level="100" hidden="true">
-                    <Dimensions x="32" y="32" />
-                    <Anchor point="CENTER" relativeTo="$(parent)BgMiddle" relativePoint="TOP"
-                        offsetX="0" offsetY="-20" />
-                </Texture>
 
             </Controls>
         </Control>
@@ -268,14 +245,6 @@
                     </Controls>
                 </Control>
 
-                <Texture name="$(parent)BgLeft" layer="1" level="1">
-                    <Dimensions x="256" y="256" />
-                </Texture>
-
-                <Texture name="$(parent)BgRight" layer="1" level="1">
-                    <Dimensions x="256" y="256" />
-                </Texture>
-
                 <Texture name="$(parent)OrnamentLeft"
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentLeft.dds"
                     layer="1" level="501">
@@ -288,8 +257,8 @@
                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrnamentRight.dds"
                     layer="1" level="501">
                     <Dimensions x="480" y="480" />
-                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgRight"
-                        relativePoint="BOTTOMRIGHT" offsetX="-200" offsetY="55" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbResource"
+                        relativePoint="CENTER" offsetX="0" offsetY="0" />
                 </Texture>
 
                 <StatusBar name="$(parent)FoodBar" color="ba4d09" mouseEnabled="true" layer="0"
@@ -314,12 +283,7 @@
                 <Control name="$(parent)OrbHealth">
                     <Dimensions x="240" y="240" />
                     <Controls>
-                        <Texture name="$(parent)Aura" color="ff0000"
-                            textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbGlow.dds"
-                            alpha="0" mouseEnabled="true" layer="1" level="2">
-                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
-                            <Dimensions x="350" y="350" />
-                        </Texture>
+
                         <Texture name="$(parent)Fog2" color="4d0000"
                             textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
                             layer="1" level="3">
@@ -334,12 +298,7 @@
                             <Dimensions x="240" y="240" />
                             <TextureCoords left="0" right="1" top="0" bottom="1" />
                         </Texture>
-                        <Texture name="$(parent)BorderShade"
-                            textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbShadow.dds"
-                            layer="1" level="5">
-                            <AnchorFill />
-                            <Dimensions x="240" y="240" />
-                        </Texture>
+
                         <Texture name="$(parent)Border"
                             textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbBorder.dds"
                             layer="1" level="7">
@@ -347,9 +306,9 @@
                             <Dimensions x="256" y="256" />
                         </Texture>
 
-                        <Control inherits="ResourceOrbFrames_OrbLabel_Template" hidden="true">
-                            <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="TOPLEFT"
-                                offsetX="-12" offsetY="-28" />
+                        <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
+                                offsetX="0" offsetY="0" />
                         </Control>
 
                     </Controls>
@@ -366,9 +325,9 @@
                             <Dimensions x="150" y="150" />
                         </Texture>
 
-                        <Control inherits="ResourceOrbFrames_OrbLabel_Template" hidden="true">
-                            <Anchor point="TOPRIGHT" relativeTo="$(parent)" relativePoint="TOPRIGHT"
-                                offsetX="12" offsetY="-28" />
+                        <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
+                                offsetX="0" offsetY="0" />
                             <Controls>
                                 <Label name="$(grandparent)Label" color="00ffff" override="true" />
                             </Controls>
@@ -383,14 +342,7 @@
                         <Control name="$(grandparent)OrbMagicka">
                             <AnchorFill />
                             <Controls>
-                                <Texture name="$(parent)Aura" color="0066ff"
-                                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbGlow.dds"
-                                    alpha="0" mouseEnabled="true" layer="1" level="2">
-                                    <Anchor point="CENTER" relativeTo="$(parent)"
-                                        relativePoint="CENTER" offsetX="-65" />
-                                    <Dimensions x="125" y="250" />
-                                    <TextureCoords left="0" right="0.5" top="0" bottom="1" />
-                                </Texture>
+
                                 <Texture name="$(parent)Fog2" color="000033"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
                                     layer="1" level="3">
@@ -408,12 +360,7 @@
                                     <TextureCoords left="0" right="0.5" top="0" bottom="1" />
                                 </Texture>
 
-                                <Texture name="$(parent)BorderShade"
-                                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbShadow.dds"
-                                    layer="1" level="5">
-                                    <AnchorFill />
-                                    <Dimensions x="150" y="150" />
-                                </Texture>
+
                                 <Texture name="$(parent)Border"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbBorder.dds"
                                     layer="1" level="9">
@@ -430,40 +377,20 @@
                                     <Dimensions x="256" y="256" />
                                 </Texture>
 
-                                <Control inherits="ResourceOrbFrames_OrbLabel_Template"
-                                    hidden="true">
-                                    <Anchor point="TOPLEFT" relativeTo="$(parent)"
-                                        relativePoint="TOPLEFT" offsetX="-12" offsetY="-28" />
+                                <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" offsetX="-65" />
                                 </Control>
 
                             </Controls>
                         </Control>
-                        <Control name="$(grandparent)OrbWerewolf" hidden="true">
-                            <AnchorFill />
-                            <Controls>
-                                <Texture name="$(parent)Fog"
-                                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbOverlay_Mount.dds"
-                                    layer="1" level="5" color="3893F5">
-                                    <Anchor point="CENTER" relativeTo="$(parent)"
-                                        relativePoint="CENTER" offsetX="40" />
-                                    <Dimensions x="75" y="150" />
-                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
-                                </Texture>
-                            </Controls>
-                        </Control>
+
 
                         <Control name="$(grandparent)OrbStamina">
                             <AnchorFill />
                             <Controls>
 
-                                <Texture name="$(parent)Aura" color="00ff00"
-                                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbGlow.dds"
-                                    alpha="0" mouseEnabled="true" layer="1" level="2">
-                                    <Anchor point="CENTER" relativeTo="$(parent)"
-                                        relativePoint="CENTER" offsetX="65" />
-                                    <Dimensions x="125" y="250" />
-                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
-                                </Texture>
+
                                 <Texture name="$(parent)Fog2" color="004d00"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
                                     layer="1" level="3">
@@ -481,24 +408,12 @@
                                     <TextureCoords left="0.5" right="0" top="0" bottom="1" />
                                 </Texture>
                                 <Control inherits="ResourceOrbFrames_OrbLabel_Template">
-                                    <Anchor point="TOPRIGHT" relativeTo="$(parent)"
-                                        relativePoint="TOPRIGHT" offsetX="12" offsetY="-28" />
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" offsetX="65" />
                                 </Control>
                             </Controls>
                         </Control>
-                        <Control name="$(grandparent)OrbMount" hidden="true">
-                            <AnchorFill />
-                            <Controls>
-                                <Texture name="$(parent)Fog"
-                                    textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbOverlay_Mount.dds"
-                                    layer="1" level="5" color="87F500">
-                                    <Anchor point="CENTER" relativeTo="$(parent)"
-                                        relativePoint="CENTER" offsetX="40" />
-                                    <Dimensions x="75" y="150" />
-                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
-                                </Texture>
-                            </Controls>
-                        </Control>
+
                     </Controls>
                 </Control>
             </Controls>
