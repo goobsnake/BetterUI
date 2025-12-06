@@ -416,7 +416,7 @@
                                 </Texture>
                                 <Texture name="$(parent)Border"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbBorder.dds"
-                                    layer="1" level="7">
+                                    layer="1" level="9">
                                     <Anchor point="CENTER" relativeTo="$(parent)"
                                         relativePoint="CENTER" />
                                     <Dimensions x="256" y="256" />
