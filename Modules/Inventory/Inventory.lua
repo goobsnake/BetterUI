@@ -25,52 +25,8 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
-local function WrapValue(value, max)
-	if value < 1 then
-		return max
-	elseif value > max then
-		return 1
-	end
-	return value
-end
-
-local function BETTERUI_TabBar_OnTabNext(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
-		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
-	end
-end
-
-local function BETTERUI_TabBar_OnTabPrev(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
-		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
-	end
-end
+-- NOTE: The old WrapValue helper and BETTERUI_TabBar_OnTabNext/Prev callbacks have been removed.
+-- They were causing double-navigation issues. Navigation is now handled solely by TabBar_OnSelectionChanged.
 
 -- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
@@ -1168,15 +1124,10 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 		carouselConfig = {
 			enabled = isCarousel,
 		},
+		-- Use the unified selection callback instead of separate onNext/onPrev
+		-- This prevents double-navigation that occurred with the old callbacks
+		onSelectedChanged = TabBar_OnSelectionChanged,
 	}
-
-	if isCarousel then
-		self.categoryHeaderData.onSelectedChanged = TabBar_OnSelectionChanged
-	else
-		self.categoryHeaderData.tabBarData.onNext = BETTERUI_TabBar_OnTabNext
-		self.categoryHeaderData.tabBarData.onPrev = BETTERUI_TabBar_OnTabPrev
-		self.categoryHeaderData.onSelectedChanged = function() end
-	end
 
 	-- Header data will be built dynamically in RefreshHeader based on settings
 	self.craftBagHeaderData = nil
@@ -1298,7 +1249,11 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 				itemData.isEquippedInCurrentCategory = slotIndex and true or nil
 			end
 
-			ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
+			if isQuestItem then
+				ZO_InventorySlot_SetType(itemData, SLOT_TYPE_QUEST_ITEM)
+			else
+				ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
+			end
 
 			-- Cache expensive API calls for performance
 			itemData.cached_itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
@@ -3975,6 +3930,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 					then
 						--switch compare
 						n = GetString(SI_BETTERUI_INV_SWITCH_INFO)
+					elseif isQuestItem and target.meetsUsageRequirement then
+						-- Use
+						n = GetString(SI_ITEM_ACTION_USE)
 					else
 						n = GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
 					end
@@ -3995,7 +3953,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 							self.itemList.selectedData,
 							ITEMFILTERTYPE_QUEST
 						)
-						return not isQuestItem
+						-- Show "A" if it's NOT a quest item OR if it IS a quest item that is usable
+						if not isQuestItem then
+							return true
+						else
+							return self.itemList.selectedData.meetsUsageRequirement
+						end
 					end
 					return false
 				elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
@@ -4023,6 +3986,23 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 							)
 						then
 							self:SwitchInfo()
+						elseif ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) and target.meetsUsageRequirement then
+							-- Use the item (this handles scene transitions natively for books/maps)
+							-- Access dataSource for quest-specific properties
+							local ds = target.dataSource or target
+							-- Hide inventory scene to allow native scene transition
+							SCENE_MANAGER:Hide("gamepad_inventory_root")
+							if ds.toolIndex then
+								CallSecureProtected("UseQuestTool", ds.questIndex, ds.toolIndex)
+							elseif ds.stepIndex and ds.conditionIndex then
+								CallSecureProtected("UseQuestItem", ds.questIndex, ds.stepIndex, ds.conditionIndex)
+							else
+								-- Fallback for items without tool/step info (shouldn't happen but safe)
+								local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+								if bag and slot then
+									CallSecureProtected("UseItem", bag, slot)
+								end
+							end
 						else
 							local itemLink = GetItemLink(target.bagId, target.slotIndex)
 							if itemLink then

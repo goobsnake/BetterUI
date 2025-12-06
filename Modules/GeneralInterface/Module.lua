@@ -330,6 +330,110 @@ local function Init(mId, moduleName)
             end,
             width = "full",
         },
+        {
+            type = "header",
+            name = "Orb Text Settings",
+            width = "full",
+        },
+        -- Health Text Settings
+        {
+            type = "slider",
+            name = "Health Text Size",
+            tooltip = "Adjust the font size of the health text",
+            min = 12,
+            max = 48,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize or 20 end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "Health Text Color",
+            tooltip = "Adjust the color of the health text",
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor = {r, g, b, a}
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        -- Magicka Text Settings
+        {
+            type = "slider",
+            name = "Magicka Text Size",
+            tooltip = "Adjust the font size of the magicka text",
+            min = 12,
+            max = 48,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize or 20 end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "Magicka Text Color",
+            tooltip = "Adjust the color of the magicka text",
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor = {r, g, b, a}
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        -- Stamina Text Settings
+        {
+            type = "slider",
+            name = "Stamina Text Size",
+            tooltip = "Adjust the font size of the stamina text",
+            min = 12,
+            max = 48,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize or 20 end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "Stamina Text Color",
+            tooltip = "Adjust the color of the stamina text",
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor = {r, g, b, a}
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -348,6 +452,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         centerBarType = "XP",
         cooldownTextSize = 18,
         cooldownTextColor = {1, 1, 1, 1},
+        healthTextSize = 20,
+        healthTextColor = {1, 1, 1, 1},
+        magickaTextSize = 20,
+        magickaTextColor = {1, 1, 1, 1},
+        staminaTextSize = 20,
+        staminaTextColor = {1, 1, 1, 1},
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -357,6 +467,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.centerBarType == nil then m_options.centerBarType = defaults.centerBarType end
     if m_options.cooldownTextSize == nil then m_options.cooldownTextSize = defaults.cooldownTextSize end
     if m_options.cooldownTextColor == nil then m_options.cooldownTextColor = defaults.cooldownTextColor end
+    if m_options.healthTextSize == nil then m_options.healthTextSize = defaults.healthTextSize end
+    if m_options.healthTextColor == nil then m_options.healthTextColor = defaults.healthTextColor end
+    if m_options.magickaTextSize == nil then m_options.magickaTextSize = defaults.magickaTextSize end
+    if m_options.magickaTextColor == nil then m_options.magickaTextColor = defaults.magickaTextColor end
+    if m_options.staminaTextSize == nil then m_options.staminaTextSize = defaults.staminaTextSize end
+    if m_options.staminaTextColor == nil then m_options.staminaTextColor = defaults.staminaTextColor end
     return m_options
 end
 
