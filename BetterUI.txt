@@ -5,6 +5,7 @@
 ## Contributers: prasoc, RockingDice
 ## Version: 2.87
 ## DependsOn: LibAddonMenu-2.0
+## OptionalDependsOn: LibDebugLogger
 ## SavedVariables: BetterUISavedVars
  
 Globals.lua

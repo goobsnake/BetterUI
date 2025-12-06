@@ -105,137 +105,103 @@ BETTERUI_EQUIPPED_ICON_OFFSET_X = -25
 BETTERUI_STATUS_INDICATOR_OFFSET_X = -10
 
 -- ============================================================================
--- RESOURCE ORB FRAMES - ACTION BAR LAYOUT
--- Controls the custom dual action bar positioning in the Resource Orb Frames
--- ============================================================================
-
--- Skill button dimensions (pixels)
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_SLOT_WIDTH = 64          -- Width/height of skill buttons in gamepad mode
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_SLOT_WIDTH = 50         -- Width/height of skill buttons in keyboard mode
-
--- Spacing between skill buttons (pixels)
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_SLOT_SPACING = 10        -- Gap between adjacent skill buttons in gamepad mode
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_SLOT_SPACING = 2        -- Gap between adjacent skill buttons in keyboard mode
-
--- Dual bar horizontal offset
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_DUAL_BAR_OFFSET = 44     -- Horizontal offset for dual bar in gamepad mode
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_DUAL_BAR_OFFSET = 12    -- Horizontal offset for dual bar in keyboard mode
-
--- Back bar (top bar) ultimate skill gap - extra spacing before ultimate
-BETTERUI_RESOURCE_ORB_FRAMES_ULTIMATE_GAP = 66                -- Extra pixels between 5th skill and ultimate on back bar
-
--- ============================================================================
--- RESOURCE ORB FRAMES - SKILL BAR POSITIONING
--- ============================================================================
+-- RESOURCE ORB FRAMES - STRUCTURED CONFIGURATION
+-- All orb-related settings in one organized table
 -- 
--- BOTTOM BAR = The main/active skill bar (the one you're currently using)
--- TOP BAR = The back/inactive skill bar (your weapon swap bar)
---
--- To move a bar UP: decrease the Y value (more negative)
--- To move a bar DOWN: increase the Y value (less negative)
--- To move a bar LEFT: decrease the X value (negative)
--- To move a bar RIGHT: increase the X value (positive)
+-- DIRECTION CONVENTION:
+--   X: positive = right, negative = left
+--   Y: positive = down, negative = up
 -- ============================================================================
 
--- Global vertical shift (moves BOTH bars together)
-BETTERUI_RESOURCE_ORB_FRAMES_BAR_SHIFT_Y = 70                 -- Increase to move both bars down
-
--- BOTTOM BAR (main skill bar) position adjustments
-BETTERUI_RESOURCE_ORB_FRAMES_BOTTOM_BAR_OFFSET_X = -40          -- Move bottom bar left/right (0 = centered)
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_BOTTOM_BAR_Y = -15       -- Gamepad: bottom bar up/down
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_BOTTOM_BAR_Y = -15      -- Keyboard: bottom bar up/down
-
--- TOP BAR (back/weapon swap skill bar) position adjustments  
-BETTERUI_RESOURCE_ORB_FRAMES_TOP_BAR_OFFSET_X = 25             -- Move top bar left/right (0 = centered)
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_TOP_BAR_Y = -103         -- Gamepad: top bar up/down (more negative = higher)
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_TOP_BAR_Y = -103        -- Keyboard: top bar up/down (more negative = higher)
-
--- Legacy shift factor (keep at 0 for aligned bars)
-BETTERUI_RESOURCE_ORB_FRAMES_MAIN_BAR_SHIFT_LEFT_FACTOR = 0
-
--- Other bar elements
-BETTERUI_RESOURCE_ORB_FRAMES_INDICATOR_OFFSET_X = -10         -- Bar swap indicator position
-BETTERUI_RESOURCE_ORB_FRAMES_QUICKSLOT_OFFSET_X = 0         -- Quickslot button distance from main bar
-
--- ============================================================================
--- RESOURCE ORB FRAMES - ORB & ORNAMENT LAYOUT
--- ============================================================================
-
--- ============================================================================
--- ORNAMENT (STATUE) POSITIONING
--- Ornaments are the demon/knight statue graphics that frame the orbs
--- These are positioned relative to BgMiddle (center of skill bars)
--- ============================================================================
-
--- Left Ornament (Demon)
-BETTERUI_ORNAMENT_LEFT_OFFSET_X = -450    -- X position from center (negative = left)
-BETTERUI_ORNAMENT_LEFT_OFFSET_Y = -15     -- Y offset (negative = up)
-BETTERUI_ORNAMENT_LEFT_SIZE = 375         -- Base size in pixels
-BETTERUI_ORNAMENT_LEFT_SCALE = 1.0        -- Scale multiplier (1.0 = 100%, 1.5 = 150%, etc.)
-
--- Right Ornament (Knight)
-BETTERUI_ORNAMENT_RIGHT_OFFSET_X = 450    -- X position from center (positive = right)
-BETTERUI_ORNAMENT_RIGHT_OFFSET_Y = -25    -- Y offset (negative = up)
-BETTERUI_ORNAMENT_RIGHT_SIZE = 400        -- Base size in pixels
-BETTERUI_ORNAMENT_RIGHT_SCALE = 1.0       -- Scale multiplier (1.0 = 100%, 1.5 = 150%, etc.)
-
--- ============================================================================
--- ORB BORDER (RING GRAPHIC)
--- The circular border/ring graphic that sits inside the ornament holes
--- ============================================================================
-
--- Orb Border position relative to Ornament center
-BETTERUI_ORB_LEFT_OFFSET_X = 50           -- Left Orb X nudge (positive = right)
-BETTERUI_ORB_LEFT_OFFSET_Y = -10          -- Left Orb Y nudge (positive = down)
-BETTERUI_ORB_RIGHT_OFFSET_X = -60           -- Right Orb X nudge (positive = right)
-BETTERUI_ORB_RIGHT_OFFSET_Y = 5          -- Right Orb Y nudge (positive = down)
-
--- Orb Border size (separate for each side)
-BETTERUI_ORB_BORDER_LEFT_SIZE = 200       -- Left Orb border size (OrbBorder.dds)
-BETTERUI_ORB_BORDER_RIGHT_SIZE = 200      -- Right Orb border size (OrbBorder.dds)
-BETTERUI_ORB_AURA_SIZE = 350              -- Size of the glow aura effect
-
-
--- Per-orb width/height fill scales (developer-only). These are the ONLY scales used now
--- and should be provided as explicit width/height percentages (0..1) of orb border size.
-BETTERUI_ORB_FILL_HEALTH_SCALE_WIDTH = 0.55      -- Health fill width scale
-BETTERUI_ORB_FILL_HEALTH_SCALE_HEIGHT = 0.55     -- Health fill height scale
-BETTERUI_ORB_FILL_MAGICKA_SCALE_WIDTH = 0.43     -- Magicka fill width scale
-BETTERUI_ORB_FILL_MAGICKA_SCALE_HEIGHT = 0.43    -- Magicka fill height scale
-BETTERUI_ORB_FILL_STAMINA_SCALE_WIDTH = 0.5     -- Stamina fill width scale
-BETTERUI_ORB_FILL_STAMINA_SCALE_HEIGHT = 0.5    -- Stamina fill height scale
-
--- Resource fallback width/height scales for other power types (mount/werewolf etc.)
-BETTERUI_ORB_FILL_RESOURCE_SCALE_WIDTH = 0.5    -- Resource width scale fallback
-BETTERUI_ORB_FILL_RESOURCE_SCALE_HEIGHT = 0.5   -- Resource height scale fallback
-
--- HEALTH FILL (Left Orb - Red) - Fine-tune position after centering
-BETTERUI_ORB_FILL_HEALTH_OFFSET_X = 0     -- Health fill X nudge (positive = right)
-BETTERUI_ORB_FILL_HEALTH_OFFSET_Y = 0     -- Health fill Y nudge (positive = down)
-
--- RESOURCE FILL (Right Orb - Blue/Green for Magicka/Stamina) - Fine-tune position after centering
-BETTERUI_ORB_FILL_RESOURCE_OFFSET_X = 0   -- Resource fill X nudge (positive = right)
-BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y = 0   -- Resource fill Y nudge (positive = down)
-
--- Individual resource (Magicka / Stamina) offsets
--- These allow tweaking the blue/green halves independently
--- NOTE: These are developer-facing constants and are not exposed in the settings UI.
-BETTERUI_ORB_FILL_MAGICKA_OFFSET_X = 20    -- Magicka half X nudge (positive = right)
-BETTERUI_ORB_FILL_MAGICKA_OFFSET_Y = -5    -- Magicka half Y nudge (positive = down)
-BETTERUI_ORB_FILL_STAMINA_OFFSET_X = -20    -- Stamina half X nudge (positive = right)
-BETTERUI_ORB_FILL_STAMINA_OFFSET_Y = 0    -- Stamina half Y nudge (positive = down)
-
--- ============================================================================
--- ORB SPLITTER (DIVIDER LINE - Magicka/Stamina Separator)
--- The vertical line graphic that divides the magicka and stamina fills
--- ============================================================================
-
--- Splitter width (thickness of the divider line in pixels - decrease to make thinner)
-BETTERUI_ORB_SPLITTER_WIDTH = 200          -- Width of the divider line (decrease for thinner line)
-
--- Splitter height (how tall the divider line is - as percentage of border size)
-BETTERUI_ORB_SPLITTER_HEIGHT_SCALE = 0.70  -- Height as percentage of orb border size (1.0 = full height)
-
--- Splitter position fine-tuning (offsets from center of resource orb)
-BETTERUI_ORB_SPLITTER_OFFSET_X = 4        -- Splitter X nudge (positive = move right)
-BETTERUI_ORB_SPLITTER_OFFSET_Y = -5        -- Splitter Y nudge (positive = move down)
+BETTERUI_ORB_FRAMES = {
+    -- Skill button dimensions (pixels)
+    slots = {
+        gamepad = { 
+            width = 64,           -- Button size in pixels
+            spacing = 10,         -- Gap between buttons
+            dualBarOffset = 44,   -- Dual bar horizontal offset
+        },
+        keyboard = { 
+            width = 50,           -- Button size in pixels
+            spacing = 2,          -- Gap between buttons
+            dualBarOffset = 12,   -- Dual bar horizontal offset
+        },
+    },
+    
+    -- Skill bar positioning (bottom = active bar, top = back bar)
+    bars = {
+        shiftY = 70,              -- Move BOTH bars down (+) or up (-)
+        ultimateGap = 66,         -- Extra gap before ultimate skill (pixels)
+        mainBarShiftFactor = 0,   -- Legacy: keep at 0
+        indicatorOffsetX = -10,   -- Bar indicator: left (-) or right (+)
+        quickslotOffsetX = 0,     -- Quickslot: left (-) or right (+)
+        bottom = { 
+            x = -40,              -- Main bar: left (-) or right (+)
+            gamepadY = -15,       -- Gamepad: up (-) or down (+)
+            keyboardY = -15,      -- Keyboard: up (-) or down (+)
+        },
+        top = { 
+            x = 25,               -- Back bar: left (-) or right (+)
+            gamepadY = -103,      -- Gamepad: up (-) or down (+)
+            keyboardY = -103,     -- Keyboard: up (-) or down (+)
+        },
+    },
+    
+    -- Ornament (statue) positioning relative to center of skill bars
+    ornaments = {
+        left = { 
+            x = -450,             -- Left (-) or right (+) from center
+            y = -15,              -- Up (-) or down (+)
+            size = 375,           -- Size in pixels
+            scale = 1.0,          -- Scale multiplier (1.0 = 100%)
+        },
+        right = { 
+            x = 450,              -- Left (-) or right (+) from center
+            y = -25,              -- Up (-) or down (+)
+            size = 400,           -- Size in pixels
+            scale = 1.0,          -- Scale multiplier (1.0 = 100%)
+        },
+    },
+    
+    -- Orb border (ring) positioning relative to ornament center
+    orbs = {
+        left = { 
+            x = 50,               -- Left (-) or right (+) nudge
+            y = -10,              -- Up (-) or down (+) nudge
+            borderSize = 200,     -- Ring size in pixels
+        },
+        right = { 
+            x = -60,              -- Left (-) or right (+) nudge
+            y = 5,                -- Up (-) or down (+) nudge
+            borderSize = 200,     -- Ring size in pixels
+        },
+        auraSize = 350,           -- Glow effect size (unused currently)
+    },
+    
+    -- Fill layer (colored resource display inside orb)
+    -- scaleW/scaleH: size as fraction of borderSize (0.5 = 50%)
+    -- x/y: offset from center, left (-) or right (+), up (-) or down (+)
+    fills = {
+        health = { scaleW = 0.55, scaleH = 0.55, x = 0, y = 0 },
+        magicka = { scaleW = 0.43, scaleH = 0.43, x = 20, y = -5 },
+        stamina = { scaleW = 0.5, scaleH = 0.5, x = -20, y = 0 },
+        resource = { scaleW = 0.5, scaleH = 0.5, x = 0, y = 0 },  -- Fallback
+    },
+    
+    -- Splitter (magicka/stamina divider line)
+    splitter = { 
+        width = 200,              -- Line width in pixels
+        heightScale = 0.70,       -- Height as fraction of borderSize (0.7 = 70%)
+        x = 4,                    -- Left (-) or right (+)
+        y = -5,                   -- Up (-) or down (+)
+    },
+    
+    -- Labels (numeric value text positioning)
+    -- x/y: offset from default position, left (-) or right (+), up (-) or down (+)
+    labels = {
+        health = { x = 0, y = 0 },
+        magicka = { x = 0, y = 0 },
+        stamina = { x = 0, y = 0 },
+        shield = { x = 0, y = 0 },
+    },
+}
