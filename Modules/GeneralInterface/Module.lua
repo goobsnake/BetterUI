@@ -237,108 +237,126 @@ local function Init(mId, moduleName)
 			width = "half",
 		},
 		-- ============================================================================
-		-- BETTERUI ORBS SETTINGS
+		-- RESOURCE ORB FRAMES SETTINGS
 		-- ============================================================================
 		{
 			type = "header",
-			name = GetString(SI_BETTERUI_ORBS_HEADER),
+			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER),
 			width = "full",
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ORBS_ENABLED),
-			tooltip = GetString(SI_BETTERUI_ORBS_ENABLED_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].enabled end,
+			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED),
+			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Orbs"].enabled = value
-				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
-					BETTERUI.Orbs.ApplySettings()
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled = value
+				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+					BETTERUI.ResourceOrbFrames.ApplySettings()
 				end
 			end,
 			width = "full",
 		},
 		{
 			type = "slider",
-			name = GetString(SI_BETTERUI_ORBS_SCALE),
-			tooltip = GetString(SI_BETTERUI_ORBS_SCALE_TOOLTIP),
+			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE),
+			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP),
 			min = 0.8,
 			max = 2.0,
 			step = 0.05,
 			decimals = 2,
-			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].scale end,
+			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].scale end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Orbs"].scale = value
-				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
-					BETTERUI.Orbs.ApplySettings()
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].scale = value
+				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+					BETTERUI.ResourceOrbFrames.ApplySettings()
 				end
 			end,
-			disabled = function() return not BETTERUI.Settings.Modules["Orbs"].enabled end,
+			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
 			default = 1.15,
 		},
 		{
 			type = "slider",
-			name = GetString(SI_BETTERUI_ORBS_OFFSET),
-			tooltip = GetString(SI_BETTERUI_ORBS_OFFSET_TOOLTIP),
+			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET),
+			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP),
 			min = -300,
 			max = 300,
 			step = 5,
-			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].offsetY end,
+			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Orbs"].offsetY = value
-				if BETTERUI.Orbs and BETTERUI.Orbs.ApplySettings then
-					BETTERUI.Orbs.ApplySettings()
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY = value
+				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+					BETTERUI.ResourceOrbFrames.ApplySettings()
 				end
 			end,
-			disabled = function() return not BETTERUI.Settings.Modules["Orbs"].enabled end,
+			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
 			default = 40,
 		},
 		{
 			type = "checkbox",
-			name = GetString(BETTERUI_ORBS_USE_CUSTOM_TEXTURES),
-			tooltip = GetString(BETTERUI_ORBS_USE_CUSTOM_TEXTURES_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Orbs"].useCustomTextures end,
+			name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
+			tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
+			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Orbs"].useCustomTextures = value
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures = value
 				ReloadUI()
 			end,
 			width = "full",
 			warning = "Requires Reload UI",
 		},
         {
-            type = "checkbox",
-            name = GetString(BETTERUI_ORBS_DOUBLE_BAR),
-            tooltip = GetString(BETTERUI_ORBS_DOUBLE_BAR_TOOLTIP),
-            getFunc = function() return BETTERUI.Settings.Modules["Orbs"].doubleBarEnabled end,
+            type = "slider",
+            name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE),
+            tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP),
+            min = 12,
+            max = 32,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize or 18 end,
             setFunc = function(value)
-                BETTERUI.Settings.Modules["Orbs"].doubleBarEnabled = value
-                ReloadUI()
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize = value
             end,
             width = "full",
-            warning = "Requires Reload UI",
+        },
+        {
+            type = "colorpicker",
+            name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR),
+            tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP),
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor = {r, g, b, a}
+            end,
+            width = "full",
         },
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
--- Initializes Orbs default settings
+-- Initializes ResourceOrbFrames default settings
 --- @param m_options table: Options table
 --- @return table: Initialized options
-function BETTERUI.Orbs.InitModule(m_options)
+function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = {
         enabled = false,
         scale = 1.15,
         offsetY = 80,
-        useHDTextures = false,
-        customTextureBasePath = "",
+        useCustomTextures = false,
+        centerBarType = "XP",
+        cooldownTextSize = 18,
+        cooldownTextColor = {1, 1, 1, 1},
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
     if m_options.scale == nil then m_options.scale = defaults.scale end
     if m_options.offsetY == nil then m_options.offsetY = defaults.offsetY end
-    if m_options.useHDTextures == nil then m_options.useHDTextures = defaults.useHDTextures end
-    if m_options.customTextureBasePath == nil then m_options.customTextureBasePath = defaults.customTextureBasePath end
+    if m_options.useCustomTextures == nil then m_options.useCustomTextures = defaults.useCustomTextures end
+    if m_options.centerBarType == nil then m_options.centerBarType = defaults.centerBarType end
+    if m_options.cooldownTextSize == nil then m_options.cooldownTextSize = defaults.cooldownTextSize end
+    if m_options.cooldownTextColor == nil then m_options.cooldownTextColor = defaults.cooldownTextColor end
     return m_options
 end
 

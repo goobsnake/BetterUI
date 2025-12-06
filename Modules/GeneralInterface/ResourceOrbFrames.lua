@@ -82,9 +82,6 @@ local function ApplyThemeVisuals()
     
     -- Always use double bar textures
     local elements = {
-        BgMiddle = 'BarBackgroundMiddle_Double.dds',
-        BgLeft = 'BarBackgroundLeft_Double.dds',
-        BgRight = 'BarBackgroundRight_Double.dds',
         OrnamentLeft = 'OrnamentLeft.dds',
         OrnamentRight = 'OrnamentRight.dds'
     }
@@ -135,6 +132,150 @@ local function ApplyThemeVisuals()
             local fog = FindControl(orb, 'Fog')
             if fog and fog.SetTexture then
                 fog:SetTexture(ResolveTexturePath(textureFile))
+            end
+        end
+    end
+end
+
+-- Force Update Layout from Constants (orbs, ornaments positioning)
+local function UpdateOrbLayout()
+    local leftOrb = FindControl(m_rootFrame, 'OrbHealth')
+    local rightOrb = FindControl(m_rootFrame, 'OrbResource')
+    local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
+    local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
+    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
+    
+    if not bgMiddle then return end
+
+    -- Get dimension constants (separate for left/right orbs)
+    local leftBorderSize = BETTERUI_ORB_BORDER_LEFT_SIZE or 175
+    local rightBorderSize = BETTERUI_ORB_BORDER_RIGHT_SIZE or 175
+    local auraSize = BETTERUI_ORB_AURA_SIZE or 350
+    
+    -- Ornament scale multipliers
+    local leftOrnamentScale = BETTERUI_ORNAMENT_LEFT_SCALE or 1.0
+    local rightOrnamentScale = BETTERUI_ORNAMENT_RIGHT_SCALE or 1.0
+    
+    -- Fill scale factor (fill size = border size * scale)
+    local fillScale = BETTERUI_ORB_FILL_SCALE or 0.75
+    
+    -- Health fill constants (left orb)
+    local healthFillSize = leftBorderSize * fillScale
+    local healthFillOffsetX = BETTERUI_ORB_FILL_HEALTH_OFFSET_X or 0
+    local healthFillOffsetY = BETTERUI_ORB_FILL_HEALTH_OFFSET_Y or 0
+    
+    -- Resource fill constants (right orb)
+    local resourceFillSize = rightBorderSize * fillScale
+    local resourceFillOffsetX = BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
+    local resourceFillOffsetY = BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
+    
+    -- ========================================
+    -- ORNAMENTS: Position relative to BgMiddle (center of skill bars)
+    -- ========================================
+    if leftOrnament then
+        local leftSize = (BETTERUI_ORNAMENT_LEFT_SIZE or 465) * leftOrnamentScale
+        leftOrnament:ClearAnchors()
+        leftOrnament:SetDimensions(leftSize, leftSize)
+        leftOrnament:SetAnchor(CENTER, bgMiddle, CENTER, BETTERUI_ORNAMENT_LEFT_OFFSET_X, BETTERUI_ORNAMENT_LEFT_OFFSET_Y)
+    end
+    
+    if rightOrnament then
+        local rightSize = (BETTERUI_ORNAMENT_RIGHT_SIZE or 480) * rightOrnamentScale
+        rightOrnament:ClearAnchors()
+        rightOrnament:SetDimensions(rightSize, rightSize)
+        rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, BETTERUI_ORNAMENT_RIGHT_OFFSET_X, BETTERUI_ORNAMENT_RIGHT_OFFSET_Y)
+    end
+    
+    -- ========================================
+    -- ORBS: Position relative to their Ornaments
+    -- ========================================
+    if leftOrb and leftOrnament then
+        leftOrb:ClearAnchors()
+        leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
+        leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, BETTERUI_ORB_LEFT_OFFSET_X, BETTERUI_ORB_LEFT_OFFSET_Y)
+    end
+    
+    if rightOrb and rightOrnament then
+        rightOrb:ClearAnchors()
+        rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
+        rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, BETTERUI_ORB_RIGHT_OFFSET_X, BETTERUI_ORB_RIGHT_OFFSET_Y)
+    end
+    
+    -- ========================================
+    -- HEALTH ORB FILL (Left - Red)
+    -- ========================================
+    local healthOrb = FindControl(m_rootFrame, 'OrbHealth')
+    if healthOrb then
+        -- Show and resize Fog textures (health fill)
+        local fogElements = {'Fog', 'Fog2'}
+        for _, name in ipairs(fogElements) do
+            local ctrl = FindControl(healthOrb, name)
+            if ctrl then 
+                ctrl:ClearAnchors()
+                ctrl:SetHidden(false)
+                ctrl:SetAlpha(1)
+                ctrl:SetDimensions(healthFillSize, healthFillSize)
+                ctrl:SetAnchor(CENTER, healthOrb, CENTER, healthFillOffsetX, healthFillOffsetY)
+            end
+        end
+        
+        -- Hide BorderShade
+        local borderShade = FindControl(healthOrb, 'BorderShade')
+        if borderShade then borderShade:SetHidden(true) end
+        
+        -- Resize and show Border
+        local border = FindControl(healthOrb, 'Border')
+        if border then 
+            border:SetHidden(false)
+            border:SetDimensions(leftBorderSize, leftBorderSize) 
+        end
+        
+        -- Resize Aura
+        local aura = FindControl(healthOrb, 'Aura')
+        if aura then aura:SetDimensions(auraSize, auraSize) end
+    end
+    
+    -- ========================================
+    -- RESOURCE ORB FILL (Right - Blue/Green for Magicka/Stamina)
+    -- ========================================
+    local subContainers = {'OrbMagicka', 'OrbStamina', 'OrbWerewolf', 'OrbMount'}
+    local resourceOrb = FindControl(m_rootFrame, 'OrbResource')
+    
+    if resourceOrb then
+        for _, containerName in ipairs(subContainers) do
+            local container = FindControl(resourceOrb, containerName)
+            if container then
+                -- Show and resize Fog textures (resource fill)
+                local fogElements = {'Fog', 'Fog2', 'Fog3'}
+                for _, name in ipairs(fogElements) do
+                    local ctrl = FindControl(container, name)
+                    if ctrl then 
+                        ctrl:ClearAnchors()
+                        ctrl:SetHidden(false)
+                        ctrl:SetAlpha(1)
+                        ctrl:SetDimensions(resourceFillSize, resourceFillSize)
+                        ctrl:SetAnchor(CENTER, container, CENTER, resourceFillOffsetX, resourceFillOffsetY)
+                    end
+                end
+                
+                -- Hide BorderShade
+                local borderShade = FindControl(container, 'BorderShade')
+                if borderShade then borderShade:SetHidden(true) end
+                
+                -- Resize and show Border
+                local border = FindControl(container, 'Border')
+                if border then 
+                    border:SetHidden(false)
+                    border:SetDimensions(rightBorderSize, rightBorderSize) 
+                end
+                
+                -- Resize Divide (magicka/stamina separator)
+                local divide = FindControl(container, 'Divide')
+                if divide then divide:SetDimensions(rightBorderSize, rightBorderSize) end
+                
+                -- Resize Aura
+                local aura = FindControl(container, 'Aura')
+                if aura then aura:SetDimensions(auraSize, auraSize) end
             end
         end
     end
@@ -385,7 +526,7 @@ local function UpdateMainBarLayout(rootFrame)
         quickSlotButton.slot:SetHidden(false)
         quickSlotButton.slot:ClearAnchors()
         -- Anchor to the left of the ActionBarContainer
-        quickSlotButton.slot:SetAnchor(RIGHT, barParent, LEFT, -10, 0)
+        quickSlotButton.slot:SetAnchor(RIGHT, barParent, LEFT, BETTERUI_RESOURCE_ORB_FRAMES_QUICKSLOT_OFFSET_X, 0)
     end
 end
 
@@ -404,13 +545,18 @@ local function UpdateBarPositions(rootFrame)
     local bottomY = (isGamePad and BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_BOTTOM_BAR_Y or BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_BOTTOM_BAR_Y) + shiftY
     local topY = (isGamePad and BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_TOP_BAR_Y or BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_TOP_BAR_Y) + shiftY
     
+    -- Horizontal offsets for bar alignment
+    local bottomX = BETTERUI_RESOURCE_ORB_FRAMES_BOTTOM_BAR_OFFSET_X or 0
+    local topX = BETTERUI_RESOURCE_ORB_FRAMES_TOP_BAR_OFFSET_X or 0
+    
     actionBarContainer:ClearAnchors()
     backBarContainer:ClearAnchors()
     
-    -- Active bar (ActionBarContainer) is ALWAYS on bottom
-    -- Inactive bar (BackBarContainer) is ALWAYS on top
-    actionBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, bottomY)
-    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, topY)
+    -- Bottom bar (main/active bar)
+    actionBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, bottomX, bottomY)
+    
+    -- Top bar (back/inactive bar)
+    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, topX, topY)
     
     if indicator then
         indicator:ClearAnchors()
@@ -588,9 +734,22 @@ function BetterUIOrbBar:RefreshVisuals()
 
     percent = zo_max(0, percent - 3) -- Visual adjustment
 
-    local height = (150 / 100) * percent
+    -- Use configurable fill size (default 150 for backwards compatibility)
+    local fillSize = self.fillSize or 150
+    
+    local height = (fillSize / 100) * percent
     local coordTop = 1 - (percent / 100)
-    local anchorY = 150 - height
+    local anchorY = fillSize - height
+    
+    -- Calculate center offset: center the fill within the control (border size)
+    -- The control is sized to borderSize, fill is smaller, so we offset to center it
+    local controlWidth = self.control:GetWidth()
+    local centerOffsetX = (controlWidth - fillSize) / 2
+    local centerOffsetY = (controlWidth - fillSize) / 2  -- Using width for both since it's a square
+    
+    -- Add user-defined offsets on top of centering
+    local fillOffsetX = self.fillOffsetX or 0
+    local fillOffsetY = self.fillOffsetY or 0
 
     if self.aura ~= nil then
         if percent < 30 then
@@ -604,15 +763,19 @@ function BetterUIOrbBar:RefreshVisuals()
     end
 
     if self.fog then
+        self.fog:SetDimensions(fillSize, fillSize)
         self.fog:SetHeight(height)
         self.fog:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, coordTop, 1)
-        self.fog:SetAnchor(TOPLEFT, self.control, nil, self.baseAnchorX, anchorY)
+        self.fog:ClearAnchors()
+        self.fog:SetAnchor(TOPLEFT, self.control, TOPLEFT, centerOffsetX + self.baseAnchorX + fillOffsetX, centerOffsetY + anchorY + fillOffsetY)
     end
 
     if self.fog2 ~= nil then
+        self.fog2:SetDimensions(fillSize, fillSize)
         self.fog2:SetHeight(height - 5)
         self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, coordTop - 0.00000005, 1)
-        self.fog2:SetAnchor(TOPLEFT, self.control, nil, self.baseAnchorX, anchorY - 5)
+        self.fog2:ClearAnchors()
+        self.fog2:SetAnchor(TOPLEFT, self.control, TOPLEFT, centerOffsetX + self.baseAnchorX + fillOffsetX, centerOffsetY + anchorY - 5 + fillOffsetY)
     end
 end
 
@@ -708,6 +871,19 @@ end
 -------------------------------------------------------------------------------------------------
 
 local function SetupPowerPools(rootFrame)
+    -- Calculate fill sizes based on border size and scale
+    local fillScale = BETTERUI_ORB_FILL_SCALE or 0.75
+    local leftBorderSize = BETTERUI_ORB_BORDER_LEFT_SIZE or 175
+    local rightBorderSize = BETTERUI_ORB_BORDER_RIGHT_SIZE or 175
+    local healthFillSize = leftBorderSize * fillScale
+    local resourceFillSize = rightBorderSize * fillScale
+    
+    -- Get offset constants
+    local healthFillOffsetX = BETTERUI_ORB_FILL_HEALTH_OFFSET_X or 0
+    local healthFillOffsetY = BETTERUI_ORB_FILL_HEALTH_OFFSET_Y or 0
+    local resourceFillOffsetX = BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
+    local resourceFillOffsetY = BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
+
     m_pools = {
         [POWERTYPE_HEALTH] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH),
         [POWERTYPE_MAGICKA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbMagicka'), POWERTYPE_MAGICKA),
@@ -715,6 +891,20 @@ local function SetupPowerPools(rootFrame)
         [POWERTYPE_MOUNT_STAMINA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbMount'), POWERTYPE_MOUNT_STAMINA),
         [POWERTYPE_WEREWOLF] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbWerewolf'), POWERTYPE_WEREWOLF),
     }
+    
+    -- Set fill sizes and offsets for health orb (left)
+    m_pools[POWERTYPE_HEALTH].fillSize = healthFillSize
+    m_pools[POWERTYPE_HEALTH].fillOffsetX = healthFillOffsetX
+    m_pools[POWERTYPE_HEALTH].fillOffsetY = healthFillOffsetY
+    
+    -- Set fill sizes and offsets for resource orbs (right)
+    for _, powerType in ipairs({POWERTYPE_MAGICKA, POWERTYPE_STAMINA, POWERTYPE_MOUNT_STAMINA, POWERTYPE_WEREWOLF}) do
+        if m_pools[powerType] then
+            m_pools[powerType].fillSize = resourceFillSize
+            m_pools[powerType].fillOffsetX = resourceFillOffsetX
+            m_pools[powerType].fillOffsetY = resourceFillOffsetY
+        end
+    end
 
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax)
         local pool = m_pools[powerType]
@@ -840,6 +1030,9 @@ local function SetupModule(control)
 
     ApplyActionBarSkin(control, layout)
     UpdateFrontBarCooldownColors()
+    
+    -- Apply layout constants for orbs and ornaments
+    UpdateOrbLayout()
     
     -- Initial Refresh
     RefreshAllData(control, updateDeathFragment)

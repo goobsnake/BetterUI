@@ -98,106 +98,6 @@ BETTERUI_STAT_WIDTH = 130
 
 -- Value column
 BETTERUI_VALUE_OFFSET_X = 1150
--- BetterUI Constants
--- UI layout values and constants used throughout the addon
-
-local _
-
--- ============================================================================
--- RESEARCH SYSTEM
--- ============================================================================
-
--- Crafting skill types for research trait tracking
-BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, CRAFTING_TYPE_JEWELRYCRAFTING, CRAFTING_TYPE_WOODWORKING }
-
--- ============================================================================
--- UI LAYOUT
--- ============================================================================
-
--- Panel widths
-BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = 1350
-BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = 470
-
--- Horizontal padding values
-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING = 36
-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER = 10
-BETTERUI_GAMEPAD_SCREEN_PADDING = 40
-BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ = BETTERUI_GAMEPAD_SCREEN_PADDING + BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
-
--- List positioning
-BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET = 90
-BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = 1325
-BETTERUI_TABBAR_ICON_WIDTH = 50
-
--- ============================================================================
--- CATEGORY CAROUSEL (Tab Bar Icons)
--- Used for the rotating category icon bar in Inventory and Banking headers
--- ============================================================================
-
--- Default carousel settings (used by Inventory)
-BETTERUI_CAROUSEL_START_OFFSET = 710       -- Horizontal position of first category icon (increase to move right)
-BETTERUI_CAROUSEL_ITEM_SPACING = 50        -- Space between each category icon
-BETTERUI_CAROUSEL_VERTICAL_OFFSET = 12     -- Vertical offset to align icons with LB/RB buttons (increase to move down)
-
--- Banking-specific carousel overrides (nil means use default)
-BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705   -- Horizontal position for banking carousel (increase to move right)
-BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1  -- Vertical offset for banking (lower value moves icons up)
-
--- ============================================================================
--- SEARCH BAR POSITIONING
--- Controls the position of the search input field in headers
--- ============================================================================
-
--- Inventory search bar position
-BETTERUI_INV_SEARCH_X_OFFSET = 56          -- Horizontal offset from left edge (increase to move right)
-BETTERUI_INV_SEARCH_Y_OFFSET = 1           -- Vertical offset from header bottom (increase to move down)
-BETTERUI_INV_SEARCH_RIGHT_INSET = -4       -- Right edge inset (more negative = narrower search bar)
-
--- Banking search bar position
-BETTERUI_BANK_SEARCH_X_OFFSET = 58         -- Horizontal offset from left edge (increase to move right)
-BETTERUI_BANK_SEARCH_Y_OFFSET = 15         -- Vertical offset from header bottom (increase to move down)
-BETTERUI_BANK_SEARCH_RIGHT_INSET = -8      -- Right edge inset (more negative = narrower search bar)
-
--- ============================================================================
--- LIST ENTRY DIMENSIONS
--- ============================================================================
-
--- Entry widths (used in XML templates)
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH - (2 * BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING)
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH - BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET = -20
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT = BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET - BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT = BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH - BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT
-
--- ============================================================================
--- POSITIONING
--- ============================================================================
-
--- Quadrant positioning
-BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
-
--- ============================================================================
--- XML TEMPLATE VALUES (Column Layout)
--- ============================================================================
-
--- Sub-menu label positioning
-BETTERUI_SUBMENU_LABEL_OFFSET_X = 87
-BETTERUI_SUBMENU_LABEL_WIDTH = 540
-
--- Item type column
-BETTERUI_ITEM_TYPE_OFFSET_X = 550
-BETTERUI_ITEM_TYPE_WIDTH = 250
-
--- Trait column
-BETTERUI_TRAIT_OFFSET_X = 810
-BETTERUI_TRAIT_WIDTH = 180
-
--- Stat column
-BETTERUI_STAT_OFFSET_X = 1000
-BETTERUI_STAT_WIDTH = 130
-
--- Value column
-BETTERUI_VALUE_OFFSET_X = 1150
 BETTERUI_VALUE_WIDTH = 120
 
 -- Icon offsets
@@ -222,27 +122,93 @@ BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_DUAL_BAR_OFFSET = 44     -- Horizontal offs
 BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_DUAL_BAR_OFFSET = 12    -- Horizontal offset for dual bar in keyboard mode
 
 -- Back bar (top bar) ultimate skill gap - extra spacing before ultimate
-BETTERUI_RESOURCE_ORB_FRAMES_ULTIMATE_GAP = 20                -- Extra pixels between 5th skill and ultimate on back bar
+BETTERUI_RESOURCE_ORB_FRAMES_ULTIMATE_GAP = 60                -- Extra pixels between 5th skill and ultimate on back bar
 
 -- ============================================================================
--- RESOURCE ORB FRAMES - BAR POSITIONING
--- Controls vertical and horizontal positioning of both skill bars
+-- RESOURCE ORB FRAMES - SKILL BAR POSITIONING
+-- ============================================================================
+-- 
+-- BOTTOM BAR = The main/active skill bar (the one you're currently using)
+-- TOP BAR = The back/inactive skill bar (your weapon swap bar)
+--
+-- To move a bar UP: decrease the Y value (more negative)
+-- To move a bar DOWN: increase the Y value (less negative)
+-- To move a bar LEFT: decrease the X value (negative)
+-- To move a bar RIGHT: increase the X value (positive)
 -- ============================================================================
 
--- Global vertical shift for both bars (increase to move both bars down)
-BETTERUI_RESOURCE_ORB_FRAMES_BAR_SHIFT_Y = 70                 -- Base vertical shift for button label clearance
+-- Global vertical shift (moves BOTH bars together)
+BETTERUI_RESOURCE_ORB_FRAMES_BAR_SHIFT_Y = 70                 -- Increase to move both bars down
 
--- Bottom bar (main/active bar) vertical offset from BgMiddle bottom
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_BOTTOM_BAR_Y = -73       -- Gamepad: bottom bar base Y offset (before shiftY)
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_BOTTOM_BAR_Y = -58      -- Keyboard: bottom bar base Y offset (before shiftY)
+-- BOTTOM BAR (main skill bar) position adjustments
+BETTERUI_RESOURCE_ORB_FRAMES_BOTTOM_BAR_OFFSET_X = -25          -- Move bottom bar left/right (0 = centered)
+BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_BOTTOM_BAR_Y = -15       -- Gamepad: bottom bar up/down
+BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_BOTTOM_BAR_Y = -15      -- Keyboard: bottom bar up/down
 
--- Top bar (back/inactive bar) vertical offset from BgMiddle bottom
-BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_TOP_BAR_Y = -115         -- Gamepad: top bar base Y offset (before shiftY, lower = higher up)
-BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_TOP_BAR_Y = -100        -- Keyboard: top bar base Y offset (before shiftY, lower = higher up)
+-- TOP BAR (back/weapon swap skill bar) position adjustments  
+BETTERUI_RESOURCE_ORB_FRAMES_TOP_BAR_OFFSET_X = 37             -- Move top bar left/right (0 = centered)
+BETTERUI_RESOURCE_ORB_FRAMES_GAMEPAD_TOP_BAR_Y = -103         -- Gamepad: top bar up/down (more negative = higher)
+BETTERUI_RESOURCE_ORB_FRAMES_KEYBOARD_TOP_BAR_Y = -103        -- Keyboard: top bar up/down (more negative = higher)
 
--- Bottom bar horizontal shift (negative = left, positive = right)
--- This controls how much the bottom bar overlaps with the top bar
-BETTERUI_RESOURCE_ORB_FRAMES_MAIN_BAR_SHIFT_LEFT_FACTOR = 0.75  -- Shift left by this fraction of skill width (0.75 = 3/4 overlap)
+-- Legacy shift factor (keep at 0 for aligned bars)
+BETTERUI_RESOURCE_ORB_FRAMES_MAIN_BAR_SHIFT_LEFT_FACTOR = 0
 
--- Active bar indicator offset from the action bar
-BETTERUI_RESOURCE_ORB_FRAMES_INDICATOR_OFFSET_X = -10         -- Horizontal offset of the bar swap indicator from action bar
+-- Other bar elements
+BETTERUI_RESOURCE_ORB_FRAMES_INDICATOR_OFFSET_X = -10         -- Bar swap indicator position
+BETTERUI_RESOURCE_ORB_FRAMES_QUICKSLOT_OFFSET_X = -20         -- Quickslot button distance from main bar
+
+-- ============================================================================
+-- RESOURCE ORB FRAMES - ORB & ORNAMENT LAYOUT
+-- ============================================================================
+
+-- ============================================================================
+-- ORNAMENT (STATUE) POSITIONING
+-- Ornaments are the demon/knight statue graphics that frame the orbs
+-- These are positioned relative to BgMiddle (center of skill bars)
+-- ============================================================================
+
+-- Left Ornament (Demon)
+BETTERUI_ORNAMENT_LEFT_OFFSET_X = -500    -- X position from center (negative = left)
+BETTERUI_ORNAMENT_LEFT_OFFSET_Y = -15     -- Y offset (negative = up)
+BETTERUI_ORNAMENT_LEFT_SIZE = 375         -- Base size in pixels
+BETTERUI_ORNAMENT_LEFT_SCALE = 1.0        -- Scale multiplier (1.0 = 100%, 1.5 = 150%, etc.)
+
+-- Right Ornament (Knight)
+BETTERUI_ORNAMENT_RIGHT_OFFSET_X = 500    -- X position from center (positive = right)
+BETTERUI_ORNAMENT_RIGHT_OFFSET_Y = -25    -- Y offset (negative = up)
+BETTERUI_ORNAMENT_RIGHT_SIZE = 400        -- Base size in pixels
+BETTERUI_ORNAMENT_RIGHT_SCALE = 1.0       -- Scale multiplier (1.0 = 100%, 1.5 = 150%, etc.)
+
+-- ============================================================================
+-- ORB BORDER (RING GRAPHIC)
+-- The circular border/ring graphic that sits inside the ornament holes
+-- ============================================================================
+
+-- Orb Border position relative to Ornament center
+BETTERUI_ORB_LEFT_OFFSET_X = 50           -- Left Orb X nudge (positive = right)
+BETTERUI_ORB_LEFT_OFFSET_Y = -10          -- Left Orb Y nudge (positive = down)
+BETTERUI_ORB_RIGHT_OFFSET_X = 0           -- Right Orb X nudge (positive = right)
+BETTERUI_ORB_RIGHT_OFFSET_Y = 0           -- Right Orb Y nudge (positive = down)
+
+-- Orb Border size (separate for each side)
+BETTERUI_ORB_BORDER_LEFT_SIZE = 200       -- Left Orb border size (OrbBorder.dds)
+BETTERUI_ORB_BORDER_RIGHT_SIZE = 175      -- Right Orb border size (OrbBorder.dds)
+BETTERUI_ORB_AURA_SIZE = 350              -- Size of the glow aura effect
+
+-- ============================================================================
+-- ORB FILL (RESOURCE LEVEL DISPLAY)
+-- The colored fill that shows your current health/magicka/stamina level
+-- Fill size is calculated as: Border Size * Fill Scale
+-- Fill is automatically centered within the border
+-- ============================================================================
+
+-- Fill scale (0.75 = 75% of border size, adjust to fit inside the ring)
+BETTERUI_ORB_FILL_SCALE = 0.55            -- Fill size as percentage of border size
+
+-- HEALTH FILL (Left Orb - Red) - Fine-tune position after centering
+BETTERUI_ORB_FILL_HEALTH_OFFSET_X = 0     -- Health fill X nudge (positive = right)
+BETTERUI_ORB_FILL_HEALTH_OFFSET_Y = 0     -- Health fill Y nudge (positive = down)
+
+-- RESOURCE FILL (Right Orb - Blue/Green for Magicka/Stamina) - Fine-tune position after centering
+BETTERUI_ORB_FILL_RESOURCE_OFFSET_X = 0   -- Resource fill X nudge (positive = right)
+BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y = 0   -- Resource fill Y nudge (positive = down)
