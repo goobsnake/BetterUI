@@ -195,19 +195,19 @@ BETTERUI_ORB_BORDER_LEFT_SIZE = 200       -- Left Orb border size (OrbBorder.dds
 BETTERUI_ORB_BORDER_RIGHT_SIZE = 200      -- Right Orb border size (OrbBorder.dds)
 BETTERUI_ORB_AURA_SIZE = 350              -- Size of the glow aura effect
 
--- ============================================================================
--- ORB FILL (RESOURCE LEVEL DISPLAY)
--- The colored fill that shows your current health/magicka/stamina level
--- Fill size is calculated as: Border Size * Fill Scale
--- Fill is automatically centered within the border
--- ============================================================================
 
--- Fill scale (0.75 = 75% of border size, adjust to fit inside the ring)
-BETTERUI_ORB_FILL_SCALE = 0.55            -- Fill size as percentage of border size
--- If you'd like to control the left (Health) and right (Magicka/Stamina) fill sizes independently,
--- set these scales. They default to the legacy `BETTERUI_ORB_FILL_SCALE` for backward compatibility.
-BETTERUI_ORB_FILL_HEALTH_SCALE = BETTERUI_ORB_FILL_SCALE  -- Health orb fill scale (left orb)
-BETTERUI_ORB_FILL_RESOURCE_SCALE = BETTERUI_ORB_FILL_SCALE -- Resource orb fill scale (right orb)
+-- Per-orb width/height fill scales (developer-only). These are the ONLY scales used now
+-- and should be provided as explicit width/height percentages (0..1) of orb border size.
+BETTERUI_ORB_FILL_HEALTH_SCALE_WIDTH = 0.55      -- Health fill width scale
+BETTERUI_ORB_FILL_HEALTH_SCALE_HEIGHT = 0.55     -- Health fill height scale
+BETTERUI_ORB_FILL_MAGICKA_SCALE_WIDTH = 0.43     -- Magicka fill width scale
+BETTERUI_ORB_FILL_MAGICKA_SCALE_HEIGHT = 0.43    -- Magicka fill height scale
+BETTERUI_ORB_FILL_STAMINA_SCALE_WIDTH = 0.5     -- Stamina fill width scale
+BETTERUI_ORB_FILL_STAMINA_SCALE_HEIGHT = 0.5    -- Stamina fill height scale
+
+-- Resource fallback width/height scales for other power types (mount/werewolf etc.)
+BETTERUI_ORB_FILL_RESOURCE_SCALE_WIDTH = 0.5    -- Resource width scale fallback
+BETTERUI_ORB_FILL_RESOURCE_SCALE_HEIGHT = 0.5   -- Resource height scale fallback
 
 -- HEALTH FILL (Left Orb - Red) - Fine-tune position after centering
 BETTERUI_ORB_FILL_HEALTH_OFFSET_X = 0     -- Health fill X nudge (positive = right)
@@ -216,6 +216,14 @@ BETTERUI_ORB_FILL_HEALTH_OFFSET_Y = 0     -- Health fill Y nudge (positive = dow
 -- RESOURCE FILL (Right Orb - Blue/Green for Magicka/Stamina) - Fine-tune position after centering
 BETTERUI_ORB_FILL_RESOURCE_OFFSET_X = 0   -- Resource fill X nudge (positive = right)
 BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y = 0   -- Resource fill Y nudge (positive = down)
+
+-- Individual resource (Magicka / Stamina) offsets
+-- These allow tweaking the blue/green halves independently
+-- NOTE: These are developer-facing constants and are not exposed in the settings UI.
+BETTERUI_ORB_FILL_MAGICKA_OFFSET_X = 20    -- Magicka half X nudge (positive = right)
+BETTERUI_ORB_FILL_MAGICKA_OFFSET_Y = -5    -- Magicka half Y nudge (positive = down)
+BETTERUI_ORB_FILL_STAMINA_OFFSET_X = -20    -- Stamina half X nudge (positive = right)
+BETTERUI_ORB_FILL_STAMINA_OFFSET_Y = 0    -- Stamina half Y nudge (positive = down)
 
 -- ============================================================================
 -- ORB SPLITTER (DIVIDER LINE - Magicka/Stamina Separator)

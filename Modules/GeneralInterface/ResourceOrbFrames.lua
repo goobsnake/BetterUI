@@ -22,6 +22,8 @@ local DEFAULTS = {
     -- Cooldown text settings
     cooldownTextSize = 18,
     cooldownTextColor = {1, 1, 1, 1}, -- RGBA white
+    -- Fine-tune resource orb fills (magicka/stamina)
+    -- developer-only
 }
 
 -------------------------------------------------------------------------------------------------
@@ -181,19 +183,35 @@ local function UpdateOrbLayout()
     local rightOrnamentScale = BETTERUI_ORNAMENT_RIGHT_SCALE or 1.0
     
     -- Fill scale factor (fill size = border size * scale)
-    -- Backwards-compatible: allow independent scales for the left (health) and right (resource) fills
-    local leftFillScale = BETTERUI_ORB_FILL_HEALTH_SCALE or BETTERUI_ORB_FILL_SCALE or 0.75
-    local rightFillScale = BETTERUI_ORB_FILL_RESOURCE_SCALE or BETTERUI_ORB_FILL_SCALE or 0.75
+    -- Independent width/height scales for health, magicka and stamina fills (developer-only)
+    -- Use explicit width/height scale constants
+    local leftFillWidthScale = BETTERUI_ORB_FILL_HEALTH_SCALE_WIDTH or 0.55
+    local leftFillHeightScale = BETTERUI_ORB_FILL_HEALTH_SCALE_HEIGHT or 0.55
+    local magickaFillWidthScale = BETTERUI_ORB_FILL_MAGICKA_SCALE_WIDTH or 0.5
+    local magickaFillHeightScale = BETTERUI_ORB_FILL_MAGICKA_SCALE_HEIGHT or 0.5
+    local staminaFillWidthScale = BETTERUI_ORB_FILL_STAMINA_SCALE_WIDTH or 0.5
+    local staminaFillHeightScale = BETTERUI_ORB_FILL_STAMINA_SCALE_HEIGHT or 0.5
+    local resourceFillWidthScale = BETTERUI_ORB_FILL_RESOURCE_SCALE_WIDTH or 0.5
+    local resourceFillHeightScale = BETTERUI_ORB_FILL_RESOURCE_SCALE_HEIGHT or 0.5
     
-    -- Health fill constants (left orb)
-    local healthFillSize = math.min(math.floor(leftBorderSize * leftFillScale + 0.5), leftBorderSize)
+    -- Health fill constants (left orb): compute width & height separately
+    local healthFillWidth = math.min(math.floor(leftBorderSize * leftFillWidthScale + 0.5), leftBorderSize)
+    local healthFillHeight = math.min(math.floor(leftBorderSize * leftFillHeightScale + 0.5), leftBorderSize)
     local healthFillOffsetX = BETTERUI_ORB_FILL_HEALTH_OFFSET_X or 0
     local healthFillOffsetY = BETTERUI_ORB_FILL_HEALTH_OFFSET_Y or 0
     
-    -- Resource fill constants (right orb)
-    local resourceFillSize = math.min(math.floor(rightBorderSize * rightFillScale + 0.5), rightBorderSize)
-    local resourceFillOffsetX = BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
-    local resourceFillOffsetY = BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
+    -- Resource fill constants (right orb), computed per half for magicka and stamina with width & height
+    local magickaFillWidth = math.min(math.floor(rightBorderSize * magickaFillWidthScale + 0.5), rightBorderSize)
+    local magickaFillHeight = math.min(math.floor(rightBorderSize * magickaFillHeightScale + 0.5), rightBorderSize)
+    local staminaFillWidth = math.min(math.floor(rightBorderSize * staminaFillWidthScale + 0.5), rightBorderSize)
+    local staminaFillHeight = math.min(math.floor(rightBorderSize * staminaFillHeightScale + 0.5), rightBorderSize)
+    local resourceFillWidth = math.min(math.floor(rightBorderSize * resourceFillWidthScale + 0.5), rightBorderSize)
+    local resourceFillHeight = math.min(math.floor(rightBorderSize * resourceFillHeightScale + 0.5), rightBorderSize)
+    -- Read offsets from constants only (developer-facing only, not exposed in settings)
+    local magickaFillOffsetX = BETTERUI_ORB_FILL_MAGICKA_OFFSET_X or BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
+    local magickaFillOffsetY = BETTERUI_ORB_FILL_MAGICKA_OFFSET_Y or BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
+    local staminaFillOffsetX = BETTERUI_ORB_FILL_STAMINA_OFFSET_X or BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
+    local staminaFillOffsetY = BETTERUI_ORB_FILL_STAMINA_OFFSET_Y or BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
     
     -- Splitter (divider line) constants (magicka/stamina separator)
     local splitterWidth = BETTERUI_ORB_SPLITTER_WIDTH or 16
@@ -244,16 +262,16 @@ local function UpdateOrbLayout()
         local fogElements = {'Fog', 'Fog2'}
         for _, name in ipairs(fogElements) do
             local ctrl = FindControl(healthOrb, name)
-            if ctrl then 
+                    if ctrl then 
                 ctrl:ClearAnchors()
                 ctrl:SetHidden(false)
                 ctrl:SetAlpha(1)
-                ctrl:SetDimensions(healthFillSize, healthFillSize)
+                ctrl:SetDimensions(healthFillWidth, healthFillHeight)
                 ctrl:SetAnchor(CENTER, healthOrb, CENTER, healthFillOffsetX, healthFillOffsetY)
             end
         end
         if BETTERUI_ORB_DEBUG_PRINTS then
-            d(string.format("BetterUI: UpdateOrbLayout Health: border=%d fill=%d offsetX=%d offsetY=%d", leftBorderSize, healthFillSize, healthFillOffsetX, healthFillOffsetY))
+            d(string.format("BetterUI: UpdateOrbLayout Health: border=%d fullW=%d fullH=%d offsetX=%d offsetY=%d", leftBorderSize, healthFillWidth, healthFillHeight, healthFillOffsetX, healthFillOffsetY))
         end
         
         -- Hide BorderShade
@@ -284,35 +302,57 @@ local function UpdateOrbLayout()
             if container then
                 -- Show and resize Fog textures (resource fill)
                 local fogElements = {'Fog', 'Fog2', 'Fog3'}
-                -- For Magicka/Stamina we want to use full square fills and offset them to the left/right halves
-                local resourceFillRounded = math.floor(resourceFillSize + 0.5)
-                -- For legacy compatibility we still compute the half width for auras, but the fill itself is a full square
-                local resourceFillHalfWidth = math.floor(math.min(resourceFillSize * 0.5, rightBorderSize * 0.5) + 0.5)
+                            -- For Magicka/Stamina we want to use full square fills and offset them to the left/right halves
+                local magickaRoundedW = math.floor(magickaFillWidth + 0.5)
+                local magickaRoundedH = math.floor(magickaFillHeight + 0.5)
+                local staminaRoundedW = math.floor(staminaFillWidth + 0.5)
+                local staminaRoundedH = math.floor(staminaFillHeight + 0.5)
+                -- For compatibility we compute half widths for auras per-half
+                local magickaHalfWidth = math.floor(math.min(magickaFillWidth * 0.5, rightBorderSize * 0.5) + 0.5)
+                local staminaHalfWidth = math.floor(math.min(staminaFillWidth * 0.5, rightBorderSize * 0.5) + 0.5)
                 -- Compute TOPLEFT anchors for placing a full-size square over the left and right halves
-                local leftFogAnchorX = math.floor((rightBorderSize / 4) - (resourceFillRounded / 2) + resourceFillOffsetX)
-                local rightFogAnchorX = math.floor((3 * rightBorderSize / 4) - (resourceFillRounded / 2) + resourceFillOffsetX)
+                local leftFogAnchorX = math.floor((rightBorderSize / 4) - (magickaRoundedW / 2) + magickaFillOffsetX)
+                local rightFogAnchorX = math.floor((3 * rightBorderSize / 4) - (staminaRoundedW / 2) + staminaFillOffsetX)
                 if BETTERUI_ORB_DEBUG_PRINTS then
-                    d(string.format("BetterUI: UpdateOrbLayout ResourceFill: size=%d halfWidth=%d leftAnchor=%d rightAnchor=%d offsetX=%d offsetY=%d borderSize=%d",
-                        resourceFillRounded, resourceFillHalfWidth, leftFogAnchorX, rightFogAnchorX, resourceFillOffsetX, resourceFillOffsetY, rightBorderSize))
+                    d(string.format("BetterUI: UpdateOrbLayout ResourceFill: magickaW=%d magickaH=%d staminaW=%d staminaH=%d magHalf=%d staminaHalf=%d leftAnchor=%d rightAnchor=%d magOffsetX=%d staOffsetX=%d borderSize=%d",
+                        magickaRoundedW, magickaRoundedH, staminaRoundedW, staminaRoundedH, magickaHalfWidth, staminaHalfWidth, leftFogAnchorX, rightFogAnchorX, magickaFillOffsetX, staminaFillOffsetX, rightBorderSize))
                 end
+                -- compute vertical center offsets for per-half fills
+                local magickaCenterOffsetY = math.floor((rightBorderSize - magickaFillHeight) / 2)
+                local staminaCenterOffsetY = math.floor((rightBorderSize - staminaFillHeight) / 2)
                 for _, name in ipairs(fogElements) do
                     local ctrl = FindControl(container, name)
-                    if ctrl then 
+                        if ctrl then 
                         ctrl:ClearAnchors()
                         ctrl:SetHidden(false)
                         ctrl:SetAlpha(1)
-                        if containerName == 'OrbMagicka' then
+                            if containerName == 'OrbMagicka' then
                             -- Left half of the resource orb (Magicka): use a full square, anchored to the left half
-                            ctrl:SetDimensions(resourceFillRounded, resourceFillRounded)
-                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, leftFogAnchorX, resourceFillOffsetY)
+                            ctrl:SetDimensions(magickaRoundedW, magickaRoundedH)
+                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, leftFogAnchorX, magickaCenterOffsetY + magickaFillOffsetY)
                         elseif containerName == 'OrbStamina' then
                             -- Right half of the resource orb (Stamina): use a full square, anchored to the right half
-                            ctrl:SetDimensions(resourceFillRounded, resourceFillRounded)
-                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, rightFogAnchorX, resourceFillOffsetY)
+                            ctrl:SetDimensions(staminaRoundedW, staminaRoundedH)
+                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, rightFogAnchorX, staminaCenterOffsetY + staminaFillOffsetY)
                         else
                             -- Fallback: center-aligned full-size square for other types
-                            ctrl:SetDimensions(resourceFillSize, resourceFillSize)
-                            ctrl:SetAnchor(CENTER, container, CENTER, resourceFillOffsetX, resourceFillOffsetY)
+                            ctrl:SetDimensions(math.floor(resourceFillWidth + 0.5), math.floor(resourceFillHeight + 0.5))
+                            -- Use generic resource offsets
+                            ctrl:SetAnchor(CENTER, container, CENTER, BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0, BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0)
+                        end
+                        -- If this is the background layer (Fog2), ensure it's shown at full texture coords
+                        if name == 'Fog2' then
+                            -- Use the same horizontal texture coords as the foreground fog so Fog2 visually matches the same segment
+                            if containerName == 'OrbMagicka' then
+                                local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_MAGICKA])
+                                ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
+                            elseif containerName == 'OrbStamina' then
+                                local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_STAMINA])
+                                ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
+                            else
+                                -- Fallback: full texture coords
+                                ctrl:SetTextureCoords(0, 1, 0, 1)
+                            end
                         end
                     end
                 end
@@ -349,14 +389,19 @@ local function UpdateOrbLayout()
                 
                 -- Resize Aura (magicka/stamina halves need half-width auras)
                 local aura = FindControl(container, 'Aura')
-                if aura then 
+                    if aura then 
                     aura:ClearAnchors()
                     if containerName == 'OrbMagicka' or containerName == 'OrbStamina' then
-                        local auraHalfWidth = math.floor(math.min(resourceFillSize * 0.5, rightBorderSize * 0.5) + 0.5)
+                        local auraHalfWidth = (containerName == 'OrbMagicka') and magickaHalfWidth or (containerName == 'OrbStamina' and staminaHalfWidth or math.floor(math.min(resourceFillWidth * 0.5, rightBorderSize * 0.5) + 0.5))
                         aura:SetDimensions(auraHalfWidth, math.floor(auraSize + 0.5))
                         -- Place aura in the center of that half
                         local xOffset = (containerName == 'OrbMagicka') and -math.floor(auraHalfWidth/2 + 0.5) or math.floor(auraHalfWidth/2 + 0.5)
-                        aura:SetAnchor(CENTER, container, CENTER, xOffset, 0)
+                        -- Apply the section-specific offsets to the aura so it follows the fill
+                        if containerName == 'OrbMagicka' then
+                            aura:SetAnchor(CENTER, container, CENTER, xOffset + magickaFillOffsetX, magickaFillOffsetY)
+                        else
+                            aura:SetAnchor(CENTER, container, CENTER, xOffset + staminaFillOffsetX, staminaFillOffsetY)
+                        end
                     else
                         aura:SetDimensions(math.floor(auraSize + 0.5), math.floor(auraSize + 0.5))
                         aura:SetAnchor(CENTER, container, CENTER, 0, 0)
@@ -364,9 +409,9 @@ local function UpdateOrbLayout()
                 end
             end
         end
-        if BETTERUI_ORB_DEBUG_PRINTS then
-            d(string.format("BetterUI: UpdateOrbLayout Resource border=%d fill=%d half=%d offsetX=%d offsetY=%d splitterW=%d splitterH=%.2f", rightBorderSize, resourceFillSize, resourceFillHalfWidth, resourceFillOffsetX, resourceFillOffsetY, splitterWidth, splitterHeight))
-        end
+                if BETTERUI_ORB_DEBUG_PRINTS then
+                    d(string.format("BetterUI: UpdateOrbLayout Resource border=%d magW=%d magH=%d staW=%d staH=%d magHalf=%d staHalf=%d magX=%d magY=%d staX=%d staY=%d splitterW=%d splitterH=%.2f", rightBorderSize, magickaFillWidth, magickaFillHeight, staminaFillWidth, staminaFillHeight, magickaHalfWidth, staminaHalfWidth, magickaFillOffsetX, magickaFillOffsetY, staminaFillOffsetX, staminaFillOffsetY, splitterWidth, splitterHeight))
+                end
     end
 end
 
@@ -777,6 +822,45 @@ function BetterUIOrbBar:Initialize(control, powerType)
     end
 end
 
+-- Mirror Fog to Fog2 helper: ensures background fog2 layer matches the foreground fog layer
+function BetterUIOrbBar:MirrorFogToFog2(fullWidth, fullHeight, fogAnchorX, centerOffsetY, fillOffsetY)
+    if not self.fog or not self.fog2 then return end
+    -- Fog2 should mirror the static, full-size visuals of Fog (background), not the dynamic fill height.
+    -- Set Fog2 to full fill width/height and full texture coords (no cropping/partial fill)
+    local staticFillWidth = fullWidth or (self.fillWidth or 150)
+    local staticFillHeight = fullHeight or (self.fillHeight or 150)
+    self.fog2:SetDimensions(staticFillWidth, staticFillHeight)
+    -- Full vertical height for background
+    self.fog2:SetHeight(staticFillHeight)
+    -- Use full vertical texture coords (top=0, bottom=1) so Fog2 is always fully visible
+    self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, 0, 1)
+
+    -- Compute a static anchor X for fog2 using the same centering logic as Fog, but NOT including dynamic anchorY.
+    -- This will keep fog2 anchored to the same spot visually regardless of fill percent.
+    local controlWidth = self.control:GetWidth()
+    local isHalfTexture = math.abs(self.baseCoordRight - self.baseCoordLeft - 0.5) < 0.001
+    local fillOffsetX = self.fillOffsetX or 0
+    local function computeHalfAnchorX(isLeft)
+        if isLeft then
+            return math.floor((controlWidth / 4) - (staticFillWidth / 2) + fillOffsetX)
+        else
+            return math.floor((3 * controlWidth / 4) - (staticFillWidth / 2) + fillOffsetX)
+        end
+    end
+
+    local fog2AnchorX
+    if isHalfTexture then
+        local isLeft = (self.baseCoordLeft < self.baseCoordRight)
+        fog2AnchorX = computeHalfAnchorX(isLeft)
+    else
+        local centerOffsetX = (controlWidth - staticFillWidth) / 2
+        fog2AnchorX = math.floor(centerOffsetX + (self.baseAnchorX or 0) + fillOffsetX)
+    end
+
+    self.fog2:ClearAnchors()
+    self.fog2:SetAnchor(TOPLEFT, self.control, TOPLEFT, fog2AnchorX, centerOffsetY + (fillOffsetY or 0))
+end
+
 function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
     self:RefreshVisuals()
@@ -824,18 +908,21 @@ function BetterUIOrbBar:RefreshVisuals()
 
     percent = zo_max(0, percent - 3) -- Visual adjustment
 
-    -- Use configurable fill size (default 150 for backwards compatibility)
-    local fillSize = self.fillSize or 150
-    
-    local height = (fillSize / 100) * percent
+    -- Use configurable full fill dimensions (defaults to 150x150 for backward compatibility)
+    local fullWidth = self.fillWidth or 150
+    local fullHeight = self.fillHeight or 150
+
+    local height = (fullHeight * percent) / 100
     local coordTop = 1 - (percent / 100)
-    local anchorY = fillSize - height
+    local anchorY = fullHeight - height
     
     -- Calculate center offset: center the fill within the control (border size)
     -- The control is sized to borderSize, fill is smaller, so we offset to center it
     local controlWidth = self.control:GetWidth()
-    local centerOffsetX = (controlWidth - fillSize) / 2
-    local centerOffsetY = (controlWidth - fillSize) / 2  -- Using width for both since it's a square
+    local centerOffsetX = (controlWidth - fullWidth) / 2
+    local centerOffsetY = (controlWidth - fullHeight) / 2
+    -- (fillOffsetX, fillOffsetY already set above to apply to anchors)
+
     -- Add user-defined offsets on top of centering
     local fillOffsetX = self.fillOffsetX or 0
     local fillOffsetY = self.fillOffsetY or 0
@@ -846,19 +933,17 @@ function BetterUIOrbBar:RefreshVisuals()
     local function computeHalfAnchorX(isLeft)
         local containerW = controlWidth
         if isLeft then
-            return math.floor((containerW / 4) - (fillSize / 2) + fillOffsetX)
+            return math.floor((containerW / 4) - (fullWidth / 2) + fillOffsetX)
         else
-            return math.floor((3 * containerW / 4) - (fillSize / 2) + fillOffsetX)
+            return math.floor((3 * containerW / 4) - (fullWidth / 2) + fillOffsetX)
         end
     end
     
-    -- Add user-defined offsets on top of centering
-    local fillOffsetX = self.fillOffsetX or 0
-    local fillOffsetY = self.fillOffsetY or 0
+    -- (fillOffsetX, fillOffsetY already set above to apply to anchors)
 
     if BETTERUI_ORB_DEBUG_PRINTS then
-        d(string.format("BetterUI: RefreshVisuals[%s] powerType=%s controlW=%d fillSize=%d isHalf=%s centerOffX=%d centerOffY=%d fillOffsetX=%d fillOffsetY=%d",
-            tostring(self.label and self.label:GetText() or "unknown"), tostring(self.powerType), controlWidth, fillSize, tostring(isHalfTexture), centerOffsetX, centerOffsetY, fillOffsetX, fillOffsetY))
+        d(string.format("BetterUI: RefreshVisuals[%s] powerType=%s controlW=%d fullW=%d fullH=%d isHalf=%s centerOffX=%d centerOffY=%d fillOffsetX=%d fillOffsetY=%d",
+            tostring(self.label and self.label:GetText() or "unknown"), tostring(self.powerType), controlWidth, fullWidth, fullHeight, tostring(isHalfTexture), centerOffsetX, centerOffsetY, fillOffsetX, fillOffsetY))
     end
 
     if self.aura ~= nil then
@@ -873,7 +958,7 @@ function BetterUIOrbBar:RefreshVisuals()
     end
 
     if self.fog then
-        self.fog:SetDimensions(fillSize, fillSize)
+        self.fog:SetDimensions(fullWidth, fullHeight)
         self.fog:SetHeight(height)
         self.fog:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, coordTop, 1)
         self.fog:ClearAnchors()
@@ -887,17 +972,13 @@ function BetterUIOrbBar:RefreshVisuals()
         self.fog:SetAnchor(TOPLEFT, self.control, TOPLEFT, fogAnchorX, centerOffsetY + anchorY + fillOffsetY)
         if BETTERUI_ORB_DEBUG_PRINTS and self.fog then
             local w,h = self.fog:GetWidth(), self.fog:GetHeight()
-            if w and h and w ~= h then
-                d(string.format("BetterUI: WARNING fog non-square: powerType=%s w=%s h=%s fillSize=%s", tostring(self.powerType), tostring(w), tostring(h), tostring(fillSize)))
+                if w and h and w ~= h then
+                d(string.format("BetterUI: WARNING fog non-square: powerType=%s w=%s h=%s fullW=%s fullH=%s", tostring(self.powerType), tostring(w), tostring(h), tostring(fullWidth), tostring(fullHeight)))
             end
         end
     end
 
     if self.fog2 ~= nil then
-        self.fog2:SetDimensions(fillSize, fillSize)
-        self.fog2:SetHeight(height - 5)
-        self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, coordTop - 0.00000005, 1)
-        self.fog2:ClearAnchors()
         local fog2AnchorX
         if isHalfTexture then
             local isLeft = (self.baseCoordLeft < self.baseCoordRight)
@@ -905,8 +986,10 @@ function BetterUIOrbBar:RefreshVisuals()
         else
             fog2AnchorX = fogAnchorXBase
         end
-        self.fog2:SetAnchor(TOPLEFT, self.control, TOPLEFT, fog2AnchorX, centerOffsetY + anchorY - 5 + fillOffsetY)
+        self:MirrorFogToFog2(fullWidth, fullHeight, fog2AnchorX, centerOffsetY, fillOffsetY)
     end
+
+    -- Mirror Fog to Fog2 defined at class level
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1001,19 +1084,38 @@ end
 -------------------------------------------------------------------------------------------------
 
 local function SetupPowerPools(rootFrame)
-    -- Calculate fill sizes based on border size and scale
-    local leftFillScale = BETTERUI_ORB_FILL_HEALTH_SCALE or BETTERUI_ORB_FILL_SCALE or 0.75
-    local rightFillScale = BETTERUI_ORB_FILL_RESOURCE_SCALE or BETTERUI_ORB_FILL_SCALE or 0.75
+    -- Calculate fill sizes based on border size and per-orb width/height scales
+    -- Use width/height scales exclusively; no single-value fallbacks
+    local leftFillWidthScale = BETTERUI_ORB_FILL_HEALTH_SCALE_WIDTH or 0.55
+    local leftFillHeightScale = BETTERUI_ORB_FILL_HEALTH_SCALE_HEIGHT or 0.55
+    local magickaFillWidthScale = BETTERUI_ORB_FILL_MAGICKA_SCALE_WIDTH or 0.5
+    local magickaFillHeightScale = BETTERUI_ORB_FILL_MAGICKA_SCALE_HEIGHT or 0.5
+    local staminaFillWidthScale = BETTERUI_ORB_FILL_STAMINA_SCALE_WIDTH or 0.5
+    local staminaFillHeightScale = BETTERUI_ORB_FILL_STAMINA_SCALE_HEIGHT or 0.5
+    local resourceFillWidthScale = BETTERUI_ORB_FILL_RESOURCE_SCALE_WIDTH or 0.5
+    local resourceFillHeightScale = BETTERUI_ORB_FILL_RESOURCE_SCALE_HEIGHT or 0.5
     local leftBorderSize = BETTERUI_ORB_BORDER_LEFT_SIZE or 175
     local rightBorderSize = BETTERUI_ORB_BORDER_RIGHT_SIZE or 175
-    local healthFillSize = math.min(math.floor(leftBorderSize * leftFillScale + 0.5), leftBorderSize)
-    local resourceFillSize = math.min(math.floor(rightBorderSize * rightFillScale + 0.5), rightBorderSize)
+    -- compute per-orb width/height fills
+    local healthFillWidth = math.min(math.floor(leftBorderSize * leftFillWidthScale + 0.5), leftBorderSize)
+    local healthFillHeight = math.min(math.floor(leftBorderSize * leftFillHeightScale + 0.5), leftBorderSize)
+    local magickaFillWidth = math.min(math.floor(rightBorderSize * magickaFillWidthScale + 0.5), rightBorderSize)
+    local magickaFillHeight = math.min(math.floor(rightBorderSize * magickaFillHeightScale + 0.5), rightBorderSize)
+    local staminaFillWidth = math.min(math.floor(rightBorderSize * staminaFillWidthScale + 0.5), rightBorderSize)
+    local staminaFillHeight = math.min(math.floor(rightBorderSize * staminaFillHeightScale + 0.5), rightBorderSize)
+    local resourceFillWidth = math.min(math.floor(rightBorderSize * resourceFillWidthScale + 0.5), rightBorderSize)
+    local resourceFillHeight = math.min(math.floor(rightBorderSize * resourceFillHeightScale + 0.5), rightBorderSize)
     
     -- Get offset constants
     local healthFillOffsetX = BETTERUI_ORB_FILL_HEALTH_OFFSET_X or 0
     local healthFillOffsetY = BETTERUI_ORB_FILL_HEALTH_OFFSET_Y or 0
     local resourceFillOffsetX = BETTERUI_ORB_FILL_RESOURCE_OFFSET_X or 0
     local resourceFillOffsetY = BETTERUI_ORB_FILL_RESOURCE_OFFSET_Y or 0
+    -- Individual magicka/stamina offsets (developer-only constants)
+    local magickaFillOffsetX = BETTERUI_ORB_FILL_MAGICKA_OFFSET_X or resourceFillOffsetX
+    local magickaFillOffsetY = BETTERUI_ORB_FILL_MAGICKA_OFFSET_Y or resourceFillOffsetY
+    local staminaFillOffsetX = BETTERUI_ORB_FILL_STAMINA_OFFSET_X or resourceFillOffsetX
+    local staminaFillOffsetY = BETTERUI_ORB_FILL_STAMINA_OFFSET_Y or resourceFillOffsetY
 
     m_pools = {
         [POWERTYPE_HEALTH] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH),
@@ -1024,19 +1126,32 @@ local function SetupPowerPools(rootFrame)
     }
     
     -- Set fill sizes and offsets for health orb (left)
-    m_pools[POWERTYPE_HEALTH].fillSize = healthFillSize
+    m_pools[POWERTYPE_HEALTH].fillWidth = healthFillWidth
+    m_pools[POWERTYPE_HEALTH].fillHeight = healthFillHeight
     m_pools[POWERTYPE_HEALTH].fillOffsetX = healthFillOffsetX
     m_pools[POWERTYPE_HEALTH].fillOffsetY = healthFillOffsetY
     
     -- Set fill sizes and offsets for resource orbs (right)
-    -- Use half-width for magicka/stamina fill sizes so they occupy left/right halves correctly
-    local resourceHalfWidth = math.floor(math.min(resourceFillSize * 0.5, rightBorderSize * 0.5) + 0.5)
     for _, powerType in ipairs({POWERTYPE_MAGICKA, POWERTYPE_STAMINA, POWERTYPE_MOUNT_STAMINA, POWERTYPE_WEREWOLF}) do
         if m_pools[powerType] then
-            -- Use full resource fill size for all power types; texture coords will be used to show halves for Magicka/Stamina
-            m_pools[powerType].fillSize = resourceFillSize
-            m_pools[powerType].fillOffsetX = resourceFillOffsetX
-            m_pools[powerType].fillOffsetY = resourceFillOffsetY
+            -- Apply per-power sizes and offsets
+            if powerType == POWERTYPE_MAGICKA then
+                m_pools[powerType].fillWidth = magickaFillWidth
+                m_pools[powerType].fillHeight = magickaFillHeight
+                m_pools[powerType].fillOffsetX = magickaFillOffsetX
+                m_pools[powerType].fillOffsetY = magickaFillOffsetY
+            elseif powerType == POWERTYPE_STAMINA then
+                m_pools[powerType].fillWidth = staminaFillWidth
+                m_pools[powerType].fillHeight = staminaFillHeight
+                m_pools[powerType].fillOffsetX = staminaFillOffsetX
+                m_pools[powerType].fillOffsetY = staminaFillOffsetY
+            else
+                -- Fallback to generic resource offsets and sizes (Mount, Werewolf)
+                m_pools[powerType].fillWidth = resourceFillWidth
+                m_pools[powerType].fillHeight = resourceFillHeight
+                m_pools[powerType].fillOffsetX = resourceFillOffsetX
+                m_pools[powerType].fillOffsetY = resourceFillOffsetY
+            end
         end
     end
 

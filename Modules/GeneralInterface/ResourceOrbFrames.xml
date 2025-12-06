@@ -325,7 +325,7 @@
                             layer="1" level="3">
                             <AnchorFill />
                             <Dimensions x="240" y="240" />
-                            <TextureCoords left="0" right="1" top="-0.0005" bottom="1" />
+                            <TextureCoords left="0" right="1" top="0" bottom="1" />
                         </Texture>
                         <Texture name="$(parent)Fog" color="ff0000"
                             textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
@@ -397,7 +397,7 @@
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="0"
                                         offsetY="0" />
                                     <Dimensions x="75" y="150" />
-                                    <TextureCoords left="0" right="0.5" top="-0.0005" bottom="1" />
+                                    <TextureCoords left="0" right="0.5" top="0" bottom="1" />
                                 </Texture>
                                 <Texture name="$(parent)Fog" color="0066ff"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
@@ -470,7 +470,7 @@
                                     <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="75"
                                         offsetY="0" />
                                     <Dimensions x="75" y="150" />
-                                    <TextureCoords left="0.5" right="0" top="-0.0005" bottom="1" />
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
                                 </Texture>
                                 <Texture name="$(parent)Fog" color="00ff00"
                                     textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds"
