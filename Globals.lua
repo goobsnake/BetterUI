@@ -46,6 +46,7 @@ BETTERUI.Settings = {}
 -- Default settings template (AceDB-style wildcard defaults)
 BETTERUI.DefaultSettings = {
 	firstInstall = true,
+	useAccountWide = false,
 	Modules = {
 		["*"] = { m_enabled = true }  -- All modules enabled by default
 	}
