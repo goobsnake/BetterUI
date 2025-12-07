@@ -1004,30 +1004,28 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     end
 end
 
+
+
 function BetterUIBarFrame:ApplySettings(enabled, scale, offsetX, offsetY, textSize, textColor)
     if not self.control then return end
     
+    -- Apply Visibility
     self.control:SetHidden(not enabled)
-    if not enabled then return end
     
-    local width = BETTERUI_BAR_WIDTH or 400
-    local height = BETTERUI_BAR_HEIGHT or 32
+    -- Apply Scale (if needed, currently scale is applied via layout constants typically)
+    self.control:SetScale(scale or 1.0)
     
-    self.control:SetDimensions(width, height)
-    self.control:SetScale(scale)
-    
-    -- Position
-    -- Find BgMiddle to anchor to (or root if not found, but we expect BgMiddle)
-    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
-    if bgMiddle then
-        self.control:ClearAnchors()
-        self.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, offsetX, offsetY)
+    -- Apply Text Settings
+    if self.label then
+        local font = string.format("$(BOLD_FONT)|%d|thick-outline", textSize or 16)
+        self.label:SetFont(font)
+        self.label:SetColor(unpack(textColor or {1, 1, 1, 1}))
     end
     
-    -- Label Settings
-    if self.label then
-        self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize or 16))
-        self.label:SetColor(unpack(textColor or {1,1,1,1}))
+    -- Update visual state immediately
+    if enabled then
+        -- Force re-layout if we had logic for it, but UpdateDynamicLayout handles main anchors
+        if self.Update then self:Update() end
     end
 end
 
@@ -1049,6 +1047,8 @@ function CastBar:Initialize(parent)
     self.duration = 0
     self.startTime = 0
     self:SetColor(1, 1, 0.4, 1) -- Light yellowish for cast
+    -- Set default text immediately
+    self.label:SetText("Cast Bar")
     
     local function OnCastStart(_, channelInfo)
         -- channelInfo is for channeled abilities, regular casts follow different flow
@@ -1056,76 +1056,174 @@ function CastBar:Initialize(parent)
     end
     
     -- Hook into ESO's event system
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, _, abilityName, _, castDuration) return self:OnCastStart(unitTag, abilityName, castDuration) end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) return self:OnCastStop(unitTag, wasInterrupted) end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastUpdate", EVENT_SPELL_CASTING_UPDATE, function(_, unitTag, _, _, _, castDuration) return self:OnCastUpdate(unitTag, castDuration) end)
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, REGISTER_FILTER_UNIT_TAG, "player")
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, REGISTER_FILTER_UNIT_TAG, "player")
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastUpdate", EVENT_SPELL_CASTING_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+    -- EVENT_SPELL_CASTING_START: (eventCode, unitTag, spellName, rank, castId, isChanneled)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, abilityName, _, _, isChanneled) 
+        return self:OnCastStart(unitTag, abilityName, 0, isChanneled) 
+    end)
     
-    -- Also handle channeled abilities? EVENT_SPELL_CASTING_UPDATE covers some, but...
+    -- EVENT_SPELL_CASTING_UPDATE: (eventCode, unitTag, lastUpdateTimestamp, nextUpdateTimestamp)
+    -- This event is fired for channels? Or simply updates the timer?
+    -- Actually for channels, EVENT_SPELL_CASTING_START usually provides info, or EVENT_ABILITY_USE_START?
+    
+    -- Let's try hooking the visualizer events which are more reliable for UI
+    -- But sticking to basic SPELL_CASTING for now as per API check.
+    
+    -- Correct signature for SPELL_CASTING_START based on commonly used addons:
+    -- eventCode, unitTag, effectName, cost, mainIcon, castType, duration, startTime, endTime, isChanneled
+    -- Wait, standard API is:
+    -- EVENT_SPELL_CASTING_START (integer unitTag, string effectName, integer cost, string mainIcon, integer castType, integer duration, integer startTime, integer endTime, boolean isChanneled)
+    
+    EVENT_MANAGER:UnregisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START) -- Clear old one
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
+        return self:OnCastStart(unitTag, effectName, duration, isChanneled)
+    end)
+
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) 
+        return self:OnCastStop(unitTag, wasInterrupted) 
+    end)
+    
+    -- Hide default cast bar if possible
+    -- Standard ESO cast bar is often handled by ZO_PlayerProgress or specific HUD elements.
+    -- Hide default cast bar if possible
+    -- Standard ESO cast bar is often handled by ZO_PlayerProgress or specific HUD elements.
+    local function HideDefaultCastBar()
+        if ZO_CastingBar then ZO_CastingBar:SetHidden(true) end
+        if ZO_PlayerCastingBar then ZO_PlayerCastingBar:SetHidden(true) end
+        -- Hide main progress bars if using custom ones
+        if ZO_PlayerProgressBar then ZO_PlayerProgressBar:SetHidden(true) end
+        
+        -- Gamepad specific hiding
+        if ZO_GamepadPlayerProgressBar then ZO_GamepadPlayerProgressBar:SetHidden(true) end
+        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason("BetterUICastBar", true) end
+    end
+    HideDefaultCastBar()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED, HideDefaultCastBar)
+    
+    -- Srendarr-inspired Cast Detection
+    -- We use EVENT_ACTION_SLOT_ABILITY_USED for immediate feedback and robust channel detection (e.g. Biting Jabs)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+        local hotbar = GetActiveHotbarCategory()
+        local abilityId = GetSlotBoundId(slotIndex, hotbar)
+        
+        -- Validate slot
+        if not abilityId or abilityId == 0 then return end
+        
+        -- Srendarr Logic: Ignore toggled slots
+        if IsSlotToggled(slotIndex) then return end
+        
+        -- Get Cast Info
+        -- Note: As per Srendarr reference, Gold Coast API update merged channel/cast times.
+        -- We check both returns for safety against future/past API versions.
+        local isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
+        local duration = math.max(castTime or 0, channelTime or 0)
+        
+        -- Filter out instants (less than 100ms? or 0)
+        if duration <= 0 then return end
+        
+        local name = GetAbilityName(abilityId)
+        
+        -- Trigger Cast Start
+        self:OnCastStart("player", name, duration, isChanneled)
+    end)
+    
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, REGISTER_FILTER_UNIT_TAG, "player")
+
+    -- Keep EVENT_SPELL_CASTING_START as a fallback/confirmation? 
+    -- Srendarr relies purely on SlotUsed, but for compatibility we can keep listening 
+    -- but ideally we avoid duplicate events.
+    -- However, standard casting events are better for 'server confirmed' casts (latency handling).
+    -- But since user wants Jabs (channel) to work, SlotUsed is best.
+    
+    -- Cleanup old events to avoid double triggers if possible, or handle overlap in OnCastStart
+    -- We can set a flag 'self.lastCastId' or similar, but simplified approach first.
+    
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) 
+        return self:OnCastStop(unitTag, wasInterrupted) 
+    end)
+    
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, REGISTER_FILTER_UNIT_TAG, "player")
+    
+    -- Register Update Loop (Critical for Animation)
+    self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
-function CastBar:OnCastStart(unitTag, abilityName, castDuration)
+function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled)
     if unitTag ~= "player" then return end
-    if castDuration <= 0 then return end
     
+    -- If already casting same ability, refresh
     self.isCasting = true
-    self.duration = castDuration / 1000
+    self.duration = castDuration / 1000 -- Convert to seconds
     self.startTime = GetFrameTimeSeconds()
     self.abilityName = abilityName
+    self.isChanneled = isChanneled
+    
     self.control:SetHidden(false)
 end
 
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
-    self.control:SetHidden(true)
+    -- self.control:SetHidden(true) -- REMOVED: Do not hide on stop
+    self:Update() -- Force one last update
 end
 
 function CastBar:OnCastUpdate(unitTag, castDuration)
-    if unitTag ~= "player" then return end
-     -- Update duration if it changes dynamically
-     if self.isCasting then
-        self.duration = castDuration / 1000
-        -- self.startTime usually remains same but deadline changes.
-     end
+    -- Handle pushback update if needed
 end
 
 function CastBar:Update()
-    if not self.isCasting then 
-        self.control:SetHidden(true)
-        return 
-    end
-    
-    -- Only show if enabled in settings (double check)
+    -- Check global setting
     if not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled then
         self.control:SetHidden(true)
         return
     end
     
-    local now = GetFrameTimeSeconds()
-    local elapsed = now - self.startTime
-    local remaining = math.max(0, self.duration - elapsed)
+    -- Ensure dimensions are set (fixing previous bug)
+    local w = BETTERUI_CAST_BAR_WIDTH or 250
+    local h = BETTERUI_CAST_BAR_HEIGHT or 150
+    self.control:SetDimensions(w, h)
+    self.control:SetScale(BETTERUI_CAST_BAR_SCALE or 1.0)
     
-    -- if remaining <= 0 then self.isCasting = false; self.control:SetHidden(true); return end
-    
-    -- Update text
-    self.label:SetText(string.format("%.1f", remaining))
-    
-    -- Visuals
-    local insetX = BETTERUI_CAST_BAR_FILL_INSET_X or 8
-    local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 4
-    local w = BETTERUI_BAR_WIDTH or 400
-    local h = BETTERUI_BAR_HEIGHT or 32
-    
-    -- For cast bar, we might want to fill from empty to full, or full to empty?
-    -- Usually cast bars fill UP.
-    -- Current is elapsed, Max is duration.
-    self:UpdateVisuals(elapsed, self.duration, insetX, insetY, w, h)
-    
-    -- Ensure visible (override hidden from ApplySettings if currently casting)
+    -- Ensure visible if enabled
     if self.control:IsHidden() then self.control:SetHidden(false) end
+
+    local current, max = 0, 1
+    local insetX = BETTERUI_CAST_BAR_FILL_INSET_X or 40
+    local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
+
+    if self.isCasting then
+        -- ACTIVE STATE
+        local now = GetFrameTimeSeconds()
+        local elapsed = now - self.startTime
+        local remaining = math.max(0, self.duration - elapsed)
+        
+        -- Srendarr Logic & User Request: "Drain accordingly"
+        -- We apply DRAIN logic (Full -> Empty) for BOTH Channels and Casts to ensure consistency.
+        -- Use remaining time for current value.
+        current = remaining
+        max = self.duration
+        
+        -- Cap current to bounds
+        if current < 0 then current = 0 end
+        if current > max then current = max end
+        
+        -- Display "Ability Name (1.5s)"
+        self.label:SetText(string.format("%s (%.1fs)", self.abilityName or "Casting", remaining))
+        
+        -- Auto-finish if duration exceeded?
+        if elapsed > self.duration + 0.5 then -- Tolerance
+             -- Force verify with engine if it's really done?
+             -- Usually safe to assume done.
+             self:OnCastStop("player", false)
+        end
+    else
+        -- IDLE STATE (Fill 0)
+        current = 0
+        max = 1
+        self.label:SetText("Cast Bar")
+    end
+    
+    self:UpdateVisuals(current, max, insetX, insetY, w, h)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1186,8 +1284,11 @@ function ExperienceBar:Update()
     
     local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
     local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
-    local w = BETTERUI_BAR_WIDTH or 400
-    local h = BETTERUI_BAR_HEIGHT or 50
+    local w = BETTERUI_XP_BAR_WIDTH or 250
+    local h = BETTERUI_XP_BAR_HEIGHT or 150
+    
+    self.control:SetDimensions(w, h)
+    self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
     
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
@@ -1421,39 +1522,66 @@ end
 local function UpdateDynamicLayout()
     if not m_rootFrame then return end
     
+    local ornamentLeft = FindControl(m_rootFrame, "OrnamentLeft")
     local ornamentRight = FindControl(m_rootFrame, "OrnamentRight")
     local bgMiddle = FindControl(m_rootFrame, "BgMiddle")
     local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
+    local castBar = FindControl(m_rootFrame, "BetterUICastBar")
     
-    if not ornamentRight or not bgMiddle then return end
+    if not ornamentLeft or not ornamentRight or not bgMiddle then return end
     
     local settings = GetModuleSettings()
     local cfg = BETTERUI_ORB_FRAMES
-    local defaultX = cfg.ornaments.right.x
-    local defaultY = cfg.ornaments.right.y
+    
+    -- Right Side: XP Bar
+    local rightX = cfg.ornaments.right.x
+    local rightY = cfg.ornaments.right.y
     
     ornamentRight:ClearAnchors()
     if settings.xpBarEnabled then
         -- Shift Ornament UP
-        -- defaultY is -25. Shift further up by 55 pixels to make room (-80 total)
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, defaultX, defaultY - 55)
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 55)
         
-        -- Re-anchor XP Bar to the Ornament to ensure they move together
         if xpBar then
             xpBar:ClearAnchors()
-            -- Anchor XP Bar TOP to Ornament BOTTOM, but shifted UP to overlap/close gap
-            -- Overlap by 95 pixels to hide transparency & close gap
-            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, 0, -95) 
+            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -95) 
         end
     else
         -- Reset Ornament
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, defaultX, defaultY)
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
         
-        -- Reset XP Bar to default config (though it's hidden/unused, good to reset)
+        -- Reset XP Bar
         if xpBar then 
             xpBar:ClearAnchors()
-            -- Use global constants for default position
             xpBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, -BETTERUI_XP_BAR_OFFSET_Y)
+        end
+    end
+    
+    -- Left Side: Cast Bar
+    local leftX = cfg.ornaments.left.x
+    local leftY = cfg.ornaments.left.y
+    
+    ornamentLeft:ClearAnchors()
+    if settings.castBarEnabled then
+        -- Shift Ornament UP (same offset as Right)
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
+        
+        -- Anchor Cast Bar to Left Ornament
+        if castBar then
+            castBar:ClearAnchors()
+            -- Mirror logic: Anchor TOP to BOTTOM with overlap
+            -- Uses global offset constants allowing user adjustment in CONST.lua
+            castBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_CAST_BAR_OFFSET_X or 0, BETTERUI_CAST_BAR_OFFSET_Y or -95) 
+        end
+    else
+        -- Reset Ornament
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
+        
+        -- Reset Cast Bar
+        if castBar then
+            castBar:ClearAnchors()
+            -- Default position if hidden/disabled (mirroring right roughly)
+            castBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, -160)
         end
     end
 end

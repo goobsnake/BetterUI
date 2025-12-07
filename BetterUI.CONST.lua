@@ -211,20 +211,20 @@ BETTERUI_ORB_FRAMES = {
 -- These horizontal bars sit above the skill bars using the Bar.dds texture
 -- ============================================================================
 
--- Base bar dimensions (Bar.dds display size)
-BETTERUI_BAR_WIDTH = 250                  -- Width of the custom bar in pixels
-BETTERUI_BAR_HEIGHT = 150                  -- Height of the custom bar in pixels
-
 -- Experience/Champion Bar positioning (above top skill bar)
 BETTERUI_XP_BAR_SCALE = 1.0                -- Scale multiplier for XP bar
 BETTERUI_XP_BAR_OFFSET_X = 0               -- X offset from center (positive = right)
-BETTERUI_XP_BAR_OFFSET_Y = -25             -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_XP_BAR_OFFSET_Y = -95             -- Y offset from BgMiddle bottom (negative = up)
 BETTERUI_XP_BAR_FILL_INSET_X = 40          -- Horizontal inset for fill bar within frame
 BETTERUI_XP_BAR_FILL_INSET_Y = 55          -- Vertical inset for fill bar within frame
+BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
+BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
 
--- Cast Bar positioning (above XP bar)
+-- Cast Bar positioning (Left side, mirrors XP bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
 BETTERUI_CAST_BAR_OFFSET_X = 0             -- X offset from center (positive = right)
-BETTERUI_CAST_BAR_OFFSET_Y = -160          -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_CAST_BAR_OFFSET_Y = -97           -- Y offset from BgMiddle bottom (negative = up)
 BETTERUI_CAST_BAR_FILL_INSET_X = 40        -- Horizontal inset for fill bar within frame
-BETTERUI_CAST_BAR_FILL_INSET_Y = 55        -- Vertical inset for fill bar within frame
+BETTERUI_CAST_BAR_FILL_INSET_Y = 58        -- Vertical inset for fill bar within frame
+BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
+BETTERUI_CAST_BAR_HEIGHT = 150             -- Height of the cast bar in pixels
