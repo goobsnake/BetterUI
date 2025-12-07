@@ -11,7 +11,6 @@ local m_shieldBar = nil
 local m_foodTracker = nil
 local m_experienceBar = nil
 local m_updateDeathFragment = nil
-local m_castBar = nil
 
 -- Default Settings
 local DEFAULTS = {
@@ -102,7 +101,14 @@ local function UpdateFrameDimensions()
     local scale = settings.scale or DEFAULTS.scale
     local offsetY = settings.offsetY or DEFAULTS.offsetY
 
-    if scale then m_rootFrame:SetScale(scale) end
+    if scale then 
+        m_rootFrame:SetScale(scale)
+        
+        -- Also scale the native ESO action bar since it's not a child of m_rootFrame
+        if ZO_ActionBar1 then
+            ZO_ActionBar1:SetScale(scale)
+        end
+    end
     if offsetY ~= nil then
         m_rootFrame:ClearAnchors()
         -- Invert offsetY because positive values should move the frame UP
@@ -272,6 +278,17 @@ local function UpdateOrbLayout()
             border:SetDimensions(leftBorderSize, leftBorderSize) 
         end
     end
+
+    -- ========================================
+    -- SHIELD ORB OVERLAY (Position relative to Health Orb)
+    -- ========================================
+    local shieldOrb = FindControl(m_rootFrame, 'OrbShield')
+    -- If OrbShield is a sibling, anchor it to Health Orb. Use leftBorderSize.
+    if shieldOrb and healthOrb then
+        shieldOrb:SetDimensions(leftBorderSize, leftBorderSize)
+        shieldOrb:ClearAnchors()
+        shieldOrb:SetAnchor(CENTER, healthOrb, CENTER, 0, 0)
+    end
     
     -- ========================================
     -- RESOURCE ORB FILL (Right - Blue/Green for Magicka/Stamina)
@@ -283,6 +300,12 @@ local function UpdateOrbLayout()
         for _, containerName in ipairs(subContainers) do
             local container = FindControl(resourceOrb, containerName)
             if container then
+                -- Explicitly size and position the container to match the parent OrbResource
+                -- This ensures container:GetWidth() returns the correct border size for fill calculations
+                container:SetDimensions(rightBorderSize, rightBorderSize)
+                container:ClearAnchors()
+                container:SetAnchor(CENTER, resourceOrb, CENTER, 0, 0)
+
                 -- Show and resize Fog textures (resource fill)
                 local fogElements = {'Fog', 'Fog2', 'Fog3'}
                             -- For Magicka/Stamina we want to use full square fills and offset them to the left/right halves
@@ -345,9 +368,11 @@ local function UpdateOrbLayout()
                             -- Use the same horizontal texture coords as the foreground fog so Fog2 visually matches the same segment
                             if containerName == 'OrbMagicka' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_MAGICKA])
+                                local isLeft = (baseLeft < baseRight)
                                 ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                             elseif containerName == 'OrbStamina' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_STAMINA])
+                                local isLeft = (baseLeft < baseRight)
                                 ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                             else
                                 -- Fallback: full texture coords
@@ -777,7 +802,8 @@ function BetterUIOrbBar:MirrorFogToFog2(fullWidth, fullHeight, fogAnchorX, cente
     -- Compute a static anchor X for fog2 using the same centering logic as Fog, but NOT including dynamic anchorY.
     -- This will keep fog2 anchored to the same spot visually regardless of fill percent.
     local controlWidth = self.control:GetWidth()
-    local isHalfTexture = math.abs(self.baseCoordRight - self.baseCoordLeft - 0.5) < 0.001
+    -- Use abs(abs()) to handle both (0, 0.5) and (0.5, 0) texture coord patterns
+    local isHalfTexture = math.abs(math.abs(self.baseCoordRight - self.baseCoordLeft) - 0.5) < 0.001
     local fillOffsetX = self.fillOffsetX or 0
     local function computeHalfAnchorX(isLeft)
         if isLeft then
@@ -876,7 +902,8 @@ function BetterUIOrbBar:RefreshVisuals()
     local fillOffsetY = self.fillOffsetY or 0
 
     -- If this bar uses half texture coords (half of texture), apply horizontal shift to center it on left or right half
-    local isHalfTexture = math.abs(self.baseCoordRight - self.baseCoordLeft - 0.5) < 0.001
+    -- Use abs(abs()) to handle both (0, 0.5) and (0.5, 0) texture coord patterns
+    local isHalfTexture = math.abs(math.abs(self.baseCoordRight - self.baseCoordLeft) - 0.5) < 0.001
     local fogAnchorXBase = centerOffsetX + self.baseAnchorX + fillOffsetX
     local function computeHalfAnchorX(isLeft)
         local containerW = controlWidth
@@ -932,10 +959,6 @@ function BetterUIOrbBar:RefreshVisuals()
 end
 
 -------------------------------------------------------------------------------------------------
--- ExperienceBar Class
--------------------------------------------------------------------------------------------------
-
--------------------------------------------------------------------------------------------------
 -- BetterUIBarFrame Class (Base for XP and Cast Bars)
 -------------------------------------------------------------------------------------------------
 
@@ -966,7 +989,7 @@ function BetterUIBarFrame:Initialize(name, parent)
     -- Label - Create LAST so it is ON TOP of everything
     local label = WINDOW_MANAGER:CreateControl(name .. "Label", control, CT_LABEL)
     label:SetAnchor(CENTER, control, CENTER, 0, 4) -- Nudge down 4px
-    label:SetFont("ZoFontGame")
+    label:SetFont("$(BOLD_FONT)|18|thick-outline")
     label:SetColor(1, 1, 1, 1)
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
@@ -1003,8 +1026,6 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
         self.fill:SetTextureCoords(0, percent, 0, 1) -- Basic L->R texture mapping
     end
 end
-
-
 
 function BetterUIBarFrame:ApplySettings(enabled, scale, offsetX, offsetY, textSize, textColor)
     if not self.control then return end
@@ -1050,30 +1071,6 @@ function CastBar:Initialize(parent)
     -- Set default text immediately
     self.label:SetText("Cast Bar")
     
-    local function OnCastStart(_, channelInfo)
-        -- channelInfo is for channeled abilities, regular casts follow different flow
-        -- But for simplicity we hook the visual events
-    end
-    
-    -- Hook into ESO's event system
-    -- EVENT_SPELL_CASTING_START: (eventCode, unitTag, spellName, rank, castId, isChanneled)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, abilityName, _, _, isChanneled) 
-        return self:OnCastStart(unitTag, abilityName, 0, isChanneled) 
-    end)
-    
-    -- EVENT_SPELL_CASTING_UPDATE: (eventCode, unitTag, lastUpdateTimestamp, nextUpdateTimestamp)
-    -- This event is fired for channels? Or simply updates the timer?
-    -- Actually for channels, EVENT_SPELL_CASTING_START usually provides info, or EVENT_ABILITY_USE_START?
-    
-    -- Let's try hooking the visualizer events which are more reliable for UI
-    -- But sticking to basic SPELL_CASTING for now as per API check.
-    
-    -- Correct signature for SPELL_CASTING_START based on commonly used addons:
-    -- eventCode, unitTag, effectName, cost, mainIcon, castType, duration, startTime, endTime, isChanneled
-    -- Wait, standard API is:
-    -- EVENT_SPELL_CASTING_START (integer unitTag, string effectName, integer cost, string mainIcon, integer castType, integer duration, integer startTime, integer endTime, boolean isChanneled)
-    
-    EVENT_MANAGER:UnregisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START) -- Clear old one
     EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
         return self:OnCastStart(unitTag, effectName, duration, isChanneled)
     end)
@@ -1082,109 +1079,60 @@ function CastBar:Initialize(parent)
         return self:OnCastStop(unitTag, wasInterrupted) 
     end)
     
-    -- Hide default cast bar if possible
-    -- Standard ESO cast bar is often handled by ZO_PlayerProgress or specific HUD elements.
-    -- Hide default cast bar if possible
-    -- Standard ESO cast bar is often handled by ZO_PlayerProgress or specific HUD elements.
     local function HideDefaultCastBar()
         if ZO_CastingBar then ZO_CastingBar:SetHidden(true) end
         if ZO_PlayerCastingBar then ZO_PlayerCastingBar:SetHidden(true) end
-        -- Hide main progress bars if using custom ones
         if ZO_PlayerProgressBar then ZO_PlayerProgressBar:SetHidden(true) end
-        
-        -- Gamepad specific hiding
         if ZO_GamepadPlayerProgressBar then ZO_GamepadPlayerProgressBar:SetHidden(true) end
         if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason("BetterUICastBar", true) end
     end
     HideDefaultCastBar()
     EVENT_MANAGER:RegisterForEvent(NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED, HideDefaultCastBar)
     
-    -- Srendarr-inspired Cast Detection
-    -- We use EVENT_ACTION_SLOT_ABILITY_USED for immediate feedback and robust channel detection (e.g. Biting Jabs)
     EVENT_MANAGER:RegisterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
         local hotbar = GetActiveHotbarCategory()
         local abilityId = GetSlotBoundId(slotIndex, hotbar)
-        
-        -- Validate slot
         if not abilityId or abilityId == 0 then return end
-        
-        -- Srendarr Logic: Ignore toggled slots
         if IsSlotToggled(slotIndex) then return end
-        
-        -- Get Cast Info
-        -- Note: As per Srendarr reference, Gold Coast API update merged channel/cast times.
-        -- We check both returns for safety against future/past API versions.
         local isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
         local duration = math.max(castTime or 0, channelTime or 0)
-        
-        -- Filter out instants (less than 100ms? or 0)
         if duration <= 0 then return end
-        
         local name = GetAbilityName(abilityId)
-        
-        -- Trigger Cast Start
         self:OnCastStart("player", name, duration, isChanneled)
     end)
     
     EVENT_MANAGER:AddFilterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, REGISTER_FILTER_UNIT_TAG, "player")
 
-    -- Keep EVENT_SPELL_CASTING_START as a fallback/confirmation? 
-    -- Srendarr relies purely on SlotUsed, but for compatibility we can keep listening 
-    -- but ideally we avoid duplicate events.
-    -- However, standard casting events are better for 'server confirmed' casts (latency handling).
-    -- But since user wants Jabs (channel) to work, SlotUsed is best.
-    
-    -- Cleanup old events to avoid double triggers if possible, or handle overlap in OnCastStart
-    -- We can set a flag 'self.lastCastId' or similar, but simplified approach first.
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) 
-        return self:OnCastStop(unitTag, wasInterrupted) 
-    end)
-    
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, REGISTER_FILTER_UNIT_TAG, "player")
-    
-    -- Register Update Loop (Critical for Animation)
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
 function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled)
     if unitTag ~= "player" then return end
-    
-    -- If already casting same ability, refresh
     self.isCasting = true
-    self.duration = castDuration / 1000 -- Convert to seconds
+    self.duration = castDuration / 1000
     self.startTime = GetFrameTimeSeconds()
     self.abilityName = abilityName
     self.isChanneled = isChanneled
-    
     self.control:SetHidden(false)
 end
 
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
-    -- self.control:SetHidden(true) -- REMOVED: Do not hide on stop
-    self:Update() -- Force one last update
-end
-
-function CastBar:OnCastUpdate(unitTag, castDuration)
-    -- Handle pushback update if needed
+    self:Update() 
 end
 
 function CastBar:Update()
-    -- Check global setting
     if not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled then
         self.control:SetHidden(true)
         return
     end
     
-    -- Ensure dimensions are set (fixing previous bug)
     local w = BETTERUI_CAST_BAR_WIDTH or 250
     local h = BETTERUI_CAST_BAR_HEIGHT or 150
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_CAST_BAR_SCALE or 1.0)
     
-    -- Ensure visible if enabled
     if self.control:IsHidden() then self.control:SetHidden(false) end
 
     local current, max = 0, 1
@@ -1192,35 +1140,31 @@ function CastBar:Update()
     local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
 
     if self.isCasting then
-        -- ACTIVE STATE
         local now = GetFrameTimeSeconds()
         local elapsed = now - self.startTime
         local remaining = math.max(0, self.duration - elapsed)
         
-        -- Srendarr Logic & User Request: "Drain accordingly"
-        -- We apply DRAIN logic (Full -> Empty) for BOTH Channels and Casts to ensure consistency.
-        -- Use remaining time for current value.
         current = remaining
         max = self.duration
         
-        -- Cap current to bounds
         if current < 0 then current = 0 end
         if current > max then current = max end
-        
-        -- Display "Ability Name (1.5s)"
         self.label:SetText(string.format("%s (%.1fs)", self.abilityName or "Casting", remaining))
         
-        -- Auto-finish if duration exceeded?
-        if elapsed > self.duration + 0.5 then -- Tolerance
-             -- Force verify with engine if it's really done?
-             -- Usually safe to assume done.
+        -- Apply configurable offset
+        self.label:ClearAnchors()
+        self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
+        
+        if elapsed > self.duration + 0.5 then
              self:OnCastStop("player", false)
         end
     else
-        -- IDLE STATE (Fill 0)
         current = 0
         max = 1
         self.label:SetText("Cast Bar")
+        -- Apply configurable offset (default state)
+        self.label:ClearAnchors()
+        self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
     end
     
     self:UpdateVisuals(current, max, insetX, insetY, w, h)
@@ -1251,26 +1195,12 @@ function ExperienceBar:Update()
     local labelText = ""
 
     if isChampion then
-        -- Confirmed by user debug: 
-        -- GetPlayerChampionXP() returns XP towards NEXT point (Current).
-        -- GetNumChampionXPInChampionPoint(cp) returns XP required for NEXT point (Max).
         local currentCP = GetPlayerChampionPointsEarned()
         current = GetPlayerChampionXP()
-        
-        -- Safe call for Max
         local success, size = pcall(GetNumChampionXPInChampionPoint, currentCP)
-        if success and size then 
-            max = size 
-        else 
-            max = 400000 -- Fallback standard
-        end
-        
-        -- Ensure non-zero max division
+        if success and size then max = size else max = 400000 end
         if max <= 0 then max = 1 end
-
         effectiveMax = max
-        
-        -- Label with Percent
         local percent = math.floor((current / max) * 100)
         labelText = string.format("CP: %d (%d%%)", currentCP, percent)
     else
@@ -1281,6 +1211,10 @@ function ExperienceBar:Update()
     end
     
     self.label:SetText(labelText)
+    
+    -- Apply configurable offset
+    self.label:ClearAnchors()
+    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)
     
     local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
     local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
@@ -1396,6 +1330,22 @@ end
 
 local function SetupShieldBar(rootFrame)
     m_shieldBar = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
+    if m_shieldBar.control then m_shieldBar.control:SetHidden(true) end
+    m_shieldBar.label:GetParent():SetHidden(true)
+
+    -- Apply Shield Config
+    local cfg = BETTERUI_ORB_FRAMES
+    local leftBorderSize = cfg.orbs.left.borderSize
+    
+    local shieldFillWidth = math.min(math.floor(leftBorderSize * cfg.fills.shield.scaleW + 0.5), leftBorderSize)
+    local shieldFillHeight = math.min(math.floor(leftBorderSize * cfg.fills.shield.scaleH + 0.5), leftBorderSize)
+    
+    m_shieldBar.fillWidth = shieldFillWidth
+    m_shieldBar.fillHeight = shieldFillHeight
+    m_shieldBar.fillOffsetX = cfg.fills.shield.x
+    m_shieldBar.fillOffsetY = cfg.fills.shield.y
+
+
 
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(_, _, unitAttributeVisual, _, _, _, value)
         if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
@@ -1486,6 +1436,72 @@ local function RefreshAllData(rootFrame, updateDeathFragment)
 
 end
 
+
+
+local function UpdateDynamicLayout()
+    if not m_rootFrame then return end
+    
+    local ornamentLeft = FindControl(m_rootFrame, "OrnamentLeft")
+    local ornamentRight = FindControl(m_rootFrame, "OrnamentRight")
+    local bgMiddle = FindControl(m_rootFrame, "BgMiddle")
+    local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
+    local castBar = FindControl(m_rootFrame, "BetterUICastBar")
+    
+    if not ornamentLeft or not ornamentRight or not bgMiddle then return end
+    
+    local settings = GetModuleSettings()
+    local cfg = BETTERUI_ORB_FRAMES
+    
+    -- Right Side: XP Bar
+    local rightX = cfg.ornaments.right.x
+    local rightY = cfg.ornaments.right.y
+    
+    ornamentRight:ClearAnchors()
+    if settings.xpBarEnabled then
+        -- Shift Ornament UP
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 45)
+        
+        if xpBar then
+            xpBar:ClearAnchors()
+            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97) 
+        end
+    else
+        -- Reset Ornament
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
+        
+        if xpBar then 
+            xpBar:ClearAnchors()
+            xpBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, -BETTERUI_XP_BAR_OFFSET_Y)
+        end
+    end
+    
+    -- Left Side: Cast Bar
+    local leftX = cfg.ornaments.left.x
+    local leftY = cfg.ornaments.left.y
+    
+    ornamentLeft:ClearAnchors()
+    if settings.castBarEnabled then
+        -- Shift Ornament UP
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
+        
+        -- Anchor Cast Bar to Left Ornament
+        if castBar then
+            castBar:ClearAnchors()
+            castBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_CAST_BAR_OFFSET_X or 0, BETTERUI_CAST_BAR_OFFSET_Y or -97) 
+        end
+    else
+        -- Reset Ornament
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
+        
+        -- Reset Cast Bar
+        if castBar then
+            castBar:ClearAnchors()
+            -- Default position if hidden/disabled
+            castBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, -160)
+        end
+    end
+end
+
 local function SetupModule(control)
     m_isInitialized = true
     
@@ -1519,73 +1535,6 @@ local function SetupModule(control)
     end)
 end
 
-local function UpdateDynamicLayout()
-    if not m_rootFrame then return end
-    
-    local ornamentLeft = FindControl(m_rootFrame, "OrnamentLeft")
-    local ornamentRight = FindControl(m_rootFrame, "OrnamentRight")
-    local bgMiddle = FindControl(m_rootFrame, "BgMiddle")
-    local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
-    local castBar = FindControl(m_rootFrame, "BetterUICastBar")
-    
-    if not ornamentLeft or not ornamentRight or not bgMiddle then return end
-    
-    local settings = GetModuleSettings()
-    local cfg = BETTERUI_ORB_FRAMES
-    
-    -- Right Side: XP Bar
-    local rightX = cfg.ornaments.right.x
-    local rightY = cfg.ornaments.right.y
-    
-    ornamentRight:ClearAnchors()
-    if settings.xpBarEnabled then
-        -- Shift Ornament UP
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 55)
-        
-        if xpBar then
-            xpBar:ClearAnchors()
-            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -95) 
-        end
-    else
-        -- Reset Ornament
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
-        
-        -- Reset XP Bar
-        if xpBar then 
-            xpBar:ClearAnchors()
-            xpBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, -BETTERUI_XP_BAR_OFFSET_Y)
-        end
-    end
-    
-    -- Left Side: Cast Bar
-    local leftX = cfg.ornaments.left.x
-    local leftY = cfg.ornaments.left.y
-    
-    ornamentLeft:ClearAnchors()
-    if settings.castBarEnabled then
-        -- Shift Ornament UP (same offset as Right)
-        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
-        
-        -- Anchor Cast Bar to Left Ornament
-        if castBar then
-            castBar:ClearAnchors()
-            -- Mirror logic: Anchor TOP to BOTTOM with overlap
-            -- Uses global offset constants allowing user adjustment in CONST.lua
-            castBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_CAST_BAR_OFFSET_X or 0, BETTERUI_CAST_BAR_OFFSET_Y or -95) 
-        end
-    else
-        -- Reset Ornament
-        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
-        
-        -- Reset Cast Bar
-        if castBar then
-            castBar:ClearAnchors()
-            -- Default position if hidden/disabled (mirroring right roughly)
-            castBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, -160)
-        end
-    end
-end
-
 function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
@@ -1599,7 +1548,7 @@ function ResourceOrbFrames.ApplySettings()
         UpdateFrameDimensions()
         ApplyThemeVisuals()
         
-        -- Apply orb label visuals
+        -- Apply text settings (Health/Magicka/Stamina)
         local function ApplyOrbLabelVisuals()
             local currentSettings = GetModuleSettings()
             
@@ -1631,33 +1580,8 @@ function ResourceOrbFrames.ApplySettings()
         end
         ApplyOrbLabelVisuals()
 
-        -- Apply Settings to Custom Bars
-        if m_experienceBar then
-            m_experienceBar:ApplySettings(
-                settings.xpBarEnabled, 
-                BETTERUI_XP_BAR_SCALE, 
-                BETTERUI_XP_BAR_OFFSET_X, 
-                BETTERUI_XP_BAR_OFFSET_Y, 
-                settings.xpBarTextSize, 
-                settings.xpBarTextColor
-            )
-            -- Trigger immediate update if enabled
-            if settings.xpBarEnabled then m_experienceBar:Update() end
-        end
-        
-        if m_castBar then
-            m_castBar:ApplySettings(
-                settings.castBarEnabled, 
-                BETTERUI_CAST_BAR_SCALE, 
-                BETTERUI_CAST_BAR_OFFSET_X, 
-                BETTERUI_CAST_BAR_OFFSET_Y, 
-                settings.castBarTextSize, 
-                settings.castBarTextColor
-            )
-        end
-
-        UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments (including OrbSplitter scaling)
-        UpdateDynamicLayout() -- Apply dynamic shifts based on visible bars
+        UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments
+        UpdateDynamicLayout() -- Apply relative positioning of bars and ornaments
         RefreshAllData(m_rootFrame)
         
         -- Hide default bars
@@ -1666,10 +1590,6 @@ function ResourceOrbFrames.ApplySettings()
         end
     else
         m_rootFrame:SetHidden(true)
-        -- Hide custom bars
-        if m_experienceBar and m_experienceBar.control then m_experienceBar.control:SetHidden(true) end
-        if m_castBar and m_castBar.control then m_castBar.control:SetHidden(true) end
-        
         -- Show default bars
         if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
             PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', false)

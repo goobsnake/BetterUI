@@ -182,10 +182,11 @@ BETTERUI_ORB_FRAMES = {
     -- scaleW/scaleH: size as fraction of borderSize (0.5 = 50%)
     -- x/y: offset from center, left (-) or right (+), up (-) or down (+)
     fills = {
-        health = { scaleW = 0.55, scaleH = 0.55, x = 0, y = 0 },
-        magicka = { scaleW = 0.43, scaleH = 0.43, x = 20, y = -5 },
-        stamina = { scaleW = 0.5, scaleH = 0.5, x = -20, y = 0 },
-        resource = { scaleW = 0.5, scaleH = 0.5, x = 0, y = 0 },  -- Fallback
+        health = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
+        magicka = { scaleW = 0.30, scaleH = 0.53, x = 30, y = -3 },
+        stamina = { scaleW = 0.30, scaleH = 0.53, x = -20, y = -3 },
+        resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },  -- Fallback
+        shield = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
     },
     
     -- Splitter (magicka/stamina divider line)
@@ -200,9 +201,9 @@ BETTERUI_ORB_FRAMES = {
     -- x/y: offset from default position, left (-) or right (+), up (-) or down (+)
     labels = {
         health = { x = 0, y = 0 },
-        magicka = { x = 0, y = 0 },
-        stamina = { x = 0, y = 0 },
-        shield = { x = 0, y = 0 },
+        magicka = { x = 27, y = 0 },
+        stamina = { x = -20, y = 0 },
+        shield = { x = 0, y = 35 },
     },
 }
 
@@ -214,17 +215,19 @@ BETTERUI_ORB_FRAMES = {
 -- Experience/Champion Bar positioning (above top skill bar)
 BETTERUI_XP_BAR_SCALE = 1.0                -- Scale multiplier for XP bar
 BETTERUI_XP_BAR_OFFSET_X = 0               -- X offset from center (positive = right)
-BETTERUI_XP_BAR_OFFSET_Y = -95             -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_XP_BAR_FILL_INSET_X = 40          -- Horizontal inset for fill bar within frame
+BETTERUI_XP_BAR_OFFSET_Y = -99             -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_XP_BAR_FILL_INSET_X = 35          -- Horizontal inset for fill bar within frame
 BETTERUI_XP_BAR_FILL_INSET_Y = 55          -- Vertical inset for fill bar within frame
 BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
 BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
+BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (from center)
 
 -- Cast Bar positioning (Left side, mirrors XP bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
 BETTERUI_CAST_BAR_OFFSET_X = 0             -- X offset from center (positive = right)
 BETTERUI_CAST_BAR_OFFSET_Y = -97           -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_CAST_BAR_FILL_INSET_X = 40        -- Horizontal inset for fill bar within frame
+BETTERUI_CAST_BAR_FILL_INSET_X = 30        -- Horizontal inset for fill bar within frame
 BETTERUI_CAST_BAR_FILL_INSET_Y = 58        -- Vertical inset for fill bar within frame
 BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
 BETTERUI_CAST_BAR_HEIGHT = 150             -- Height of the cast bar in pixels
+BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from center)
