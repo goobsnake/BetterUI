@@ -183,8 +183,8 @@ BETTERUI_ORB_FRAMES = {
     -- x/y: offset from center, left (-) or right (+), up (-) or down (+)
     fills = {
         health = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
-        magicka = { scaleW = 0.30, scaleH = 0.53, x = 30, y = -3 },
-        stamina = { scaleW = 0.30, scaleH = 0.53, x = -20, y = -3 },
+        magicka = { scaleW = 0.30, scaleH = 0.53, x = -10, y = -3 },
+        stamina = { scaleW = 0.30, scaleH = 0.53, x = -60, y = -3 },
         resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },  -- Fallback
         shield = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
     },
