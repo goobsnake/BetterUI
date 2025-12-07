@@ -294,8 +294,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
-			tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
+			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
+			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures = value
@@ -306,8 +306,8 @@ local function Init(mId, moduleName)
 		},
         {
             type = "slider",
-            name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE),
-            tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP),
+            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE),
+            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP),
             min = 12,
             max = 32,
             step = 1,
@@ -319,8 +319,8 @@ local function Init(mId, moduleName)
         },
         {
             type = "colorpicker",
-            name = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR),
-            tooltip = GetString(BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP),
+            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR),
+            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP),
             getFunc = function()
                 local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor or {1, 1, 1, 1}
                 return color[1], color[2], color[3], color[4] or 1
@@ -331,219 +331,292 @@ local function Init(mId, moduleName)
             width = "full",
         },
         {
-            type = "header",
-            name = "Orb Text Settings",
-            width = "full",
-        },
-        -- Health Text Settings
-        {
-            type = "slider",
-            name = "Health Text Size",
-            tooltip = "Adjust the font size of the health text",
-            min = 12,
-            max = 48,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize or 20 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        {
-            type = "colorpicker",
-            name = "Health Text Color",
-            tooltip = "Adjust the color of the health text",
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor = {r, g, b, a}
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        -- Magicka Text Settings
-        {
-            type = "slider",
-            name = "Magicka Text Size",
-            tooltip = "Adjust the font size of the magicka text",
-            min = 12,
-            max = 48,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize or 20 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        {
-            type = "colorpicker",
-            name = "Magicka Text Color",
-            tooltip = "Adjust the color of the magicka text",
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor = {r, g, b, a}
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        -- Stamina Text Settings
-        {
-            type = "slider",
-            name = "Stamina Text Size",
-            tooltip = "Adjust the font size of the stamina text",
-            min = 12,
-            max = 48,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize or 20 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        {
-            type = "colorpicker",
-            name = "Stamina Text Color",
-            tooltip = "Adjust the color of the stamina text",
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor = {r, g, b, a}
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
+            type = "button",
+            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+            func = function()
+                local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                settings.scale = defaults.scale
+                settings.offsetY = defaults.offsetY
+                settings.useCustomTextures = defaults.useCustomTextures
+                settings.cooldownTextSize = defaults.cooldownTextSize
+                settings.cooldownTextColor = defaults.cooldownTextColor
 
-        -- ============================================================================
-        -- EXPERIENCE BAR SETTINGS
-        -- ============================================================================
-        {
-            type = "header",
-            name = "Experience Bar",
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = "Enable Experience Bar",
-            tooltip = "Displays an experience/champion point bar above the top skill bar",
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled = value
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
                 end
+                ReloadUI()
             end,
-            width = "full",
+            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+            width = "half",
         },
         {
-            type = "slider",
-            name = "XP Text Size",
-            tooltip = "Adjust the font size of the experience text",
-            min = 12,
-            max = 32,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize or 16 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
-            width = "full",
+            type = "submenu",
+            name = GetString(SI_BETTERUI_ORB_TEXT_SUBMENU),
+            controls = {
+                -- Health Text Settings
+                {
+                    type = "slider",
+                    name = "Health Text Size",
+                    tooltip = "Adjust the font size of the health text",
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize or 20 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Health Text Color",
+                    tooltip = "Adjust the color of the health text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                -- Magicka Text Settings
+                {
+                    type = "slider",
+                    name = "Magicka Text Size",
+                    tooltip = "Adjust the font size of the magicka text",
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize or 20 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Magicka Text Color",
+                    tooltip = "Adjust the color of the magicka text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                -- Stamina Text Settings
+                {
+                    type = "slider",
+                    name = "Stamina Text Size",
+                    tooltip = "Adjust the font size of the stamina text",
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize or 20 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Stamina Text Color",
+                    tooltip = "Adjust the color of the stamina text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "button",
+                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+                    func = function()
+                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        settings.healthTextSize = defaults.healthTextSize
+                        settings.healthTextColor = defaults.healthTextColor
+                        settings.magickaTextSize = defaults.magickaTextSize
+                        settings.magickaTextColor = defaults.magickaTextColor
+                        settings.staminaTextSize = defaults.staminaTextSize
+                        settings.staminaTextColor = defaults.staminaTextColor
+
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "half",
+                },
+            },
         },
         {
-            type = "colorpicker",
-            name = "XP Text Color",
-            tooltip = "Adjust the color of the experience text",
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor = {r, g, b, a}
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
-            width = "full",
+            type = "submenu",
+            name = GetString(SI_BETTERUI_XP_BAR_SUBMENU),
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable Experience Bar",
+                    tooltip = "Displays an experience/champion point bar above the top skill bar",
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "slider",
+                    name = "XP Text Size",
+                    tooltip = "Adjust the font size of the experience text",
+                    min = 12,
+                    max = 32,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize or 16 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "XP Text Color",
+                    tooltip = "Adjust the color of the experience text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "button",
+                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+                    func = function()
+                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        settings.xpBarTextSize = defaults.xpBarTextSize
+                        settings.xpBarTextColor = defaults.xpBarTextColor
+
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    -- Check for both overall enabled and specific feature enabled
+                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled) end,
+                    width = "half",
+                },
+            },
         },
-        -- ============================================================================
-        -- CAST BAR SETTINGS
-        -- ============================================================================
         {
-            type = "header",
-            name = "Cast Bar",
-            width = "full",
-        },
-        {
-            type = "checkbox",
-            name = "Enable Cast Bar",
-            tooltip = "Displays a casting bar above the Experience bar",
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            width = "full",
-        },
-        {
-            type = "slider",
-            name = "Cast Text Size",
-            tooltip = "Adjust the font size of the cast timer",
-            min = 12,
-            max = 32,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize or 16 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize = value
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
-            width = "full",
-        },
-        {
-            type = "colorpicker",
-            name = "Cast Text Color",
-            tooltip = "Adjust the color of the cast timer text",
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor = {r, g, b, a}
-                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-                    BETTERUI.ResourceOrbFrames.ApplySettings()
-                end
-            end,
-            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
-            width = "full",
+            type = "submenu",
+            name = GetString(SI_BETTERUI_CAST_BAR_SUBMENU),
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable Cast Bar",
+                    tooltip = "Displays a casting bar above the Experience bar",
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "slider",
+                    name = "Cast Text Size",
+                    tooltip = "Adjust the font size of the cast timer",
+                    min = 12,
+                    max = 32,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize or 16 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Cast Text Color",
+                    tooltip = "Adjust the color of the cast timer text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "button",
+                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+                    func = function()
+                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        settings.castBarTextSize = defaults.castBarTextSize
+                        settings.castBarTextColor = defaults.castBarTextColor
+
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled) end,
+                    width = "half",
+                },
+            },
         },
     }
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
