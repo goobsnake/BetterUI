@@ -11,6 +11,7 @@ local m_shieldBar = nil
 local m_foodTracker = nil
 local m_experienceBar = nil
 local m_updateDeathFragment = nil
+local m_castBar = nil
 
 -- Default Settings
 local DEFAULTS = {
@@ -934,12 +935,214 @@ end
 -- ExperienceBar Class
 -------------------------------------------------------------------------------------------------
 
-local ExperienceBar = ZO_Object:Subclass()
+-------------------------------------------------------------------------------------------------
+-- BetterUIBarFrame Class (Base for XP and Cast Bars)
+-------------------------------------------------------------------------------------------------
 
-function ExperienceBar:New(control)
+local BetterUIBarFrame = ZO_Object:Subclass()
+
+function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
-    obj.control = control
+    self.control = control
     return obj
+end
+
+function BetterUIBarFrame:Initialize(name, parent)
+    local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
+    self.control = control
+    
+    -- Fill (OrbFill.dds) - Create FIRST (Bottom) so it sits BEHIND the backdrop
+    local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
+    fill:SetTexture(ResolveTexturePath("OrbFill.dds"))
+    fill:SetAnchor(LEFT, control, LEFT, 0, 0) -- Anchor will be updated in UpdateVisuals
+    self.fill = fill
+
+    -- Backdrop (Bar.dds) - Create SECOND (Top) so it masks the fill
+    local backdrop = WINDOW_MANAGER:CreateControl(name .. "Backdrop", control, CT_TEXTURE)
+    backdrop:SetTexture(ResolveTexturePath("Bar.dds"))
+    backdrop:SetAnchor(CENTER, control, CENTER, 0, 0)
+    self.backdrop = backdrop
+    
+    -- Label - Create LAST so it is ON TOP of everything
+    local label = WINDOW_MANAGER:CreateControl(name .. "Label", control, CT_LABEL)
+    label:SetAnchor(CENTER, control, CENTER, 0, 4) -- Nudge down 4px
+    label:SetFont("ZoFontGame")
+    label:SetColor(1, 1, 1, 1)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
+    self.label = label
+    
+    return control
+end
+
+function BetterUIBarFrame:SetColor(r, g, b, a)
+    if self.fill then
+        self.fill:SetColor(r, g, b, a)
+    end
+end
+
+function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
+    if not self.control or self.control:IsHidden() then return end
+    
+    -- Update Backdrop Size
+    if self.backdrop then
+        self.backdrop:SetDimensions(barWidth, barHeight)
+    end
+    
+    -- Update Fill
+    if self.fill and max > 0 then
+        local percent = math.min(1, math.max(0, current / max))
+        local fillMaxWidth = barWidth - (2 * insetX)
+        local fillHeight = barHeight - (2 * insetY)
+        
+        -- Resize fill based on percentage
+        self.fill:SetDimensions(fillMaxWidth * percent, fillHeight)
+        -- Re-anchor to ensure it stays inside the inset
+        self.fill:ClearAnchors()
+        self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
+        self.fill:SetTextureCoords(0, percent, 0, 1) -- Basic L->R texture mapping
+    end
+end
+
+function BetterUIBarFrame:ApplySettings(enabled, scale, offsetX, offsetY, textSize, textColor)
+    if not self.control then return end
+    
+    self.control:SetHidden(not enabled)
+    if not enabled then return end
+    
+    local width = BETTERUI_BAR_WIDTH or 400
+    local height = BETTERUI_BAR_HEIGHT or 32
+    
+    self.control:SetDimensions(width, height)
+    self.control:SetScale(scale)
+    
+    -- Position
+    -- Find BgMiddle to anchor to (or root if not found, but we expect BgMiddle)
+    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
+    if bgMiddle then
+        self.control:ClearAnchors()
+        self.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, offsetX, offsetY)
+    end
+    
+    -- Label Settings
+    if self.label then
+        self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize or 16))
+        self.label:SetColor(unpack(textColor or {1,1,1,1}))
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- Cast Bar Class
+-------------------------------------------------------------------------------------------------
+
+local CastBar = BetterUIBarFrame:Subclass()
+
+function CastBar:New(parent)
+    local obj = ZO_Object.New(self)
+    obj:Initialize(parent)
+    return obj
+end
+
+function CastBar:Initialize(parent)
+    BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent)
+    self.isCasting = false
+    self.duration = 0
+    self.startTime = 0
+    self:SetColor(1, 1, 0.4, 1) -- Light yellowish for cast
+    
+    local function OnCastStart(_, channelInfo)
+        -- channelInfo is for channeled abilities, regular casts follow different flow
+        -- But for simplicity we hook the visual events
+    end
+    
+    -- Hook into ESO's event system
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, _, abilityName, _, castDuration) return self:OnCastStart(unitTag, abilityName, castDuration) end)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) return self:OnCastStop(unitTag, wasInterrupted) end)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CastUpdate", EVENT_SPELL_CASTING_UPDATE, function(_, unitTag, _, _, _, castDuration) return self:OnCastUpdate(unitTag, castDuration) end)
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, REGISTER_FILTER_UNIT_TAG, "player")
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, REGISTER_FILTER_UNIT_TAG, "player")
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "CastUpdate", EVENT_SPELL_CASTING_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+    
+    -- Also handle channeled abilities? EVENT_SPELL_CASTING_UPDATE covers some, but...
+end
+
+function CastBar:OnCastStart(unitTag, abilityName, castDuration)
+    if unitTag ~= "player" then return end
+    if castDuration <= 0 then return end
+    
+    self.isCasting = true
+    self.duration = castDuration / 1000
+    self.startTime = GetFrameTimeSeconds()
+    self.abilityName = abilityName
+    self.control:SetHidden(false)
+end
+
+function CastBar:OnCastStop(unitTag, wasInterrupted)
+    if unitTag ~= "player" then return end
+    self.isCasting = false
+    self.control:SetHidden(true)
+end
+
+function CastBar:OnCastUpdate(unitTag, castDuration)
+    if unitTag ~= "player" then return end
+     -- Update duration if it changes dynamically
+     if self.isCasting then
+        self.duration = castDuration / 1000
+        -- self.startTime usually remains same but deadline changes.
+     end
+end
+
+function CastBar:Update()
+    if not self.isCasting then 
+        self.control:SetHidden(true)
+        return 
+    end
+    
+    -- Only show if enabled in settings (double check)
+    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+    
+    local now = GetFrameTimeSeconds()
+    local elapsed = now - self.startTime
+    local remaining = math.max(0, self.duration - elapsed)
+    
+    -- if remaining <= 0 then self.isCasting = false; self.control:SetHidden(true); return end
+    
+    -- Update text
+    self.label:SetText(string.format("%.1f", remaining))
+    
+    -- Visuals
+    local insetX = BETTERUI_CAST_BAR_FILL_INSET_X or 8
+    local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 4
+    local w = BETTERUI_BAR_WIDTH or 400
+    local h = BETTERUI_BAR_HEIGHT or 32
+    
+    -- For cast bar, we might want to fill from empty to full, or full to empty?
+    -- Usually cast bars fill UP.
+    -- Current is elapsed, Max is duration.
+    self:UpdateVisuals(elapsed, self.duration, insetX, insetY, w, h)
+    
+    -- Ensure visible (override hidden from ApplySettings if currently casting)
+    if self.control:IsHidden() then self.control:SetHidden(false) end
+end
+
+-------------------------------------------------------------------------------------------------
+-- ExperienceBar Class (Refactored)
+-------------------------------------------------------------------------------------------------
+
+local ExperienceBar = BetterUIBarFrame:Subclass()
+
+function ExperienceBar:New(parent)
+    local obj = ZO_Object.New(self)
+    obj:Initialize(parent)
+    return obj
+end
+
+function ExperienceBar:Initialize(parent)
+    BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent)
+    self:SetColor(0.1, 0.85, 0.8, 1) -- Turquoise/Teal color
 end
 
 function ExperienceBar:Update()
@@ -947,25 +1150,46 @@ function ExperienceBar:Update()
     
     local isChampion = IsUnitChampion("player")
     local current, max, effectiveMax = 0, 0, 0
-    local tooltipText = ""
-
-    current = GetUnitXP("player")
-    max = GetUnitXPMax("player")
-    effectiveMax = max
+    local labelText = ""
 
     if isChampion then
-        tooltipText = string.format("CP: %d / %d", current, max)
-    else
-        tooltipText = string.format("XP: %d / %d", current, max)
-    end
+        -- Confirmed by user debug: 
+        -- GetPlayerChampionXP() returns XP towards NEXT point (Current).
+        -- GetNumChampionXPInChampionPoint(cp) returns XP required for NEXT point (Max).
+        local currentCP = GetPlayerChampionPointsEarned()
+        current = GetPlayerChampionXP()
+        
+        -- Safe call for Max
+        local success, size = pcall(GetNumChampionXPInChampionPoint, currentCP)
+        if success and size then 
+            max = size 
+        else 
+            max = 400000 -- Fallback standard
+        end
+        
+        -- Ensure non-zero max division
+        if max <= 0 then max = 1 end
 
-    if effectiveMax > 0 then
-        ZO_StatusBar_SmoothTransition(self.control, current, effectiveMax)
+        effectiveMax = max
+        
+        -- Label with Percent
+        local percent = math.floor((current / max) * 100)
+        labelText = string.format("CP: %d (%d%%)", currentCP, percent)
     else
-        self.control:SetValue(0)
+        current = GetUnitXP("player")
+        max = GetUnitXPMax("player")
+        labelText = string.format("XP: %d / %d", current, max)
+        effectiveMax = max
     end
     
-    self.control.ttt = tooltipText
+    self.label:SetText(labelText)
+    
+    local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
+    local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
+    local w = BETTERUI_BAR_WIDTH or 400
+    local h = BETTERUI_BAR_HEIGHT or 50
+    
+    self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1104,13 +1328,11 @@ local function SetupFoodTracker(rootFrame)
 end
 
 local function SetupExperienceBar(rootFrame)
-    local bar = FindControl(rootFrame, 'FoodBar')
-    if bar then
-        -- Set texture so bar is visible
-        bar:SetTexture("BetterUI/Modules/GeneralInterface/OrbTextures/OrbFill.dds")
-        bar:SetColor(0.73, 0.3, 0.04, 1) -- Orange/amber color for XP bar
-    end
-    m_experienceBar = ExperienceBar:New(bar)
+    m_experienceBar = ExperienceBar:New(rootFrame)
+end
+
+local function SetupCastBar(rootFrame)
+    m_castBar = CastBar:New(rootFrame)
 end
 
 local function SetupVisibilityFragments(rootFrame)
@@ -1151,12 +1373,15 @@ local function RefreshAllData(rootFrame, updateDeathFragment)
 
     if centerBarType == "Food" and m_foodTracker then
         m_foodTracker:Update()
-    elseif centerBarType == "XP" and m_experienceBar then
-        m_experienceBar:Update()
-    elseif centerBarType == "None" then
+    else
+         -- Explicitly hide FoodBar if not in use, because ExperienceBar no longer hijacks it
          local bar = FindControl(rootFrame, 'FoodBar')
          if bar then bar:SetHidden(true) end
     end
+    
+    -- Update BetterUI Bars
+    if m_experienceBar then m_experienceBar:Update() end
+    if m_castBar then m_castBar:Update() end
 
 end
 
@@ -1168,6 +1393,7 @@ local function SetupModule(control)
     SetupStateHandlers()
     SetupFoodTracker(control)
     SetupExperienceBar(control)
+    SetupCastBar(control)
     
     local updateDeathFragment = SetupVisibilityFragments(control)
     
@@ -1192,6 +1418,46 @@ local function SetupModule(control)
     end)
 end
 
+local function UpdateDynamicLayout()
+    if not m_rootFrame then return end
+    
+    local ornamentRight = FindControl(m_rootFrame, "OrnamentRight")
+    local bgMiddle = FindControl(m_rootFrame, "BgMiddle")
+    local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
+    
+    if not ornamentRight or not bgMiddle then return end
+    
+    local settings = GetModuleSettings()
+    local cfg = BETTERUI_ORB_FRAMES
+    local defaultX = cfg.ornaments.right.x
+    local defaultY = cfg.ornaments.right.y
+    
+    ornamentRight:ClearAnchors()
+    if settings.xpBarEnabled then
+        -- Shift Ornament UP
+        -- defaultY is -25. Shift further up by 55 pixels to make room (-80 total)
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, defaultX, defaultY - 55)
+        
+        -- Re-anchor XP Bar to the Ornament to ensure they move together
+        if xpBar then
+            xpBar:ClearAnchors()
+            -- Anchor XP Bar TOP to Ornament BOTTOM, but shifted UP to overlap/close gap
+            -- Overlap by 95 pixels to hide transparency & close gap
+            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, 0, -95) 
+        end
+    else
+        -- Reset Ornament
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, defaultX, defaultY)
+        
+        -- Reset XP Bar to default config (though it's hidden/unused, good to reset)
+        if xpBar then 
+            xpBar:ClearAnchors()
+            -- Use global constants for default position
+            xpBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, -BETTERUI_XP_BAR_OFFSET_Y)
+        end
+    end
+end
+
 function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
@@ -1205,7 +1471,7 @@ function ResourceOrbFrames.ApplySettings()
         UpdateFrameDimensions()
         ApplyThemeVisuals()
         
-        -- Apply text settings (Health/Magicka/Stamina)
+        -- Apply orb label visuals
         local function ApplyOrbLabelVisuals()
             local currentSettings = GetModuleSettings()
             
@@ -1237,7 +1503,33 @@ function ResourceOrbFrames.ApplySettings()
         end
         ApplyOrbLabelVisuals()
 
+        -- Apply Settings to Custom Bars
+        if m_experienceBar then
+            m_experienceBar:ApplySettings(
+                settings.xpBarEnabled, 
+                BETTERUI_XP_BAR_SCALE, 
+                BETTERUI_XP_BAR_OFFSET_X, 
+                BETTERUI_XP_BAR_OFFSET_Y, 
+                settings.xpBarTextSize, 
+                settings.xpBarTextColor
+            )
+            -- Trigger immediate update if enabled
+            if settings.xpBarEnabled then m_experienceBar:Update() end
+        end
+        
+        if m_castBar then
+            m_castBar:ApplySettings(
+                settings.castBarEnabled, 
+                BETTERUI_CAST_BAR_SCALE, 
+                BETTERUI_CAST_BAR_OFFSET_X, 
+                BETTERUI_CAST_BAR_OFFSET_Y, 
+                settings.castBarTextSize, 
+                settings.castBarTextColor
+            )
+        end
+
         UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments (including OrbSplitter scaling)
+        UpdateDynamicLayout() -- Apply dynamic shifts based on visible bars
         RefreshAllData(m_rootFrame)
         
         -- Hide default bars
@@ -1246,6 +1538,10 @@ function ResourceOrbFrames.ApplySettings()
         end
     else
         m_rootFrame:SetHidden(true)
+        -- Hide custom bars
+        if m_experienceBar and m_experienceBar.control then m_experienceBar.control:SetHidden(true) end
+        if m_castBar and m_castBar.control then m_castBar.control:SetHidden(true) end
+        
         -- Show default bars
         if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
             PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', false)

@@ -434,7 +434,118 @@ local function Init(mId, moduleName)
             end,
             width = "full",
         },
-	}
+
+        -- ============================================================================
+        -- EXPERIENCE BAR SETTINGS
+        -- ============================================================================
+        {
+            type = "header",
+            name = "Experience Bar",
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Enable Experience Bar",
+            tooltip = "Displays an experience/champion point bar above the top skill bar",
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            name = "XP Text Size",
+            tooltip = "Adjust the font size of the experience text",
+            min = 12,
+            max = 32,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize or 16 end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "XP Text Color",
+            tooltip = "Adjust the color of the experience text",
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor = {r, g, b, a}
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+            width = "full",
+        },
+        -- ============================================================================
+        -- CAST BAR SETTINGS
+        -- ============================================================================
+        {
+            type = "header",
+            name = "Cast Bar",
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = "Enable Cast Bar",
+            tooltip = "Displays a casting bar above the Experience bar",
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            width = "full",
+        },
+        {
+            type = "slider",
+            name = "Cast Text Size",
+            tooltip = "Adjust the font size of the cast timer",
+            min = 12,
+            max = 32,
+            step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize or 16 end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize = value
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+            width = "full",
+        },
+        {
+            type = "colorpicker",
+            name = "Cast Text Color",
+            tooltip = "Adjust the color of the cast timer text",
+            getFunc = function()
+                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor or {1, 1, 1, 1}
+                return color[1], color[2], color[3], color[4] or 1
+            end,
+            setFunc = function(r, g, b, a)
+                BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor = {r, g, b, a}
+                if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                    BETTERUI.ResourceOrbFrames.ApplySettings()
+                end
+            end,
+            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+            width = "full",
+        },
+    }
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
@@ -458,6 +569,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         magickaTextColor = {1, 1, 1, 1},
         staminaTextSize = 20,
         staminaTextColor = {1, 1, 1, 1},
+        xpBarEnabled = false,
+        xpBarTextSize = 16,
+        xpBarTextColor = {1, 1, 1, 1},
+        castBarEnabled = false,
+        castBarTextSize = 16,
+        castBarTextColor = {1, 1, 1, 1},
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -473,6 +590,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.magickaTextColor == nil then m_options.magickaTextColor = defaults.magickaTextColor end
     if m_options.staminaTextSize == nil then m_options.staminaTextSize = defaults.staminaTextSize end
     if m_options.staminaTextColor == nil then m_options.staminaTextColor = defaults.staminaTextColor end
+    if m_options.xpBarEnabled == nil then m_options.xpBarEnabled = defaults.xpBarEnabled end
+    if m_options.xpBarTextSize == nil then m_options.xpBarTextSize = defaults.xpBarTextSize end
+    if m_options.xpBarTextColor == nil then m_options.xpBarTextColor = defaults.xpBarTextColor end
+    if m_options.castBarEnabled == nil then m_options.castBarEnabled = defaults.castBarEnabled end
+    if m_options.castBarTextSize == nil then m_options.castBarTextSize = defaults.castBarTextSize end
+    if m_options.castBarTextColor == nil then m_options.castBarTextColor = defaults.castBarTextColor end
     return m_options
 end
 
