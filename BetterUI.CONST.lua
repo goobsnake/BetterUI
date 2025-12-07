@@ -186,7 +186,7 @@ BETTERUI_ORB_FRAMES = {
         magicka = { scaleW = 0.30, scaleH = 0.53, x = -10, y = -3 },
         stamina = { scaleW = 0.30, scaleH = 0.53, x = -60, y = -3 },
         resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },  -- Fallback
-        shield = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
+        shield = { scaleW = 0.95, scaleH = 0.95, x = 0, y = 0 },  -- Large scale for ring effect
     },
     
     -- Splitter (magicka/stamina divider line)
@@ -203,7 +203,7 @@ BETTERUI_ORB_FRAMES = {
         health = { x = 0, y = 0 },
         magicka = { x = 27, y = 0 },
         stamina = { x = -20, y = 0 },
-        shield = { x = 0, y = 35 },
+        shield = { x = 0, y = 25 },
     },
 }
 
@@ -222,12 +222,29 @@ BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
 BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
 BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (from center)
 
--- Cast Bar positioning (Left side, mirrors XP bar)
+-- Cast Bar positioning (centered above back bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
-BETTERUI_CAST_BAR_OFFSET_X = 0             -- X offset from center (positive = right)
-BETTERUI_CAST_BAR_OFFSET_Y = -97           -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
+BETTERUI_CAST_BAR_OFFSET_Y = 40            -- Y offset from back bar top (positive = down, closer to bar)
 BETTERUI_CAST_BAR_FILL_INSET_X = 30        -- Horizontal inset for fill bar within frame
 BETTERUI_CAST_BAR_FILL_INSET_Y = 58        -- Vertical inset for fill bar within frame
 BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
 BETTERUI_CAST_BAR_HEIGHT = 150             -- Height of the cast bar in pixels
 BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from center)
+
+-- Mount Stamina Bar positioning (under right ornament when mounted)
+BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0     -- Scale multiplier for mount stamina bar
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0    -- X offset from center (positive = right)
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99  -- Y offset from ornament bottom (negative = up)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 35   -- Horizontal inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 55   -- Vertical inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 250     -- Width of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 150    -- Height of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from center)
+
+-- ============================================================================
+-- DEBUG FLAGS
+-- ============================================================================
+
+-- Set to true to always show the shield overlay for visual debugging/positioning
+BETTERUI_SHIELD_DEBUG = true

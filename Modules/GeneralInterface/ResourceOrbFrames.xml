@@ -9,14 +9,12 @@
                 <Texture name="$(parent)Icon" linkEnabled="true" layer="1">
                     <AnchorFill />
                 </Texture>
-                <Texture name="$(parent)Cooldown" hidden="true" layer="1" level="2"
-                    textureFile="esoui/art/actionbar/actionslot_cooldown.dds" color="000000"
-                    alpha="0.7">
+                <!-- Static cooldown overlay (no radial animation) -->
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                    textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
                     <AnchorFill />
-                    <TextureCoords left="0" right="1" top="0" bottom="1" />
                 </Texture>
-                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGameBold" layer="1"
-                    level="3"
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGameBold" tier="HIGH"
                     verticalAlignment="1" horizontalAlignment="1" color="ffffff">
                     <AnchorFill />
                 </Label>

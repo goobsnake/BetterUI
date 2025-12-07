@@ -10,6 +10,8 @@ local m_pools = {}
 local m_shieldBar = nil
 local m_foodTracker = nil
 local m_experienceBar = nil
+local m_castBar = nil
+local m_mountStaminaBar = nil
 local m_updateDeathFragment = nil
 
 -- Default Settings
@@ -286,13 +288,24 @@ local function UpdateOrbLayout()
 
     -- ========================================
     -- SHIELD ORB OVERLAY (Position relative to Health Orb)
+    -- The shield displays as a RING around the health orb, so we make it slightly larger
     -- ========================================
     local shieldOrb = FindControl(m_rootFrame, 'OrbShield')
-    -- If OrbShield is a sibling, anchor it to Health Orb. Use leftBorderSize.
     if shieldOrb and healthOrb then
-        shieldOrb:SetDimensions(leftBorderSize, leftBorderSize)
+        -- Make shield 20% larger than health orb to create ring effect
+        local shieldSize = leftBorderSize * 1.2
+        shieldOrb:SetDimensions(shieldSize, shieldSize)
         shieldOrb:ClearAnchors()
         shieldOrb:SetAnchor(CENTER, healthOrb, CENTER, 0, 0)
+        
+        -- Position shield label below health label using config offset
+        local shieldLabel = FindControl(shieldOrb, 'Label')
+        if shieldLabel then
+            local labelCfg = cfg.labels.shield
+            shieldLabel:ClearAnchors()
+            -- Anchor to the health orb's center, offset down by the config value
+            shieldLabel:SetAnchor(CENTER, healthOrb, CENTER, labelCfg.x, labelCfg.y)
+        end
     end
     
     -- ========================================
@@ -492,25 +505,10 @@ local function UpdateBackBarCooldowns(rootFrame)
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
         if btn then
-            -- Dynamically create Cooldown control if it doesn't exist
-            if not btn.cooldownControl then
-                btn.cooldownControl = WINDOW_MANAGER:CreateControl(btn:GetName() .. "CooldownControl", btn, CT_COOLDOWN)
-                btn.cooldownControl:SetAnchor(TOPLEFT, btn, TOPLEFT, 1, 1)
-                btn.cooldownControl:SetAnchor(BOTTOMRIGHT, btn, BOTTOMRIGHT, -1, -1)
-                btn.cooldownControl:SetFillColor(0, 0, 0, 0.7)
-                btn.cooldownControl:SetHidden(true)
-                
-                btn.cooldownEdge = WINDOW_MANAGER:CreateControl(btn:GetName() .. "CooldownEdge", btn, CT_TEXTURE)
-                btn.cooldownEdge:SetTexture("esoui/art/actionbar/actionslot_cooldown_edge.dds")
-                btn.cooldownEdge:SetBlendMode(TEX_BLEND_MODE_ADD)
-                btn.cooldownEdge:SetAnchor(TOPLEFT, btn, TOPLEFT, 0, 0)
-                btn.cooldownEdge:SetAnchor(BOTTOMRIGHT, btn, BOTTOMRIGHT, 0, 0)
-                btn.cooldownEdge:SetHidden(true)
-            end
-
-            local cooldownControl = btn.cooldownControl
-            local cooldownEdge = btn.cooldownEdge
-            local cooldownText = FindControl(btn, 'CooldownText')
+            -- Get the XML-defined controls
+            local cooldownOverlay = btn:GetNamedChild("CooldownOverlay")
+            local cooldownText = btn:GetNamedChild("CooldownText")
+            local icon = btn:GetNamedChild("Icon")
             
             -- Get the ability ID for this slot on the back bar
             local abilityId = GetSlotBoundId(slotIndex, backBarCategory)
@@ -542,15 +540,18 @@ local function UpdateBackBarCooldowns(rootFrame)
                 end
             end
             
-            if cooldownControl and cooldownText then
+            if cooldownOverlay and cooldownText then
                 if showCooldown and remaining > 0.1 then
-                    cooldownControl:SetHidden(false)
-                    -- Use StartCooldown for the radial wipe effect
-                    cooldownControl:StartCooldown(remainingMs, durationMs, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_REMAINING, false)
+                    -- Show static overlay (no animation - just visibility toggle)
+                    cooldownOverlay:SetHidden(false)
                     
+                    -- Dim the skill icon during cooldown
+                    if icon then
+                        icon:SetDesaturation(1)
+                    end
+                    
+                    -- Show and update timer text
                     cooldownText:SetHidden(false)
-                    
-                    -- Apply text settings
                     cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
                     cooldownText:SetColor(textColor[1] or 1, textColor[2] or 1, textColor[3] or 1, textColor[4] or 1)
                     
@@ -559,13 +560,15 @@ local function UpdateBackBarCooldowns(rootFrame)
                     else
                         cooldownText:SetText(string.format("%.1f", remaining))
                     end
-                    
-                    if cooldownEdge then cooldownEdge:SetHidden(false) end
                 else
-                    cooldownControl:SetHidden(true)
-                    cooldownControl:ResetCooldown()
+                    -- Hide overlay and text
+                    cooldownOverlay:SetHidden(true)
                     cooldownText:SetHidden(true)
-                    if cooldownEdge then cooldownEdge:SetHidden(true) end
+                    
+                    -- Restore icon brightness when cooldown ends
+                    if icon then
+                        icon:SetDesaturation(0)
+                    end
                 end
             end
         end
@@ -798,45 +801,7 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.baseAnchorX = baseAnchorX
 end
 
--- Mirror Fog to Fog2 helper: ensures background fog2 layer matches the foreground fog layer
-function BetterUIOrbBar:MirrorFogToFog2(fullWidth, fullHeight, fogAnchorX, centerOffsetY, fillOffsetY)
-    if not self.fog or not self.fog2 then return end
-    -- Fog2 should mirror the static, full-size visuals of Fog (background), not the dynamic fill height.
-    -- Set Fog2 to full fill width/height and full texture coords (no cropping/partial fill)
-    local staticFillWidth = fullWidth or (self.fillWidth or 150)
-    local staticFillHeight = fullHeight or (self.fillHeight or 150)
-    self.fog2:SetDimensions(staticFillWidth, staticFillHeight)
-    -- Full vertical height for background
-    self.fog2:SetHeight(staticFillHeight)
-    -- Use full vertical texture coords (top=0, bottom=1) so Fog2 is always fully visible
-    self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, 0, 1)
-
-    -- Compute a static anchor X for fog2 using the same centering logic as Fog, but NOT including dynamic anchorY.
-    -- This will keep fog2 anchored to the same spot visually regardless of fill percent.
-    local controlWidth = self.control:GetWidth()
-    -- Use abs(abs()) to handle both (0, 0.5) and (0.5, 0) texture coord patterns
-    local isHalfTexture = math.abs(math.abs(self.baseCoordRight - self.baseCoordLeft) - 0.5) < 0.001
-    local fillOffsetX = self.fillOffsetX or 0
-    local function computeHalfAnchorX(isLeft)
-        if isLeft then
-            return (controlWidth / 4) - (staticFillWidth / 2) + fillOffsetX
-        else
-            return (3 * controlWidth / 4) - (staticFillWidth / 2) + fillOffsetX
-        end
-    end
-
-    local fog2AnchorX
-    if isHalfTexture then
-        local isLeft = (self.baseCoordLeft < self.baseCoordRight)
-        fog2AnchorX = computeHalfAnchorX(isLeft)
-    else
-        local centerOffsetX = (controlWidth - staticFillWidth) / 2
-        fog2AnchorX = centerOffsetX + (self.baseAnchorX or 0) + fillOffsetX
-    end
-
-    self.fog2:ClearAnchors()
-    self.fog2:SetAnchor(TOPLEFT, self.control, TOPLEFT, fog2AnchorX, centerOffsetY + (fillOffsetY or 0))
-end
+-- NOTE: MirrorFogToFog2 method removed - Fog2 is now handled inline in RefreshVisuals with CENTER anchoring
 
 function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
@@ -871,13 +836,11 @@ end
 
 function BetterUIOrbBar:RefreshLabel()
     if self.label ~= nil then
-        -- Format values with k/M notation
+        -- Format values with k/M notation (no decimals for k values)
         if self.currentValue >= 1000000 then
             self.label:SetText(string.format("%.1fM", self.currentValue / 1000000))
-        elseif self.currentValue >= 10000 then
-           self.label:SetText(string.format("%.0fk", self.currentValue / 1000))
         elseif self.currentValue >= 1000 then
-           self.label:SetText(string.format("%.1fk", self.currentValue / 1000))
+           self.label:SetText(string.format("%.0fk", self.currentValue / 1000))
         else
            self.label:SetText(string.format("%d", self.currentValue))
         end
@@ -1110,7 +1073,8 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
 end
 
 function CastBar:Update()
-    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled then
+    local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+    if not settings.castBarEnabled then
         self.control:SetHidden(true)
         return
     end
@@ -1120,13 +1084,26 @@ function CastBar:Update()
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_CAST_BAR_SCALE or 1.0)
     
-    if self.control:IsHidden() then self.control:SetHidden(false) end
+    -- Set backdrop dimensions for static display
+    if self.backdrop then
+        self.backdrop:SetDimensions(w, h)
+        self.backdrop:ClearAnchors()
+        self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+    end
 
-    local current, max = 0, 1
     local insetX = BETTERUI_CAST_BAR_FILL_INSET_X or 40
     local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
+    local current, max = 0, 1
+
+    -- Apply configurable offset for label
+    self.label:ClearAnchors()
+    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
 
     if self.isCasting then
+        -- Show bar during casting
+        self.control:SetHidden(false)
+        if self.fill then self.fill:SetHidden(false) end
+        
         local now = GetFrameTimeSeconds()
         local elapsed = now - self.startTime
         local remaining = math.max(0, self.duration - elapsed)
@@ -1138,23 +1115,24 @@ function CastBar:Update()
         if current > max then current = max end
         self.label:SetText(string.format("%s (%.1fs)", self.abilityName or "Casting", remaining))
         
-        -- Apply configurable offset
-        self.label:ClearAnchors()
-        self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
-        
         if elapsed > self.duration + 0.5 then
              self:OnCastStop("player", false)
         end
+        
+        self:UpdateVisuals(current, max, insetX, insetY, w, h)
     else
-        current = 0
-        max = 1
-        self.label:SetText("Cast Bar")
-        -- Apply configurable offset (default state)
-        self.label:ClearAnchors()
-        self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
+        -- Not casting - check alwaysShow setting
+        if settings.castBarAlwaysShow then
+            -- Show static bar frame with default text
+            self.control:SetHidden(false)
+            self.label:SetText("Cast Bar")
+            -- Hide fill when not casting
+            if self.fill then self.fill:SetHidden(true) end
+        else
+            -- Hide bar completely when not casting
+            self.control:SetHidden(true)
+        end
     end
-    
-    self:UpdateVisuals(current, max, insetX, insetY, w, h)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1212,6 +1190,109 @@ function ExperienceBar:Update()
     self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
     
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
+end
+
+-------------------------------------------------------------------------------------------------
+-- MountStaminaBar Class
+-------------------------------------------------------------------------------------------------
+
+local MountStaminaBar = BetterUIBarFrame:Subclass()
+
+function MountStaminaBar:New(parent)
+    local obj = ZO_Object.New(self)
+    obj:Initialize(parent)
+    return obj
+end
+
+function MountStaminaBar:Initialize(parent)
+    BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent)
+    self:SetColor(0, 0.8, 0.2, 1) -- Green color matching stamina orb
+    self.label:SetText("Mount Stamina")
+    
+    -- Start hidden until mounted
+    self.control:SetHidden(true)
+    
+    -- Register for mount state changes
+    EVENT_MANAGER:RegisterForEvent(NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED, function(_, isMounted)
+        self:OnMountedStateChanged(isMounted)
+    end)
+    
+    -- Register for power updates (mount stamina)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "MountStaminaPower", EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
+        if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA then
+            self:OnPowerUpdate(powerValue, powerMax)
+        end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "MountStaminaPower", EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
+    
+    self.control:SetHandler("OnUpdate", function() self:Update() end)
+end
+
+function MountStaminaBar:OnMountedStateChanged(isMounted)
+    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+    
+    self.control:SetHidden(not isMounted)
+    if isMounted then
+        -- Initialize with current values
+        local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
+        self:OnPowerUpdate(current, max)
+    end
+end
+
+function MountStaminaBar:OnPowerUpdate(current, max)
+    self.currentValue = current
+    self.maxValue = max
+end
+
+function MountStaminaBar:Update()
+    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+    
+    -- Always show the bar frame when enabled
+    local w = BETTERUI_MOUNT_STAMINA_BAR_WIDTH or 250
+    local h = BETTERUI_MOUNT_STAMINA_BAR_HEIGHT or 150
+    self.control:SetDimensions(w, h)
+    self.control:SetScale(BETTERUI_MOUNT_STAMINA_BAR_SCALE or 1.0)
+    self.control:SetHidden(false)
+    
+    -- CRITICAL: Set backdrop dimensions directly so Bar.dds is visible
+    if self.backdrop then
+        self.backdrop:SetDimensions(w, h)
+        self.backdrop:ClearAnchors()
+        self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+    end
+    
+    local insetX = BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X or 35
+    local insetY = BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y or 55
+    
+    -- Apply configurable offset
+    self.label:ClearAnchors()
+    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
+    
+    -- Only show fill and percentage when mounted
+    if IsMounted() then
+        local current = self.currentValue or 0
+        local max = self.maxValue or 1
+        if max <= 0 then max = 1 end
+        
+        local percent = math.floor((current / max) * 100)
+        self.label:SetText(string.format("Mount: %d%%", percent))
+        
+        -- Show fill when mounted
+        if self.fill then self.fill:SetHidden(false) end
+        self:UpdateVisuals(current, max, insetX, insetY, w, h)
+    else
+        -- Show placeholder text when not mounted
+        self.label:SetText("Mount Stamina")
+        
+        -- Hide fill when not mounted (show empty bar frame)
+        if self.fill then self.fill:SetHidden(true) end
+    end
 end
 
 -------------------------------------------------------------------------------------------------
@@ -1317,8 +1398,25 @@ end
 
 local function SetupShieldBar(rootFrame)
     m_shieldBar = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
-    if m_shieldBar.control then m_shieldBar.control:SetHidden(true) end
-    m_shieldBar.label:GetParent():SetHidden(true)
+    
+    -- DEBUG MODE: Set BETTERUI_SHIELD_DEBUG = true to always show shield for visual testing
+    local debugShield = BETTERUI_SHIELD_DEBUG or false
+    
+    if debugShield then
+        -- Debug: Show shield with a test value
+        if m_shieldBar.control then m_shieldBar.control:SetHidden(false) end
+        if m_shieldBar.fog then m_shieldBar.fog:SetHidden(false) end
+        m_shieldBar.label:GetParent():SetHidden(false)
+    else
+        -- Normal: Hide until shield is applied
+        if m_shieldBar.control then m_shieldBar.control:SetHidden(true) end
+        m_shieldBar.label:GetParent():SetHidden(true)
+    end
+    
+    -- Apply bold font to shield label (matching health text style)
+    if m_shieldBar.label then
+        m_shieldBar.label:SetFont("$(BOLD_FONT)|20|thick-outline")
+    end
 
     -- Apply Shield Config
     local cfg = BETTERUI_ORB_FRAMES
@@ -1331,11 +1429,20 @@ local function SetupShieldBar(rootFrame)
     m_shieldBar.fillHeight = shieldFillHeight
     m_shieldBar.fillOffsetX = cfg.fills.shield.x
     m_shieldBar.fillOffsetY = cfg.fills.shield.y
-
-
+    
+    -- Debug: Set a test shield value
+    if debugShield then
+        zo_callLater(function()
+            if m_shieldBar and m_pools[POWERTYPE_HEALTH] then
+                m_shieldBar:SetRange(0, m_pools[POWERTYPE_HEALTH]:GetMax())
+                m_shieldBar:UpdateValue(5000) -- Test shield value
+            end
+        end, 500)
+    end
 
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(_, _, unitAttributeVisual, _, _, _, value)
         if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+            if m_shieldBar.fog then m_shieldBar.fog:SetHidden(false) end
             m_shieldBar.label:GetParent():SetHidden(false)
             ZO_StatusBar_SmoothTransition(m_shieldBar, value, m_pools[POWERTYPE_HEALTH]:GetMax())
         end
@@ -1350,7 +1457,7 @@ local function SetupShieldBar(rootFrame)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
 
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
-        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not debugShield then
             ZO_StatusBar_SmoothTransition(m_shieldBar, 0, m_pools[POWERTYPE_HEALTH]:GetMax())
             m_shieldBar.label:GetParent():SetHidden(true)
         end
@@ -1371,6 +1478,10 @@ end
 
 local function SetupCastBar(rootFrame)
     m_castBar = CastBar:New(rootFrame)
+end
+
+local function SetupMountStaminaBar(rootFrame)
+    m_mountStaminaBar = MountStaminaBar:New(rootFrame)
 end
 
 local function SetupVisibilityFragments(rootFrame)
@@ -1420,6 +1531,7 @@ local function RefreshAllData(rootFrame, updateDeathFragment)
     -- Update BetterUI Bars
     if m_experienceBar then m_experienceBar:Update() end
     if m_castBar then m_castBar:Update() end
+    if m_mountStaminaBar then m_mountStaminaBar:Update() end
 
 end
 
@@ -1431,60 +1543,78 @@ local function UpdateDynamicLayout()
     local ornamentLeft = FindControl(m_rootFrame, "OrnamentLeft")
     local ornamentRight = FindControl(m_rootFrame, "OrnamentRight")
     local bgMiddle = FindControl(m_rootFrame, "BgMiddle")
+    local backBarContainer = FindControl(m_rootFrame, "BackBarContainer")
     local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
     local castBar = FindControl(m_rootFrame, "BetterUICastBar")
+    local mountStaminaBar = FindControl(m_rootFrame, "BetterUIMountStaminaBar")
     
     if not ornamentLeft or not ornamentRight or not bgMiddle then return end
     
     local settings = GetModuleSettings()
     local cfg = BETTERUI_ORB_FRAMES
-    
-    -- Right Side: XP Bar
+    local leftX = cfg.ornaments.left.x
+    local leftY = cfg.ornaments.left.y
     local rightX = cfg.ornaments.right.x
     local rightY = cfg.ornaments.right.y
     
-    ornamentRight:ClearAnchors()
+    -- ========================================
+    -- LEFT SIDE: XP/CP Bar (moved from right)
+    -- ========================================
+    ornamentLeft:ClearAnchors()
     if settings.xpBarEnabled then
-        -- Shift Ornament UP
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 45)
+        -- Shift Ornament UP when XP bar is enabled
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
         
         if xpBar then
             xpBar:ClearAnchors()
-            xpBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97) 
+            xpBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97)
         end
     else
-        -- Reset Ornament
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
+        -- Reset Ornament to default position
+        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
         
-        if xpBar then 
+        if xpBar then
             xpBar:ClearAnchors()
-            xpBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, -BETTERUI_XP_BAR_OFFSET_Y)
+            xpBar:SetHidden(true)
         end
     end
     
-    -- Left Side: Cast Bar
-    local leftX = cfg.ornaments.left.x
-    local leftY = cfg.ornaments.left.y
+    -- ========================================
+    -- CENTER: Cast Bar (above back bar)
+    -- ========================================
+    if castBar then
+        castBar:ClearAnchors()
+        if settings.castBarEnabled and backBarContainer then
+            -- Center cast bar above the back bar container (closer to back bar, shifted left)
+            local castOffsetX = BETTERUI_CAST_BAR_OFFSET_X or -20
+            local castOffsetY = BETTERUI_CAST_BAR_OFFSET_Y or 15
+            castBar:SetAnchor(BOTTOM, backBarContainer, TOP, castOffsetX, castOffsetY)
+        else
+            -- Position off-screen when disabled
+            castBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, -160)
+        end
+    end
     
-    ornamentLeft:ClearAnchors()
-    if settings.castBarEnabled then
-        -- Shift Ornament UP
-        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
+    -- ========================================
+    -- RIGHT SIDE: Mount Stamina Bar (new)
+    -- ========================================
+    ornamentRight:ClearAnchors()
+    if settings.mountStaminaBarEnabled then
+        -- Shift Ornament UP when mount stamina bar is enabled
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 45)
         
-        -- Anchor Cast Bar to Left Ornament
-        if castBar then
-            castBar:ClearAnchors()
-            castBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_CAST_BAR_OFFSET_X or 0, BETTERUI_CAST_BAR_OFFSET_Y or -97) 
+        if mountStaminaBar then
+            mountStaminaBar:ClearAnchors()
+            mountStaminaBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X or 0, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y or -97)
+            -- Visibility is controlled by MountStaminaBar:Update() based on IsMounted()
         end
     else
-        -- Reset Ornament
-        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
+        -- Reset Ornament to default position
+        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
         
-        -- Reset Cast Bar
-        if castBar then
-            castBar:ClearAnchors()
-            -- Default position if hidden/disabled
-            castBar:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 0, -160)
+        if mountStaminaBar then
+            mountStaminaBar:ClearAnchors()
+            mountStaminaBar:SetAnchor(TOP, ornamentRight, BOTTOM, 0, 0)
         end
     end
 end
@@ -1498,6 +1628,7 @@ local function SetupModule(control)
     SetupFoodTracker(control)
     SetupExperienceBar(control)
     SetupCastBar(control)
+    SetupMountStaminaBar(control)
     
     local updateDeathFragment = SetupVisibilityFragments(control)
     

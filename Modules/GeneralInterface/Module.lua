@@ -566,6 +566,20 @@ local function Init(mId, moduleName)
                     width = "full",
                 },
                 {
+                    type = "checkbox",
+                    name = "Always Show Cast Bar",
+                    tooltip = "When enabled, the cast bar frame is always visible. When disabled, the cast bar only appears during casting.",
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    width = "full",
+                },
+                {
                     type = "slider",
                     name = "Cast Text Size",
                     tooltip = "Adjust the font size of the cast timer",
@@ -618,6 +632,76 @@ local function Init(mId, moduleName)
                 },
             },
         },
+        {
+            type = "submenu",
+            name = GetString(SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU),
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable Mount Stamina Bar",
+                    tooltip = "Displays a mount stamina bar under the right ornament when mounted",
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "slider",
+                    name = "Mount Stamina Text Size",
+                    tooltip = "Adjust the font size of the mount stamina text",
+                    min = 12,
+                    max = 32,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextSize or 16 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Mount Stamina Text Color",
+                    tooltip = "Adjust the color of the mount stamina text",
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled end,
+                    width = "full",
+                },
+                {
+                    type = "button",
+                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+                    func = function()
+                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        settings.mountStaminaBarTextSize = defaults.mountStaminaBarTextSize
+                        settings.mountStaminaBarTextColor = defaults.mountStaminaBarTextColor
+
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled) end,
+                    width = "half",
+                },
+            },
+        },
     }
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -646,8 +730,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         xpBarTextSize = 16,
         xpBarTextColor = {1, 1, 1, 1},
         castBarEnabled = false,
+        castBarAlwaysShow = false,
         castBarTextSize = 16,
         castBarTextColor = {1, 1, 1, 1},
+        mountStaminaBarEnabled = false,
+        mountStaminaBarTextSize = 16,
+        mountStaminaBarTextColor = {1, 1, 1, 1},
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -667,8 +755,12 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.xpBarTextSize == nil then m_options.xpBarTextSize = defaults.xpBarTextSize end
     if m_options.xpBarTextColor == nil then m_options.xpBarTextColor = defaults.xpBarTextColor end
     if m_options.castBarEnabled == nil then m_options.castBarEnabled = defaults.castBarEnabled end
+    if m_options.castBarAlwaysShow == nil then m_options.castBarAlwaysShow = defaults.castBarAlwaysShow end
     if m_options.castBarTextSize == nil then m_options.castBarTextSize = defaults.castBarTextSize end
     if m_options.castBarTextColor == nil then m_options.castBarTextColor = defaults.castBarTextColor end
+    if m_options.mountStaminaBarEnabled == nil then m_options.mountStaminaBarEnabled = defaults.mountStaminaBarEnabled end
+    if m_options.mountStaminaBarTextSize == nil then m_options.mountStaminaBarTextSize = defaults.mountStaminaBarTextSize end
+    if m_options.mountStaminaBarTextColor == nil then m_options.mountStaminaBarTextColor = defaults.mountStaminaBarTextColor end
     return m_options
 end
 

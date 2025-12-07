@@ -193,6 +193,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Reset settin
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")
 
 -- Navigation Settings
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Enable Carousel Navigation")
