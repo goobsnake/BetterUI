@@ -161,12 +161,23 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Wähle die Schri
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Stil")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schriftstil für Spaltendaten.")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Klein")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "Standard")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Mittel")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Groß")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "Sehr groß")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Gesundheit Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Gesundheitstextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "Gesundheit Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "Passen Sie die Farbe des Gesundheitstextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "Magicka Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Magickatextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "Magicka Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "Passen Sie die Farbe des Magickatextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "Ausdauer Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Ausdauertextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "Ausdauer Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "Passen Sie die Farbe des Ausdauertextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Schild Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Schildtextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Schild Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Passen Sie die Farbe des Schildtextes an")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")

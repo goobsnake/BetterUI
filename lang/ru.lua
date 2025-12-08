@@ -161,12 +161,23 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Выберите
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Стиль")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Маленький")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "По умолчанию")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Средний")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Большой")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "Очень большой")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Размер текста здоровья")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Настроить размер шрифта текста здоровья")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "Цвет текста здоровья")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "Настроить цвет текста здоровья")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "Размер текста магии")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "Настроить размер шрифта текста магии")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "Цвет текста магии")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "Настроить цвет текста магии")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "Размер текста выносливости")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "Настроить размер шрифта текста выносливости")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "Цвет текста выносливости")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "Настроить цвет текста выносливости")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Размер текста щита")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Настроить размер шрифта текста щита")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Цвет текста щита")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Настроить цвет текста щита")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")

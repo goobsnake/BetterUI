@@ -161,12 +161,23 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Sélectionnez la
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Style")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Sélectionnez le style de police pour les données de colonnes.")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Petit")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "Par défaut")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Moyen")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Grand")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "Très grand")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Taille du texte de santé")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Ajuster la taille de la police du texte de santé")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "Couleur du texte de santé")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "Ajuster la couleur du texte de santé")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "Taille du texte de magie")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "Ajuster la taille de la police du texte de magie")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "Couleur du texte de magie")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "Ajuster la couleur du texte de magie")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "Taille du texte d'endurance")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "Ajuster la taille de la police du texte d'endurance")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "Couleur du texte d'endurance")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "Ajuster la couleur du texte d'endurance")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Taille du texte de bouclier")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Ajuster la taille de la police du texte de bouclier")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Couleur du texte de bouclier")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Ajuster la couleur du texte de bouclier")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")

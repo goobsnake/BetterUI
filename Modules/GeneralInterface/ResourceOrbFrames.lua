@@ -1464,9 +1464,13 @@ local function SetupShieldBar(rootFrame)
         m_shieldBar.label:GetParent():SetHidden(true)
     end
     
-    -- Apply bold font to shield label (matching health text style)
+    -- Apply shield text settings from user configuration
     if m_shieldBar.label then
-        m_shieldBar.label:SetFont("$(BOLD_FONT)|20|thick-outline")
+        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+        local shieldTextSize = settings.shieldTextSize or 20
+        local shieldTextColor = settings.shieldTextColor or {1, 1, 1, 1}
+        m_shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
+        m_shieldBar.label:SetColor(unpack(shieldTextColor))
     end
 
     -- Apply Shield Config
@@ -1748,6 +1752,15 @@ function ResourceOrbFrames.ApplySettings()
             ApplyStyle(POWERTYPE_STAMINA, "staminaTextSize", "staminaTextColor")
         end
         ApplyOrbLabelVisuals()
+        
+        -- Apply shield text settings separately (shield is not in m_pools)
+        if m_shieldBar and m_shieldBar.label then
+            local currentSettings = GetModuleSettings()
+            local shieldTextSize = currentSettings.shieldTextSize or 20
+            local shieldTextColor = currentSettings.shieldTextColor or {1, 1, 1, 1}
+            m_shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
+            m_shieldBar.label:SetColor(unpack(shieldTextColor))
+        end
 
         UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments
         UpdateDynamicLayout() -- Apply relative positioning of bars and ornaments

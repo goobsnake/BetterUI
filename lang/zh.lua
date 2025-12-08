@@ -161,12 +161,23 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据�
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "样式")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "小")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "默认")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "中")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "大")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "特大")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "生命值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "调整生命值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "生命值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "调整生命值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "魔力值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "调整魔力值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "魔力值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "调整魔力值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "耐力值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "调整耐力值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "耐力值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "调整耐力值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "护盾文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "调整护盾文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "护盾文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "调整护盾文字的颜色")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")

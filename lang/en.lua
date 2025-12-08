@@ -165,12 +165,23 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Select the font 
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Style")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Small")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "Default")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Medium")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Large")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "XLarge")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Health Text Size")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Adjust the font size of the health text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "Health Text Color")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "Adjust the color of the health text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "Magicka Text Size")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "Adjust the font size of the magicka text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "Magicka Text Color")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "Adjust the color of the magicka text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "Stamina Text Size")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "Adjust the font size of the stamina text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "Stamina Text Color")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "Adjust the color of the stamina text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Shield Text Size")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Adjust the font size of the shield text")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Shield Text Color")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Adjust the color of the shield text")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
