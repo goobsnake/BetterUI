@@ -1,4 +1,40 @@
-Current Release - 2.87 Changes:
+Current Release - 2.89 Changes:
+
+[INDENT]1. Added: Resource Orb Frames - New alternate UI option replacing default resource bars with stylized orb displays for Health, Magicka, and Stamina - Similar to ARPG UI styles.
+2. Added: Resource Orb Frames - Experience/Champion Point bar integrated
+3. Added: Resource Orb Frames - Cast Bar implementation - Shows casting progress for abilities
+4. Added: Resource Orb Frames - Mount Stamina Bar display - Shows remaining mount stamina while mounted
+5. Added: Resource Orb Frames - Companion Ultimate skill orientation - Shows companion ultimate ability when a companion is active
+6. Added: Resource Orb Frames - Health, Stamina, Magicka, Shield texts with customizable text size and color options
+7. Added: Resource Orb Frames - Scaling and offset options for new Resource Orb Frames UI
+8. Added: Toggle option for Carousel-style category navigation in Inventory and Banking
+9. Added: Global vs Per-Character settings option - Choose whether settings apply account-wide or per character
+10. Improved: Font size controls now use sliders for more precise customization for Inventory, Banking and Tooltips
+11. Fixed: Category UI navigation issues when using LB/RB to navigate between inventory categories
+12. Fixed: Quest items now properly transition to their native viewing state when used
+13. Fixed: Settings persistence issues - Module settings now correctly have defaults, save and load
+14. Changed: Updated all language files (de, en, es, fr, jp, ru, zh) with new localization strings for Orb Frame features
+
+*** Resource Orb Frames is a new optional UI feature that can be enabled in the General Interface settings. It provides an alternate visual style for your resource bars. ***
+[/INDENT]
+
+
+2.88 Changes:
+
+[INDENT]1. Added: Font customization for Inventory - Select font, size, and style for item names and column data (Type, Trait, Stat, Value)
+2. Added: Font customization for Banking - Select font, size, and style for item names and column data (Type, Trait, Stat, Value)
+3. Added: Currency visibility presets (Default, PvP Focus, Crafter Focus, Events Focus) for quick currency display configuration
+4. Added: Individual currency position ordering - Set display order for each currency type (1st through 10th)
+5. Added: Font customization for Nameplates - Select font, size, and style for player & npc nameplates
+6. Improved: Category tab bar now uses carousel-style navigation where selected category stays at the left position
+7. Improved: Revamped localization files - Added full translations for German (de), Spanish (es), and French (fr) language files
+8. Changed: Cleaned up unused code and improved code documentation throughout all modules
+
+*** Not all font customizations will scale or look correct within the inventory or banking UI - I have simply opened up additional options for others to play with to find what looks and performs best to them. ***
+[/INDENT]
+
+
+2.87 Changes:
 
 [INDENT]1. Fixed: Inventory and craftbag saved categories and item positions should work much more consistently
 2. Fixed: Craftbag items should no longer default to "Stow" as their primary action
