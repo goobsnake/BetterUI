@@ -761,12 +761,19 @@ local function SetupNativeBackBar(rootFrame)
     end)
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() UpdateBackBar(rootFrame) end)
     
-    -- Handle companion spawn/despawn - re-apply our positioning after native SetCompanionAnchors runs
+    -- Handle companion spawn/despawn - apply our positioning immediately AND after native code runs
+    -- This minimizes the visible "jump" from native ESO repositioning
     EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
-        -- Delay slightly so native positioning runs first, then we override
+        -- Apply immediately (may get overwritten by native)
+        UpdateQuickslotAndCompanionPositioning(rootFrame)
+        -- Apply again after native SetCompanionAnchors runs (catches any override)
         zo_callLater(function()
             UpdateQuickslotAndCompanionPositioning(rootFrame)
-        end, 50)
+        end, 10)
+        -- Final enforcement after animations complete
+        zo_callLater(function()
+            UpdateQuickslotAndCompanionPositioning(rootFrame)
+        end, 100)
     end)
     
     -- Update cooldowns periodically
