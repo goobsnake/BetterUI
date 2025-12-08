@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Alle Namensschildeins
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Schriftanpassung")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Passe Schriftarten für die Inventarliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "Alle Inventar-Schrifteinstellungen auf Standardwerte zurücksetzen.")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "Namensspalte Schrift")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schri
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Schriftanpassung")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Passe Schriftarten für die Bankliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "Alle Bank-Schrifteinstellungen auf Standardwerte zurücksetzen.")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "Namensspalte Schrift")
@@ -181,7 +179,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Passen Sie die F
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "Aktiviert die Gesundheits- und Ressourcenkugeln im ARPG-Stil.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Resource Orb Frames aktivieren")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Schaltet die Gesundheits- und Ressourcenkugeln im ARPG-Stil ein/aus.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Skalierung")
@@ -190,10 +188,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Benutzerdefinierte Texturen verwenden")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "Aktivieren, um Texturen aus 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' zu verwenden. Sie müssen Ihre eigenen Texturen dort mit den korrekten Dateinamen platzieren.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE", "Abklingzeit Textgröße")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP", "Passen Sie die Schriftgröße für den Abklingzeit-Timer-Text auf den Fertigkeitsleisten an.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR", "Abklingzeit Textfarbe")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP", "Wählen Sie die Farbe für den Abklingzeit-Timer-Text auf den Fertigkeitsleisten.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Auf Standard zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
 

@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネーム
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "フォントカスタマイズ")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "インベントリリストのフォントをカスタマイズします。名前列と他の列（タイプ、特性、ステータス、価値）に異なるフォントを設定できます。")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "デフォルトにリセット")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "すべてのインベントリフォント設定をデフォルト値にリセットします。")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "名前列フォント")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "列データの�
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "フォントカスタマイズ")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "銀行リストのフォントをカスタマイズします。名前列と他の列（タイプ、特性、ステータス、価値）に異なるフォントを設定できます。")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "デフォルトにリセット")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "すべての銀行フォント設定をデフォルト値にリセットします。")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "名前列フォント")
@@ -181,7 +179,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "シールドテ�
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "ARPGスタイルのヘルスおよびリソースオーブを有効にします。")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Resource Orb Framesを有効にする")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "ARPGスタイルのヘルスおよびリソースオーブを切り替えます。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "スケール")
@@ -190,10 +188,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直オフセッ�
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "フレームを上下に移動します。正の値は上に、負の値は下に移動します。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "カスタムテクスチャを使用")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "これを有効にすると、'BetterUI/Modules/GeneralInterface/CustomOrbTextures' のテクスチャが使用されます。正しいファイル名で独自のテクスチャをそこに配置する必要があります。")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE", "クールダウンテキストサイズ")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP", "スキルバーに表示されるクールダウンタイマーテキストのフォントサイズを調整します。")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR", "クールダウンテキストカラー")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP", "スキルバーに表示されるクールダウンタイマーテキストの色を選択します。")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Reset settings in this section to their default values.")
 

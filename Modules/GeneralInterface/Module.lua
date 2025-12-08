@@ -15,7 +15,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Guild Store Error Suppression",
 			tooltip = "Removes guild store error messages caused by MM or ATT",
-			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Tooltips"] then return false end
+				return BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress = value
 		            end,
             disabled = function() return ArkadiusTradeTools == nil and MasterMerchant == nil end,
@@ -67,7 +70,10 @@ local function Init(mId, moduleName)
             type = "editbox",
             name = "Chat window history size",
             tooltip = "Alters how many lines to store in the chat buffer, default=200",
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].chatHistory end,
+            getFunc = function() 
+				if not BETTERUI.Settings.Modules["Tooltips"] then return 200 end
+				return BETTERUI.Settings.Modules["Tooltips"].chatHistory or 200
+			end,
             setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].chatHistory = tonumber(value)
             							if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["Tooltips"].chatHistory) end end,
             default=200,
@@ -87,18 +93,32 @@ local function Init(mId, moduleName)
             type = "editbox",
             name = "Mouse Scrolling speed on Left Hand tooltip",
             tooltip = "Change how quickly the menu skips when pressing the triggers.",
-            getFunc = function() return BETTERUI.Settings.Modules["CIM"].rhScrollSpeed end,
-            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].rhScrollSpeed = value end,
-            disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+            getFunc = function() 
+				if not BETTERUI.Settings.Modules["CIM"] then return 50 end
+				return tostring(BETTERUI.Settings.Modules["CIM"].rhScrollSpeed)
+			end,
+            setFunc = function(value) 
+				if BETTERUI.Settings.Modules["CIM"] then
+					BETTERUI.Settings.Modules["CIM"].rhScrollSpeed = tonumber(value) or 50 
+				end
+			end,
+            disabled = function() return not (BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].m_enabled) end,
             width = "full",
         },
         {
             type = "editbox",
             name = "Number of lines to skip on trigger",
             tooltip = "Change how quickly the menu skips when pressing the triggers.",
-            getFunc = function() return BETTERUI.Settings.Modules["CIM"].triggerSpeed end,
-            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].triggerSpeed = value end,
-            disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+            getFunc = function() 
+				if not BETTERUI.Settings.Modules["CIM"] then return 10 end
+				return tostring(BETTERUI.Settings.Modules["CIM"].triggerSpeed) 
+			end,
+            setFunc = function(value) 
+				if BETTERUI.Settings.Modules["CIM"] then
+					BETTERUI.Settings.Modules["CIM"].triggerSpeed = tonumber(value) or 10 
+				end
+			end,
+            disabled = function() return not (BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].m_enabled) end,
             width = "full",
         },
 		{
@@ -108,7 +128,18 @@ local function Init(mId, moduleName)
 			min = 12,
 			max = 48,
 			step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["CIM"].tooltipSize or 24 end,
+            getFunc = function() 
+                local settings = BETTERUI.Settings.Modules["CIM"]
+                local val = 24
+                if settings then
+                    val = settings.tooltipSize or val
+                end
+                if type(val) == "string" then
+                    local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+                    return legacyMap[val] or 24
+                end
+                return val
+            end,
             setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
             disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
             width = "full",
@@ -134,7 +165,7 @@ local function Init(mId, moduleName)
 			tooltip = GetString(SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP),
 			default = false,
 			getFunc = function()
-				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled
+				return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled) or false
 			end,
 			setFunc = function(value)
 				if BETTERUI.Settings.Modules["Nameplates"] then
@@ -154,7 +185,8 @@ local function Init(mId, moduleName)
 			choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {},
 			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.font,
 			getFunc = function()
-				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].font
+				local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or {font="EsoUI/Common/Fonts/Univers57.otf"}
+				return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].font) or defaults.font
 			end,
 			setFunc = function(value)
 				if BETTERUI.Settings.Modules["Nameplates"] then
@@ -178,7 +210,8 @@ local function Init(mId, moduleName)
 			choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_VALUES or {},
 			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.style,
 			getFunc = function()
-				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].style
+				local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or {style="outline"}
+				return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].style) or defaults.style
 			end,
 			setFunc = function(value)
 				if BETTERUI.Settings.Modules["Nameplates"] then
@@ -202,7 +235,7 @@ local function Init(mId, moduleName)
 			step = 1,
 			default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.size or 16,
 			getFunc = function()
-				return BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].size or 16
+				return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].size) or 16
 			end,
 			setFunc = function(value)
 				if BETTERUI.Settings.Modules["Nameplates"] then
@@ -249,7 +282,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED),
 			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled 
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled = value
 				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -257,6 +293,7 @@ local function Init(mId, moduleName)
 				end
 			end,
 			width = "full",
+			requiresReload = true,
 		},
 		{
 			type = "slider",
@@ -266,7 +303,10 @@ local function Init(mId, moduleName)
 			max = 1.75,
 			step = 0.05,
 			decimals = 2,
-			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].scale end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1.15 end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].scale or 1.15
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].scale = value
 				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -283,7 +323,10 @@ local function Init(mId, moduleName)
 			min = -300,
 			max = 300,
 			step = 5,
-			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 40 end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY or 40
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY = value
 				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -297,7 +340,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
 			tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures 
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures = value
 				ReloadUI()
@@ -338,7 +384,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 48,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize or 20 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 20 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize or 20 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -352,6 +401,7 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP),
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -371,7 +421,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 48,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize or 20 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 20 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize or 20 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -385,6 +438,7 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP),
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -404,7 +458,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 48,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize or 20 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 20 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize or 20 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -418,6 +475,7 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP),
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -437,7 +495,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 48,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextSize or 20 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 20 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextSize or 20 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -451,6 +512,7 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP),
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -495,7 +557,10 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = "Enable Experience Bar",
                     tooltip = "Displays an experience/champion point bar above the top skill bar",
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -511,7 +576,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 32,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize or 16 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 16 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize or 16 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -526,6 +594,7 @@ local function Init(mId, moduleName)
                     name = "XP Text Color",
                     tooltip = "Adjust the color of the experience text",
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -566,7 +635,10 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = "Enable Cast Bar",
                     tooltip = "Displays a casting bar above the Experience bar",
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -579,7 +651,10 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = "Always Show Cast Bar",
                     tooltip = "When enabled, the cast bar frame is always visible. When disabled, the cast bar only appears during casting.",
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -596,7 +671,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 32,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize or 16 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 16 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize or 16 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -611,6 +689,7 @@ local function Init(mId, moduleName)
                     name = "Cast Text Color",
                     tooltip = "Adjust the color of the cast timer text",
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
@@ -650,7 +729,10 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = "Enable Mount Stamina Bar",
                     tooltip = "Displays a mount stamina bar under the right ornament when mounted",
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -666,7 +748,10 @@ local function Init(mId, moduleName)
                     min = 12,
                     max = 32,
                     step = 1,
-                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextSize or 16 end,
+                    getFunc = function() 
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 16 end
+						return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextSize or 16 
+					end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextSize = value
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -681,6 +766,7 @@ local function Init(mId, moduleName)
                     name = "Mount Stamina Text Color",
                     tooltip = "Adjust the color of the mount stamina text",
                     getFunc = function()
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,

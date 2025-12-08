@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить вс
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Настройте шрифты для списка инвентаря. Установите разные шрифты для столбца Название и других столбцов (Тип, Черта, Стат, Цена).")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "Сбросить настройки")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "Сбросить все настройки шрифтов инвентаря к значениям по умолчанию.")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "Шрифт столбца Название")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Выберите
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Настройка шрифтов")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Настройте шрифты для списка банка. Установите разные шрифты для столбца Название и других столбцов (Тип, Черта, Стат, Цена).")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "Сбросить настройки")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "Сбросить все настройки шрифтов банка к значениям по умолчанию.")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "Шрифт столбца Название")
@@ -181,7 +179,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Настроит
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "Включить сферы здоровья и ресурсов в стиле ARPG.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Включить Resource Orb Frames")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Переключить сферы здоровья и ресурсов в стиле ARPG.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Масштаб")
@@ -190,10 +188,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Вертикаль�
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "Переместить рамку вверх/вниз. Положительное значение перемещает вверх, отрицательное - вниз.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Использовать свои текстуры")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "Включите, чтобы использовать текстуры из 'BetterUI/Modules/GeneralInterface/CustomOrbTextures'. Вы должны поместить туда свои текстуры с правильными именами файлов.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE", "Размер текста перезарядки")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP", "Настройте размер шрифта для текста таймера перезарядки, отображаемого на панелях способностей.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR", "Цвет текста перезарядки")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP", "Выберите цвет для текста таймера перезарядки, отображаемого на панелях способностей.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Сбросить настройки в этом разделе к значениям по умолчанию.")
 

@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "自定义物品栏列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "重置为默认")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "将所有物品栏字体设置重置为默认值。")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "名称列字体")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据�
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "字体自定义")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "自定义银行列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "重置为默认")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "将所有银行字体设置重置为默认值。")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "名称列字体")
@@ -181,7 +179,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "调整护盾文�
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "启用 ARPG 风格的生命和资源球。")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "启用 Resource Orb Frames")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "切换 ARPG 风格的生命和资源球。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "缩放")
@@ -190,10 +188,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直偏移 (上/�
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "向上/向下移动框架。正值向上移动；负值向下移动。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "使用自定义纹理")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "启用此选项以使用 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' 中的纹理。您必须将自己的纹理放置在那里，并使用正确的文件名。")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE", "冷却文本大小")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP", "调整技能栏上显示的冷却计时器文本的字体大小。")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR", "冷却文本颜色")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP", "选择技能栏上显示的冷却计时器文本的颜色。")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "重置为默认")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "将此部分的设置重置为默认值。")
 
