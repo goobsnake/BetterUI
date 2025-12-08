@@ -494,11 +494,6 @@ local function UpdateBackBarCooldowns(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
     
-    -- Get settings for cooldown text
-    local settings = GetModuleSettings()
-    local textSize = settings.cooldownTextSize or DEFAULTS.cooldownTextSize
-    local textColor = settings.cooldownTextColor or DEFAULTS.cooldownTextColor
-    
     -- Slots 3-7 are skills, 8 is Ultimate
     local slots = {3, 4, 5, 6, 7, 8}
     
@@ -550,12 +545,11 @@ local function UpdateBackBarCooldowns(rootFrame)
                         icon:SetDesaturation(1)
                     end
                     
-                    -- Show and update timer text
                     cooldownText:SetHidden(false)
-                    cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", textSize))
-                    cooldownText:SetColor(textColor[1] or 1, textColor[2] or 1, textColor[3] or 1, textColor[4] or 1)
+                    cooldownText:SetFont("$(MEDIUM_FONT)|22|soft-shadow-thin")
                     
-                    if remaining >= 10 then
+                    -- Match native timer format: whole numbers until under 2 seconds
+                    if remaining >= 2 then
                         cooldownText:SetText(string.format("%.0f", remaining))
                     else
                         cooldownText:SetText(string.format("%.1f", remaining))
@@ -626,13 +620,51 @@ local function UpdateBackBarLayout(rootFrame)
                 -- First button: anchor to CENTER of container, offset left by half width
                 btn:SetAnchor(LEFT, backBarContainer, CENTER, -halfWidth, 0)
             elseif i == 6 then
-                -- Ultimate Button (Button6)
+                -- Ultimate Button (Button6) - add configurable offset
                 local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
-                btn:SetAnchor(LEFT, prevBtn, RIGHT, ultimateGap, 0)
+                local backUltOffset = BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX or 0
+                btn:SetAnchor(LEFT, prevBtn, RIGHT, ultimateGap + backUltOffset, 0)
             else
                 local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
                 btn:SetAnchor(LEFT, prevBtn, RIGHT, offset, 0)
             end
+        end
+    end
+end
+
+-- Update quickslot and companion ultimate positioning
+-- Both are positioned relative to BgMiddle (center), allowing centering between front and back bars
+-- Quickslot: always visible, to the right of ultimates
+-- Companion ultimate: only visible when companion is active, on the left side
+local function UpdateQuickslotAndCompanionPositioning(rootFrame)
+    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    
+    local quickSlotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local companionButton = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, HOTBAR_CATEGORY_COMPANION)
+    
+    -- Use same check as native ESO code: DoesUnitExist("companion") AND HasActiveCompanion()
+    local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
+    local cfg = BETTERUI_ORB_FRAMES.bars
+    
+    -- Quickslot: positioned relative to BgMiddle (centered between bars, to the right of ultimates)
+    if quickSlotButton and quickSlotButton.slot and bgMiddle then
+        quickSlotButton.slot:SetHidden(false)
+        quickSlotButton.slot:ClearAnchors()
+        quickSlotButton.slot:SetAnchor(CENTER, bgMiddle, BOTTOM,
+            cfg.quickslot.x,
+            cfg.quickslot.y)
+    end
+    
+    -- Companion ultimate: positioned relative to BgMiddle (centered between bars, on the left side)
+    if companionButton and companionButton.slot then
+        if companionActive and bgMiddle then
+            companionButton.slot:SetHidden(false)
+            companionButton.slot:ClearAnchors()
+            companionButton.slot:SetAnchor(CENTER, bgMiddle, BOTTOM,
+                cfg.companionUltimate.x,
+                cfg.companionUltimate.y)
+        else
+            companionButton.slot:SetHidden(true)
         end
     end
 end
@@ -668,13 +700,22 @@ local function UpdateMainBarLayout(rootFrame)
         ZO_ActionBar1WeaponSwap:SetHidden(true)
     end
     
-    -- Position quickslot to the left of the bar
-    local quickSlotButton = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-    if quickSlotButton and quickSlotButton.slot then
-        quickSlotButton.slot:SetHidden(false)
-        quickSlotButton.slot:ClearAnchors()
-        quickSlotButton.slot:SetAnchor(RIGHT, barParent, LEFT, BETTERUI_ORB_FRAMES.bars.quickslotOffsetX, 0)
+    -- Apply offset to front bar ultimate if configured
+    local frontUltOffset = BETTERUI_ORB_FRAMES.bars.frontUltimateOffsetX or 0
+    if frontUltOffset ~= 0 then
+        local ultimateButton = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX + 1)
+        if ultimateButton and ultimateButton.slot then
+            -- Get current anchor and apply offset
+            local isValid, point, relativeTo, relativePoint, offsetX, offsetY = ultimateButton.slot:GetAnchor(0)
+            if isValid then
+                ultimateButton.slot:ClearAnchors()
+                ultimateButton.slot:SetAnchor(point, relativeTo, relativePoint, offsetX + frontUltOffset, offsetY)
+            end
+        end
     end
+    
+    -- Position quickslot and companion ultimate based on companion state
+    UpdateQuickslotAndCompanionPositioning(rootFrame)
 end
 
 local function UpdateBarPositions(rootFrame)
@@ -720,6 +761,14 @@ local function SetupNativeBackBar(rootFrame)
     end)
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() UpdateBackBar(rootFrame) end)
     
+    -- Handle companion spawn/despawn - re-apply our positioning after native SetCompanionAnchors runs
+    EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+        -- Delay slightly so native positioning runs first, then we override
+        zo_callLater(function()
+            UpdateQuickslotAndCompanionPositioning(rootFrame)
+        end, 50)
+    end)
+    
     -- Update cooldowns periodically
     local function CooldownTick()
         UpdateBackBarCooldowns(rootFrame)
@@ -748,12 +797,8 @@ local function ApplyActionBarSkin(rootFrame, layout)
         end, 150)
     end
 
-    -- Companion Ultimate
-    local companionButton = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, HOTBAR_CATEGORY_COMPANION)
-    if companionButton and companionButton.slot then
-        companionButton.slot:ClearAnchors()
-        companionButton.slot:SetAnchor(RIGHT, GuiRoot, RIGHT, -(layout.abilitySlotOffsetX + 13), layout.abilitySlotWidth)
-    end
+    -- Companion Ultimate positioning is handled by UpdateQuickslotAndCompanionPositioning
+    -- which is called from UpdateMainBarLayout and on EVENT_ACTIVE_COMPANION_STATE_CHANGED
 
     ZO_HUDEquipmentStatus:ClearAnchors()
     ZO_HUDEquipmentStatus:SetAnchor(RIGHT, GuiRoot, RIGHT, -(layout.abilitySlotOffsetX + 13), 0)
@@ -1209,8 +1254,12 @@ function MountStaminaBar:Initialize(parent)
     self:SetColor(0, 0.8, 0.2, 1) -- Green color matching stamina orb
     self.label:SetText("Mount Stamina")
     
-    -- Start hidden until mounted
-    self.control:SetHidden(true)
+    -- Initialize with current mount state (handles reload while mounted)
+    if IsMounted() then
+        local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
+        self.currentValue = current
+        self.maxValue = max
+    end
     
     -- Register for mount state changes
     EVENT_MANAGER:RegisterForEvent(NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED, function(_, isMounted)
@@ -1229,17 +1278,12 @@ function MountStaminaBar:Initialize(parent)
 end
 
 function MountStaminaBar:OnMountedStateChanged(isMounted)
-    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled then
-        self.control:SetHidden(true)
-        return
-    end
-    
-    self.control:SetHidden(not isMounted)
+    -- Just update values when mounting - Update() handles visibility
     if isMounted then
-        -- Initialize with current values
         local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
         self:OnPowerUpdate(current, max)
     end
+    -- Note: We don't hide the bar here - Update() handles that based on settings
 end
 
 function MountStaminaBar:OnPowerUpdate(current, max)

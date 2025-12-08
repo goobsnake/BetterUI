@@ -304,32 +304,7 @@ local function Init(mId, moduleName)
 			width = "full",
 			warning = "Requires Reload UI",
 		},
-        {
-            type = "slider",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_SIZE_TOOLTIP),
-            min = 12,
-            max = 32,
-            step = 1,
-            getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize or 18 end,
-            setFunc = function(value)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize = value
-            end,
-            width = "full",
-        },
-        {
-            type = "colorpicker",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_COOLDOWN_TEXT_COLOR_TOOLTIP),
-            getFunc = function()
-                local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor or {1, 1, 1, 1}
-                return color[1], color[2], color[3], color[4] or 1
-            end,
-            setFunc = function(r, g, b, a)
-                BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor = {r, g, b, a}
-            end,
-            width = "full",
-        },
+        -- Cooldown text settings removed - now uses native ESO yellow styling
         {
             type = "button",
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
@@ -340,8 +315,7 @@ local function Init(mId, moduleName)
                 settings.scale = defaults.scale
                 settings.offsetY = defaults.offsetY
                 settings.useCustomTextures = defaults.useCustomTextures
-                settings.cooldownTextSize = defaults.cooldownTextSize
-                settings.cooldownTextColor = defaults.cooldownTextColor
+                -- Cooldown settings removed
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -718,8 +692,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         offsetY = 80,
         useCustomTextures = false,
         centerBarType = "XP",
-        cooldownTextSize = 18,
-        cooldownTextColor = {1, 1, 1, 1},
+        -- cooldownTextSize and cooldownTextColor removed - uses native styling
         healthTextSize = 20,
         healthTextColor = {1, 1, 1, 1},
         magickaTextSize = 20,
@@ -743,8 +716,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.offsetY == nil then m_options.offsetY = defaults.offsetY end
     if m_options.useCustomTextures == nil then m_options.useCustomTextures = defaults.useCustomTextures end
     if m_options.centerBarType == nil then m_options.centerBarType = defaults.centerBarType end
-    if m_options.cooldownTextSize == nil then m_options.cooldownTextSize = defaults.cooldownTextSize end
-    if m_options.cooldownTextColor == nil then m_options.cooldownTextColor = defaults.cooldownTextColor end
+    -- cooldownTextSize and cooldownTextColor removed - uses native styling
     if m_options.healthTextSize == nil then m_options.healthTextSize = defaults.healthTextSize end
     if m_options.healthTextColor == nil then m_options.healthTextColor = defaults.healthTextColor end
     if m_options.magickaTextSize == nil then m_options.magickaTextSize = defaults.magickaTextSize end

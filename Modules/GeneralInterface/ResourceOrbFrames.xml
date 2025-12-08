@@ -14,9 +14,10 @@
                     textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
                     <AnchorFill />
                 </Texture>
-                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGameBold" tier="HIGH"
-                    verticalAlignment="1" horizontalAlignment="1" color="ffffff">
-                    <AnchorFill />
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH"
+                    verticalAlignment="1" horizontalAlignment="1" color="DCD822">
+                    <Anchor point="CENTER" relativePoint="CENTER" offsetY="11" />
                 </Label>
                 <Texture name="$(parent)Border"
                     textureFile="esoui/art/actionbar/abilityframe64_up.dds" layer="2">

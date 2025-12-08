@@ -134,7 +134,23 @@ BETTERUI_ORB_FRAMES = {
         ultimateGap = 66,         -- Extra gap before ultimate skill (pixels)
         mainBarShiftFactor = 0,   -- Legacy: keep at 0
         indicatorOffsetX = -10,   -- Bar indicator: left (-) or right (+)
-        quickslotOffsetX = 0,     -- Quickslot: left (-) or right (+)
+        
+        -- Ultimate skill offset (move ultimates left to make room for quickslot on right)
+        frontUltimateOffsetX = -22, -- Front bar ultimate: left (-) or right (+)
+        backUltimateOffsetX = -22,  -- Back bar ultimate: left (-) or right (+)
+        
+        -- Quickslot positioning (relative to BgMiddle, centered between front/back bars)
+        quickslot = {
+            x = 308,              -- Left (-) or right (+) from center (positive = right side near ultimates)
+            y = -27,              -- Up (-) or down (+) to center between bars
+        },
+        
+        -- Companion Ultimate positioning (relative to BgMiddle, centered between bars)
+        companionUltimate = {
+            x = -297,             -- Left (-) or right (+) from center (negative = left side)
+            y = -20,              -- Up (-) or down (+) to center between bars
+        },
+        
         bottom = { 
             x = -40,              -- Main bar: left (-) or right (+)
             gamepadY = -15,       -- Gamepad: up (-) or down (+)
@@ -150,13 +166,13 @@ BETTERUI_ORB_FRAMES = {
     -- Ornament (statue) positioning relative to center of skill bars
     ornaments = {
         left = { 
-            x = -450,             -- Left (-) or right (+) from center
+            x = -475,             -- Left (-) or right (+) from center
             y = -15,              -- Up (-) or down (+)
             size = 375,           -- Size in pixels
             scale = 1.0,          -- Scale multiplier (1.0 = 100%)
         },
         right = { 
-            x = 450,              -- Left (-) or right (+) from center
+            x = 475,              -- Left (-) or right (+) from center
             y = -25,              -- Up (-) or down (+)
             size = 400,           -- Size in pixels
             scale = 1.0,          -- Scale multiplier (1.0 = 100%)
@@ -236,8 +252,8 @@ BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (fr
 BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0     -- Scale multiplier for mount stamina bar
 BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0    -- X offset from center (positive = right)
 BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99  -- Y offset from ornament bottom (negative = up)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 35   -- Horizontal inset for fill bar within frame
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 55   -- Vertical inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 22   -- Horizontal inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 60   -- Vertical inset for fill bar within frame
 BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 250     -- Width of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 150    -- Height of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from center)
@@ -247,4 +263,4 @@ BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label
 -- ============================================================================
 
 -- Set to true to always show the shield overlay for visual debugging/positioning
-BETTERUI_SHIELD_DEBUG = true
+BETTERUI_SHIELD_DEBUG = false
