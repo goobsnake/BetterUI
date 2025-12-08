@@ -2041,8 +2041,9 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
     self.bankHeaderData.tabBarData = { parent = self }
     -- Carousel configuration for banking - uses constants from BetterUI.CONST.lua
+    local isCarousel = BETTERUI.Settings.Modules["Banking"].enableCarousel
     self.bankHeaderData.carouselConfig = {
-        enabled = true,
+        enabled = isCarousel,
         startOffset = BETTERUI_BANKING_CAROUSEL_START_OFFSET,
         verticalOffset = BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET,
         itemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING,

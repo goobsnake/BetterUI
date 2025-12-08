@@ -1,6 +1,7 @@
 -- BetterUI Inventory Slot Actions
 -- Item action handling: equip, use, bank, and craft bag operations
 
+
 INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
 INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 
@@ -12,6 +13,10 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
     visibilityFunction = function()
 	    return not IsUnitDead("player")
 	end
+
+	-- Set the primary override so the A button callback uses this directly
+	self._betterui_primaryOverride = actionCallback
+	self._betterui_primaryName = actionName
 
 	-- The following line inserts a row into the FIRST slotAction table, which corresponds to ACTION_KEY
     table.insert(self.m_slotActions, 1, { actionName, actionCallback, actionType, visibilityFunction, options })
@@ -203,10 +208,14 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 local slotType = ZO_InventorySlot_GetType(inventorySlot)
                 if slotType == SLOT_TYPE_QUEST_ITEM then
                     if inventorySlot then
+                        -- Hide the inventory scene FIRST to allow the native quest item UI to appear
+                        SCENE_MANAGER:Hide("gamepad_inventory_root")
+                        -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
+                        -- (this matches how the base game's TryUseQuestItem works)
                         if inventorySlot.toolIndex then
-                            CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                            UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
                         elseif inventorySlot.conditionIndex then
-                            CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                            UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
                         end
                     end
                 else

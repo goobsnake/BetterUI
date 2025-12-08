@@ -26,6 +26,17 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
+			name = "Use Global Settings",
+			tooltip = "When enabled, settings will be saved account-wide instead of per-character.",
+			getFunc = function() return BETTERUI.SavedVars.useAccountWide end,
+			setFunc = function(value)
+				BETTERUI.SavedVars.useAccountWide = value
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = "Enable |c0066FFGeneral Interface Improvements|r",
 			tooltip = "Vast improvements to the ingame tooltips and UI",
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].m_enabled end,
@@ -281,7 +292,15 @@ function BETTERUI.Initialize(event, addon)
 	if addon ~= BETTERUI.name then return end
 
 	-- Load saved variables
-	BETTERUI.Settings = ZO_SavedVars:New("BetterUISavedVars", 2.88, nil, BETTERUI.DefaultSettings)
+	BETTERUI.SavedVars = ZO_SavedVars:New("BetterUISavedVars", 2.87, nil, BETTERUI.DefaultSettings)
+	BETTERUI.GlobalVars = ZO_SavedVars:NewAccountWide("BetterUISavedVars", 2.87, nil, BETTERUI.DefaultSettings)
+
+	-- Determine which settings to use
+	if BETTERUI.SavedVars.useAccountWide then
+		BETTERUI.Settings = BETTERUI.GlobalVars
+	else
+		BETTERUI.Settings = BETTERUI.SavedVars
+	end
 
 	-- Initialize module settings on first install
 	if BETTERUI.Settings.firstInstall then
@@ -291,7 +310,8 @@ function BETTERUI.Initialize(event, addon)
 			{"Banking", BETTERUI.Banking},
 			{"Writs", BETTERUI.Writs},
 			{"Tooltips", BETTERUI.Tooltips},
-			{"Nameplates", BETTERUI.Nameplates}
+			{"Nameplates", BETTERUI.Nameplates},
+			{"Orbs", BETTERUI.Orbs}
 		}
 
 		for _, moduleInfo in ipairs(modules) do
@@ -303,6 +323,14 @@ function BETTERUI.Initialize(event, addon)
 
 		ddebug("First install detected - initializing module settings")
 		BETTERUI.Settings.firstInstall = false
+	end
+
+	-- Ensure Orbs module settings exist for existing users (added in later update)
+	if BETTERUI.Settings.Modules["Orbs"] == nil then
+		BETTERUI.Settings.Modules["Orbs"] = {}
+	end
+	if BETTERUI.Orbs and BETTERUI.Orbs.InitModule then
+		BETTERUI.Orbs.InitModule(BETTERUI.Settings.Modules["Orbs"])
 	end
 
 	-- Unregister the initialization event

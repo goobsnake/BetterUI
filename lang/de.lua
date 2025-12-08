@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Alle Namensschildeins
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Schriftanpassung")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Passe Schriftarten für die Inventarliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "Alle Inventar-Schrifteinstellungen auf Standardwerte zurücksetzen.")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "Namensspalte Schrift")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schri
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Schriftanpassung")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Passe Schriftarten für die Bankliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "Alle Bank-Schrifteinstellungen auf Standardwerte zurücksetzen.")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "Namensspalte Schrift")
@@ -161,9 +159,43 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Wähle die Schri
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Stil")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schriftstil für Spaltendaten.")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "Klein")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "Standard")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "Mittel")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "Groß")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "Sehr groß")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Gesundheit Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Gesundheitstextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "Gesundheit Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "Passen Sie die Farbe des Gesundheitstextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "Magicka Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Magickatextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "Magicka Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "Passen Sie die Farbe des Magickatextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "Ausdauer Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Ausdauertextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "Ausdauer Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "Passen Sie die Farbe des Ausdauertextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Schild Textgröße")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Passen Sie die Schriftgröße des Schildtextes an")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Schild Textfarbe")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Passen Sie die Farbe des Schildtextes an")
+
+-- Resource Orb Frames
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Resource Orb Frames aktivieren")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Schaltet die Gesundheits- und Ressourcenkugeln im ARPG-Stil ein/aus.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Skalierung")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröße des Rahmens.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz (Auf/Ab)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Benutzerdefinierte Texturen verwenden")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "Aktivieren, um Texturen aus 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' zu verwenden. Sie müssen Ihre eigenen Texturen dort mit den korrekten Dateinamen platzieren.")
+
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Auf Standard zurücksetzen")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")
+
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Enable Carousel Navigation")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Use the modern carousel style navigation instead of the classic tab bar.")

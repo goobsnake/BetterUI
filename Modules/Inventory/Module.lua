@@ -56,26 +56,22 @@ BETTERUI.Inventory.FONTSTYLE_VALUES = {
 
 BETTERUI.Inventory.DEFAULTS = {
 	nameFont = "EsoUI/Common/Fonts/FTN57.otf",
-	nameFontSize = "Default",
+	nameFontSize = 24,
 	nameFontStyle = "",
 	columnFont = "EsoUI/Common/Fonts/FTN57.otf",
-	columnFontSize = "Default",
+	columnFontSize = 24,
 	columnFontStyle = "",
 }
 
--- Converts size string to pixel value
-local function GetFontSizeValue(sizeStr)
-	if sizeStr == "XLarge" then
-		return 36
-	elseif sizeStr == "Large" then
-		return 32
-	elseif sizeStr == "Medium" then
-		return 28
-	elseif sizeStr == "Small" then
-		return 20
-	else
-		return 24  -- Default
+-- Converts size setting to pixel value (handles legacy string values and new numeric values)
+local function GetFontSizeValue(sizeValue)
+	-- Handle new numeric values directly
+	if type(sizeValue) == "number" then
+		return sizeValue
 	end
+	-- Legacy string value migration
+	local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+	return legacyMap[sizeValue] or 24
 end
 
 -- Returns font descriptor for Name column: "fontPath|size|style"
@@ -237,8 +233,23 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Enable quick destroy functionality",
 			tooltip = "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog!",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].quickDestroy end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].quickDestroy 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].quickDestroy = value end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
+			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].enableCarousel 
+			end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].enableCarousel = value end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -246,7 +257,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Use triggers to move to next item type",
 			tooltip = "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip = value end,
 			width = "full",
 		},
@@ -254,7 +268,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Replace \"Value\" with the market's price",
 			tooltip = "Replaces the item \"Value\" with either MM's, ATT's or TTC's average price",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showMarketPrice end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].showMarketPrice 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showMarketPrice = value end,
 			width = "full",
 		},
@@ -262,7 +279,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Bind on Equip Protection",
 			tooltip = "Show a dialog before equipping Bind on Equip items",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection = value end,
 			width = "full",
 			requiresReload = true,
@@ -271,7 +291,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Item Icon - Unbound Items",
 			tooltip = "Show an icon after unbound items",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return true end
+				return BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem = value end,
 			width = "full",
 			requiresReload = true,
@@ -280,7 +303,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Item Icon - Enchantment",
 			tooltip = "Show an icon after enchanted item",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showIconEnchantment end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return true end
+				return BETTERUI.Settings.Modules["Inventory"].showIconEnchantment 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconEnchantment = value end,
 			width = "full",
 			requiresReload = true,
@@ -289,7 +315,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Item Icon - Set Gear",
 			tooltip = "Show an icon after set gears",
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showIconSetGear end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return true end
+				return BETTERUI.Settings.Modules["Inventory"].showIconSetGear 
+			end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconSetGear = value end,
 			width = "full",
 			requiresReload = true,
@@ -317,6 +346,7 @@ local function Init(mId, moduleName)
 					},
 					choicesValues = {"default", "pvp", "crafter", "events", "custom"},
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return "custom" end
 						return BETTERUI.Settings.Modules["Inventory"].currencyPreset or "custom"
 					end,
 					setFunc = function(value)
@@ -336,7 +366,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_GOLD),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyGold = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -353,6 +386,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 1 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyGold or 1)
 					end,
 					setFunc = function(value)
@@ -367,7 +401,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_AP),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -384,6 +421,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 2 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyAlliancePoints or 2)
 					end,
 					setFunc = function(value)
@@ -398,7 +436,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TELVAR),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -415,6 +456,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 3 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTelVar or 3)
 					end,
 					setFunc = function(value)
@@ -429,7 +471,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_KEYS),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -446,6 +491,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 4 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyUndauntedKeys or 4)
 					end,
 					setFunc = function(value)
@@ -460,7 +506,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TRANSMUTE),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -477,6 +526,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 5 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTransmute or 5)
 					end,
 					setFunc = function(value)
@@ -491,7 +541,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_CROWNS),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -508,6 +561,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 6 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrowns or 6)
 					end,
 					setFunc = function(value)
@@ -522,7 +576,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_GEMS),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -539,6 +596,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 7 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyCrownGems or 7)
 					end,
 					setFunc = function(value)
@@ -553,7 +611,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_WRITS),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -570,6 +631,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 8 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyWritVouchers or 8)
 					end,
 					setFunc = function(value)
@@ -584,7 +646,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TICKETS),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -601,6 +666,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 9 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyEventTickets or 9)
 					end,
 					setFunc = function(value)
@@ -615,7 +681,10 @@ local function Init(mId, moduleName)
 				{
 					type = "checkbox",
 					name = GetString(SI_BETTERUI_CURRENCY_SHOW_OUTFIT),
-					getFunc = function() return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false end,
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return true end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false 
+					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
@@ -632,6 +701,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens == false
 					end,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 10 end
 						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyOutfitTokens or 10)
 					end,
 					setFunc = function(value)
@@ -683,6 +753,7 @@ local function Init(mId, moduleName)
 					choices = BETTERUI.Inventory.FONT_CHOICES,
 					choicesValues = BETTERUI.Inventory.FONT_VALUES,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return BETTERUI.Inventory.DEFAULTS.nameFont end
 						return BETTERUI.Settings.Modules["Inventory"].nameFont or BETTERUI.Inventory.DEFAULTS.nameFont
 					end,
 					setFunc = function(value)
@@ -695,13 +766,23 @@ local function Init(mId, moduleName)
 					default = BETTERUI.Inventory.DEFAULTS.nameFont,
 				},
 				{
-					type = "dropdown",
+					type = "slider",
 					name = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP),
-					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
-					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
+					min = 12,
+					max = 48,
+					step = 1,
 					getFunc = function()
-						return BETTERUI.Settings.Modules["Inventory"].nameFontSize or BETTERUI.Inventory.DEFAULTS.nameFontSize
+						local settings = BETTERUI.Settings.Modules["Inventory"]
+						local val = BETTERUI.Inventory.DEFAULTS.nameFontSize
+						if settings then
+							val = settings.nameFontSize or val
+						end
+						if type(val) == "string" then
+							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+							return legacyMap[val] or 24
+						end
+						return val
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
@@ -727,6 +808,20 @@ local function Init(mId, moduleName)
 					width = "full",
 					requiresReload = true,
 					default = BETTERUI.Inventory.DEFAULTS.nameFontStyle,
+				},
+				{
+					type = "button",
+					name = GetString(SI_BETTERUI_NAME_FONT_RESET),
+					tooltip = GetString(SI_BETTERUI_NAME_FONT_RESET_TOOLTIP),
+					func = function()
+						local d = BETTERUI.Inventory.DEFAULTS
+						local s = BETTERUI.Settings.Modules["Inventory"]
+						s.nameFont = d.nameFont
+						s.nameFontSize = d.nameFontSize
+						s.nameFontStyle = d.nameFontStyle
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "half",
 				},
 			},
 		},
@@ -754,13 +849,23 @@ local function Init(mId, moduleName)
 					default = BETTERUI.Inventory.DEFAULTS.columnFont,
 				},
 				{
-					type = "dropdown",
+					type = "slider",
 					name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP),
-					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
-					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
+					min = 12,
+					max = 48,
+					step = 1,
 					getFunc = function()
-						return BETTERUI.Settings.Modules["Inventory"].columnFontSize or BETTERUI.Inventory.DEFAULTS.columnFontSize
+						local settings = BETTERUI.Settings.Modules["Inventory"]
+						local val = BETTERUI.Inventory.DEFAULTS.columnFontSize
+						if settings then
+							val = settings.columnFontSize or val
+						end
+						if type(val) == "string" then
+							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+							return legacyMap[val] or 24
+						end
+						return val
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
@@ -787,25 +892,23 @@ local function Init(mId, moduleName)
 					requiresReload = true,
 					default = BETTERUI.Inventory.DEFAULTS.columnFontStyle,
 				},
+				{
+					type = "button",
+					name = GetString(SI_BETTERUI_COLUMN_FONT_RESET),
+					tooltip = GetString(SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP),
+					func = function()
+						local d = BETTERUI.Inventory.DEFAULTS
+						local s = BETTERUI.Settings.Modules["Inventory"]
+						s.columnFont = d.columnFont
+						s.columnFontSize = d.columnFontSize
+						s.columnFontStyle = d.columnFontStyle
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "half",
+				},
 			},
 		},
-		{
-			type = "button",
-			name = GetString(SI_BETTERUI_INV_FONT_RESET),
-			tooltip = GetString(SI_BETTERUI_INV_FONT_RESET_TOOLTIP),
-			func = function()
-				local d = BETTERUI.Inventory.DEFAULTS
-				local s = BETTERUI.Settings.Modules["Inventory"]
-				s.nameFont = d.nameFont
-				s.nameFontSize = d.nameFontSize
-				s.nameFontStyle = d.nameFontStyle
-				s.columnFont = d.columnFont
-				s.columnFontSize = d.columnFontSize
-				s.columnFontStyle = d.columnFontStyle
-			end,
-			disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
-			width = "half",
-		},
+		-- Removed Global Reset Button
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -816,13 +919,15 @@ end
 --- @param m_options table: The module options table to initialize
 --- @return table: The initialized options table
 function BETTERUI.Inventory.InitModule(m_options)
-	m_options["showMarketPrice"] = false
-	m_options["useTriggersForSkip"] = false
-	m_options["bindOnEquipProtection"] = true
-	m_options["showIconEnchantment"] = true
-	m_options["showIconSetGear"] = true
-	m_options["showIconUnboundItem"] = true
-	m_options["quickDestroy"] = false
+	-- Core settings (preserve existing user values)
+	if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = false end
+	if m_options["useTriggersForSkip"] == nil then m_options["useTriggersForSkip"] = false end
+	if m_options["bindOnEquipProtection"] == nil then m_options["bindOnEquipProtection"] = true end
+	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
+	if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
+	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
+	if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
+	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
 
 	-- Font customization - Name column settings
 	local defaults = BETTERUI.Inventory.DEFAULTS
@@ -844,6 +949,14 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options["nameFontSize"] = m_options["skinSize"]
 		m_options["columnFontSize"] = m_options["skinSize"]
 	end
+	-- Migrate legacy string font sizes to numeric values
+	local legacySizeMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+	if type(m_options["nameFontSize"]) == "string" then
+		m_options["nameFontSize"] = legacySizeMap[m_options["nameFontSize"]] or 24
+	end
+	if type(m_options["columnFontSize"]) == "string" then
+		m_options["columnFontSize"] = legacySizeMap[m_options["columnFontSize"]] or 24
+	end
 	if m_options["fontStyle"] and not m_options["nameFontStyle"] then
 		-- Handle migration from old numeric style to string
 		local oldStyle = m_options["fontStyle"]
@@ -862,34 +975,33 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options["columnFontStyle"] = oldStyle
 	end
 
-	-- Currency visibility defaults
-	m_options["showCurrencyGold"] = true
-	m_options["showCurrencyAlliancePoints"] = true
-	m_options["showCurrencyTelVar"] = true
-	m_options["showCurrencyCrownGems"] = true
-	m_options["showCurrencyCrowns"] = true
-	m_options["showCurrencyTransmute"] = true
-	m_options["showCurrencyWritVouchers"] = true
-	m_options["showCurrencyEventTickets"] = true
-	m_options["showCurrencyUndauntedKeys"] = true
-	m_options["showCurrencyOutfitTokens"] = true
+	-- Currency visibility defaults (preserve existing user values)
+	if m_options["showCurrencyGold"] == nil then m_options["showCurrencyGold"] = true end
+	if m_options["showCurrencyAlliancePoints"] == nil then m_options["showCurrencyAlliancePoints"] = true end
+	if m_options["showCurrencyTelVar"] == nil then m_options["showCurrencyTelVar"] = true end
+	if m_options["showCurrencyCrownGems"] == nil then m_options["showCurrencyCrownGems"] = true end
+	if m_options["showCurrencyCrowns"] == nil then m_options["showCurrencyCrowns"] = true end
+	if m_options["showCurrencyTransmute"] == nil then m_options["showCurrencyTransmute"] = true end
+	if m_options["showCurrencyWritVouchers"] == nil then m_options["showCurrencyWritVouchers"] = true end
+	if m_options["showCurrencyEventTickets"] == nil then m_options["showCurrencyEventTickets"] = true end
+	if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
+	if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
 
-	-- Currency order numeric defaults (1..10) and fallback legacy string
-	m_options["orderCurrencyGold"] = 1
-	m_options["orderCurrencyAlliancePoints"] = 2
-	m_options["orderCurrencyTelVar"] = 3
-	m_options["orderCurrencyUndauntedKeys"] = 4
-	m_options["orderCurrencyTransmute"] = 5
-	m_options["orderCurrencyCrowns"] = 6
-	m_options["orderCurrencyCrownGems"] = 7
-	m_options["orderCurrencyWritVouchers"] = 8
-	m_options["orderCurrencyEventTickets"] = 9
-	m_options["orderCurrencyOutfitTokens"] = 10
+	-- Currency order numeric defaults (1..10) - preserve existing user values
+	if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
+	if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
+	if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
+	if m_options["orderCurrencyUndauntedKeys"] == nil then m_options["orderCurrencyUndauntedKeys"] = 4 end
+	if m_options["orderCurrencyTransmute"] == nil then m_options["orderCurrencyTransmute"] = 5 end
+	if m_options["orderCurrencyCrowns"] == nil then m_options["orderCurrencyCrowns"] = 6 end
+	if m_options["orderCurrencyCrownGems"] == nil then m_options["orderCurrencyCrownGems"] = 7 end
+	if m_options["orderCurrencyWritVouchers"] == nil then m_options["orderCurrencyWritVouchers"] = 8 end
+	if m_options["orderCurrencyEventTickets"] == nil then m_options["orderCurrencyEventTickets"] = 9 end
+	if m_options["orderCurrencyOutfitTokens"] == nil then m_options["orderCurrencyOutfitTokens"] = 10 end
 
 	-- Currency preset tracking (default = all visible in default order)
-	m_options["currencyPreset"] = "default"
-
-	m_options["currencyOrder"] = "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit"
+	if m_options["currencyPreset"] == nil then m_options["currencyPreset"] = "default" end
+	if m_options["currencyOrder"] == nil then m_options["currencyOrder"] = "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit" end
 
 	return m_options
 end
@@ -902,31 +1014,18 @@ end
 
 --- Sets up tooltip styles based on CIM's tooltipSize setting.
 local function SetupTooltipStyles()
-    local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or "Default"
+    local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
     
-    -- Convert size setting to pixel values
-    local baseFontSize, titleFontSize, valueFontSize
-    if tooltipSize == "Small" then
-        baseFontSize = 20
-        titleFontSize = 26
-        valueFontSize = 24
-    elseif tooltipSize == "Medium" then
-        baseFontSize = 28
-        titleFontSize = 34
-        valueFontSize = 32
-    elseif tooltipSize == "Large" then
-        baseFontSize = 32
-        titleFontSize = 38
-        valueFontSize = 36
-    elseif tooltipSize == "XLarge" then
-        baseFontSize = 36
-        titleFontSize = 42
-        valueFontSize = 40
-    else -- Default
-        baseFontSize = 24
-        titleFontSize = 30
-        valueFontSize = 28
+    -- Handle legacy string values (for backwards compatibility)
+    if type(tooltipSize) == "string" then
+        local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+        tooltipSize = legacyMap[tooltipSize] or 24
     end
+    
+    -- Calculate derived sizes from base font size
+    local baseFontSize = tooltipSize
+    local titleFontSize = baseFontSize + 6   -- Title is 6px larger
+    local valueFontSize = baseFontSize + 4   -- Value is 4px larger
     
     -- Apply tooltip styles with size adjustments
     ZO_TOOLTIP_STYLES["topSection"] = {

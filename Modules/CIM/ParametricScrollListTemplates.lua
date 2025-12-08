@@ -495,6 +495,59 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
         return succeeded
 end
 
+-- Global click handler functions for XML OnClicked events
+-- These find the scrollList from the button's parent and call navigation 
+-- (the guard is checked in MovePrevious/MoveNext so we don't need separate debounce)
+function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
+    local tabBar = buttonControl:GetParent()
+    local scrollList = tabBar and tabBar.scrollList
+    if scrollList and scrollList.MovePrevious then
+        scrollList:MovePrevious(true)
+    end
+end
+
+function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
+    local tabBar = buttonControl:GetParent()
+    local scrollList = tabBar and tabBar.scrollList
+    if scrollList and scrollList.MoveNext then
+        scrollList:MoveNext(true)
+    end
+end
+
+-- Click handler for category icons - navigates directly to the clicked category
+function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
+    local scrollList = nil
+    -- Find the parent scrollList
+    local parent = categoryControl:GetParent()
+    while parent do
+        if parent.scrollList then
+            scrollList = parent.scrollList
+            break
+        end
+        parent = parent:GetParent()
+    end
+    
+    if not scrollList or not scrollList.dataList then return end
+    
+    -- Check navigation guard
+    if scrollList.IsNavigationGuarded and scrollList:IsNavigationGuarded() then
+        return
+    end
+    
+    -- Find the index of the clicked category
+    for i, data in ipairs(scrollList.dataList) do
+        local control = scrollList:GetControlFromData(data)
+        if control == categoryControl then
+            -- Navigate to this index (with guard protection)
+            if scrollList.SetNavigationGuard then
+                scrollList:SetNavigationGuard()
+            end
+            scrollList:SetSelectedIndex(i, true, true)
+            return
+        end
+    end
+end
+
 local SUB_LIST_CENTER_OFFSET = -50
 BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass()
 --- Creates a new vertical parametric scroll list sub-list instance for nested menus

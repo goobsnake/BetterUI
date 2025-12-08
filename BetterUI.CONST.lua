@@ -103,3 +103,164 @@ BETTERUI_VALUE_WIDTH = 120
 -- Icon offsets
 BETTERUI_EQUIPPED_ICON_OFFSET_X = -25
 BETTERUI_STATUS_INDICATOR_OFFSET_X = -10
+
+-- ============================================================================
+-- RESOURCE ORB FRAMES - STRUCTURED CONFIGURATION
+-- All orb-related settings in one organized table
+-- 
+-- DIRECTION CONVENTION:
+--   X: positive = right, negative = left
+--   Y: positive = down, negative = up
+-- ============================================================================
+
+BETTERUI_ORB_FRAMES = {
+    -- Skill button dimensions (pixels)
+    slots = {
+        gamepad = { 
+            width = 64,           -- Button size in pixels
+            spacing = 10,         -- Gap between buttons
+            dualBarOffset = 44,   -- Dual bar horizontal offset
+        },
+        keyboard = { 
+            width = 50,           -- Button size in pixels
+            spacing = 2,          -- Gap between buttons
+            dualBarOffset = 12,   -- Dual bar horizontal offset
+        },
+    },
+    
+    -- Skill bar positioning (bottom = active bar, top = back bar)
+    bars = {
+        shiftY = 70,              -- Move BOTH bars down (+) or up (-)
+        ultimateGap = 66,         -- Extra gap before ultimate skill (pixels)
+        mainBarShiftFactor = 0,   -- Legacy: keep at 0
+        indicatorOffsetX = -10,   -- Bar indicator: left (-) or right (+)
+        
+        -- Ultimate skill offset (move ultimates left to make room for quickslot on right)
+        frontUltimateOffsetX = -22, -- Front bar ultimate: left (-) or right (+)
+        backUltimateOffsetX = -22,  -- Back bar ultimate: left (-) or right (+)
+        
+        -- Quickslot positioning (relative to BgMiddle, centered between front/back bars)
+        quickslot = {
+            x = 308,              -- Left (-) or right (+) from center (positive = right side near ultimates)
+            y = -27,              -- Up (-) or down (+) to center between bars
+        },
+        
+        -- Companion Ultimate positioning (relative to BgMiddle, centered between bars)
+        companionUltimate = {
+            x = -297,             -- Left (-) or right (+) from center (negative = left side)
+            y = -20,              -- Up (-) or down (+) to center between bars
+        },
+        
+        bottom = { 
+            x = -40,              -- Main bar: left (-) or right (+)
+            gamepadY = -15,       -- Gamepad: up (-) or down (+)
+            keyboardY = -15,      -- Keyboard: up (-) or down (+)
+        },
+        top = { 
+            x = 25,               -- Back bar: left (-) or right (+)
+            gamepadY = -103,      -- Gamepad: up (-) or down (+)
+            keyboardY = -103,     -- Keyboard: up (-) or down (+)
+        },
+    },
+    
+    -- Ornament (statue) positioning relative to center of skill bars
+    ornaments = {
+        left = { 
+            x = -475,             -- Left (-) or right (+) from center
+            y = -15,              -- Up (-) or down (+)
+            size = 375,           -- Size in pixels
+            scale = 1.0,          -- Scale multiplier (1.0 = 100%)
+        },
+        right = { 
+            x = 475,              -- Left (-) or right (+) from center
+            y = -25,              -- Up (-) or down (+)
+            size = 400,           -- Size in pixels
+            scale = 1.0,          -- Scale multiplier (1.0 = 100%)
+        },
+    },
+    
+    -- Orb border (ring) positioning relative to ornament center
+    orbs = {
+        left = { 
+            x = 50,               -- Left (-) or right (+) nudge
+            y = -10,              -- Up (-) or down (+) nudge
+            borderSize = 200,     -- Ring size in pixels
+        },
+        right = { 
+            x = -60,              -- Left (-) or right (+) nudge
+            y = 5,                -- Up (-) or down (+) nudge
+            borderSize = 200,     -- Ring size in pixels
+        },
+        auraSize = 350,           -- Glow effect size (unused currently)
+    },
+    
+    -- Fill layer (colored resource display inside orb)
+    -- scaleW/scaleH: size as fraction of borderSize (0.5 = 50%)
+    -- x/y: offset from center, left (-) or right (+), up (-) or down (+)
+    fills = {
+        health = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
+        magicka = { scaleW = 0.30, scaleH = 0.53, x = -10, y = -3 },
+        stamina = { scaleW = 0.30, scaleH = 0.53, x = -60, y = -3 },
+        resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },  -- Fallback
+        shield = { scaleW = 0.95, scaleH = 0.95, x = 0, y = 0 },  -- Large scale for ring effect
+    },
+    
+    -- Splitter (magicka/stamina divider line)
+    splitter = { 
+        width = 200,              -- Line width in pixels
+        heightScale = 0.70,       -- Height as fraction of borderSize (0.7 = 70%)
+        x = 4,                    -- Left (-) or right (+)
+        y = -5,                   -- Up (-) or down (+)
+    },
+    
+    -- Labels (numeric value text positioning)
+    -- x/y: offset from default position, left (-) or right (+), up (-) or down (+)
+    labels = {
+        health = { x = 0, y = 0 },
+        magicka = { x = 27, y = 0 },
+        stamina = { x = -20, y = 0 },
+        shield = { x = 0, y = 25 },
+    },
+}
+
+-- ============================================================================
+-- CUSTOM BARS (Experience/Champion Bar & Cast Bar)
+-- These horizontal bars sit above the skill bars using the Bar.dds texture
+-- ============================================================================
+
+-- Experience/Champion Bar positioning (above top skill bar)
+BETTERUI_XP_BAR_SCALE = 1.0                -- Scale multiplier for XP bar
+BETTERUI_XP_BAR_OFFSET_X = 0               -- X offset from center (positive = right)
+BETTERUI_XP_BAR_OFFSET_Y = -99             -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_XP_BAR_FILL_INSET_X = 35          -- Horizontal inset for fill bar within frame
+BETTERUI_XP_BAR_FILL_INSET_Y = 55          -- Vertical inset for fill bar within frame
+BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
+BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
+BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (from center)
+
+-- Cast Bar positioning (centered above back bar)
+BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
+BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
+BETTERUI_CAST_BAR_OFFSET_Y = 40            -- Y offset from back bar top (positive = down, closer to bar)
+BETTERUI_CAST_BAR_FILL_INSET_X = 30        -- Horizontal inset for fill bar within frame
+BETTERUI_CAST_BAR_FILL_INSET_Y = 58        -- Vertical inset for fill bar within frame
+BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
+BETTERUI_CAST_BAR_HEIGHT = 150             -- Height of the cast bar in pixels
+BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from center)
+
+-- Mount Stamina Bar positioning (under right ornament when mounted)
+BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0     -- Scale multiplier for mount stamina bar
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0    -- X offset from center (positive = right)
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99  -- Y offset from ornament bottom (negative = up)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 22   -- Horizontal inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 60   -- Vertical inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 250     -- Width of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 150    -- Height of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from center)
+
+-- ============================================================================
+-- DEBUG FLAGS
+-- ============================================================================
+
+-- Set to true to always show the shield overlay for visual debugging/positioning
+BETTERUI_SHIELD_DEBUG = false

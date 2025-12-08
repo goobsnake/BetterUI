@@ -7,7 +7,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.88"
+BETTERUI.version = "2.89"
 
 -- ESO API references
 BETTERUI.WindowManager = GetWindowManager()
@@ -46,6 +46,7 @@ BETTERUI.Settings = {}
 -- Default settings template (AceDB-style wildcard defaults)
 BETTERUI.DefaultSettings = {
 	firstInstall = true,
+	useAccountWide = false,
 	Modules = {
 		["*"] = { m_enabled = true }  -- All modules enabled by default
 	}

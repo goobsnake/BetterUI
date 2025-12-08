@@ -2,5 +2,7 @@
 /.idea/
 /.images/
 /esoui/
-.vscode/
-helper_script.ps1
+/.vscode/
+/.venv/
+/tools/
+/source/

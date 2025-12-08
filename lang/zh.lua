@@ -116,8 +116,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "自定义物品栏列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET", "重置为默认")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_RESET_TOOLTIP", "将所有物品栏字体设置重置为默认值。")
+
 
 -- Inventory Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SUBMENU", "名称列字体")
@@ -140,8 +139,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据�
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "字体自定义")
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "自定义银行列表的字体。为名称列和其他列（类型、特性、属性、价值）设置不同的字体。")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET", "重置为默认")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_RESET_TOOLTIP", "将所有银行字体设置重置为默认值。")
+
 
 -- Banking Name Column Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SUBMENU", "名称列字体")
@@ -161,9 +159,43 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据�
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "样式")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
 
--- Shared Font Size Options
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_SMALL", "小")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_DEFAULT", "默认")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_MEDIUM", "中")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_LARGE", "大")
-ZO_CreateStringId("SI_BETTERUI_FONT_SIZE_XLARGE", "特大")
+-- Orb Text Settings
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "生命值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "调整生命值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR", "生命值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP", "调整生命值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE", "魔力值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP", "调整魔力值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR", "魔力值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP", "调整魔力值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE", "耐力值文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP", "调整耐力值文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR", "耐力值文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP", "调整耐力值文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "护盾文字大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "调整护盾文字的字体大小")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "护盾文字颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "调整护盾文字的颜色")
+
+-- Resource Orb Frames
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "启用 Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "切换 ARPG 风格的生命和资源球。")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "缩放")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "框架的整体大小。")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直偏移 (上/下)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "向上/向下移动框架。正值向上移动；负值向下移动。")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "使用自定义纹理")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "启用此选项以使用 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' 中的纹理。您必须将自己的纹理放置在那里，并使用正确的文件名。")
+
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "将此部分的设置重置为默认值。")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")
+
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Enable Carousel Navigation")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Use the modern carousel style navigation instead of the classic tab bar.")

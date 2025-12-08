@@ -8,9 +8,9 @@ local LAM = LibAddonMenu2
 --- @param m_options table: Options table to initialize
 --- @return table: Initialized options
 function BETTERUI.CIM.InitModule(m_options)
-	m_options["triggerSpeed"] = 10
-	m_options["enhanceCompat"] = false
-	m_options["rhScrollSpeed"] = 50
-	m_options["tooltipSize"] = "Default"
-	return m_options
+    if m_options["triggerSpeed"] == nil then m_options["triggerSpeed"] = 10 end
+    if m_options["enhanceCompat"] == nil then m_options["enhanceCompat"] = false end
+    if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = 50 end
+    if m_options["tooltipSize"] == nil then m_options["tooltipSize"] = 24 end
+    return m_options
 end

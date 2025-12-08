@@ -56,27 +56,23 @@ BETTERUI.Banking.FONTSTYLE_VALUES = {
 BETTERUI.Banking.DEFAULTS = {
 	-- Name column font settings
 	nameFont = "EsoUI/Common/Fonts/FTN57.otf",
-	nameFontSize = "Default",
+	nameFontSize = 24,
 	nameFontStyle = "",
 	-- Other columns font settings (Type, Trait, Stat, Value)
 	columnFont = "EsoUI/Common/Fonts/FTN57.otf",
-	columnFontSize = "Default",
+	columnFontSize = 24,
 	columnFontStyle = "",
 }
 
--- Converts size string to pixel value
-local function GetFontSizeValue(sizeStr)
-	if sizeStr == "XLarge" then
-		return 36
-	elseif sizeStr == "Large" then
-		return 32
-	elseif sizeStr == "Medium" then
-		return 28
-	elseif sizeStr == "Small" then
-		return 20
-	else
-		return 24  -- Default
+-- Converts size setting to pixel value (handles legacy string values and new numeric values)
+local function GetFontSizeValue(sizeValue)
+	-- Handle new numeric values directly
+	if type(sizeValue) == "number" then
+		return sizeValue
 	end
+	-- Legacy string value migration
+	local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+	return legacyMap[sizeValue] or 24
 end
 
 -- Returns font descriptor string for Name column
@@ -118,9 +114,24 @@ local function Init(mId, moduleName)
 	local optionsTable = {
 		{
 			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
+			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Banking"] then return false end
+				return BETTERUI.Settings.Modules["Banking"].enableCarousel 
+			end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].enableCarousel = value end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = "Item Icon - Unbound Items",
 			tooltip = "Show an icon after unbound items.",
-			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Banking"] then return true end
+				return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem 
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconUnboundItem = value
 			end,
@@ -131,7 +142,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Item Icon - Enchantment",
 			tooltip = "Show an icon after enchanted item.",
-			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconEnchantment end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Banking"] then return true end
+				return BETTERUI.Settings.Modules["Banking"].showIconEnchantment 
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconEnchantment = value
 			end,
@@ -142,7 +156,10 @@ local function Init(mId, moduleName)
 			type = "checkbox",
 			name = "Item Icon - Set Gear",
 			tooltip = "Show an icon after set gears.",
-			getFunc = function() return BETTERUI.Settings.Modules["Banking"].showIconSetGear end,
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Banking"] then return true end
+				return BETTERUI.Settings.Modules["Banking"].showIconSetGear 
+			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].showIconSetGear = value
 			end,
@@ -172,6 +189,7 @@ local function Init(mId, moduleName)
 					choices = BETTERUI.Banking.FONT_CHOICES,
 					choicesValues = BETTERUI.Banking.FONT_VALUES,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Banking"] then return BETTERUI.Banking.DEFAULTS.nameFont end
 						return BETTERUI.Settings.Modules["Banking"].nameFont or BETTERUI.Banking.DEFAULTS.nameFont
 					end,
 					setFunc = function(value)
@@ -184,13 +202,23 @@ local function Init(mId, moduleName)
 					default = BETTERUI.Banking.DEFAULTS.nameFont,
 				},
 				{
-					type = "dropdown",
+					type = "slider",
 					name = GetString(SI_BETTERUI_BANK_NAME_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP),
-					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
-					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
+					min = 12,
+					max = 48,
+					step = 1,
 					getFunc = function()
-						return BETTERUI.Settings.Modules["Banking"].nameFontSize or BETTERUI.Banking.DEFAULTS.nameFontSize
+						local settings = BETTERUI.Settings.Modules["Banking"]
+						local val = BETTERUI.Banking.DEFAULTS.nameFontSize
+						if settings then
+							val = settings.nameFontSize or val
+						end
+						if type(val) == "string" then
+							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+							return legacyMap[val] or 24
+						end
+						return val
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Banking"].nameFontSize = value
@@ -207,6 +235,7 @@ local function Init(mId, moduleName)
 					choices = BETTERUI.Banking.FONTSTYLE_CHOICES,
 					choicesValues = BETTERUI.Banking.FONTSTYLE_VALUES,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Banking"] then return BETTERUI.Banking.DEFAULTS.nameFontStyle end
 						return BETTERUI.Settings.Modules["Banking"].nameFontStyle or BETTERUI.Banking.DEFAULTS.nameFontStyle
 					end,
 					setFunc = function(value)
@@ -216,6 +245,19 @@ local function Init(mId, moduleName)
 					width = "full",
 					requiresReload = true,
 					default = BETTERUI.Banking.DEFAULTS.nameFontStyle,
+				},
+				{
+					type = "button",
+					name = GetString(SI_BETTERUI_NAME_FONT_RESET),
+					tooltip = GetString(SI_BETTERUI_NAME_FONT_RESET_TOOLTIP),
+					func = function()
+						local defaults = BETTERUI.Banking.DEFAULTS
+						BETTERUI.Settings.Modules["Banking"].nameFont = defaults.nameFont
+						BETTERUI.Settings.Modules["Banking"].nameFontSize = defaults.nameFontSize
+						BETTERUI.Settings.Modules["Banking"].nameFontStyle = defaults.nameFontStyle
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "half",
 				},
 			},
 		},
@@ -231,6 +273,7 @@ local function Init(mId, moduleName)
 					choices = BETTERUI.Banking.FONT_CHOICES,
 					choicesValues = BETTERUI.Banking.FONT_VALUES,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Banking"] then return BETTERUI.Banking.DEFAULTS.columnFont end
 						return BETTERUI.Settings.Modules["Banking"].columnFont or BETTERUI.Banking.DEFAULTS.columnFont
 					end,
 					setFunc = function(value)
@@ -243,13 +286,23 @@ local function Init(mId, moduleName)
 					default = BETTERUI.Banking.DEFAULTS.columnFont,
 				},
 				{
-					type = "dropdown",
+					type = "slider",
 					name = GetString(SI_BETTERUI_BANK_COLUMN_FONT_SIZE),
 					tooltip = GetString(SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP),
-					choices = {GetString(SI_BETTERUI_FONT_SIZE_SMALL), GetString(SI_BETTERUI_FONT_SIZE_DEFAULT), GetString(SI_BETTERUI_FONT_SIZE_MEDIUM), GetString(SI_BETTERUI_FONT_SIZE_LARGE), GetString(SI_BETTERUI_FONT_SIZE_XLARGE)},
-					choicesValues = {"Small", "Default", "Medium", "Large", "XLarge"},
+					min = 12,
+					max = 48,
+					step = 1,
 					getFunc = function()
-						return BETTERUI.Settings.Modules["Banking"].columnFontSize or BETTERUI.Banking.DEFAULTS.columnFontSize
+						local settings = BETTERUI.Settings.Modules["Banking"]
+						local val = BETTERUI.Banking.DEFAULTS.columnFontSize
+						if settings then
+							val = settings.columnFontSize or val
+						end
+						if type(val) == "string" then
+							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+							return legacyMap[val] or 24
+						end
+						return val
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Banking"].columnFontSize = value
@@ -266,6 +319,7 @@ local function Init(mId, moduleName)
 					choices = BETTERUI.Banking.FONTSTYLE_CHOICES,
 					choicesValues = BETTERUI.Banking.FONTSTYLE_VALUES,
 					getFunc = function()
+						if not BETTERUI.Settings.Modules["Banking"] then return BETTERUI.Banking.DEFAULTS.columnFontStyle end
 						return BETTERUI.Settings.Modules["Banking"].columnFontStyle or BETTERUI.Banking.DEFAULTS.columnFontStyle
 					end,
 					setFunc = function(value)
@@ -276,26 +330,22 @@ local function Init(mId, moduleName)
 					requiresReload = true,
 					default = BETTERUI.Banking.DEFAULTS.columnFontStyle,
 				},
+				{
+					type = "button",
+					name = GetString(SI_BETTERUI_COLUMN_FONT_RESET),
+					tooltip = GetString(SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP),
+					func = function()
+						local defaults = BETTERUI.Banking.DEFAULTS
+						BETTERUI.Settings.Modules["Banking"].columnFont = defaults.columnFont
+						BETTERUI.Settings.Modules["Banking"].columnFontSize = defaults.columnFontSize
+						BETTERUI.Settings.Modules["Banking"].columnFontStyle = defaults.columnFontStyle
+					end,
+					disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+					width = "half",
+				},
 			},
 		},
-		{
-			type = "button",
-			name = GetString(SI_BETTERUI_BANK_FONT_RESET),
-			tooltip = GetString(SI_BETTERUI_BANK_FONT_RESET_TOOLTIP),
-			func = function()
-				local defaults = BETTERUI.Banking.DEFAULTS
-				-- Reset Name font settings
-				BETTERUI.Settings.Modules["Banking"].nameFont = defaults.nameFont
-				BETTERUI.Settings.Modules["Banking"].nameFontSize = defaults.nameFontSize
-				BETTERUI.Settings.Modules["Banking"].nameFontStyle = defaults.nameFontStyle
-				-- Reset Column font settings
-				BETTERUI.Settings.Modules["Banking"].columnFont = defaults.columnFont
-				BETTERUI.Settings.Modules["Banking"].columnFontSize = defaults.columnFontSize
-				BETTERUI.Settings.Modules["Banking"].columnFontStyle = defaults.columnFontStyle
-			end,
-			disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
-			width = "half",
-		},
+		-- Removed Global Reset Button
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -305,9 +355,11 @@ end
 --- @param m_options table: Options table
 --- @return table: Initialized options
 function BETTERUI.Banking.InitModule(m_options)
-	m_options["showIconEnchantment"] = true
-	m_options["showIconSetGear"] = true
-	m_options["showIconUnboundItem"] = true
+	-- Core settings (preserve existing user values)
+	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
+	if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
+	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
+	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
 	
 	-- Font customization - Name column settings
 	local defaults = BETTERUI.Banking.DEFAULTS
@@ -328,6 +380,14 @@ function BETTERUI.Banking.InitModule(m_options)
 	if m_options["skinSize"] and not m_options["nameFontSize"] then
 		m_options["nameFontSize"] = m_options["skinSize"]
 		m_options["columnFontSize"] = m_options["skinSize"]
+	end
+	-- Migrate legacy string font sizes to numeric values
+	local legacySizeMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+	if type(m_options["nameFontSize"]) == "string" then
+		m_options["nameFontSize"] = legacySizeMap[m_options["nameFontSize"]] or 24
+	end
+	if type(m_options["columnFontSize"]) == "string" then
+		m_options["columnFontSize"] = legacySizeMap[m_options["columnFontSize"]] or 24
 	end
 	if m_options["fontStyle"] and not m_options["nameFontStyle"] then
 		local oldStyle = m_options["fontStyle"]
