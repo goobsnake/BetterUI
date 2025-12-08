@@ -102,17 +102,18 @@ local function Init(mId, moduleName)
             width = "full",
         },
 		{
-            type = "dropdown",
+            type = "slider",
             name = "Tooltip font size",
 			tooltip = "Allows more or less item information to be displayed at once in tooltips",
-			choices = {"Small", "Default", "Medium", "Large", "XLarge"},
-            getFunc = function() return BETTERUI.Settings.Modules["CIM"].tooltipSize end,
-            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value
-                      end,
+			min = 12,
+			max = 48,
+			step = 1,
+            getFunc = function() return BETTERUI.Settings.Modules["CIM"].tooltipSize or 24 end,
+            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
             disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
             width = "full",
             requiresReload = true,
-            default = "Default",
+            default = 24,
         },
 		-- ============================================================================
 		-- ENHANCED NAMEPLATES SETTINGS
@@ -332,8 +333,8 @@ local function Init(mId, moduleName)
                 -- Health Text Settings
                 {
                     type = "slider",
-                    name = "Health Text Size",
-                    tooltip = "Adjust the font size of the health text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_SIZE),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP),
                     min = 12,
                     max = 48,
                     step = 1,
@@ -348,8 +349,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Health Text Color",
-                    tooltip = "Adjust the color of the health text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP),
                     getFunc = function()
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].healthTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
@@ -365,8 +366,8 @@ local function Init(mId, moduleName)
                 -- Magicka Text Settings
                 {
                     type = "slider",
-                    name = "Magicka Text Size",
-                    tooltip = "Adjust the font size of the magicka text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP),
                     min = 12,
                     max = 48,
                     step = 1,
@@ -381,8 +382,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Magicka Text Color",
-                    tooltip = "Adjust the color of the magicka text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP),
                     getFunc = function()
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].magickaTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
@@ -398,8 +399,8 @@ local function Init(mId, moduleName)
                 -- Stamina Text Settings
                 {
                     type = "slider",
-                    name = "Stamina Text Size",
-                    tooltip = "Adjust the font size of the stamina text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_SIZE),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP),
                     min = 12,
                     max = 48,
                     step = 1,
@@ -414,14 +415,47 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Stamina Text Color",
-                    tooltip = "Adjust the color of the stamina text",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP),
                     getFunc = function()
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor or {1, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
                     setFunc = function(r, g, b, a)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].staminaTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                -- Shield Text Settings
+                {
+                    type = "slider",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_SIZE),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP),
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() return BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextSize or 20 end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR),
+                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP),
+                    getFunc = function()
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextColor = {r, g, b, a}
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
@@ -441,6 +475,8 @@ local function Init(mId, moduleName)
                         settings.magickaTextColor = defaults.magickaTextColor
                         settings.staminaTextSize = defaults.staminaTextSize
                         settings.staminaTextColor = defaults.staminaTextColor
+                        settings.shieldTextSize = defaults.shieldTextSize
+                        settings.shieldTextColor = defaults.shieldTextColor
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -699,6 +735,8 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         magickaTextColor = {1, 1, 1, 1},
         staminaTextSize = 20,
         staminaTextColor = {1, 1, 1, 1},
+        shieldTextSize = 20,
+        shieldTextColor = {1, 1, 1, 1},
         xpBarEnabled = false,
         xpBarTextSize = 16,
         xpBarTextColor = {1, 1, 1, 1},
@@ -723,6 +761,8 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.magickaTextColor == nil then m_options.magickaTextColor = defaults.magickaTextColor end
     if m_options.staminaTextSize == nil then m_options.staminaTextSize = defaults.staminaTextSize end
     if m_options.staminaTextColor == nil then m_options.staminaTextColor = defaults.staminaTextColor end
+    if m_options.shieldTextSize == nil then m_options.shieldTextSize = defaults.shieldTextSize end
+    if m_options.shieldTextColor == nil then m_options.shieldTextColor = defaults.shieldTextColor end
     if m_options.xpBarEnabled == nil then m_options.xpBarEnabled = defaults.xpBarEnabled end
     if m_options.xpBarTextSize == nil then m_options.xpBarTextSize = defaults.xpBarTextSize end
     if m_options.xpBarTextColor == nil then m_options.xpBarTextColor = defaults.xpBarTextColor end
@@ -754,13 +794,13 @@ end
 --- @param m_options table: Options table
 --- @return table: Initialized options
 function BETTERUI.Tooltips.InitModule(m_options)
-    m_options["chatHistory"] = 200
-    m_options["showStyleTrait"] = true
-	m_options["removeDeleteDialog"] = false
-	m_options["guildStoreErrorSuppress"] = false
-	m_options["attIntegration"] = true
-	m_options["mmIntegration"] = true
-	m_options["ttcIntegration"] = true
+    if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
+    if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
+    if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
+    if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = false end
+    if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end
+    if m_options["mmIntegration"] == nil then m_options["mmIntegration"] = true end
+    if m_options["ttcIntegration"] == nil then m_options["ttcIntegration"] = true end
     return m_options
 end
 

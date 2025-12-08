@@ -368,34 +368,26 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
-    local fontSizeSetting = invSettings and invSettings.nameFontSize or "Default"
-
-    if fontSizeSetting == "Small" then
-        iconControl:SetDimensions(28, 28)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -44, 0)
-        equipIconControl:SetDimensions(26, 22)
-    elseif fontSizeSetting == "Medium" then
-        iconControl:SetDimensions(38, 38)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -40, 0)
-        equipIconControl:SetDimensions(32, 26)
-    elseif fontSizeSetting == "Large" then
-        iconControl:SetDimensions(44, 44)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -36, 0)
-        equipIconControl:SetDimensions(34, 28)
-    elseif fontSizeSetting == "XLarge" then
-        iconControl:SetDimensions(50, 50)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -32, 0)
-        equipIconControl:SetDimensions(38, 32)
-    else -- Default
-        iconControl:SetDimensions(34, 34)
-        iconControl:ClearAnchors()
-        iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, -42, 0)
-        equipIconControl:SetDimensions(28, 24)
+    local fontSize = invSettings and invSettings.nameFontSize or 24
+    
+    -- Handle legacy string values (for backwards compatibility)
+    if type(fontSize) == "string" then
+        local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
+        fontSize = legacyMap[fontSize] or 24
     end
+    
+    -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
+    local baseIconSize = 34
+    local baseFontSize = 24
+    local iconSize = math.floor(baseIconSize * (fontSize / baseFontSize) + 0.5)
+    local equipIconWidth = math.floor(28 * (fontSize / baseFontSize) + 0.5)
+    local equipIconHeight = math.floor(24 * (fontSize / baseFontSize) + 0.5)
+    local iconOffset = math.floor(-42 + (fontSize - baseFontSize) * 0.4 + 0.5)  -- Adjust offset as font grows
+    
+    iconControl:SetDimensions(iconSize, iconSize)
+    iconControl:ClearAnchors()
+    iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, iconOffset, 0)
+    equipIconControl:SetDimensions(equipIconWidth, equipIconHeight)
 end
 
 local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
