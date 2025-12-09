@@ -202,7 +202,7 @@ BETTERUI_ORB_FRAMES = {
         magicka = { scaleW = 0.30, scaleH = 0.53, x = -10, y = -3 },
         stamina = { scaleW = 0.30, scaleH = 0.53, x = -60, y = -3 },
         resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },  -- Fallback
-        shield = { scaleW = 0.95, scaleH = 0.95, x = 0, y = 0 },  -- Large scale for ring effect
+        shield = { scaleW = 0.65, scaleH = 0.65, x = 0, y = 0 },  -- Large scale for ring effect
     },
     
     -- Splitter (magicka/stamina divider line)
@@ -263,4 +263,4 @@ BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label
 -- ============================================================================
 
 -- Set to true to always show the shield overlay for visual debugging/positioning
-BETTERUI_SHIELD_DEBUG = false
+BETTERUI_SHIELD_DEBUG = true
