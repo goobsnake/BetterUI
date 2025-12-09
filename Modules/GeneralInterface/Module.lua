@@ -512,8 +512,8 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP),
                     getFunc = function()
-						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
-                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextColor or {1, 1, 1, 1}
+						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0, 1, 1, 1 end
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].shieldTextColor or {0, 1, 1, 1}
                         return color[1], color[2], color[3], color[4] or 1
                     end,
                     setFunc = function(r, g, b, a)
@@ -822,7 +822,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         staminaTextSize = 20,
         staminaTextColor = {1, 1, 1, 1},
         shieldTextSize = 20,
-        shieldTextColor = {1, 1, 1, 1},
+        shieldTextColor = {0, 1, 1, 1},
         xpBarEnabled = false,
         xpBarTextSize = 16,
         xpBarTextColor = {1, 1, 1, 1},
