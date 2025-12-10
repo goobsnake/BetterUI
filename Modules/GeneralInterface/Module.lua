@@ -288,9 +288,6 @@ local function Init(mId, moduleName)
 			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled = value
-				if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-					BETTERUI.ResourceOrbFrames.ApplySettings()
-				end
 			end,
 			width = "full",
 			requiresReload = true,
@@ -304,8 +301,8 @@ local function Init(mId, moduleName)
 			step = 0.05,
 			decimals = 2,
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1.15 end
-				return BETTERUI.Settings.Modules["ResourceOrbFrames"].scale or 1.15
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1 end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].scale or 1
 			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].scale = value
@@ -314,7 +311,7 @@ local function Init(mId, moduleName)
 				end
 			end,
 			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
-			default = 1.15,
+			default = 1,
 		},
 		{
 			type = "slider",
@@ -324,8 +321,8 @@ local function Init(mId, moduleName)
 			max = 300,
 			step = 5,
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 40 end
-				return BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY or 40
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0 end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY or 0
 			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].offsetY = value
@@ -334,7 +331,7 @@ local function Init(mId, moduleName)
 				end
 			end,
 			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
-			default = 40,
+			default = 0,
 		},
 		{
 			type = "checkbox",
@@ -351,7 +348,6 @@ local function Init(mId, moduleName)
 			width = "full",
 			warning = "Requires Reload UI",
 		},
-        -- Cooldown text settings removed - now uses native ESO yellow styling
         {
             type = "button",
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
@@ -359,18 +355,124 @@ local function Init(mId, moduleName)
             func = function()
                 local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                 local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                settings.scale = defaults.scale
-                settings.offsetY = defaults.offsetY
+                settings.scale = 1
+                settings.offsetY = 0
                 settings.useCustomTextures = defaults.useCustomTextures
-                -- Cooldown settings removed
+                settings.cooldownTextSize = 27
+                settings.cooldownTextColor = {0.86, 0.84, 0.13, 1}
+                settings.quickslotTextSize = 27
+                settings.quickslotTextColor = {1, 1, 1, 1}
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
                 end
-                ReloadUI()
             end,
             disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
             width = "half",
+        },
+        {
+            type = "submenu",
+            name = "Skill Bars",
+            controls = {
+                {
+                    type = "header",
+                    name = "Skill Cooldown Timer",
+                },
+                {
+                    type = "slider",
+                    name = "Font Scale",
+                    tooltip = "Adjust the font size of the skill cooldown timer",
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 27 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize or 27 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Font Color",
+                    tooltip = "Adjust the color of the skill cooldown timer",
+                    getFunc = function()
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0.86, 0.84, 0.13, 1 end
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor or {0.86, 0.84, 0.13, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "header",
+                    name = "Quickslots",
+                },
+                {
+                    type = "slider",
+                    name = "Font Scale",
+                    tooltip = "Adjust the font size of the quickslot count",
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 27 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].quickslotTextSize or 27 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].quickslotTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = "Font Color",
+                    tooltip = "Adjust the color of the quickslot count",
+                    getFunc = function()
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].quickslotTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].quickslotTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "button",
+                    name = "Reset Skill Bar Settings",
+                    func = function()
+                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        settings.cooldownTextSize = 27
+                        settings.cooldownTextColor = {0.86, 0.84, 0.13, 1}
+                        settings.quickslotTextSize = 27
+                        settings.quickslotTextColor = {1, 1, 1, 1}
+
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "half",
+                },
+            },
         },
         {
             type = "submenu",

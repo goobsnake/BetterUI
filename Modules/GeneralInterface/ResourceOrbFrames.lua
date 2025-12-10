@@ -19,13 +19,15 @@ local m_updateDeathFragment = nil
 -- Default Settings
 local DEFAULTS = {
     enabled = false,
-    scale = 1.15,
-    offsetY = 80,
+    scale = 1,
+    offsetY = 0,
     useCustomTextures = false,
     centerBarType = "XP",
     -- Cooldown text settings
-    cooldownTextSize = 18,
-    cooldownTextColor = {1, 1, 1, 1}, -- RGBA white
+    cooldownTextSize = 27,
+    cooldownTextColor = {0.86, 0.84, 0.13, 1}, -- DCD822 Yellow
+    quickslotTextSize = 27,
+    quickslotTextColor = {1, 1, 1, 1}, -- White
     shieldTextColor = {0, 1, 1, 1}, -- Cyan matching shield graphic
     -- Fine-tune resource orb fills (magicka/stamina)
     -- developer-only
@@ -41,6 +43,7 @@ local ORB_CONFIG = {
 -------------------------------------------------------------------------------------------------
 -- Utility Functions
 -------------------------------------------------------------------------------------------------
+
 
 -- Helper to find controls by name, handling both direct children and global names
 local function FindControl(parent, name)
@@ -439,9 +442,7 @@ local function UpdateOrbLayout()
                 end
             end
         end
-                if BETTERUI_ORB_DEBUG_PRINTS then
-                    d(string.format("BetterUI: UpdateOrbLayout Resource border=%d magW=%d magH=%d staW=%d staH=%d magHalf=%d staHalf=%d magX=%d magY=%d staX=%d staY=%d splitterW=%d splitterH=%.2f", rightBorderSize, magickaFillWidth, magickaFillHeight, staminaFillWidth, staminaFillHeight, magickaHalfWidth, staminaHalfWidth, magickaFillOffsetX, magickaFillOffsetY, staminaFillOffsetX, staminaFillOffsetY, splitterWidth, splitterHeight))
-                end
+
     end
 end
 
@@ -523,6 +524,10 @@ local function UpdateBackBarLayout(rootFrame)
                          (buttonSize + 6)
     local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
     
+    -- Icon size matches front bar (buttonSize - 3 for visual consistency)
+    local iconSize = buttonSize - 3
+    local ultIconSize = ultimateSize - 3
+    
     -- Calculate total width: 5 skills + ultimate + gaps
     local totalWidth = (5 * buttonSize) + (4 * spacing) + ultimateGap + ultimateSize
     local halfWidth = totalWidth / 2
@@ -542,11 +547,24 @@ local function UpdateBackBarLayout(rootFrame)
                 btn:SetAnchor(LEFT, prevBtn, RIGHT, spacing, 0)
             end
             
-            -- Resize Icon to fill button
+            -- Resize Icon to match front bar sizing (buttonSize - 3)
             local icon = btn:GetNamedChild("Icon")
             if icon then
                 icon:ClearAnchors()
-                icon:SetAnchorFill()
+                icon:SetDimensions(iconSize, iconSize)
+                icon:SetAnchor(CENTER, btn, CENTER, 0, 0)
+            end
+
+            -- Toggle Visuals (Border vs Backdrop)
+            local border = btn:GetNamedChild("Border")
+            local backdrop = btn:GetNamedChild("Backdrop")
+            
+            if isGamePad then
+                if border then border:SetHidden(true) end
+                if backdrop then backdrop:SetHidden(false) end
+            else
+                if border then border:SetHidden(false) end
+                if backdrop then backdrop:SetHidden(true) end
             end
         end
     end
@@ -564,11 +582,24 @@ local function UpdateBackBarLayout(rootFrame)
         ultBtn:ClearAnchors()
         ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX, ultOffsetY)
         
-        -- Resize Icon to fill button
+        -- Resize Icon to match front bar sizing (ultimateSize - 3)
         local icon = ultBtn:GetNamedChild("Icon")
         if icon then
             icon:ClearAnchors()
-            icon:SetAnchorFill()
+            icon:SetDimensions(ultIconSize, ultIconSize)
+            icon:SetAnchor(CENTER, ultBtn, CENTER, 0, 0)
+        end
+
+        -- Toggle Visuals (Border vs Backdrop)
+        local border = ultBtn:GetNamedChild("Border")
+        local backdrop = ultBtn:GetNamedChild("Backdrop")
+            
+        if isGamePad then
+            if border then border:SetHidden(true) end
+            if backdrop then backdrop:SetHidden(false) end
+        else
+            if border then border:SetHidden(false) end
+            if backdrop then backdrop:SetHidden(true) end
         end
     end
 end
@@ -1072,6 +1103,13 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     local remaining = remainMs / 1000
                     timerText:SetText(string.format("%.1f", remaining))
                     timerText:SetHidden(false)
+                    
+                    -- Apply user-configured font size and color (from settings)
+                    local settings = GetModuleSettings()
+                    local cooldownSize = settings.cooldownTextSize or 27
+                    local cooldownColor = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
+                    timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
+                    timerText:SetColor(unpack(cooldownColor))
                 end
             else
                 -- Clear cooldown display
@@ -1089,6 +1127,13 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     -- Always show decimal for consistency
                     timerText:SetText(string.format("%.1f", remaining))
                     timerText:SetHidden(false)
+                    
+                    -- Apply user-configured font size and color (from settings)
+                    local settings = GetModuleSettings()
+                    local cooldownSize = settings.cooldownTextSize or 27
+                    local cooldownColor = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
+                    timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
+                    timerText:SetColor(unpack(cooldownColor))
                 end
             end
             
@@ -1413,44 +1458,6 @@ local function UpdateFrontBarCooldownColors()
         local timer = companionButton.slot:GetNamedChild("CooldownTime")
         if timer then
             timer:SetColor(textColor[1] or 1, textColor[2] or 1, textColor[3] or 1, textColor[4] or 1)
-        end
-    end
-end
-
-local function UpdateBackBarLayout(rootFrame)
-    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
-    if not backBarContainer then return end
-    
-    local isGamePad = IsInGamepadPreferredMode()
-    local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
-    
-    local width = layout.abilitySlotWidth
-    local offset = layout.abilitySlotOffsetX
-    
-    -- Calculate total width: 6 buttons + 4 offsets + extra gap for Ultimate
-    local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
-    local totalWidth = (6 * width) + (4 * offset) + ultimateGap
-    local halfWidth = totalWidth / 2
-    
-    backBarContainer:SetDimensions(totalWidth, width)
-    
-    for i = 1, 6 do
-        local btn = FindControl(backBarContainer, 'Button' .. i)
-        if btn then
-            btn:SetDimensions(width, width)
-            btn:ClearAnchors()
-            if i == 1 then
-                -- First button: anchor to CENTER of container, offset left by half width
-                btn:SetAnchor(LEFT, backBarContainer, CENTER, -halfWidth, 0)
-            elseif i == 6 then
-                -- Ultimate Button (Button6) - add configurable offset
-                local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
-                local backUltOffset = BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX or 0
-                btn:SetAnchor(LEFT, prevBtn, RIGHT, ultimateGap + backUltOffset, 0)
-            else
-                local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
-                btn:SetAnchor(LEFT, prevBtn, RIGHT, offset, 0)
-            end
         end
     end
 end
@@ -2315,6 +2322,52 @@ local function SetupPowerPools(rootFrame)
         [POWERTYPE_MAGICKA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbMagicka'), POWERTYPE_MAGICKA),
         [POWERTYPE_STAMINA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbStamina'), POWERTYPE_STAMINA),
     }
+
+    -- Add Tooltips using HitBoxes to solve split-orb overlap issues
+    local function AddOrbTooltip(control, powerType) 
+        if not control then return end
+        control:SetMouseEnabled(true)
+        control:SetHandler("OnMouseEnter", function(self)
+            InitializeTooltip(InformationTooltip, self, RIGHT, -5, 0)
+            local current, max = GetUnitPower("player", powerType)
+            SetTooltipText(InformationTooltip, string.format("%d / %d", current, max))
+        end)
+        control:SetHandler("OnMouseExit", function()
+             ClearTooltip(InformationTooltip)
+        end)
+    end
+    
+    AddOrbTooltip(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH)
+    
+    -- Create distinct hitboxes for Magicka (Left) and Stamina (Right)
+    -- because the original controls overlap or are full size
+    local magickaOrb = FindControl(rootFrame, 'OrbMagicka')
+    local staminaOrb = FindControl(rootFrame, 'OrbStamina')
+    
+    if magickaOrb and staminaOrb then
+        local magickaHitBox = WINDOW_MANAGER:CreateControl("BetterUIEndsOrbMagickaHitBox", magickaOrb, CT_CONTROL)
+        magickaHitBox:ClearAnchors()
+        -- Anchor TopLeft to TopLeft of parent
+        magickaHitBox:SetAnchor(TOPLEFT, magickaOrb, TOPLEFT, 0, 0)
+        -- Anchor BottomRight to Bottom Center of parent (splitting it vertically)
+        magickaHitBox:SetAnchor(BOTTOMRIGHT, magickaOrb, BOTTOM, 0, 0)
+        
+        local staminaHitBox = WINDOW_MANAGER:CreateControl("BetterUIEndsOrbStaminaHitBox", staminaOrb, CT_CONTROL)
+        staminaHitBox:ClearAnchors()
+        staminaHitBox:SetAnchor(TOPLEFT, staminaOrb, TOP, 0, 0) -- Left edge at Center Top
+        staminaHitBox:SetAnchor(BOTTOMRIGHT, staminaOrb, BOTTOMRIGHT, 0, 0)
+        
+        AddOrbTooltip(magickaHitBox, POWERTYPE_MAGICKA)
+        AddOrbTooltip(staminaHitBox, POWERTYPE_STAMINA)
+
+        -- Ensure original containers don't steal mouse
+        magickaOrb:SetMouseEnabled(false)
+        staminaOrb:SetMouseEnabled(false)
+    else
+        -- Fallback if controls missing (shouldn't happen)
+        AddOrbTooltip(magickaOrb, POWERTYPE_MAGICKA)
+        AddOrbTooltip(staminaOrb, POWERTYPE_STAMINA)
+    end
     
     -- Set fill sizes and offsets for health orb (left)
     m_pools[POWERTYPE_HEALTH].fillWidth = healthFillWidth
@@ -2647,6 +2700,73 @@ local function SetupModule(control)
     end)
 end
 
+local function ApplySkillBarVisuals()
+    local settings = GetModuleSettings()
+    local cooldownSize = settings.cooldownTextSize or 27
+    local cooldownColor = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
+    local quickslotSize = settings.quickslotTextSize or 27
+    local quickslotColor = settings.quickslotTextColor or {1, 1, 1, 1}
+    
+    local cooldownFont = string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize)
+    local quickslotFont = string.format("$(BOLD_FONT)|%d|thick-outline", quickslotSize)
+
+    -- Helper to update button visuals
+    local function UpdateButtonVisuals(btn)
+        if not btn then return end
+        
+        -- Cooldown/Timer Text
+        local textControls = {
+            btn:GetNamedChild("CooldownText"),
+            btn:GetNamedChild("TimerText")
+        }
+        for _, lbl in ipairs(textControls) do
+            if lbl then
+                lbl:SetFont(cooldownFont)
+                lbl:SetColor(unpack(cooldownColor))
+            end
+        end
+        
+        -- Quickslot Count Text
+        local countText = btn:GetNamedChild("CountText")
+        if countText then
+            countText:SetFont(quickslotFont)
+            countText:SetColor(unpack(quickslotColor))
+        end
+    end
+    
+    -- Update Back Bar Buttons
+    if m_rootFrame then
+        local backBarContainer = FindControl(m_rootFrame, 'BackBarContainer')
+        if backBarContainer then
+            for i = 1, 8 do 
+                 local btn = FindControl(backBarContainer, 'Button' .. i)
+                 UpdateButtonVisuals(btn)
+            end
+        end
+        
+        -- Update Front Bar Buttons (font is also set in UpdateFrontBarCooldowns for reliability)
+        local frontBarContainer = FindControl(m_rootFrame, 'FrontBarContainer')
+        if frontBarContainer then
+             for i = 1, 5 do
+                local btn = FindControl(frontBarContainer, 'Button' .. i)
+                if not btn then
+                     btn = frontBarContainer:GetNamedChild("Button" .. i)
+                end
+                UpdateButtonVisuals(btn)
+             end
+             
+             local ultimateBtn = FindControl(frontBarContainer, 'UltimateButton') or frontBarContainer:GetNamedChild("UltimateButton")
+             UpdateButtonVisuals(ultimateBtn)
+
+             local quickslotBtn = FindControl(frontBarContainer, 'QuickslotButton') or frontBarContainer:GetNamedChild("QuickslotButton")
+             UpdateButtonVisuals(quickslotBtn)
+             
+             local companionBtn = FindControl(frontBarContainer, 'CompanionButton') or frontBarContainer:GetNamedChild("CompanionButton")
+             UpdateButtonVisuals(companionBtn)
+        end
+    end
+end
+
 function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
@@ -2703,6 +2823,10 @@ function ResourceOrbFrames.ApplySettings()
 
         UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments
         UpdateDynamicLayout() -- Apply relative positioning of bars and ornaments
+        -- Apply font/color settings to skill bars (deferred to ensure template children are ready)
+        zo_callLater(function()
+            ApplySkillBarVisuals()
+        end, 200)
         RefreshAllData(m_rootFrame)
         
         -- Hide default bars

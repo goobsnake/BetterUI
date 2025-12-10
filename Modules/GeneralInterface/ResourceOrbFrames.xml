@@ -23,6 +23,16 @@
                     textureFile="esoui/art/actionbar/abilityframe64_up.dds" layer="2">
                     <AnchorFill />
                 </Texture>
+                <!-- Gamepad Backdrop (hidden by default, toggled in Lua) -->
+                <Backdrop name="$(parent)Backdrop" inherits="ZO_DefaultBackdrop_Gamepad"
+                    hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-4" offsetY="-4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4" />
+                    <Edge file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_edge_semiTrans_16.dds"
+                        edgeFileWidth="128" edgeFileHeight="16" />
+                    <Center
+                        file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_semiTrans_16.dds" />
+                </Backdrop>
             </Controls>
         </Control>
 

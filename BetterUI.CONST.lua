@@ -146,8 +146,8 @@ BETTERUI_ORB_FRAMES = {
         
         -- Quickslot icon position (relative to BgMiddle center)
         quickslot = {
-            x = 308,              -- Horizontal offset (+ right, - left)
-            y = -27,              -- Vertical offset (+ down, - up)
+            x = 292,              -- Horizontal offset (+ right, - left)
+            y = -18,              -- Vertical offset (+ down, - up)
         },
         
         -- Companion Ultimate icon position (relative to BgMiddle center)
@@ -175,8 +175,8 @@ BETTERUI_ORB_FRAMES = {
                 offsetY = 0,       -- Quickslot vertical (+ down, - up)
             },
             companionButton = {
-                offsetX = 0,       -- Companion horizontal (+ right, - left)
-                offsetY = 0,       -- Companion vertical (+ down, - up)
+                offsetX = 17,       -- Companion horizontal (+ right, - left)
+                offsetY = 1,       -- Companion vertical (+ down, - up)
             },
             
             -- Mode-specific sizing (nil = use slots config)
@@ -197,8 +197,8 @@ BETTERUI_ORB_FRAMES = {
         -- Secondary weapon bar shown above front bar
         -- ===================================================================
         customBackBar = {
-            offsetX = 0,           -- Whole bar horizontal offset (+ right, - left)
-            offsetY = 0,           -- Whole bar vertical offset (+ down, - up)
+            offsetX = 2,           -- Whole bar horizontal offset (+ right, - left)
+            offsetY = -5,           -- Whole bar vertical offset (+ down, - up)
             
             -- Fine-tune ultimate button position
             ultimate = {
@@ -209,12 +209,12 @@ BETTERUI_ORB_FRAMES = {
             -- Mode-specific sizing (nil = inherit from front bar)
             gamepad = {
                 buttonSize = nil,  -- nil uses front bar size
-                spacing = 50,      -- Gap between buttons
+                spacing = 10,      -- Gap between buttons
                 ultimateSize = nil,-- nil uses front bar ultimateSize
             },
             keyboard = {
                 buttonSize = nil,  -- nil uses front bar size
-                spacing = 50,      -- Gap between buttons
+                spacing = 10,      -- Gap between buttons
                 ultimateSize = nil,-- nil uses front bar ultimateSize
             },
         },
@@ -238,13 +238,13 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     ornaments = {
         left = { 
-            x = -475,              -- Horizontal offset (+ right, - left)
+            x = -445,              -- Horizontal offset (+ right, - left)
             y = -15,               -- Vertical offset (+ down, - up)
             size = 375,            -- Size in pixels
             scale = 1.0,           -- Scale multiplier (1.0 = 100%)
         },
         right = { 
-            x = 475,               -- Horizontal offset (+ right, - left)
+            x = 455,               -- Horizontal offset (+ right, - left)
             y = -25,               -- Vertical offset (+ down, - up)
             size = 400,            -- Size in pixels
             scale = 1.0,           -- Scale multiplier (1.0 = 100%)
@@ -322,7 +322,7 @@ BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (fr
 -- Cast Bar positioning (centered above top/back bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
 BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
-BETTERUI_CAST_BAR_OFFSET_Y = 40            -- Y offset from back bar top (positive = down, closer to bar)
+BETTERUI_CAST_BAR_OFFSET_Y = 45            -- Y offset from back bar top (positive = down, closer to bar)
 BETTERUI_CAST_BAR_FILL_INSET_X = 30        -- Horizontal inset for fill bar within frame
 BETTERUI_CAST_BAR_FILL_INSET_Y = 58        -- Vertical inset for fill bar within frame
 BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
