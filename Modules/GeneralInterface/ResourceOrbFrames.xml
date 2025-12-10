@@ -4,7 +4,7 @@
     <Controls>
 
         <Control name="ResourceOrbFrames_BackBarButton_Template" virtual="true">
-            <Dimensions x="50" y="50" />
+            <Dimensions x="64" y="64" />
             <Controls>
                 <Texture name="$(parent)Icon" linkEnabled="true" layer="1">
                     <AnchorFill />
@@ -26,7 +26,230 @@
             </Controls>
         </Control>
 
+        <!-- ================================================================
+             CUSTOM FRONT BAR BUTTON TEMPLATE (Gamepad)
+             Replicates the visual structure of ESO's native ZO_ActionButton
+             for gamepad mode with all cooldown, keybind, and effect elements
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_FrontBarButton_Gamepad_Template" virtual="true">
+            <Dimensions x="64" y="64" />
+            <Controls>
+                <!-- FlipCard container for animations (matches native) -->
+                <Control name="$(parent)FlipCard">
+                    <Dimensions x="61" y="61" />
+                    <Anchor point="CENTER" />
+                </Control>
+
+                <!-- Ability Icon -->
+                <Texture name="$(parent)Icon" layer="1">
+                    <Dimensions x="61" y="61" />
+                    <Anchor point="CENTER" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Unusable Overlay (dark cover for no-target, cost failure, etc.) -->
+                <Texture name="$(parent)UnusableOverlay" hidden="true" color="000000" alpha="0.65"
+                    layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Cooldown Icon (desaturated version during cooldown) -->
+                <Texture name="$(parent)CooldownIcon" hidden="true" layer="1">
+                    <TextureCoords left="0" right="1" top="0" bottom="0" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" />
+                </Texture>
+
+                <!-- Background (hidden in gamepad mode) -->
+                <Texture name="$(parent)BG"
+                    textureFile="EsoUI/Art/ActionBar/abilityInset.dds"
+                    layer="0" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Status indicator (toggled on state) -->
+                <Texture name="$(parent)Status"
+                    textureFile="EsoUI/Art/ActionBar/ActionSlot_toggledon.dds"
+                    tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Activation Highlight (proc animation) -->
+                <Texture name="$(parent)ActivationHighlight"
+                    textureFile="EsoUI/Art/ActionBar/abilityHighlightAnimation.dds"
+                    blendMode="ADD" tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Glow effect (gamepad) -->
+                <Texture name="$(parent)Glow"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_skillGlow.dds"
+                    tier="HIGH" hidden="true" alpha="0">
+                    <TextureCoords left="0.1875" right="0.8125" top="0.1875" bottom="0.8125" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-12"
+                        offsetY="-12" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="12"
+                        offsetY="12" />
+                </Texture>
+
+                <!-- Radial Cooldown (hidden in gamepad, uses edge instead) -->
+                <Cooldown name="$(parent)Cooldown" inherits="ZO_DefaultCooldown"
+                    tier="HIGH" alpha="0.7" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Cooldown>
+
+                <!-- Cooldown Edge (gamepad - bottom fill bar) -->
+                <Texture name="$(parent)CooldownEdge"
+                    textureFile="EsoUI/Art/ActionBar/Gamepad/gp_QuickslotFill.dds"
+                    layer="2" hidden="true">
+                    <Dimensions y="8" />
+                </Texture>
+
+                <!-- Cooldown Complete Animation -->
+                <Texture name="$(parent)CooldownCompleteAnimation"
+                    textureFile="EsoUI/Art/ActionBar/coolDown_completeEFX.dds"
+                    blendMode="ADD" tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Keybind Label (X, Y, B, etc.) -->
+                <Label name="$(parent)ButtonText" font="ZoFontGamepad18"
+                    horizontalAlignment="CENTER" verticalAlignment="TOP" tier="HIGH">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="-6" />
+                </Label>
+
+                <!-- Timer Text (duration remaining) -->
+                <Label name="$(parent)TimerText" font="ZoFontGamepad27" color="DCD822"
+                    horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH"
+                    hidden="true">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="CENTER" offsetY="4" />
+                </Label>
+
+                <!-- Stack Count Text -->
+                <Label name="$(parent)StackCountText" font="ZoFontGamepad27" color="DCD822"
+                    horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH"
+                    hidden="true">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="CENTER" offsetX="23" offsetY="-20" />
+                </Label>
+
+                <!-- Item Count (for quickslot) -->
+                <Label name="$(parent)CountText" font="ZoFontGamepadBold27" tier="HIGH">
+                    <Anchor point="BOTTOMRIGHT" offsetX="-4" />
+                </Label>
+
+                <!-- Gamepad Backdrop Frame -->
+                <Backdrop name="$(parent)Backdrop" inherits="ZO_DefaultBackdrop_Gamepad">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-4" offsetY="-4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="4"
+                        offsetY="4" />
+                    <Edge file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_edge_semiTrans_16.dds"
+                        edgeFileWidth="128" edgeFileHeight="16" />
+                    <Center
+                        file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_semiTrans_16.dds" />
+                </Backdrop>
+            </Controls>
+        </Control>
+
+        <!-- ================================================================
+             FRONT BAR ULTIMATE BUTTON TEMPLATE (Gamepad)
+             Extends the normal button with ultimate-specific visuals:
+             LB+RB key textures, ultimate bar, ready animations
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template"
+            inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template" virtual="true">
+            <Dimensions x="70" y="70" />
+            <Controls>
+                <!-- Larger FlipCard for ultimate -->
+                <Control name="$(parent)FlipCard" override="true">
+                    <Dimensions x="67" y="67" />
+                </Control>
+
+                <!-- Ultimate Progress Fill Left (border animation) -->
+                <Texture name="$(parent)FillAnimationLeft" layer="2"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds">
+                    <Dimensions x="71" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-37"
+                        offsetY="-36" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)FlipCard" offsetX="-37"
+                        offsetY="36" />
+                </Texture>
+
+                <!-- Ultimate Progress Fill Right (border animation - mirrored) -->
+                <Texture name="$(parent)FillAnimationRight" layer="2"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds">
+                    <Dimensions x="71" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="33"
+                        offsetY="-36" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)FlipCard" offsetX="33"
+                        offsetY="36" />
+                </Texture>
+
+
+                <!-- Ultimate Frame -->
+                <Backdrop name="$(parent)Frame" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-12"
+                        offsetY="-12" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="12"
+                        offsetY="12" />
+                    <Edge file="EsoUI/Art/HUD/Gamepad/gp_UltimateFrame_edge.dds"
+                        edgeFileWidth="128" edgeFileHeight="16" />
+                    <Center file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_16.dds" />
+                    <Insets left="16" top="16" right="-16" bottom="-16" />
+                </Backdrop>
+
+                <!-- LB Key Texture -->
+                <Texture name="$(parent)LeftKeybind" tier="HIGH"
+                    textureFile="EsoUI/Art/Buttons/Gamepad/gp_leftShoulder.dds">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="TOPRIGHT" relativePoint="BOTTOMLEFT" offsetY="-18" />
+                </Texture>
+
+                <!-- RB Key Texture -->
+                <Texture name="$(parent)RightKeybind" tier="HIGH"
+                    textureFile="EsoUI/Art/Buttons/Gamepad/gp_rightShoulder.dds">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="TOPLEFT" relativePoint="BOTTOMRIGHT" offsetY="-18" />
+                </Texture>
+
+                <!-- Ultimate Ready Burst Animation -->
+                <Texture name="$(parent)ReadyBurst"
+                    textureFile="EsoUI/Art/ActionBar/coolDown_completeEFX.dds"
+                    blendMode="ADD" hidden="true" layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Ultimate Ready Loop Animation -->
+                <Texture name="$(parent)ReadyLoop"
+                    textureFile="EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds"
+                    blendMode="ADD" hidden="true" layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Override glow for ultimate (larger) -->
+                <Texture name="$(parent)Glow" override="true"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateGlow.dds">
+                    <TextureCoords left="0.1171875" right="0.8828125" top="0.1171875"
+                        bottom="0.8828125" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-19"
+                        offsetY="-19" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="19"
+                        offsetY="19" />
+                </Texture>
+            </Controls>
+        </Control>
+
         <Control name="ResourceOrbFrames_OrbLabel_Template" virtual="true">
+
             <Dimensions x="50" y="50" />
             <Controls>
 
@@ -238,6 +461,64 @@
                                     inherits="ResourceOrbFrames_BackBarButton_Template">
                                     <Anchor point="LEFT" relativeTo="$(parent)Button5"
                                         relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                                </Control>
+                            </Controls>
+                        </Control>
+
+                        <!-- ============================================================
+                             CUSTOM FRONT BAR CONTAINER
+                             Replaces native ZO_ActionBar1 for full scaling control
+                             Contains: 5 skill buttons + 1 ultimate + quickslot + companion
+                             ============================================================ -->
+                        <Control name="$(grandparent)FrontBarContainer" hidden="true">
+                            <Dimensions x="450" y="70" />
+                            <Anchor point="BOTTOM" relativeTo="$(parent)"
+                                relativePoint="BOTTOM" offsetX="0" offsetY="-15" />
+                            <Controls>
+                                <!-- Skill buttons 1-5 (slots 3-7) -->
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+
+                                <!-- Ultimate button (slot 8) -->
+                                <Control name="$(parent)UltimateButton"
+                                    inherits="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" />
+                                </Control>
+
+                                <!-- Quickslot button (positioned via Lua) -->
+                                <Control name="$(parent)QuickslotButton"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <!-- Anchor set dynamically in Lua -->
+                                </Control>
+
+                                <!-- Companion ultimate button (positioned via Lua, hidden when no
+                                companion) -->
+                                <Control name="$(parent)CompanionButton" hidden="true"
+                                    inherits="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template">
+                                    <!-- Anchor set dynamically in Lua -->
                                 </Control>
                             </Controls>
                         </Control>

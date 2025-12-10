@@ -14,6 +14,8 @@ local m_castBar = nil
 local m_mountStaminaBar = nil
 local m_updateDeathFragment = nil
 
+
+
 -- Default Settings
 local DEFAULTS = {
     enabled = false,
@@ -24,6 +26,7 @@ local DEFAULTS = {
     -- Cooldown text settings
     cooldownTextSize = 18,
     cooldownTextColor = {1, 1, 1, 1}, -- RGBA white
+    shieldTextColor = {0, 1, 1, 1}, -- Cyan matching shield graphic
     -- Fine-tune resource orb fills (magicka/stamina)
     -- developer-only
 }
@@ -105,11 +108,11 @@ local function UpdateFrameDimensions()
 
     if scale then 
         m_rootFrame:SetScale(scale)
-        
-        -- Also scale the native ESO action bar since it's not a child of m_rootFrame
-        if ZO_ActionBar1 then
-            ZO_ActionBar1:SetScale(scale)
-        end
+        -- NOTE: We intentionally do NOT scale ZO_ActionBar1.
+        -- ESO's internal ApplyStyle/SetCompanionAnchors/animation code
+        -- assumes scale 1.0. When we set a different scale, ESO's
+        -- positioning calculations conflict with our scaled container,
+        -- causing the "buttons get bigger" issue on companion spawn/weapon swap.
     end
     if offsetY ~= nil then
         m_rootFrame:ClearAnchors()
@@ -117,6 +120,8 @@ local function UpdateFrameDimensions()
         m_rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
     end
 end
+
+
 
 -- Update textures for the main frame elements
 local function ApplyThemeVisuals()
@@ -481,10 +486,122 @@ local function UpdateBackBar(rootFrame)
                     iconControl:SetHidden(true)
                 end
             end
+            
+            -- Store slot reference for tooltips
+            btn.slotIndex = slotIndex
+            btn.hotbarCategory = backBarCategory
         end
     end
     
     backBarContainer:SetHidden(false)
+end
+
+-- Update back bar layout to match front bar sizing exactly
+local function UpdateBackBarLayout(rootFrame)
+    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    if not backBarContainer then return end
+    
+    local isGamePad = IsInGamepadPreferredMode()
+    local slotsConfig = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
+    
+    -- Use back bar config if available, fallback to front bar config, then slots config
+    local backBarCfg = BETTERUI_ORB_FRAMES.bars.customBackBar
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    
+    local backModeConfig = backBarCfg and (isGamePad and backBarCfg.gamepad or backBarCfg.keyboard)
+    local frontModeConfig = frontBarCfg and (isGamePad and frontBarCfg.gamepad or frontBarCfg.keyboard)
+    
+    -- Sizing: back bar config -> front bar config -> slots config
+    local buttonSize = (backModeConfig and backModeConfig.buttonSize) or 
+                       (frontModeConfig and frontModeConfig.buttonSize) or 
+                       slotsConfig.width
+    local spacing = (backModeConfig and backModeConfig.spacing) or 
+                    (frontModeConfig and frontModeConfig.spacing) or 
+                    slotsConfig.spacing
+    local ultimateSize = (backModeConfig and backModeConfig.ultimateSize) or 
+                         (frontModeConfig and frontModeConfig.ultimateSize) or 
+                         (buttonSize + 6)
+    local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
+    
+    -- Calculate total width: 5 skills + ultimate + gaps
+    local totalWidth = (5 * buttonSize) + (4 * spacing) + ultimateGap + ultimateSize
+    local halfWidth = totalWidth / 2
+    
+    backBarContainer:SetDimensions(totalWidth, buttonSize)
+    
+    -- Position and size normal skill buttons (slots 1-5 = Button1-Button5)
+    for i = 1, 5 do
+        local btn = FindControl(backBarContainer, 'Button' .. i)
+        if btn then
+            btn:SetDimensions(buttonSize, buttonSize)
+            btn:ClearAnchors()
+            if i == 1 then
+                btn:SetAnchor(LEFT, backBarContainer, CENTER, -halfWidth, 0)
+            else
+                local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
+                btn:SetAnchor(LEFT, prevBtn, RIGHT, spacing, 0)
+            end
+            
+            -- Resize Icon to fill button
+            local icon = btn:GetNamedChild("Icon")
+            if icon then
+                icon:ClearAnchors()
+                icon:SetAnchorFill()
+            end
+        end
+    end
+    
+    -- Position ultimate button (Button6 = slot 8)
+    local ultBtn = FindControl(backBarContainer, 'Button6')
+    if ultBtn then
+        local btn5 = FindControl(backBarContainer, 'Button5')
+        
+        -- Get ultimate offset from back bar config
+        local ultOffsetX = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetX) or 0
+        local ultOffsetY = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetY) or 0
+        
+        ultBtn:SetDimensions(ultimateSize, ultimateSize)
+        ultBtn:ClearAnchors()
+        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX, ultOffsetY)
+        
+        -- Resize Icon to fill button
+        local icon = ultBtn:GetNamedChild("Icon")
+        if icon then
+            icon:ClearAnchors()
+            icon:SetAnchorFill()
+        end
+    end
+end
+
+-- Setup tooltip handlers for back bar buttons
+local function SetupBackBarTooltips(rootFrame)
+    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    if not backBarContainer then return end
+    
+    -- Slots 3-7 are skills, 8 is Ultimate
+    local slots = {3, 4, 5, 6, 7, 8}
+    
+    for i, slotIndex in ipairs(slots) do
+        local btn = FindControl(backBarContainer, 'Button' .. i)
+        if btn then
+            btn:SetMouseEnabled(true)
+            btn:SetHandler("OnMouseEnter", function(control)
+                local category = control.hotbarCategory
+                local slot = control.slotIndex or slotIndex
+                if category then
+                    -- Only show tooltip if slot has an ability
+                    local slotType = GetSlotType(slot, category)
+                    if slotType and slotType ~= ACTION_TYPE_NOTHING then
+                        InitializeTooltip(AbilityTooltip, control, RIGHT, -5, 0)
+                        AbilityTooltip:SetAction(slot, category)
+                    end
+                end
+            end)
+            btn:SetHandler("OnMouseExit", function(control)
+                ClearTooltip(AbilityTooltip)
+            end)
+        end
+    end
 end
 
 local function UpdateBackBarCooldowns(rootFrame)
@@ -546,14 +663,9 @@ local function UpdateBackBarCooldowns(rootFrame)
                     end
                     
                     cooldownText:SetHidden(false)
-                    cooldownText:SetFont("$(MEDIUM_FONT)|22|soft-shadow-thin")
-                    
-                    -- Match native timer format: whole numbers until under 2 seconds
-                    if remaining >= 2 then
-                        cooldownText:SetText(string.format("%.0f", remaining))
-                    else
-                        cooldownText:SetText(string.format("%.1f", remaining))
-                    end
+                                        
+                    -- Always show decimal for consistency with front bar
+                    cooldownText:SetText(string.format("%.1f", remaining))
                 else
                     -- Hide overlay and text
                     cooldownOverlay:SetHidden(true)
@@ -566,6 +678,717 @@ local function UpdateBackBarCooldowns(rootFrame)
                 end
             end
         end
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- CUSTOM FRONT BAR FUNCTIONS
+-- These functions manage the custom front bar that replaces the native ZO_ActionBar1
+-------------------------------------------------------------------------------------------------
+
+-- Hide the native action bar completely
+local function HideNativeActionBar()
+    if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
+        ZO_ActionBar1:SetHidden(true)
+        if ZO_ActionBar1.SetAlpha then
+            ZO_ActionBar1:SetAlpha(0)
+        end
+    end
+    -- Also hide the timer bar if it exists
+    if ZO_ActionBarTimer and ZO_ActionBarTimer.SetHidden then
+        ZO_ActionBarTimer:SetHidden(true)
+    end
+end
+
+-- Show the native action bar (when custom is disabled)
+local function ShowNativeActionBar()
+    if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
+        ZO_ActionBar1:SetHidden(false)
+        if ZO_ActionBar1.SetAlpha then
+            ZO_ActionBar1:SetAlpha(1)
+        end
+    end
+    if ZO_ActionBarTimer and ZO_ActionBarTimer.SetHidden then
+        ZO_ActionBarTimer:SetHidden(false)
+    end
+end
+
+
+-- Update front bar button icons and state
+local function UpdateFrontBar(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local activeCategory = GetActiveHotbarCategory()
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    -- Slots 3-7 are skills, 8 is Ultimate
+    local slotMapping = {
+        {buttonName = "Button1", slot = 3},
+        {buttonName = "Button2", slot = 4},
+        {buttonName = "Button3", slot = 5},
+        {buttonName = "Button4", slot = 6},
+        {buttonName = "Button5", slot = 7},
+        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
+    }
+    
+    for _, mapping in ipairs(slotMapping) do
+        local btn = FindControl(frontBarContainer, mapping.buttonName)
+        if btn then
+            local iconControl = btn:GetNamedChild("Icon")
+            local slotTexture = GetSlotTexture(mapping.slot, activeCategory)
+            
+            if iconControl then
+                if slotTexture and slotTexture ~= "" then
+                    iconControl:SetTexture(slotTexture)
+                    iconControl:SetHidden(false)
+                else
+                    iconControl:SetHidden(true)
+                end
+            end
+            
+            -- Store slot reference for future use
+            btn.slotIndex = mapping.slot
+            btn.hotbarCategory = activeCategory
+            
+            -- Update activation highlight (procs)
+            local highlight = btn:GetNamedChild("ActivationHighlight")
+            if highlight then
+                local hasHighlight = ActionSlotHasActivationHighlight(mapping.slot, activeCategory)
+                highlight:SetHidden(not hasHighlight)
+            end
+        end
+    end
+    
+    frontBarContainer:SetHidden(false)
+end
+
+-- Update front bar usability state (called periodically for smooth updates)
+-- This handles cost failures, state failures, and target requirements
+local function UpdateFrontBarUsability(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local activeCategory = GetActiveHotbarCategory()
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    -- Check for target status once for all abilities
+    local hasTarget = DoesUnitExist("reticleover")
+    
+    local slotMapping = {
+        {buttonName = "Button1", slot = 3},
+        {buttonName = "Button2", slot = 4},
+        {buttonName = "Button3", slot = 5},
+        {buttonName = "Button4", slot = 6},
+        {buttonName = "Button5", slot = 7},
+        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
+    }
+    
+    for _, mapping in ipairs(slotMapping) do
+        local btn = FindControl(frontBarContainer, mapping.buttonName)
+        if btn then
+            local iconControl = btn:GetNamedChild("Icon")
+            local unusableOverlay = btn:GetNamedChild("UnusableOverlay")
+            
+            if iconControl and not iconControl:IsHidden() then
+                -- Check standard usability (cost and state failures)
+                local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
+                local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
+                
+                -- Determine if unusable
+                local unusable = hasCostFailure or hasStateFailure
+                
+                -- Check if skill is on cooldown (cooldown function handles that overlay)
+                local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, activeCategory)
+                local hasActiveCooldown = remainMs and durationMs and remainMs > 0 and durationMs > 0
+                
+                -- Apply dark overlay for unusable skills (only if not on cooldown already)
+                if unusable and not hasActiveCooldown then
+                    -- Show dark overlay (no desaturation - let overlay handle the visual)
+                    if unusableOverlay then
+                        unusableOverlay:SetHidden(false)
+                    end
+                else
+                    -- Hide unusable overlay
+                    if unusableOverlay then
+                        unusableOverlay:SetHidden(true)
+                    end
+                end
+            end
+        end
+    end
+end
+
+
+-- Update ultimate resource meter display using native ESO sprite sheet animation
+-- The gp_UltimateFill_512.dds sprite sheet has 8 columns x 4 rows = 32 frames
+local function UpdateFrontBarUltimateMeter(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    -- Sprite sheet configuration: 8 columns x 4 rows = 32 frames
+    local CELLS_WIDE = 8
+    local CELLS_HIGH = 4
+    local TOTAL_FRAMES = CELLS_WIDE * CELLS_HIGH  -- 32
+    
+    -- Helper function to set texture coordinates based on frame
+    local function SetSpriteFrame(texture, frameIndex, mirror)
+        if not texture then return end
+        
+        -- Calculate row and column (0-indexed)
+        local col = frameIndex % CELLS_WIDE
+        local row = math.floor(frameIndex / CELLS_WIDE)
+        
+        -- Calculate texture coordinates (0.0 to 1.0)
+        local cellWidth = 1.0 / CELLS_WIDE
+        local cellHeight = 1.0 / CELLS_HIGH
+        
+        local left = col * cellWidth
+        local right = left + cellWidth
+        local top = row * cellHeight
+        local bottom = top + cellHeight
+        
+        -- Mirror for right side
+        if mirror then
+            local temp = left
+            left = right
+            right = temp
+        end
+        
+        texture:SetTextureCoords(left, right, top, bottom)
+    end
+    
+    -- Update player ultimate meter
+    local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
+    if ultBtn then
+        local fillLeft = ultBtn:GetNamedChild("FillAnimationLeft")
+        local fillRight = ultBtn:GetNamedChild("FillAnimationRight")
+        
+        if fillLeft and fillRight then
+            local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
+            local activeCategory = GetActiveHotbarCategory()
+            local abilityCost = GetSlotAbilityCost(slotIndex, activeCategory)
+            local currentUltimate, maxUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+            
+            if abilityCost and abilityCost > 0 then
+                -- Calculate fill percentage (capped at 100%)
+                local fillPercent = math.min(1, currentUltimate / abilityCost)
+                
+                -- Calculate which frame to show (0 to 31)
+                local frameIndex = math.floor(fillPercent * (TOTAL_FRAMES - 1))
+                
+                -- Set sprite coordinates for both left and right textures
+                SetSpriteFrame(fillLeft, frameIndex, false)
+                SetSpriteFrame(fillRight, frameIndex, true)
+                
+                -- Show fill textures (they animate based on fill %)
+                fillLeft:SetHidden(false)
+                fillRight:SetHidden(false)
+            else
+                -- No ability slotted or no cost - hide fill
+                fillLeft:SetHidden(true)
+                fillRight:SetHidden(true)
+            end
+        end
+    end
+    
+    -- Update companion ultimate meter (same logic)
+    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    if compBtn and not compBtn:IsHidden() then
+        local fillLeft = compBtn:GetNamedChild("FillAnimationLeft")
+        local fillRight = compBtn:GetNamedChild("FillAnimationRight")
+        
+        if fillLeft and fillRight then
+            local iconControl = compBtn:GetNamedChild("Icon")
+            if iconControl and not iconControl:IsHidden() then
+                local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
+                local abilityCost = GetSlotAbilityCost(slotIndex, HOTBAR_CATEGORY_COMPANION)
+                local currentUltimate, maxUltimate = GetUnitPower("companion", POWERTYPE_ULTIMATE)
+                
+                if abilityCost and abilityCost > 0 then
+                    local fillPercent = math.min(1, currentUltimate / abilityCost)
+                    local frameIndex = math.floor(fillPercent * (TOTAL_FRAMES - 1))
+                    
+                    SetSpriteFrame(fillLeft, frameIndex, false)
+                    SetSpriteFrame(fillRight, frameIndex, true)
+                    
+                    fillLeft:SetHidden(false)
+                    fillRight:SetHidden(false)
+                else
+                    fillLeft:SetHidden(true)
+                    fillRight:SetHidden(true)
+                end
+            else
+                fillLeft:SetHidden(true)
+                fillRight:SetHidden(true)
+            end
+        end
+    end
+end
+
+
+-- Setup tooltip handlers for front bar buttons
+local function SetupFrontBarTooltips(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local activeCategory = GetActiveHotbarCategory()
+    
+    -- Skill buttons 1-5
+    local slotMapping = {
+        {buttonName = "Button1", slot = 3},
+        {buttonName = "Button2", slot = 4},
+        {buttonName = "Button3", slot = 5},
+        {buttonName = "Button4", slot = 6},
+        {buttonName = "Button5", slot = 7},
+        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
+    }
+    
+    for _, mapping in ipairs(slotMapping) do
+        local btn = FindControl(frontBarContainer, mapping.buttonName)
+        if btn then
+            btn:SetMouseEnabled(true)
+            btn:SetHandler("OnMouseEnter", function(control)
+                local category = control.hotbarCategory or GetActiveHotbarCategory()
+                local slotIndex = control.slotIndex or mapping.slot
+                -- Only show tooltip if slot has an ability
+                local slotType = GetSlotType(slotIndex, category)
+                if slotType and slotType ~= ACTION_TYPE_NOTHING then
+                    InitializeTooltip(AbilityTooltip, control, RIGHT, -5, 0)
+                    AbilityTooltip:SetAction(slotIndex, category)
+                end
+            end)
+            btn:SetHandler("OnMouseExit", function(control)
+                ClearTooltip(AbilityTooltip)
+            end)
+        end
+    end
+    
+    -- Quickslot tooltip
+    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    if qsBtn then
+        qsBtn:SetMouseEnabled(true)
+        qsBtn:SetHandler("OnMouseEnter", function(control)
+            local slotIndex = control.slotIndex or GetCurrentQuickslot()
+            -- Only show tooltip if quickslot has an item/ability
+            local slotType = GetSlotType(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            if slotType and slotType ~= ACTION_TYPE_NOTHING then
+                InitializeTooltip(ItemTooltip, control, RIGHT, -5, 0)
+                ItemTooltip:SetAction(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+            end
+        end)
+        qsBtn:SetHandler("OnMouseExit", function(control)
+            ClearTooltip(ItemTooltip)
+        end)
+    end
+    
+    -- Companion ultimate tooltip
+    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    if compBtn then
+        compBtn:SetMouseEnabled(true)
+        compBtn:SetHandler("OnMouseEnter", function(control)
+            local slotIndex = control.slotIndex or (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1)
+            -- Only show tooltip if companion has ultimate assigned
+            local slotType = GetSlotType(slotIndex, HOTBAR_CATEGORY_COMPANION)
+            if slotType and slotType ~= ACTION_TYPE_NOTHING then
+                InitializeTooltip(AbilityTooltip, control, RIGHT, -5, 0)
+                AbilityTooltip:SetAction(slotIndex, HOTBAR_CATEGORY_COMPANION)
+            end
+        end)
+        compBtn:SetHandler("OnMouseExit", function(control)
+            ClearTooltip(AbilityTooltip)
+        end)
+    end
+end
+
+
+-- Update front bar cooldowns
+local function UpdateFrontBarCooldowns(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local activeCategory = GetActiveHotbarCategory()
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local isGamepad = IsInGamepadPreferredMode()
+    
+    local slotMapping = {
+        {buttonName = "Button1", slot = 3},
+        {buttonName = "Button2", slot = 4},
+        {buttonName = "Button3", slot = 5},
+        {buttonName = "Button4", slot = 6},
+        {buttonName = "Button5", slot = 7},
+        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
+    }
+    
+    for _, mapping in ipairs(slotMapping) do
+        local btn = FindControl(frontBarContainer, mapping.buttonName)
+        if btn then
+            local remainMs, durationMs, isGlobal = GetSlotCooldownInfo(mapping.slot, activeCategory)
+            local showCooldown = remainMs and remainMs > 0 and durationMs > 1000 and not isGlobal
+            
+            local cooldown = btn:GetNamedChild("Cooldown")
+            local cooldownEdge = btn:GetNamedChild("CooldownEdge")
+            local iconControl = btn:GetNamedChild("Icon")
+            local timerText = btn:GetNamedChild("TimerText")
+            
+            if showCooldown then
+                -- Desaturate icon
+                if iconControl then iconControl:SetDesaturation(1) end
+                
+                if isGamepad then
+                    -- Gamepad: Use bottom edge fill
+                    if cooldown then cooldown:SetHidden(true) end
+                    if cooldownEdge and iconControl then
+                        local percentComplete = 1 - (remainMs / durationMs)
+                        local _, iconHeight = iconControl:GetDimensions()
+                        local iconWidth = iconControl:GetWidth()
+                        local offsetY = (1 - percentComplete) * iconHeight
+                        cooldownEdge:ClearAnchors()
+                        cooldownEdge:SetAnchor(TOPLEFT, iconControl, TOPLEFT, 0, offsetY)
+                        cooldownEdge:SetWidth(iconWidth)
+                        cooldownEdge:SetHidden(false)
+                    end
+                else
+                    -- Keyboard: Use radial cooldown
+                    if cooldownEdge then cooldownEdge:SetHidden(true) end
+                    if cooldown then
+                        cooldown:StartCooldown(remainMs, durationMs, CD_TYPE_RADIAL, nil, false)
+                        cooldown:SetHidden(false)
+                    end
+                end
+                
+                -- Also show timer text - always show decimal
+                if timerText then
+                    local remaining = remainMs / 1000
+                    timerText:SetText(string.format("%.1f", remaining))
+                    timerText:SetHidden(false)
+                end
+            else
+                -- Clear cooldown display
+                if iconControl then iconControl:SetDesaturation(0) end
+                if cooldown then cooldown:SetHidden(true) end
+                if cooldownEdge then cooldownEdge:SetHidden(true) end
+                if timerText then timerText:SetHidden(true) end
+            end
+            
+            -- Also update effect timers (buff durations)
+            local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, activeCategory)
+            if effectRemaining and effectRemaining > 1000 and not showCooldown then
+                if timerText then
+                    local remaining = effectRemaining / 1000
+                    -- Always show decimal for consistency
+                    timerText:SetText(string.format("%.1f", remaining))
+                    timerText:SetHidden(false)
+                end
+            end
+            
+            -- Update stack count
+            local stackCountText = btn:GetNamedChild("StackCountText")
+            if stackCountText then
+                local stackCount = GetActionSlotEffectStackCount(mapping.slot, activeCategory)
+                if stackCount and stackCount > 0 then
+                    stackCountText:SetText(stackCount)
+                    stackCountText:SetHidden(false)
+                else
+                    stackCountText:SetHidden(true)
+                end
+            end
+        end
+    end
+end
+
+-- Update front bar layout and positioning
+local function UpdateFrontBarLayout(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local isGamePad = IsInGamepadPreferredMode()
+    local slotsConfig = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
+    local modeConfig = isGamePad and frontBarCfg.gamepad or frontBarCfg.keyboard
+    
+    local buttonSize = modeConfig.buttonSize or slotsConfig.width
+    local spacing = modeConfig.spacing or slotsConfig.spacing
+    local ultimateSize = modeConfig.ultimateSize or (buttonSize + 6)
+    local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
+    
+    -- Calculate total width: 5 skills + ultimate + gaps
+    local totalWidth = (5 * buttonSize) + (4 * spacing) + ultimateGap + ultimateSize
+    local halfWidth = totalWidth / 2
+    
+    frontBarContainer:SetDimensions(totalWidth, ultimateSize)
+    
+    -- Position normal skill buttons
+    for i = 1, 5 do
+        local btn = FindControl(frontBarContainer, 'Button' .. i)
+        if btn then
+            btn:SetDimensions(buttonSize, buttonSize)
+            btn:ClearAnchors()
+            if i == 1 then
+                btn:SetAnchor(LEFT, frontBarContainer, CENTER, -halfWidth, 0)
+            else
+                local prevBtn = FindControl(frontBarContainer, 'Button' .. (i-1))
+                btn:SetAnchor(LEFT, prevBtn, RIGHT, spacing, 0)
+            end
+            
+            -- Also resize FlipCard and Icon
+            local flipCard = btn:GetNamedChild("FlipCard")
+            if flipCard then
+                local innerSize = buttonSize - 3
+                flipCard:SetDimensions(innerSize, innerSize)
+            end
+            local icon = btn:GetNamedChild("Icon")
+            if icon then
+                local innerSize = buttonSize - 3
+                icon:SetDimensions(innerSize, innerSize)
+            end
+        end
+    end
+    
+    -- Position ultimate button
+    local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
+    if ultBtn then
+        local btn5 = FindControl(frontBarContainer, 'Button5')
+        local ultOffsetX = frontBarCfg.ultimate.offsetX or 0
+        local ultOffsetY = frontBarCfg.ultimate.offsetY or 0
+        
+        ultBtn:SetDimensions(ultimateSize, ultimateSize)
+        ultBtn:ClearAnchors()
+        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + ultOffsetX, ultOffsetY)
+        
+        local flipCard = ultBtn:GetNamedChild("FlipCard")
+        if flipCard then
+            local innerSize = ultimateSize - 3
+            flipCard:SetDimensions(innerSize, innerSize)
+        end
+        local icon = ultBtn:GetNamedChild("Icon")
+        if icon then
+            local innerSize = ultimateSize - 3
+            icon:SetDimensions(innerSize, innerSize)
+        end
+    end
+    
+    -- Position quickslot button
+    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    if qsBtn then
+        local quickslotCfg = frontBarCfg.quickslotButton
+        local baseX = BETTERUI_ORB_FRAMES.bars.quickslot.x
+        local baseY = BETTERUI_ORB_FRAMES.bars.quickslot.y
+        local offsetX = quickslotCfg.offsetX or 0
+        local offsetY = quickslotCfg.offsetY or 0
+        
+        local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+        qsBtn:SetDimensions(buttonSize, buttonSize)
+        qsBtn:ClearAnchors()
+        if bgMiddle then
+            qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
+        end
+    end
+    
+    -- Position companion button
+    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    if compBtn then
+        local companionCfg = frontBarCfg.companionButton
+        local baseX = BETTERUI_ORB_FRAMES.bars.companionUltimate.x
+        local baseY = BETTERUI_ORB_FRAMES.bars.companionUltimate.y
+        local offsetX = companionCfg.offsetX or 0
+        local offsetY = companionCfg.offsetY or 0
+        
+        local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+        compBtn:SetDimensions(ultimateSize, ultimateSize)
+        compBtn:ClearAnchors()
+        if bgMiddle then
+            compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
+        end
+    end
+    
+    -- Apply overall front bar offset
+    local barOffsetX = frontBarCfg.offsetX or 0
+    local barOffsetY = frontBarCfg.offsetY or 0
+    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    if bgMiddle then
+        frontBarContainer:ClearAnchors()
+        -- Position front bar below back bar: more negative Y = lower
+        frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+    end
+end
+
+-- Update quickslot on front bar
+local function UpdateFrontBarQuickslot(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    if not qsBtn then return end
+    
+    local slotIndex = GetCurrentQuickslot()
+    local icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    local iconControl = qsBtn:GetNamedChild("Icon")
+    
+    if iconControl and icon then
+        iconControl:SetTexture(icon)
+    end
+    
+    -- Update item count
+    local countText = qsBtn:GetNamedChild("CountText")
+    if countText then
+        local count = GetSlotItemCount(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if count and count > 0 then
+            countText:SetText(count)
+            countText:SetHidden(false)
+        else
+            countText:SetHidden(true)
+        end
+    end
+    
+    qsBtn.slotIndex = slotIndex
+    qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+end
+
+-- Update companion ultimate on front bar
+local function UpdateFrontBarCompanion(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    if not compBtn then return end
+    
+    local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
+    
+    if companionActive then
+        compBtn:SetHidden(false)
+        
+        local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
+        local icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_COMPANION)
+        local iconControl = compBtn:GetNamedChild("Icon")
+        
+        -- Show icon if skill assigned, hide icon (but show frame) if not
+        if iconControl then
+            if icon and icon ~= "" then
+                iconControl:SetTexture(icon)
+                iconControl:SetHidden(false)
+            else
+                -- No skill - hide icon but keep frame visible (transparent inside)
+                iconControl:SetHidden(true)
+            end
+        end
+        
+        compBtn.slotIndex = slotIndex
+        compBtn.hotbarCategory = HOTBAR_CATEGORY_COMPANION
+    else
+        compBtn:SetHidden(true)
+    end
+end
+
+
+-- Setup keybind labels for front bar buttons
+local function SetupFrontBarKeybinds(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local HIDE_UNBOUND = false
+    
+    -- Skill buttons use ACTION_BUTTON_3 through ACTION_BUTTON_7
+    local slotBindings = {
+        [1] = {keyboard = "ACTION_BUTTON_3", gamepad = "GAMEPAD_ACTION_BUTTON_3"},
+        [2] = {keyboard = "ACTION_BUTTON_4", gamepad = "GAMEPAD_ACTION_BUTTON_4"},
+        [3] = {keyboard = "ACTION_BUTTON_5", gamepad = "GAMEPAD_ACTION_BUTTON_5"},
+        [4] = {keyboard = "ACTION_BUTTON_6", gamepad = "GAMEPAD_ACTION_BUTTON_6"},
+        [5] = {keyboard = "ACTION_BUTTON_7", gamepad = "GAMEPAD_ACTION_BUTTON_7"},
+    }
+    
+    for i = 1, 5 do
+        local btn = FindControl(frontBarContainer, 'Button' .. i)
+        if btn then
+            local buttonText = btn:GetNamedChild("ButtonText")
+            if buttonText then
+                local bindings = slotBindings[i]
+                ZO_Keybindings_RegisterLabelForBindingUpdate(
+                    buttonText, 
+                    bindings.keyboard, 
+                    HIDE_UNBOUND, 
+                    bindings.gamepad
+                )
+            end
+        end
+    end
+    
+    -- Ultimate button uses ACTION_BUTTON_8 (LB+RB in gamepad)
+    local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
+    if ultBtn then
+        local buttonText = ultBtn:GetNamedChild("ButtonText")
+        if buttonText then
+            ZO_Keybindings_RegisterLabelForBindingUpdate(
+                buttonText, "ACTION_BUTTON_8", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_8"
+            )
+        end
+        
+        -- Show/hide LB+RB textures based on gamepad mode
+        local isGamepad = IsInGamepadPreferredMode()
+        local leftKeybind = ultBtn:GetNamedChild("LeftKeybind")
+        local rightKeybind = ultBtn:GetNamedChild("RightKeybind")
+        if leftKeybind then leftKeybind:SetHidden(not isGamepad) end
+        if rightKeybind then rightKeybind:SetHidden(not isGamepad) end
+    end
+    
+    -- Quickslot uses ACTION_BUTTON_9
+    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    if qsBtn then
+        local buttonText = qsBtn:GetNamedChild("ButtonText")
+        if buttonText then
+            ZO_Keybindings_RegisterLabelForBindingUpdate(
+                buttonText, "ACTION_BUTTON_9", HIDE_UNBOUND, "GAMEPAD_ACTION_BUTTON_9"
+            )
+            -- Keep ButtonText (keybind LB) at default position (bottom of button)
+        end
+        
+        -- Reposition CountText (quantity) inside the button, above keybind, centered
+        local countText = qsBtn:GetNamedChild("CountText")
+        if countText then
+            countText:ClearAnchors()
+            -- Position inside button, centered horizontally, just above keybind area (2px gap)
+            countText:SetAnchor(BOTTOM, qsBtn, BOTTOM, 0, -4)
+            countText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+        end
+    end
+    
+    -- Companion uses COMMAND_PET
+    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    if compBtn then
+        local buttonText = compBtn:GetNamedChild("ButtonText")
+        if buttonText then
+            ZO_Keybindings_RegisterLabelForBindingUpdate(
+                buttonText, "COMMAND_PET", HIDE_UNBOUND, "COMMAND_PET"
+            )
+        end
+        
+        -- Show LB+RB for companion in gamepad mode too
+        local isGamepad = IsInGamepadPreferredMode()
+        local leftKeybind = compBtn:GetNamedChild("LeftKeybind")
+        local rightKeybind = compBtn:GetNamedChild("RightKeybind")
+        if leftKeybind then leftKeybind:SetHidden(not isGamepad) end
+        if rightKeybind then rightKeybind:SetHidden(not isGamepad) end
     end
 end
 
@@ -679,39 +1502,21 @@ local function UpdateMainBarLayout(rootFrame)
     -- Calculate total width of native action bar (5 skills + ultimate)
     local totalWidth = (6 * width) + (5 * offset)
     
-    -- Get the BetterUI ActionBarContainer (for positioning reference)
+    -- Get the BetterUI ActionBarContainer (for our back bar positioning reference)
     local barParent = FindControl(rootFrame, 'ActionBarContainer')
     if not barParent then return end
     
     barParent:SetDimensions(totalWidth, width)
     
-    -- Position the native ESO action bar (ZO_ActionBar1) relative to our container
-    -- We don't manipulate individual buttons - ESO manages those
-    -- Instead we position the whole bar
-    local nativeBar = ZO_ActionBar1
-    if nativeBar then
-        nativeBar:ClearAnchors()
-        local shiftLeft = -(width * BETTERUI_ORB_FRAMES.bars.mainBarShiftFactor)
-        nativeBar:SetAnchor(CENTER, barParent, CENTER, shiftLeft, 0)
-    end
+    -- IMPORTANT: We do NOT manipulate ZO_ActionBar1's anchors.
+    -- ESO's ApplyStyle resets anchors during weapon swaps and companion changes.
+    -- We only set SCALE, which ESO does not reset.
+    -- The native bar will use ESO's default positioning, and we position
+    -- our ResourceOrbFrames container to align with it.
     
-    -- Hide weapon swap control - we don't need it for dual bar
+    -- Hide weapon swap control - we don't need it for dual bar view
     if ZO_ActionBar1WeaponSwap then
         ZO_ActionBar1WeaponSwap:SetHidden(true)
-    end
-    
-    -- Apply offset to front bar ultimate if configured
-    local frontUltOffset = BETTERUI_ORB_FRAMES.bars.frontUltimateOffsetX or 0
-    if frontUltOffset ~= 0 then
-        local ultimateButton = ZO_ActionBar_GetButton(ACTION_BAR_ULTIMATE_SLOT_INDEX + 1)
-        if ultimateButton and ultimateButton.slot then
-            -- Get current anchor and apply offset
-            local isValid, point, relativeTo, relativePoint, offsetX, offsetY = ultimateButton.slot:GetAnchor(0)
-            if isValid then
-                ultimateButton.slot:ClearAnchors()
-                ultimateButton.slot:SetAnchor(point, relativeTo, relativePoint, offsetX + frontUltOffset, offsetY)
-            end
-        end
     end
     
     -- Position quickslot and companion ultimate based on companion state
@@ -734,53 +1539,143 @@ local function UpdateBarPositions(rootFrame)
     local bottomX = bars.bottom.x
     local topX = bars.top.x
     
+    -- Apply customBackBar offsets if configured
+    local backBarCfg = bars.customBackBar
+    local backBarOffsetX = (backBarCfg and backBarCfg.offsetX) or 0
+    local backBarOffsetY = (backBarCfg and backBarCfg.offsetY) or 0
+    
     actionBarContainer:ClearAnchors()
     backBarContainer:ClearAnchors()
     actionBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, bottomX, bottomY)
-    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, topX, topY)
+    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, topX + backBarOffsetX, topY + backBarOffsetY)
 end
 
 local function SetupNativeBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
     
-    UpdateBackBar(rootFrame)
-    UpdateBackBarLayout(rootFrame)
-    UpdateMainBarLayout(rootFrame)
-    UpdateBarPositions(rootFrame)
+    -- Check if custom front bar is enabled
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    local useCustomFrontBar = frontBarCfg and frontBarCfg.enabled
     
-    -- Register event handlers
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() 
-        UpdateBackBar(rootFrame) 
-        UpdateBarPositions(rootFrame)
+    -- Unified layout update function
+    local function ApplyFullLayout()
+        UpdateBackBar(rootFrame)
+        UpdateBackBarLayout(rootFrame)
         UpdateMainBarLayout(rootFrame)
+        UpdateBarPositions(rootFrame)
+        UpdateFrameDimensions() -- Keeps scale in sync
+        UpdateFrontBarCooldownColors()
+        
+        -- Custom front bar updates
+        if useCustomFrontBar then
+            UpdateFrontBarLayout(rootFrame)
+            UpdateFrontBar(rootFrame)
+            UpdateFrontBarQuickslot(rootFrame)
+            UpdateFrontBarCompanion(rootFrame)
+            UpdateFrontBarUltimateMeter(rootFrame)
+        end
+    end
+
+    -- Initial setup
+    if useCustomFrontBar then
+        HideNativeActionBar()
+        SetupFrontBarKeybinds(rootFrame)
+        SetupFrontBarTooltips(rootFrame)
+    end
+    ApplyFullLayout()
+    
+    -- Setup back bar tooltips (always enabled for back bar)
+    SetupBackBarTooltips(rootFrame)
+    
+    -- ========================================
+    -- SIMPLIFIED EVENT HANDLERS
+    -- ========================================
+    
+    -- Weapon swap: Wait for animation (approx 400ms) then re-apply layout/scale
+    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() 
+        UpdateBackBar(rootFrame)
+        if useCustomFrontBar then
+            UpdateFrontBar(rootFrame)
+        end
+        -- Short delay to let ESO start animation, then force layout logic at end
+        zo_callLater(ApplyFullLayout, 500)
     end)
+    
+    -- Slot updates: Immediate update
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function() 
         UpdateBackBar(rootFrame)
-        UpdateMainBarLayout(rootFrame)
+        if useCustomFrontBar then
+            UpdateFrontBar(rootFrame)
+        end
+        ApplyFullLayout()
     end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() UpdateBackBar(rootFrame) end)
     
-    -- Handle companion spawn/despawn - apply our positioning immediately AND after native code runs
-    -- This minimizes the visible "jump" from native ESO repositioning
+    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() 
+        UpdateBackBar(rootFrame)
+        if useCustomFrontBar then
+            UpdateFrontBar(rootFrame)
+        end
+    end)
+    
+    -- Companion state changes: triggers ESO SetCompanionAnchors
+    -- We wait a moment for ESO to finish its anchor changes
     EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
-        -- Apply immediately (may get overwritten by native)
-        UpdateQuickslotAndCompanionPositioning(rootFrame)
-        -- Apply again after native SetCompanionAnchors runs (catches any override)
-        zo_callLater(function()
+        if useCustomFrontBar then
+            UpdateFrontBarCompanion(rootFrame)
+        else
             UpdateQuickslotAndCompanionPositioning(rootFrame)
-        end, 10)
-        -- Final enforcement after animations complete
-        zo_callLater(function()
-            UpdateQuickslotAndCompanionPositioning(rootFrame)
-        end, 100)
+        end
+        zo_callLater(ApplyFullLayout, 200)
     end)
     
-    -- Update cooldowns periodically
+    -- Quickslot changed event
+    EVENT_MANAGER:RegisterForEvent(NAME .. "Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
+        if useCustomFrontBar then
+            UpdateFrontBarQuickslot(rootFrame)
+        end
+    end)
+    
+    -- Update cooldowns, usability, and ultimate meter periodically
     local function CooldownTick()
         UpdateBackBarCooldowns(rootFrame)
+        if useCustomFrontBar then
+            UpdateFrontBarCooldowns(rootFrame)
+            UpdateFrontBarUsability(rootFrame)
+            UpdateFrontBarUltimateMeter(rootFrame)
+        end
     end
     EVENT_MANAGER:RegisterForUpdate(NAME .. "BackBarCooldown", 100, CooldownTick)
+    
+    -- Re-hide native action bar when HUD scene returns (fixes scene exit issue)
+    if useCustomFrontBar then
+        -- Register for HUD scene state changes
+        local hudScene = SCENE_MANAGER:GetScene("hud")
+        if hudScene then
+            hudScene:RegisterCallback("StateChange", function(oldState, newState)
+                if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                    -- Re-hide native bar and re-apply layout
+                    zo_callLater(function()
+                        HideNativeActionBar()
+                        ApplyFullLayout()
+                    end, 50)
+                end
+            end)
+        end
+        
+        -- Also register for HUD UI scene (gamepad mode uses this)
+        local hudUIScene = SCENE_MANAGER:GetScene("hudui")
+        if hudUIScene then
+            hudUIScene:RegisterCallback("StateChange", function(oldState, newState)
+                if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                    zo_callLater(function()
+                        HideNativeActionBar()
+                        ApplyFullLayout()
+                    end, 50)
+                end
+            end)
+        end
+    end
 end
 
 -- Skin the main action bar
@@ -1447,8 +2342,51 @@ local function SetupPowerPools(rootFrame)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
 end
 
+-------------------------------------------------------------------------------------------------
+-- BetterUIShieldBar Class (Full Ring Overlay)
+-------------------------------------------------------------------------------------------------
+
+local BetterUIShieldBar = BetterUIOrbBar:Subclass()
+
+function BetterUIShieldBar:New(...)
+    local obj = ZO_Object.New(self)
+    obj:Initialize(...)
+    return obj
+end
+
+function BetterUIShieldBar:RefreshVisuals()
+    -- Shield Graphic Overlay Issue Fix:
+    -- The base class slices the texture vertically based on percentage.
+    -- For the shield ring, we want to show the FULL ring if the shield > 0.
+    
+    if not self.fog then return end
+
+    if self.currentValue <= 0 then
+        self.fog:SetHidden(true)
+        return
+    end
+    self.fog:SetHidden(false)
+
+    -- Dimensions from config
+    local fullWidth = self.fillWidth or 150
+    local fullHeight = self.fillHeight or 150
+    local fillOffsetX = self.fillOffsetX or 0
+    local fillOffsetY = self.fillOffsetY or 0
+    
+    -- Always set full dimensions and full texture coords for the shield ring
+    self.fog:SetDimensions(fullWidth, fullHeight)
+    self.fog:SetTextureCoords(0, 1, 0, 1) -- Full texture
+    
+    self.fog:ClearAnchors()
+    -- Center anchor, applying offsets
+    self.fog:SetAnchor(CENTER, self.control, CENTER, 
+        self.baseAnchorX + fillOffsetX, 
+        fillOffsetY)
+end
+
+
 local function SetupShieldBar(rootFrame)
-    m_shieldBar = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
+    m_shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
     
     -- DEBUG MODE: Set BETTERUI_SHIELD_DEBUG = true to always show shield for visual testing
     local debugShield = BETTERUI_SHIELD_DEBUG or false
@@ -1468,7 +2406,7 @@ local function SetupShieldBar(rootFrame)
     if m_shieldBar.label then
         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
         local shieldTextSize = settings.shieldTextSize or 20
-        local shieldTextColor = settings.shieldTextColor or {1, 1, 1, 1}
+        local shieldTextColor = settings.shieldTextColor or {0, 1, 1, 1}
         m_shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
         m_shieldBar.label:SetColor(unpack(shieldTextColor))
     end
@@ -1515,6 +2453,7 @@ local function SetupShieldBar(rootFrame)
         if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not debugShield then
             ZO_StatusBar_SmoothTransition(m_shieldBar, 0, m_pools[POWERTYPE_HEALTH]:GetMax())
             m_shieldBar.label:GetParent():SetHidden(true)
+             if m_shieldBar.fog then m_shieldBar.fog:SetHidden(true) end
         end
     end)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
@@ -1782,7 +2721,7 @@ end
 function ResourceOrbFrames_Initialize(control)
     m_rootFrame = control
     
-    -- Register for generic updates to ensure settings are applied when player is activated (and settings are loaded)
+    -- Handle zone transitions - triggers enforcement through ApplySettings
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function() 
         ResourceOrbFrames.ApplySettings()
     end)
