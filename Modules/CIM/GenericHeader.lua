@@ -171,13 +171,23 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     end
 
     if control.tabBar then
-        local onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
+        -- Only use onSelectedDataChangedCallback when NOT using onNext/onPrev pattern
+        -- The onNext/onPrev callbacks are invoked directly from MoveNext/MovePrevious
+        -- and should not be combined with onSelectedDataChangedCallback to avoid double-firing
+        local hasDirectCallbacks = data.tabBarData and (data.tabBarData.onNext or data.tabBarData.onPrev)
+        local onChange = nil
+        if not hasDirectCallbacks then
+            onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
+        end
         if onChange then
             if(blockTabBarCallbacks) then
                 control.tabBar:RemoveOnSelectedDataChangedCallback(onChange)
             else
                 control.tabBar:SetOnSelectedDataChangedCallback(onChange)
             end
+        else
+            -- Clear any previously set callback when using onNext/onPrev pattern
+            control.tabBar:RemoveOnSelectedDataChangedCallback(nil)
         end
         if data.activatedCallback then
             control.tabBar:SetOnActivatedChangedFunction(data.activatedCallback)

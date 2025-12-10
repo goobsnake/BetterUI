@@ -25,8 +25,57 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
--- NOTE: The old WrapValue helper and BETTERUI_TabBar_OnTabNext/Prev callbacks have been removed.
--- They were causing double-navigation issues. Navigation is now handled solely by TabBar_OnSelectionChanged.
+-- Helper for tab bar navigation wrap-around
+local function WrapValue(newValue, maxValue)
+	if newValue < 1 then
+		return maxValue
+	end
+	if newValue > maxValue then
+		return 1
+	end
+	return newValue
+end
+
+-- Tab bar navigation callbacks - called on successful LB/RB navigation
+-- These are more stable than onSelectedChanged because they only fire on actual user navigation,
+-- not during list rebuilds or dialog operations
+function BETTERUI_TabBar_OnTabNext(parent, successful)
+	if successful then
+		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+			return
+		end
+		parent:SaveListPosition()
+
+		parent.categoryList.targetSelectedIndex =
+			WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
+		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
+		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
+		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
+
+		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+
+		parent:ToSavedPosition()
+	end
+end
+
+function BETTERUI_TabBar_OnTabPrev(parent, successful)
+	if successful then
+		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+			return
+		end
+		parent:SaveListPosition()
+
+		parent.categoryList.targetSelectedIndex =
+			WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
+		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
+		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
+		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
+
+		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+
+		parent:ToSavedPosition()
+	end
+end
 
 -- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
@@ -347,66 +396,6 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 		end, INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS)
 		self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
 	end
-end
-
--- Callback when tabBar selection changes - syncs categoryList and refreshes item list
--- Matches Banking's proven pattern: uses zo_callLater to coalesce rapid changes
-local function TabBar_OnSelectionChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
-	if not selectedData then return end
-	
-	-- Skip if this is just a rebuild/initialization, not actual navigation
-	if reselectingDuringRebuild then return end
-	
-	-- Get the parent (inventory instance) from the list
-	local parent = list.parent
-	if not parent then return end
-	
-	-- Skip if scene is not showing
-	if not (parent.scene and parent.scene:IsShowing()) then return end
-	
-	-- Use token-based coalescing like Banking to handle rapid navigation (e.g., wrap-around)
-	parent._categoryChangeToken = (parent._categoryChangeToken or 0) + 1
-	local myToken = parent._categoryChangeToken
-	
-	-- Delay refresh slightly to coalesce rapid changes during wrap-around animation
-	zo_callLater(function()
-		-- Check if a newer token was issued (rapid navigation case)
-		if myToken ~= parent._categoryChangeToken then
-			return  -- A newer change occurred, let that one handle the refresh
-		end
-		
-		-- Verify scene is still showing
-		if not (parent.scene and parent.scene:IsShowing()) then return end
-		
-		-- Get the tabBar's current selection
-		local tabBar = list
-		local currentIndex = tabBar.targetSelectedIndex or tabBar.selectedIndex or 1
-		local currentData = tabBar.selectedData
-		
-		if not currentData then return end
-		
-		-- Save current item position BEFORE switching categories
-		-- This ensures we can restore position when returning to this category
-		parent:SaveListPosition()
-		
-		-- Sync categoryList to match tabBar's current selection
-		local categoryList = parent.categoryList
-		if categoryList then
-			categoryList.selectedIndex = currentIndex
-			categoryList.selectedData = currentData
-			categoryList.targetSelectedIndex = currentIndex
-		end
-		
-		-- Update header title
-		if currentData.text then
-			BETTERUI.GenericHeader.SetTitleText(parent.header, currentData.text)
-		end
-		
-		-- Use ToSavedPosition to refresh list AND restore saved item position
-		-- ToSavedPosition handles: SetCurrentList, RefreshItemList/RefreshCraftBagList, 
-		-- and restoring the previously selected item for this category
-		parent:ToSavedPosition()
-	end, 50)  -- 50ms delay to coalesce rapid navigation without feeling laggy
 end
 
 function BETTERUI.Inventory.Class:SaveListPosition()
@@ -1132,13 +1121,13 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 	self.categoryHeaderData = {
 		titleText = UpdateTitleText,
 		tabBarEntries = tabBarEntries,
-		tabBarData = { parent = self },
+		-- Use onNext/onPrev callbacks instead of onSelectedChanged
+		-- This pattern only fires on actual user navigation (LB/RB), not during list rebuilds
+		-- which prevents keybind interference during equip operations and dialogs
+		tabBarData = { parent = self, onNext = BETTERUI_TabBar_OnTabNext, onPrev = BETTERUI_TabBar_OnTabPrev },
 		carouselConfig = {
 			enabled = isCarousel,
 		},
-		-- Use the unified selection callback instead of separate onNext/onPrev
-		-- This prevents double-navigation that occurred with the old callbacks
-		onSelectedChanged = TabBar_OnSelectionChanged,
 	}
 
 	-- Header data will be built dynamically in RefreshHeader based on settings
@@ -3390,9 +3379,8 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 						or SI_BETTERUI_INV_ACTION_INV
 				)
 			end,
-			-- CRITICAL: Always include the callback and tabBarData to prevent GenericHeader.Refresh
-			-- from falling back to the broken TabBar_OnDataChanged default (which uses native GAMEPAD_INVENTORY)
-			onSelectedChanged = self.categoryHeaderData and self.categoryHeaderData.onSelectedChanged,
+			-- CRITICAL: Always include the tabBarData to preserve onNext/onPrev callbacks
+			-- and carouselConfig to prevent GenericHeader.Refresh from using broken defaults
 			tabBarData = self.categoryHeaderData and self.categoryHeaderData.tabBarData,
 			carouselConfig = self.categoryHeaderData and self.categoryHeaderData.carouselConfig,
 		}
