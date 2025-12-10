@@ -429,7 +429,13 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             -- Ensure Split Stack also gets wired as a primary action so A will
             -- open the split dialog while leaving the action available in Y.
             if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
-                SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+                -- Only wire up Split Stack as primary if we aren't already set to "Stow".
+                -- This prevents "Split Stack" from overriding "Stow" (Add to Craft Bag)
+                -- when both are available, ensuring the A button does what it says.
+                local isStowAction = self.actionName == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+                if not isStowAction then
+                    SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
+                end
             end
         end
 

@@ -350,51 +350,63 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 end
 
 -- Callback when tabBar selection changes - syncs categoryList and refreshes item list
--- This replaces the old BETTERUI_TabBar_OnTabNext/Prev callbacks which caused double-navigation
+-- Matches Banking's proven pattern: uses zo_callLater to coalesce rapid changes
 local function TabBar_OnSelectionChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
 	if not selectedData then return end
+	
+	-- Skip if this is just a rebuild/initialization, not actual navigation
+	if reselectingDuringRebuild then return end
 	
 	-- Get the parent (inventory instance) from the list
 	local parent = list.parent
 	if not parent then return end
 	
-	-- Find the index of the selected data in the categoryList
-	local categoryList = parent.categoryList
-	if not categoryList or not categoryList.dataList then return end
+	-- Skip if scene is not showing
+	if not (parent.scene and parent.scene:IsShowing()) then return end
 	
-	local newIndex = nil
-	for i, data in ipairs(categoryList.dataList) do
-		if data == selectedData then
-			newIndex = i
-			break
+	-- Use token-based coalescing like Banking to handle rapid navigation (e.g., wrap-around)
+	parent._categoryChangeToken = (parent._categoryChangeToken or 0) + 1
+	local myToken = parent._categoryChangeToken
+	
+	-- Delay refresh slightly to coalesce rapid changes during wrap-around animation
+	zo_callLater(function()
+		-- Check if a newer token was issued (rapid navigation case)
+		if myToken ~= parent._categoryChangeToken then
+			return  -- A newer change occurred, let that one handle the refresh
 		end
-	end
-	
-	if not newIndex then return end
-	
-	-- Skip if this is just a rebuild/initialization, not actual navigation
-	if reselectingDuringRebuild then return end
-	
-	-- Check if the index actually changed
-	local oldIndex = categoryList.selectedIndex or 1
-	if newIndex == oldIndex then return end
-	
-	-- Save current item position before switching categories
-	parent:SaveListPosition()
-	
-	-- Sync categoryList to match tabBar's selection (directly set, don't animate)
-	categoryList.targetSelectedIndex = newIndex
-	categoryList.selectedIndex = newIndex
-	categoryList.selectedData = selectedData
-	categoryList.defaultSelectedIndex = newIndex
-	
-	-- Update header title
-	if selectedData.text then
-		BETTERUI.GenericHeader.SetTitleText(parent.header, selectedData.text)
-	end
-	
-	-- Refresh item list for the new category
-	parent:ToSavedPosition()
+		
+		-- Verify scene is still showing
+		if not (parent.scene and parent.scene:IsShowing()) then return end
+		
+		-- Get the tabBar's current selection
+		local tabBar = list
+		local currentIndex = tabBar.targetSelectedIndex or tabBar.selectedIndex or 1
+		local currentData = tabBar.selectedData
+		
+		if not currentData then return end
+		
+		-- Save current item position BEFORE switching categories
+		-- This ensures we can restore position when returning to this category
+		parent:SaveListPosition()
+		
+		-- Sync categoryList to match tabBar's current selection
+		local categoryList = parent.categoryList
+		if categoryList then
+			categoryList.selectedIndex = currentIndex
+			categoryList.selectedData = currentData
+			categoryList.targetSelectedIndex = currentIndex
+		end
+		
+		-- Update header title
+		if currentData.text then
+			BETTERUI.GenericHeader.SetTitleText(parent.header, currentData.text)
+		end
+		
+		-- Use ToSavedPosition to refresh list AND restore saved item position
+		-- ToSavedPosition handles: SetCurrentList, RefreshItemList/RefreshCraftBagList, 
+		-- and restoring the previously selected item for this category
+		parent:ToSavedPosition()
+	end, 50)  -- 50ms delay to coalesce rapid navigation without feeling laggy
 end
 
 function BETTERUI.Inventory.Class:SaveListPosition()
@@ -3378,6 +3390,11 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 						or SI_BETTERUI_INV_ACTION_INV
 				)
 			end,
+			-- CRITICAL: Always include the callback and tabBarData to prevent GenericHeader.Refresh
+			-- from falling back to the broken TabBar_OnDataChanged default (which uses native GAMEPAD_INVENTORY)
+			onSelectedChanged = self.categoryHeaderData and self.categoryHeaderData.onSelectedChanged,
+			tabBarData = self.categoryHeaderData and self.categoryHeaderData.tabBarData,
+			carouselConfig = self.categoryHeaderData and self.categoryHeaderData.carouselConfig,
 		}
 		local slot = 1
 		local function add(headerText, valueFunc)

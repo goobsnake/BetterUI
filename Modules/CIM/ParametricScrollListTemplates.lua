@@ -368,6 +368,53 @@ function BETTERUI_TabBarScrollList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Deactivate(self)
 end
+
+-- Override SetOnSelectedDataChangedCallback to register with ZO_Object callback system
+-- This is critical for non-carousel mode: base ZO_ParametricScrollList fires via FireCallbacks("SelectedDataChanged")
+-- which is different from the custom onSelectedDataChangedCallback property that carousel mode fires manually
+function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
+    -- Store the callback for carousel mode (manual firing in UpdateAnchors)
+    self.onSelectedDataChangedCallback = callback
+    
+    -- Unregister existing wrapper first to prevent duplicate registrations
+    if self._zo_selectedDataChangedWrapper then
+        self:UnregisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
+        self._zo_selectedDataChangedWrapper = nil
+    end
+    
+    -- Also register with ZO_Object callback system for non-carousel mode
+    -- The base class fires via FireCallbacks("SelectedDataChanged", ...) NOT via onSelectedDataChangedCallback
+    if callback then
+        -- Create a wrapper that adapts ZO_Object callback args to our expected format
+        -- ZO_ParametricScrollList fires: FireCallbacks("SelectedDataChanged", self, selectedData, oldSelectedData, reachedTarget, targetSelectedIndex)
+        -- Our carousel mode fires: onSelectedDataChangedCallback(self, selectedData, oldSelectedData, reselectingDuringRebuild)
+        self._zo_selectedDataChangedWrapper = function(list, selectedData, oldSelectedData, reachedTarget, targetSelectedIndex)
+            -- Only fire via ZO_Object pattern when NOT in carousel mode
+            -- Carousel mode fires manually in UpdateAnchors so we skip here to avoid double-firing
+            if not self.carouselMode then
+                -- Only process when animation has reached target to avoid intermediate callbacks during wrap-around
+                -- reachedTarget is nil on initial callback (treat as reached), false means still animating
+                if reachedTarget == false then
+                    return  -- Skip intermediate animation positions
+                end
+                callback(list, selectedData, oldSelectedData, false)
+            end
+        end
+        self:RegisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
+    end
+end
+
+-- Override RemoveOnSelectedDataChangedCallback to unregister from ZO_Object callback system
+function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
+    -- Clear the stored callback
+    self.onSelectedDataChangedCallback = nil
+    
+    -- Unregister from ZO_Object callback system
+    if self._zo_selectedDataChangedWrapper then
+        self:UnregisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
+        self._zo_selectedDataChangedWrapper = nil
+    end
+end
 function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     self.keybindStripDescriptor =
     {
