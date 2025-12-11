@@ -90,8 +90,18 @@ function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
 end
 
 --- Set the backup equip text in the header (main vs backup)
+--- Hidden when player is below weapon swap unlock level
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupEquipText")
+    if not equipControl then return end
+    
+    -- Hide backup bar UI if player hasn't unlocked weapon swap
+    if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
+        equipControl:SetHidden(true)
+        return
+    end
+    
+    equipControl:SetHidden(false)
     if isEquipMain then
         equipControl:SetText(zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_TEXT_NORMAL), GetString(SI_BETTERUI_INV_EQUIPSLOT_BACKUP)))
     else
@@ -122,16 +132,35 @@ function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, e
 end
 
 --- Populate current equipped icons for the backup bar (with defaults when empty)
+--- Hidden when player is below weapon swap unlock level
 function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
-    local equipMainControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupMainHandIcon")
-    local equipOffControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupOffHandIcon")
-    local equipPoisonControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupPoisonIcon")
+    local titleContainer = control:GetNamedChild("TitleContainer")
+    local equipMainControl = titleContainer:GetNamedChild("BackupMainHandIcon")
+    local equipOffControl = titleContainer:GetNamedChild("BackupOffHandIcon")
+    local equipPoisonControl = titleContainer:GetNamedChild("BackupPoisonIcon")
+    
+    -- Hide backup bar icons if player hasn't unlocked weapon swap
+    if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
+        if equipMainControl then equipMainControl:SetHidden(true) end
+        if equipOffControl then equipOffControl:SetHidden(true) end
+        if equipPoisonControl then equipPoisonControl:SetHidden(true) end
+        return
+    end
     
     local DEFAULT_INVSLOT_ICON = "/esoui/art/inventory/inventory_slot.dds"
 
-    if(equipMain ~= "") then equipMainControl:SetTexture(equipMain) else equipMainControl:SetTexture(DEFAULT_INVSLOT_ICON) end
-    if(equipOff ~= "") then equipOffControl:SetTexture(equipOff) else equipOffControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
-    if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
+    if equipMainControl then
+        equipMainControl:SetHidden(false)
+        if(equipMain ~= "") then equipMainControl:SetTexture(equipMain) else equipMainControl:SetTexture(DEFAULT_INVSLOT_ICON) end
+    end
+    if equipOffControl then
+        equipOffControl:SetHidden(false)
+        if(equipOff ~= "") then equipOffControl:SetTexture(equipOff) else equipOffControl:SetTexture(DEFAULT_INVSLOT_ICON) end
+    end
+    if equipPoisonControl then
+        equipPoisonControl:SetHidden(false)
+        if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON) end
+    end
 end
 
 --- Refresh the header with provided data; optionally block tab bar callbacks during rebuild

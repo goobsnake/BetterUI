@@ -36,6 +36,11 @@ local function WrapValue(newValue, maxValue)
 	return newValue
 end
 
+-- Check if player has unlocked weapon swap (backup bar) - requires level 15
+local function CanUseBackupBar()
+	return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
+end
+
 -- Tab bar navigation callbacks - called on successful LB/RB navigation
 -- These are more stable than onSelectedChanged because they only fire on actual user navigation,
 -- not during list rebuilds or dialog operations
@@ -661,7 +666,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 			showEquipDialog()
 		end
 	else
-		-- Items that equip directly (weapons, armor, etc.)
+		-- Items that equip directly (armor, necklaces, etc.)
 		local armorType = GetItemArmorType(bagId, slotIndex)
 		if armorType ~= ARMORTYPE_NONE or equipType == EQUIP_TYPE_NECK then
 			showBindOnEquipDialog(function()
@@ -675,9 +680,16 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 				)
 			end)
 		else
-			-- Fallback direct equip (should not be hit for weapon-like types now)
+			-- Fallback: use native RequestEquipItem to let the game auto-select the slot
+			-- This handles edge cases like soul-shriven starter gear and other unusual items
 			showBindOnEquipDialog(function()
-				performEquipAction(true, self.isPrimaryWeapon)
+				local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
+				if equipSucceeds then
+					local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or BAG_COMPANION_WORN
+					RequestEquipItem(bagId, slotIndex, wornBag)
+				else
+					ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
+				end
 			end)
 		end
 	end
@@ -2961,6 +2973,10 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
 					return GetDialogSwitchButtonText(dialog.data[2])
 				end,
 				visible = function(dialog)
+					-- Hide switch bar button if player hasn't unlocked weapon swap
+					if not CanUseBackupBar() then
+						return false
+					end
 					local equipType = dialog.data[1].dataSource.equipType
 					return equipType ~= EQUIP_TYPE_RING
 				end,
