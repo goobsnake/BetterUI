@@ -38,7 +38,7 @@ Modules\CIM\Module.lua
 Modules\GeneralInterface\Tooltips.lua
 Modules\GeneralInterface\Nameplates.lua
 Modules\GeneralInterface\ResourceOrbFrames.lua
-Modules\GeneralInterface\ResourceOrbFrames.xml
+Modules\GeneralInterface\Templates\ResourceOrbFrames.xml
 Modules\GeneralInterface\Module.lua
 
 ; Module: Inventory Enhanced

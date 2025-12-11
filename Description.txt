@@ -19,6 +19,15 @@
 [INDENT]7. Adjustable chat window history buffer size[/INDENT]
 [INDENT]8. Remove "delete" dialog confirmation when deleting mail[/INDENT]
 [INDENT]9. Configurable trigger button scroll speed and mouse scroll speed[/INDENT]
+[INDENT]10. Global vs Per-Character settings option - Choose whether settings apply account-wide or per character[/INDENT]
+
+
+[COLOR="darkorange"][B][SIZE=3]RESOURCE ORB FRAMES:[/SIZE][/B][/COLOR]
+
+[INDENT]1. Alternate UI option replacing default resource bars with stylized orb displays[/INDENT]
+[INDENT]2. Integrated Experience/Champion Point bar and Cast Bar[/INDENT]
+[INDENT]3. Mount Stamina Bar display and Companion Ultimate skill orientation[/INDENT]
+[INDENT]4. Customizable text size, color, scaling, and offset options specific to this resource UI[/INDENT]
 
 
 [COLOR="darkorange"][B][SIZE=3]ENHANCED NAMEPLATES:[/SIZE][/B][/COLOR]

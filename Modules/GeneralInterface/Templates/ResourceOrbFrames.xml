@@ -615,13 +615,23 @@
                             <Dimensions x="150" y="150" />
                         </Texture>
 
-                        <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                        <!-- Shield Value Label - anchored at center, offset down and slightly right -->
+                        <Label name="$(parent)Label" font="ZoFontGame" layer="1"
+                            level="20" color="00ffff"
+                            verticalAlignment="1" horizontalAlignment="1">
                             <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
-                                offsetX="0" offsetY="0" />
-                            <Controls>
-                                <Label name="$(grandparent)Label" color="00ffff" override="true" />
-                            </Controls>
-                        </Control>
+                                offsetX="12" offsetY="25" />
+                        </Label>
+
+                        <!-- Shield Icon - anchored to the left of the label -->
+                        <Texture name="$(parent)ShieldIcon"
+                            textureFile="BetterUI/Modules/GeneralInterface/OrbTextures/Shield.dds"
+                            tier="HIGH"
+                            layer="1" level="21">
+                            <Dimensions x="32" y="32" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)Label" relativePoint="LEFT"
+                                offsetX="3" offsetY="-3" />
+                        </Texture>
                     </Controls>
                 </Control>
 
