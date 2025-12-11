@@ -1894,9 +1894,10 @@ function BetterUIBarFrame:Initialize(name, parent)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
     
-    -- Fill (OrbFill.dds) - Create FIRST (Bottom) so it sits BEHIND the backdrop
+    -- Fill (Rectangular texture) - Create FIRST (Bottom) so it sits BEHIND the backdrop
+    -- Uses ESO's built-in rectangular fill texture instead of circular OrbFill.dds
     local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
-    fill:SetTexture(ResolveTexturePath("OrbFill.dds"))
+    fill:SetTexture(BETTERUI_BAR_FILL_TEXTURE or "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds")
     fill:SetAnchor(LEFT, control, LEFT, 0, 0) -- Anchor will be updated in UpdateVisuals
     self.fill = fill
 

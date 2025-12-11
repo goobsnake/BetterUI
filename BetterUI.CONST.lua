@@ -313,8 +313,8 @@ BETTERUI_ORB_FRAMES = {
 BETTERUI_XP_BAR_SCALE = 1.0                -- Scale multiplier for XP bar
 BETTERUI_XP_BAR_OFFSET_X = 0               -- X offset from center (positive = right)
 BETTERUI_XP_BAR_OFFSET_Y = -99             -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_XP_BAR_FILL_INSET_X = 10          -- Horizontal inset for fill bar within frame
-BETTERUI_XP_BAR_FILL_INSET_Y = 60          -- Vertical inset for fill bar within frame
+BETTERUI_XP_BAR_FILL_INSET_X = 45          -- Horizontal inset for fill bar within frame
+BETTERUI_XP_BAR_FILL_INSET_Y = 59         -- Vertical inset for fill bar within frame
 BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
 BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
 BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (from center)
@@ -323,8 +323,8 @@ BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (fr
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
 BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
 BETTERUI_CAST_BAR_OFFSET_Y = 45            -- Y offset from back bar top (positive = down, closer to bar)
-BETTERUI_CAST_BAR_FILL_INSET_X = 10        -- Horizontal inset for fill bar within frame
-BETTERUI_CAST_BAR_FILL_INSET_Y = 60        -- Vertical inset for fill bar within frame
+BETTERUI_CAST_BAR_FILL_INSET_X = 45        -- Horizontal inset for fill bar within frame
+BETTERUI_CAST_BAR_FILL_INSET_Y = 59       -- Vertical inset for fill bar within frame
 BETTERUI_CAST_BAR_WIDTH = 250              -- Width of the cast bar in pixels
 BETTERUI_CAST_BAR_HEIGHT = 150             -- Height of the cast bar in pixels
 BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from center)
@@ -333,11 +333,18 @@ BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (fr
 BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0     -- Scale multiplier for mount stamina bar
 BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0    -- X offset from center (positive = right)
 BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99  -- Y offset from ornament bottom (negative = up)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 10   -- Horizontal inset for fill bar within frame
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 60   -- Vertical inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 45   -- Horizontal inset for fill bar within frame
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 59   -- Vertical inset for fill bar within frame
 BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 250     -- Width of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 150    -- Height of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from center)
+
+-- ============================================================================
+-- RECTANGULAR BAR FILL TEXTURES
+-- These textures are used for the XP, Cast, and Mount Stamina bars
+-- ============================================================================
+
+BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds"
 
 -- ============================================================================
 -- DEBUG FLAGS
