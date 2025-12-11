@@ -2478,6 +2478,13 @@ local function SetupShieldBar(rootFrame)
         local shieldTextColor = settings.shieldTextColor or {0, 1, 1, 1}
         m_shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
         m_shieldBar.label:SetColor(unpack(shieldTextColor))
+        
+        -- Scale shield icon to match text size (icon is ~1.6x the font size for visual balance)
+        local shieldIcon = FindControl(m_shieldBar.control, 'ShieldIcon')
+        if shieldIcon then
+            local iconSize = math.floor(shieldTextSize * 1.25)
+            shieldIcon:SetDimensions(iconSize, iconSize)
+        end
     end
 
     -- Apply Shield Config
@@ -2836,6 +2843,13 @@ function ResourceOrbFrames.ApplySettings()
             local shieldTextColor = currentSettings.shieldTextColor or {1, 1, 1, 1}
             m_shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
             m_shieldBar.label:SetColor(unpack(shieldTextColor))
+            
+            -- Scale shield icon to match text size (icon is ~1.6x the font size for visual balance)
+            local shieldIcon = FindControl(m_shieldBar.control, 'ShieldIcon')
+            if shieldIcon then
+                local iconSize = math.floor(shieldTextSize * 1.25)
+                shieldIcon:SetDimensions(iconSize, iconSize)
+            end
         end
 
         UpdateOrbLayout()  -- Apply layout constants for orbs and ornaments
