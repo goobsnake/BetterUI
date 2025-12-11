@@ -146,13 +146,13 @@ BETTERUI_ORB_FRAMES = {
         
         -- Quickslot icon position (relative to BgMiddle center)
         quickslot = {
-            x = 292,              -- Horizontal offset (+ right, - left)
+            x = 285,              -- Horizontal offset (+ right, - left)
             y = -18,              -- Vertical offset (+ down, - up)
         },
         
         -- Companion Ultimate icon position (relative to BgMiddle center)
         companionUltimate = {
-            x = -297,             -- Horizontal offset (+ right, - left)
+            x = -290,             -- Horizontal offset (+ right, - left)
             y = -20,              -- Vertical offset (+ down, - up)
         },
         

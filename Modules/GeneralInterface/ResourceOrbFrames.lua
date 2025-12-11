@@ -795,10 +795,27 @@ local function UpdateFrontBar(rootFrame)
             btn.hotbarCategory = activeCategory
             
             -- Update activation highlight (procs)
+            -- Check usability before showing highlight (matches native ESO behavior)
+            -- This prevents skills requiring a target from highlighting when no target exists
             local highlight = btn:GetNamedChild("ActivationHighlight")
             if highlight then
-                local hasHighlight = ActionSlotHasActivationHighlight(mapping.slot, activeCategory)
-                highlight:SetHidden(not hasHighlight)
+                -- Skip highlight updates while player is casting/channeling
+                -- This prevents the flash-then-dim behavior during abilities like Biting Jabs
+                local isCasting = m_castBar and m_castBar.isCasting
+                
+                if not isCasting then
+                    local hasHighlight = ActionSlotHasActivationHighlight(mapping.slot, activeCategory)
+                    
+                    -- Only show highlight if skill is usable (no cost or state failures)
+                    -- State failures include: no target when target required, range checks, etc.
+                    local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
+                    local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
+                    local isUsable = not hasCostFailure and not hasStateFailure
+                    
+                    local showHighlight = hasHighlight and isUsable
+                    highlight:SetHidden(not showHighlight)
+                end
+                -- When casting, keep highlight in its current state (don't update it)
             end
         end
     end
@@ -816,9 +833,6 @@ local function UpdateFrontBarUsability(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
     
-    -- Check for target status once for all abilities
-    local hasTarget = DoesUnitExist("reticleover")
-    
     local slotMapping = {
         {buttonName = "Button1", slot = 3},
         {buttonName = "Button2", slot = 4},
@@ -827,6 +841,11 @@ local function UpdateFrontBarUsability(rootFrame)
         {buttonName = "Button5", slot = 7},
         {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
     }
+    
+    -- Skip usability updates while player is casting/channeling
+    -- This prevents visual flickering during abilities like Biting Jabs
+    local isCasting = m_castBar and m_castBar.isCasting
+    if isCasting then return end
     
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
