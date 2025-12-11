@@ -13,7 +13,9 @@ Current Release - 2.89 Changes:
 11. Fixed: Category UI navigation issues when using LB/RB to navigate between inventory categories
 12. Fixed: Quest items now properly transition to their native viewing state when used
 13. Fixed: Settings persistence issues - Module settings now correctly have defaults, save and load
-14. Changed: Updated all language files (de, en, es, fr, jp, ru, zh) with new localization strings for Orb Frame features
+14. Fixed: Some items were not equippable in our Inventory UI (Starter soul-shriven items for example)
+15. Changed: Updated all language files (de, en, es, fr, jp, ru, zh) with new localization strings for Orb Frame features
+16. Changed: Some Inventory UI elements and dialogues will not show if the user has not unlocked the backup weapon slot yet
 
 *** Resource Orb Frames is a new optional UI feature that can be enabled in the General Interface settings. It provides an alternate visual style for your resource bars. ***
 [/INDENT]

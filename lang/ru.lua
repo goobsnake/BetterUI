@@ -159,6 +159,12 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Выберите
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Стиль")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
 
+-- Individual Reset Strings
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Сбросить настройки шрифта названий к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Сбросить настройки шрифта столбцов к значениям по умолчанию.")
+
 -- Orb Text Settings
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Размер текста здоровья")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Настроить размер шрифта текста здоровья")

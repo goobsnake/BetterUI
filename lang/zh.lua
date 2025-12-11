@@ -159,6 +159,12 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据�
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "样式")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
 
+-- Individual Reset Strings
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "将名称字体设置重置为默认值。")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "将列字体设置重置为默认值。")
+
 -- Orb Text Settings
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "生命值文字大小")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "调整生命值文字的字体大小")

@@ -159,6 +159,12 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Selecciona el ta
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Estilo")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Selecciona el estilo de fuente para los datos de columnas.")
 
+-- Individual Reset Strings
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Restablecer valores")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Restablecer la configuración de fuente de nombres a valores predeterminados.")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Restablecer valores")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Restablecer la configuración de fuente de columnas a valores predeterminados.")
+
 -- Orb Text Settings
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Tamaño del texto de salud")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Ajustar el tamaño de fuente del texto de salud")

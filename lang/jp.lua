@@ -159,6 +159,12 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "列データの�
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "スタイル")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "列データのフォントスタイルを選択します。")
 
+-- Individual Reset Strings
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "名前フォント設定をデフォルトにリセットします。")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "列フォント設定をデフォルトにリセットします。")
+
 -- Orb Text Settings
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "体力テキストサイズ")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "体力テキストのフォントサイズを調整")
