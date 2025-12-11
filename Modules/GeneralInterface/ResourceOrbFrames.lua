@@ -463,12 +463,23 @@ local LAYOUT_CONFIG = {
 
 
 
+-- Check if player has unlocked weapon swap (backup bar) - requires level 15
+local function CanUseBackupBar()
+    return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
+end
+
 local function UpdateBackBar(rootFrame)
-    local activePair = GetActiveWeaponPairInfo()
-    local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
-    
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
+    
+    -- Hide back bar if player hasn't unlocked weapon swap yet
+    if not CanUseBackupBar() then
+        backBarContainer:SetHidden(true)
+        return
+    end
+    
+    local activePair = GetActiveWeaponPairInfo()
+    local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
     
     -- Slots 3-7 are skills, 8 is Ultimate
     local slots = {3, 4, 5, 6, 7, 8}
@@ -1285,8 +1296,13 @@ local function UpdateFrontBarQuickslot(rootFrame)
     local icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
     local iconControl = qsBtn:GetNamedChild("Icon")
     
-    if iconControl and icon then
-        iconControl:SetTexture(icon)
+    if iconControl then
+        if icon and icon ~= "" then
+            iconControl:SetTexture(icon)
+            iconControl:SetHidden(false)
+        else
+            iconControl:SetHidden(true)
+        end
     end
     
     -- Update item count
@@ -2615,6 +2631,7 @@ local function UpdateDynamicLayout()
         if xpBar then
             xpBar:ClearAnchors()
             xpBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97)
+            xpBar:SetHidden(false)  -- Ensure bar is visible when enabled
         end
     else
         -- Reset Ornament to default position
@@ -2848,6 +2865,13 @@ function ResourceOrbFrames_Initialize(control)
     -- Handle zone transitions - triggers enforcement through ApplySettings
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ACTIVATED, function() 
         ResourceOrbFrames.ApplySettings()
+    end)
+    
+    -- Handle level-up: when player reaches weapon swap unlock level, refresh UI to show back bar
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_LEVEL_UPDATE, function(_, unitTag, level)
+        if unitTag == "player" and level >= GetWeaponSwapUnlockedLevel() then
+            ResourceOrbFrames.ApplySettings()
+        end
     end)
     
     ResourceOrbFrames.ApplySettings()
