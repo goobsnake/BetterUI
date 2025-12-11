@@ -292,8 +292,8 @@ function BETTERUI.Initialize(event, addon)
 	if addon ~= BETTERUI.name then return end
 
 	-- Load saved variables
-	BETTERUI.SavedVars = ZO_SavedVars:New("BetterUISavedVars", 2.87, nil, BETTERUI.DefaultSettings)
-	BETTERUI.GlobalVars = ZO_SavedVars:NewAccountWide("BetterUISavedVars", 2.87, nil, BETTERUI.DefaultSettings)
+	BETTERUI.SavedVars = ZO_SavedVars:New("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	BETTERUI.GlobalVars = ZO_SavedVars:NewAccountWide("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
 
 	-- Determine which settings to use
 	if BETTERUI.SavedVars.useAccountWide then
