@@ -327,7 +327,7 @@ ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP", "Adjust the color of 
 
 -- Cast Bar Settings
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED", "Enable Cast Bar")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Displays a casting bar above the Experience bar")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Displays a casting bar above the top skill bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW", "Always Show Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP", "When enabled, the cast bar frame is always visible. When disabled, the cast bar only appears during casting.")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE", "Cast Text Size")

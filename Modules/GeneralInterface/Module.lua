@@ -462,7 +462,7 @@ local function Init(mId, moduleName)
                     type = "slider",
                     name = GetString(SI_BETTERUI_BACK_BAR_OPACITY),
                     tooltip = GetString(SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP),
-                    min = 0.1,
+                    min = 0.3,
                     max = 1.0,
                     step = 0.05,
                     decimals = 2,
