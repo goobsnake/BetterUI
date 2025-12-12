@@ -126,8 +126,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Unbound Items",
-			tooltip = "Show an icon after unbound items.",
+			name = GetString(SI_BETTERUI_ICON_UNBOUND),
+			tooltip = GetString(SI_BETTERUI_ICON_UNBOUND_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Banking"] then return true end
 				return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem 
@@ -140,8 +140,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Enchantment",
-			tooltip = "Show an icon after enchanted item.",
+			name = GetString(SI_BETTERUI_ICON_ENCHANTMENT),
+			tooltip = GetString(SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Banking"] then return true end
 				return BETTERUI.Settings.Modules["Banking"].showIconEnchantment 
@@ -154,8 +154,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Set Gear",
-			tooltip = "Show an icon after set gears.",
+			name = GetString(SI_BETTERUI_ICON_SET_GEAR),
+			tooltip = GetString(SI_BETTERUI_ICON_SET_GEAR_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Banking"] then return true end
 				return BETTERUI.Settings.Modules["Banking"].showIconSetGear 

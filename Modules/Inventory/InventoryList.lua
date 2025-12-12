@@ -412,7 +412,7 @@ function GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 
     if isItemStolen then
-        return 'Stolen'
+        return GetString(SI_BETTERUI_STOLEN)
     end
 
     if itemData.equipType == EQUIP_TYPE_INVALID then
