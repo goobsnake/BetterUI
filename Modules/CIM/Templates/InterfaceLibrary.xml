@@ -4,37 +4,34 @@
         <Control name="BETTERUI_Generic_ScrollListTemplate" mouseEnabled="true" virtual="true">
             <OnMouseWheel>
                 if self.scrollList and self.scrollList.active then
-                if delta > 0 then
-                local atTop = self.scrollList:GetSelectedIndex() == 1
-                local succeeded = self.scrollList:MovePrevious()
-                -- If at top and MovePrevious fails, try to enter header/search
-                if atTop and not succeeded then
-                local owner = self.scrollList.owner
-                if owner and owner.RequestEnterHeader then
-                owner:RequestEnterHeader()
-                end
-                end
-                else
-                self.scrollList:MoveNext()
-                end
+                    if delta > 0 then
+                        local atTop = self.scrollList:GetSelectedIndex() == 1
+                        local succeeded = self.scrollList:MovePrevious()
+                        -- If at top and MovePrevious fails, try to enter header/search
+                        if atTop and not succeeded then
+                            local owner = self.scrollList.owner
+                            if owner and owner.RequestEnterHeader then
+                                owner:RequestEnterHeader()
+                            end
+                        end
+                    else
+                        self.scrollList:MoveNext()
+                    end
                 elseif self.scrollList and not self.scrollList.active and delta &lt; 0 then
-                -- List is not active (header/search is active) and scrolling down
-                -- Exit search and return to list
-                local owner = self.scrollList.owner
-                if owner then
-                if owner.ExitSearchFocus then
-                owner:ExitSearchFocus()
-                elseif owner.RequestLeaveHeader then
-                owner:RequestLeaveHeader()
-                end
-                end
+                    -- List is not active (header/search is active) and scrolling down
+                    -- Exit search and return to list
+                    local owner = self.scrollList.owner
+                    if owner then
+                        if owner.ExitSearchFocus then
+                            owner:ExitSearchFocus()
+                        elseif owner.RequestLeaveHeader then
+                            owner:RequestLeaveHeader()
+                        end
+                    end
                 end
             </OnMouseWheel>
 
             <OnMouseUp>
-                -- Allow mouse click to select an item, will probably have an option to disable this
-                behaviour
-                -- Will implement
             </OnMouseUp>
 
             <Controls>
