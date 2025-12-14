@@ -13,8 +13,8 @@ local function Init(mId, moduleName)
 	local optionsTable = {
 		{
 			type = "checkbox",
-			name = "Guild Store Error Suppression",
-			tooltip = "Removes guild store error messages caused by MM or ATT",
+			name = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS),
+			tooltip = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Tooltips"] then return false end
 				return BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress 
@@ -27,8 +27,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Arkadius Trade Tools",
-			tooltip = "Hooks ATT Price info into the item tooltips",
+			name = GetString(SI_BETTERUI_ATT_INTEGRATION),
+			tooltip = GetString(SI_BETTERUI_ATT_INTEGRATION_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].attIntegration end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].attIntegration = value
 					end,
@@ -38,8 +38,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Master Merchant integration",
-			tooltip = "Hooks Master Merchant into the item tooltips",
+			name = GetString(SI_BETTERUI_MM_INTEGRATION),
+			tooltip = GetString(SI_BETTERUI_MM_INTEGRATION_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].mmIntegration end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].mmIntegration = value
 					end,
@@ -49,8 +49,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Tamriel Trade Centre integration",
-			tooltip = "Hooks TTC Price info into the item tooltips",
+			name = GetString(SI_BETTERUI_TTC_INTEGRATION),
+			tooltip = GetString(SI_BETTERUI_TTC_INTEGRATION_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].ttcIntegration end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].ttcIntegration = value
 					end,
@@ -60,16 +60,16 @@ local function Init(mId, moduleName)
 		},
 		{
 		type = "checkbox",
-			name = "Display item style and trait knowledge",
-			tooltip = "On items, displays the style of the item and whether the trait can be researched",
+			name = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT),
+			tooltip = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].showStyleTrait end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].showStyleTrait = value end,
 			width = "full",
 		},
 		{
             type = "editbox",
-            name = "Chat window history size",
-            tooltip = "Alters how many lines to store in the chat buffer, default=200",
+            name = GetString(SI_BETTERUI_CHAT_HISTORY),
+            tooltip = GetString(SI_BETTERUI_CHAT_HISTORY_TOOLTIP),
             getFunc = function() 
 				if not BETTERUI.Settings.Modules["Tooltips"] then return 200 end
 				return BETTERUI.Settings.Modules["Tooltips"].chatHistory or 200
@@ -81,7 +81,7 @@ local function Init(mId, moduleName)
         },
 		{
 			type = "checkbox",
-			name = "Remove confirmation screen when deleting mail",
+			name = GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog end,
 			setFunc = function(value)
 						BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog = value
@@ -91,8 +91,8 @@ local function Init(mId, moduleName)
 		},
 		{
             type = "editbox",
-            name = "Mouse Scrolling speed on Left Hand tooltip",
-            tooltip = "Change how quickly the menu skips when pressing the triggers.",
+            name = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED),
+            tooltip = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP),
             getFunc = function() 
 				if not BETTERUI.Settings.Modules["CIM"] then return 50 end
 				return tostring(BETTERUI.Settings.Modules["CIM"].rhScrollSpeed)
@@ -107,8 +107,8 @@ local function Init(mId, moduleName)
         },
         {
             type = "editbox",
-            name = "Number of lines to skip on trigger",
-            tooltip = "Change how quickly the menu skips when pressing the triggers.",
+            name = GetString(SI_BETTERUI_TRIGGER_SKIP),
+            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
             getFunc = function() 
 				if not BETTERUI.Settings.Modules["CIM"] then return 10 end
 				return tostring(BETTERUI.Settings.Modules["CIM"].triggerSpeed) 
@@ -123,8 +123,8 @@ local function Init(mId, moduleName)
         },
 		{
             type = "slider",
-            name = "Tooltip font size",
-			tooltip = "Allows more or less item information to be displayed at once in tooltips",
+            name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
+			tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
 			min = 12,
 			max = 48,
 			step = 1,
@@ -372,16 +372,16 @@ local function Init(mId, moduleName)
         },
         {
             type = "submenu",
-            name = "Skill Bars",
+            name = GetString(SI_BETTERUI_SKILL_BARS_SUBMENU),
             controls = {
                 {
                     type = "header",
-                    name = "Skill Cooldown Timer",
+                    name = GetString(SI_BETTERUI_SKILL_COOLDOWN_TIMER_HEADER),
                 },
                 {
                     type = "slider",
-                    name = "Font Scale",
-                    tooltip = "Adjust the font size of the skill cooldown timer",
+                    name = GetString(SI_BETTERUI_FONT_SCALE),
+                    tooltip = GetString(SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP),
                     min = 12,
                     max = 48,
                     step = 1,
@@ -399,8 +399,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Font Color",
-                    tooltip = "Adjust the color of the skill cooldown timer",
+                    name = GetString(SI_BETTERUI_FONT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_SKILL_COOLDOWN_COLOR_TOOLTIP),
                     getFunc = function()
                         if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0.86, 0.84, 0.13, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].cooldownTextColor or {0.86, 0.84, 0.13, 1}
@@ -416,12 +416,12 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "header",
-                    name = "Quickslots",
+                    name = GetString(SI_BETTERUI_QUICKSLOTS_HEADER),
                 },
                 {
                     type = "slider",
-                    name = "Font Scale",
-                    tooltip = "Adjust the font size of the quickslot count",
+                    name = GetString(SI_BETTERUI_FONT_SCALE),
+                    tooltip = GetString(SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP),
                     min = 12,
                     max = 48,
                     step = 1,
@@ -439,8 +439,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Font Color",
-                    tooltip = "Adjust the color of the quickslot count",
+                    name = GetString(SI_BETTERUI_FONT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP),
                     getFunc = function()
                         if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].quickslotTextColor or {1, 1, 1, 1}
@@ -455,8 +455,32 @@ local function Init(mId, moduleName)
                     width = "full",
                 },
                 {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_BACK_BAR_HEADER),
+                },
+                {
+                    type = "slider",
+                    name = GetString(SI_BETTERUI_BACK_BAR_OPACITY),
+                    tooltip = GetString(SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP),
+                    min = 0.3,
+                    max = 1.0,
+                    step = 0.05,
+                    decimals = 2,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0.5 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].backBarOpacity or 0.5 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].backBarOpacity = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    width = "full",
+                },
+                {
                     type = "button",
-                    name = "Reset Skill Bar Settings",
+                    name = GetString(SI_BETTERUI_RESET_SKILL_BAR),
                     func = function()
                         local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
@@ -464,6 +488,7 @@ local function Init(mId, moduleName)
                         settings.cooldownTextColor = {0.86, 0.84, 0.13, 1}
                         settings.quickslotTextSize = 27
                         settings.quickslotTextColor = {1, 1, 1, 1}
+                        settings.backBarOpacity = 0.5
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -657,8 +682,8 @@ local function Init(mId, moduleName)
             controls = {
                 {
                     type = "checkbox",
-                    name = "Enable Experience Bar",
-                    tooltip = "Displays an experience/champion point bar above the top skill bar",
+                    name = GetString(SI_BETTERUI_XP_BAR_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP),
                     getFunc = function() 
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
 						return BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled 
@@ -673,9 +698,9 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "slider",
-                    name = "XP Text Size",
-                    tooltip = "Adjust the font size of the experience text",
-                    min = 12,
+                    name = GetString(SI_BETTERUI_XP_BAR_TEXT_SIZE),
+                    tooltip = GetString(SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP),
+                    min = 5,
                     max = 32,
                     step = 1,
                     getFunc = function() 
@@ -693,8 +718,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "XP Text Color",
-                    tooltip = "Adjust the color of the experience text",
+                    name = GetString(SI_BETTERUI_XP_BAR_TEXT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP),
                     getFunc = function()
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarTextColor or {1, 1, 1, 1}
@@ -735,8 +760,8 @@ local function Init(mId, moduleName)
             controls = {
                 {
                     type = "checkbox",
-                    name = "Enable Cast Bar",
-                    tooltip = "Displays a casting bar above the Experience bar",
+                    name = GetString(SI_BETTERUI_CAST_BAR_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP),
                     getFunc = function() 
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
 						return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled 
@@ -751,8 +776,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "checkbox",
-                    name = "Always Show Cast Bar",
-                    tooltip = "When enabled, the cast bar frame is always visible. When disabled, the cast bar only appears during casting.",
+                    name = GetString(SI_BETTERUI_CAST_BAR_ALWAYS_SHOW),
+                    tooltip = GetString(SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP),
                     getFunc = function() 
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
 						return BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarAlwaysShow 
@@ -768,9 +793,9 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "slider",
-                    name = "Cast Text Size",
-                    tooltip = "Adjust the font size of the cast timer",
-                    min = 12,
+                    name = GetString(SI_BETTERUI_CAST_BAR_TEXT_SIZE),
+                    tooltip = GetString(SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP),
+                    min = 5,
                     max = 32,
                     step = 1,
                     getFunc = function() 
@@ -788,8 +813,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Cast Text Color",
-                    tooltip = "Adjust the color of the cast timer text",
+                    name = GetString(SI_BETTERUI_CAST_BAR_TEXT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP),
                     getFunc = function()
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarTextColor or {1, 1, 1, 1}
@@ -829,8 +854,8 @@ local function Init(mId, moduleName)
             controls = {
                 {
                     type = "checkbox",
-                    name = "Enable Mount Stamina Bar",
-                    tooltip = "Displays a mount stamina bar under the right ornament when mounted",
+                    name = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP),
                     getFunc = function() 
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
 						return BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled 
@@ -845,9 +870,9 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "slider",
-                    name = "Mount Stamina Text Size",
-                    tooltip = "Adjust the font size of the mount stamina text",
-                    min = 12,
+                    name = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_SIZE),
+                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP),
+                    min = 5,
                     max = 32,
                     step = 1,
                     getFunc = function() 
@@ -865,8 +890,8 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "colorpicker",
-                    name = "Mount Stamina Text Color",
-                    tooltip = "Adjust the color of the mount stamina text",
+                    name = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_COLOR_TOOLTIP),
                     getFunc = function()
 						if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
                         local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarTextColor or {1, 1, 1, 1}
@@ -935,6 +960,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         mountStaminaBarEnabled = false,
         mountStaminaBarTextSize = 16,
         mountStaminaBarTextColor = {1, 1, 1, 1},
+        backBarOpacity = 0.5, -- 0.0 to 1.0, lower = more dimmed
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -961,6 +987,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.mountStaminaBarEnabled == nil then m_options.mountStaminaBarEnabled = defaults.mountStaminaBarEnabled end
     if m_options.mountStaminaBarTextSize == nil then m_options.mountStaminaBarTextSize = defaults.mountStaminaBarTextSize end
     if m_options.mountStaminaBarTextColor == nil then m_options.mountStaminaBarTextColor = defaults.mountStaminaBarTextColor end
+    if m_options.backBarOpacity == nil then m_options.backBarOpacity = defaults.backBarOpacity end
     return m_options
 end
 

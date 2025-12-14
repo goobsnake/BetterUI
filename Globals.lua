@@ -7,7 +7,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.89"
+BETTERUI.version = "2.90"
 
 -- ESO API references
 BETTERUI.WindowManager = GetWindowManager()

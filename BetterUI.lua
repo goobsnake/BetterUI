@@ -16,18 +16,18 @@ end
 
 -- Initializes module options panel with enable/disable checkboxes
 function BETTERUI.InitModuleOptions()
-	local panelData = Init_ModulePanel("Master", "Master Addon Settings")
+	local panelData = Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
 
 	local optionsTable = {
 		{
 			type = "header",
-			name = "Master Settings",
+			name = GetString(SI_BETTERUI_MASTER_SETTINGS_HEADER),
 			width = "full",
 		},
 		{
 			type = "checkbox",
-			name = "Use Global Settings",
-			tooltip = "When enabled, settings will be saved account-wide instead of per-character.",
+			name = GetString(SI_BETTERUI_ENABLE_GLOBAL_SETTINGS),
+			tooltip = GetString(SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP),
 			getFunc = function() return BETTERUI.SavedVars.useAccountWide end,
 			setFunc = function(value)
 				BETTERUI.SavedVars.useAccountWide = value
@@ -37,8 +37,8 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
-			name = "Enable |c0066FFGeneral Interface Improvements|r",
-			tooltip = "Vast improvements to the ingame tooltips and UI",
+			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
+			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].m_enabled end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Tooltips"].m_enabled = value
@@ -49,8 +49,8 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
-			name = "Enable |c0066FFEnhanced Inventory|r",
-			tooltip = "Completely redesigns the gamepad's inventory interface",
+			name = GetString(SI_BETTERUI_ENABLE_INVENTORY),
+			tooltip = GetString(SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].m_enabled end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Inventory"].m_enabled = value
@@ -61,8 +61,8 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
-			name = "Enable |c0066FFEnhanced Banking|r",
-			tooltip = "Completely redesigns the gamepad's banking interface",
+			name = GetString(SI_BETTERUI_ENABLE_BANKING),
+			tooltip = GetString(SI_BETTERUI_ENABLE_BANKING_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Banking"].m_enabled end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"].m_enabled = value
@@ -73,8 +73,8 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
-			name = "Enable |c0066FFDaily Writ module|r",
-			tooltip = "Displays the daily writ, and progress, at each crafting station",
+			name = GetString(SI_BETTERUI_ENABLE_WRITS),
+			tooltip = GetString(SI_BETTERUI_ENABLE_WRITS_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Writs"].m_enabled end,
 			setFunc = function(value) BETTERUI.Settings.Modules["Writs"].m_enabled = value end,
 			width = "full",
@@ -82,8 +82,8 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
-			name = "Common Interface Module",
-			tooltip = "Enables added functionality to the completely redesigned \"Enhanced\" interfaces!",
+			name = GetString(SI_BETTERUI_ENABLE_CIM),
+			tooltip = GetString(SI_BETTERUI_ENABLE_CIM_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["CIM"].m_enabled end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["CIM"].m_enabled = value
@@ -292,6 +292,7 @@ function BETTERUI.Initialize(event, addon)
 	if addon ~= BETTERUI.name then return end
 
 	-- Load saved variables
+	-- Changed version to 2.89 to prevent issues with prior saved variables
 	BETTERUI.SavedVars = ZO_SavedVars:New("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
 	BETTERUI.GlobalVars = ZO_SavedVars:NewAccountWide("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
 

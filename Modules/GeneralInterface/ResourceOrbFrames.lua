@@ -481,6 +481,10 @@ local function UpdateBackBar(rootFrame)
     local activePair = GetActiveWeaponPairInfo()
     local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
     
+    -- Get opacity setting for back bar dimming
+    local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+    local backBarOpacity = settings.backBarOpacity or 0.5
+    
     -- Slots 3-7 are skills, 8 is Ultimate
     local slots = {3, 4, 5, 6, 7, 8}
     
@@ -494,10 +498,19 @@ local function UpdateBackBar(rootFrame)
                 if icon and icon ~= '' then
                     iconControl:SetTexture(icon)
                     iconControl:SetHidden(false)
+                    -- Apply dimming opacity to icon
+                    iconControl:SetAlpha(backBarOpacity)
                 else
                     iconControl:SetHidden(true)
                 end
             end
+            
+            -- Also apply opacity to backdrop and border for consistent dimming
+            local backdrop = btn:GetNamedChild("Backdrop")
+            if backdrop then backdrop:SetAlpha(backBarOpacity) end
+            
+            local border = btn:GetNamedChild("Border")
+            if border then border:SetAlpha(backBarOpacity) end
             
             -- Store slot reference for tooltips
             btn.slotIndex = slotIndex
@@ -2009,7 +2022,7 @@ function CastBar:Initialize(parent)
     self.startTime = 0
     self:SetColor(1, 1, 0.4, 1) -- Light yellowish for cast
     -- Set default text immediately
-    self.label:SetText("Cast Bar")
+    self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
     
     EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
         return self:OnCastStart(unitTag, effectName, duration, isChanneled)
@@ -2085,6 +2098,12 @@ function CastBar:Update()
     local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
     local current, max = 0, 1
 
+    -- Apply text size and color from settings
+    local castTextSize = settings.castBarTextSize or 16
+    local castTextColor = settings.castBarTextColor or {1, 1, 1, 1}
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", castTextSize))
+    self.label:SetColor(unpack(castTextColor))
+
     -- Apply configurable offset for label
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
@@ -2115,7 +2134,7 @@ function CastBar:Update()
         if settings.castBarAlwaysShow then
             -- Show static bar frame with default text
             self.control:SetHidden(false)
-            self.label:SetText("Cast Bar")
+            self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
             -- Hide fill when not casting
             if self.fill then self.fill:SetHidden(true) end
         else
@@ -2145,6 +2164,7 @@ end
 function ExperienceBar:Update()
     if not self.control then return end
     
+    local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
     local isChampion = IsUnitChampion("player")
     local current, max, effectiveMax = 0, 0, 0
     local labelText = ""
@@ -2164,6 +2184,12 @@ function ExperienceBar:Update()
         labelText = string.format("XP: %d / %d", current, max)
         effectiveMax = max
     end
+    
+    -- Apply text size and color from settings
+    local xpTextSize = settings.xpBarTextSize or 16
+    local xpTextColor = settings.xpBarTextColor or {1, 1, 1, 1}
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", xpTextSize))
+    self.label:SetColor(unpack(xpTextColor))
     
     self.label:SetText(labelText)
     
@@ -2197,7 +2223,7 @@ end
 function MountStaminaBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent)
     self:SetColor(0, 0.8, 0.2, 1) -- Green color matching stamina orb
-    self.label:SetText("Mount Stamina")
+    self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
     
     -- Initialize with current mount state (handles reload while mounted)
     if IsMounted() then
@@ -2237,7 +2263,8 @@ function MountStaminaBar:OnPowerUpdate(current, max)
 end
 
 function MountStaminaBar:Update()
-    if not BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled then
+    local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+    if not settings.mountStaminaBarEnabled then
         self.control:SetHidden(true)
         return
     end
@@ -2259,6 +2286,12 @@ function MountStaminaBar:Update()
     local insetX = BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X or 35
     local insetY = BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y or 55
     
+    -- Apply text size and color from settings
+    local mountTextSize = settings.mountStaminaBarTextSize or 16
+    local mountTextColor = settings.mountStaminaBarTextColor or {1, 1, 1, 1}
+    self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", mountTextSize))
+    self.label:SetColor(unpack(mountTextColor))
+    
     -- Apply configurable offset
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
@@ -2277,7 +2310,7 @@ function MountStaminaBar:Update()
         self:UpdateVisuals(current, max, insetX, insetY, w, h)
     else
         -- Show placeholder text when not mounted
-        self.label:SetText("Mount Stamina")
+        self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
         
         -- Hide fill when not mounted (show empty bar frame)
         if self.fill then self.fill:SetHidden(true) end

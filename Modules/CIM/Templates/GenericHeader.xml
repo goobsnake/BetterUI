@@ -133,11 +133,12 @@
                     <Controls>
                         <Label name="$(parent)Title"
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
-                            text="|cFF6600All|r" hidden="false">
+                            text="SI_BETTERUI_FULL_INVENTORY_ALL" color="FF6600" hidden="false">
                             <Anchor point="LEFT" />
                         </Label>
                         <Label name="$(parent)BackupEquipText"
-                            inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate" text="Equip:"
+                            inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
+                            text="SI_BETTERUI_EQUIP"
                             hidden="false">
                             <Anchor point="RIGHT" offsetX="-210" offsetY="-5" />
                         </Label>
@@ -161,7 +162,8 @@
                         </Texture>
 
                         <Label name="$(parent)EquipText"
-                            inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate" text="Equip:"
+                            inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
+                            text="SI_BETTERUI_EQUIP"
                             hidden="false">
                             <Anchor point="RIGHT" relativeTo="$(parent)BackupEquipText"
                                 relativePoint="LEFT" offsetX="-210" />
@@ -291,11 +293,11 @@
                     <Controls>
                         <Label name="$(parent)Title"
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
-                            text="|cFF6600Browse Listings|r" hidden="false">
+                            text="SI_BETTERUI_BROWSE_LISTINGS" color="FF6600" hidden="false">
                             <Anchor point="LEFT" />
                         </Label> <!--
                           <Label name="$(parent)EquipText" inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
-                        text="Equip:" hidden="false">
+                        text="SI_BETTERUI_EQUIP" hidden="false">
                             <Anchor point="RIGHT" offsetX="-50"/>
                         </Label> -->
                     </Controls>
@@ -313,35 +315,40 @@
                 <Control name="$(parent)ColumnBar" inherits="BETTERUI_GamepadHeaderTitleAnchors">
                     <Controls>
                         <Label name="$(parent)Column1Label"
-                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate" text="Name">
+                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
+                            text="SI_BETTERUI_BROWSE_NAME">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="25" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
                         <Label name="$(parent)Column2Label"
-                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate" text="Seller">
+                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
+                            text="SI_BETTERUI_BROWSE_SELLER">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="385" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
                         <Label name="$(parent)Column3Label"
-                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate" text="Time Left">
+                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
+                            text="SI_BETTERUI_BROWSE_TIME_LEFT">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="535" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
                         <Label name="$(parent)Column4Label"
-                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate" text="Profit">
+                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
+                            text="SI_BETTERUI_BROWSE_PROFIT">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="630" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
                         <Label name="$(parent)Column5Label"
-                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate" text="Price">
+                            inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
+                            text="SI_BETTERUI_BROWSE_PRICE">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="775" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"

@@ -754,7 +754,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 
 	if currentList == self.craftBagList then
 		do
-			local name = "Crafting Bag"
+			local name = GetString(SI_BETTERUI_CATEGORY_CRAFTING_BAG)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_all.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data.onClickDirection = "CRAFTBAG"
@@ -772,7 +772,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Alchemy"
+			local name = GetString(SI_BETTERUI_CATEGORY_ALCHEMY)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_alchemy.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data.onClickDirection = "CRAFTBAG"
@@ -792,7 +792,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Blacksmithing"
+			local name = GetString(SI_BETTERUI_CATEGORY_BLACKSMITHING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_blacksmithing.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data.onClickDirection = "CRAFTBAG"
@@ -812,7 +812,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Clothing"
+			local name = GetString(SI_BETTERUI_CATEGORY_CLOTHING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_clothing.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data:SetIconTintOnSelection(true)
@@ -832,7 +832,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Enchanting"
+			local name = GetString(SI_BETTERUI_CATEGORY_ENCHANTING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_enchanting.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data.onClickDirection = "CRAFTBAG"
@@ -852,7 +852,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Jewelry Crafting"
+			local name = GetString(SI_BETTERUI_CATEGORY_JEWELRY_CRAFTING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_tabicon_craftbag_jewelrycrafting.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data:SetIconTintOnSelection(true)
@@ -872,7 +872,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Provisioning/Fishing"
+			local name = GetString(SI_BETTERUI_CATEGORY_PROVISIONING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data.onClickDirection = "CRAFTBAG"
@@ -892,7 +892,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Woodworking"
+			local name = GetString(SI_BETTERUI_CATEGORY_WOODWORKING)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_woodworking.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data:SetIconTintOnSelection(true)
@@ -912,7 +912,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Style Material"
+			local name = GetString(SI_BETTERUI_CATEGORY_STYLE_MATERIAL)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_stylematerial.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data:SetIconTintOnSelection(true)
@@ -932,7 +932,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 		end
 
 		do
-			local name = "Trait Gems"
+			local name = GetString(SI_BETTERUI_CATEGORY_TRAIT_GEMS)
 			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_itemtrait.dds"
 			local data = ZO_GamepadEntryData:New(name, iconFile)
 			data:SetIconTintOnSelection(true)
@@ -1522,7 +1522,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
 	self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
 
-	local emptyText = "Nothing in list"
+	local emptyText = GetString(SI_BETTERUI_EMPTY_LIST)
 	local listControl = self.itemList and self.itemList.control
 	if listControl and listControl.GetNamedChild then
 		local noItemsLabel = listControl:GetNamedChild("NoItemsLabel")
@@ -2414,21 +2414,21 @@ function BETTERUI.Inventory.HookActionDialog()
 
 				local function slotLabel(idx)
 					if idx == 4 then
-						return "North"
+						return GetString(SI_BETTERUI_DIR_NORTH)
 					elseif idx == 5 then
-						return "Northwest"
+						return GetString(SI_BETTERUI_DIR_NORTHWEST)
 					elseif idx == 6 then
-						return "West"
+						return GetString(SI_BETTERUI_DIR_WEST)
 					elseif idx == 7 then
-						return "Southwest"
+						return GetString(SI_BETTERUI_DIR_SOUTHWEST)
 					elseif idx == 8 then
-						return "South"
+						return GetString(SI_BETTERUI_DIR_SOUTH)
 					elseif idx == 1 then
-						return "Southeast"
+						return GetString(SI_BETTERUI_DIR_SOUTHEAST)
 					elseif idx == 2 then
-						return "East"
+						return GetString(SI_BETTERUI_DIR_EAST)
 					elseif idx == 3 then
-						return "Northeast"
+						return GetString(SI_BETTERUI_DIR_NORTHEAST)
 					end
 					return tostring(idx)
 				end

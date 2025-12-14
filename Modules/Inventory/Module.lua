@@ -231,8 +231,8 @@ local function Init(mId, moduleName)
 		-- Quick Destroy is available as an opt-in setting; default remains off for safety.
 		{
 			type = "checkbox",
-			name = "Enable quick destroy functionality",
-			tooltip = "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog!",
+			name = GetString(SI_BETTERUI_QUICK_DESTROY),
+			tooltip = GetString(SI_BETTERUI_QUICK_DESTROY_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return false end
 				return BETTERUI.Settings.Modules["Inventory"].quickDestroy 
@@ -255,8 +255,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Use triggers to move to next item type",
-			tooltip = "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type",
+			name = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE),
+			tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return false end
 				return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip 
@@ -266,8 +266,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Replace \"Value\" with the market's price",
-			tooltip = "Replaces the item \"Value\" with either MM's, ATT's or TTC's average price",
+			name = GetString(SI_BETTERUI_SHOW_MARKET_PRICE),
+			tooltip = GetString(SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return false end
 				return BETTERUI.Settings.Modules["Inventory"].showMarketPrice 
@@ -277,8 +277,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Bind on Equip Protection",
-			tooltip = "Show a dialog before equipping Bind on Equip items",
+			name = GetString(SI_BETTERUI_BOE_PROTECTION),
+			tooltip = GetString(SI_BETTERUI_BOE_PROTECTION_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return false end
 				return BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection 
@@ -289,8 +289,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Unbound Items",
-			tooltip = "Show an icon after unbound items",
+			name = GetString(SI_BETTERUI_ICON_UNBOUND),
+			tooltip = GetString(SI_BETTERUI_ICON_UNBOUND_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return true end
 				return BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem 
@@ -301,8 +301,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Enchantment",
-			tooltip = "Show an icon after enchanted item",
+			name = GetString(SI_BETTERUI_ICON_ENCHANTMENT),
+			tooltip = GetString(SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return true end
 				return BETTERUI.Settings.Modules["Inventory"].showIconEnchantment 
@@ -313,8 +313,8 @@ local function Init(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = "Item Icon - Set Gear",
-			tooltip = "Show an icon after set gears",
+			name = GetString(SI_BETTERUI_ICON_SET_GEAR),
+			tooltip = GetString(SI_BETTERUI_ICON_SET_GEAR_TOOLTIP),
 			getFunc = function() 
 				if not BETTERUI.Settings.Modules["Inventory"] then return true end
 				return BETTERUI.Settings.Modules["Inventory"].showIconSetGear 
