@@ -1,4 +1,13 @@
-Current Release - 2.89 Changes:
+Current Release - 2.90 Changes:
+
+[INDENT]1. Added: Back bar opacity slider functionality for better primary bar visibility
+2. Fixed: Cast bar tooltip now correctly states it displays above the top skill bar
+3. Fixed: Misc code cleanup and formatting
+4. Changed: Normalized most hardcoded english strings to use the localization system
+[/INDENT]
+
+
+2.89 Changes:
 
 [INDENT]1. Added: Resource Orb Frames - New alternate UI option replacing default resource bars with stylized orb displays for Health, Magicka, and Stamina - Similar to ARPG UI styles.
 2. Added: Resource Orb Frames - Experience/Champion Point bar integrated

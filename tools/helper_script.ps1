@@ -22,7 +22,9 @@ $excludeItems = @(
     'tools',
     '.venv',
     'Source',
-    'LICENSE.md'
+    'LICENSE.md',
+    'Description.txt',
+    'Changelog.txt'
 )
 
 # Copy items while excluding specified files/directories
