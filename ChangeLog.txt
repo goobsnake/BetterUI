@@ -1,7 +1,7 @@
 Current Release - 2.91 Changes:
 
 [INDENT]1. Added: Toggled inventory module setting that enables "Mark as Junk" functionality for companion items when a compatible addon, like FCO companion, is installed.
-2. Fixed: Required version dependency for LibAddonMenu-2.0 per Baertram's request
+2. Fixed: Required version dependency for LibAddonMenu-2.0 per Baertram's request - Need to update to at least version 41
 3. Cleaned: Removed unused code and XML templates from the Resource Orb Frames module
 [/INDENT]
 
