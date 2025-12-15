@@ -382,38 +382,6 @@
             </Controls>
         </Control>
 
-        <Control name="ResourceOrbFrames_Single_Keyboard" virtual="true">
-            <Dimensions x="400" y="256" />
-            <Controls>
-                <Control name="$(parent)BgMiddle">
-                    <Dimensions x="550" y="100" />
-                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
-                </Control>
-
-                <Control name="$(parent)OrbHealth">
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMLEFT" offsetX="-30" offsetY="-12" />
-                </Control>
-                <Control name="$(parent)OrbResource">
-                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMRIGHT" offsetX="30" offsetY="-12" />
-                </Control>
-
-                <StatusBar name="$(parent)FoodBar">
-                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMLEFT" offsetX="0" offsetY="-68" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
-                        relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-68" />
-                </StatusBar>
-
-            </Controls>
-        </Control>
-
-        <Control name="ResourceOrbFrames_Single_Gamepad"
-            inherits="ResourceOrbFrames_Single_Keyboard"
-            virtual="true">
-            <Dimensions x="560" y="256" />
-        </Control>
 
         <TopLevelControl name="ResourceOrbFrames">
             <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0"

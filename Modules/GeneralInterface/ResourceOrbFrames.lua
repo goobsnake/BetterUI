@@ -333,7 +333,7 @@ local function UpdateOrbLayout()
                 container:SetAnchor(CENTER, resourceOrb, CENTER, 0, 0)
 
                 -- Show and resize Fog textures (resource fill)
-                local fogElements = {'Fog', 'Fog2', 'Fog3'}
+                local fogElements = {'Fog', 'Fog2'}
                 -- For Magicka/Stamina we want to use full square fills and offset them to the left/right halves
                 
                 -- REMOVED rounding
@@ -341,10 +341,6 @@ local function UpdateOrbLayout()
                 local magickaRoundedH = magickaFillHeight
                 local staminaRoundedW = staminaFillWidth
                 local staminaRoundedH = staminaFillHeight
-                
-                -- For compatibility we compute half widths for auras per-half
-                local magickaHalfWidth = math.min(magickaFillWidth * 0.5, rightBorderSize * 0.5)
-                local staminaHalfWidth = math.min(staminaFillWidth * 0.5, rightBorderSize * 0.5)
                 
                 -- Compute TOPLEFT anchors for placing a full-size square over the left and right halves
                 -- No floor rounding here either to preserve relative positioning at high scales
@@ -401,11 +397,9 @@ local function UpdateOrbLayout()
                             -- Use the same horizontal texture coords as the foreground fog so Fog2 visually matches the same segment
                             if containerName == 'OrbMagicka' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_MAGICKA])
-                                local isLeft = (baseLeft < baseRight)
                                 ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                             elseif containerName == 'OrbStamina' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_STAMINA])
-                                local isLeft = (baseLeft < baseRight)
                                 ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                             else
                                 -- Fallback: full texture coords
@@ -452,12 +446,10 @@ local LAYOUT_CONFIG = {
     GAMEPAD = {
         abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.gamepad.width,
         abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.gamepad.spacing,
-        dualBarOffsetX = BETTERUI_ORB_FRAMES.slots.gamepad.dualBarOffset,
     },
     KEYBOARD = {
         abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.keyboard.width,
         abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.keyboard.spacing,
-        dualBarOffsetX = BETTERUI_ORB_FRAMES.slots.keyboard.dualBarOffset,
     }
 }
 
@@ -754,20 +746,6 @@ local function HideNativeActionBar()
         ZO_ActionBarTimer:SetHidden(true)
     end
 end
-
--- Show the native action bar (when custom is disabled)
-local function ShowNativeActionBar()
-    if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
-        ZO_ActionBar1:SetHidden(false)
-        if ZO_ActionBar1.SetAlpha then
-            ZO_ActionBar1:SetAlpha(1)
-        end
-    end
-    if ZO_ActionBarTimer and ZO_ActionBarTimer.SetHidden then
-        ZO_ActionBarTimer:SetHidden(false)
-    end
-end
-
 
 -- Update front bar button icons and state
 local function UpdateFrontBar(rootFrame)
@@ -1797,7 +1775,7 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.minValue = 0
     self.maxValue = 0
     
-    local baseCoordLeft, baseCoordRight, baseAnchorX, ttIcon = unpack(ORB_CONFIG[powerType])
+    local baseCoordLeft, baseCoordRight, baseAnchorX = unpack(ORB_CONFIG[powerType])
     self.baseCoordLeft = baseCoordLeft
     self.baseCoordRight = baseCoordRight
     self.baseAnchorX = baseAnchorX
@@ -1980,28 +1958,7 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     end
 end
 
-function BetterUIBarFrame:ApplySettings(enabled, scale, offsetX, offsetY, textSize, textColor)
-    if not self.control then return end
-    
-    -- Apply Visibility
-    self.control:SetHidden(not enabled)
-    
-    -- Apply Scale (if needed, currently scale is applied via layout constants typically)
-    self.control:SetScale(scale or 1.0)
-    
-    -- Apply Text Settings
-    if self.label then
-        local font = string.format("$(BOLD_FONT)|%d|thick-outline", textSize or 16)
-        self.label:SetFont(font)
-        self.label:SetColor(unpack(textColor or {1, 1, 1, 1}))
-    end
-    
-    -- Update visual state immediately
-    if enabled then
-        -- Force re-layout if we had logic for it, but UpdateDynamicLayout handles main anchors
-        if self.Update then self:Update() end
-    end
-end
+
 
 -------------------------------------------------------------------------------------------------
 -- Cast Bar Class
@@ -2383,8 +2340,7 @@ local function SetupPowerPools(rootFrame)
     local magickaFillHeight = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize)
     local staminaFillWidth = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize)
     local staminaFillHeight = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize)
-    local resourceFillWidth = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize)
-    local resourceFillHeight = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize)
+
 
     m_pools = {
         [POWERTYPE_HEALTH] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH),
@@ -2588,8 +2544,7 @@ local function SetupShieldBar(rootFrame)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
 end
 
-local function SetupStateHandlers()
-end
+
 
 local function SetupFoodTracker(rootFrame)
     m_foodTracker = FoodBuffTracker:New(FindControl(rootFrame, 'FoodBar'))
@@ -2820,7 +2775,7 @@ local function SetupModule(control)
     
     SetupPowerPools(control)
     SetupShieldBar(control)
-    SetupStateHandlers()
+
     SetupFoodTracker(control)
     SetupExperienceBar(control)
     SetupCastBar(control)

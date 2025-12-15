@@ -6,8 +6,6 @@ local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.
 local TEXTURE_EQUIP_SLOT_ICON = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds"
 local NEW_ICON_TEXTURE = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
 
-local USE_SHORT_CURRENCY_FORMAT = true
-
 --- Formats a number into abbreviated form (K, M, B) with up to 4 significant digits
 --- @param value number: The number to format
 --- @return string: Formatted string like "1.12K", "12.3K", "123K", "1.23M", etc.
