@@ -133,7 +133,7 @@
                     <Controls>
                         <Label name="$(parent)Title"
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
-                            text="SI_BETTERUI_FULL_INVENTORY_ALL" color="FF6600" hidden="false">
+                            text="SI_BETTERUI_FULL_INVENTORY_ALL" color="FFFFFF" hidden="false">
                             <Anchor point="LEFT" />
                         </Label>
                         <Label name="$(parent)BackupEquipText"
@@ -293,7 +293,7 @@
                     <Controls>
                         <Label name="$(parent)Title"
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
-                            text="SI_BETTERUI_BROWSE_LISTINGS" color="FF6600" hidden="false">
+                            text="SI_BETTERUI_BROWSE_LISTINGS" color="FFFFFF" hidden="false">
                             <Anchor point="LEFT" />
                         </Label> <!--
                           <Label name="$(parent)EquipText" inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
@@ -423,7 +423,7 @@
                     <Controls>
                         <Label name="$(parent)Title"
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
-                            text="|cFF6600 |r" hidden="false">
+                            text="" hidden="false">
                             <Anchor point="LEFT" />
                         </Label>
                     </Controls>
