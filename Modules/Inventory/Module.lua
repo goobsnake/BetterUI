@@ -324,6 +324,17 @@ local function Init(mId, moduleName)
 			requiresReload = true,
 		},
 		{
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK),
+			tooltip = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP),
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Inventory"] then return false end
+				return BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+			end,
+			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk = value end,
+			width = "full",
+		},
+		{
 			type = "submenu",
 			name = GetString(SI_BETTERUI_CURRENCY_SUBMENU),
 			reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
@@ -928,6 +939,7 @@ function BETTERUI.Inventory.InitModule(m_options)
 	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
 	if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
 	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
+	if m_options["enableCompanionJunk"] == nil then m_options["enableCompanionJunk"] = false end
 
 	-- Font customization - Name column settings
 	local defaults = BETTERUI.Inventory.DEFAULTS

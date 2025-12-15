@@ -277,18 +277,6 @@ local function SetupCategoryList(list)
 	)
 end
 
--- NOTE: The old helper BETTERUI_InventoryUtils_MatchWeapons was removed as it's unused.
-
-local function WrapValue(newValue, maxValue)
-	if newValue < 1 then
-		return maxValue
-	end
-	if newValue > maxValue then
-		return 1
-	end
-	return newValue
-end
-
 -- Helper: compute a stable key for a category entry so we can restore by key when categories are rebuilt
 local function GetCategoryKey(categoryData)
 	if not categoryData then return nil end
@@ -1701,7 +1689,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				if not CanItemBeMarkedAsJunk(target.bagId, target.slotIndex) then
 					return
 				end
-				if GetItemActorCategory(target.bagId, target.slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+				local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+				if not companionJunkEnabled and GetItemActorCategory(target.bagId, target.slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
 					return
 				end
 				-- Close the actions dialog to restore header/keybind focus
@@ -1796,8 +1785,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				end
 				local canMarkJunk = true
 				if target and target.bagId and target.slotIndex then
+					local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
 					canMarkJunk = CanItemBeMarkedAsJunk(target.bagId, target.slotIndex)
-						and (GetItemActorCategory(target.bagId, target.slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION)
+						and (companionJunkEnabled or GetItemActorCategory(target.bagId, target.slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION)
 				end
 				-- Do not show Mark/Unmark as Junk for quest items (they are not junkable)
 				local isQuestItem = false
@@ -1916,9 +1906,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					then
 						local actorCat = GetItemActorCategory(target.bagId, target.slotIndex)
 						local canMark = CanItemBeMarkedAsJunk(target.bagId, target.slotIndex)
+						local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
 						hideMarkJunk = IsItemPlayerLocked(target.bagId, target.slotIndex)
 							or not canMark
-							or (actorCat == GAMEPLAY_ACTOR_CATEGORY_COMPANION)
+							or (not companionJunkEnabled and actorCat == GAMEPLAY_ACTOR_CATEGORY_COMPANION)
 					end
 				end
 				if not (hideDestroy and isDestroy) and not hideMarkJunk then
