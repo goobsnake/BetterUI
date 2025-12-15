@@ -483,7 +483,7 @@ local function UpdateBackBar(rootFrame)
     
     -- Get opacity setting for back bar dimming
     local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-    local backBarOpacity = settings.backBarOpacity or 0.5
+    local backBarOpacity = settings.backBarOpacity or 1
     
     -- Slots 3-7 are skills, 8 is Ultimate
     local slots = {3, 4, 5, 6, 7, 8}
@@ -2607,6 +2607,19 @@ local function SetupMountStaminaBar(rootFrame)
     m_mountStaminaBar = MountStaminaBar:New(rootFrame)
 end
 
+-- Centralized function to enforce hiding of default UI elements
+-- This is called from multiple event and scene handlers to ensure
+-- the native health/stamina/magicka bars stay hidden when orb frames are enabled
+local function EnforceDefaultUIHidden()
+    local settings = GetModuleSettings()
+    if not settings.enabled then return end
+    
+    if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+        PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
+    end
+    HideNativeActionBar()
+end
+
 local function SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
     HUD_SCENE:AddFragment(fragment)
@@ -2622,6 +2635,65 @@ local function SetupVisibilityFragments(rootFrame)
     
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
+    
+    -- Re-enforce hiding after death/alive state changes (delay to run after ESO's internal handlers)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_DeathEnforce", EVENT_PLAYER_DEAD, function()
+        zo_callLater(EnforceDefaultUIHidden, 100)
+    end)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_AliveEnforce", EVENT_PLAYER_ALIVE, function()
+        zo_callLater(EnforceDefaultUIHidden, 100)
+    end)
+    
+    -- Handle resurrection complete event
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED, function()
+        zo_callLater(EnforceDefaultUIHidden, 100)
+    end)
+    
+    -- Handle end of siege control (restores HUD scene)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
+        zo_callLater(EnforceDefaultUIHidden, 100)
+    end)
+    
+    -- Hook RestoreHUDScene to catch ALL cases where HUD is restored
+    -- (siege exit, housing editor exit, battleground end, screenshot mode exit, etc.)
+    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDScene then
+        local originalRestoreHUDScene = SCENE_MANAGER.RestoreHUDScene
+        SCENE_MANAGER.RestoreHUDScene = function(self, ...)
+            local result = originalRestoreHUDScene(self, ...)
+            zo_callLater(EnforceDefaultUIHidden, 50)
+            return result
+        end
+    end
+    
+    -- Also hook RestoreHUDUIScene for UI mode transitions
+    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDUIScene then
+        local originalRestoreHUDUIScene = SCENE_MANAGER.RestoreHUDUIScene
+        SCENE_MANAGER.RestoreHUDUIScene = function(self, ...)
+            local result = originalRestoreHUDUIScene(self, ...)
+            zo_callLater(EnforceDefaultUIHidden, 50)
+            return result
+        end
+    end
+    
+    -- Register for loot scene state changes
+    local lootScene = SCENE_MANAGER:GetScene("loot")
+    if lootScene then
+        lootScene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                zo_callLater(EnforceDefaultUIHidden, 50)
+            end
+        end)
+    end
+    
+    -- Register for gamepad loot scene
+    local lootGamepadScene = SCENE_MANAGER:GetScene("lootGamepad")
+    if lootGamepadScene then
+        lootGamepadScene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
+                zo_callLater(EnforceDefaultUIHidden, 50)
+            end
+        end)
+    end
     
     m_updateDeathFragment = UpdateDeathFragment
     return UpdateDeathFragment

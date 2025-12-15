@@ -468,7 +468,7 @@ local function Init(mId, moduleName)
                     decimals = 2,
                     getFunc = function() 
                         if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 0.5 end
-                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].backBarOpacity or 0.5 
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].backBarOpacity or 1 
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].backBarOpacity = value
@@ -488,7 +488,7 @@ local function Init(mId, moduleName)
                         settings.cooldownTextColor = {0.86, 0.84, 0.13, 1}
                         settings.quickslotTextSize = 27
                         settings.quickslotTextColor = {1, 1, 1, 1}
-                        settings.backBarOpacity = 0.5
+                        settings.backBarOpacity = 1
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -960,7 +960,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         mountStaminaBarEnabled = false,
         mountStaminaBarTextSize = 16,
         mountStaminaBarTextColor = {1, 1, 1, 1},
-        backBarOpacity = 0.5, -- 0.0 to 1.0, lower = more dimmed
+        backBarOpacity = 1, -- 0.0 to 1.0, lower = more dimmed
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
