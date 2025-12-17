@@ -284,7 +284,16 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Reset settings in this section to their default values.")
 
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "左オーナメントを非表示")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "左（体力）オーブ周りの装飾オーナメントを非表示にします")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "左オーブのサイズ")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "オーナメント非表示時の左オーブのサイズ調整。1.0 = 100%、1.1 = 110%、1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "右オーナメントを非表示")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "右（マジカ/スタミナ）オーブ周りの装飾オーナメントを非表示にします")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "右オーブのサイズ")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "オーナメント非表示時の右オーブのサイズ調整。1.0 = 100%、1.1 = 110%、1.2 = 120%")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "オーブ設定")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")

@@ -254,17 +254,28 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     -- ORB RING POSITIONS
     -- Orb border circles positioned relative to their ornament center
+    -- noOrnament: Alternate positions relative to BgMiddle when ornament is hidden
     -- =======================================================================
     orbs = {
         left = { 
             x = 50,                -- Horizontal offset (+ right, - left)
             y = -10,               -- Vertical offset (+ down, - up)
             borderSize = 200,      -- Ring diameter in pixels
+            -- Alternate positioning when left ornament is hidden (relative to BgMiddle)
+            noOrnament = {
+                x = -395,          -- Direct position relative to BgMiddle center
+                y = 25,           -- Direct vertical position relative to BgMiddle
+            },
         },
         right = { 
             x = -60,               -- Horizontal offset (+ right, - left)
             y = 5,                 -- Vertical offset (+ down, - up)
             borderSize = 200,      -- Ring diameter in pixels
+            -- Alternate positioning when right ornament is hidden (relative to BgMiddle)
+            noOrnament = {
+                x = 400,           -- Direct position relative to BgMiddle center
+                y = 25,           -- Direct vertical position relative to BgMiddle
+            },
         },
     },
     
@@ -275,10 +286,10 @@ BETTERUI_ORB_FRAMES = {
     -- x/y: offset from orb center (+ right/down, - left/up)
     -- =======================================================================
     fills = {
-        health = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
-        magicka = { scaleW = 0.30, scaleH = 0.53, x = -10, y = -3 },
-        stamina = { scaleW = 0.30, scaleH = 0.53, x = -60, y = -3 },
-        resource = { scaleW = 0.50, scaleH = 0.53, x = 0, y = 0 },
+        health = { scaleW = 0.54, scaleH = 0.54, x = 2, y = -3 },
+        magicka = { scaleW = 0.28, scaleH = 0.54, x = -10, y = -3 },
+        stamina = { scaleW = 0.28, scaleH = 0.54, x = -60, y = -3 },
+        resource = { scaleW = 0.50, scaleH = 0.54, x = 0, y = 0 },
         shield = { scaleW = 0.65, scaleH = 0.65, x = 0, y = 0 },
     },
     
@@ -288,9 +299,9 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     splitter = { 
         width = 200,               -- Line width in pixels
-        heightScale = 0.70,        -- Height as fraction of borderSize (0.7 = 70%)
+        heightScale = 0.65,        -- Height as fraction of borderSize (0.7 = 70%)
         x = 4,                     -- Horizontal offset (+ right, - left)
-        y = -5,                    -- Vertical offset (+ down, - up)
+        y = -1,                    -- Vertical offset (+ down, - up)
     },
     
     -- =======================================================================
@@ -298,8 +309,8 @@ BETTERUI_ORB_FRAMES = {
     -- Numeric text position adjustments from default centered position
     -- =======================================================================
     labels = {
-        health = { x = 0, y = 0 },   -- (+ right/down, - left/up)
-        magicka = { x = 27, y = 0 }, -- (+ right/down, - left/up)
+        health = { x = 2, y = -2 },   -- (+ right/down, - left/up)
+        magicka = { x = 25, y = 0 }, -- (+ right/down, - left/up)
         stamina = { x = -20, y = 0 },-- (+ right/down, - left/up)
         shield = { x = 0, y = 25 },  -- (+ right/down, - left/up)
     },
@@ -318,6 +329,10 @@ BETTERUI_XP_BAR_FILL_INSET_Y = 59         -- Vertical inset for fill bar within 
 BETTERUI_XP_BAR_WIDTH = 250                -- Width of the XP bar in pixels
 BETTERUI_XP_BAR_HEIGHT = 150               -- Height of the XP bar in pixels
 BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (from center)
+-- XP Bar positioning when Left Ornament is hidden (relative to BgMiddle center)
+-- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
+BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X = -350  -- X offset from BgMiddle center (negative = left)
+BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 112   -- Y offset from BgMiddle center (negative = up)
 
 -- Cast Bar positioning (centered above top/back bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
@@ -338,6 +353,10 @@ BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 59   -- Vertical inset for fill bar wi
 BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 250     -- Width of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 150    -- Height of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from center)
+-- Mount Stamina Bar positioning when Right Ornament is hidden (relative to BgMiddle center)
+-- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
+BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X = 375  -- X offset from BgMiddle center (positive = right)
+BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 112 -- Y offset from BgMiddle center (negative = up)
 
 -- ============================================================================
 -- RECTANGULAR BAR FILL TEXTURES

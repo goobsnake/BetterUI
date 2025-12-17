@@ -257,7 +257,16 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Restablecer valores")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Restablecer todos los ajustes de esta sección a sus valores por defecto.")
 
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Ocultar ornamento izquierdo")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Oculta el adorno decorativo alrededor del orbe izquierdo (salud)")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "Tamaño del orbe izquierdo")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "Ajusta el tamaño del orbe izquierdo cuando el ornamento está oculto. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "Ocultar ornamento derecho")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "Oculta el adorno decorativo alrededor del orbe derecho (magia/aguante)")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "Tamaño del orbe derecho")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "Ajusta el tamaño del orbe derecho cuando el ornamento está oculto. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Ajustes de Orbes")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")

@@ -362,6 +362,8 @@ local function Init(mId, moduleName)
                 settings.cooldownTextColor = {0.86, 0.84, 0.13, 1}
                 settings.quickslotTextSize = 27
                 settings.quickslotTextColor = {1, 1, 1, 1}
+                settings.hideLeftOrnament = defaults.hideLeftOrnament
+                settings.hideRightOrnament = defaults.hideRightOrnament
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -503,6 +505,91 @@ local function Init(mId, moduleName)
             type = "submenu",
             name = GetString(SI_BETTERUI_ORB_TEXT_SUBMENU),
             controls = {
+                -- Ornament Visibility Settings
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_HIDE_LEFT_ORNAMENT),
+                    tooltip = GetString(SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].hideLeftOrnament 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].hideLeftOrnament = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "full",
+                },
+                {
+                    type = "slider",
+                    name = GetString(SI_BETTERUI_LEFT_ORB_SIZE),
+                    tooltip = GetString(SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP),
+                    min = 1.0,
+                    max = 1.2,
+                    step = 0.1,
+                    decimals = 1,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1.0 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].leftOrbSizeScale or 1.0 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].leftOrbSizeScale = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    -- Only enabled when left ornament is hidden
+                    disabled = function() 
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        return not settings.enabled or not settings.hideLeftOrnament 
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_HIDE_RIGHT_ORNAMENT),
+                    tooltip = GetString(SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].hideRightOrnament 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].hideRightOrnament = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "full",
+                },
+                {
+                    type = "slider",
+                    name = GetString(SI_BETTERUI_RIGHT_ORB_SIZE),
+                    tooltip = GetString(SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP),
+                    min = 1.0,
+                    max = 1.2,
+                    step = 0.1,
+                    decimals = 1,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1.0 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].rightOrbSizeScale or 1.0 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].rightOrbSizeScale = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    -- Only enabled when right ornament is hidden
+                    disabled = function() 
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        return not settings.enabled or not settings.hideRightOrnament 
+                    end,
+                    width = "full",
+                },
                 -- Health Text Settings
                 {
                     type = "slider",
@@ -961,6 +1048,10 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         mountStaminaBarTextSize = 16,
         mountStaminaBarTextColor = {1, 1, 1, 1},
         backBarOpacity = 1, -- 0.0 to 1.0, lower = more dimmed
+        hideLeftOrnament = false,
+        hideRightOrnament = false,
+        leftOrbSizeScale = 1.0,   -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
+        rightOrbSizeScale = 1.0,  -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -988,6 +1079,10 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.mountStaminaBarTextSize == nil then m_options.mountStaminaBarTextSize = defaults.mountStaminaBarTextSize end
     if m_options.mountStaminaBarTextColor == nil then m_options.mountStaminaBarTextColor = defaults.mountStaminaBarTextColor end
     if m_options.backBarOpacity == nil then m_options.backBarOpacity = defaults.backBarOpacity end
+    if m_options.hideLeftOrnament == nil then m_options.hideLeftOrnament = defaults.hideLeftOrnament end
+    if m_options.hideRightOrnament == nil then m_options.hideRightOrnament = defaults.hideRightOrnament end
+    if m_options.leftOrbSizeScale == nil then m_options.leftOrbSizeScale = defaults.leftOrbSizeScale end
+    if m_options.rightOrbSizeScale == nil then m_options.rightOrbSizeScale = defaults.rightOrbSizeScale end
     return m_options
 end
 

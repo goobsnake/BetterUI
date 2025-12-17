@@ -196,9 +196,23 @@ local function UpdateOrbLayout()
     -- Local aliases for config table
     local cfg = BETTERUI_ORB_FRAMES
     
-    -- Orb border sizes
+    -- Get settings early so we can apply orb size scale
+    local settings = GetModuleSettings()
+    local hideLeftOrnament = settings.hideLeftOrnament or false
+    local hideRightOrnament = settings.hideRightOrnament or false
+    
+    -- Orb border sizes - apply scale when ornament is hidden
     local leftBorderSize = cfg.orbs.left.borderSize
     local rightBorderSize = cfg.orbs.right.borderSize
+    
+    if hideLeftOrnament then
+        local leftScale = settings.leftOrbSizeScale or 1.0
+        leftBorderSize = leftBorderSize * leftScale
+    end
+    if hideRightOrnament then
+        local rightScale = settings.rightOrbSizeScale or 1.0
+        rightBorderSize = rightBorderSize * rightScale
+    end
     
     -- Ornament scales
     local leftOrnamentScale = cfg.ornaments.left.scale
@@ -231,12 +245,15 @@ local function UpdateOrbLayout()
     
     -- ========================================
     -- ORNAMENTS: Position relative to BgMiddle (center of skill bars)
+    -- Apply visibility based on settings
     -- ========================================
+    
     if leftOrnament then
         local leftSize = cfg.ornaments.left.size * leftOrnamentScale
         leftOrnament:ClearAnchors()
         leftOrnament:SetDimensions(leftSize, leftSize)
         leftOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.left.x, cfg.ornaments.left.y)
+        leftOrnament:SetHidden(hideLeftOrnament)
     end
     
     if rightOrnament then
@@ -244,25 +261,41 @@ local function UpdateOrbLayout()
         rightOrnament:ClearAnchors()
         rightOrnament:SetDimensions(rightSize, rightSize)
         rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x, cfg.ornaments.right.y)
+        rightOrnament:SetHidden(hideRightOrnament)
     end
     
     -- ========================================
-    -- ORBS: Position relative to their Ornaments (Restored Hierarchy)
+    -- ORBS: Position based on ornament visibility
+    -- When ornament is hidden, use noOrnament coordinates relative to BgMiddle
+    -- When ornament is visible, use ornament-relative positioning
     -- ========================================
-    -- We anchor the Orbs to the Ornaments to ensure they stay locked together
-    -- during scaling. The high-precision math (no rounding) ensures Fills stay
-    -- aligned with the Orbs.
     
-    if leftOrb and leftOrnament then
+    if leftOrb then
         leftOrb:ClearAnchors()
-        leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
-        leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
+        if hideLeftOrnament then
+            -- Anchor directly to BgMiddle using noOrnament coordinates
+            local noOrnamentX = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)
+            local noOrnamentY = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)
+            leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, noOrnamentX, noOrnamentY)
+        elseif leftOrnament then
+            -- Normal: anchor to ornament
+            leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
+        end
+        leftOrb:SetDimensions(leftBorderSize, leftBorderSize)  -- Uses pre-scaled value when ornament hidden
     end
     
-    if rightOrb and rightOrnament then
+    if rightOrb then
         rightOrb:ClearAnchors()
-        rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
-        rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
+        if hideRightOrnament then
+            -- Anchor directly to BgMiddle using noOrnament coordinates
+            local noOrnamentX = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)
+            local noOrnamentY = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)
+            rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, noOrnamentX, noOrnamentY)
+        elseif rightOrnament then
+            -- Normal: anchor to ornament
+            rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
+        end
+        rightOrb:SetDimensions(rightBorderSize, rightBorderSize)  -- Uses pre-scaled value when ornament hidden
     end
     
     -- ========================================
@@ -437,6 +470,25 @@ local function UpdateOrbLayout()
             end
         end
 
+    end
+    
+    -- ========================================
+    -- UPDATE M_POOLS FILL SIZES (for RefreshVisuals)
+    -- This ensures the orb fill animations use the scaled sizes
+    -- ========================================
+    if m_pools then
+        if m_pools[POWERTYPE_HEALTH] then
+            m_pools[POWERTYPE_HEALTH].fillWidth = healthFillWidth
+            m_pools[POWERTYPE_HEALTH].fillHeight = healthFillHeight
+        end
+        if m_pools[POWERTYPE_MAGICKA] then
+            m_pools[POWERTYPE_MAGICKA].fillWidth = magickaFillWidth
+            m_pools[POWERTYPE_MAGICKA].fillHeight = magickaFillHeight
+        end
+        if m_pools[POWERTYPE_STAMINA] then
+            m_pools[POWERTYPE_STAMINA].fillWidth = staminaFillWidth
+            m_pools[POWERTYPE_STAMINA].fillHeight = staminaFillHeight
+        end
     end
 end
 
@@ -2122,6 +2174,14 @@ function ExperienceBar:Update()
     if not self.control then return end
     
     local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+    
+    -- Enforce visibility based on setting (matching MountStaminaBar pattern)
+    if not settings.xpBarEnabled then
+        self.control:SetHidden(true)
+        return
+    end
+    self.control:SetHidden(false)  -- Ensure visible when enabled
+    
     local isChampion = IsUnitChampion("player")
     local current, max, effectiveMax = 0, 0, 0
     local labelText = ""
@@ -2697,6 +2757,8 @@ local function UpdateDynamicLayout()
     local xpBar = FindControl(m_rootFrame, "BetterUIXPBar")
     local castBar = FindControl(m_rootFrame, "BetterUICastBar")
     local mountStaminaBar = FindControl(m_rootFrame, "BetterUIMountStaminaBar")
+    local leftOrb = FindControl(m_rootFrame, "OrbHealth")
+    local rightOrb = FindControl(m_rootFrame, "OrbResource")
     
     if not ornamentLeft or not ornamentRight or not bgMiddle then return end
     
@@ -2707,17 +2769,37 @@ local function UpdateDynamicLayout()
     local rightX = cfg.ornaments.right.x
     local rightY = cfg.ornaments.right.y
     
+    -- Get ornament visibility settings
+    local hideLeftOrnament = settings.hideLeftOrnament or false
+    local hideRightOrnament = settings.hideRightOrnament or false
+    
+    -- Apply ornament visibility
+    ornamentLeft:SetHidden(hideLeftOrnament)
+    ornamentRight:SetHidden(hideRightOrnament)
+    
     -- ========================================
     -- LEFT SIDE: XP/CP Bar (moved from right)
     -- ========================================
     ornamentLeft:ClearAnchors()
     if settings.xpBarEnabled then
-        -- Shift Ornament UP when XP bar is enabled
-        ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
+        -- Shift Ornament UP when XP bar is enabled (only if visible)
+        if not hideLeftOrnament then
+            ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY - 45)
+        else
+            ornamentLeft:SetAnchor(CENTER, bgMiddle, CENTER, leftX, leftY)
+        end
         
         if xpBar then
             xpBar:ClearAnchors()
-            xpBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97)
+            if hideLeftOrnament then
+                -- Direct position relative to BgMiddle center when ornament is hidden
+                local xpOffsetX = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X or -275
+                local xpOffsetY = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y or -90
+                xpBar:SetAnchor(CENTER, bgMiddle, CENTER, xpOffsetX, xpOffsetY)
+            else
+                -- Normal: anchor to ornament bottom
+                xpBar:SetAnchor(TOP, ornamentLeft, BOTTOM, BETTERUI_XP_BAR_OFFSET_X or 0, BETTERUI_XP_BAR_OFFSET_Y or -97)
+            end
             xpBar:SetHidden(false)  -- Ensure bar is visible when enabled
         end
     else
@@ -2751,12 +2833,24 @@ local function UpdateDynamicLayout()
     -- ========================================
     ornamentRight:ClearAnchors()
     if settings.mountStaminaBarEnabled then
-        -- Shift Ornament UP when mount stamina bar is enabled
-        ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 45)
+        -- Shift Ornament UP when mount stamina bar is enabled (only if visible)
+        if not hideRightOrnament then
+            ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY - 45)
+        else
+            ornamentRight:SetAnchor(CENTER, bgMiddle, CENTER, rightX, rightY)
+        end
         
         if mountStaminaBar then
             mountStaminaBar:ClearAnchors()
-            mountStaminaBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X or 0, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y or -97)
+            if hideRightOrnament then
+                -- Direct position relative to BgMiddle center when ornament is hidden
+                local mountOffsetX = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X or 275
+                local mountOffsetY = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y or -90
+                mountStaminaBar:SetAnchor(CENTER, bgMiddle, CENTER, mountOffsetX, mountOffsetY)
+            else
+                -- Normal: anchor to ornament bottom
+                mountStaminaBar:SetAnchor(TOP, ornamentRight, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X or 0, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y or -97)
+            end
             -- Visibility is controlled by MountStaminaBar:Update() based on IsMounted()
         end
     else

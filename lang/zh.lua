@@ -284,7 +284,16 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "重置为默认")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "将此部分的设置重置为默认值。")
 
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "隐藏左侧装饰")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "隐藏左侧（生命值）球体周围的装饰")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "左侧球体大小")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "调整隐藏装饰时左侧球体的大小。1.0 = 100%，1.1 = 110%，1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "隐藏右侧装饰")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "隐藏右侧（魔力/耐力）球体周围的装饰")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "右侧球体大小")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "调整隐藏装饰时右侧球体的大小。1.0 = 100%，1.1 = 110%，1.2 = 120%")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "球体设置")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")

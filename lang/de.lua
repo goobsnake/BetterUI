@@ -284,7 +284,16 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Auf Standard zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
 
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Linkes Ornament ausblenden")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Blendet das dekorative Ornament um die linke (Gesundheit) Kugel aus")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "Größe der linken Kugel")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "Größe der linken Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "Rechtes Ornament ausblenden")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "Blendet das dekorative Ornament um die rechte (Magie/Ausdauer) Kugel aus")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "Größe der rechten Kugel")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "Größe der rechten Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Kugeleinstellungen")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")

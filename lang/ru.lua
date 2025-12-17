@@ -284,7 +284,16 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Сбросить настройки в этом разделе к значениям по умолчанию.")
 
-ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Orb Text Settings")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Скрыть левый орнамент")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Скрывает декоративный орнамент вокруг левой (здоровье) сферы")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "Размер левой сферы")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "Регулирует размер левой сферы когда орнамент скрыт. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "Скрыть правый орнамент")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "Скрывает декоративный орнамент вокруг правой (магия/выносливость) сферы")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "Размер правой сферы")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "Регулирует размер правой сферы когда орнамент скрыт. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Настройки сфер")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Experience Bar")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Cast Bar")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Mount Stamina Bar")
