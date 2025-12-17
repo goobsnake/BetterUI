@@ -153,7 +153,7 @@ BETTERUI_ORB_FRAMES = {
         -- Companion Ultimate icon position (relative to BgMiddle center)
         companionUltimate = {
             x = -290,             -- Horizontal offset (+ right, - left)
-            y = -20,              -- Vertical offset (+ down, - up)
+            y = -22,              -- Vertical offset (+ down, - up)
         },
         
         -- ===================================================================
@@ -332,7 +332,7 @@ BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2         -- Vertical offset for text label (fr
 -- XP Bar positioning when Left Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X = -350  -- X offset from BgMiddle center (negative = left)
-BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 112   -- Y offset from BgMiddle center (negative = up)
+BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 108   -- Y offset from BgMiddle center (negative = up)
 
 -- Cast Bar positioning (centered above top/back bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
@@ -356,7 +356,7 @@ BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label
 -- Mount Stamina Bar positioning when Right Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X = 375  -- X offset from BgMiddle center (positive = right)
-BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 112 -- Y offset from BgMiddle center (negative = up)
+BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 108 -- Y offset from BgMiddle center (negative = up)
 
 -- ============================================================================
 -- RECTANGULAR BAR FILL TEXTURES

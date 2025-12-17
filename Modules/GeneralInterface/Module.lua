@@ -745,6 +745,12 @@ local function Init(mId, moduleName)
                     func = function()
                         local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        -- Ornament visibility and orb scaling
+                        settings.hideLeftOrnament = defaults.hideLeftOrnament
+                        settings.hideRightOrnament = defaults.hideRightOrnament
+                        settings.leftOrbSizeScale = defaults.leftOrbSizeScale
+                        settings.rightOrbSizeScale = defaults.rightOrbSizeScale
+                        -- Text settings
                         settings.healthTextSize = defaults.healthTextSize
                         settings.healthTextColor = defaults.healthTextColor
                         settings.magickaTextSize = defaults.magickaTextSize

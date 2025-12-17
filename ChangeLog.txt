@@ -1,4 +1,12 @@
-Current Release - 2.91 Changes:
+Current Release - 2.92 Changes:
+
+[INDENT]1. Added: Left and Right Ornament hiding toggle setting located in the General Interface module -> "Orb Settings"
+2. Added: Resource Orb scaling slider, when an ornament is hidden, also located in the General Interface module -> "Orb Settings"
+3. Changed: Updated all language files (de, en, es, fr, jp, ru, zh) with appropriate translations for any previously set to english and removed duplicate entries.
+[/INDENT]
+
+
+2.91 Changes:
 
 [INDENT]1. Added: Toggled inventory module setting that enables "Mark as Junk" functionality for companion items when a compatible addon, like FCO companion, is installed.
 2. Fixed: Required version dependency for LibAddonMenu-2.0 per Baertram's request - Need to update to at least version 41

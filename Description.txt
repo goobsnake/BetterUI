@@ -15,7 +15,7 @@
 [INDENT]3. [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]Tamriel Trade Centre[/URL] average price embedded in the item tooltip[/INDENT]
 [INDENT]4. Guild Store error suppression for MM/ATT compatibility[/INDENT]
 [INDENT]5. Display item style and trait research knowledge in the item tooltip[/INDENT]
-[INDENT]6. Configurable tooltip font size (Small, Default, Medium, Large, XLarge)[/INDENT]
+[INDENT]6. Configurable tooltip font size via slider[/INDENT]
 [INDENT]7. Adjustable chat window history buffer size[/INDENT]
 [INDENT]8. Remove "delete" dialog confirmation when deleting mail[/INDENT]
 [INDENT]9. Configurable trigger button scroll speed and mouse scroll speed[/INDENT]
@@ -24,10 +24,12 @@
 
 [COLOR="darkorange"][B][SIZE=3]RESOURCE ORB FRAMES:[/SIZE][/B][/COLOR]
 
-[INDENT]1. Alternate UI option replacing default resource bars with stylized orb displays[/INDENT]
-[INDENT]2. Integrated Experience/Champion Point bar and Cast Bar[/INDENT]
-[INDENT]3. Mount Stamina Bar display and Companion Ultimate skill orientation[/INDENT]
-[INDENT]4. Customizable text size, color, scaling, and offset options specific to this resource UI[/INDENT]
+[INDENT]1. Alternate UI option replacing default resource bars with stylized orb displays, similar to an ARPG style UI[/INDENT]
+[INDENT]2. Toggleable Experience/Champion Point bar, Cast Bar, and Mount Stamina Bar[/INDENT]
+[INDENT]3. Companion Ultimate skill orientated near skill bars[/INDENT]
+[INDENT]4. Front and back weapon skill bars displayed at once, including dimmable backbar skill icons[/INDENT]
+[INDENT]5. Simultaneous front and back weapon skill cooldown display[/INDENT]
+[INDENT]6. Customizable text size, color, scaling, and offset options specific to the resource orb UI[/INDENT]
 
 
 [COLOR="darkorange"][B][SIZE=3]ENHANCED NAMEPLATES:[/SIZE][/B][/COLOR]
@@ -41,7 +43,7 @@
 
 [INDENT]1. All Items, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk & Stolen item categories[/INDENT]
 [INDENT]2. ESO+ Craft Bag support with full category navigation[/INDENT]
-[INDENT]3. Companion inventory support[/INDENT]
+[INDENT]3. Companion inventory support - Mark as Junk functionality for companion items requires an addon like FCO Companion or similar also be installed[/INDENT]
 [INDENT]4. Persistent currency display with visibility toggles and custom ordering[/INDENT]
 [INDENT]5. Currency visibility presets (Default, PvP Focus, Crafter Focus, Events Focus)[/INDENT]
 [INDENT]6. Supported currencies: Gold, Alliance Points, Tel Var, Undaunted Keys, Transmute Crystals, Crowns, Crown Gems, Writ Vouchers, Event Tickets, Outfit Tokens[/INDENT]
@@ -67,6 +69,7 @@
 [INDENT]6. Motif and recipe known/unknown status display[/INDENT]
 [INDENT]7. Text search filtering by item name[/INDENT]
 [INDENT]8. Font customization for item names and column data (Type, Trait, Stat, Value)[/INDENT]
+[INDENT]9. Carousel-style category tab navigation[/INDENT]
 
 
 [COLOR="darkorange"][B][SIZE=3]DAILY WRIT INTEGRATION:[/SIZE][/B][/COLOR]
