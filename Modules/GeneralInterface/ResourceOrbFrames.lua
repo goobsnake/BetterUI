@@ -225,6 +225,10 @@ local function UpdateOrbLayout()
     local healthFillOffsetX = cfg.fills.health.x
     local healthFillOffsetY = cfg.fills.health.y
     
+    -- Shield fill uses scaled leftBorderSize (for when ornament is hidden)
+    local shieldFillWidth = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize)
+    local shieldFillHeight = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize)
+    
     local magickaFillWidth = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize)
     local magickaFillHeight = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize)
     local staminaFillWidth = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize)
@@ -489,6 +493,17 @@ local function UpdateOrbLayout()
             m_pools[POWERTYPE_STAMINA].fillWidth = staminaFillWidth
             m_pools[POWERTYPE_STAMINA].fillHeight = staminaFillHeight
         end
+    end
+    
+    -- ========================================
+    -- UPDATE M_SHIELDBAR FILL SIZES (for RefreshVisuals)
+    -- This ensures the shield ring uses the scaled sizes when ornament is hidden
+    -- ========================================
+    if m_shieldBar then
+        m_shieldBar.fillWidth = shieldFillWidth
+        m_shieldBar.fillHeight = shieldFillHeight
+        m_shieldBar.fillOffsetX = cfg.fills.shield.x
+        m_shieldBar.fillOffsetY = cfg.fills.shield.y
     end
 end
 

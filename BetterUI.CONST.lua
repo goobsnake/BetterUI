@@ -290,7 +290,7 @@ BETTERUI_ORB_FRAMES = {
         magicka = { scaleW = 0.28, scaleH = 0.54, x = -10, y = -3 },
         stamina = { scaleW = 0.28, scaleH = 0.54, x = -60, y = -3 },
         resource = { scaleW = 0.50, scaleH = 0.54, x = 0, y = 0 },
-        shield = { scaleW = 0.65, scaleH = 0.65, x = 0, y = 0 },
+        shield = { scaleW = 0.54, scaleH = 0.54, x = 2.5, y = -1.5 },
     },
     
     -- =======================================================================
