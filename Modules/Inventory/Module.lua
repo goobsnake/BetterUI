@@ -8,8 +8,7 @@
     - Configures Tooltip styles and Mouse Wheel scrolling support.
 
     TODO(architecture): This file is 1190 lines - split settings into InventorySettings.lua
-    TODO(refactor): Currency preset logic duplicated - extract ApplyCurrencyPreset to shared utility
-    TODO(cleanup): CURRENCY_PRESETS has many duplicate patterns - use inheritance or defaults merging
+
 ]]
 
 local _
@@ -233,75 +232,7 @@ local function Init(mId, moduleName)
 	}
 	local CURRENCY_ORDER_VALUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
-	-- Currency preset configurations
-	local CURRENCY_PRESETS = {
-		default = {
-			showCurrencyGold = true, orderCurrencyGold = 1,
-			showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 2,
-			showCurrencyTelVar = true, orderCurrencyTelVar = 3,
-			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 4,
-			showCurrencyTransmute = true, orderCurrencyTransmute = 5,
-			showCurrencyCrowns = true, orderCurrencyCrowns = 6,
-			showCurrencyCrownGems = true, orderCurrencyCrownGems = 7,
-			showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 8,
-			showCurrencyTradeBars = true, orderCurrencyTradeBars = 9,
-			showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 10,
-			showCurrencySeals = true, orderCurrencySeals = 11,
-			showCurrencyTomePoints = true, orderCurrencyTomePoints = 12,
-		},
-		pvp = {
-			showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 1,
-			showCurrencyTelVar = true, orderCurrencyTelVar = 2,
-			showCurrencyGold = true, orderCurrencyGold = 3,
-			showCurrencyTransmute = true, orderCurrencyTransmute = 4,
-			showCurrencySeals = true, orderCurrencySeals = 5,
-			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 6,
-			showCurrencyTradeBars = true, orderCurrencyTradeBars = 7,
-			showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 8,
-			showCurrencyCrowns = false, orderCurrencyCrowns = 9,
-			showCurrencyCrownGems = false, orderCurrencyCrownGems = 10,
-			showCurrencyWritVouchers = false, orderCurrencyWritVouchers = 11,
-			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-		},
-		crafter = {
-			showCurrencyGold = true, orderCurrencyGold = 1,
-			showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 2,
-			showCurrencyTransmute = true, orderCurrencyTransmute = 3,
-			showCurrencySeals = true, orderCurrencySeals = 4,
-			showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 5,
-			showCurrencyTradeBars = true, orderCurrencyTradeBars = 6,
-			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 7,
-			showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 8,
-			showCurrencyTelVar = false, orderCurrencyTelVar = 9,
-			showCurrencyCrowns = false, orderCurrencyCrowns = 10,
-			showCurrencyCrownGems = false, orderCurrencyCrownGems = 11,
-			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-		},
-		events = {
-			showCurrencyTradeBars = true, orderCurrencyTradeBars = 1,
-			showCurrencySeals = true, orderCurrencySeals = 2,
-			showCurrencyGold = true, orderCurrencyGold = 3,
-			showCurrencyCrowns = true, orderCurrencyCrowns = 4,
-			showCurrencyCrownGems = true, orderCurrencyCrownGems = 5,
-			showCurrencyTransmute = true, orderCurrencyTransmute = 6,
-			showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 7,
-			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 8,
-			showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 9,
-			showCurrencyTelVar = false, orderCurrencyTelVar = 10,
-			showCurrencyOutfitTokens = false, orderCurrencyOutfitTokens = 11,
-			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-		},
-	}
 
-	--- Applies a currency preset configuration to the inventory settings
-	local function ApplyCurrencyPreset(presetName)
-		local preset = CURRENCY_PRESETS[presetName]
-		if not preset then return end
-		local inv = BETTERUI.Settings.Modules["Inventory"]
-		for key, value in pairs(preset) do
-			inv[key] = value
-		end
-	end
 
 	local optionsTable = {
 		-- Quick Destroy is available as an opt-in setting; default remains off for safety.
@@ -438,7 +369,7 @@ local function Init(mId, moduleName)
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = value
-						ApplyCurrencyPreset(value)
+						BETTERUI.ApplyCurrencyPreset(value)
 						RecomputeCurrencyOrderString()
 						SafeRefresh(true)
 					end,

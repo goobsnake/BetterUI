@@ -26,6 +26,69 @@ BETTERUI_MAX_VISIBLE_CURRENCIES = 12
 -- Total available currencies in the system
 BETTERUI_TOTAL_CURRENCIES = 12
 
+-- ============================================================================
+-- CURRENCY PRESETS
+-- ============================================================================
+
+BETTERUI.CURRENCY_PRESETS = {
+    default = {
+        showCurrencyGold = true, orderCurrencyGold = 1,
+        showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 2,
+        showCurrencyTelVar = true, orderCurrencyTelVar = 3,
+        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 4,
+        showCurrencyTransmute = true, orderCurrencyTransmute = 5,
+        showCurrencyCrowns = true, orderCurrencyCrowns = 6,
+        showCurrencyCrownGems = true, orderCurrencyCrownGems = 7,
+        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 8,
+        showCurrencyTradeBars = true, orderCurrencyTradeBars = 9,
+        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 10,
+        showCurrencySeals = true, orderCurrencySeals = 11,
+        showCurrencyTomePoints = true, orderCurrencyTomePoints = 12,
+    },
+    pvp = {
+        showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 1,
+        showCurrencyTelVar = true, orderCurrencyTelVar = 2,
+        showCurrencyGold = true, orderCurrencyGold = 3,
+        showCurrencyTransmute = true, orderCurrencyTransmute = 4,
+        showCurrencySeals = true, orderCurrencySeals = 5,
+        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 6,
+        showCurrencyTradeBars = true, orderCurrencyTradeBars = 7,
+        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 8,
+        showCurrencyCrowns = false, orderCurrencyCrowns = 9,
+        showCurrencyCrownGems = false, orderCurrencyCrownGems = 10,
+        showCurrencyWritVouchers = false, orderCurrencyWritVouchers = 11,
+        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
+    },
+    crafter = {
+        showCurrencyGold = true, orderCurrencyGold = 1,
+        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 2,
+        showCurrencyTransmute = true, orderCurrencyTransmute = 3,
+        showCurrencySeals = true, orderCurrencySeals = 4,
+        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 5,
+        showCurrencyTradeBars = true, orderCurrencyTradeBars = 6,
+        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 7,
+        showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 8,
+        showCurrencyTelVar = false, orderCurrencyTelVar = 9,
+        showCurrencyCrowns = false, orderCurrencyCrowns = 10,
+        showCurrencyCrownGems = false, orderCurrencyCrownGems = 11,
+        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
+    },
+    events = {
+        showCurrencyTradeBars = true, orderCurrencyTradeBars = 1,
+        showCurrencySeals = true, orderCurrencySeals = 2,
+        showCurrencyGold = true, orderCurrencyGold = 3,
+        showCurrencyCrowns = true, orderCurrencyCrowns = 4,
+        showCurrencyCrownGems = true, orderCurrencyCrownGems = 5,
+        showCurrencyTransmute = true, orderCurrencyTransmute = 6,
+        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 7,
+        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 8,
+        showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 9,
+        showCurrencyTelVar = false, orderCurrencyTelVar = 10,
+        showCurrencyOutfitTokens = false, orderCurrencyOutfitTokens = 11,
+        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
+    },
+}
+
 -- Footer currency layout positions (X coordinates for each column)
 BETTERUI_CURRENCY_COLUMNS = {190, 350, 510, 670, 830, 990}
 

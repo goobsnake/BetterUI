@@ -26,7 +26,6 @@
 --     *   Uses `BETTERUI_VerticalParametricScrollList` for the actual scrolling mechanic.
 --     *   Handles list refreshes, data binding, and trigger keybinds.
 --
--- TODO(refactor): FormatAbbreviatedNumber is duplicated in multiple files - move to shared utilities
 -- TODO(optimization): BETTERUI_SharedGamepadEntry_OnSetup is called per-row per-frame during scrolling.
 --                     Consider caching more computed values to reduce GetItemLink/GetItemTrait calls.
 -- TODO(cleanup): Icon path constants at top should use a centralized icon registry
@@ -37,52 +36,7 @@ local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.
 local TEXTURE_EQUIP_SLOT_ICON = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds"
 local NEW_ICON_TEXTURE = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
 
---- Formats a number into abbreviated form (K, M, B) with up to 4 significant digits
---- @param value number: The number to format
---- @return string: Formatted string like "1.12K", "12.3K", "123K", "1.23M", etc.
-local function FormatAbbreviatedNumber(value)
-    if not value or value == 0 then
-        return "0"
-    end
-    
-    local absValue = math.abs(value)
-    local sign = value < 0 and "-" or ""
-    
-    if absValue >= 1000000000 then
-        -- Billions
-        local num = absValue / 1000000000
-        if num >= 100 then
-            return sign .. string.format("%.0fB", num)
-        elseif num >= 10 then
-            return sign .. string.format("%.1fB", num)
-        else
-            return sign .. string.format("%.2fB", num)
-        end
-    elseif absValue >= 1000000 then
-        -- Millions
-        local num = absValue / 1000000
-        if num >= 100 then
-            return sign .. string.format("%.0fM", num)
-        elseif num >= 10 then
-            return sign .. string.format("%.1fM", num)
-        else
-            return sign .. string.format("%.2fM", num)
-        end
-    elseif absValue >= 1000 then
-        -- Thousands
-        local num = absValue / 1000
-        if num >= 100 then
-            return sign .. string.format("%.0fK", num)
-        elseif num >= 10 then
-            return sign .. string.format("%.1fK", num)
-        else
-            return sign .. string.format("%.2fK", num)
-        end
-    else
-        -- Less than 1000, show as-is
-        return sign .. tostring(math.floor(absValue))
-    end
-end
+
  
 local DEFAULT_GAMEPAD_ITEM_SORT =
 {
@@ -409,14 +363,14 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
-            valueControl:SetText(FormatAbbreviatedNumber(math.floor(marketPrice)))
+            valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(math.floor(marketPrice)))
         else
             valueControl:SetColor(1, 1, 1, 1)
-            valueControl:SetText(FormatAbbreviatedNumber(data.stackSellPrice))
+            valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
         end
     else
         valueControl:SetColor(1, 1, 1, 1)
-        valueControl:SetText(FormatAbbreviatedNumber(data.stackSellPrice))
+        valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(data.stackSellPrice))
     end
 
     -- Setup remaining UI elements

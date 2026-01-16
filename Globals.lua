@@ -7,6 +7,8 @@
 ---
 
 -- Compatibility patch by Friday_The13_rus for AutoCategory integration
+-- and shared utilities for BetterUI
+
 
 BETTERUI = {
 	ResearchTraits = {}  -- Cached research trait data per craft type, indexed by craftType -> researchLine -> traitIndex
@@ -151,6 +153,79 @@ function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 
 	local fmt = "%0." .. tostring(decimals) .. "f"
 	return string.format(fmt, value) .. suffix
+end
+
+--- Formats a number into abbreviated form (K, M, B) with caps, for Inventory.
+---
+--- Purpose: compact display for inventory values.
+--- Mechanics: similar to AbbreviateNumber but uses capitalized suffixes and slightly different flooring logic.
+--- References: moved from InventoryList.lua
+---
+--- @param value number: The number to format
+--- @return string: Formatted string like "1.12K", "12.3K", "123K", "1.23M".
+function BETTERUI.FormatAbbreviatedNumber(value)
+    if not value or value == 0 then
+        return "0"
+    end
+    
+    local absValue = math.abs(value)
+    local sign = value < 0 and "-" or ""
+    
+    if absValue >= 1000000000 then
+        -- Billions
+        local num = absValue / 1000000000
+        if num >= 100 then
+            return sign .. string.format("%.0fB", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fB", num)
+        else
+            return sign .. string.format("%.2fB", num)
+        end
+    elseif absValue >= 1000000 then
+        -- Millions
+        local num = absValue / 1000000
+        if num >= 100 then
+            return sign .. string.format("%.0fM", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fM", num)
+        else
+            return sign .. string.format("%.2fM", num)
+        end
+    elseif absValue >= 1000 then
+        -- Thousands
+        local num = absValue / 1000
+        if num >= 100 then
+            return sign .. string.format("%.0fK", num)
+        elseif num >= 10 then
+            return sign .. string.format("%.1fK", num)
+        else
+            return sign .. string.format("%.2fK", num)
+        end
+    else
+        -- Less than 1000, show as-is (no commas, integer only)
+        return sign .. tostring(math.floor(absValue))
+    end
+end
+
+--- Applies a currency preset configuration to a settings table.
+---
+--- Purpose: Centralized logic for applying currency presets (Default, PvP, etc).
+--- Mechanics: Lookups up preset in BETTERUI.CONST.CURRENCY_PRESETS and applies values.
+--- References: Used by Inventory settings.
+---
+--- @param presetName string: The key of the preset (e.g., "pvp").
+--- @param targetSettings table|nil: The settings table to update. Defaults to BETTERUI.Settings.Modules["Inventory"].
+function BETTERUI.ApplyCurrencyPreset(presetName, targetSettings)
+    if not BETTERUI.CONST.CURRENCY_PRESETS then return end
+    local preset = BETTERUI.CONST.CURRENCY_PRESETS[presetName]
+    if not preset then return end
+    
+    local inv = targetSettings or (BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"])
+    if not inv then return end
+    
+    for key, value in pairs(preset) do
+        inv[key] = value
+    end
 end
 
 --- Safely returns an icon path string.

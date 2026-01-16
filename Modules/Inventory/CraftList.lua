@@ -7,6 +7,7 @@
 --
 -- KEY RESPONSIBILITIES:
 --
+--
 -- 1.  **Filtering (`GetFilterComparator`)**:
 --     *   Generates filter functions based on item types (Alchemy, Blacksmithing, etc.).
 --     *   Supports complex filters (tables of filter types) or "All" mode.
@@ -18,10 +19,6 @@
 --
 -- 3.  **Data Generation**:
 --     *   `AddSlotDataToTable`: Populates the list with cached category information.
---
--- TODO(refactor): GetFilterComparator duplicates logic from Inventory.lua - extract to shared utility
--- TODO(cleanup): Unreachable code at line 54 (return after if/else) - remove dead code
--- TODO(optimization): Text search in RefreshList creates new table every call - reuse buffer
 --------------------------------------------------------------------------------
 
 --- @class BETTERUI.Inventory.CraftList : BETTERUI.Inventory.List
@@ -138,16 +135,20 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- short queries (single-character) don't match engine-provided type strings like "(Alchemy)".
     if searchQuery and tostring(searchQuery) ~= "" then
         local q = tostring(searchQuery):lower()
-        local matches = {}
+        
+        -- Reuse buffer table to avoid garbage creation on every keystroke
+        if not self.searchMatches then self.searchMatches = {} end
+        ZO_ClearNumericallyIndexedTable(self.searchMatches)
+        
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             local name = tostring(it.name or "")
             local lname = name:lower()
             if string.find(lname, q, 1, true) then
-                table.insert(matches, it)
+                table.insert(self.searchMatches, it)
             end
         end
-        filteredDataTable = matches
+        filteredDataTable = self.searchMatches
     end
 
     -- Sort the filtered data
