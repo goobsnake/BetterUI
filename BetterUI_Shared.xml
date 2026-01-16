@@ -13,6 +13,7 @@
             Purpose: Standard text label for list entries.
             Structure: A generic label using Gamepad Font 34 (Medium-Large), elliptically wrapped.
                        Used as the base for most simple list text.
+            References: Used in GamepadMenuEntryTemplate and SubMenuEntryTemplate.
         -->
         <Label name="BETTERUI_GamepadSubMenuEntryLabelTemplate" font="ZoFontGamepad34"
             verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true">
@@ -122,6 +123,7 @@
                 - StatusIndicator: New/Stolen icon
                 - PlayerLockedIcon
                 - Columns: ItemType, Trait, Stat, Value (Labels)
+            References: Inherited by detailed list rows in Inventory, Banking, and Vendor lists.
         -->
         <Control name="BETTERUI_GamepadSubMenuEntryTemplate"
             inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate"

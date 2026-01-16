@@ -1,33 +1,36 @@
 <GuiXml>
     <!--
-        ================================================================================
-        BETTERUI INTERFACE LIBRARY - XML TEMPLATES
-        ================================================================================
-        
-        PURPOSE:
-        Defines reusable UI controls, templates, and styles for the BetterUI gamepad interface.
-        These templates provide consistent visual styling and behavior across all BetterUI screens.
+    File: Modules/CIM/Templates/InterfaceLibrary.xml
+    Purpose: Defines reusable UI controls, templates, and styles for the BetterUI gamepad interface.
+             These templates provide consistent visual styling and behavior across all BetterUI screens.
 
-        KEY TEMPLATES:
-        - BETTERUI_Generic_ScrollListTemplate: Mouse wheel support for parametric lists
-        - BETTERUI_NavQuadrant_1_Anchors: Custom positioning for the left panel
-        - BETTERUI_GenericColumn_TextTemplate: Column header styling
-        - BETTERUI_MenuEntryLabelTemplate: Standard menu entry text
-        - BETTERUI_FooterTemplate: Footer bar text styling
-        - BETTERUI_Gamepad_ParametricList_Screen: Full screen template with header/list/footer
-        - BETTERUI_GenericInterface: Banking/vendor window template
+    KEY TEMPLATES:
+    - BETTERUI_Generic_ScrollListTemplate: Mouse wheel support for parametric lists
+    - BETTERUI_NavQuadrant_1_Anchors: Custom positioning for the left panel
+    - BETTERUI_GenericColumn_TextTemplate: Column header styling
+    - BETTERUI_MenuEntryLabelTemplate: Standard menu entry text
+    - BETTERUI_FooterTemplate: Footer bar text styling
+    - BETTERUI_Gamepad_ParametricList_Screen: Full screen template with header/list/footer
+    - BETTERUI_GenericInterface: Banking/vendor window template
 
-        DESIGN NOTES:
-        - Uses BETTERUI_GAMEPAD_* constants for dimensions (defined in CONST.lua)
-        - Templates inherit from ZO_ base templates where possible for consistency
-        - Mouse wheel handlers enable hybrid controller+mouse navigation
+    DESIGN NOTES:
+    - Uses BETTERUI_GAMEPAD_* constants for dimensions (defined in CONST.lua)
+    - Templates inherit from ZO_ base templates where possible for consistency
+    - Mouse wheel handlers enable hybrid controller+mouse navigation
 
-        TODO(refactor): Many templates duplicate anchor patterns - extract to shared base
-        TODO(cleanup): Some commented-out anchor code should be removed or documented
-        TODO(enhancement): Add support for dynamic font scaling via settings
+    TODO(refactor): Many templates duplicate anchor patterns - extract to shared base
+    TODO(cleanup): Some commented-out anchor code should be removed or documented
+    TODO(enhancement): Add support for dynamic font scaling via settings
     -->
     <Controls>
 
+
+        <!--
+            Template: Generic Scroll List
+            Purpose: Provides a parametric scroll list with custom mouse wheel handling.
+            Mechanics: Intercepts mouse wheel events to drive MoveNext/MovePrevious on the bound list.
+            References: Used by BETTERUI_GenericInterface in Banking and Inventory.
+        -->
         <Control name="BETTERUI_Generic_ScrollListTemplate" mouseEnabled="true" virtual="true">
             <OnMouseWheel>
                 if self.scrollList and self.scrollList.active then
@@ -505,6 +508,12 @@
             </Controls>
         </TopLevelControl>
 
+        <!--
+            Template: Generic Interface
+            Purpose: The master layout for standard list windows (Banking, Vendor, etc).
+            Structure: Quadrant 1 (Left) layout with Header, Footer, and List containers.
+            References: Used as the base for BETTERUI_Banking_Window.
+        -->
         <TopLevelControl name="BETTERUI_GenericInterface" hidden="true" virtual="true">
             <Controls>
                 <Control name="$(parent)Loading" hidden="true"

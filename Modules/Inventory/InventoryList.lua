@@ -94,7 +94,11 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
     uniqueId = { isId64 = true },
 }
 
---- Default item sort comparator for gamepad inventory
+--- Default item sort comparator for gamepad inventory.
+---
+--- Purpose: Sorts items based on Best Category Name -> Name -> Level -> Champion Points -> Icon -> ID.
+--- Mechanics: Uses `ZO_TableOrderingFunction` with `DEFAULT_GAMEPAD_ITEM_SORT`.
+---
 --- @param left table: Left item data
 --- @param right table: Right item data
 --- @return boolean: True if left should come before right
@@ -106,7 +110,14 @@ end
 
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
---- Adds specific icons for stolen items, guild trader ownership, enchantments, set gear, and unknown recipes.
+---
+--- Purpose: Formats the main text label for an inventory item.
+--- Mechanics:
+--- 1. **Fonts**: Selects font based on scene (Banking vs Inventory).
+--- 2. **Status Icons**: Prepends icons for Locked, BoP, Stolen, Guild Trader, Enchanted, Set Item, Unknown Recipe.
+--- 3. **Text**: Appends Stack Count.
+--- 4. **Color**: Sets text color based on item quality or selection state.
+---
 --- @param label table The label control.
 --- @param data table The data for the entry.
 --- @param selected boolean True if the entry is selected.
@@ -174,6 +185,13 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 end
 
 --- Configures the status indicator (New icon) and equipped icon for an entry.
+---
+--- Purpose: Visual feedback for item state.
+--- Mechanics:
+--- - Checks `data.brandNew` to show "New" icon.
+--- - Checks `data.isEquippedInCurrentCategory` / `dataSource.equipSlot` to show Equipped icons.
+--- - Distinguishes between Main Hand, Backup Hand, and Quickslots.
+---
 --- @param statusIndicator table The control for the status indicator (New item icon).
 --- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
 --- @param data table The data for the entry.
@@ -211,6 +229,13 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
 end
 
 --- Sets up the main icon for a shared gamepad entry, including stacking counts and cooldown overlays.
+---
+--- Purpose: Renders the primary item icon.
+--- Mechanics:
+--- - Sets Texture from `data:GetIcon`.
+--- - Handles Desaturation/Coloring (Red if unusable).
+--- - Applies selection tinting.
+---
 --- @param icon table The icon control.
 --- @param stackCountLabel table The label for the stack count.
 --- @param data table The data for the entry.
@@ -257,6 +282,10 @@ function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selec
 end
 
 --- Applies a visual cooldown effect to a control.
+---
+--- Purpose: Renders the radial or vertical swipe for cooldowns.
+--- Mechanics: Wraps `control.cooldown:StartCooldown`.
+---
 --- @param control table The control to apply the cooldown to.
 --- @param remaining number The remaining time in milliseconds.
 --- @param duration number The total duration in milliseconds.
@@ -305,8 +334,16 @@ function BETTERUI_CooldownSetup(control, data)
 end
 
 --- Configures a shared gamepad inventory entry (row).
---- Populates all displayed data including labels, icons, traits, stats (Value/Damage), and market price.
---- Handles dynamic font scaling for icons to ensure visual consistency.
+---
+--- Purpose: **The Main Render Function**. Populates all displayed data for a row.
+--- Mechanics:
+--- 1. **Label**: Calls `BETTERUI_SharedGamepadEntryLabelSetup`.
+--- 2. **Cache**: Uses cached `itemLink`, `itemType` to reduce API overhead.
+--- 3. **Columns**: Populates Item Type, Trait, Stat (Damage/Armor/Known), and Value.
+--- 4. **Market Price**: Fetches MasterMerchant/TTC price if enabled.
+--- 5. **Icons**: Calls `BETTERUI_SharedGamepadEntryIconSetup`.
+--- 6. **Sizing**: Dynamically scales icons based on `invSettings.nameFontSize`.
+---
 --- @param control table The UI control for the row.
 --- @param data table The data item to display.
 --- @param selected boolean True if the row is selected.
@@ -439,7 +476,12 @@ local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
 end
 
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
---- Handles special cases like Stolen items, Uncategorized weapons, and Armor/Weapon types.
+---
+--- Purpose: Helper for sorting and categorization logic.
+--- Mechanics:
+--- - Checks for Stolen, InvalidEquip, Weapons, Armor.
+--- - Combines Item Type + Equip Type (e.g. "Poison" vs "Alchemical Poison").
+---
 --- @param itemData table The item data.
 --- @return string The localized category description.
 function GetBestItemCategoryDescription(itemData)
@@ -485,7 +527,13 @@ function BETTERUI.Inventory.List:New(...)
 end
 
 --- Initializes the inventory list.
---- Sets up the parametric scroll list, data templates, and update callbacks.
+---
+--- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
+--- Mechanics:
+--- - Creates `BETTERUI_VerticalParametricScrollList`.
+--- - Registers `VendorEntryTemplateSetup` (wraps `BETTERUI_SharedGamepadEntry_OnSetup`).
+--- - Connects to `SHARED_INVENTORY` for real-time updates.
+---
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback, categorizationFunction, sortFunction, useTriggers, template, templateSetupFunction)
     self.control = control
     self.selectedDataCallback = selectedDataCallback
@@ -577,7 +625,13 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
 end
 
 --- Populates the slot table with item data from the inventory.
---- Filters items using `itemFilterFunction` and assigns category names.
+---
+--- Purpose: Filters and accepts items for the list.
+--- Mechanics:
+--- - Iterates inventory slots via `SHARED_INVENTORY:GenerateSingleSlotData`.
+--- - Applies `itemFilterFunction`.
+--- - Calcualtes `bestGamepadItemCategoryName` for headers.
+---
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
@@ -594,8 +648,15 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
 end
 
 --- Refreshes the inventory list.
---- Clears the current list, regenerates the slot table, creates entry data, and commits the list to the UI.
---- This method is designed to be overridden by subclasses for specific list behavior.
+---
+--- Purpose: Rebuilds the visual list from source data.
+--- Mechanics:
+--- 1. Clears current list.
+--- 2. Generates new Slot Table (`AddSlotDataToTable`).
+--- 3. Creates `ZO_GamepadEntryData` wrappers.
+--- 4. Adds entries to the Parametric List (with Headers where applicable).
+--- 5. Commits (renders) the list.
+---
 function BETTERUI.Inventory.List:RefreshList()
     if self.control:IsHidden() then
         self.isDirty = true

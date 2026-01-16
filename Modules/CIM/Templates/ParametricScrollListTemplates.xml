@@ -1,11 +1,11 @@
 <GuiXml>
     <!--
-        BetterUI Parametric Scroll List Templates XML
-        Description: Visual definitions for custom scroll lists.
-        Key Features:
-        - Mouse mouseHandlers (Wheel, Click) for hybrid input support.
-        - Custom Anchors for NavQuadrant_1 (Main panel area).
-        - Virtual definitions for Grid and List Containers.
+    File: Modules/CIM/Templates/ParametricScrollListTemplates.xml
+    Purpose: Visual definitions for custom scroll lists (Vertical & Horizontal).
+             Key Features:
+             - Mouse handlers (Wheel, Click) for hybrid input support.
+             - Custom Anchors for NavQuadrant_1 (Main panel area).
+             - Virtual definitions for Grid and List Containers.
     -->
     <Controls>
 

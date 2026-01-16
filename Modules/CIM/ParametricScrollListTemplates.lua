@@ -1,17 +1,16 @@
 --[[
-    BetterUI Parametric Scroll List Templates
-    Description: Custom Scroll List implementations for Gamepad UI.
-    Extends the native ZO_ParametricScrollList to add:
-    - Custom gradients/fading (Vertical Lists).
-    - Mouse wheel support (via XML templates).
-    - Carousel Mode (Tab Bar): Items rotate in a circle with the selected item fixed at the left.
-    - Sub-lists (Nested menus).
-
-    TODO(optimization): EnsureValidGradient is called frequently - cache gradient calculations
-    TODO(refactor): BETTERUI_VerticalParametricScrollList and ItemList share gradient logic - extract base
-    TODO(cleanup): Remove commented debug code (ddebug calls)
+File: Modules/CIM/ParametricScrollListTemplates.lua
+Purpose: Custom Scroll List implementations for BetterUI's Gamepad interfaces.
+         Extends the native ZOS scroll list classes to add:
+         - Custom gradients and fading (Vertical Lists)
+         - Hybrid Mouse wheel support
+         - Carousel Mode (Tab Bar): Items rotate circularly around a selection
+         - Sub-lists (Nested menus)
+Author: BetterUI Team
+Last Modified: 2026-01-16
 ]]
 
+-- Tab bar movement types (extends ZO_PARAMETRIC_MOVEMENT_TYPES)
 -- Tab bar movement types (extends ZO_PARAMETRIC_MOVEMENT_TYPES)
 ZO_TABBAR_MOVEMENT_TYPES =
 {
@@ -32,7 +31,11 @@ ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS =
     [ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED] = SOUNDS.GAMEPAD_PAGE_NAVIGATION_FAILED,
 }
 
--- Plays navigation sound for scroll list movement
+--[[
+Function: GamepadParametricScrollListPlaySound
+Description: Plays navigation sound for scroll list movement.
+param: movementType (number) - The type of movement (next, prev, jump, etc.).
+]]
 local function GamepadParametricScrollListPlaySound(movementType)
     PlaySound(ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS[movementType])
 end
@@ -46,14 +49,35 @@ BETTERUI_HORIZONTAL_PARAMETRIC_LIST_DEFAULT_FADE_GRADIENT_SIZE = 32
 local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
 local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
 
--- Helpers to abstract dimension/position access based on list orientation
+--[[
+Function: GetControlDimensionForMode
+Description: Gets the relevant dimension (Height/Width) based on list orientation.
+param: mode (boolean) - Vertical (true) or Horizontal (false).
+param: control (table) - The control to check.
+return: number - The dimension size.
+]]
 local function GetControlDimensionForMode(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetHeight() or control:GetWidth()
 end
 
+--[[
+Function: GetStartOfControl
+Description: Gets the starting edge (Top/Left) based on list orientation.
+param: mode (boolean) - Vertical (true) or Horizontal (false).
+param: control (table) - The control to check.
+return: number - The start coordinate.
+]]
 local function GetStartOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetTop() or control:GetLeft()
 end
+
+--[[
+Function: GetEndOfControl
+Description: Gets the ending edge (Bottom/Right) based on list orientation.
+param: mode (boolean) - Vertical (true) or Horizontal (false).
+param: control (table) - The control to check.
+return: number - The end coordinate.
+]]
 local function GetEndOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetBottom() or control:GetRight()
 end
@@ -66,8 +90,25 @@ end
 BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
 --- Creates a new vertical parametric scroll list instance.
+---
+--- Purpose: Initializes the list with custom gradient logic.
+--- Mechanics: Overrides EnsureValidGradient to apply top/bottom fades.
+--- References: Used as base for BetterUI vertical lists.
+---
 --- @param ... any Arguments for ZO_ParametricScrollList:New.
 --- @return table The new list instance.
+--[[
+Function: BETTERUI_VerticalParametricScrollList:New
+Description: Creates a new vertical parametric scroll list instance.
+Rationale: Initializes the list with custom fade gradient logic.
+Mechanism:
+  - Overrides EnsureValidGradient to apply specific top/bottom fades.
+  - Dynamically calculates gradient sizes based on list content and alignment.
+  - Ensures clean fades at the edges of the scroll area.
+param: ... (any) - Arguments passed to ZO_ParametricScrollList:New.
+return: table - The new list instance.
+TODO: [Performance] EnsureValidGradient is called frequently; consider caching calculations.
+]]
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -123,7 +164,11 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     return list
 end
 
---- Initializes the vertical parametric scroll list with default settings and padding.
+--[[
+Function: BETTERUI_VerticalParametricScrollList:Initialize
+Description: Initializes the list with default padding and sound.
+param: control (table) - The list control.
+]]
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
     ZO_ParametricScrollList.Initialize(self, control, PARAMETRIC_SCROLL_LIST_VERTICAL, ZO_GamepadOnDefaultScrollListActivatedChanged)
     self:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)
@@ -133,8 +178,19 @@ function BETTERUI_VerticalParametricScrollList:Initialize(control)
     self.alignToScreenCenterExpectedEntryHalfHeight = 30
 end
 
--- Subclass specifically for Item Lists (Inventory rows)
+--[[
+Class: BETTERUI_VerticalItemParametricScrollList
+Description: Subclass specifically for Item Lists (Inventory rows).
+Rationale: Sets default post-padding for inventory items.
+]]
 BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollList:Subclass()
+
+--[[
+Function: BETTERUI_VerticalItemParametricScrollList:New
+Description: Constructor for item list.
+param: control (table) - The list control.
+return: table - The new list instance.
+]]
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)
@@ -148,32 +204,52 @@ end
 -- ============================================================================
 BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
---- Creates a new horizontal scroll list instance.
---- @param ... any Arguments for ZO_HorizontalScrollList:New.
---- @return table The new list instance.
+-- ============================================================================
+-- CLASS: BETTERUI_HorizontalScrollList_Gamepad
+-- Basic Horizontal List (Non-Parametric) wrapper
+-- ============================================================================
+BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
+
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:New
+Description: Creates a new horizontal scroll list instance.
+param: ... (any) - Arguments for ZO_HorizontalScrollList:New.
+return: table - The new list instance.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:New(...)
     return ZO_HorizontalScrollList.New(self, ...)
 end
 
---- Initializes the horizontal scroll list.
---- @param control table The list control.
---- @param templateName string The row template name.
---- @param numVisibleEntries number Number of visible entries.
---- @param setupFunction function Sub-function to setup each entry.
---- @param equalityFunction function Function to compare entries.
---- @param onCommitWithItemsFunction function Callback on commit with items.
---- @param onClearedFunction function Callback on list clear.
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:Initialize
+Description: Initializes the horizontal scroll list.
+param: control (table) - The list control.
+param: templateName (string) - The row template name.
+param: numVisibleEntries (number) - Number of visible entries.
+param: setupFunction (function) - Sub-function to setup each entry.
+param: equalityFunction (function) - Function to compare entries.
+param: onCommitWithItemsFunction (function) - Callback on commit with items.
+param: onClearedFunction (function) - Callback on list clear.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:Initialize(control, templateName, numVisibleEntries, setupFunction, equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     ZO_HorizontalScrollList.Initialize(self, control, templateName, numVisibleEntries, setupFunction, equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     self:SetActive(true)
     self.movementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
 end
 
---- Updates the anchors and positions of the scroll list controls.
---- Handles scaling animation for selected item.
---- @param primaryControlOffsetX number X offset for primary control.
---- @param initialUpdate boolean True if this is the first update.
---- @param reselectingDuringRebuild boolean True if reselecting.
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors
+Description: Updates the anchors and positions of the scroll list controls.
+Rationale: Handles position interpolation and scaling for the 'selected' item effect.
+Mechanism:
+  - Iterates visible controls.
+  - Calculates offsets based on primaryControlOffsetX.
+  - Applies Scale effect to center item using Lerp/Ease.
+  - Updates Arrow button visibility/enabled state.
+param: primaryControlOffsetX (number) - Current X offset for the primary control.
+param: initialUpdate (boolean) - True if this is the first update.
+param: reselectingDuringRebuild (boolean) - True if reselecting.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffsetX, initialUpdate, reselectingDuringRebuild)
     if self.isUpdatingAnchors then return end
     self.isUpdatingAnchors = true
@@ -230,11 +306,21 @@ function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffse
     end
 end
 
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction
+Description: Sets the callback for activation state changes.
+param: onActivatedChangedFunction (function) - The callback.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction(onActivatedChangedFunction)
     self.onActivatedChangedFunction = onActivatedChangedFunction
     self.dirty = true
 end
 
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:Commit
+Description: Commits the list data and updates UI.
+Rationale: Also handles Arrow visibility based on active state.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     ZO_HorizontalScrollList.Commit(self)
 
@@ -243,6 +329,12 @@ function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     self.rightArrow:SetHidden(hideArrows)
 end
 
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:SetActive
+Description: Sets the active state of the list.
+Rationale: Manages directional input activation and arrow visibility.
+param: active (boolean) - True to activate.
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     if (self.active ~= active) or self.dirty then
         self.active = active
@@ -264,10 +356,18 @@ function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     end
 end
 
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:Activate
+Description: wrapper for SetActive(true).
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:Activate()
     self:SetActive(true)
 end
 
+--[[
+Function: BETTERUI_HorizontalScrollList_Gamepad:Deactivate
+Description: wrapper for SetActive(false).
+]]
 function BETTERUI_HorizontalScrollList_Gamepad:Deactivate()
     self:SetActive(false)
 end
@@ -278,12 +378,21 @@ end
 -- Base class for horizontal parametric lists.
 -- ============================================================================
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
---- Creates a new horizontal parametric scroll list.
---- @param control table The list control.
---- @param onActivatedChangedFunction function Callback for activation state changes.
---- @param onCommitWithItemsFunction function Callback on commit with items.
---- @param onClearedFunction function Callback on clear.
---- @return table The new list instance.
+-- ============================================================================
+-- CLASS: BETTERUI_HorizontalParametricScrollList
+-- Base class for horizontal parametric lists.
+-- ============================================================================
+BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
+
+--[[
+Function: BETTERUI_HorizontalParametricScrollList:New
+Description: Creates a new horizontal parametric scroll list.
+param: control (table) - The list control.
+param: onActivatedChangedFunction (function) - Callback for activation state changes.
+param: onCommitWithItemsFunction (function) - Callback on commit with items.
+param: onClearedFunction (function) - Callback on clear.
+return: table - The new list instance.
+]]
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
     local list = ZO_ParametricScrollList.New(self, control, PARAMETRIC_SCROLL_LIST_HORIZONTAL, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
@@ -300,21 +409,30 @@ end
 -- ============================================================================
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
---- Creates a new tab bar scroll list instance with LB/RB navigation icons.
---- @param control table The list control.
---- @param leftIcon table The visual control for the left icon.
---- @param rightIcon table The visual control for the right icon.
---- @param data table Configuration data (attachedTo, parent, callbacks).
---- @param onActivatedChangedFunction function Callback for activation changes.
---- @param onCommitWithItemsFunction function Callback for commit.
---- @param onClearedFunction function Callback for clear.
---- @return table The new tab bar list instance.
+--[[
+Function: BETTERUI_TabBarScrollList:New
+Description: Creates a new tab bar scroll list instance with LB/RB navigation icons.
+Rationale: Implements the "Carousel" header navigation (Circular Tab Bar).
+Mechanism:
+  1. Extends HorizontalParametricScrollList.
+  2. Adds Left/Right shoulder button icons.
+  3. Enables "Carousel Mode" (circular scrolling around a fixed selection).
+  4. Sets up keybinds for shoulder navigation.
+param: control (table) - The list control.
+param: leftIcon (table) - The visual control for the left icon.
+param: rightIcon (table) - The visual control for the right icon.
+param: data (table) - Configuration data (attachedTo, parent, callbacks).
+param: onActivatedChangedFunction (function) - Callback for activation changes.
+param: onCommitWithItemsFunction (function) - Callback for commit.
+param: onClearedFunction (function) - Callback for clear.
+return: table - The new tab bar list instance.
+]]
 function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     local list = BETTERUI_HorizontalParametricScrollList.New(self, control, onActivatedChangedFunction, onCommitWithItemsFunction, onClearedFunction)
     list:EnableAnimation(true)
     list:SetDirectionalInputEnabled(false) -- Standard directional input disabled, uses LB/RB
     list:SetHideUnselectedControls(false)
-    
+
     local function CreateButtonIcon(name, parent, keycode, anchor)
         local buttonIcon = CreateControl(name, parent, CT_BUTTON)
         buttonIcon:SetNormalTexture(ZO_Keybindings_GetTexturePathForKey(keycode))
@@ -334,7 +452,7 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     list:InitializeKeybindStripDescriptors()
     list.control = control
     list:SetPlaySoundFunction(GamepadParametricScrollListPlaySound)
-    
+
     -- Enable Carousel Mode:
     -- In this mode, the selected item stays fixed (usually to the left), and the list contents
     -- rotate around it. Allows for seamless circular navigation through categories.
@@ -342,34 +460,38 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     list.carouselStartOffset = BETTERUI_CAROUSEL_START_OFFSET
     list.carouselItemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING
     list.carouselVerticalOffset = BETTERUI_CAROUSEL_VERTICAL_OFFSET
-    
+
     return list
 end
 
---- Override UpdateAnchors to implement CAROUSEL rotation behavior.
---- In carousel mode, the selected item is positioned linearly, and others follow.
---- Standard ZO_ParametricScrollList UpdateAnchors moves the *camera* (targetOffset).
---- Here we manually position controls to achieve the carousel effect.
---- @param continousTargetOffset number The floating point index of the selection.
---- @param initialUpdate boolean True if this is the first update.
---- @param reselectingDuringRebuild boolean True if reselecting.
---- @param blockSelectionChangedCallback boolean True to supress callbacks.
+--[[
+Function: BETTERUI_TabBarScrollList:UpdateAnchors
+Description: Override UpdateAnchors to implement CAROUSEL rotation behavior.
+Rationale: Positions list items in a circular carousel or linear list.
+Mechanism:
+  - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
+  - If Normal Mode: Falls back to ZO_ParametricScrollList logic (Camera moves).
+param: continousTargetOffset (number) - The floating point index of the selection.
+param: initialUpdate (boolean) - True if this is the first update.
+param: reselectingDuringRebuild (boolean) - True if reselecting.
+param: blockSelectionChangedCallback (boolean) - True to supress callbacks.
+]]
 function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialUpdate, reselectingDuringRebuild, blockSelectionChangedCallback)
     if not self.carouselMode then
         -- Fallback to default parametric list behavior if carousel is disabled
         return ZO_ParametricScrollList.UpdateAnchors(self, continousTargetOffset, initialUpdate, reselectingDuringRebuild, blockSelectionChangedCallback)
     end
-    
+
     self.visibleControls, self.unseenControls = self.unseenControls, self.visibleControls
     ZO_ClearTable(self.visibleControls)
-    
+
     local numItems = #self.dataList
     if numItems == 0 then return end
-    
+
     local newSelectedDataIndex = zo_round(continousTargetOffset)
     local selectedDataChanged = self.selectedIndex ~= newSelectedDataIndex
     local oldSelectedData = self.selectedData
-    
+
     -- Play sound on selection change
     if self.soundEnabled and not self.jumping and selectedDataChanged and oldSelectedData then
         if newSelectedDataIndex > self.selectedIndex then
@@ -378,55 +500,55 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
             self.onPlaySoundFunction(ZO_PARAMETRIC_MOVEMENT_TYPES.MOVE_PREVIOUS)
         end
     end
-    
+
     self.selectedData = self:GetDataForDataIndex(newSelectedDataIndex)
     self.selectedIndex = newSelectedDataIndex
-    
+
     -- Calculate animation offset for smooth transitions
     -- This interpolates positions as continousTargetOffset changes (e.g. 1.0 -> 1.5 -> 2.0)
     local baseOffset = newSelectedDataIndex - continousTargetOffset
     local animationOffset = baseOffset * self.carouselItemSpacing
-    
+
     -- Position items in carousel order starting from the selected item
     local currentOffset = self.carouselStartOffset + animationOffset
-    
+
     for i = 0, numItems - 1 do
         -- Calculate the actual data index in circular order starting from selected
         local dataIndex = ((newSelectedDataIndex - 1 + i) % numItems) + 1
-        
+
         local control, justCreated = self:AcquireControlAtDataIndex(dataIndex)
         self.unseenControls[control] = nil
         self.visibleControls[control] = true
-        
+
         local isSelected = (dataIndex == newSelectedDataIndex)
-        
+
         if justCreated or selectedDataChanged or initialUpdate then
             self:RunSetupOnControl(control, dataIndex, isSelected, reselectingDuringRebuild, self.enabled, self.active)
         end
-        
+
         -- Apply parametric function (scaling/fading) if it exists for this data type
         local parametricFunction = self:GetParametricFunctionForDataIndex(dataIndex)
         if parametricFunction then
             parametricFunction(control, i, baseOffset)
         end
-        
+
         -- Position the control horizontally, with vertical offset to align with LB/RB icons
         local verticalOffset = self.carouselVerticalOffset or 5
         control:ClearAnchors()
         control:SetAnchor(LEFT, self.scrollControl, LEFT, currentOffset, verticalOffset)
-        
+
         -- Move offset for next item
         local controlWidth = control:GetWidth()
         if controlWidth == 0 then controlWidth = self.carouselItemSpacing end
         currentOffset = currentOffset + controlWidth
     end
-    
+
     -- Release unused controls (items no longer visible, though usually all are in carousel)
     for control in pairs(self.unseenControls) do
         self:ReleaseControl(control)
     end
     ZO_ClearTable(self.unseenControls)
-    
+
     -- Fire selection changed callback
     if (self.selectedData ~= oldSelectedData or initialUpdate) and not blockSelectionChangedCallback then
         -- Fire generic ZO callback
@@ -438,11 +560,19 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
     end
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:Activate
+Description: Activates the tab bar and its keybinds.
+]]
 function BETTERUI_TabBarScrollList:Activate()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Activate(self)
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:Deactivate
+Description: Deactivates the tab bar and removes keybinds.
+]]
 function BETTERUI_TabBarScrollList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Deactivate(self)
@@ -450,15 +580,21 @@ end
 
 -- Custom Callback Management
 -- Override these to handle the dual-callback nature of standard ZO lists vs Carousel mode
+--[[
+Function: BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback
+Description: Sets the data change callback.
+Rationale: Uses a wrapper to filter out intermediate 'false' returns during animation if not in carousel mode.
+param: callback (function) - The user callback.
+]]
 function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = callback -- For Carousel mode
-    
+
     -- Clean up old wrapper
     if self._zo_selectedDataChangedWrapper then
         self:UnregisterCallback("SelectedDataChanged", self._zo_selectedDataChangedWrapper)
         self._zo_selectedDataChangedWrapper = nil
     end
-    
+
     -- Register wrapper for Non-Carousel mode (acting as standard list)
     if callback then
         self._zo_selectedDataChangedWrapper = function(list, selectedData, oldSelectedData, reachedTarget, targetSelectedIndex)
@@ -471,6 +607,10 @@ function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
     end
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback
+Description: Removes the data change callback.
+]]
 function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = nil
     if self._zo_selectedDataChangedWrapper then
@@ -479,7 +619,10 @@ function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     end
 end
 
--- Keybinds for Tab Navigation (LB/RB)
+--[[
+Function: BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors
+Description: Sets up LB/RB keybinds.
+]]
 function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     self.keybindStripDescriptor =
     {
@@ -500,6 +643,11 @@ function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     }
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:Commit
+Description: Commits changes.
+Rationale: Hides nav arrows if only 1 item exists.
+]]
 function BETTERUI_TabBarScrollList:Commit(dontReselect)
     -- Hide arrows if only 1 item
     if #self.dataList > 1 then
@@ -513,7 +661,12 @@ function BETTERUI_TabBarScrollList:Commit(dontReselect)
     self:RefreshPips()
 end
 
--- Pips (Dots) support for Tab Bar
+--[[
+Function: BETTERUI_TabBarScrollList:SetPipsEnabled
+Description: Enables/Disables Pip (Dot) indicators.
+param: enabled (boolean) - True to enable.
+param: divider (table) - The control to anchor pips to.
+]]
 function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
     self.pipsEnabled = enabled
     if not divider then
@@ -525,6 +678,10 @@ function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
     self:RefreshPips()
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:RefreshPips
+Description: Updates Pip indicators based on selection.
+]]
 function BETTERUI_TabBarScrollList:RefreshPips()
     if not self.pipsEnabled then
         if self.pips then self.pips:RefreshPips() end
@@ -545,6 +702,11 @@ function BETTERUI_TabBarScrollList:RefreshPips()
     self.pips:RefreshPips(numPips, selectedPipIndex)
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:SetSelectedIndex
+Description: Sets selection with animation.
+Mechanism: Updates pips and triggers UpdateAnchors if in Carousel mode.
+]]
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
@@ -553,6 +715,10 @@ function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDi
     end
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation
+Description: Sets selection immediately without animation.
+]]
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled, dontCallSelectedDataChangedCallback)
     ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled, dontCallSelectedDataChangedCallback)
     self:RefreshPips()
@@ -561,7 +727,12 @@ function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedInde
     end
 end
 
--- Navigation Logic with Wrap-Around
+--[[
+Function: BETTERUI_TabBarScrollList:MovePrevious
+Description: Moves to previous item.
+Rationale: Handles wrapping (First -> Last).
+return: boolean - True if successful.
+]]
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingBackward()
     local succeeded = ZO_ParametricScrollList.MovePrevious(self)
@@ -582,6 +753,12 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
     return succeeded
 end
 
+--[[
+Function: BETTERUI_TabBarScrollList:MoveNext
+Description: Moves to next item.
+Rationale: Handles wrapping (Last -> First).
+return: boolean - True if successful.
+]]
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingForward()
     local succeeded = ZO_ParametricScrollList.MoveNext(self)
@@ -607,6 +784,16 @@ end
 -- Called from XML via OnClicked, etc.
 -- ============================================================================
 
+-- ============================================================================
+-- EVENT HANDLERS (Global)
+-- Called from XML via OnClicked, etc.
+-- ============================================================================
+
+--[[
+Function: BETTERUI_TabBar_OnLeftIconClicked
+Description: Global handler for Left Icon click.
+param: buttonControl (table) - The control clicked.
+]]
 function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -615,6 +802,11 @@ function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     end
 end
 
+--[[
+Function: BETTERUI_TabBar_OnRightIconClicked
+Description: Global handler for Right Icon click.
+param: buttonControl (table) - The control clicked.
+]]
 function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -623,7 +815,11 @@ function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     end
 end
 
--- Direct Jump to Category
+--[[
+Function: BETTERUI_TabBar_OnCategoryIconClicked
+Description: Global handler for direct category icon click.
+Rationale: Allows clicking directly on a category icon to jump to it.
+]]
 function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
     local scrollList = nil
     -- Traverse up to find the scrollList owner
@@ -635,14 +831,14 @@ function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
         end
         parent = parent:GetParent()
     end
-    
+
     if not scrollList or not scrollList.dataList then return end
-    
+
     -- Check guard (prevents rapid jumps if busy)
     if scrollList.IsNavigationGuarded and scrollList:IsNavigationGuarded() then
         return
     end
-    
+
     -- Match control to data to set index
     for i, data in ipairs(scrollList.dataList) do
         local control = scrollList:GetControlFromData(data)
@@ -664,12 +860,25 @@ end
 local SUB_LIST_CENTER_OFFSET = -50
 BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass()
 
---- Creates a new sub-list (nested menu) instance.
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:New
+Description: Creates a new sub-list (nested menu) instance.
+param: control (table) - The list control.
+param: parentList (table) - The parent list that spawned this.
+param: parentKeybinds (table) - Keybinds to restore when exiting.
+param: onDataChosen (function) - Callback when an item is chosen.
+return: table - The new sub-list instance.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:New(control, parentList, parentKeybinds, onDataChosen)
     local manager = BETTERUI_VerticalParametricScrollList.New(self, control, parentList, parentKeybinds, onDataChosen)
     return manager
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:Initialize
+Description: Initializes the sub-list.
+Rationale: Hides initially and sets offset.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parentList, parentKeybinds, onDataChosen)
     BETTERUI_VerticalParametricScrollList.Initialize(self, control)
     self.parentList = parentList
@@ -680,12 +889,20 @@ function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parent
     self:SetFixedCenterOffset(SUB_LIST_CENTER_OFFSET)
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:Commit
+Description: Commits selection and triggers callback.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)
     self.onDataChosen(self:GetTargetData())
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:CancelSelection
+Description: Cancels selection and reverts to entry index.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, #self.dataList)
     self.targetSelectedIndex = indexToReturnTo
@@ -693,6 +910,10 @@ function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     self.onDataChosen(self:GetDataForDataIndex(indexToReturnTo))
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip
+Description: Sets up navigation keybinds (Enter/Back).
+]]
 function BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip()
     local function OnEntered()
         self.onDataChosen(self:GetTargetData())
@@ -708,6 +929,11 @@ function BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip()
     ZO_Gamepad_AddListTriggerKeybindDescriptors(self.keybindStripDescriptor, self)
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:Activate
+Description: Shows and activates the sub-list.
+Mechanism: Swaps keybinds from parent to self.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:Activate()
     self.parentList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.parentKeybinds)
@@ -718,9 +944,14 @@ function BETTERUI_VerticalParametricScrollListSubList:Activate()
     self.didSelectEntry = false
 end
 
+--[[
+Function: BETTERUI_VerticalParametricScrollListSubList:Deactivate
+Description: Hides and deactivates the sub-list.
+Mechanism: Restores parent keybinds and focus.
+]]
 function BETTERUI_VerticalParametricScrollListSubList:Deactivate()
     if not self.active then return end
-    
+
     if self.active and not self.didSelectEntry then
         self:CancelSelection()
     end
@@ -739,18 +970,25 @@ end
 -- ============================================================================
 BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
---- Creates a new Gamepad Parametric List Screen.
+--[[
+Function: BETTERUI_Gamepad_ParametricList_Screen:New
+Description: Creates a new Gamepad Parametric List Screen.
+return: table - The new screen instance.
+]]
 function BETTERUI_Gamepad_ParametricList_Screen:New(...)
     local object = ZO_Gamepad_ParametricList_Screen.New(self)
     object:Initialize(...)
     return object
 end
 
---- Initializes the screen.
---- @param control table The screen control.
---- @param createTabBar boolean Whether to create a tab bar (unused here, layout based).
---- @param activateOnShow boolean Whether to activate list when shown.
---- @param scene object The scene object to associate.
+--[[
+Function: BETTERUI_Gamepad_ParametricList_Screen:Initialize
+Description: Initializes the screen.
+param: control (table) - The screen control.
+param: createTabBar (boolean) - Whether to create a tab bar (unused here, layout based).
+param: activateOnShow (boolean) - Whether to activate list when shown.
+param: scene (object) - The scene object to associate.
+]]
 function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar, activateOnShow, scene)
     control.owner = self
     self.control = control

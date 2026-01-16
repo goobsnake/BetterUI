@@ -1,24 +1,24 @@
---------------------------------------------------------------------------------
--- BetterUI Banking Module Registration
---
--- This file handles the initialization and configuration of the Banking module.
--- It integrates with LibAddonMenu (LAM) to provide a settings panel for user customization.
---
--- KEY RESPONSIBILITIES:
---
--- 1.  **Module Initialization (`Init`, `Setup`)**:
---     *   Registers the "Banking" panel in the BetterUI addon settings.
---     *   Defines default settings (`DEFAULTS`) for fonts and toggleable features.
---
--- 2.  **Configuration Options**:
---     *   **Fonts**: Custom font selection, size, and style for Name and Columns.
---     *   **Features**: Toggles for Carousel Navigation (navigating tabs via shoulders/triggers)
---         and icon visibility (Unbound, Enchanted, Set Gear).
---
--- 3.  **Font Helpers**:
---     *   `GetNameFontDescriptor`: Returns a valid font string for the item name column.
---     *   `GetColumnFontDescriptor`: Returns a valid font string for other columns (Trait, Value, etc.).
---------------------------------------------------------------------------------
+--[[
+File: Modules/Banking/Module.lua
+Purpose: Entry point and settings configuration for the Banking module.
+Authors: BUI Team
+Last Modified: 2026-01-16
+
+This file handles the initialization and configuration of the Banking module.
+It integrates with LibAddonMenu (LAM) to provide a settings panel for user customization.
+
+KEY RESPONSIBILITIES:
+1.  **Module Initialization (`Init`, `Setup`)**:
+    *   Registers the "Banking" panel in the BetterUI addon settings.
+    *   Defines default settings (`DEFAULTS`) for fonts and toggleable features.
+2.  **Configuration Options**:
+    *   **Fonts**: Custom font selection, size, and style for Name and Columns.
+    *   **Features**: Toggles for Carousel Navigation (navigating tabs via shoulders/triggers)
+        and icon visibility (Unbound, Enchanted, Set Gear).
+3.  **Font Helpers**:
+    *   `GetNameFontDescriptor`: Returns a valid font string for the item name column.
+    *   `GetColumnFontDescriptor`: Returns a valid font string for other columns (Trait, Value, etc.).
+]]
 
 local _
 local LAM = LibAddonMenu2
@@ -83,10 +83,17 @@ BETTERUI.Banking.DEFAULTS = {
 	columnFontStyle = "",
 }
 
---- Converts a font size setting to a numeric pixel value.
---- Purpose: Handles migration from legacy string values ("Small", "Large") to numbers.
---- @param sizeValue string|number The size setting value.
---- @return number The font size in pixels.
+--[[
+Function: GetFontSizeValue
+Description: Converts a font size setting to a numeric pixel value.
+Rationale: Handles migration from legacy string values ("Small", "Large") to numbers.
+Mechanism:
+  - Checks type of `sizeValue`.
+  - If number, returns as is.
+  - If string, maps from legacy names to pixel values (e.g., "Medium" -> 28).
+param: sizeValue (string|number) - The size setting value.
+return: number - The font size in pixels.
+]]
 local function GetFontSizeValue(sizeValue)
 	-- Handle new numeric values directly
 	if type(sizeValue) == "number" then
@@ -97,16 +104,21 @@ local function GetFontSizeValue(sizeValue)
 	return legacyMap[sizeValue] or 24
 end
 
---- Generates the font descriptor string for the Name column.
---- @return string ESO font descriptor (path|size|style).
+--[[
+Function: BETTERUI.Banking.GetNameFontDescriptor
+Description: Generates the font descriptor string for the Name column.
+Rationale: Returns the font string used for Item Names.
+Mechanism: Combines Path, Size, and Style from settings.
+return: string - ESO font descriptor (path|size|style).
+]]
 function BETTERUI.Banking.GetNameFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
-	
+
 	local fontPath = settings.nameFont or defaults.nameFont
 	local fontSize = GetFontSizeValue(settings.nameFontSize or defaults.nameFontSize)
 	local fontStyle = settings.nameFontStyle or defaults.nameFontStyle
-	
+
 	if fontStyle and fontStyle ~= "" then
 		return string.format("%s|%d|%s", fontPath, fontSize, fontStyle)
 	else
@@ -114,16 +126,21 @@ function BETTERUI.Banking.GetNameFontDescriptor()
 	end
 end
 
---- Generates the font descriptor string for metadata columns (Type, Trait, etc.).
---- @return string ESO font descriptor (path|size|style).
+--[[
+Function: BETTERUI.Banking.GetColumnFontDescriptor
+Description: Generates the font descriptor string for metadata columns.
+Rationale: Returns the font string used for columns other than Name (Type, Trait, etc.).
+Mechanism: Combines Path, Size, and Style from settings.
+return: string - ESO font descriptor (path|size|style).
+]]
 function BETTERUI.Banking.GetColumnFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
-	
+
 	local fontPath = settings.columnFont or defaults.columnFont
 	local fontSize = GetFontSizeValue(settings.columnFontSize or defaults.columnFontSize)
 	local fontStyle = settings.columnFontStyle or defaults.columnFontStyle
-	
+
 	if fontStyle and fontStyle ~= "" then
 		return string.format("%s|%d|%s", fontPath, fontSize, fontStyle)
 	else
@@ -131,9 +148,15 @@ function BETTERUI.Banking.GetColumnFontDescriptor()
 	end
 end
 
---- Registers the Banking settings panel with LibAddonMenu.
---- @param mId string The module ID suffix.
---- @param moduleName string The display name for the panel.
+--[[
+Function: Init
+Description: Registers the Banking settings panel with LibAddonMenu.
+Rationale: Defines the "Banking Improvement Settings" menu structure.
+Mechanism: Creates a table of options (checkboxes, sliders, dropdowns) and registers it with LAM.
+References: Called by BETTERUI.Banking.Setup().
+param: mId (string) - The module ID suffix.
+param: moduleName (string) - The display name for the panel.
+]]
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
@@ -377,28 +400,36 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
---- Initializes default values and migrates legacy settings for the Banking module.
---- Purpose: Ensures all necessary settings exist and converts old formats (strings -> numbers).
---- @param m_options table The raw settings table for this module.
---- @return table The initialized and migrated settings table.
+--[[
+Function: BETTERUI.Banking.InitModule
+Description: Initializes default values and migrates legacy settings for the Banking module.
+Rationale: Ensures all necessary settings exist and converts old formats.
+Mechanism:
+  - Sets defaults for icons and carousel.
+  - Migrates `nameFont` / `nameFontSize` from older generic keys.
+  - Converts string sizes ("Small", "Medium") to integer pixels.
+  - Converts numeric font styles to string identifiers ("outline").
+param: m_options (table) - The raw settings table for this module.
+return: table - The initialized and migrated settings table.
+]]
 function BETTERUI.Banking.InitModule(m_options)
 	-- Core settings (preserve existing user values)
 	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
 	if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
 	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
 	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
-	
+
 	-- Font customization - Name column settings
 	local defaults = BETTERUI.Banking.DEFAULTS
 	m_options["nameFont"] = m_options["nameFont"] or defaults.nameFont
 	m_options["nameFontSize"] = m_options["nameFontSize"] or defaults.nameFontSize
 	m_options["nameFontStyle"] = m_options["nameFontStyle"] or defaults.nameFontStyle
-	
+
 	-- Font customization - Other columns settings (Type, Trait, Stat, Value)
 	m_options["columnFont"] = m_options["columnFont"] or defaults.columnFont
 	m_options["columnFontSize"] = m_options["columnFontSize"] or defaults.columnFontSize
 	m_options["columnFontStyle"] = m_options["columnFontStyle"] or defaults.columnFontStyle
-	
+
 	-- Migrate old settings to new format if present
 	if m_options["font"] and not m_options["nameFont"] then
 		m_options["nameFont"] = m_options["font"]
@@ -432,12 +463,17 @@ function BETTERUI.Banking.InitModule(m_options)
 		m_options["nameFontStyle"] = oldStyle
 		m_options["columnFontStyle"] = oldStyle
 	end
-	
+
 	return m_options
 end
 
---- Lifecycle hook to setup the Banking module.
---- Purpose: Called by the core when the module should initialize its keybinds, settings, and UI.
+--[[
+Function: BETTERUI.Banking.Setup
+Description: Lifecycle hook to setup the Banking module.
+Rationale: Called by the core when the module should initialize its keybinds, settings, and UI.
+Mechanism: Calls Init to register settings menu, then calls BETTERUI.Banking.Init to start the class.
+References: Called by BETTERUI.LoadModules() in BetterUI.lua.
+]]
 function BETTERUI.Banking.Setup()
 
 	Init("Bank", "Banking")

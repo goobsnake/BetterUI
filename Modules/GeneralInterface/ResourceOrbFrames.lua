@@ -81,6 +81,19 @@ local ORB_CONFIG = {
 --- @param parent Control The parent control to search from
 --- @param name string The short name of the control to find (e.g., "Icon", "Button1")
 --- @return Control|nil The found control, or nil if not found
+--- Finds a control by name, handling ESO's complex naming conventions.
+---
+--- Purpose: Robust control lookup traversing parent hierarchies.
+--- Mechanics:
+--- 1. Checks direct child (`GetNamedChild`).
+--- 2. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
+--- 3. Falls back to global `_G[name]`.
+---
+--- References: Used pervasively in this module to find XML-defined controls.
+---
+--- @param parent Control The parent control to search from
+--- @param name string The short name of the control to find (e.g., "Icon", "Button1")
+--- @return Control|nil The found control, or nil if not found
 local function FindControl(parent, name)
     -- First try to grab a direct child with the given short name
     local child = parent:GetNamedChild(name)
@@ -133,6 +146,12 @@ end
 --- TODO(enhancement): Support additional texture sets (e.g., holiday themes)
 ---
 --- @return string Base path for texture files
+--- Determines the base path for orb texture files.
+---
+--- Purpose: Supports texture themes (default vs custom).
+--- Mechanics: checks 'useCustomTextures' setting.
+---
+--- @return string Base path for texture files
 local function GetTextureRootPath()
     local settings = GetModuleSettings()
     if settings.useCustomTextures then
@@ -177,6 +196,15 @@ end
 ---
 --- TODO(fixme): The scale check `if scale then` is always true since scale defaults to 1
 --- TODO(enhancement): Add animation when scale/position changes for smoother transitions
+--- Updates the frame's scale and vertical position based on user settings.
+---
+--- Purpose: Applies user configuration to the root frame.
+--- Mechanics:
+--- - Sets Scale: Directly on `m_rootFrame`.
+--- - Sets Offset: Inverted offsetY (Positive = Up).
+--- - NOTE: Explicitly avoids scaling `ZO_ActionBar1` to prevent native ESO layout bugs.
+---
+--- References: Called by ApplySettings and Layout updates.
 local function UpdateFrameDimensions()
     if not m_rootFrame then return end
     local settings = GetModuleSettings()
@@ -212,6 +240,15 @@ end
 ---
 --- TODO(refactor): ApplyOrbTextures is defined inline - move to module scope for testability
 --- TODO(optimization): Only update textures that have actually changed
+--- Applies theme-appropriate textures to all orb UI elements.
+---
+--- Purpose: Refreshes all textures (borders, fills, ornaments) based on current theme path.
+--- Mechanics:
+--- - Updates Ornaments (Left/Right).
+--- - Updates Orbs (Health, Magicka, Stamina) via nested helper `ApplyOrbTextures`.
+--- - Updates Overlays (Shield).
+---
+--- References: Called by ApplySettings.
 local function ApplyThemeVisuals()
     if not m_rootFrame then return end
     
@@ -297,6 +334,18 @@ end
 ---   - UpdateShieldOrbLayout()
 --- TODO(optimization): Only update elements that have actually changed
 --- TODO(cleanup): Remove BETTERUI_ORB_DEBUG_PRINTS references or make configurable
+--- Updates the positioning and sizing of all orb elements based on BETTERUI_ORB_FRAMES config.
+---
+--- Purpose: Performs the complex layout calculations for the Diablo-style orbs.
+--- Mechanics:
+--- 1. Determines layout mode (Ornaments Visible vs Hidden).
+--- 2. Calculates dimensions for Fills (Health, Magicka, Stamina) based on scale factors.
+--- 3. Positions Ornaments relative to `BgMiddle`.
+--- 4. Positions Orbs relative to Ornaments (or `BgMiddle` if hidden).
+--- 5. Adjusts "Fog" (fill) textures, borders, and splitters.
+--- 6. Updates `m_pools` with new fill dimensions for smooth animation.
+---
+--- References: Called during Init and ApplySettings.
 local function UpdateOrbLayout()
     local leftOrb = FindControl(m_rootFrame, 'OrbHealth')
     local rightOrb = FindControl(m_rootFrame, 'OrbResource')
@@ -547,6 +596,7 @@ local function UpdateOrbLayout()
                             -- Use the same horizontal texture coords as the foreground fog so Fog2 visually matches the same segment
                             if containerName == 'OrbMagicka' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_MAGICKA])
+                                boundingBox = {baseLeft, baseRight}
                                 ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                             elseif containerName == 'OrbStamina' then
                                 local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_STAMINA])
@@ -744,49 +794,46 @@ local function UpdateBackBarLayout(rootFrame)
     local frontModeConfig = frontBarCfg and (isGamePad and frontBarCfg.gamepad or frontBarCfg.keyboard)
     
     -- Sizing: back bar config -> front bar config -> slots config
-    local buttonSize = (backModeConfig and backModeConfig.buttonSize) or 
-                       (frontModeConfig and frontModeConfig.buttonSize) or 
-                       slotsConfig.width
-    local spacing = (backModeConfig and backModeConfig.spacing) or 
-                    (frontModeConfig and frontModeConfig.spacing) or 
-                    slotsConfig.spacing
-    local ultimateSize = (backModeConfig and backModeConfig.ultimateSize) or 
-                         (frontModeConfig and frontModeConfig.ultimateSize) or 
-                         (buttonSize + 6)
+    local modeConfig = backBarCfg and (isGamePad and backBarCfg.gamepad or backBarCfg.keyboard) or {}
+    
+    local buttonSize = modeConfig.buttonSize or slotsConfig.width
+    local spacing = modeConfig.spacing or slotsConfig.spacing
+    local ultimateSize = modeConfig.ultimateSize or (buttonSize + 6)
+    local ultIconSize = modeConfig.ultIconSize or (ultimateSize - 3)
+    
     local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
     
-    -- Icon size matches front bar (buttonSize - 3 for visual consistency)
-    local iconSize = buttonSize - 3
-    local ultIconSize = ultimateSize - 3
-    
     -- Calculate total width: 5 skills + ultimate + gaps
+    -- Note: Back bar uses separate buttons Button1..Button5 for skills, Button6 for Ultimate
     local totalWidth = (5 * buttonSize) + (4 * spacing) + ultimateGap + ultimateSize
     local halfWidth = totalWidth / 2
     
-    backBarContainer:SetDimensions(totalWidth, buttonSize)
+    backBarContainer:SetDimensions(totalWidth, ultimateSize)
     
-    -- Position and size normal skill buttons (slots 1-5 = Button1-Button5)
+    -- Position normal skill buttons (Button1..Button5 mapped to slots 3-7)
     for i = 1, 5 do
         local btn = FindControl(backBarContainer, 'Button' .. i)
         if btn then
             btn:SetDimensions(buttonSize, buttonSize)
             btn:ClearAnchors()
             if i == 1 then
+                -- Anchor first button relative to container center
                 btn:SetAnchor(LEFT, backBarContainer, CENTER, -halfWidth, 0)
             else
                 local prevBtn = FindControl(backBarContainer, 'Button' .. (i-1))
                 btn:SetAnchor(LEFT, prevBtn, RIGHT, spacing, 0)
             end
             
-            -- Resize Icon to match front bar sizing (buttonSize - 3)
+            -- Resize Icon
             local icon = btn:GetNamedChild("Icon")
             if icon then
+                local innerSize = buttonSize - 3 -- 1.5px padding on each side
                 icon:ClearAnchors()
-                icon:SetDimensions(iconSize, iconSize)
+                icon:SetDimensions(innerSize, innerSize)
                 icon:SetAnchor(CENTER, btn, CENTER, 0, 0)
             end
 
-            -- Toggle Visuals (Border vs Backdrop)
+            -- Toggle Visuals (Border vs Backdrop) based on input mode for consistency
             local border = btn:GetNamedChild("Border")
             local backdrop = btn:GetNamedChild("Backdrop")
             
@@ -806,12 +853,12 @@ local function UpdateBackBarLayout(rootFrame)
         local btn5 = FindControl(backBarContainer, 'Button5')
         
         -- Get ultimate offset from back bar config
-        local ultOffsetX = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetX) or 0
-        local ultOffsetY = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetY) or 0
+        local ultOffsetX = (modeConfig.ultimate and modeConfig.ultimate.offsetX) or 0
+        local ultOffsetY = (modeConfig.ultimate and modeConfig.ultimate.offsetY) or 0
         
         ultBtn:SetDimensions(ultimateSize, ultimateSize)
         ultBtn:ClearAnchors()
-        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX, ultOffsetY)
+        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + ultOffsetX, ultOffsetY)
         
         -- Resize Icon to match front bar sizing (ultimateSize - 3)
         local icon = ultBtn:GetNamedChild("Icon")
@@ -836,6 +883,15 @@ local function UpdateBackBarLayout(rootFrame)
 end
 
 -- Setup tooltip handlers for back bar buttons
+--- Initializes Tooltips for the back bar buttons.
+---
+--- Purpose: Shows ability information on mouse hover.
+--- Mechanics:
+--- - Sets `OnMouseEnter`: Initializes `AbilityTooltip`.
+--- - Sets `OnMouseExit`: Clears tooltip.
+--- - Validates slot has an action (`ACTION_TYPE_NOTHING`) before showing.
+---
+--- References: Called by SetupNativeBackBar.
 local function SetupBackBarTooltips(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -866,6 +922,18 @@ local function SetupBackBarTooltips(rootFrame)
     end
 end
 
+--- Updates cooldown overlays for the back bar.
+---
+--- Purpose: Shows cooldown information on the inactive bar.
+--- Mechanics:
+--- - Resolves `backBarCategory` (opposite of active pair).
+--- - Iterates slots 3-8.
+--- - Checks `GetSlotCooldownInfo` and `GetActionSlotEffectTimeRemaining` (buffs).
+--- - Updates `CooldownOverlay` visibility and `CooldownText`.
+--- - Dims icon when on cooldown (`SetDesaturation(1)`).
+--- - NOTE: Back bar cooldowns are static (no radial swipe), only text/dimming.
+---
+--- References: Called periodically by Event Update loop.
 local function UpdateBackBarCooldowns(rootFrame)
     local activePair = GetActiveWeaponPairInfo()
     local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
@@ -949,6 +1017,10 @@ end
 -------------------------------------------------------------------------------------------------
 
 -- Hide the native action bar completely
+--- Completely hides the native ESO Acton Bar.
+---
+--- Purpose: Replaces native bar with BetterUI orb system.
+--- Mechanics: SetHidden(true) and SetAlpha(0).
 local function HideNativeActionBar()
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
         ZO_ActionBar1:SetHidden(true)
@@ -964,6 +1036,16 @@ end
 
 -- Update front bar button icons and state
 -- Update front bar button icons and state.
+--- @param rootFrame object The root control frame.
+--- Updates front bar button icons, highlights, and states.
+---
+--- Purpose: Refreshes the active action bar buttons.
+--- Mechanics:
+--- - Uses `GetActiveHotbarCategory` to get current bar.
+--- - Maps Buttons 1-5 + Ultimate to slots 3-7 + 8.
+--- - Updates Icons (`SetTexture`).
+--- - Updates Procs (`ActivationHighlight`) based on `ActionSlotHasActivationHighlight`.
+---
 --- @param rootFrame object The root control frame.
 local function UpdateFrontBar(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
@@ -1033,6 +1115,15 @@ end
 
 -- Update front bar usability state (called periodically for smooth updates)
 -- This handles cost failures, state failures, and target requirements
+--- Updates usability state (overlays) for front bar buttons.
+---
+--- Purpose: Shows Out-of-Resource (cost) or Requirement-Fail (state) overlays.
+--- Mechanics:
+--- - Checks `ActionSlotHasCostFailure` and `ActionSlotHasNonCostStateFailure`.
+--- - Applies dark overlay (`UnusableOverlay`) if failed.
+--- - Skips updates if casting (prevents flickers).
+---
+--- References: Called periodically in Update Loop.
 local function UpdateFrontBarUsability(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1093,6 +1184,16 @@ end
 
 -- Update ultimate resource meter display using native ESO sprite sheet animation
 -- The gp_UltimateFill_512.dds sprite sheet has 8 columns x 4 rows = 32 frames
+--- Updates the ultimate meter/fill animation for Player and Companion.
+---
+--- Purpose: Shows ultimate generation progress.
+--- Mechanics:
+--- - Uses 8x4 Sprite Sheet (`gp_UltimateFill_512.dds`).
+--- - Calculates fill percentage from `GetUnitPower` vs `GetSlotAbilityCost`.
+--- - Maps percentage to Frame Index (0-31).
+--- - Updates `FillAnimationLeft` and `FillAnimationRight` textures via `SetTextureCoords`.
+---
+--- References: Called periodically in Update Loop.
 local function UpdateFrontBarUltimateMeter(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1202,6 +1303,17 @@ end
 
 
 -- Setup tooltip handlers for front bar buttons
+-- Setup tooltip handlers for front bar buttons
+--- Initializes Tooltips for the front bar buttons.
+---
+--- Purpose: Shows ability/item information on mouse hover.
+--- Mechanics:
+--- - Iterates Buttons 1-5 + Ultimate.
+--- - Handles Quickslot (ItemTooltip).
+--- - Handles Companion Ultimate (AbilityTooltip).
+--- - Sets `OnMouseEnter`/`OnMouseExit` handlers.
+---
+--- References: Called by SetupNativeBackBar (init).
 local function SetupFrontBarTooltips(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1280,6 +1392,18 @@ end
 
 
 -- Update front bar cooldowns
+--- Updates visuals for cooldowns and stack counts on the front bar.
+---
+--- Purpose: Provides visual feedback for skill availability.
+--- Mechanics:
+--- - Checks `GetSlotCooldownInfo` for active cooldowns.
+--- - Gamepad: Vertical "Swipe" using `SetHeight` or similar logic (Edge).
+--- - Keyboard: Standard Radial Swipe (`StartCooldown`).
+--- - Updates `TimerText` with remaining seconds (always decimal).
+--- - Updates Buff/Effect Timers (`GetActionSlotEffectTimeRemaining`) if distinct from cooldown.
+--- - Updates Stack Counts (`GetActionSlotEffectStackCount`).
+---
+--- References: Called periodically in Update Loop.
 local function UpdateFrontBarCooldowns(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1323,6 +1447,9 @@ local function UpdateFrontBarCooldowns(rootFrame)
                         local iconWidth = iconControl:GetWidth()
                         local offsetY = (1 - percentComplete) * iconHeight
                         cooldownEdge:ClearAnchors()
+                        -- Anchor top of edge to top of icon, offset down -> reveals more as offsetY increases?
+                        -- Wait: offset = (1-p) * H. p=0 -> offset=H (bottom). p=1 -> offset=0 (top).
+                        -- This creates a "fill up" effect or "curtain up" effect.
                         cooldownEdge:SetAnchor(TOPLEFT, iconControl, TOPLEFT, 0, offsetY)
                         cooldownEdge:SetWidth(iconWidth)
                         cooldownEdge:SetHidden(false)
@@ -1391,6 +1518,16 @@ local function UpdateFrontBarCooldowns(rootFrame)
 end
 
 -- Update front bar layout and positioning
+--- Updates the physical layout of the front bar buttons.
+---
+--- Purpose: Positions the front bar buttons (Active Bar).
+--- Mechanics:
+--- - Similar to Back Bar logic, but for buttons Button1-Button5 + Ultimate.
+--- - Updates Quickslot positioning relative to `BgMiddle`.
+--- - Updates Companion Button positioning.
+--- - Applies overall offset (`barOffsetX`, `barOffsetY`) relative to `BgMiddle`.
+---
+--- References: Called by ApplyFullLayout.
 local function UpdateFrontBarLayout(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1509,6 +1646,15 @@ local function UpdateFrontBarLayout(rootFrame)
 end
 
 -- Update quickslot on front bar
+--- Updates the Quickslot button on the front bar.
+---
+--- Purpose: Shows the selected Quickslot item/ability.
+--- Mechanics:
+--- - Gets `GetCurrentQuickslot()`.
+--- - Updates Icon (`GetSlotTexture`).
+--- - Updates Stack Count (`GetSlotItemCount`).
+---
+--- References: Called periodically in Update Loop and on `EVENT_ACTIVE_QUICKSLOT_CHANGED`.
 local function UpdateFrontBarQuickslot(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1549,6 +1695,15 @@ local function UpdateFrontBarQuickslot(rootFrame)
 end
 
 -- Update companion ultimate on front bar
+--- Updates the Companion Ultimate button on the front bar.
+---
+--- Purpose: Shows the companion's slotted ultimate if active.
+--- Mechanics:
+--- - Checks `HasActiveCompanion`.
+--- - Hides button if no companion.
+--- - If active, gets texture (`GetSlotTexture`) and shows icon.
+---
+--- References: Called periodically and on `EVENT_ACTIVE_COMPANION_STATE_CHANGED`.
 local function UpdateFrontBarCompanion(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1588,6 +1743,18 @@ end
 
 
 -- Setup keybind labels for front bar buttons
+--- Registers automatic keybind labels for the front bar.
+---
+--- Purpose: Shows the correct keybind (e.g., '1', '2', 'R') on the button.
+--- Mechanics:
+--- - Uses `ZO_Keybindings_RegisterLabelForBindingUpdate`.
+--- - Maps Buttons 1-5 to `ACTION_BUTTON_3`..`7`.
+--- - Maps Ultimate to `ACTION_BUTTON_8`.
+--- - Maps Quickslot to `ACTION_BUTTON_9`.
+--- - Maps Companion to `COMMAND_PET`.
+--- - Handles gamepad vs keyboard binding names.
+---
+--- References: Called during initialization.
 local function SetupFrontBarKeybinds(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1977,9 +2144,15 @@ end
 -- BetterUIOrbBar Class
 -------------------------------------------------------------------------------------------------
 
-local BetterUIOrbBar = ZO_Object:Subclass()
-
-
+--- Class representing a single resource bar (Health/Magicka/Stamina).
+---
+--- Purpose: manages the value, color, and visibility of a resource bar (Orb style).
+--- Mechanics:
+--- - Wraps a specific Control (e.g., `BetterUIHealthBar`).
+--- - Updates `Fog` (Fill Texture) and `Label`.
+--- - Handles `UpdateVisuals` to slice textures based on percentage.
+--- - Used by `BetterUIOrbBar:New`.
+BetterUIOrbBar = ZO_Object:Subclass()
 
 --- Creates a new BetterUIOrbBar instance.
 --- @param ... any Arguments passed to Initialize.
@@ -1990,6 +2163,9 @@ function BetterUIOrbBar:New(...)
     return obj
 end
 
+--- Initializes the Orb Bar.
+--- @param control object The XML control.
+--- @param powerType number The POWERTYPE constant (e.g., POWERTYPE_HEALTH).
 function BetterUIOrbBar:Initialize(control, powerType)
     self.control = control
     self.fog = FindControl(control, 'Fog')
@@ -2117,14 +2293,27 @@ end
 -- BetterUIBarFrame Class (Base for XP and Cast Bars)
 -------------------------------------------------------------------------------------------------
 
-local BetterUIBarFrame = ZO_Object:Subclass()
+--- Base Class for rectangular bars (XP, Cast, Mount Stamina).
+---
+--- Purpose: Provides common logic for initializing a bar frame with Fill, Backdrop, and Label.
+--- Mechanics:
+--- - Creates `Fill` (Texture), `Backdrop` (Texture), and `Label` (Text) at runtime.
+--- - Updates visual dimensions based on percentage.
+--- - Configurable colors and dimensions.
+BetterUIBarFrame = ZO_Object:Subclass()
 
+--- Creates a new BetterUIBarFrame.
+--- @param control object The parent control.
 function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
     self.control = control
     return obj
 end
 
+--- Initializes the Bar Frame components.
+--- @param name string The unique name prefix for controls.
+--- @param parent object The parent UI control.
+--- @return object The created container control.
 function BetterUIBarFrame:Initialize(name, parent)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
@@ -2189,6 +2378,14 @@ end
 -- Cast Bar Class
 -------------------------------------------------------------------------------------------------
 
+--- Class for the Player Cast Bar.
+---
+--- Purpose: Shows casting progress for abilities.
+--- Mechanics:
+--- - Inherits from `BetterUIBarFrame`.
+--- - Listens for `EVENT_SPELL_CASTING_START` / `STOP`.
+--- - Hides native ESO cast bars.
+--- - Updates `OnUpdate` loop to animate fill.
 local CastBar = BetterUIBarFrame:Subclass()
 
 function CastBar:New(parent)
@@ -2330,6 +2527,14 @@ end
 -- ExperienceBar Class (Refactored)
 -------------------------------------------------------------------------------------------------
 
+--- Class representing the XP/CP Bar.
+---
+--- Purpose: Shows progression towards next Level or CP.
+--- Mechanics:
+--- - Inherits from `BetterUIBarFrame`.
+--- - Checks `IsUnitChampion("player")` to switch between XP and CP modes.
+--- - Updates text (Current/Max/Percent).
+--- - Handles visibility based on settings.
 local ExperienceBar = BetterUIBarFrame:Subclass()
 
 function ExperienceBar:New(parent)
@@ -2402,6 +2607,18 @@ end
 -- MountStaminaBar Class
 -------------------------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------------------------
+-- MountStaminaBar Class
+-------------------------------------------------------------------------------------------------
+
+--- Class representing the Mount Stamina Bar.
+---
+--- Purpose: Shows stamina while mounted.
+--- Mechanics:
+--- - Inherits from `BetterUIBarFrame`.
+--- - Listens for `EVENT_MOUNTED_STATE_CHANGED`.
+--- - Listens for `EVENT_POWER_UPDATE` (Mount Stamina).
+--- - Auto-hides when not mounted.
 local MountStaminaBar = BetterUIBarFrame:Subclass()
 
 function MountStaminaBar:New(parent)
@@ -2511,6 +2728,18 @@ end
 -- FoodBuffTracker Class
 -------------------------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------------------------
+-- FoodBuffTracker Class
+-------------------------------------------------------------------------------------------------
+
+--- Class for tracking Long-term Food/Drink buffs.
+---
+--- Purpose: Shows remaining time on food buffs.
+--- Mechanics:
+--- - Scans player buffs for known food IDs (`IGNORED_BUFFS` filter).
+--- - Checks duration > 10 minutes.
+--- - Updates status bar.
+--- - Used by Inventory or other modules? (Seemingly unused in Orbs, but defined here).
 local FoodBuffTracker = ZO_Object:Subclass()
 
 local IGNORED_BUFFS = {
@@ -2560,6 +2789,18 @@ end
 -- Initialization Logic
 -------------------------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------------------------
+-- Initialization Logic
+-------------------------------------------------------------------------------------------------
+
+--- Initializes the Health/Magicka/Stamina Orb pools.
+---
+--- Purpose: Creates `BetterUIOrbBar` instances for main resources.
+--- Mechanics:
+--- - Reads settings for border/fill sizes.
+--- - Instantiates `BetterUIOrbBar` for Health, Magicka, Stamina.
+--- - Creates HitBoxes for tooltips (handles split orbs).
+--- - Registers `EVENT_POWER_UPDATE`.
 local function SetupPowerPools(rootFrame)
     -- Use structured config table
     local cfg = BETTERUI_ORB_FRAMES
@@ -2657,6 +2898,17 @@ end
 -- BetterUIShieldBar Class (Full Ring Overlay)
 -------------------------------------------------------------------------------------------------
 
+-------------------------------------------------------------------------------------------------
+-- BetterUIShieldBar Class (Full Ring Overlay)
+-------------------------------------------------------------------------------------------------
+
+--- Class representing the Shield Overlay (Health Orb).
+---
+--- Purpose: Shows damage shield value as a ring overlay on the Health Orb.
+--- Mechanics:
+--- - Inherits from `BetterUIOrbBar`.
+--- - Overrides `RefreshVisuals` to show full ring (sliced 0-1) instead of vertical fill.
+--- - Used for `ATTRIBUTE_VISUAL_POWER_SHIELDING`.
 local BetterUIShieldBar = BetterUIOrbBar:Subclass()
 
 function BetterUIShieldBar:New(...)
@@ -2696,6 +2948,8 @@ function BetterUIShieldBar:RefreshVisuals()
 end
 
 
+--- Initial setup for the Shield Bar.
+--- Purpose: Creates the shield bar and registers listeners for visual attribute updates.
 local function SetupShieldBar(rootFrame)
     m_shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
     
@@ -2808,6 +3062,12 @@ local function EnforceDefaultUIHidden()
     HideNativeActionBar()
 end
 
+--- Sets up visibility fragments to hide default UI elements.
+--- Purpose: Manages scene fragments to hide native Health/Stamina bars when BetterUI orbs are shown.
+--- Mechanics:
+--- - Creates `ZO_HUDFadeSceneFragment` for the root frame.
+--- - Updates visibility based on Dead/Alive state.
+--- - Hooks into `RestoreHUDScene` to aggressively enforce hiding of native elements.
 local function SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
     HUD_SCENE:AddFragment(fragment)
@@ -2920,6 +3180,13 @@ end
 
 
 
+--- Updates the dynamic layout of relative UI elements.
+--- Purpose: Positions the Ornaments, Cast Bar, XP Bar, and Mount Bar based on current settings and offsets.
+--- Mechanics:
+--- - Handles positions for "No Ornament" mode vs "Ornament" mode.
+--- - Centers Cast Bar above back bar.
+--- - Stacks XP Bar below Left Ornament.
+--- - Stacks Mount Stamina Bar below Right Ornament.
 local function UpdateDynamicLayout()
     if not m_rootFrame then return end
     
@@ -3037,6 +3304,17 @@ local function UpdateDynamicLayout()
     end
 end
 
+--- Internal helper to initialize the module components.
+--- Purpose: Calls all `Setup...` functions and registers initial events.
+--- Mechanics:
+--- - Sets `m_isInitialized` to true.
+--- - Calls `SetupPowerPools`, `SetupShieldBar`, `SetupFoodTracker`, `SetupExperienceBar`, `SetupCastBar`, `SetupMountStaminaBar` to initialize individual UI elements.
+--- - Calls `SetupVisibilityFragments` to handle UI visibility based on game state.
+--- - Determines and applies the correct action bar skin based on gamepad mode.
+--- - Updates front bar cooldown colors.
+--- - Calls `UpdateOrbLayout` to position orbs and ornaments.
+--- - Performs an initial `RefreshAllData` call.
+--- - Registers for `EVENT_GAMEPAD_PREFERRED_MODE_CHANGED` to reload the UI when gamepad mode changes.
 local function SetupModule(control)
     m_isInitialized = true
     
@@ -3071,6 +3349,15 @@ local function SetupModule(control)
     end)
 end
 
+--- Applies visual settings to skill bar buttons.
+--- Purpose: Customizes the font size and color for cooldown timers, ability timers, and quickslot counts on both front and back action bars.
+--- Mechanics:
+--- - Retrieves `cooldownTextSize`, `cooldownTextColor`, `quickslotTextSize`, and `quickslotTextColor` from module settings.
+--- - Constructs font strings using `BOLD_FONT` and the specified sizes.
+--- - Defines a helper function `UpdateButtonVisuals` to apply these settings to a given button's CooldownText, TimerText, and CountText children.
+--- - Iterates through buttons on the back bar (`BackBarContainer`) and front bar (`FrontBarContainer`) to apply the visuals.
+--- - Specifically updates the Ultimate, Quickslot, and Companion buttons on the front bar.
+--- - Uses `zo_callLater` to defer front bar updates, ensuring template children are ready.
 local function ApplySkillBarVisuals()
     local settings = GetModuleSettings()
     local cooldownSize = settings.cooldownTextSize or 27

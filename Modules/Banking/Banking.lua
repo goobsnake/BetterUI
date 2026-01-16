@@ -1,21 +1,32 @@
----------------------------------------------------------------------------------------------------
--- BetterUI - Banking Module
----
---- Purpose: Implements the banking interface for BetterUI.
---- Mechanics:
---- 1. Banking List Management: Withdraw/Deposit modes, filtering, sorting, and currency rows.
---- 2. Item Movement: Securely moving items between Inventory, Bank, and Subscriber Bank.
---- 3. Currency Transfer: Dedicated selector for depositing/withdrawing Gold, Tel Var, etc.
---- 4. Keybinds & Actions: Context-aware keybinds for banking actions (Deposit, Withdraw, Stack).
---- 5. Category Management: Tabbed navigation similar to the inventory interface.
----
---- TODO(architecture): This file is 2300+ lines. Consider splitting into:
----   - BankingCore.lua: Class definition, scene management
----   - BankingLists.lua: Item list population, filtering, sorting
----   - BankingActions.lua: Transfer logic, currency handling
---- TODO(refactor): BANK_CATEGORY_DEFS duplicates Inventory category logic - extract shared module
---- TODO(cleanup): lastUsedBank/currentUsedBank appear unused - verify and remove if dead code
----------------------------------------------------------------------------------------------------
+--[[
+File: Modules/Banking/Banking.lua
+Purpose: Implements the comprehensive banking interface for BetterUI.
+Authors: BUI Team
+Last Modified: 2026-01-16
+
+This module completely replaces the default gamepad banking interface with a feature-rich,
+inventory-like experience. It supports advanced filtering, searching, custom categories,
+and seamless currency transfers.
+
+KEY MECHANICS:
+1.  **List Management**:
+    *   Unified `RefreshList` logic handling both Withdraw (Bank/SubBank) and Deposit (Backpack).
+    *   Integrates `SHARED_INVENTORY` for optimized data retrieval.
+    *   Supports "All Items" mode with dedicated currency transfer rows.
+2.  **Item Movement**:
+    *   `MoveItem`: Securely transfers items using `CallSecureProtected("RequestMoveItem")`.
+    *   Smart Stacking: Automatically finds stackable items in the destination bag to merge stacks.
+3.  **Currency Transfer**:
+    *   Dedicated `ZO_CurrencySelector_Gamepad` integration for Gold, Tel Var, AP, and Vouchers.
+4.  **Category System**:
+    *   Tabbed navigation (All, Weapons, Apparel, Materials, etc.) mirroring the Inventory module.
+    *   Dynamic filtering based on item type and "Furniture Vault" status.
+5.  **Search**:
+    *   Integrated text search filtering by name.
+
+TODO: This file is large. Consider splitting into BankingCore, BankingLists, and BankingActions.
+TODO: BANK_CATEGORY_DEFS duplicates Inventory category logic - extract shared module.
+]]
 
 local _
 
@@ -61,13 +72,17 @@ local EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 
 -- Build the full set of bank categories (unfiltered). Furniture vault is restricted to Furnishing.
---- Build the full list of bank categories.
----
---- Purpose: Defines the available tabs in the banking header.
---- Mechanics: Conditional logic to handle Furniture Vaults (limited tabs) vs Regular Banks (full tabs).
----
---- @param isFurnitureVault boolean True if accessing a furniture storage chest/house bank.
---- @return table A list of category definitions (key, name, filterType).
+--[[
+Function: BuildAllBankCategories
+Description: Builds the full list of bank categories.
+Rationale: Defines the available tabs in the banking header.
+Mechanism:
+  - Conditional logic for "Furniture Vaults" (House Storage) vs "Regular Banks".
+  - Furniture Vaults: Restricted to "All" and "Furnishing".
+  - Regular Banks: Full suite (Weapons, Apparel, Materials, etc.).
+param: isFurnitureVault (boolean) - True if accessing a furniture storage chest/house bank.
+return: table - A list of category definitions (key, name, filterType).
+]]
 local function BuildAllBankCategories(isFurnitureVault)
     -- Always include 'All Items' to ensure a non-empty tab bar and a safe default,
     -- even for special bank types (e.g., house storage/furniture vault).
@@ -94,14 +109,15 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
---- Returns true if itemData belongs to the given bank category.
----
---- Purpose: Filtering logic for banking list items.
---- Mechanics: Checks 'all' key, 'junk' special key, or uses standard ESO item filters.
----
---- @param itemData table The item's data object.
---- @param category table The category definition to check against.
---- @return boolean True if the item matches the category.
+--[[
+Function: DoesItemMatchBankCategory
+Description: Checks if itemData belongs to the given bank category.
+Rationale: Filtering logic for banking list items.
+Mechanism: Checks 'all' key, 'junk' special key, or uses standard ESO item filters.
+param: itemData (table) - The item's data object.
+param: category (table) - The category definition to check against.
+return: boolean - True if the item matches the category.
+]]
 local function DoesItemMatchBankCategory(itemData, category)
     if not category or category.key == "all" then
         return true
@@ -115,6 +131,16 @@ local function DoesItemMatchBankCategory(itemData, category)
     return true
 end
 
+--[[
+Function: GetCategoryTypeFromWeaponType
+Description: Helper to map a weapon item to a gamepad store category.
+Rationale: Determines which descriptive category (e.g., "Two-Handed Melee") a weapon falls into.
+Mechanism: checks WEAPONTYPE_* constants and maps them to GAMEPAD_WEAPON_CATEGORY_* enums.
+References: Used by GetBestItemCategoryDescription.
+param: bagId (number) - The bag ID.
+param: slotIndex (number) - The slot index.
+return: number|nil - The gamepad weapon category constant.
+]]
 local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
     local weaponType = GetItemWeaponType(bagId, slotIndex)
     if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
@@ -132,13 +158,15 @@ local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
     end
 end
 
---- Computes the best category description string for an item.
----
---- Purpose: Provides a human-readable "Type" string for the list (e.g., "One-Handed Sword", "Heavy Chest").
---- Mechanics: Checks Stolen status first, then Weapon/Armor types, falling back to basic ItemType.
----
---- @param itemData table The item data.
---- @return string The localized category description.
+--[[
+Function: GetBestItemCategoryDescription
+Description: Computes the best category description string for an item.
+Rationale: Provides a human-readable "Type" string for the list (e.g., "One-Handed Sword", "Heavy Chest").
+Mechanism: Checks Stolen status first, then Weapon/Armor types, falling back to basic ItemType.
+References: Used during RefreshList to populate the "bestItemTypeName" metadata.
+param: itemData (table) - The item data.
+return: string - The localized category description.
+]]
 local function GetBestItemCategoryDescription(itemData)
 
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
@@ -163,24 +191,28 @@ local function GetBestItemCategoryDescription(itemData)
         return GetString("SI_ARMORTYPE", armorType).." "..GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))
     end
     local fullDesc = GetString("SI_ITEMTYPE", itemData.itemType)
-	
+
 	-- Stops types like "Poison" displaying "Poison" twice
 	if( fullDesc ~= GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))) then
 		fullDesc = fullDesc.." "..GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))
 	end
-	
+
 	return fullDesc
 end
 
--- Compute which categories have at least one item for the current mode and bank context.
---- Compute the subset of categories that actually contain items for the current bank mode.
----
---- Purpose: Hides empty tabs to reduce clutter in the banking header.
---- Mechanics: Scans the target bags (Bank+Sub vs Backpack) and marks categories that have matching items.
----            Always keeps 'All' visible. Excludes stolen items.
----
---- @param self table The banking class instance.
---- @return table A list of only the visible category definitions.
+--[[
+Function: ComputeVisibleBankCategories
+Description: Compute the subset of categories that actually contain items for the current bank mode.
+Rationale: Hides empty tabs to reduce clutter in the banking header.
+Mechanism:
+  1. Scans the target bags (Bank+Sub vs Backpack) via `SHARED_INVENTORY`.
+  2. Marks categories that have matching items.
+  3. Always keeps 'All' visible.
+  4. Excludes stolen items.
+References: Called during RebuildHeaderCategories and RefreshList.
+param: self (table) - The banking class instance.
+return: table - A list of only the visible category definitions.
+]]
 local function ComputeVisibleBankCategories(self)
     local isFurnitureVault = IsFurnitureVault(GetBankingBag())
     local allCategories = BuildAllBankCategories(isFurnitureVault)
@@ -243,21 +275,24 @@ end
 BETTERUI.Banking.Class = BETTERUI.Interface.Window:Subclass()
 
 
---- Creates a new instance of the Banking window class.
----
---- Purpose: Constructor for the Banking module.
---- Mechanics: Inherits from BETTERUI.Interface.Window.
----
---- @param ... any Arguments passed to the parent constructor.
---- @return table The new Banking Class instance.
+--[[
+Function: BETTERUI.Banking.Class:New
+Description: Creates a new instance of the Banking window class.
+Rationale: Constructor for the Banking module.
+Mechanism: Inherits from BETTERUI.Interface.Window.
+param: ... (any) - Arguments passed to the parent constructor.
+return: table - The new Banking Class instance.
+]]
 function BETTERUI.Banking.Class:New(...)
 	return BETTERUI.Interface.Window.New(self, ...)
 end
 
---- Updates the 'currentUsedBank' global variable.
----
---- Purpose: Determines whether we are using the main bank (BAG_BANK) or a house bank.
---- Mechanics: Checks IsHouseBankBag(GetBankingBag()).
+--[[
+Function: BETTERUI.Banking.Class:CurrentUsedBank
+Description: Updates the 'currentUsedBank' global.
+Rationale: Determines whether we are using the main bank (BAG_BANK) or a house bank.
+Mechanism: Checks IsHouseBankBag(GetBankingBag()).
+]]
 function BETTERUI.Banking.Class:CurrentUsedBank()
     if(IsHouseBankBag(GetBankingBag()) == false) then
         currentUsedBank = BAG_BANK
@@ -268,6 +303,10 @@ function BETTERUI.Banking.Class:CurrentUsedBank()
     end
 end
 
+--[[
+Function: BETTERUI.Banking.Class:LastUsedBank
+Description: Updates the 'lastUsedBank' global.
+]]
 function BETTERUI.Banking.Class:LastUsedBank()
    if(IsHouseBankBag(GetBankingBag()) == false) then
         lastUsedBank = BAG_BANK
@@ -278,11 +317,12 @@ function BETTERUI.Banking.Class:LastUsedBank()
     end
 end
 
---- Refreshes the footer information (Space Used, Currency).
----
---- Purpose: Updates the bottom bar with current bag space and currency amounts.
---- Mechanics: Checks 'currentMode' to decide whether to show Bank or Backpack info.
----
+--[[
+Function: BETTERUI.Banking.Class:RefreshFooter
+Description: Refreshes the footer information (Space Used, Currency).
+Rationale: Updates the bottom bar with current bag space and currency amounts.
+Mechanism: Checks 'currentMode' to decide whether to show Bank or Backpack info.
+]]
 function BETTERUI.Banking.Class:RefreshFooter()
 
     if(currentUsedBank == BAG_BANK) then
@@ -304,17 +344,21 @@ function BETTERUI.Banking.Class:RefreshFooter()
 end
 
 
---- Refreshes the banking list contents.
----
---- Purpose: Rebuilds the list entries based on current mode and category.
---- Mechanics:
---- 1. Clears current list.
---- 2. Adds currency transfer options if in 'All' category.
---- 3. Scans relevant bags (Bank/SubBank or Backpack).
---- 4. Filters items by category and text search.
---- 5. Sorts items.
---- 6. Group items if AutoCategory is present.
----
+--[[
+Function: BETTERUI.Banking.Class:RefreshList
+Description: Refreshes the banking list contents.
+Rationale: Rebuilds the list entries based on current mode and category.
+Mechanism:
+  1. **State Clear**: Clears list, updates header.
+  2. **Currency Rows**: If "All Items" category, injects Withdraw/Deposit currency rows (Gold, TelVar, etc.).
+  3. **Data Generation**: Fetches slot data from `SHARED_INVENTORY` (Bank or Backpack).
+  4. **Caching**: Pre-calculates usage info (Recipe known, Bound, etc.) for performance.
+  5. **Filtering**: Applies Category filter AND Text Search query (name match).
+  6. **Sorting**: Uses `BETTERUI_GamepadInventory_DefaultItemSortComparator`.
+  7. **Categorization**: Groups items by sub-category (e.g. "One-Handed Sword") inside the list.
+  8. **Commit**: Adds entries to parametric list and restores selection.
+References: Called on slot updates, mode toggles, and search overrides.
+]]
 function BETTERUI.Banking.Class:RefreshList()
     -- If we're in the middle of a tab selection animation, skip interim refreshes
     if self._suppressListUpdates then return end
@@ -324,7 +368,7 @@ function BETTERUI.Banking.Class:RefreshList()
         self.list:Deactivate()
     end
     -- reset any transient state if needed (none currently)
-    
+
     self.list:Clear()
 
     -- Update the header title with current category
@@ -377,7 +421,7 @@ function BETTERUI.Banking.Class:RefreshList()
             else
                 self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFFPLAYER BAG|r"})
             end
-        end        
+        end
     end
     local checking_bags = {}
     local slotType
@@ -390,11 +434,11 @@ function BETTERUI.Banking.Class:RefreshList()
             checking_bags[1] = currentUsedBank
             slotType = SLOT_TYPE_BANK_ITEM
         end
-    else 
+    else
         checking_bags[1] = BAG_BACKPACK
         slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
-    
+
     local function IsNotStolenItem(itemData)
         local isNotStolen = not itemData.stolen
         return isNotStolen
@@ -402,7 +446,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     --excludes stolen items
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checking_bags))
-    
+
     local tempDataTable = {}
     -- Localize globals used in the loop for performance
     local zo_strformat = zo_strformat
@@ -429,19 +473,19 @@ function BETTERUI.Banking.Class:RefreshList()
         if customCategory and not matched then
             itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
             itemData.bestItemCategoryName = AC_UNGROUPED_NAME
-            itemData.sortPriorityName = string.format("%03d%s", 999 , catName) 
+            itemData.sortPriorityName = string.format("%03d%s", 999 , catName)
         else
             if customCategory then
                 itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
                 itemData.bestItemCategoryName = catName
-                itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority , catName) 
+                itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority , catName)
             else
                 itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
                 itemData.bestItemCategoryName = itemData.bestItemTypeName
                 itemData.sortPriorityName = itemData.bestItemCategoryName
             end
         end
-        
+
         itemData.isEquippedInCurrentCategory = slotIndex and true or nil
 
         -- Cache expensive/commonly used item link information so downstream
@@ -471,7 +515,7 @@ function BETTERUI.Banking.Class:RefreshList()
         local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
         local matches = {}
 
-        
+
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             -- If an active non-all category is selected, skip items that do not belong to it
@@ -485,7 +529,7 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end
 
-        
+
         filteredDataTable = matches
     end
 
@@ -502,9 +546,9 @@ function BETTERUI.Banking.Class:RefreshList()
         data:InitializeInventoryVisualData(itemData)
 
         local remaining, duration
-  
+
     remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
-      
+
         if remaining > 0 and duration > 0 then
             data:SetCooldown(remaining, duration)
         end
@@ -516,7 +560,7 @@ function BETTERUI.Banking.Class:RefreshList()
         data.isJunk = itemData.isJunk
 
     if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
-         
+
             if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
                 currentBestCategoryName = data.bestGamepadItemCategoryName
                 data:SetHeader(currentBestCategoryName)
@@ -544,26 +588,29 @@ function BETTERUI.Banking.Class:RefreshList()
     self:RefreshFooter()
 end
 
---- Updates the tooltip for currency rows.
----
---- Purpose: Shows currency balances in the tooltip when a currency row is selected.
+--[[
+Function: BETTERUI.Banking.Class:RefreshCurrencyTooltip
+Description: Updates the tooltip for currency rows.
+Rationale: Shows currency balances in the tooltip when a currency row is selected.
+]]
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
-	if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() and self:GetList().selectedData.label ~= nil then 
+	if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() and self:GetList().selectedData.label ~= nil then
         GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
 	end
 end
 
---- Callback when list selection changes.
----
---- Purpose: Updates keybinds and tooltips based on the selected item.
---- Mechanics:
---- - If Currency row: switches to Currency Bindings (Deposit/Withdraw Money).
---- - If Item row: switches to Item Bindings and shows Item Tooltip.
---- - If Empty: shows basic bind set.
----
---- @param self table Class instance.
---- @param list table The list control.
---- @param selectedData table The data of the selected row.
+--[[
+Function: OnItemSelectedChange
+Description: Callback when list selection changes.
+Rationale: Updates keybinds and tooltips based on the selected item.
+Mechanism:
+  - If **Currency Row**: switches to Currency Bindings (Deposit/Withdraw Money).
+  - If **Item Row**: switches to Item Bindings and limits tooltip to item.
+  - If **Empty**: defaults to valid state.
+param: self (table) - Class instance.
+param: list (table) - The list control.
+param: selectedData (table) - The data of the selected row.
+]]
 local function OnItemSelectedChange(self, list, selectedData)
     -- Check if we are on the "Deposit/withdraw" gold/telvar row
 
@@ -622,12 +669,20 @@ local function SetupItemList(list)
     list:AddDataTemplateWithHeader("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 end
 
---- Initializes the banking module components.
----
---- Purpose: Sets up the window, list, keybinds, and event listeners.
----
---- @param tlw_name string Top level window name.
---- @param scene_name string Scene name.
+--[[
+Function: BETTERUI.Banking.Class:Initialize
+Description: Initializes the banking module components.
+Rationale: Sets up the window, list, keybinds, and event listeners.
+Mechanism:
+  - Initializes base GenericInterface window.
+  - Registers keybind descriptors (Core, Currency, Actions).
+  - Sets up the Actions Dialog for item operations.
+  - Hooks into EVENT_INVENTORY_SINGLE_SLOT_UPDATE for dynamic list updates.
+  - Configures the text search header and its focus logic.
+References: Called by BETTERUI.Banking.Init().
+param: tlw_name (string) - Top level window name.
+param: scene_name (string) - Scene name.
+]]
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 	BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
 
@@ -778,6 +833,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.selectedDataCallback = OnItemSelectedChange
 
     -- this is essentially a way to encapsulate a function which allows us to override "selectedDataCallback" but still keep some logic code
+    -- Callback when a list item is selected via d-pad/stick.
+    -- Purpose: Handles updating the footer keybinds and tooltips.
+    -- Mechanics:
+    -- 1. Checks if Search Focus is active (if so, maintains search keybinds).
+    -- 2. Fires the `selectedDataCallback` to notify listeners (e.g., footer updates).
+    -- 3. Clears "New" status on the item if applicable.
     local function SelectionChangedCallback(list, selectedData)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
             -- Process the keybind update for currency rows BEFORE exiting search focus
@@ -807,6 +868,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- these local functions are essentially just router functions to other functions within this class. it is done in this way to allow for
     -- us to access this classes' members (through "self")
 
+    -- Event handler for Single Slot Updates (Item added/removed/changed).
+    -- Purpose: Refreshes the list when inventory changes occur.
+    -- Mechanics:
+    -- 1. Checks `_suppressListUpdates` to avoid spamming refreshes during bulk moves.
+    -- 2. Calls `UpdateSingleItem` (which triggers a refresh).
+    -- 3. Re-computes visible categories (e.g., if the last Weapon was removed, hide Weapon tab).
+    -- 4. Handles Category auto-switching if the current category becomes empty.
     local function UpdateSingle_Handler(eventId, bagId, slotId, isNewItem, itemSound)
         -- If a coalesced refresh is in progress, skip intermediate updates to avoid UI stutter
         if self._suppressListUpdates then
@@ -842,8 +910,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self._suppressHeaderCallback = true
         self:RebuildHeaderCategories()
         self._suppressHeaderCallback = false
-    self:RefreshList()
-    self:RefreshActiveKeybinds()
+        self:RefreshList()
+        self:RefreshActiveKeybinds()
     end
 
     local function UpdateCurrency_Handler()
@@ -858,6 +926,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self:RefreshCurrencyTooltip()
     end
 
+    -- Event handler when the Banking scene is shown.
+    -- Purpose: Initializes the UI state for banking.
+    -- Mechanics:
+    -- 1. Updates current bank type (Bank vs Sub Bank).
+    -- 2. Defaults to "All Items" category.
+    -- 3. Activates the list and adds keybinds.
+    -- 4. Registers for inventory update events.
     local function OnEffectivelyShown()
         self:CurrentUsedBank()
         -- Rebuild categories on show in case bank type changed
@@ -889,6 +964,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         -- OnEffectivelyShown: initialize list and keybinds; no debug logging.
     end
 
+    -- Event handler when the Banking scene is hidden.
+    -- Purpose: Cleans up UI state and unregisters events.
+    -- Mechanics:
+    -- 1. Deactivates Lists and Selectors.
+    -- 2. Removes Keybinds and Tooltips.
+    -- 3. Unregisters inventory update events.
+    -- 4. Exits Search Mode (restoring normal input).
+    -- 5. Performs aggressive cleanup of Directional Input to prevent focus lock issues.
     local function OnEffectivelyHidden()
         self:LastUsedBank()
         self:CancelWithdrawDeposit(self.list)
@@ -911,7 +994,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-        
+
         -- Ensure we exit any active search mode so keybinds/focus are restored
     -- Attempt to leave search mode to restore keybinds/focus
         pcall(function()
@@ -1089,9 +1172,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
 
---- Updates the context menu actions for the currently selected item.
----
---- Purpose: Refreshes the available actions (e.g., Link to Chat, Split Stack) based on selection.
+--[[
+Function: BETTERUI.Banking.Class:RefreshItemActions
+Description: Updates the context menu actions for the currently selected item.
+Rationale: Refreshes the available actions (e.g., Link to Chat, Split Stack) based on selection.
+]]
 function BETTERUI.Banking.Class:RefreshItemActions()
     local targetData = self:GetList().selectedData
     --self:SetSelectedInventoryData(targetData) instead:
@@ -1101,13 +1186,17 @@ end
 
  
 
---- Initializes the "Y Button" Actions Dialog.
----
---- Purpose: Sets up the contextual menu for banking items.
---- Mechanics:
---- - Filters out "Destroy" action when depositing.
---- - Populates the dialog with valid actions.
---- - Handles the "Confirm" event to execute the selected action.
+--[[
+Function: BETTERUI.Banking.Class:InitializeActionsDialog
+Description: Initializes the "Y Button" Actions Dialog.
+Rationale: Sets up the contextual menu for banking items (e.g. Split Stack, Link to Chat).
+Mechanism:
+  1. Registers callbacks for dialog setup, finish, and confirmation.
+  2. Filters out "Destroy" actions when in Deposit mode to prevent accidents.
+  3. Populates the parametric list with valid actions from BETTERUI.Inventory.SlotActions.
+  4. Handles the "Confirm" event to execute the selected action (or custom Chat Link logic).
+References: Called during Initialize.
+]]
 function BETTERUI.Banking.Class:InitializeActionsDialog()
 	local function ActionDialogSetup(dialog)
 		if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
@@ -1193,16 +1282,22 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 end
 
 
---- Helper to find the first empty slot in a specific bag.
---- @param bagId number The bag ID to search.
---- @return number|nil The index of the first empty slot, or nil if full.
+--[[
+Function: FindEmptySlotInBag
+Description: Helper to find the first empty slot in a specific bag.
+param: bagId (number) - The bag ID to search.
+return: number|nil - The index of the first empty slot, or nil if full.
+]]
 local function FindEmptySlotInBag(bagId)
     return FindFirstEmptySlotInBag(bagId)
 end
 
---- Helper to find the first empty slot in the currently used bank.
---- Purpose: Checks main bank, then subscriber bank, or house bank if active.
---- @return number, number The bag ID and slot index of an empty slot.
+--[[
+Function: FindEmptySlotInBank
+Description: Helper to find the first empty slot in the currently used bank.
+Rationale: Checks main bank, then subscriber bank, or house bank if active.
+return: number, number - The bag ID and slot index of an empty slot.
+]]
 local function FindEmptySlotInBank()
     if(IsHouseBankBag(GetBankingBag()) == false) then
         local emptySlotIndexBank = FindEmptySlotInBag(BAG_BANK)
@@ -1224,8 +1319,11 @@ local function FindEmptySlotInBank()
     end
 end
 
---- Activates the quantity spinner.
---- Purpose: Shows the spinner for partial stack moves (withdraw/deposit X amount).
+--[[
+Function: BETTERUI.Banking.Class:ActivateSpinner
+Description: Activates the quantity spinner.
+Rationale: Shows the spinner for partial stack moves (withdraw/deposit X amount).
+]]
 function BETTERUI.Banking.Class:ActivateSpinner()
     self.spinner:SetHidden(false)
     self.spinner:Activate()
@@ -1239,6 +1337,11 @@ function BETTERUI.Banking.Class:ActivateSpinner()
     end
 end
 
+--[[
+Function: BETTERUI.Banking.Class:DeactivateSpinner
+Description: Deactivates the quantity spinner and restores list focus.
+Rationale: Called when spinner is canceled or confirmed.
+]]
 function BETTERUI.Banking.Class:DeactivateSpinner()
     self.spinner:SetValue(1)
     self.spinner:SetHidden(true)
@@ -1256,18 +1359,21 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
 end
 
 
---- Moves an item (Withdraw or Deposit) between bags.
----
---- Purpose: Core logic for transferring items.
---- Mechanics:
---- 1. Determines source and destination bags (Backpack vs Bank).
---- 2. Checks for existing stacks in destination to merge with.
---- 3. Finds empty slot if no merge is possible.
---- 4. Calls `RequestMoveItem` via `CallSecureProtected`.
---- 5. Handles "Spinner" UI for partial stack moves.
----
---- @param list table The list control containing the selected item.
---- @param quantity number|nil The amount to move. if nil, moves entire stack (or triggers spinner if > 1).
+--[[
+Function: BETTERUI.Banking.Class:MoveItem
+Description: Moves an item (Withdraw or Deposit) between bags.
+Rationale: Core logic for transferring items.
+Mechanism:
+  1. **Direction**: Determines source (Backpack/Bank) and destination.
+  2. **Spinner**: If `quantity` is nil and stack > 1, launches Spinner to ask user for amount.
+  3. **Smart Stacking**: Checks for existing stackable slots in destination to merge first.
+  4. **Empty Slot**: Finds empty slot if no merge is possible.
+  5. **Execution**: Calls ESO's protected `RequestMoveItem` API.
+  6. **Refresh**: Triggers a coalesced refresh to update the UI after the move.
+References: Called by "A" Keybind (Withdraw/Deposit) or Spinner confirmation.
+param: list (table) - The list control containing the selected item.
+param: quantity (number|nil) - The amount to move. If nil, moves entire stack (or triggers spinner).
+]]
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil
     if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
@@ -1288,7 +1394,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 	if quantity ~= nil then
 		--in spinner
 		inSpinner = true
-	else 
+	else
 		--not in spinner
 		if(stackCount > 1) then
 			-- display the spinner
@@ -1300,7 +1406,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 		quantity = 1
 		end
 	end
-	 
+
 	if self.currentMode == LIST_WITHDRAW then
 		--we are withdrawing item from bank/subscriber bank bag
 		toBag = BAG_BACKPACK
@@ -1357,7 +1463,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
        if inSpinner then
            self:UpdateSpinnerConfirmation(false, self.list)
        end
-    -- Accomodates full banks with stackable item slots available   
+    -- Accomodates full banks with stackable item slots available
     else
         if toBag ~= nil then
             local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or SI_INVENTORY_ERROR_BANK_FULL
@@ -1376,7 +1482,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                         if toBagStackCount < toBagStackCountMax then
                             toBagIndex = i
                         end
-                    end                    
+                    end
                 end
             end
             if toBagIndex then
@@ -1386,7 +1492,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 if inSpinner then
                     self:UpdateSpinnerConfirmation(false, self.list)
                 end
-            else 
+            else
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
                 if inSpinner then
                     self:UpdateSpinnerConfirmation(false, self.list)
@@ -1412,7 +1518,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                                 toBagIndex = i
                                 toBag = bank
                             end
-                        end                    
+                        end
                     end
                 end
             end
@@ -1422,7 +1528,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 if inSpinner then
                     self:UpdateSpinnerConfirmation(false, self.list)
                 end
-            else 
+            else
                 local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or SI_INVENTORY_ERROR_BANK_FULL
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
                 if inSpinner then
@@ -1433,8 +1539,11 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 end
 
---- Cancels the current withdraw/deposit operation.
---- Purpose: Hides the spinner or closes the banking scene.
+--[[
+Function: BETTERUI.Banking.Class:CancelWithdrawDeposit
+Description: Cancels the current withdraw/deposit operation.
+Rationale: Hides the spinner or closes the banking scene.
+]]
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if self.confirmationMode then
@@ -1444,8 +1553,17 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     end
 end
 
---- Displays the currency selector for depositing/withdrawing funds.
---- @param currencyType number The type of currency (Gold, Tel Var, etc.).
+--[[
+Function: BETTERUI.Banking.Class:DisplaySelector
+Description: Displays the currency selector for depositing/withdrawing funds.
+Rationale: Shows the currency slider overlay for Gold/Tel Var/Writ Vouchers.
+Mechanism:
+  1. Determines max transferrable amount (Carried vs Banked).
+  2. Sets up the ZO_CurrencySelector_Gamepad with clamp values.
+  3. Switches keybinds to the Selector set (Confirm/Cancel).
+References: Called when selecting a Currency Header Row.
+param: currencyType (number) - The type of currency (Gold, Tel Var, etc.).
+]]
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
 
@@ -1483,7 +1601,10 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     end
 end
 
---- Hides the currency selector and restores the item list.
+--[[
+Function: BETTERUI.Banking.Class:HideSelector
+Description: Hides the currency selector and restores the item list.
+]]
 function BETTERUI.Banking.Class:HideSelector()
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
@@ -1494,9 +1615,12 @@ function BETTERUI.Banking.Class:HideSelector()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
 end
 
---- Creates trigger keybinds for fast scrolling the list.
---- @param list table The list control.
---- @return table, table Left and Right trigger keybind descriptors.
+--[[
+Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
+Description: Creates trigger keybinds for fast scrolling the list.
+param: list (table) - The list control.
+return: table, table - Left and Right trigger keybind descriptors.
+]]
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
@@ -1521,7 +1645,10 @@ function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     return leftTrigger, rightTrigger
 end
 
---- Updates the active item actions based on current selection.
+--[[
+Function: BETTERUI.Banking.Class:UpdateActions
+Description: Updates the active item actions based on current selection.
+]]
 function BETTERUI.Banking.Class:UpdateActions()
     local targetData = self:GetList() and self:GetList().selectedData or nil
     if not targetData then
@@ -1539,7 +1666,10 @@ function BETTERUI.Banking.Class:UpdateActions()
     end
 end
 
---- Registers the banking keybind groups.
+--[[
+Function: BETTERUI.Banking.Class:AddKeybinds
+Description: Registers the banking keybind groups.
+]]
 function BETTERUI.Banking.Class:AddKeybinds()
 	KEYBIND_STRIP:RemoveAllKeyButtonGroups()
 	KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
@@ -1548,13 +1678,19 @@ function BETTERUI.Banking.Class:AddKeybinds()
     self:EnsureHeaderKeybindsActive()
 end
 
---- Unregisters the banking keybind groups.
+--[[
+Function: BETTERUI.Banking.Class:RemoveKeybinds
+Description: Unregisters the banking keybind groups.
+]]
 function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end
 
---- Shows the actions dialog for the selected item.
+--[[
+Function: BETTERUI.Banking.Class:ShowActions
+Description: Shows the actions dialog for the selected item.
+]]
 function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
 
@@ -1572,8 +1708,17 @@ function BETTERUI.Banking.Class:ShowActions()
     ZO_Dialogs_ShowPlatformDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, dialogData)
 end
 
---- Initializes the keybind descriptors for the banking module.
---- Purpose: Defines all keybinds for the banking interface (withdraw, deposit, toggle list, upgrading bank space, etc.).
+--[[
+Function: BETTERUI.Banking.Class:InitializeKeybind
+Description: Initializes the keybind descriptors for the banking module.
+Rationale: Defines all keybinds for the banking interface.
+Mechanism:
+  - `coreKeybinds`: Navigation (Triggers), List Toggle (Y), Search Clear (Quaternary).
+  - `withdrawDepositKeybinds`: Primary Action (A) for moving items.
+  - `currencyKeybinds`: Primary Action (A) for opening currency selector.
+  - `spinnerKeybinds`: Confirm/Cancel for partial stack moves.
+References: Called during Initialize.
+]]
 function BETTERUI.Banking.Class:InitializeKeybind()
 	if not BETTERUI.Settings.Modules["Banking"].m_enabled then
 		return
@@ -1794,9 +1939,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                                                     end)
 end
 
---- Saves the current scroll position of the list.
---- Purpose: Persists the selected index so it can be restored after a refresh or mode switch.
---- Mechanics: Saves per-mode (Withdraw/Deposit) and per-category.
+--[[
+Function: BETTERUI.Banking.Class:SaveListPosition
+Description: Saves the current scroll position of the list.
+Rationale: Persists the selected index so it can be restored after a refresh or mode switch.
+Mechanism:
+  - Saves per-mode (Withdraw/Deposit) to `lastPositions`.
+  - Saves per-category to `lastPositionsByCategory` (shared across modes).
+References: Called before RefreshList, ToggleList, or Mode Switches.
+]]
 function BETTERUI.Banking.Class:SaveListPosition()
     -- Able to return to the current position again!
     self.lastPositions[self.currentMode] = self.list.selectedIndex
@@ -1809,9 +1960,17 @@ function BETTERUI.Banking.Class:SaveListPosition()
     end
 end
 
---- Restores the saved list position.
---- Purpose: Scrolls the list back to the previously saved index.
---- Mechanics: Prioritizes per-category position if available, otherwise per-mode.
+--[[
+Function: BETTERUI.Banking.Class:ReturnToSaved
+Description: Restores the saved list position.
+Rationale: Scrolls the list back to the previously saved index.
+Mechanism:
+  1. Checks `_justToggledMode` flag to reset to top if needed.
+  2. Prioritizes per-category saved index (if available) over per-mode index.
+  3. Clamps index to valid range (1 to item count).
+  4. Handles mode switching if saved position implies a different context.
+References: Called at the end of RefreshList.
+]]
 function BETTERUI.Banking.Class:ReturnToSaved()
     self:CurrentUsedBank()
     -- If there are no entries, avoid selecting index 1 (which would error)
@@ -1871,26 +2030,43 @@ function BETTERUI.Banking.Class:ReturnToSaved()
     end
 end
 
---- Handles single slot updates (item add/remove/change).
---- Purpose: Triggers a list refresh when a specific slot changes.
---- @param bagId number The bag ID.
---- @param slotIndex number The slot index.
+--[[
+Function: BETTERUI.Banking.Class:UpdateSingleItem
+Description: Handles single slot updates (item add/remove/change).
+Rationale: Triggers a list refresh when a specific slot changes.
+param: bagId (number) - The bag ID.
+param: slotIndex (number) - The slot index.
+]]
 function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
     -- Rebuild the list from the shared inventory cache rather than mutating
     -- the parametric list internals while it's animating/moving.
     self:RefreshList()
 end
 
---- Handles item stack removal.
---- @param itemIndex number The index of the item being removed.
+--[[
+Function: BETTERUI.Banking.Class:RemoveItemStack
+Description: Handles item stack removal.
+param: itemIndex (number) - The index of the item being removed.
+]]
 function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
         -- Avoid directly mutating the parametric list while it may be moving; just refresh.
         self:RefreshList()
 end
 
---- Toggles between Withdraw and Deposit modes.
---- Purpose: Switches the banking context and refreshes the UI.
---- @param toWithdraw boolean True if switching to Withdraw mode, False for Deposit.
+--[[
+Function: BETTERUI.Banking.Class:ToggleList
+Description: Toggles between Withdraw and Deposit modes.
+Rationale: Switches the banking context and refreshes the UI.
+Mechanism:
+  1. Saves current list position.
+  2. Captures current category key to attempt restoration in new mode.
+  3. Updates `currentMode` (LIST_WITHDRAW <-> LIST_DEPOSIT).
+  4. Recomputes visible categories for the new mode.
+  5. Updates Header Title and Footer Colors/Rotation.
+  6. Refreshes Keybinds.
+References: Called by "Y" Keybind (Secondary).
+param: toWithdraw (boolean) - True if switching to Withdraw mode, False for Deposit.
+]]
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self:SaveListPosition()
 
@@ -1950,8 +2126,11 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
 	self:RefreshList()
 end
 
---- Cycles the selected category via shoulder buttons (Left/Right).
---- @param delta number Direction (+1 or -1).
+--[[
+Function: BETTERUI.Banking.Class:CycleCategory
+Description: Cycles the selected category via shoulder buttons (Left/Right).
+param: delta (number) - Direction (+1 or -1).
+]]
 function BETTERUI.Banking.Class:CycleCategory(delta)
     if not (self.bankCategories and #self.bankCategories > 1) then return end
     local count = #self.bankCategories
@@ -1968,7 +2147,10 @@ function BETTERUI.Banking.Class:CycleCategory(delta)
     end
 end
 
---- Updates the header title text to match the current category.
+--[[
+Function: BETTERUI.Banking.Class:UpdateHeaderTitle
+Description: Updates the header title text to match the current category.
+]]
 function BETTERUI.Banking.Class:UpdateHeaderTitle()
     local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if cat and cat.name then
@@ -1983,7 +2165,10 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
     end
 end
 
---- Clears the text search input and resets the query.
+--[[
+Function: BETTERUI.Banking.Class:ClearTextSearch
+Description: Clears the text search input and resets the query.
+]]
 function BETTERUI.Banking.Class:ClearTextSearch()
     self.searchQuery = ""
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
@@ -1993,8 +2178,11 @@ function BETTERUI.Banking.Class:ClearTextSearch()
     end
 end
 
---- Checks if the header (or search field) is currently focused.
---- @return boolean True if header or search is active.
+--[[
+Function: BETTERUI.Banking.Class:IsHeaderActive
+Description: Checks if the header (or search field) is currently focused.
+return: boolean - True if header or search is active.
+]]
 function BETTERUI.Banking.Class:IsHeaderActive()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
         local ok, active = pcall(function() return self.textSearchHeaderFocus:IsActive() end)
@@ -2005,7 +2193,10 @@ function BETTERUI.Banking.Class:IsHeaderActive()
     return self._searchModeActive == true
 end
 
---- Requests focus for the header/search control.
+--[[
+Function: BETTERUI.Banking.Class:RequestEnterHeader
+Description: Requests focus for the header/search control.
+]]
 function BETTERUI.Banking.Class:RequestEnterHeader()
     if self.OnEnterHeader then
         self:OnEnterHeader()
@@ -2014,7 +2205,10 @@ function BETTERUI.Banking.Class:RequestEnterHeader()
     end
 end
 
---- Manually triggers the selection callback to update keybinds.
+--[[
+Function: BETTERUI.Banking.Class:RefreshActiveKeybinds
+Description: Manually triggers the selection callback to update keybinds.
+]]
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end
     local selectedControl = nil
@@ -2029,7 +2223,10 @@ function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     self.selectedDataCallback(self, selectedControl, selectedData)
 end
 
---- Enters text search mode, showing the search field and updating keybinds.
+--[[
+Function: BETTERUI.Banking.Class:EnterSearchMode
+Description: Enters text search mode, showing the search field and updating keybinds.
+]]
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -2059,7 +2256,10 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     end
 end
 
---- Exits text search mode, hiding the search field and restoring standard keybinds.
+--[[
+Function: BETTERUI.Banking.Class:LeaveSearchMode
+Description: Exits text search mode, hiding the search field and restoring standard keybinds.
+]]
 function BETTERUI.Banking.Class:LeaveSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
@@ -2101,8 +2301,11 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
 end
 
---- Positions the search control beneath the header title.
---- Purpose: Ensures the search bar is visible and correctly aligned with the list.
+--[[
+Function: BETTERUI.Banking.Class:PositionSearchControl
+Description: Positions the search control beneath the header title.
+Rationale: Ensures the search bar is visible and correctly aligned with the list.
+]]
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
     -- Clear existing anchors then attach below the visible header area
@@ -2130,13 +2333,19 @@ function BETTERUI.Banking.Class:PositionSearchControl()
     self.textSearchHeaderControl:SetHidden(false)
 end
 
---- Callback when search focus is lost.
+--[[
+Function: BETTERUI.Banking.Class:ExitSearchFocus
+Description: Callback when search focus is lost.
+]]
 function BETTERUI.Banking.Class:ExitSearchFocus()
     self:LeaveSearchMode()
 end
 
---- Callback when the header is entered (navigating up from list).
---- Purpose: Auto-focuses the search field if appropriate.
+--[[
+Function: BETTERUI.Banking.Class:OnEnterHeader
+Description: Callback when the header is entered (navigating up from list).
+Rationale: Auto-focuses the search field if appropriate.
+]]
 function BETTERUI.Banking.Class:OnEnterHeader()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
@@ -2179,7 +2388,10 @@ function BETTERUI.Banking.Class:OnEnterHeader()
     end
 end
 
---- Activates the category tab bar keybinds.
+--[[
+Function: BETTERUI.Banking.Class:EnsureHeaderKeybindsActive
+Description: Activates the category tab bar keybinds.
+]]
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if tabBar and tabBar.keybindStripDescriptor then
@@ -2187,14 +2399,19 @@ function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     end
 end
 
---- Rebuilds the banking category header.
----
---- Purpose: Refresh the tab bar with icons for the current bank mode.
---- Mechanics:
---- - Calculates visible categories.
---- - Updates the carousel data.
---- - Populates the generic header list.
---- - Handles selection changes and suppression logic.
+--[[
+Function: BETTERUI.Banking.Class:RebuildHeaderCategories
+Description: Rebuilds the banking category header.
+Rationale: Refresh the tab bar with icons for the current bank mode.
+Mechanism:
+  1. Configures the generic header data (Title, Carousel Config).
+  2. Defines the `onSelectedChanged` callback to handle tab navigation with coalescence.
+  3. Clears and Repopulates the Generic Header list with `bankCategories`.
+  4. Selects the current category (handling animation suppression if needed).
+  5. Updates Keybinds.
+  6. Links the Text Search control to the Header Focus chain.
+References: Called on Initialize, ToggleList, and Slot Updates.
+]]
 function BETTERUI.Banking.Class:RebuildHeaderCategories()
     if not (self.header and self.bankCategories) then return end
     -- Prepare header data and entries
@@ -2305,7 +2522,17 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
 end
 
---- Global initialization for the Banking module using BetterUI.Window.
+--[[
+Function: BETTERUI.Banking.Init
+Description: Global initialization for the Banking module using BetterUI.Window.
+Rationale: Creates the singleton Banking Window instance.
+Mechanism:
+  1. Instantiates `BETTERUI.Banking.Class`.
+  2. Sets the default title.
+  3. Configures List Columns (Name, Trait, etc.).
+  4. Registers the scene with SCENE_MANAGER.
+References: Called by BETTERUI.Banking.Setup().
+]]
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
     BETTERUI.Banking.Window:SetTitle("|c0066FFAdvanced Banking|r")

@@ -1,10 +1,9 @@
 <GuiXml>
     <!--
-        BetterUI Generic Footer Template
-        Description: Defines the virtual controls for the bottom bar (Footer).
-        Includes labels for Bag/Bank capacity and all supported currencies.
-        
-        Note: Currently primarily used by the Inventory/Banking modules.
+    File: Modules/CIM/Templates/GenericFooter.xml
+    Purpose: Defines the virtual controls for the bottom bar (Footer).
+             Includes labels for Bag/Bank capacity and all supported currencies.
+             Note: Currently primarily used by the Inventory/Banking modules.
     -->
     <Controls>
 

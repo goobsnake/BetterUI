@@ -94,6 +94,11 @@ BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 -------------------------------------------------------------------------------------------------
 
 --- Wraps a value around min/max bounds for circular navigation.
+---
+--- Purpose: Utility for carousel-style index wrapping.
+--- Mechanics: If value < 1, returns max. If value > max, returns 1.
+--- References: Used by Tab Next/Prev handlers.
+---
 --- @param newValue number The value to wrap
 --- @param maxValue number The maximum value (1 is implicit minimum)
 --- @return number The wrapped value
@@ -108,7 +113,10 @@ local function WrapValue(newValue, maxValue)
 end
 
 --- Checks if the player has unlocked weapon swap (requires level 15).
---- Used to determine if backup bar equip options should be shown.
+---
+--- Purpose: Determines if "Back" bar equip options should be shown.
+--- Mechanics: compares player level against GetWeaponSwapUnlockedLevel().
+---
 --- @return boolean True if player can use backup bar
 local function CanUseBackupBar()
 	return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
@@ -117,6 +125,19 @@ end
 -- Tab bar navigation callbacks - called on successful LB/RB navigation
 -- These are more stable than onSelectedChanged because they only fire on actual user navigation,
 -- not during list rebuilds or dialog operations
+--- Callback for Right Bumper (Next) navigation.
+---
+--- Purpose: Advances the category tab selection.
+--- Mechanics:
+--- 1. Checks for valid category list data.
+--- 2. Saves current list position.
+--- 3. Increments target index (wrapping via WrapValue).
+--- 4. Updates header text immediately.
+--- 5. Restores saved position for the new category.
+--- References: Called by ParametricScrollListTemplates.lua (BETTERUI_TabBarScrollList).
+---
+--- @param parent table The inventory object.
+--- @param successful boolean Whether the navigation action was successful.
 function BETTERUI_TabBar_OnTabNext(parent, successful)
 	if successful then
 		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -136,6 +157,19 @@ function BETTERUI_TabBar_OnTabNext(parent, successful)
 	end
 end
 
+--- Callback for Left Bumper (Previous) navigation.
+---
+--- Purpose: Reverses the category tab selection.
+--- Mechanics:
+--- 1. Checks for valid category list data.
+--- 2. Saves current list position.
+--- 3. Decrements target index (wrapping via WrapValue).
+--- 4. Updates header text immediately.
+--- 5. Restores saved position for the new category.
+--- References: Called by ParametricScrollListTemplates.lua (BETTERUI_TabBarScrollList).
+---
+--- @param parent table The inventory object.
+--- @param successful boolean Whether the navigation action was successful.
 function BETTERUI_TabBar_OnTabPrev(parent, successful)
 	if successful then
 		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -385,7 +419,17 @@ local function SafeGetTargetData(list)
 end
 
 --- Restores the list position and selection from saved state.
---- Handles both inventory and craft bag lists, ensuring the user returns to the exact spot they left.
+---
+--- Purpose: Handles both inventory and craft bag lists, ensuring the user returns to the exact spot they left.
+--- Mechanics:
+--- 1. Identifies if current category is Craft Bag vs BackPack.
+--- 2. Switches valid list using SwitchActiveList logic.
+--- 3. Retrieves saved index and optional UniqueID from storage.
+--- 4. Restores position, giving priority to UniqueID match if the list has changed.
+--- 5. Clamps index to valid bounds.
+--- 6. Refreshes Tooltip.
+--- References: Called by Tab Next/Prev and RefreshList.
+---
 function BETTERUI.Inventory.Class:ToSavedPosition()
 	-- Determine if we're on inventory or craft bag based on current category
 	local catData = self.categoryList and self.categoryList.selectedData
@@ -467,7 +511,14 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 end
 
 --- Saves the current list position and selection.
---- Stores the index and unique ID of the selected item to allow precise restoration later.
+---
+--- Purpose: Stores the index and unique ID of the selected item to allow precise restoration later.
+--- Mechanics:
+--- 1. Determines context (CraftBag vs Inventory).
+--- 2. Saves Index to `saved*PositionsByKey`.
+--- 3. Saves UniqueID to `saved*SelectedItemUniqueByKey` (for list content changes).
+--- References: Called before list refreshes or mode info changes.
+---
 function BETTERUI.Inventory.Class:SaveListPosition()
 	-- Guard against nil state
 	if not self.categoryList or not self.categoryList.selectedData then return end
@@ -573,6 +624,11 @@ local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilter
 end
 
 --- Checks if the item list is empty for a given filter.
+---
+--- Purpose: Used to determine if a category tab should be shown.
+--- Mechanics: Wraps SHARED_INVENTORY:IsFilteredSlotDataEmpty, excluding Junk items to prevent "ghost" categories.
+--- References: Called during NewCategoryItem validation.
+---
 --- @param filteredEquipSlot number|nil The equip slot to filter by (optional).
 --- @param nonEquipableFilterType number|nil The item filter type to check (optional).
 --- @return boolean True if the list would be empty, false otherwise.
@@ -608,14 +664,17 @@ local function HasAnyJunkInBackpack()
 	return false
 end
 
---- Attempt to equip an item, handling different equip types and bind-on-equip protection
---- @param inventorySlot table: The inventory slot data containing item information
---- @param isCallingFromActionDialog boolean: Whether this is called from an action dialog
---- Attempt to equip an item in gamepad inventory, handling bind-on-equip, bar/hand choices
---- inventorySlot: parametric entry for the selected item
---- isCallingFromActionDialog: true when invoked from the Y actions dialog (defers dialogs slightly)
 --- Attempts to equip the selected item.
---- Handles various equip types, bind-on-equip confirmation, and slot selection (main/off hand, backup bar).
+---
+--- Purpose: Handles item equipping logic with safety checks.
+--- Mechanics:
+--- 1. Checks BOE (Bind on Equip) status and Settings.Prompts dialog if needed.
+--- 2. Determines target slot (Main/Off hand, Backup Bar) based on item type.
+--- 3. Call `RequestMoveItem` via `CallSecureProtected`.
+--- 4. Handles rings (Slot 1 vs 2).
+--- 5. Handles Costumes vs Gear.
+--- References: Called from "A" keybind (Equip).
+---
 --- @param inventorySlot table The data of the item to equip.
 --- @param isCallingFromActionDialog boolean True if called from the actions dialog (delays dialogs slightly).
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
@@ -771,6 +830,14 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 end
 
 --- Adds a new category entry to the category list if it contains items.
+---
+--- Purpose: Dynamically populates the category bar.
+--- Mechanics:
+--- 1. Checks if items exist for the filter (via IsItemListEmpty).
+--- 2. Checks for "New" items to tint the icon.
+--- 3. Adds entry to both CategoryList (hidden logic) and Header (visual tab bar).
+--- References: Called by RefreshCategoryList.
+---
 --- @param filterType number|nil The item filter type for the category.
 --- @param iconFile string The path to the icon texture.
 --- @param FilterFunct function|nil Optional custom filter function.
@@ -800,11 +867,17 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
 	end
 end
 
---- Rebuild category tabs based on current list (backpack vs craft bag) and item presence
---- Ensures All Items is always present; includes Stolen/Junk when items exist
 --- Rebuilds the category list based on the current state (Inventory vs Craft Bag).
---- Dynamically adds categories like "All", "Weapons", "Armor", and relevant Craft Bag professions.
---- Also handles "Equipped", "Stolen", and "Junk" categories if they contain items.
+---
+--- Purpose: Dynamically adds categories like "All", "Weapons", "Armor", enc.
+--- Mechanics:
+--- 1. Detects active list mode (CraftBag vs Inventory).
+--- 2. For CraftBag: Adds fixed categories (Alchemy, Blacksmithing, etc.). Disables if locked.
+--- 3. For Inventory: Adds categories only if they contain items (via NewCategoryItem).
+--- 4. Handles "Equipped", "Stolen", "Junk", "Quest" visibility dynamically.
+--- 5. Restores previous selection if possible.
+--- References: Called by RefreshItemList.
+---
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 	local function IsStolenAndNotJunk()
 		if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
@@ -1188,7 +1261,14 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 end
 
 --- Initializes the gamepad header, including the tab bar and currency display.
---- Configures the tab bar with specific callbacks for category and craft bag switching.
+---
+--- Purpose: Configures the top navigation bar.
+--- Mechanics:
+--- - Defines TabBar entries for "Inventory" and "Craft Bag".
+--- - Sets up standard "Carousel" navigation callbacks.
+--- - Initializes GenericHeader and GenericFooter components.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeHeader()
 	local function UpdateTitleText()
 		return GetString(
@@ -1238,6 +1318,14 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 	BETTERUI.GenericFooter.Initialize(self)
 end
 
+--- Sets up visual data for an inventory row.
+---
+--- Purpose: Maps item data to the UI entry.
+--- Mechanics:
+--- - Copies uniqueId, categoryName, and icon.
+--- - Sets name color based on Quality (except for Quest items).
+--- - Disables font scaling on selection for cleaner list look.
+--- @param itemData table The source item data.
 function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
 	self.uniqueId = itemData.uniqueId --need this on self so that it can be used for a compare by EqualityFunction in ParametricScrollList,
 	self.bestItemCategoryName = itemData.bestItemCategoryName
@@ -1252,6 +1340,12 @@ function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
 	self:SetFontScaleOnSelection(false) --item entries don't grow on selection
 end
 
+--- Refreshes the Craft Bag list content.
+---
+--- Purpose: Populates the list when in Craft Bag mode.
+--- Mechanics: Delegates to `craftBagList:RefreshList` with the current category filter.
+--- References: Called by SwitchActiveList.
+---
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
 	-- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
 	local craftCategoryTarget = SafeGetTargetData(self.categoryList)
@@ -1260,8 +1354,18 @@ function BETTERUI.Inventory.Class:RefreshCraftBagList()
 end
 
 --- Refreshes the item list based on the selected category and filter.
---- Gathers items from the shared inventory, applies filters (including text search),
---- sorts them, and populates the UI list. Handles equipping indicators and Quest item specifics.
+---
+--- Purpose: Core function to populate the backpack view.
+--- Mechanics:
+--- 1. Checks for empty categories.
+--- 2. Generates slot data from SHARED_INVENTORY based on filter (All, Weapons, etc.).
+--- 3. Enhances item data with Custom Categories (e.g., "One-Handed", "Set Gear").
+--- 4. Marks items as Equipped/Junk/Stolen for sorting.
+--- 5. Caches expensive API calls (ItemType, SetInfo) for performance.
+--- 6. Applies Text Search filtering.
+--- 7. Sorts and populates the parametric list.
+--- References: Called on Slot Updates and Category Changes.
+---
 function BETTERUI.Inventory.Class:RefreshItemList()
 	self.itemList:Clear()
 	if self.categoryList:IsEmpty() then
@@ -1448,6 +1552,11 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 	self:RefreshCategoryList()
 end
 
+--- Configure the tooltip for the Craft Bag header.
+---
+--- Purpose: Shows subscription status explainers.
+--- Mechanics: Checks HasCraftBagAccess() and displays relevant title/messaging.
+---
 function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
 	local title
 	local description
@@ -1462,6 +1571,12 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
 	GAMEPAD_TOOLTIPS:LayoutTitleAndMultiSectionDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, title, description)
 end
 
+--- Toggles the tooltip detailed info mode.
+---
+--- Purpose: Switches between standard tooltip and "Comparison" or "Set info" view (if applicable).
+--- Mechanics: Toggles logical flag `switchInfo` and triggers tooltip refresh.
+--- References: Bound to Stick Click (usually).
+---
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
 	if self.actionMode == ITEM_LIST_ACTION_MODE then
@@ -1470,7 +1585,15 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 end
 
 --- Updates the left-side tooltip with details about the selected item.
---- Handles different item types (Quest, Equipment, etc.) and comparisons (if active).
+---
+--- Purpose: Displays item stats, comparisons, or quest info.
+--- Mechanics:
+--- 1. Validates selected data.
+--- 2. Determines item type (Quest vs Regular).
+--- 3. Handles `switchInfo` toggle to show Right Tooltip (Comparisons).
+--- 4. Updates "Equipped" indicator text.
+--- References: Called on selection change.
+---
 --- @param selectedData table The data of the currently selected item.
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 	-- Guard: selectedData may be a category/header entry without bag/slot fields.
@@ -1543,6 +1666,16 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 	end
 end
 
+--- Updates the right-side tooltip for item comparisons.
+---
+--- Purpose: Shows the "Equipped" item to compare against the selected item.
+--- Mechanics:
+--- 1. Determines the equip slot for the selected item type.
+--- 2. Uses `GAMEPAD_TOOLTIPS:LayoutItemStatComparison` to render the comparison.
+--- 3. Sets the "Currently Equipped" header.
+--- References: Called by UpdateItemLeftTooltip.
+---
+--- @param selectedData table The data of the currently selected item.
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 	local selectedItemData = selectedData
 	--
@@ -1581,7 +1714,14 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 end
 
 --- Initializes the main item list (used for backpack items).
---- Sets up the parametric scroll list with callbacks for selection changes.
+---
+--- Purpose: Sets up the visual scroll list for the inventory.
+--- Mechanics:
+--- - Creates a `BETTERUI_VerticalParametricScrollList`.
+--- - Configures selection callbacks to update tooltips and keybinds.
+--- - Sets padding and default sorting.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
 
@@ -1627,7 +1767,14 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 end
 
 --- Initializes the craft bag list.
---- Uses a specialized `BETTERUI.Inventory.CraftList` to handle craft bag specific logic.
+---
+--- Purpose: Sets up the visual scroll list for the craft bag.
+--- Mechanics:
+--- - Uses specialized `BETTERUI.Inventory.CraftList` class.
+--- - Configures selection callbacks to update tooltips and keybinds.
+--- - Sets "No Item" text specifically for craft bag.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
 	local function OnSelectedDataCallback(list, selectedData)
 		if selectedData ~= nil and self.scene:IsShowing() then
@@ -1664,13 +1811,31 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 end
 
 --- Initializes the action slot manager for item interactions.
+---
+--- Purpose: Creates the helper object for "Y" button actions.
+--- Mechanics: Instantiates `BETTERUI.Inventory.SlotActions`.
+---
 function BETTERUI.Inventory.Class:InitializeItemActions()
 	self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
 end
 
 --- Initializes the actions dialog (Y-button menu).
---- Registers callbacks to modify the dialog's content dynamically, injecting custom actions
---- like "Mark as Junk" and handling the "Destroy" action safely.
+---
+--- Purpose: Configures the contextual action menu.
+--- Mechanics:
+--- 1. Registers `BETTERUI_EVENT_ACTION_DIALOG_SETUP/FINISH/CONFIRM` callbacks.
+--- 2. **Setup**:
+---    - Intercepts "Quickslot Assign" mode to show the wheel dialog instead.
+---    - Populates standard actions (Use, Split, Link).
+---    - Injects "Mark as Junk" / "Unmark as Junk" securely.
+---    - Wraps engine "Lock/Unlock" actions to fix dialog release timing.
+--- 3. **Confirm**:
+---    - Handles Quickslot assignment logic.
+---    - Handles "Destroy" logic (with custom "Quick Destroy" option).
+---    - Handles "Link to Chat".
+---    - Fallback to standard `DoSelectedAction`.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	local function ActionDialogSetup(dialog, data)
 		if self.scene:IsShowing() then
@@ -2206,7 +2371,14 @@ end
 BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 
 --- Initializes the custom dialog for visual quickslot assignment.
---- Allows users to select a slot on the wheel (North, NE, etc.) for a specific item.
+---
+--- Purpose: Provides a visual wheel selection for assigning items to quickslots.
+--- Mechanics:
+--- - Defines the "Wheel" slots (N, NE, E, etc.).
+--- - Checks currently assigned slot to pre-select it.
+--- - Adds "Remove Assignment" option if needed.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
 	local SLOT_LABELS = {
 		[1] = "Southeast",
@@ -2350,7 +2522,13 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
 end
 
 --- Displays the quickslot assignment dialog for a given item.
---- First attempts to use the embedded "Y-menu" style, falling back to a standalone dialog if needed.
+---
+--- Purpose: Triggers the quickslot assignment flow.
+--- Mechanics:
+--- 1. Closes any existing Equip dialogs.
+--- 2. **Primary**: Tries to open the "Y-Action" menu in "Quickslot Mode" (via `zo_callLater` hack to work around engine timing).
+--- 3. **Fallback**: If the Action menu fails to show, opens the standalone `BETTERUI_QUICKSLOT_ASSIGN_DIALOG`.
+---
 --- @param bagId number The bag ID of the item.
 --- @param slotIndex number The slot index of the item.
 function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
@@ -2377,6 +2555,14 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
 end
 
 --- Attempts to destroy an item, dealing with junk status and user confirmation settings.
+---
+--- Purpose: Safer replacement for `DestroyItem`.
+--- Mechanics:
+--- 1. Checks if item is Junk or `force` flag is true.
+--- 2. If so, destroys immediately (fixing sound and refreshing cache).
+--- 3. Returns true if destroyed, false if confirmation (UI) is needed.
+--- References: Called by Hooked Destroy and Action Dialog.
+---
 --- @param bagId number The bag ID of the item.
 --- @param slotIndex number The slot index of the item.
 --- @param force boolean If true, bypasses junk checks (used when user has explicitly confirmed destruction).
@@ -2415,7 +2601,12 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
 	return false
 end
 
--- Re-implement hook to bypass engine path that uses private PickupInventoryItem
+--- Hooks the native destroy logic (X button in some contexts).
+---
+--- Purpose: Redirects engine destruction calls to `TryDestroyItem`.
+--- Mechanics: Overwrites `ZO_InventorySlot_InitiateDestroyItem` with a wrapper that checks `quickDestroy` settings.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.HookDestroyItem()
 	ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
 		local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -2427,6 +2618,19 @@ function BETTERUI.Inventory.HookDestroyItem()
 	end
 end
 
+--- Hooks the native Y-button Action Dialog.
+---
+--- Purpose: Replaces or extends the `ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`.
+--- Mechanics:
+--- - Registers a **custom** dialog with the **same name** as the engine's dialog (`ZO_GAMEPAD_INVENTORY_ACTION_DIALOG`).
+--- - This effectively overrides the native dialog definition.
+--- - Implements custom `setup` to handle:
+---   - Quickslot Assignment (embedded).
+---   - Safe "Destroy" (BetterUI replacement).
+---   - "Link to Chat" (safety checks).
+--- - Implements custom `buttons` (Select/Cancel) to route actions correctly.
+--- References: Called during Initialize.
+---
 function BETTERUI.Inventory.HookActionDialog()
 	local function ActionsDialogSetup(dialog, data)
 		local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
@@ -2788,7 +2992,14 @@ function BETTERUI.Inventory.HookActionDialog()
 end
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
---- Manages initialization deferral, visualization layers, list activation, and state cleanup.
+---
+--- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.
+--- Mechanics:
+--- - **SHOWING**: Defers Init if needed. Configures Tooltip Width. Switches to correct list (Backpack vs Category). Activates Header/Toolbar.
+--- - **HIDING**: Deactivates Header. Restores Toolbar. Saves List Position.
+--- - **HIDDEN**: Clears Active Keybinds. Clears Text Search. Saves Console Profile.
+--- References: Registered as Scene State Change callback.
+---
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()
@@ -2867,6 +3078,16 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	end
 end
 
+--- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
+---
+--- Purpose: Prompts the user when equipping items where the target slot is ambiguous.
+--- Mechanics:
+--- - Registers `BETTERUI_EQUIP_SLOT_DIALOG`.
+--- - Uses `GAMEPAD_DIALOGS.BASIC` style.
+--- - Dynamic Main Text updates based on item type (One-Handed, Ring, etc.).
+--- - Provides two primary buttons (e.g. "Main Hand" / "Off Hand").
+--- References: Called during `TryEquipItem`.
+---
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
 	local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.BASIC)
 
@@ -3119,6 +3340,16 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
 	})
 end
 
+--- Per-frame update handler.
+---
+--- Purpose: Manages delayed list refreshes and visual updates.
+--- Mechanics:
+--- - Checks `nextUpdateTimeSeconds` to throttle updates.
+--- - Refreshes the active list (Item vs Craft Bag) if dirty.
+--- - Updates tooltips if in "Category Action" mode.
+--- References: Called by native `OnUpdate` handler.
+---
+--- @param currentFrameTimeSeconds number|nil The current game time (or nil if forced).
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
@@ -3149,6 +3380,16 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	end
 end
 
+--- Delayed initialization logic (runs when scene enters SHOWING state).
+---
+--- Purpose: Heavy weight setup that shouldn't block startup.
+--- Mechanics:
+--- - Initializes SaveVars.
+--- - Builds Lists (Category, Item, CraftBag).
+--- - Initializes Dialogs and Keybinds.
+--- - Registers for Engine Events (Money, Inventory Updates).
+--- References: Called by `OnStateChanged`.
+---
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	local SAVED_VAR_DEFAULTS = {
 		useStatComparisonTooltip = true,
@@ -3284,7 +3525,15 @@ zo_callLater(function()
 end, 60)
 
 --- Initializes the Inventory object.
---- Sets up the root scene, registers update loops, and hooks into visual layer changes.
+---
+--- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
+--- Mechanics:
+--- - Creates `ZO_Scene` ("gamepad_inventory_root").
+--- - Initializes Parametric List logic.
+--- - hooks `OnUpdate` and `EVENT_VISUAL_LAYER_CHANGED`.
+--- - Sets up the "Search" control logic (Focus hooks, Key handlers).
+--- References: Called by Module.lua.
+---
 function BETTERUI.Inventory.Class:Initialize(control)
 	GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
 	BETTERUI_Gamepad_ParametricList_Screen.Initialize(
@@ -3478,6 +3727,15 @@ function BETTERUI.Inventory.Class:Initialize(control)
 end
 
 --- Refreshes the header information (Money, AP, Tel Var, Capacity).
+---
+--- Purpose: Updates the top bar with current currency and bag space.
+--- Mechanics:
+--- - Builds header data dynamically based on Settings (can hide currencies).
+--- - Refreshes GenericHeader.
+--- - Updates Equipment Slot indicators (Main/Backup).
+--- - Repositions Search Control.
+--- References: Called on Currency Update or List Switch.
+---
 --- @param blockCallback boolean If true, prevents tab bar callbacks (used during internal updates).
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 	local currentList = self:GetCurrentList()
@@ -3583,6 +3841,12 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 	end
 end
 
+--- Positions the text search control in the header.
+---
+--- Purpose: Ensures the search input sits correctly within the custom header geometry.
+--- Mechanics: Finds the "TitleContainer" or equivalent anchor and offsets the control.
+--- References: Called by RefreshHeader.
+---
 function BETTERUI.Inventory.Class:PositionSearchControl()
 	if not self.textSearchHeaderControl then
 		return
@@ -3632,9 +3896,12 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
 	self.textSearchHeaderControl:SetHidden(false)
 end
 
--- Centralized helper to clear the text search UI and internal state.
--- Consolidates repeated checks/calls to the shared BetterUI helper or
--- the local ClearSearchText method.
+--- Centralized helper to clear the text search UI and internal state.
+---
+--- Purpose: Resets search query and UI.
+--- Mechanics: Clears `self.searchQuery` and calls `BETTERUI.Interface.Window.ClearSearchText`.
+--- References: Called when hiding scene or when "Clear" keybind is pressed.
+---
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
@@ -3672,7 +3939,18 @@ function BETTERUI.Inventory.Class:Switch()
 end
 
 --- Switches the active list between Inventory and Craft Bag.
---- Handles saving/restoring list positions, updating keybinds, and refreshing the UI.
+---
+--- Purpose: Core context switcher.
+--- Mechanics:
+--- 1. **Snapshot**: Saves current list position and selection unique ID.
+--- 2. **Switch**: Updates `currentListType` (Item List vs Craft Bag).
+--- 3. **Restore**:
+---    - Sets Active List.
+---    - Restores Category Tab from saved state.
+---    - Restores Item Selection from saved state (Index or UniqueID).
+--- 4. **Refresh**: Triggers Header and Keybind updates.
+--- References: Called by Tab Navigation and Scene Entry.
+---
 --- @param listDescriptor table|string The list or list ID to switch to.
 function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	if listDescriptor == self.currentListType then
@@ -3860,12 +4138,23 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	end
 end
 
+--- Activates the generic header control.
+---
+--- Purpose: Sets focus to the header.
+--- Mechanics: Calls `ZO_GamepadGenericHeader_Activate` and syncs the tab bar selection.
+---
 function BETTERUI.Inventory.Class:ActivateHeader()
 	ZO_GamepadGenericHeader_Activate(self.header)
 	self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex, true, false)
 end
 
--- Override header-enter lifecycle to auto-focus the text search when the header is entered.
+--- Override header-enter lifecycle to auto-focus the text search when the header is entered.
+---
+--- Purpose: Provides seamless search interaction.
+--- Mechanics:
+--- - Activates `textSearchHeaderFocus` if present.
+--- - Updates BetterUI Search state.
+---
 function BETTERUI.Inventory.Class:OnEnterHeader()
 	if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
 		ZO_GamepadInventory.OnEnterHeader(self)
@@ -3883,6 +4172,13 @@ function BETTERUI.Inventory.Class:OnEnterHeader()
 	end
 end
 
+--- Override header-leave lifecycle.
+---
+--- Purpose: Clean up search focus and restore context.
+--- Mechanics:
+--- - Deactivates `textSearchHeaderFocus`.
+--- - Dequeues callbacks to restore header keybinds.
+---
 function BETTERUI.Inventory.Class:OnLeaveHeader()
 	if ZO_GamepadInventory and ZO_GamepadInventory.OnLeaveHeader then
 		ZO_GamepadInventory.OnLeaveHeader(self)
@@ -3917,6 +4213,16 @@ function BETTERUI.Inventory.Class:EnsureHeaderKeybindsActive()
 	end
 end
 
+--- Exits the text search focus mode.
+---
+--- Purpose: Returns control to the main list navigation.
+--- Mechanics:
+--- 1. Removes Search Keybinds.
+--- 2. Restores Main Keybinds.
+--- 3. Deactivates Search Focus.
+--- 4. Activates Current List.
+--- 5. Optionally selects top result if configured.
+---
 function BETTERUI.Inventory.Class:ExitSearchFocus()
 	-- Remove search keybinds first (like Banking does)
 	pcall(function()
@@ -3981,6 +4287,14 @@ function BETTERUI.Inventory.Class:ExitSearchFocus()
 	end, 0)
 end
 
+--- Creates a new parametric list for the inventory scene.
+---
+--- Purpose: Helper to instantiate `BETTERUI_VerticalParametricScrollList`.
+--- Mechanics:
+--- - Creates control from virtual template.
+--- - Initializes and setups list logic.
+--- - Adds to `self.lists`.
+---
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	local listContainer = CreateControlFromVirtual(
 		"$(parent)" .. name,
@@ -4010,6 +4324,17 @@ end
 --------------
 -- Keybinds --
 --------------
+--- Initializes the main keybind strip.
+---
+--- Purpose: Defines the interactable buttons at the bottom of the screen.
+--- Mechanics:
+--- - Defines **Secondary (X)**: Context-aware (Equip, Use, Assign Quickslot).
+--- - Defines **Tertiary (Y)**: Actions Menu.
+--- - Defines **Left Stick**: Stack All.
+--- - Defines **Right Stick**: Switch to Craft Bag/Backpack.
+--- - Defines **Quaternary**: Clear Search (Dynamic visibility).
+--- References: Called by Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 	-- Helper used by X-button name/callback to decide if an item is quickslottable
 	local function IsQuickslottable(sd)
@@ -4278,6 +4603,12 @@ local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 	end
 end
 
+--- Initializes the split stack dialog for moving items.
+---
+--- Purpose: Allows splitting stacks when moving to/from bank.
+--- Mechanics: Registers `ZO_GAMEPAD_SPLIT_STACK_DIALOG` with custom callback to `PickupInventoryItem`.
+--- References: Called by Initialize.
+---
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		blockDirectionalInput = true,
@@ -4325,7 +4656,14 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	})
 end
 
--- Simple confirmation dialog for destroying an item (entire stack)
+--- Initializes the confirmation dialog for item destruction.
+---
+--- Purpose: Safety prompt before destroying items.
+--- Mechanics:
+--- - Registers `BETTERUI_CONFIRM_DESTROY_DIALOG`.
+--- - Shows item link in main text.
+--- - Calls `TryDestroyItem(..., true)` on confirmation.
+---
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 	ZO_Dialogs_RegisterCustomDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", {
 		blockDirectionalInput = true,

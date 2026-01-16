@@ -78,6 +78,8 @@ local STYLE_STRING_TO_ENUM = {
 }
 
 -- Converts legacy string style to numeric enum.
+-- Purpose: Ensures backward compatibility for saved settings.
+-- Mechanics: Checks if style is string map to enum or return as is.
 --- @param style string|number The font style (e.g., "outline" or FONT_STYLE_OUTLINE).
 --- @return number The corresponding font style enum value.
 local function NormalizeStyleValue(style)
@@ -89,11 +91,13 @@ end
 
 --- Retrieves the current nameplate settings from saved variables.
 ---
---- Handles legacy migration from string-based style values to numeric enums.
---- Falls back to DEFAULTS if settings haven't been loaded yet.
+--- Purpose: Accessor for nameplate configuration.
+--- Mechanics:
+--- - Checks `BETTERUI.Settings`.
+--- - Normalizes legacy style strings if found.
+--- - Returns DEFAULTS if settings are missing.
 ---
---- TODO(cleanup): Legacy migration should be removed after sufficient time has passed
----                for all users to have migrated their saved variables.
+--- References: Called by Setup, Apply, and Logic functions.
 ---
 --- @return table Module settings table with font, style, size, enabled
 local function GetSettings()
@@ -108,6 +112,15 @@ local function GetSettings()
 end
 
 -- Applies font settings to keyboard and gamepad nameplates.
+---
+--- Purpose: Commits configuration to the ESO API.
+--- Mechanics:
+--- - Normalizes style.
+--- - Constructs font definition string (`font|size`).
+--- - Calls `SetNameplateKeyboardFont` and `SetNameplateGamepadFont`.
+---
+--- References: Called by ApplyCurrentSettings and Event Handlers.
+---
 --- @param font string The font path.
 --- @param style string|number The font style.
 --- @param size number The font size.
@@ -121,11 +134,12 @@ end
 
 --- Registers or unregisters event handlers for reapplying fonts on zone/mode changes.
 ---
---- WHY BOTH EVENTS:
----   - EVENT_PLAYER_ACTIVATED: Fonts can reset on zone transitions, need to reapply
----   - EVENT_GAMEPAD_PREFERRED_MODE_CHANGED: Separate font APIs for keyboard vs gamepad
+--- Purpose: Ensures nameplate fonts persist across game states.
+--- Mechanics:
+--- - `EVENT_PLAYER_ACTIVATED`: Reapplies fonts on zone load.
+--- - `EVENT_GAMEPAD_PREFERRED_MODE_CHANGED`: Reapplies fonts when input mode switches.
 ---
---- TODO(optimization): Consider debouncing rapid event firing
+--- References: Called by Setup and OnEnabledChanged.
 ---
 --- @param enabled boolean Whether to register (true) or unregister (false) events
 local function SetupEvents(enabled)
@@ -150,16 +164,22 @@ end
 
 --- Resets nameplates to ESO's default font settings.
 ---
---- Called when the module is disabled to restore vanilla appearance.
+--- Purpose: Restores vanilla look when module is disabled.
+--- Mechanics:
+--- - Retrieves DEFAULTS.
+--- - Applies default font, style, and size.
 ---
---- TODO(enhancement): Store original font before first modification for true restoration
+--- References: Called by OnEnabledChanged(false).
 local function ResetToDefaults()
     local defaults = BETTERUI.Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
 
 --- Sets up the Nameplates module.
---- Loads settings and applies them if enabled. Register event listeners.
+---
+--- Purpose: Entry point for Nameplate initialization.
+--- Mechanics: Check settings; if enabled, apply fonts and register events.
+--- References: Called by GeneralInterface Setup.
 function BETTERUI.Nameplates.Setup()
     local settings = GetSettings()
     if settings.enabled then
@@ -169,7 +189,12 @@ function BETTERUI.Nameplates.Setup()
 end
 
 --- Handles enable/disable toggle from settings.
---- Triggers event setup or teardown and applies/resets fonts accordingly.
+---
+--- Purpose: Updates state dynamically when user toggles checkbox.
+--- Mechanics:
+--- - If enabled: Setup events, apply fonts.
+--- - If disabled: Unregister events, reset to defaults.
+---
 --- @param enabled boolean The new enabled state.
 function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     SetupEvents(enabled)
@@ -187,7 +212,10 @@ function BETTERUI.Nameplates.IsEnabled()
 end
 
 --- Applies current settings immediately.
---- Useful for live preview when changing settings in the menu.
+---
+--- Purpose: Live update callback for settings menu.
+--- Mechanics: Applies font settings if enabled.
+--- References: Called by Slider/Dropdown setters.
 function BETTERUI.Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
     if settings.enabled then

@@ -27,12 +27,16 @@ local LAM = LibAddonMenu2
 
 --- Initializes the settings panel for General Interface options.
 ---
---- Creates a LibAddonMenu panel with all configurable options for:
----   - Tooltip integrations (TTC, MM, ATT)
----   - Nameplate font customization
----   - Resource Orb Frames appearance and behavior
----   - Experience bar settings
----   - Food bar settings
+--- Purpose: Creates a LibAddonMenu panel with all configurable options.
+--- Mechanics:
+--- - Defines `optionsTable` with checkboxes, sliders, and submenus.
+--- - Configures integration settings (MasterMerchant, TTC, ATT).
+--- - Configures Nameplate settings (Font, Style, Size).
+--- - Configures Resource Orb Frames (Scale, Offset, Colors).
+--- - Configures Experience/Cast/Mount Bar settings.
+--- - Uses `LAM:RegisterAddonPanel` and `LAM:RegisterOptionControls`.
+---
+--- References: Called during module setup.
 ---
 --- @param mId string The Module ID (unused, for standardized module signature)
 --- @param moduleName string The display name of the module for the settings panel
@@ -1053,7 +1057,16 @@ local function Init(mId, moduleName)
 end
 
 --- Initializes ResourceOrbFrames default settings.
---- Defines defaults for scale, offset, colors, and visibility of orb elements.
+---
+--- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
+--- Mechanics:
+--- - Checks each setting key; if missing, assigns default value.
+--- - Default Scale: 1.15.
+--- - Default Center Bar: "XP".
+--- - Sets text sizes and colors for various bars (Health, Magicka, Stamina).
+---
+--- References: Called during module initialization to ensure valid configuration.
+---
 --- @param m_options table The options table to initialize.
 --- @return table The initialized options table with defaults applied.
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
@@ -1123,7 +1136,14 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
 end
 
 --- Initializes Nameplates default settings.
---- Preserves existing values if they exist, otherwise fills in defaults for font, style, and size.
+---
+--- Purpose: Ensures Nameplate configuration has valid default values.
+--- Mechanics:
+--- - Checks for enabled state, font path, style (outline/soft-shadow-thick), and size.
+--- - Preserves existing values if present.
+---
+--- References: Called during module initialization.
+---
 --- @param m_options table The options table to initialize.
 --- @return table The initialized options table.
 function BETTERUI.Nameplates.InitModule(m_options)
@@ -1138,7 +1158,15 @@ function BETTERUI.Nameplates.InitModule(m_options)
 end
 
 --- Initializes Tooltips default settings.
---- Sets defaults for chat history, trait visibility, mail handling, and integrations (MM, TTC, ATT).
+---
+--- Purpose: Sets defaults for chat history, trait visibility, mail handling, and integrations.
+--- Mechanics:
+--- - Default Chat History: 200 lines.
+--- - Integrations (MM, TTC, ATT) enabled by default.
+--- - Guild Store error suppression disabled by default.
+---
+--- References: Called during module initialization.
+---
 --- @param m_options table The options table to initialize.
 --- @return table The initialized options table.
 function BETTERUI.Tooltips.InitModule(m_options)
@@ -1153,8 +1181,19 @@ function BETTERUI.Tooltips.InitModule(m_options)
 end
 
 --- Sets up the General Interface (Tooltips) module.
---- Registers hooks for inventory and tooltip layouts, sets up event handlers for error suppression,
---- and initializes keybind overrides for mail deletion.
+---
+--- Purpose: Registers hooks and event handlers for tooltip enhancements.
+--- Mechanics:
+--- 1. Calls local `Init` to build the settings menu.
+--- 2. Defines `ZO_IsIngameUI` polyfill if missing (for Scribing).
+--- 3. Hooks `ZO_MailInbox_Gamepad` to allow 'X' keybind for deletion if enabled.
+--- 4. Hooks Gamepad Tooltips (`LayoutItem`, `LayoutBagItem`, etc.) to inject custom data.
+--- 5. Manages Guild Store error suppression based on scene state (`gamepad_trading_house`).
+--- 6. Registers inventory update events to invalidate trait caches.
+--- 7. Applies chat history limit.
+---
+--- References: Called by the core Addon initialization.
+---
 function BETTERUI.Tooltips.Setup()
 
 	Init("General", "General Interface")

@@ -1,13 +1,14 @@
 <GuiXml>
     <!--
-        BetterUI Generic Header Template
-        Description: Defines the structure of the custom Gamepad Header.
-        
-        Visual Hierarchy:
-        1. Tab Bar (Carousel): Top section, scrolling icons.
-        2. Title & Slots: Middle section, dynamic text and equipment icons.
-        3. Column Headers: Bottom section, aligned with grid columns.
-
+    File: Modules/CIM/Templates/GenericHeader.xml
+    Purpose: Defines the structure of the custom Gamepad Header.
+    
+    Visual Hierarchy:
+    1. Tab Bar (Carousel): Top section, scrolling icons.
+    2. Title & Slots: Middle section, dynamic text and equipment icons.
+    3. Column Headers: Bottom section, aligned with grid columns.
+    -->
+    <!--
         Features:
         - Tab Bar (Carousel of icons)
         - Title & Subtitle

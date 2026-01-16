@@ -88,6 +88,7 @@ BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 -- XML TEMPLATE VALUES (Column Layout)
 -- ============================================================================
 -- TODO: Consider moving these to a layout configuration table instead of global variables to reduce namespace pollution.
+-- Note: These are referenced directly in XML templates via their global names.
 
 -- Sub-menu label positioning
 BETTERUI_SUBMENU_LABEL_OFFSET_X = 87
@@ -124,7 +125,11 @@ BETTERUI_STATUS_INDICATOR_OFFSET_X = -2 -- Status indicator (new item, stolen, e
 -- ============================================================================
 
 --- Configuration table for the Resource Orb Frames (Health/Magicka/Stamina orbs).
---- Defines all spatial relationships and sizing for the ARPG-style interface.
+---
+--- Purpose: Defines all spatial relationships and sizing for the ARPG-style interface.
+--- Mechanics: Nested table structure defining x/y offsets, scales, and dimensional constraints for orb elements.
+--- References: Used by Modules/GeneralInterface/ResourceOrbFrames.lua to build the custom HUD.
+--- TODO: Consider moving this to a separate file (e.g. Modules/GeneralInterface/OrbsConfig.lua) to reduce global namespace pollution.
 BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     -- SKILL BUTTON DIMENSIONS

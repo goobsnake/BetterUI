@@ -1,8 +1,15 @@
 <GuiXml>
     <!--
-        BetterUI Writs Panel
-        Definition for the floating panel that displays daily writ progress status.
-        Anchored relative to the top right of the screen.
+        File: Modules/WritUnit/Templates/WritsPanel.xml
+        Purpose: Defines the floating panel for daily writ progress.
+
+        STRUCTURE:
+        - Ancestor: ZO_GamepadGrid_NavQuadrant_1_Anchors (Top-Right Quadrant).
+        - Contains:
+            - `SlotContainer`: Main wrapper.
+            - `ExtractionSlot`: Visual frame.
+            - `WritName`: Quest Title (Blue).
+            - `WritDesc`: Concatenated Objectives (Green/Grey).
     -->
     <Controls>
         <Control name="BETTERUI_WritsPanel" inherits="ZO_GamepadGrid_NavQuadrant_1_Anchors"

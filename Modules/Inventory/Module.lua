@@ -75,7 +75,11 @@ BETTERUI.Inventory.DEFAULTS = {
 }
 
 --- Converts a font size setting to a pixel value.
---- Handles migration from legacy string values ("Small", "Large") to numbers.
+---
+--- Purpose: Handles migration from legacy string values ("Small", "Large") to numbers.
+--- Mechanics: Checks type; if number, returns it. If string, looks up in legacyMap. Defaults to 24.
+--- References: Used by GetNameFontDescriptor and GetColumnFontDescriptor.
+---
 --- @param sizeValue string|number The size setting value.
 --- @return number The font size in pixels.
 local function GetFontSizeValue(sizeValue)
@@ -89,7 +93,11 @@ local function GetFontSizeValue(sizeValue)
 end
 
 --- Returns the ESO font descriptor for the Name column.
---- Format: "fontPath|size|style"
+---
+--- Purpose: Generates the font string for the main item name.
+--- Mechanics: Reads settings (path, size, style), resolves defaults, and formats as "path|size|style".
+--- References: Used by InventoryList.lua templates.
+---
 --- @return string The formatted font descriptor string.
 function BETTERUI.Inventory.GetNameFontDescriptor()
 	local s = BETTERUI.Settings.Modules["Inventory"]
@@ -101,7 +109,11 @@ function BETTERUI.Inventory.GetNameFontDescriptor()
 end
 
 --- Returns the ESO font descriptor for other columns (Type, Trait, Stat, Value).
---- Format: "fontPath|size|style"
+---
+--- Purpose: Generates the font string for secondary columns.
+--- Mechanics: Reads settings (path, size, style), resolves defaults, and formats as "path|size|style".
+--- References: Used by InventoryList.lua templates.
+---
 --- @return string The formatted font descriptor string.
 function BETTERUI.Inventory.GetColumnFontDescriptor()
 	local s = BETTERUI.Settings.Modules["Inventory"]
@@ -112,7 +124,15 @@ function BETTERUI.Inventory.GetColumnFontDescriptor()
 	return style ~= "" and string.format("%s|%d|%s", path, size, style) or string.format("%s|%d", path, size)
 end
 
---- Initializes the settings panel for the Inventory module
+--- Initializes the settings panel for the Inventory module.
+---
+--- Purpose: Registers the "Inventory Improvement Settings" panel with LibAddonMenu.
+--- Mechanics:
+--- - Defines currency presets (Default, PvP, Crafter, etc.).
+--- - Creates the options table (checkboxes, sliders, dropdowns).
+--- - Setup callbacks to refresh the inventory view on setting changes.
+--- References: Called by BETTERUI.Inventory.Setup().
+---
 --- @param mId string: Module ID for panel registration
 --- @param moduleName string: Display name for the module
 local function Init(mId, moduleName)

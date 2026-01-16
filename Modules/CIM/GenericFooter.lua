@@ -1,33 +1,41 @@
 --[[
-    BetterUI Generic Footer
-    Description: Logic for the Gamepad Bottom Bar (Footer).
-    Displays:
-    - Bag/Bank Capacity
-    - Various Currencies (Gold, AP, Tel Var, etc.)
-    features:
-    - Dynamic ordering of currencies based on user settings.
-    - Automatic abbreviation of large numbers (k/m/b).
+File: Modules/CIM/GenericFooter.lua
+Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
+         Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
+         Supports dynamic ordering and formatting of currency values.
+Author: BetterUI Team
+Last Modified: 2026-01-16
 ]]
 
 local _
 
---- Initialize the footer control reference.
---- Purpose: Links the Lua object to the XML control.
---- @param control table The parent control containing the footer.
+--[[
+Function: BETTERUI.GenericFooter:Initialize
+Description: Initializes the footer control reference.
+Rationale: Links the Lua object to the XML control structure defined in GenericFooter.xml.
+Mechanism: Finds the 'FooterContainer' child within the main control and caches the reference.
+           Triggers an initial refresh if the control is ready.
+param: control (table) - The parent control containing the footer.
+return: nil
+]]
 function BETTERUI.GenericFooter:Initialize()
 	if(self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
 	if(self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
---- Refreshes the footer content and layout.
----
---- Purpose: Updates bag capacity and currency displays based on user settings.
---- Mechanics:
---- 1. Updates Capacity Labels (Backpack and Bank).
---- 2. Updates Currency Labels (Gold, AP, Tel Var, etc.) with formatted values.
---- 3. Dynamically positions currency labels based on user-defined order.
---- 4. Handles fallback layout if specific XML structure is missing.
+--[[
+Function: BETTERUI.GenericFooter:Refresh
+Description: Refreshes the footer content and layout.
+Rationale: Updates displayed values (Capacity, Currencies) to reflect current player state.
+Mechanism:
+  1. Updates Capacity Labels (Backpack and Bank).
+  2. Updates Currency Labels (Gold, AP, Tel Var, etc.) with formatted values (abbreviated).
+  3. Dynamically positions currency labels based on user-defined order in settings.
+  4. Handles fallback layout logic if specific XML structure is missing (legacy support).
+References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
+TODO: Unify the main and fallback layout logic to reduce code duplication.
+]]
 function BETTERUI.GenericFooter:Refresh()
 	-- Reference inventory settings for currency visibility/order
 	local invSettings = BETTERUI.Settings.Modules["Inventory"]

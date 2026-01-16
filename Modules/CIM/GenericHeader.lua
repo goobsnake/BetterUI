@@ -1,18 +1,11 @@
 --[[
-    BetterUI Generic Header
-    Description: Logic for the specialized Gamepad Header used in Inventory and Banking.
-    
-    Architecture Note:
-    This module is part of the Custom Inventory Module (CIM). It provides a standardized 
-    header for gamepad screens that includes a parametric tab bar (carousel), dynamic title, 
-    and equipment slot tracking. It is designed to replace the stock ZO_GamepadGenericHeader 
-    functionality with additional info columns and visual flair.
-
-    Key Features:
-    - Tab Bar Navigation (Category switching via LB/RB).
-    - Dynamic Title text updating.
-    - Equipment Slot status display (Main/Offhand/Poison).
-    - Column Headers for grid views.
+File: Modules/CIM/GenericHeader.lua
+Purpose: Manages the custom Gamepad Header logic for BetterUI.
+         Provides a standardized header with a parametric tab bar (carousel),
+         dynamic title, and equipment slot tracking.
+         Replaces stock ZO_GamepadGenericHeader functionality.
+Author: BetterUI Team
+Last Modified: 2026-01-16
 ]]
 
 local _
@@ -28,14 +21,19 @@ local DIVIDER_PIPPED    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 -- TODO: [Sanitation] Verify if this legacy constant is actually used or dead code.
 local GENERIC_HEADER_INFO_LABEL_HEIGHT = 33
 
---- Setup function for tab bar entries.
---- Configures the visual state of a tab icon (hidden label, tinted icon).
---- @param control table The list entry control
---- @param data table The data associated with this entry
---- @param selected boolean Is this entry currently selected?
---- @param selectedDuringRebuild boolean
---- @param enabled boolean
---- @param activated boolean
+--[[
+Function: TabBar_Setup
+Description: Configures the visual state of a tab icon (hidden label, tinted icon).
+Rationale: Ensures the tab bar matches the BetterUI aesthetic (icons only, gold tint).
+Mechanism: Hides text labels, sets icon texture, and applies color tinting based on filter type.
+param: control (table) - The list entry control.
+param: data (table) - The data associated with this entry.
+param: selected (boolean) - Is this entry currently selected?
+param: selectedDuringRebuild (boolean) - (unused)
+param: enabled (boolean) - (unused)
+param: activated (boolean) - (unused)
+References: Used as the setup callback for BETTERUI_TabBarScrollList.
+]]
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
     local label = control:GetNamedChild("Label")
     -- Why: In this specific header design, we only want to show the large icon.
@@ -66,12 +64,16 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     ZO_GamepadMenuHeaderTemplate_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
 end
 
---- Initialize the header control and (optionally) create the tab bar.
---- Mapping references to child controls for easy access.
---- Why: Storing references in `control.controls` prevents repeated `GetNamedChild` calls during high-frequency updates (performance).
---- @param control table The header control.
---- @param createTabBar number Constant: ZO_GAMEPAD_HEADER_TABBAR_CREATE or similar.
---- @param layout any Layout info (unused explicitly here).
+--[[
+Function: BETTERUI.GenericHeader.Initialize
+Description: Initializes the header control and caches child references.
+Rationale: Caching references prevents repeated GetNamedChild calls during high-frequency updates.
+Mechanism: Populates control.controls table mapping constants (TABBAR, TITLE) to UI objects.
+param: control (table) - The header control.
+param: createTabBar (number) - Flag to indicate if tab bar should be shown/created.
+param: layout (any) - Layout info (unused explicitly here).
+References: Called by Inventory and Banking initialization.
+]]
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
     control.controls =
         {
@@ -90,12 +92,20 @@ end
 
 local TEXT_ALIGN_RIGHT = 2
 
---- Callback when a tab is selected.
---- Updates the main inventory category list to match the tab selection.
+--[[
+Function: TabBar_OnDataChanged
+Description: Callback handler for when a tab is selected.
+Rationale: Syncs the main inventory category list when the header tab selection changes.
+Mechanism: Iterates through GAMEPAD_INVENTORY.categoryList to find and select the matching entry.
+param: list (table) - The scroll list control.
+param: selectedData (table) - The new selected data item.
+param: oldSelectedData (table) - The previous selected data item.
+param: reselectingDuringRebuild (boolean) - True during list rebuilds.
+TODO: [Coupling] Decouple from 'GAMEPAD_INVENTORY' global to allow reuse in other screens.
+]]
 local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
     if selectedData then
         -- Sync with the global Gamepad Inventory category list
-        -- TODO: [Coupling] Decouple this from 'GAMEPAD_INVENTORY' global. 
         -- logic should be injected or passed via data to allow reuse in Banking/Vendor screens.
         local categoryList = GAMEPAD_INVENTORY.categoryList
         for i = 1, categoryList:GetNumEntries() do
@@ -107,18 +117,26 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
---- Add an entry to the tab bar list using the BetterUI tab template.
---- @param control table The header control.
---- @param data table The entry data.
+--[[
+Function: BETTERUI.GenericHeader.AddToList
+Description: Add an entry to the tab bar list.
+Rationale: Helper to add entries using the standardized BETTERUI tab template.
+param: control (table) - The header control.
+param: data (table) - The entry data.
+]]
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
 
---- Set the primary equip text in the header (Main Hand).
---- Highlights orange if it's the active bar.
---- TODO: [DRY] This is near-identical to SetBackupEquipText. Refactor into `UpdateEquipText(control, type, isActive)`.
---- @param control table Header control
---- @param isEquipMain boolean True if Main Hand is the active weapon bar
+--[[
+Function: BETTERUI.GenericHeader.SetEquipText
+Description: Set the primary equip text in the header (Main Hand).
+Rationale: Updates the visual indicator for the active weapon bar (text color/highlight).
+Mechanism: Sets text and alignment for the EquipText label.
+param: control (table) - Header control.
+param: isEquipMain (boolean) - True if Main Hand is the active weapon bar.
+TODO: [DRY] Refactor with SetBackupEquipText into `UpdateEquipText(control, type, isActive)`.
+]]
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("EquipText")
     if isEquipMain then
@@ -129,11 +147,14 @@ function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
---- Set the backup equip text in the header (Back Up).
---- Hidden when player is below weapon swap unlock level (Level 15).
---- TODO: [DRY] Duplicate logic (see SetEquipText).
---- @param control table Header control.
---- @param isEquipMain boolean True if Main Hand is active (so Backup is inactive/normal color).
+--[[
+Function: BETTERUI.GenericHeader.SetBackupEquipText
+Description: Set the backup equip text in the header (Back Up).
+Rationale: Updates visual indicator for backup bar. Hides entirely if weapon swap is locked.
+Mechanism: Checks player level for weapon swap unlock. Sets text/color based on active bar.
+param: control (table) - Header control.
+param: isEquipMain (boolean) - True if Main Hand is active (Backup is inactive).
+]]
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupEquipText")
     if not equipControl then return end
@@ -226,7 +247,11 @@ function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equip
 end
 
 --- Refresh the header with provided data.
---- Rebuilds the TabBar if necessary and applies carousel settings.
+---
+--- Purpose: Rebuilds the TabBar if necessary and applies carousel settings.
+--- Mechanics: Updates title, initializes BETTERUI_TabBarScrollList if needed, and applies dynamic callbacks.
+--- References: Called whenever header data changes (e.g. switching between Inventory and CraftBag).
+---
 --- @param control table Header control.
 --- @param data table Header data (title, carousel config, callbacks).
 --- @param blockTabBarCallbacks boolean If true, supresses OnSelectedChanged during initialization.

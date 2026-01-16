@@ -39,7 +39,14 @@ local INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
 --- Inserts a primary action at the front of the slot actions table.
---- This action becomes the default "A" button behavior.
+--- Override of the standard AddSlotAction to force an action to be Primary (A Button).
+---
+--- Purpose: Sets the default "A" button behavior for a slot.
+--- Mechanics:
+--- - Inserts the action into index 1 of the action table.
+--- - Updates `_betterui_primaryOverride` for direct invocation.
+--- - Adds to Context Menu if applicable.
+---
 --- @param self table The SlotActions instance.
 --- @param actionStringId number|string The string ID or name of the action.
 --- @param actionCallback function The function to execute when the action is triggered.
@@ -73,9 +80,13 @@ local function TryUnequipItem(inventorySlot)
 end
 
 --- Attempts to use the item in the specified slot.
---- Overridges the engine's default behavior to ensure `CallSecureProtected` is used
---- for protected functions, preventing "Private Function" errors.
---- Handles Quest Tools, Quest Items, and standard Usable Items.
+---
+--- Purpose: Executes the "Use" command safely.
+--- Mechanics:
+--- - Checks if item is Quest Item (Tool/Condition).
+--- - If Standard Item: Checks Usability.
+--- - **CRITICAL**: Uses `CallSecureProtected` to avoid "Private Function" errors from tainted code.
+---
 --- @param inventorySlot table The inventory slot data.
 function TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
@@ -97,7 +108,14 @@ function TryUseItem(inventorySlot)
 end
 
 --- Handles banking actions (Deposit/Withdraw) for an item.
---- Checks for bag space, ESO Plus subscriber bank eligibility, and stolen item restrictions.
+---
+--- Purpose: Moves items between Bags and Bank.
+--- Mechanics:
+--- - **Withdraw**: Checks Backpack space.
+--- - **Deposit**: Checks Bank space (and Subscriber Bank if applicable).
+--- - **Stolen**: Prevents depositing stolen items.
+--- - Uses `PlaceInTransfer` securely.
+---
 --- @param inventorySlot table The inventory slot data.
 local function TryBankItem(inventorySlot)
     if(PLAYER_INVENTORY:IsBanking()) then
@@ -136,7 +154,13 @@ local function TryBankItem(inventorySlot)
 end
 
 --- Attempts to move an item between the Backpack and the Craft Bag.
---- Handles stack splitting if necessary and finds an empty slot in the target bag.
+---
+--- Purpose: Stow (Inv->CraftBag) or Retrieve (CraftBag->Inv).
+--- Mechanics:
+--- - Checks for space.
+--- - Handles stack splitting (moves full stack).
+--- - Uses `PlaceInInventory` securely.
+---
 --- @param inventorySlot table The inventory slot data.
 --- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
 local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
@@ -165,7 +189,10 @@ local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
 end
 
 --- Checks if an item can be moved to the Craft Bag.
---- Verifies ESO Plus access, item compatibility ("virtual" capability), and that the item is not stolen.
+---
+--- Purpose: Eligibility check for "Stow".
+--- Mechanics: Requires CraftBag Access (ESO+), Item must be Virtual-compatible, and NOT stolen.
+---
 --- @param inventorySlot table The inventory slot data.
 --- @return boolean True if the item is eligible for the Craft Bag.
 local function CanItemMoveToCraftBag(inventorySlot)
@@ -182,7 +209,21 @@ local function IsSlotInCraftBag(inventorySlot)
 end
 
 --- Initializes the slot actions controller, defining how actions are prioritized and executed.
---- Sets up the primary action ("A" button) logic, including overrides for "Use", "Equip", "Bank", and "Craft Bag" actions.
+---
+--- Purpose: **Core Logic for 'A' Button**. Determines what the Primary Action is.
+--- Mechanics:
+--- 1. Creates `ZO_InventorySlotActions` instance.
+--- 2. Hooks `AddSlotPrimaryAction`.
+--- 3. Defines `PrimaryCommand`:
+---    - The "A" button keybind.
+---    - calls `PrimaryCommandActivate`.
+--- 4. Defines `PrimaryCommandActivate` (Inner Function):
+---    - Discovers actions from engine.
+---    - Overrides "Open Skills" to be secure.
+---    - Prioritizes "Stow" vs "Use" vs "Equip".
+---    - Manages "Split Stack" override.
+---    - Configures `slotActions` with the chosen primary.
+---
 --- @param alignmentOverride any Override for the keybind strip alignment.
 --- @param additionalMouseOverbinds table List of additional keybinds for mouse-over actions.
 --- @param useKeybindStrip boolean Whether to display the keybind strip (default: true).
@@ -248,6 +289,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Wraps an action in a secure call if necessary (primarily for USE actions).
+    --- Purpose: Ensures protected actions don't fail due to addon taint.
     --- @param slotActions table The slot actions object.
     --- @param actionStringId number The action string ID.
     --- @param callback function The callback to execute.
@@ -287,6 +329,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Configures actions related to the Craft Bag (Stow/Retrieve).
+    --- Purpose: Complex logic for when to show "Stow" vs "Retrieve" vs "Stow & Use".
     --- @param slotActions table The slot actions object.
     --- @param inventorySlot table The inventory slot data.
     --- @param canUseItem boolean Whether the item is also usable (adds USE as a secondary action).
@@ -320,7 +363,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Sets up the primary action for a slot based on its action name.
-    --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
+    --- Purpose: Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
     --- @param slotActions table The slot actions object.
     --- @param actionName string The localized name of the action.
     --- @param inventorySlot table The inventory slot data.
@@ -366,8 +409,19 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- The main logic invoked when the primary action (A button) is potentially triggered.
-    --- Discovers available actions for the slot, determines the best primary action,
-    --- and configures the `slotActions` object accordingly.
+    ---
+    --- Purpose: **Action Discovery and Selection**.
+    --- Mechanics:
+    --- 1. Clears previous actions.
+    --- 2. Calls `ZO_InventorySlot_DiscoverSlotActionsFromActionList`.
+    --- 3. Fixes "Open Skills" to be secure.
+    --- 4. **Decides Primary**:
+    ---    - Use vs Stow: Prefers Stow if eligible.
+    ---    - Bank Deposit/Withdraw.
+    ---    - Craft Bag Retrieve/Stow.
+    --- 5. Configures `slotActions` with the decision.
+    --- 6. Deduplicates actions in the list.
+    ---
     --- @param inventorySlot table The inventory slot data.
     local function PrimaryCommandActivate(inventorySlot)
         slotActions:Clear()

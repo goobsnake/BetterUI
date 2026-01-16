@@ -1,6 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 -- BetterUI - Writ Logic
 --
+-- File: Modules/WritUnit/Writ.lua
+-- Purpose: Handles the data retrieval and formatting for daily writ quests.
+--
 -- This file handles the retrieval and formatting of writ quest objectives.
 -- It scans the quest journal for crafting writs, formats their completion status (color coding),
 -- and updates the UI panel with the relevant information for the current crafting station.
@@ -13,7 +16,14 @@
 local _
 
 --- Gets formatted writ conditions for a specific quest.
---- Colors the text green if the condition is met, otherwise grey.
+---
+--- Purpose: Formats quest objectives for display.
+--- Mechanics:
+--- - Iterates through all conditions of the quest.
+--- - Compares `current` vs `maximum` counts.
+--- - Applies **Green** (00FF00) if complete, **Grey** (CCCCCC) if incomplete.
+--- - Returns a concatenated string of objectives.
+---
 --- @param qId number The quest ID.
 --- @return string The concatenated and formatted writ conditions.
 function BETTERUI.Writs.Get(qId)
@@ -39,8 +49,13 @@ function BETTERUI.Writs.Get(qId)
 end
 
 --- Scans the quest journal for active Writ quests.
---- Populates `BETTERUI.Writs.List` with relevant writ quests indexed by crafting type.
---- Handles name matching for all crafting professions (Blacksmithing, Clothier, etc.).
+---
+--- Purpose: Identifies which crafting writs the player currently has.
+--- Mechanics:
+--- - Iterates `MAX_JOURNAL_QUESTS`.
+--- - Matches Quest Name against hardcoded keywords (e.g., "blacksmith", "cloth", "witches").
+--- - Maps the matching Quest ID to the corresponding `CRAFTING_TYPE_XXX` constant in `BETTERUI.Writs.List`.
+---
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
 	for qId=1, MAX_JOURNAL_QUESTS do
@@ -76,7 +91,14 @@ function BETTERUI.Writs.Update()
 end
 
 --- Shows the Writ panel for a specific crafting station type.
---- Updates the writ list, finds the relevant writ quest, and populates the UI with its status.
+---
+--- Purpose: Displays writ requirements for the current station.
+--- Mechanics:
+--- - Calls `Update` to refresh data.
+--- - LOOKUP: Checks `BETTERUI.Writs.List` for the given `writType` (station type).
+--- - If found, updates `WritName` (Title) and `WritDesc` (Objectives).
+--- - Sets Panel to Visible.
+---
 --- @param writType number The crafting type ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
@@ -89,6 +111,8 @@ function BETTERUI.Writs.Show(writType)
 end
 
 --- Hides the Writ panel.
+---
+--- Purpose: Cleanly removes the UI overlay.
 function BETTERUI.Writs.Hide()
 	BETTERUI_WritsPanel:SetHidden(true)
 end

@@ -23,9 +23,14 @@ local _
 
 --- Builds the cache of researchable trait counts for a specific bag.
 ---
---- WHY USE SHARED_INVENTORY:
----   SHARED_INVENTORY.GenerateFullSlotData() is faster than iterating all slots
----   because it only processes slots that actually contain items.
+--- Purpose: Performance optimization to avoid iterating large bags repeatedly.
+--- Mechanics:
+--- - Uses `SHARED_INVENTORY:GenerateFullSlotData` to get populated slots.
+--- - Checks items for researchability (`CanItemLinkBeTraitResearched`).
+--- - Aggregates counts by trait type.
+--- - Stores result in `ResearchableTraitCache[bagId]`.
+---
+--- References: Called by GetCachedResearchableTraitMatches.
 ---
 --- @param bagId number The bag ID to cache
 local function BuildBagResearchCache(bagId)
@@ -46,6 +51,15 @@ local function BuildBagResearchCache(bagId)
 end
 
 --- Returns count of researchable items matching itemLink's trait in specified bag.
+---
+--- Purpose: checks if the player has other items with the same trait in a specific bag.
+--- Mechanics:
+--- - Checks if item has a valid trait.
+--- - Rebuilds cache for bag if missing.
+--- - Returns cached count.
+---
+--- References: Used by AddInventoryPreInfo to display where other copies are found.
+---
 --- @param itemLink string The item link to check.
 --- @param bagId number The bag ID to check against.
 --- @return number The count of matching researchable items.
@@ -59,7 +73,15 @@ function BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, bagId)
     return (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
 end
 
---- Invalidates the researchable trait cache for a specific bag or all bags
+--- Invalidates the researchable trait cache for a specific bag or all bags.
+---
+--- Purpose: Ensures cache coherency after inventory updates.
+--- Mechanics:
+--- - If `bagId` provided: clears entry for that bag.
+--- - If `bagId` nil: clears entire cache.
+---
+--- References: Called by Item/Inventory Update Event Handlers.
+---
 --- @param bagId number|nil: The bag ID to invalidate, or nil to clear all
 function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
     if bagId then
@@ -84,8 +106,14 @@ end
 
 --- Adds trading addon price info to tooltip (TTC, MM, ATT).
 ---
---- Shows per-item price and stack total when applicable.
---- Uses per-addon integration settings to allow selective enabling.
+--- Purpose: Injects market pricing into the bottom of item tooltips.
+--- Mechanics:
+--- 1. Defines stack size (using store stack count or bag lookup).
+--- 2. Checks enabled integrations (TTC, MM, ATT).
+--- 3. Retrieves price from external addon APIs.
+--- 4. Formats and adds line to tooltip with Gold Icon.
+---
+--- References: Called by the hooked Tooltip Layout methods.
 ---
 --- @param tooltip Control The tooltip control
 --- @param itemLink string The item link to price
@@ -155,7 +183,17 @@ local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeSt
     end
 end
 
--- Adds item style and research status to tooltip.
+--- Adds item style and research status to tooltip.
+---
+--- Purpose: Injects style trait info at the top of item tooltips.
+--- Mechanics:
+--- 1. Checks `CanItemLinkBeTraitResearched`.
+--- 2. Uses cached lookups to find if trait is known or present in other bags (Bank, House, Worn).
+--- 3. Formats status string (e.g., "Found in Bank").
+--- 4. Adds line to tooltip.
+---
+--- References: Called by the hooked Tooltip Layout methods.
+---
 --- @param tooltip object The tooltip control.
 --- @param itemLink string The item link.
 local function AddInventoryPreInfo(tooltip, itemLink)
@@ -201,6 +239,15 @@ local function AddInventoryPreInfo(tooltip, itemLink)
 end
 
 --- Hooks tooltip layout methods to inject pricing and research info.
+---
+--- Purpose: Intercepts standard tooltip calls to add custom data.
+--- Mechanics:
+--- 1. Wraps standard methods (`method2`, `method3`, `method`) with closures.
+--- 2. Captures arguments (bagId, itemLink, etc.) before calling original method.
+--- 3. Calls `AddInventoryPreInfo` and `AddInventoryPostInfo` around the original implementation.
+---
+--- References: Called by Setup.
+---
 --- @param tooltipControl object The tooltip control to hook.
 --- @param method string The method name to hook/override.
 --- @param linkFunc function Function to retrieve item link.

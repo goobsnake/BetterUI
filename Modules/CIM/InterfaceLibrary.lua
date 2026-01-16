@@ -1,27 +1,31 @@
---------------------------------------------------------------------------------
--- BetterUI Interface Library
---
--- Base window class and UI utilities for gamepad inventory/banking.
--- Provides core abstractions shared across BetterUI's gamepad screens.
---
--- KEY COMPONENTS:
---   - BETTERUI.Interface.Window: Base class for all BetterUI windows
---   - Search functionality: Text search header integration
---   - Spinner utilities: Stack splitting and quantity selection
---   - Scene/Fragment management: ESO scene system integration
---
--- TODO(architecture): This file mixes utility functions with the Window class.
---                     Consider splitting into InterfaceUtilities.lua and WindowBase.lua
--- TODO(cleanup): BETTERUI_TEST_SCENE_NAME appears to be legacy naming - rename or document
--- TODO(refactor): AddSearch() is 100+ lines - extract sub-functions for readability
---------------------------------------------------------------------------------
+--[[
+File: Modules/CIM/InterfaceLibrary.lua
+Purpose: Base window class and UI utilities for gamepad inventory/banking.
+         Provides core abstractions shared across BetterUI's gamepad screens,
+         including window management, search integration, and spinner utilities.
+Author: BetterUI Team
+Last Modified: 2026-01-16
+]]
 
 local _
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 --- Ensures a keybind descriptor is added to the keybind strip (handles duplicates).
+---
+--- Purpose: Safely registers a keybind group without causing duplicate keybind errors.
+--- Mechanics: Iterates existing groups; if found, updates it. If not, adds it.
+--- References: Used by Window:ApplySpinnerMinMax and other dynamic keybind overrides.
+---
 --- @param descriptor table The keybind descriptor to add.
+
+--[[
+Function: BETTERUI.Interface.EnsureKeybindGroupAdded
+Description: Safely registers a keybind group without causing duplicates.
+Rationale: Prevent errors when adding same keybind descriptor multiple times.
+Mechanism: Iterates existing groups; if found, updates it. If not, adds it.
+param: descriptor (table) - The keybind descriptor to add.
+]]
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor or not KEYBIND_STRIP then return end
     local groups = KEYBIND_STRIP.keybindButtonGroups or {}
@@ -35,9 +39,14 @@ function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
 end
 
---- Creates keybind descriptors for text search functionality.
---- @param context table The search context object (must have textSearchHeaderControl, searchQuery, etc.).
---- @return table Array of keybind descriptors.
+--[[
+Function: BETTERUI.Interface.CreateSearchKeybindDescriptor
+Description: Creates keybind descriptors for text search functionality.
+Rationale: Standardizes search navigation (Select, Back, Down) across modules.
+Mechanism: Returns a table of keybind definitions with visibility callbacks tied to the search context.
+param: context (table) - The search context object (must have textSearchHeaderControl, searchQuery, etc.).
+return: table - Array of keybind descriptors.
+]]
 function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     local function HasVisibleSearchControl()
         if not context or not context.textSearchHeaderControl then return false end
@@ -126,8 +135,20 @@ local function WrapInt(value, min, max)
 end
 
 --- Sets tooltip panel width and repositions the left tooltip.
+---
 --- Purpose: Adjusts the UI layout to accommodate wider or narrower lists.
+--- Mechanics: Resizes GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT and anchors the tooltip relative to it.
+--- References: Called during scene state changes (SceneStateChange) in InterfaceLibrary.
+---
 --- @param width number The new width of the background fragment.
+--[[
+Function: BETTERUI.CIM.SetTooltipWidth
+Description: Sets tooltip panel width and repositions the left tooltip.
+Rationale: Adjusts the UI layout to accommodate wider or narrower lists dynamically.
+Mechanism: Resizes GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT and anchors the tooltip relative to it.
+param: width (number) - The new width of the background fragment.
+References: Called during scene state changes (SceneStateChange) in InterfaceLibrary.
+]]
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
@@ -137,9 +158,14 @@ end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
---- Creates a new instance of the window.
---- @param ... any Arguments passed to Initialize.
---- @return table The new window object.
+--[[
+Function: BETTERUI.Interface.Window:New
+Description: Constructor for the Base Window class.
+Rationale: Standard factory method for creating new Window instances.
+Mechanism: Allocates a new ZO_Object and calls Initialize.
+param: ... (any) - Arguments passed to Initialize.
+return: table - The new window object.
+]]
 function BETTERUI.Interface.Window:New(...)
 	local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -147,9 +173,27 @@ function BETTERUI.Interface.Window:New(...)
 end
 
 --- Initializes the window.
+---
 --- Purpose: Sets up the control, header, footer, spinner, and scene fragments.
+--- Mechanics: Creates the physical UI control from a virtual template (BETTERUI_GenericInterface).
+---            Initializes child components (Header, Footer, Spinner).
+--- References: Called by :New().
+---
 --- @param tlw_name string The name of the TopLevelWindow control.
 --- @param scene_name string The name of the scene to create/associate.
+--[[
+Function: BETTERUI.Interface.Window:Initialize
+Description: Initializes the window instance.
+Rationale: Sets up the control hierarchy, header/footer references, and spinner components.
+Mechanism:
+  1. Creates the physical UI control from 'BETTERUI_GenericInterface' virtual template.
+  2. Finds and caches references to child controls (Header, Footer, Spinner).
+  3. Initializes the spinner and wraps its range function.
+  4. Sets up parametric list and scene fragments.
+param: tlw_name (string) - The name of the TopLevelWindow control.
+param: scene_name (string) - The name of the scene to create/associate.
+TODO: [Legacy] BETTERUI_TEST_SCENE naming suggests temporary code.
+]]
 function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.windowName = tlw_name
     self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, "BETTERUI_GenericInterface")
@@ -183,21 +227,33 @@ end
 --- Sets the spinner's value range and current value.
 --- @param max number The maximum value.
 --- @param value number The current value.
+--[[
+Function: BETTERUI.Interface.Window:SetSpinnerValue
+Description: Sets the spinner's range and current value.
+param: max (number) - The maximum allowed value (min is always 1).
+param: value (number) - The current value to set.
+]]
 function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
     self.spinner:SetMinMax(1, max)
     self.spinner:SetValue(value)
 end
 
-
-
---- Shows and activates the spinner, deactivating the main list.
+--[[
+Function: BETTERUI.Interface.Window:ActivateSpinner
+Description: Shows and activates the spinner, deactivating the main list.
+Rationale: Shifts focus to the quantity selector (e.g., for splitting stacks).
+]]
 function BETTERUI.Interface.Window:ActivateSpinner()
     self.spinner:SetHidden(false)
     self.spinner:Activate()
     if(self:GetList() ~= nil) then self:GetList():Deactivate() end
 end
 
---- Hides and deactivates the spinner, reactivating the main list.
+--[[
+Function: BETTERUI.Interface.Window:DeactivateSpinner
+Description: Hides and deactivates the spinner, reactivating the main list.
+Rationale: returns focus to the main item list after spinner interaction.
+]]
 function BETTERUI.Interface.Window:DeactivateSpinner()
     self.spinner:SetValue(1)
     self.spinner:SetHidden(true)
@@ -205,9 +261,13 @@ function BETTERUI.Interface.Window:DeactivateSpinner()
     if(self:GetList() ~= nil) then self:GetList():Activate() end
 end
 
---- Toggles spinner confirmation mode (e.g., when splitting stacks).
---- @param activateSpinner boolean True to show spinner, False to hide.
---- @param list table The list control to refresh.
+--[[
+Function: BETTERUI.Interface.Window:UpdateSpinnerConfirmation
+Description: Toggles spinner confirmation mode.
+Rationale: Used when confirming a stack split or deposit/withdrawal amount.
+param: activateSpinner (boolean) - True to show/activate, False to hide/deactivate.
+param: list (table) - The list control to refresh.
+]]
 function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, list)
     self.confirmationMode = activateSpinner
     if activateSpinner then
@@ -221,6 +281,12 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
     list:SetDirectionalInputEnabled(not activateSpinner)
 end
 
+--[[
+Function: BETTERUI.Interface.Window:ApplySpinnerMinMax
+Description: Updates keybinds when spinner is toggled.
+Rationale: Adds specialized keybinds (confirm/cancel) when spinner is active.
+param: toggleValue (boolean) - True if spinner is active.
+]]
 function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     -- Safely toggle a spinner-specific keybind group if one is explicitly provided by a subclass.
     -- Many modules (e.g., Banking) manage spinner keybinds themselves; in those cases this is a no-op.
@@ -237,13 +303,22 @@ end
 --- Gets the current primary list.
 --- Can be overridden by subclasses to support multiple lists.
 --- @return table The active scroll list.
+--[[
+Function: BETTERUI.Interface.Window:GetList
+Description: Gets the current primary list.
+Rationale: Accessor method allowing subclasses to override which list is active.
+return: table - The active scroll list.
+]]
 function BETTERUI.Interface.Window:GetList()
     return self.list
 end
 
 
---- Initializes keybinds for the window.
---- Subclasses should override this to add their own keybinds.
+--[[
+Function: BETTERUI.Interface.Window:InitializeKeybind
+Description: Initializes keybinds for the window.
+Rationale: Sets up default keybind (Back) and placeholders. Subclasses should override.
+]]
 function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
     }
@@ -256,6 +331,12 @@ end
 
 --- Initializes the main parametric scroll list.
 --- @param listName string|nil Optional list name (not used in default implementation).
+--[[
+Function: BETTERUI.Interface.Window:InitializeList
+Description: Initializes the main parametric scroll list.
+Rationale: Creates `BETTERUI_VerticalItemParametricScrollList` with custom settings for BetterUI.
+param: listName (string|nil) - Optional list name (not used in default implementation).
+]]
 function BETTERUI.Interface.Window:InitializeList(listName)
     self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild("List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
 
@@ -267,9 +348,20 @@ function BETTERUI.Interface.Window:InitializeList(listName)
     self:GetList().universalPostPadding = 5
 end
 
---- Adds text search capability to the window.
---- @param textSearchKeybindStripDescriptor table Optional keybind descriptor.
---- @param onTextSearchTextChangedCallback function Callback when search text changes.
+--[[
+Function: BETTERUI.Interface.Window:AddSearch
+Description: Integrates text search capability into the window.
+Rationale: Allows users to filter lists by text input (items, banks, etc.).
+Mechanism:
+  1. Creates a header editbox control using 'ZO_Gamepad_TextSearch_HeaderEditbox'.
+  2. Wraps it in `ZO_TextSearch_Header_Gamepad` for logic handling.
+  3. Registers keybinds and focus management.
+  4. Patches the control to be mouse-interactive for PC/Hybrid users.
+  5. Registers with SCREEN_NARRATION_MANAGER for accessibility (if available).
+param: textSearchKeybindStripDescriptor (table) - Keybinds for the search state.
+param: onTextSearchTextChangedCallback (function) - Callback when search text changes.
+TODO: [Complexity] This function is very large (100+ lines). Extract mouse patching and narration setup into helpers.
+]]
 function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, onTextSearchTextChangedCallback)
     -- Create the header editbox control from the common virtual template
     if not self.header then return end
@@ -370,6 +462,11 @@ function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, o
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:IsTextSearchEntryHidden
+Description: Checks if the search entry field is hidden.
+return: boolean - True if hidden or not initialized, False otherwise.
+]]
 function BETTERUI.Interface.Window:IsTextSearchEntryHidden()
     if self.textSearchHeaderControl then
         return self.textSearchHeaderControl:IsHidden()
@@ -377,12 +474,24 @@ function BETTERUI.Interface.Window:IsTextSearchEntryHidden()
     return true
 end
 
+--[[
+Function: BETTERUI.Interface.Window:SetTextSearchEntryHidden
+Description: Sets the visibility of the search entry field.
+param: isHidden (boolean) - True to hide, False to show.
+]]
 function BETTERUI.Interface.Window:SetTextSearchEntryHidden(isHidden)
     if self.textSearchHeaderControl then
         self.textSearchHeaderControl:SetHidden(isHidden)
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:SetTextSearchFocused
+Description: Sets focus state of the search entry.
+Rationale: Used to programmatically focus the search box.
+Mechanism: Sets focus and brings window to front to ensure it honors input.
+param: isFocused (boolean) - True to focus, False to unfocus.
+]]
 function BETTERUI.Interface.Window:SetTextSearchFocused(isFocused)
     if self.textSearchHeaderFocus and self.headerFocus then
         self.textSearchHeaderFocus:SetFocused(isFocused)
@@ -395,6 +504,13 @@ function BETTERUI.Interface.Window:SetTextSearchFocused(isFocused)
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:GetActiveList
+Description: Gets the currently active list.
+Rationale: Helper to retrieve the list that should currently receive input.
+Mechanism: Tries to call `GetCurrentList` (polymorphic) if it exists, otherwise returns `self.list`.
+return: table - The active list control.
+]]
 function BETTERUI.Interface.Window:GetActiveList()
     if self.GetCurrentList then
         local ok, list = pcall(function() return self:GetCurrentList() end)
@@ -405,6 +521,12 @@ function BETTERUI.Interface.Window:GetActiveList()
     return self.list
 end
 
+--[[
+Function: BETTERUI.Interface.Window:ActivateSearchHeader
+Description: Activates the search header mode.
+Rationale: Switches context from list navigation to search input.
+Mechanism: Sets internal flag `_searchHeaderActive` and activates the focus object.
+]]
 function BETTERUI.Interface.Window:ActivateSearchHeader()
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
@@ -417,6 +539,11 @@ function BETTERUI.Interface.Window:ActivateSearchHeader()
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:DeactivateSearchHeader
+Description: Deactivates the search header mode.
+Rationale: Switches context back to list navigation.
+]]
 function BETTERUI.Interface.Window:DeactivateSearchHeader()
     if self.textSearchHeaderFocus and self._searchHeaderActive then
         self._searchHeaderActive = false
@@ -424,45 +551,87 @@ function BETTERUI.Interface.Window:DeactivateSearchHeader()
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:IsSearchHeaderActive
+Description: Checks if search header is currently active.
+return: boolean - True if active.
+]]
 function BETTERUI.Interface.Window:IsSearchHeaderActive()
     return self._searchHeaderActive == true
 end
 
+--[[
+Function: BETTERUI.Interface.Window:ClearSearchText
+Description: Clears the current search query.
+]]
 function BETTERUI.Interface.Window:ClearSearchText()
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:ClearText()
     end
 end
 
+--[[
+Function: BETTERUI.Interface.Window:IsSearchFocused
+Description: Checks if the search box has input focus.
+return: boolean - True if focused.
+]]
 function BETTERUI.Interface.Window:IsSearchFocused()
     return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
 end
 
--- Overridden
+--[[
+Function: BETTERUI.Interface.Window:RefreshList
+Description: Placeholder for list refresh logic.
+Rationale: Intended to be overridden by subclasses.
+]]
 function BETTERUI.Interface.Window:RefreshList()
 end
 
--- Overridden
+--[[
+Function: BETTERUI.Interface.Window:OnItemSelectedChange
+Description: Placeholder for selection change logic.
+Rationale: Intended to be overridden by subclasses.
+]]
 function BETTERUI.Interface.Window:OnItemSelectedChange()
 end
 
+--[[
+Function: BETTERUI.Interface.Window:SetupList
+Description: Configures the main list template.
+param: rowTemplate (string) - The XML template name for list rows.
+param: SetupFunct (function) - The setup callback function for rows.
+]]
 function BETTERUI.Interface.Window:SetupList(rowTemplate, SetupFunct)
     self.itemListTemplate = rowTemplate
     self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
+--[[
+Function: BETTERUI.Interface.Window:AddTemplate
+Description: Adds an additional data template to the list (for multi-template lists).
+param: rowTemplate (string) - The XML template name.
+param: SetupFunct (function) - The setup callback.
+]]
 function BETTERUI.Interface.Window:AddTemplate(rowTemplate, SetupFunct)
     self:GetList():AddDataTemplate(rowTemplate,SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
+--[[
+Function: BETTERUI.Interface.Window:AddEntryToList
+Description: Adds a single entry to the list and commits.
+param: data (table) - The data object for the entry.
+]]
 function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():AddEntry(self.itemListTemplate, data)
     self:GetList():Commit()
 end
 
---- Adds a column header to the window.
---- @param columnName string The text to display.
---- @param xOffset number The horizontal position (left-aligned anchor).
+--[[
+Function: BETTERUI.Interface.Window:AddColumn
+Description: Adds a column header to the window.
+param: columnName (string) - The text to display.
+param: xOffset (number) - The horizontal position (left-aligned anchor).
+]]
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     self.header.columns[colNumber] = CreateControlFromVirtual("Column"..colNumber,self.header:GetNamedChild("HeaderColumnBar"),"BETTERUI_GenericColumn_Label")
@@ -471,22 +640,39 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     self.header.columns[colNumber]:SetText(columnName)
 end
 
---- Sets the window title.
---- @param headerText string The title text.
+--[[
+Function: BETTERUI.Interface.Window:SetTitle
+Description: Sets the window title text.
+param: headerText (string) - The title text.
+]]
 function BETTERUI.Interface.Window:SetTitle(headerText)
     self.header:GetNamedChild("Header"):GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(headerText)
 end
 
+--[[
+Function: BETTERUI.Interface.Window:RefreshVisible
+Description: Refreshes the list and its visibility.
+Rationale: Helper to trigger a full list refresh.
+]]
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
     self:GetList():RefreshVisible()
 end
 
+--[[
+Function: BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback
+Description: Sets the callback for selection changes.
+param: selectedDataCallback (function) - The callback function.
+]]
 function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedDataCallback)
     self.selectedDataCallback = selectedDataCallback
 end
 
---- Initializes the main scene fragment.
+--[[
+Function: BETTERUI.Interface.Window:InitializeFragment
+Description: Initializes scene fragments for the window.
+Rationale: Sets up main window fragment and footer fragment.
+]]
 function BETTERUI.Interface.Window:InitializeFragment()
 	self.fragment = ZO_SimpleSceneFragment:New(self.control)
     self.fragment:SetHideOnSceneHidden(true)
@@ -495,8 +681,12 @@ function BETTERUI.Interface.Window:InitializeFragment()
     self.footerFragment:SetHideOnSceneHidden(true)
 end
 
---- Initializes the ESO scene object and registers callbacks.
---- @param SCENE_NAME object The existing scene object to reuse (or nil to create new? Implementation suggests existing object).
+--[[
+Function: BETTERUI.Interface.Window:InitializeScene
+Description: Initializes the ESO scene object and registers callbacks.
+Rationale: Integrates the window into the ESO scene manager provided scene.
+param: SCENE_NAME (object) - The existing scene object.
+]]
 function BETTERUI.Interface.Window:InitializeScene(SCENE_NAME)
     self.sceneName = SCENE_NAME
     SCENE_NAME:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
@@ -516,7 +706,7 @@ function BETTERUI.Interface.Window:InitializeScene(SCENE_NAME)
         	BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
         elseif(newState == SCENE_HIDING) then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-           BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
         elseif(newState == SCENE_HIDDEN) then
 
         end
@@ -525,15 +715,29 @@ function BETTERUI.Interface.Window:InitializeScene(SCENE_NAME)
 
 end
 
+--[[
+Function: BETTERUI.Interface.Window:ToggleScene
+Description: Toggles the window's scene visibility.
+]]
 function BETTERUI.Interface.Window:ToggleScene()
 	--SCENE_MANAGER:Show
 	SCENE_MANAGER:Toggle(BETTERUI_TEST_SCENE_NAME)
 end
 
+--[[
+Function: BETTERUI.Interface.Window:OnTabNext
+Description: Handler for Next Tab action.
+Rationale: Placeholder debug function. Subclasses should override.
+]]
 function BETTERUI.Interface.Window:OnTabNext()
     ddebug("OnTabNext")
 end
 
+--[[
+Function: BETTERUI.Interface.Window:OnTabPrev
+Description: Handler for Previous Tab action.
+Rationale: Placeholder debug function. Subclasses should override.
+]]
 function BETTERUI.Interface.Window:OnTabPrev()
     ddebug("OnTabPrev")
 end

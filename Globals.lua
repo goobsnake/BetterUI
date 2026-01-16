@@ -63,6 +63,7 @@ BETTERUI.DefaultSettings = {
 ---
 --- Purpose: Standardized debug logging for development.
 --- Mechanics: Prefixes the message with cyan [BETTERUI] tag and prints to chat.
+--- References: Used globally throughout the addon for debug logging.
 ---
 --- @param str string The message string to display.
 function ddebug(str)
@@ -73,6 +74,7 @@ end
 ---
 --- Purpose: Utility for numeric formatting in UI elements.
 --- Mechanics: Multiplies by power of 10, floors, and divides back to truncate/round.
+--- References: Used internally by AbbreviateNumber and other UI formatting logic.
 ---
 --- @param number number The value to round.
 --- @param decimals number The number of decimal places to keep.
@@ -91,6 +93,7 @@ end
 ---
 --- Purpose: Improves readability of large currency values in the UI.
 --- Mechanics: Uses string pattern matching to insert commas every 3 digits.
+--- References: Used by AbbreviateNumber and general UI display elements.
 ---
 --- @param number number The number to format.
 --- @return string The formatted string with commas.
@@ -112,6 +115,7 @@ end
 ---             - >= 1M: 'm' suffix, 2 decimals
 ---             - >= 1k: 'k' suffix, 0 decimals if integer, 2 if float
 ---             - < 1k: Comma separated (DisplayNumber)
+--- References: Used by ResourceOrbs, Currency displays, and other compact UI elements.
 ---
 --- @param n number The number to abbreviate.
 --- @param defaultDecimals number|nil Optional default decimal places (defaults to 2).
@@ -153,6 +157,7 @@ end
 ---
 --- Purpose: Prevents crashes or errors when passing nil icon paths to ESO API functions.
 --- Mechanics: Checks if iconPath is nil; returns empty string if so, otherwise returns original path.
+--- References: Used by Inventory, Banking, and Writ lists to ensure icon validity.
 ---
 --- @param iconPath string|nil The path to the icon texture.
 --- @return string The icon path or an empty string.
@@ -192,6 +197,8 @@ end
 ---
 --- Purpose: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
 --- Mechanics: Uses ZO_TableOrderingFunction with a custom schema.
+--- References: Used by the gamepad inventory list (Sort Comparator).
+--- TODO: Check if this custom comparator is still performing optimally for large inventory lists.
 ---
 --- @param left table The first item data.
 --- @param right table The second item data.
@@ -215,6 +222,7 @@ end
 --- Mechanics: Checks which addon integration is enabled in settings.
 ---            Calls the specific addon's API to fetch price data.
 ---            Returns the average price multiplied by stack size.
+--- References: Used by BetterUI.Tooltips and Inventory rows to show value.
 ---
 --- @param itemLink string The item link.
 --- @param stackCount number The stack size (defaults to 1).
@@ -264,6 +272,7 @@ end
 --- Purpose: Integration with AutoCategory for advanced inventory sorting.
 --- Mechanics: Checks if AutoCategory is loaded and initialized.
 ---            Calls MatchCategoryRules to get rule-based categorization.
+--- References: Used by Inventory list setup to assign items to dynamic categories.
 ---
 --- @param itemData table The item data (must contain bagId and slotIndex).
 --- @return boolean useCustomCategory (True if AutoCategory is active).
@@ -289,6 +298,7 @@ end
 ---
 --- Purpose: Safe method extension.
 --- Mechanics: Replaces the method on the control with a wrapper that calls Original -> New.
+--- References: General utility used internally generally.
 ---
 --- @param control table The UI control or object.
 --- @param method string The name of the method to hook.
@@ -309,6 +319,7 @@ end
 --- Mechanics: Replaces key 'method' on 'control'.
 ---            If overwriteOriginal is false (default), runs Original -> New.
 ---            If overwriteOriginal is true, runs ONLY New.
+--- References: General utility used for aggressive overrides (e.g. replacing Action Dialogs).
 ---
 --- @param control table The UI control.
 --- @param method string The method name.
@@ -328,6 +339,7 @@ end
 ---
 --- Purpose: Ensures consistent settings menu appearance across modules.
 --- Mechanics: Returns a table matching LAM's panel specification.
+--- References: Used by all Modules (Inventory, Banking, etc.) in their Initialization.
 ---
 --- @param moduleName string The display name of the module.
 --- @param moduleDesc string The description text.
@@ -345,6 +357,8 @@ function Init_ModulePanel(moduleName, moduleDesc)
 	}
 end
 
+-- Placeholder to suppress native Gamepad initialize if needed
+-- TODO: Verify if this empty override is actually needed or if it breaks unrelated Gamepad store functionality.
 ZO_Store_OnInitialize_Gamepad = function(...) end
 
 -- Imagery, you dont need to localise these strings

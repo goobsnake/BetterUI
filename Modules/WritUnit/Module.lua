@@ -1,8 +1,15 @@
 ---------------------------------------------------------------------------------------------------
 -- BetterUI - Writ Module
 --
+-- File: Modules/WritUnit/Module.lua
+-- Purpose: Entry point for the Writ tracking module.
+--
 -- This module displays daily writ progress when the user interacts with a crafting station.
 -- It listens for crafting events and updates a custom UI panel with the current writ requirements.
+--
+-- KEY RESPONSIBILITIES:
+-- 1.  **Lifecycle Management**: Registers event listeners for crafting station interactions.
+-- 2.  **Event Handling**: Responses to interaction start/end and craft completion to toggle UI.
 --
 -- TODO(enhancement): Add setting to enable/disable writ panel display
 -- TODO(cleanup): Event handlers check eventCode != 0 but ESO events don't return 0 - verify necessity
@@ -10,20 +17,26 @@
 
 local _
 
--- Initializes Writs default settings
 --- Initializes the Writs module settings.
---- Currently a passthrough as there are no specific settings for this module yet.
+---
+--- Purpose: Callback for module initialization.
+--- Mechanics: Currently a pass-through; placeholder for future settings overrides.
+---
 --- @param m_options table The module options table.
 --- @return table The initialized options table.
 function BETTERUI.Writs.InitModule(m_options)
     return m_options
 end
 
--- Event: Crafting station interaction started
 --- Event handler for crafting station interaction (Start).
---- Shows the Writ panel if the interaction is valid.
+---
+--- Purpose: Triggered when user enters a crafting station.
+--- Mechanics:
+--- - Validates event code.
+--- - Calls `BETTERUI.Writs.Show` with the station's craft ID to display relevant writs.
+---
 --- @param eventCode number The event code.
---- @param craftId number The crafting station ID.
+--- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 --- @param sameStation boolean Whether the user is interacting with the same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
 	if eventCode ~= 0 then -- 0 is an invalid code
@@ -31,17 +44,21 @@ local function OnCraftStation(eventCode, craftId, sameStation)
 	end
 end
 
--- Event: Crafting station interaction ended
 --- Event handler for crafting station interaction (End).
---- Hides the Writ panel.
+---
+--- Purpose: Triggered when user exits a crafting station.
+--- Mechanics: Calls `BETTERUI.Writs.Hide` to remove the overlay.
+---
 --- @param eventCode number The event code.
 local function OnCloseCraftStation(eventCode)
 	BETTERUI.Writs.Hide()
 end
 
--- Event: Item crafted
 --- Event handler for crafting completion.
---- Refreshes the Writ panel to show updated progress.
+---
+--- Purpose: Triggered when an item is crafted.
+--- Mechanics: Calls `BETTERUI.Writs.Show` to refresh the progress (e.g., 1/3 -> 2/3).
+---
 --- @param eventCode number The event code.
 --- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
@@ -52,7 +69,15 @@ end
 
 -- Sets up Writs module: creates UI and registers event handlers
 --- Sets up the Writs module.
---- Creates the top-level window and registers event listeners for crafting interactions.
+---
+--- Purpose: Module Entry Point.
+--- Mechanics:
+--- 1. Creates top-level `BETTERUI_TLW`.
+--- 2. Instantiates `BETTERUI_WritsPanel` from template.
+--- 3. Registers callbacks for Station Interact (Start/End) and Craft Completed.
+--- 4. Hides panel initially.
+--- References: Called from `BetterUI.lua` during addon initialization.
+---
 function BETTERUI.Writs.Setup()
 	local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_TLW")
 	local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel",tlw,"BETTERUI_WritsPanel")

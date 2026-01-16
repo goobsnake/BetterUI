@@ -30,6 +30,7 @@ end
 --- Purpose: Registers the add-on settings panel using LibAddonMenu2.
 --- Mechanics: Construct a table of options including checkboxes for each module.
 ---            Registers the panel and options with LAM.
+--- References: Called during BETTERUI.Initialize.
 ---
 function BETTERUI.InitModuleOptions()
 	local panelData = Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
@@ -118,6 +119,7 @@ end
 ---
 --- Purpose: Standardizes the initialization of module-specific settings.
 --- Mechanics: Checks if the module has an InitModule function and calls it with provided options.
+--- References: Called by BETTERUI.Initialize for each registered module (Inventory, Banking, etc.).
 ---
 --- @param m_namespace table The module's namespace table.
 --- @param m_options table The options table for the module.
@@ -134,7 +136,9 @@ end
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
 --- Mechanics: Applies runtime patches for API compatibility.
 ---            Initializes research data and module-specific setups (Inventory, Banking, Wraps, etc.).
+---            Includes Monkey-Patches for ZO_Global functions to prevent crashes with nil icon paths.
 --- References: Called on initialization and when switching to Gamepad mode.
+--- TODO: Check if patch #2 (HandleDuplicateAddKeybind) can be simplified in recent API versions.
 ---
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
@@ -315,6 +319,7 @@ end
 --- Purpose: Responds to the EVENT_ADD_ON_LOADED event.
 --- Mechanics: Loads saved variables, initializes settings, and sets up event listeners.
 ---            Decides whether to load modules immediately (if in Gamepad mode).
+--- References: Registered to EVENT_ADD_ON_LOADED.
 ---
 --- @param event number The event ID.
 --- @param addon string The name of the addon being loaded.
