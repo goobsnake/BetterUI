@@ -1,5 +1,10 @@
--- BetterUI Constants
--- UI layout values and constants used throughout the addon
+-- BetterUI.CONST.lua
+---
+--- Purpose: Defines all static constants, configuration values, and layout definitions used throughout the BetterUI addon.
+---          This file serves as the central configuration repository for UI dimensions, positioning, and default values.
+--- Mechanics: Populates the BETTERUI.CONST table which is accessed globally by other modules.
+--- References: Referenced by virtually all modules (Inventory, Banking, GeneralInterface) for layout and logical constants.
+---
 
 local _
 
@@ -8,6 +13,7 @@ local _
 -- ============================================================================
 
 -- Crafting skill types for research trait tracking
+--- Used by: Tooltips and Inventory modules to check research status.
 BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, CRAFTING_TYPE_JEWELRYCRAFTING, CRAFTING_TYPE_WOODWORKING }
 
 -- ============================================================================
@@ -15,6 +21,7 @@ BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE
 -- ============================================================================
 
 -- Panel widths
+--- Defines the standard width for the gamepad interface right-hand panel.
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = 1350
 BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = 470
 
@@ -63,6 +70,7 @@ BETTERUI_BANK_SEARCH_RIGHT_INSET = -8      -- Right edge inset (more negative = 
 -- ============================================================================
 
 -- Entry widths (used in XML templates)
+--- Calculated widths for list rows to ensure they fit within the panel with correct padding.
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH - (2 * BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING)
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH - BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET = -20
@@ -79,6 +87,7 @@ BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 -- ============================================================================
 -- XML TEMPLATE VALUES (Column Layout)
 -- ============================================================================
+-- TODO: Consider moving these to a layout configuration table instead of global variables to reduce namespace pollution.
 
 -- Sub-menu label positioning
 BETTERUI_SUBMENU_LABEL_OFFSET_X = 87
@@ -114,6 +123,8 @@ BETTERUI_STATUS_INDICATOR_OFFSET_X = -2 -- Status indicator (new item, stolen, e
 -- nil values inherit from parent config (e.g., slots or front bar)
 -- ============================================================================
 
+--- Configuration table for the Resource Orb Frames (Health/Magicka/Stamina orbs).
+--- Defines all spatial relationships and sizing for the ARPG-style interface.
 BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     -- SKILL BUTTON DIMENSIONS

@@ -1,3 +1,14 @@
+---------------------------------------------------------------------------------------------------
+-- BetterUI - Resource Orb Frames
+--
+-- This massive module implements a complete replacement for the standard attribute bars.
+-- It features:
+-- 1. Diablo-style Orbs: Visually distinct orbs for Health, Magicka, and Stamina.
+-- 2. Dynamic Layout: Orbs resize and reposition based on settings and active combat state.
+-- 3. Theming: Supports custom textures and visual effects (fog, overlays).
+-- 4. Event Handling: Reacts to stat changes (health drop, resource consumption) in real-time.
+---------------------------------------------------------------------------------------------------
+
 local NAME = "ResourceOrbFrames"
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.ResourceOrbFrames == nil then BETTERUI.ResourceOrbFrames = {} end
@@ -41,11 +52,35 @@ local ORB_CONFIG = {
 }
 
 -------------------------------------------------------------------------------------------------
--- Utility Functions
+-- UTILITY FUNCTIONS
+-------------------------------------------------------------------------------------------------
+-- This section contains helper functions used throughout the module. These are general-purpose
+-- utilities that don't directly modify UI state but support other operations.
+--
+-- TODO(refactor): Consider moving these utilities to a shared utilities module
+--                 (e.g., BetterUI/Shared/ControlUtils.lua) since FindControl is used
+--                 by multiple modules.
 -------------------------------------------------------------------------------------------------
 
-
--- Helper to find controls by name, handling both direct children and global names
+--- Finds a control by name, handling ESO's complex naming conventions.
+---
+--- ESO XML templates use $(parent), $(grandparent), etc. to create globally-unique names.
+--- This function handles that complexity by:
+---   1. First checking for a direct child with the given name
+---   2. Walking up the parent chain and checking for global names
+---   3. Falling back to direct global name lookup
+---
+--- WHY THIS COMPLEXITY:
+---   ESO's UI system doesn't have a simple parent.FindChild() that works consistently.
+---   Controls created via XML templates often have names like "ParentGrandparentChildName"
+---   which requires iterating through possible name combinations.
+---
+--- TODO(optimization): Cache found controls to avoid repeated lookups during frame updates
+--- TODO(cleanup): The guards variable limits iterations to 6 - document why this limit exists
+---
+--- @param parent Control The parent control to search from
+--- @param name string The short name of the control to find (e.g., "Icon", "Button1")
+--- @return Control|nil The found control, or nil if not found
 local function FindControl(parent, name)
     -- First try to grab a direct child with the given short name
     local child = parent:GetNamedChild(name)
@@ -76,7 +111,12 @@ local function FindControl(parent, name)
     return nil
 end
 
--- Retrieve module settings
+--- Retrieves the current settings for the ResourceOrbFrames module.
+---
+--- Falls back to DEFAULTS if settings haven't been initialized yet
+--- (e.g., during addon load before saved variables are loaded).
+---
+--- @return table Module settings table containing scale, offsetY, colors, etc.
 local function GetModuleSettings()
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["ResourceOrbFrames"] then
         return BETTERUI.Settings.Modules["ResourceOrbFrames"]
@@ -84,7 +124,15 @@ local function GetModuleSettings()
     return DEFAULTS
 end
 
--- Determine the base path for textures
+--- Determines the base path for orb texture files.
+---
+--- Supports custom textures by checking the useCustomTextures setting.
+--- Default textures are in OrbTextures/, custom in CustomOrbTextures/.
+---
+--- TODO(enhancement): Add validation that custom texture folder exists
+--- TODO(enhancement): Support additional texture sets (e.g., holiday themes)
+---
+--- @return string Base path for texture files
 local function GetTextureRootPath()
     local settings = GetModuleSettings()
     if settings.useCustomTextures then
@@ -93,16 +141,42 @@ local function GetTextureRootPath()
     return "BetterUI/Modules/GeneralInterface/OrbTextures"
 end
 
--- Format a texture path
+--- Resolves a texture filename to a full path.
+---
+--- @param filename string The texture filename (e.g., "OrbFill.dds")
+--- @return string Full path to the texture file
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", GetTextureRootPath(), filename)
 end
 
 -------------------------------------------------------------------------------------------------
--- Visuals & Layout
+-- VISUALS & LAYOUT
+-------------------------------------------------------------------------------------------------
+-- This section handles the visual appearance and positioning of orb UI elements.
+-- Key responsibilities:
+--   - Scaling the entire frame based on user settings
+--   - Applying theme textures (default vs custom)
+--   - Positioning orbs, ornaments, and skill bars
+--
+-- TODO(architecture): This section is ~400 lines and handles too much. Consider splitting into:
+--   - OrbLayoutManager: Orb positioning and sizing
+--   - ThemeManager: Texture application and theme switching
+--   - BarLayoutManager: Skill bar positioning
 -------------------------------------------------------------------------------------------------
 
--- Update the frame's scale and position
+--- Updates the frame's scale and vertical position based on user settings.
+---
+--- WHY INVERT offsetY:
+---   User expectation is that positive values move the frame UP, but SetAnchor uses
+---   positive values to move DOWN. We invert to match user intuition.
+---
+--- WHY NOT SCALE ZO_ActionBar1:
+---   ESO's internal positioning code assumes scale 1.0. Scaling the action bar causes
+---   conflicts with companion spawn animations and weapon swap positioning.
+---   See: "buttons get bigger" bug reports.
+---
+--- TODO(fixme): The scale check `if scale then` is always true since scale defaults to 1
+--- TODO(enhancement): Add animation when scale/position changes for smoother transitions
 local function UpdateFrameDimensions()
     if not m_rootFrame then return end
     local settings = GetModuleSettings()
@@ -126,7 +200,18 @@ end
 
 
 
--- Update textures for the main frame elements
+--- Applies theme-appropriate textures to all orb UI elements.
+---
+--- Handles two types of textures:
+---   1. Main frame elements (ornaments)
+---   2. Orb-specific textures (fills, borders, overlays)
+---
+--- WHY SEPARATE ApplyOrbTextures:
+---   Each orb type (Health, Magicka, Stamina) has the same texture structure
+---   but different parent controls. The nested function avoids code duplication.
+---
+--- TODO(refactor): ApplyOrbTextures is defined inline - move to module scope for testability
+--- TODO(optimization): Only update textures that have actually changed
 local function ApplyThemeVisuals()
     if not m_rootFrame then return end
     
@@ -144,6 +229,7 @@ local function ApplyThemeVisuals()
     end
 
     -- Helper to update orb specific textures
+    -- @param parentName string Name of the orb parent control
     local function ApplyOrbTextures(parentName)
         local parent = FindControl(m_rootFrame, parentName)
         if not parent then return end
@@ -167,7 +253,7 @@ local function ApplyThemeVisuals()
     ApplyOrbTextures('OrbMagicka')
     ApplyOrbTextures('OrbStamina')
 
-    -- Update Overlays
+    -- Update Overlays (special textures for shield, etc.)
     local overlays = {
         OrbShield = 'OrbOverlay_Shield.dds',
     }
@@ -183,7 +269,34 @@ local function ApplyThemeVisuals()
     end
 end
 
--- Force Update Layout from Constants (orbs, ornaments positioning)
+--- Updates the positioning and sizing of all orb elements based on BETTERUI_ORB_FRAMES config.
+---
+--- This is the CORE LAYOUT FUNCTION for the orb system. It handles:
+---   - Ornament visibility and positioning
+---   - Orb positioning (relative to ornaments or absolute when ornaments hidden)
+---   - Fill texture sizing for health, magicka, stamina
+---   - Shield overlay positioning
+---   - Label positioning for resource values
+---   - Splitter (divider) positioning for split resources orb
+---
+--- WHY SO COMPLEX:
+---   The layout supports multiple configurations:
+---     - Ornaments visible vs hidden (different anchor points)
+---     - Variable orb scales when ornaments are hidden
+---     - Precise sub-pixel fill positioning for smooth animations
+---
+--- CALLED BY:
+---   - ResourceOrbFrames_Initialize() during addon load
+---   - Settings changes that affect layout
+---   - Input mode changes (keyboard vs gamepad)
+---
+--- TODO(refactor): This function is 320+ lines - split into smaller functions:
+---   - UpdateOrnamentLayout()
+---   - UpdateHealthOrbLayout()
+---   - UpdateResourceOrbLayout()
+---   - UpdateShieldOrbLayout()
+--- TODO(optimization): Only update elements that have actually changed
+--- TODO(cleanup): Remove BETTERUI_ORB_DEBUG_PRINTS references or make configurable
 local function UpdateOrbLayout()
     local leftOrb = FindControl(m_rootFrame, 'OrbHealth')
     local rightOrb = FindControl(m_rootFrame, 'OrbResource')
@@ -201,7 +314,7 @@ local function UpdateOrbLayout()
     local hideLeftOrnament = settings.hideLeftOrnament or false
     local hideRightOrnament = settings.hideRightOrnament or false
     
-    -- Orb border sizes - apply scale when ornament is hidden
+    -- Orb border sizes - apply scale when ornament is hidden 
     local leftBorderSize = cfg.orbs.left.borderSize
     local rightBorderSize = cfg.orbs.right.borderSize
     
@@ -506,27 +619,40 @@ local function UpdateOrbLayout()
         m_shieldBar.fillOffsetY = cfg.fills.shield.y
     end
 end
+-------------------------------------------------------------------------------------------------
+-- BACK BAR (Inactive Weapon Set)
+-------------------------------------------------------------------------------------------------
+-- Functions for managing the back bar display - the inactive weapon set shown above
+-- the main skill bar. Updates icons, cooldowns, and tooltips.
+--
+-- ESO WEAPON SWAP MECHANICS:
+--   - Players unlock weapon swap at level 15
+--   - Two weapon sets: ACTIVE_WEAPON_PAIR_MAIN and ACTIVE_WEAPON_PAIR_BACKUP
+--   - Swapping changes which bar is "front" vs "back"
+--
+-- TODO(enhancement): Add animation when weapon swap occurs
+-- TODO(optimization): Only update changed slots, not all 6
+-------------------------------------------------------------------------------------------------
 
-
--- Layout config using structured constants
-local LAYOUT_CONFIG = {
-    GAMEPAD = {
-        abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.gamepad.width,
-        abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.gamepad.spacing,
-    },
-    KEYBOARD = {
-        abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.keyboard.width,
-        abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.keyboard.spacing,
-    }
-}
-
-
-
--- Check if player has unlocked weapon swap (backup bar) - requires level 15
+--- Checks if the player has unlocked weapon swap (requires level 15).
+--- @return boolean True if player can use backup bar
 local function CanUseBackupBar()
     return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
 end
 
+--- Updates the back bar visuals (icons, opacity) for the inactive weapon set.
+---
+--- This function:
+---   1. Hides the bar if player hasn't unlocked weapon swap
+---   2. Determines which hotbar category is the "back" bar
+---   3. Updates all 6 button icons (5 skills + ultimate)
+---   4. Applies opacity/dimming per user settings
+---   5. Stores slot references for tooltip handlers
+---
+--- WHY SLOTS 3-7 + 8:
+---   ESO slot indices: 1-2 are reserved, 3-7 are skills, 8 is ultimate
+---
+--- @param rootFrame Control The root control frame
 local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -580,7 +706,14 @@ local function UpdateBackBar(rootFrame)
     backBarContainer:SetHidden(false)
 end
 
--- Update back bar layout to match front bar sizing exactly
+--- Updates the back bar layout to match front bar sizing exactly.
+---
+--- Ensures visual consistency between front and back bars by:
+---   - Using same button sizes as front bar
+---   - Applying same spacing rules
+---   - Positioning ultimate with appropriate gap
+---
+--- @param rootFrame Control The root control frame
 local function UpdateBackBarLayout(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -815,6 +948,8 @@ local function HideNativeActionBar()
 end
 
 -- Update front bar button icons and state
+-- Update front bar button icons and state.
+--- @param rootFrame object The root control frame.
 local function UpdateFrontBar(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -1592,6 +1727,8 @@ local function UpdateQuickslotAndCompanionPositioning(rootFrame)
     end
 end
 
+-- Updates the main action bar layout, positioning the BetterUI container.
+--- @param rootFrame object The root control frame.
 local function UpdateMainBarLayout(rootFrame)
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
@@ -1779,6 +1916,9 @@ local function SetupNativeBackBar(rootFrame)
 end
 
 -- Skin the main action bar
+-- Skin the main action bar to use the BetterUI template.
+--- @param rootFrame object The root control frame.
+--- @param layout table The layout configuration.
 local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     -- Always use double bar template
@@ -1826,6 +1966,9 @@ local BetterUIOrbBar = ZO_Object:Subclass()
 
 
 
+--- Creates a new BetterUIOrbBar instance.
+--- @param ... any Arguments passed to Initialize.
+--- @return BetterUIOrbBar The new instance.
 function BetterUIOrbBar:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
@@ -2980,6 +3123,8 @@ local function ApplySkillBarVisuals()
     end
 end
 
+--- Applies the current settings to the Resource Orb Frames.
+--- Initializes the module if needed, updates visuals, and handles visibility.
 function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
@@ -3062,6 +3207,9 @@ function ResourceOrbFrames.ApplySettings()
     end
 end
 
+--- Initializes the Resource Orb Frames module.
+--- Registers events for player activation and level updates.
+--- @param control object The root control for the module.
 function ResourceOrbFrames_Initialize(control)
     m_rootFrame = control
     

@@ -1,11 +1,22 @@
--- BetterUI Main Entry Point
--- Handles module initialization, settings panel registration, and runtime patches
+-- BetterUI.lua
+---
+--- Purpose: Main entry point for the BetterUI addon.
+---          Handles module initialization, event registration, and runtime patches.
+--- Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
+---            Manages the loading of sub-modules based on Gamepad mode.
+---
 
 local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
--- Updates CIM state based on dependent modules (auto-enable when any UI module is active)
+--- Updates the Common Interface Module (CIM) state based on dependents.
+---
+--- Purpose: Ensures CIM is enabled if any module requiring it (Inventory, Banking) is active.
+--- Mechanics: Checks settings for Tooltips, Inventory, and Banking.
+---            Updates the CIM m_enabled setting accordingly.
+--- References: Called when toggling module settings in the options panel.
+---
 function BETTERUI.UpdateCIMState()
 	local settings = BETTERUI.Settings.Modules
 	local shouldEnable = settings["Tooltips"].m_enabled or
@@ -14,7 +25,12 @@ function BETTERUI.UpdateCIMState()
 	settings["CIM"].m_enabled = shouldEnable
 end
 
--- Initializes module options panel with enable/disable checkboxes
+--- Initializes the module options panel in the settings menu.
+---
+--- Purpose: Registers the add-on settings panel using LibAddonMenu2.
+--- Mechanics: Construct a table of options including checkboxes for each module.
+---            Registers the panel and options with LAM.
+---
 function BETTERUI.InitModuleOptions()
 	local panelData = Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
 
@@ -98,10 +114,14 @@ function BETTERUI.InitModuleOptions()
 	LAM:RegisterOptionControls("BETTERUI_".."Modules", optionsTable)
 end
 
--- Calls module's InitModule function to set up default options
---- @param m_namespace table: Module namespace
---- @param m_options table: Module options table
---- @return table: Initialized module namespace
+--- Calls a module's InitModule function to set up default options.
+---
+--- Purpose: Standardizes the initialization of module-specific settings.
+--- Mechanics: Checks if the module has an InitModule function and calls it with provided options.
+---
+--- @param m_namespace table The module's namespace table.
+--- @param m_options table The options table for the module.
+--- @return table The initialized module namespace.
 function BETTERUI.ModuleOptions(m_namespace, m_options)
 	if m_namespace and m_namespace.InitModule then
 		m_options = m_namespace.InitModule(m_options)
@@ -109,7 +129,13 @@ function BETTERUI.ModuleOptions(m_namespace, m_options)
 	return m_namespace
 end
 
--- Loads and initializes all enabled modules (called once on gamepad mode)
+--- Loads and initializes all enabled modules.
+---
+--- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
+--- Mechanics: Applies runtime patches for API compatibility.
+---            Initializes research data and module-specific setups (Inventory, Banking, Wraps, etc.).
+--- References: Called on initialization and when switching to Gamepad mode.
+---
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
 
@@ -284,9 +310,14 @@ function BETTERUI.LoadModules()
 	BETTERUI._initialized = true
 end
 
--- Main addon initialization (called on EVENT_ADD_ON_LOADED)
---- @param event string: Event type
---- @param addon string: Addon name that triggered the event
+--- Main addon initialization handler.
+---
+--- Purpose: Responds to the EVENT_ADD_ON_LOADED event.
+--- Mechanics: Loads saved variables, initializes settings, and sets up event listeners.
+---            Decides whether to load modules immediately (if in Gamepad mode).
+---
+--- @param event number The event ID.
+--- @param addon string The name of the addon being loaded.
 function BETTERUI.Initialize(event, addon)
 	-- Only handle our own addon load event
 	if addon ~= BETTERUI.name then return end

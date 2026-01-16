@@ -1,4 +1,8 @@
 -- BetterUI Japanese Localization
+---
+--- Purpose: Defines localized string constants for Japanese.
+--- Mechanics: Registers string IDs with the ESO localization system (ZO_CreateStringId).
+---
 
 -- UI Labels (Resource Orb Frames)
 ZO_CreateStringId("SI_BETTERUI_LABEL_CAST_BAR", "キャストバー")

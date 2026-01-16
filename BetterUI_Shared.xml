@@ -1,22 +1,60 @@
 <GuiXml>
+    <!--
+        BetterUI Shared Templates
+        Description: Defines virtual UI templates (classes) for the Gamepad Interface.
+        These templates are inherited by specific controls in the Inventory, Banking, and Writ modules.
+        
+        Naming Standard: BETTERUI_Gamepad*
+    -->
     <Controls>
 
-        <Label name="BETTERUI_GamepadSubMenuEntryLabelTemplate" font="ZoFontGamepad34" verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true">
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT"/>
-            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT"/>
+        <!-- 
+            Template: Label
+            Purpose: Standard text label for list entries.
+            Structure: A generic label using Gamepad Font 34 (Medium-Large), elliptically wrapped.
+                       Used as the base for most simple list text.
+        -->
+        <Label name="BETTERUI_GamepadSubMenuEntryLabelTemplate" font="ZoFontGamepad34"
+            verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true">
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT" />
+            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT" />
         </Label>
-        <Cooldown name="BETTERUI_GamepadMenuEntryCooldownTemplate" inherits="ZO_DefaultCooldown" excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false" virtual="true">
+
+        <!-- 
+            Template: Cooldown
+            Purpose: Overlay for items with cooldowns (e.g. potions, siege).
+            Structure: Inherits ZO_DefaultCooldown, fills parent.
+        -->
+        <Cooldown name="BETTERUI_GamepadMenuEntryCooldownTemplate" inherits="ZO_DefaultCooldown"
+            excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false" virtual="true">
             <AnchorFill />
         </Cooldown>
-        <Texture name="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" inherits="ZO_MultiIcon" excludeFromResizeToFitExtents="true" hidden="true" virtual="true">
+
+        <!-- 
+            Template: Status Indicator
+            Purpose: Small icon for status flags: New, Stolen, Quest Item.
+            Structure: Positioned 2px left of the main icon.
+        -->
+        <Texture name="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" inherits="ZO_MultiIcon"
+            excludeFromResizeToFitExtents="true" hidden="true" virtual="true">
             <Dimensions x="24" y="24" />
-            <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="BETTERUI_STATUS_INDICATOR_OFFSET_X" />
+            <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT"
+                offsetX="BETTERUI_STATUS_INDICATOR_OFFSET_X" />
         </Texture>
 
 
-        <Texture name="BETTERUI_GamepadMenuEntryIconTemplate" tier="MEDIUM" inherits="ZO_MultiIcon" excludeFromResizeToFitExtents="true" level="1" pixelRoundingEnabled="true" virtual="true">
+        <!-- 
+            Template: Main Icon
+            Purpose: The primary visual representation of the item.
+            Structure: Centered vertically relative to the label, to the left.
+                       Contains a Highlight texture for selection state.
+        -->
+        <Texture name="BETTERUI_GamepadMenuEntryIconTemplate" tier="MEDIUM" inherits="ZO_MultiIcon"
+            excludeFromResizeToFitExtents="true" level="1" pixelRoundingEnabled="true"
+            virtual="true">
             <Dimensions x="24" y="24" />
-            <Anchor point="CENTER" relativeTo="$(parent)Label" relativePoint="LEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET" />
+            <Anchor point="CENTER" relativeTo="$(parent)Label" relativePoint="LEFT"
+                offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET" />
             <Controls>
                 <Texture name="$(parent)Highlight" pixelRoundingEnabled="false" level="0">
                     <AnchorFill />
@@ -24,98 +62,176 @@
             </Controls>
         </Texture>
 
-         <Label name="BETTERUI_GamepadMenuEntryLabelTemplate" font="ZoFontGamepad34" verticalAlignment="CENTER" wrapMode="ELLIPSIS" modifyTextType="UPPERCASE" virtual="true">
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT"/>
-            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT"/>
+        <!-- 
+            Template: Label (Uppercase)
+            Purpose: Variation of the standard label that enforces uppercase text.
+            Structure: Same as SubMenuEntryLabel but with modifyTextType="UPPERCASE".
+        -->
+        <Label name="BETTERUI_GamepadMenuEntryLabelTemplate" font="ZoFontGamepad34"
+            verticalAlignment="CENTER" wrapMode="ELLIPSIS" modifyTextType="UPPERCASE" virtual="true">
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT" />
+            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT" />
         </Label>
 
-        <Control name="BETTERUI_GamepadMenuEntryDimensionsTemplate" resizeToFitDescendents="true" virtual="true">
+        <!-- 
+            Template: Component Sizing
+            Purpose: Defines the root dimensions of a list entry row.
+            Structure: A control containing a spacer to enforce minimum width/height.
+        -->
+        <Control name="BETTERUI_GamepadMenuEntryDimensionsTemplate" resizeToFitDescendents="true"
+            virtual="true">
             <Controls>
+                <!-- Spacer ensures the control maintains minimum width/height -->
                 <Control name="$(parent)RootSpacer">
-                    <Anchor point="TOPLEFT"/>
-                    <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" y="4"/>
+                    <Anchor point="TOPLEFT" />
+                    <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" y="4" />
                 </Control>
             </Controls>
         </Control>
 
+        <!-- 
+            Template: Dynamic Sizing
+            Purpose: Logic to calculate the height of a row based on its text content.
+            Structure: Attaches an OnInitialized handler that overrides GetHeight.
+                       Calculates height based on Label and ItemType children.
+            TODO: Review if 'ItemType' child check is efficient for every row initialization.
+        -->
         <Control name="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
             <OnInitialized>
                 ZO_SharedGamepadEntry_OnInitialized(self)
                 local function ComputeHeightFromLabelAndItemType(control)
-                    local height = control.label:GetTextHeight()
-                    local itemTypeControl = control:GetNamedChild("ItemType")
-                    if itemTypeControl then
-                        local typeHeight = itemTypeControl:GetTextHeight()
-                        height = height > typeHeight and height or typeHeight
-                    end
-                    return height
+                local height = control.label:GetTextHeight()
+                local itemTypeControl = control:GetNamedChild("ItemType")
+                if itemTypeControl then
+                local typeHeight = itemTypeControl:GetTextHeight()
+                height = height > typeHeight and height or typeHeight
+                end
+                return height
                 end
                 self.GetHeight = ComputeHeightFromLabelAndItemType
             </OnInitialized>
         </Control>
 
-         <Control name="BETTERUI_GamepadSubMenuEntryTemplate" inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
-           <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING"/>
-           <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH"/>
+        <!-- 
+            Template: Sub-Menu Entry (Grid Row)
+            Purpose: The main template for inventory rows in BetterUI's grid view.
+            Structure:
+                - Label: Item Name
+                - Icon: Item Icon
+                - EquippedMain: Equipped lock icon
+                - StatusIndicator: New/Stolen icon
+                - PlayerLockedIcon
+                - Columns: ItemType, Trait, Stat, Value (Labels)
+        -->
+        <Control name="BETTERUI_GamepadSubMenuEntryTemplate"
+            inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate"
+            virtual="true">
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
             <Controls>
-                <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad42" wrapMode="ELLIPSIS">
-                    <Anchor point="TOPLEFT" offsetX="BETTERUI_SUBMENU_LABEL_OFFSET_X"/>
-                    <Dimensions x="BETTERUI_SUBMENU_LABEL_WIDTH"/>
+                <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate"
+                    font="ZoFontGamepad42" wrapMode="ELLIPSIS">
+                    <Anchor point="TOPLEFT" offsetX="BETTERUI_SUBMENU_LABEL_OFFSET_X" />
+                    <Dimensions x="BETTERUI_SUBMENU_LABEL_WIDTH" />
                 </Label>
-                <Texture name="$(parent)Icon" inherits="BETTERUI_MenuEntryIconTemplate" edgeColor="00000000">
+                <Texture name="$(parent)Icon" inherits="BETTERUI_MenuEntryIconTemplate"
+                    edgeColor="00000000">
                 </Texture>
 
-                <Texture name="$(parent)EquippedMain" textureFile="BetterUI/Templates/Images/inv_equip.dds" excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false">
+                <!-- Icon indicating the item is currently equipped -->
+                <Texture name="$(parent)EquippedMain"
+                    textureFile="BetterUI/Templates/Images/inv_equip.dds"
+                    excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false">
                     <Dimensions x="28" y="24" />
-                    <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT" offsetX="BETTERUI_EQUIPPED_ICON_OFFSET_X" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT"
+                        offsetX="BETTERUI_EQUIPPED_ICON_OFFSET_X" />
                 </Texture>
 
-                <Texture name="$(parent)StatusIndicator" inherits="BETTERUI_GamepadMenuEntryStatusIndicationTemplate"/>
+                <Texture name="$(parent)StatusIndicator"
+                    inherits="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" />
 
-                <Texture name="$(parent)PlayerLockedIcon" inherits="ZO_GamepadMenuEntryPlayerLockedTemplate" />
+                <Texture name="$(parent)PlayerLockedIcon"
+                    inherits="ZO_GamepadMenuEntryPlayerLockedTemplate" />
 
-                <!-- Item information labels -->
-                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="NONE" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_ITEM_TYPE_OFFSET_X"/>
-                    <Dimensions x="BETTERUI_ITEM_TYPE_WIDTH"/>
+                <!-- 
+                    Column Data Labels
+                    These offsets are defined in BetterUI.CONST.lua
+                -->
+                <Label name="$(parent)ItemType" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate"
+                    text="NONE" font="ZoFontGamepadCondensed25" override="true"
+                    verticalAlignment="CENTER" horizontalAlignment="LEFT"
+                    excludeFromResizeToFitExtents="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)Label"
+                        offsetX="BETTERUI_ITEM_TYPE_OFFSET_X" />
+                    <Dimensions x="BETTERUI_ITEM_TYPE_WIDTH" />
                 </Label>
-                <Label name="$(parent)Trait" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_TRAIT_OFFSET_X"/>
-                    <Dimensions x="BETTERUI_TRAIT_WIDTH"/>
+                <Label name="$(parent)Trait" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate"
+                    text="-" font="ZoFontGamepadCondensed25" override="true"
+                    verticalAlignment="CENTER" horizontalAlignment="LEFT"
+                    excludeFromResizeToFitExtents="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)Label"
+                        offsetX="BETTERUI_TRAIT_OFFSET_X" />
+                    <Dimensions x="BETTERUI_TRAIT_WIDTH" />
                 </Label>
-                <Label name="$(parent)Stat" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="-" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_STAT_OFFSET_X"/>
-                    <Dimensions x="BETTERUI_STAT_WIDTH"/>
+                <Label name="$(parent)Stat" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate"
+                    text="-" font="ZoFontGamepadCondensed25" override="true"
+                    verticalAlignment="CENTER" horizontalAlignment="LEFT"
+                    excludeFromResizeToFitExtents="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)Label"
+                        offsetX="BETTERUI_STAT_OFFSET_X" />
+                    <Dimensions x="BETTERUI_STAT_WIDTH" />
                 </Label>
-                <Label name="$(parent)Value" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate" text="0" font="ZoFontGamepadCondensed25" override="true" verticalAlignment="CENTER" horizontalAlignment="LEFT" excludeFromResizeToFitExtents="true">
-                    <Anchor point="LEFT" relativeTo="$(parent)Label" offsetX="BETTERUI_VALUE_OFFSET_X"/>
-                    <Dimensions x="BETTERUI_VALUE_WIDTH"/>
+                <Label name="$(parent)Value" inherits="BETTERUI_GamepadSubMenuEntryLabelTemplate"
+                    text="0" font="ZoFontGamepadCondensed25" override="true"
+                    verticalAlignment="CENTER" horizontalAlignment="LEFT"
+                    excludeFromResizeToFitExtents="true">
+                    <Anchor point="LEFT" relativeTo="$(parent)Label"
+                        offsetX="BETTERUI_VALUE_OFFSET_X" />
+                    <Dimensions x="BETTERUI_VALUE_WIDTH" />
                 </Label>
             </Controls>
         </Control>
-        <Control name="BETTERUI_GamepadItemSubEntryTemplate" inherits="BETTERUI_GamepadSubMenuEntryTemplate" virtual="true">
+
+        <!-- Template for items with cooldowns (inherits from above) -->
+        <Control name="BETTERUI_GamepadItemSubEntryTemplate"
+            inherits="BETTERUI_GamepadSubMenuEntryTemplate" virtual="true">
             <Controls>
-                <Cooldown name="$(parent)Cooldown" inherits="BETTERUI_GamepadMenuEntryCooldownTemplate" tier="MEDIUM" excludeFromResizeToFitExtents="true"/>
+                <Cooldown name="$(parent)Cooldown"
+                    inherits="BETTERUI_GamepadMenuEntryCooldownTemplate" tier="MEDIUM"
+                    excludeFromResizeToFitExtents="true" />
             </Controls>
         </Control>
 
 
-         <Control name="BETTERUI_GamepadMenuEntryTemplate" inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
+        <!-- 
+            Template: Simple Menu Entry (Legacy/Basic)
+            Purpose: A simpler row template used for non-grid lists (like menu options).
+            Structure: Label and Icon only, no extra columns.
+        -->
+        <Control name="BETTERUI_GamepadMenuEntryTemplate"
+            inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate"
+            virtual="true">
             <Controls>
                 <Label name="$(parent)Label" inherits="BETTERUI_GamepadMenuEntryLabelTemplate" />
                 <Texture name="$(parent)Icon" inherits="BETTERUI_GamepadMenuEntryIconTemplate">
                     <Controls>
-                        <Label name="$(parent)StackCount" inherits="ZO_GamepadMenuEntryStackCountTemplate" />
+                        <Label name="$(parent)StackCount"
+                            inherits="ZO_GamepadMenuEntryStackCountTemplate" />
                     </Controls>
                 </Texture>
             </Controls>
         </Control>
 
 
-         <!-- Item Slot Related Scroll List Templates -->
-        <Control name="BETTERUI_GamepadItemEntryTemplate" inherits="BETTERUI_GamepadMenuEntryTemplate" virtual="true">
+        <!-- 
+            Template: Item Slot Wrapper
+            Purpose: Inherits BetterUI_GamepadMenuEntryTemplate and adds a StatusIndicator.
+        -->
+        <Control name="BETTERUI_GamepadItemEntryTemplate"
+            inherits="BETTERUI_GamepadMenuEntryTemplate" virtual="true">
             <Controls>
-                <Texture name="$(parent)StatusIndicator" inherits="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" />
+                <Texture name="$(parent)StatusIndicator"
+                    inherits="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" />
             </Controls>
         </Control>
 

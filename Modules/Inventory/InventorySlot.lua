@@ -1,13 +1,51 @@
+--------------------------------------------------------------------------------
 -- BetterUI Inventory Slot Actions
--- Item action handling: equip, use, bank, and craft bag operations
+--
+-- This file manages the "Action Controller" for inventory slots, determining
+-- what happens when the user presses the Primary Action key (usually 'A').
+--
+-- KEY RESPONSIBILITIES:
+--
+-- 1.  **Primary Action Resolution**:
+--     *   Determines the most appropriate action for an item (Equip, Use, Bank, Stow).
+--     *   Logic is in `PrimaryCommandActivate` and `Initialize`.
+--
+-- 2.  **Secure Execution**:
+--     *   Many inventory actions (Use, Equip, Bank) are "Protected" in ESO.
+--     *   This file ensures these are called via `CallSecureProtected` to prevent
+--         tainting the execution environment, which would block the action.
+--     *   Special handling for `PutInInventory` vs `PlaceInTransfer`.
+--
+-- 3.  **Craft Bag & Banking Integration**:
+--     *   Handles "Stow" (Inventory -> Craft Bag) and "Retrieve" (Craft Bag -> Inventory).
+--     *   Handles Bank Deposit/Withdraw logic including checking for bag space.
+--
+-- 4.  **Action Menu Integration**:
+--     *   Provides the data source for the "Y" button context menu (`HookActionDialog` in Inventory.lua consumes this).
+--
+-- TODO(refactor): PrimaryCommandActivate is 150+ lines - split into smaller functions
+--                 (e.g., HandleCraftBagPrimary, HandleInventoryPrimary, HandleBankPrimary)
+-- TODO(cleanup): IsPrimaryAction/ShouldReplacePrimaryAction could use a lookup table
+-- TODO(enhancement): Add support for custom actions from other addons
+--------------------------------------------------------------------------------
 
+local ACTION_KEY = 1
+local VISIBILITY_FUNCTION = 4
+local OPTION_ARG = 5
 
-INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
-INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
+local INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
+local INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
--- Inserts a primary action at the front of the slot actions table
+--- Inserts a primary action at the front of the slot actions table.
+--- This action becomes the default "A" button behavior.
+--- @param self table The SlotActions instance.
+--- @param actionStringId number|string The string ID or name of the action.
+--- @param actionCallback function The function to execute when the action is triggered.
+--- @param actionType string The type of action (e.g., "primary").
+--- @param visibilityFunction function Optional function to determine if the action is visible.
+--- @param options any Optional configuration options.
 local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, visibilityFunction, options)
     local actionName = actionStringId
     visibilityFunction = function()
@@ -27,15 +65,18 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
     end
 end
 
---- Attempts to unequip an item from the specified inventory slot
---- @param inventorySlot table: The inventory slot data
+--- Attempts to unequip an item from the specified inventory slot.
+--- @param inventorySlot table The inventory slot data.
 local function TryUnequipItem(inventorySlot)
     local equipSlot = ZO_Inventory_GetSlotIndex(inventorySlot)
     UnequipItem(equipSlot)
 end
 
--- Override the engine's TryUseItem to use CallSecureProtected for private functions
--- This ensures that special item callbacks (like TryStartSkillRespec) work correctly
+--- Attempts to use the item in the specified slot.
+--- Overridges the engine's default behavior to ensure `CallSecureProtected` is used
+--- for protected functions, preventing "Private Function" errors.
+--- Handles Quest Tools, Quest Items, and standard Usable Items.
+--- @param inventorySlot table The inventory slot data.
 function TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
@@ -55,7 +96,9 @@ function TryUseItem(inventorySlot)
     end
 end
 
---- @param inventorySlot table: The inventory slot data
+--- Handles banking actions (Deposit/Withdraw) for an item.
+--- Checks for bag space, ESO Plus subscriber bank eligibility, and stolen item restrictions.
+--- @param inventorySlot table The inventory slot data.
 local function TryBankItem(inventorySlot)
     if(PLAYER_INVENTORY:IsBanking()) then
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -92,7 +135,10 @@ local function TryBankItem(inventorySlot)
     end
 end
 
---Quick and dirty fix for newly secured inventory calls for craft bag withdraw & deposit
+--- Attempts to move an item between the Backpack and the Craft Bag.
+--- Handles stack splitting if necessary and finds an empty slot in the target bag.
+--- @param inventorySlot table The inventory slot data.
+--- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
 local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
     local stackSize
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -118,26 +164,28 @@ local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
     end
 end
 
---- Checks if an item can be moved to the craft bag
---- @param inventorySlot table: The inventory slot data
---- @return boolean: True if the item can be moved to craft bag
+--- Checks if an item can be moved to the Craft Bag.
+--- Verifies ESO Plus access, item compatibility ("virtual" capability), and that the item is not stolen.
+--- @param inventorySlot table The inventory slot data.
+--- @return boolean True if the item is eligible for the Craft Bag.
 local function CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
 end
 
---- Checks if the inventory slot is currently in the craft bag (not regular inventory)
---- @param inventorySlot table: The inventory slot data
---- @return boolean: True if the item is in the craft bag
+--- Checks if the inventory slot represents an item currently inside the Craft Bag.
+--- @param inventorySlot table The inventory slot data.
+--- @return boolean True if the item is in the Craft Bag.
 local function IsSlotInCraftBag(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     return slotType == SLOT_TYPE_CRAFT_BAG_ITEM
 end
 
---- Initializes the slot actions controller with custom primary action handling
---- @param alignmentOverride any: Override for keybind alignment
---- @param additionalMouseOverbinds table: Additional mouse over keybinds
---- @param useKeybindStrip boolean: Whether to use keybind strip
+--- Initializes the slot actions controller, defining how actions are prioritized and executed.
+--- Sets up the primary action ("A" button) logic, including overrides for "Use", "Equip", "Bank", and "Craft Bag" actions.
+--- @param alignmentOverride any Override for the keybind strip alignment.
+--- @param additionalMouseOverbinds table List of additional keybinds for mouse-over actions.
+--- @param useKeybindStrip boolean Whether to display the keybind strip (default: true).
 function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additionalMouseOverbinds, useKeybindStrip)
     self.alignment = KEYBIND_STRIP_ALIGN_RIGHT
 
@@ -199,6 +247,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             -- primary action below so A can invoke the split dialog when needed.
     end
 
+    --- Wraps an action in a secure call if necessary (primarily for USE actions).
+    --- @param slotActions table The slot actions object.
+    --- @param actionStringId number The action string ID.
+    --- @param callback function The callback to execute.
+    --- @param inventorySlot table The inventory slot data.
     local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
         -- For USE actions, we must ensure UseItem/UseQuestItem is called via CallSecureProtected
         -- actionStringId is the raw string constant (e.g., SI_ITEM_ACTION_USE), not the localized string
@@ -233,6 +286,10 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         end
     end
 
+    --- Configures actions related to the Craft Bag (Stow/Retrieve).
+    --- @param slotActions table The slot actions object.
+    --- @param inventorySlot table The inventory slot data.
+    --- @param canUseItem boolean Whether the item is also usable (adds USE as a secondary action).
     local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
         if canUseItem then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
@@ -262,6 +319,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         end
     end
 
+    --- Sets up the primary action for a slot based on its action name.
+    --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
+    --- @param slotActions table The slot actions object.
+    --- @param actionName string The localized name of the action.
+    --- @param inventorySlot table The inventory slot data.
     local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
         if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
@@ -303,6 +365,10 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return (self.actionName ~= nil) or self:HasSelectedAction()
     end
 
+    --- The main logic invoked when the primary action (A button) is potentially triggered.
+    --- Discovers available actions for the slot, determines the best primary action,
+    --- and configures the `slotActions` object accordingly.
+    --- @param inventorySlot table The inventory slot data.
     local function PrimaryCommandActivate(inventorySlot)
         slotActions:Clear()
         slotActions:SetInventorySlot(inventorySlot)
@@ -487,6 +553,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 end
 
+--- Sets the current inventory slot for the actions controller.
+--- Triggers action discovery and updates the keybind strip.
+--- @param inventorySlot table The new inventory slot data.
 function BETTERUI.Inventory.SlotActions:SetInventorySlot(inventorySlot)
     self.inventorySlot = inventorySlot
 

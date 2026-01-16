@@ -1,8 +1,43 @@
 <GuiXml>
+    <!-- 
+        ================================================================================
+        BETTERUI GAMEPAD INVENTORY TOP LEVEL CONTROL
+        ================================================================================
+        
+        PURPOSE:
+        This file defines the root container for BetterUI's gamepad inventory screen.
+        It inherits from BETTERUI_Gamepad_ParametricList_Screen to get the standard
+        gamepad UI structure (header, list, background fragment).
+
+        WHY MANUAL INITIALIZATION:
+        The OnInitialized handler is deliberately left empty (commented out) because:
+        1. Load Order Control: We need to wait until all BetterUI modules are loaded
+           before initializing the inventory to avoid nil reference errors.
+        2. Module Toggle: Users can completely disable BetterUI's inventory via settings.
+           If we auto-initialized on XML load, we couldn't prevent the replacement.
+        3. Native Inventory Preservation: When disabled, the native ZO_GamepadInventory
+           remains functional because we never replaced GAMEPAD_INVENTORY.
+
+        INITIALIZATION FLOW:
+        1. XML loads, creates BETTERUI_GamepadInventoryTopLevel control (no init)
+        2. BetterUI.lua checks if Inventory module is enabled in settings
+        3. If enabled, calls BETTERUI_GamepadInventory_OnInitialize(control) manually
+        4. This creates BETTERUI.Inventory.Class instance and assigns to GAMEPAD_INVENTORY
+
+        TODO(cleanup): Consider moving the commented code to actual Lua init for clarity
+    -->
     <Controls>
-        <TopLevelControl name="BETTERUI_GamepadInventoryTopLevel" inherits="BETTERUI_Gamepad_ParametricList_Screen">
+        <!-- 
+            TopLevelControl: The root container for the entire inventory UI.
+            - Inherits from BETTERUI_Gamepad_ParametricList_Screen for standard structure
+            - This gives us: Header, List container, Footer, and proper scene integration
+        -->
+        <TopLevelControl name="BETTERUI_GamepadInventoryTopLevel"
+            inherits="BETTERUI_Gamepad_ParametricList_Screen">
             <OnInitialized>
-            	-- Commented out so we can manually initialize it, allows us to switch the whole interface OFF!!
+                -- Intentionally empty - manual initialization allows module to be disabled.
+                -- See: BETTERUI.Inventory.Setup() in Inventory.lua for actual initialization.
+                -- Original code preserved for reference:
                 -- BETTERUI_GamepadInventory_OnInitialize(self)
             </OnInitialized>
         </TopLevelControl>

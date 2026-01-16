@@ -1,5 +1,24 @@
--- BetterUI Banking Module
--- Settings panel and font customization for enhanced banking interface
+--------------------------------------------------------------------------------
+-- BetterUI Banking Module Registration
+--
+-- This file handles the initialization and configuration of the Banking module.
+-- It integrates with LibAddonMenu (LAM) to provide a settings panel for user customization.
+--
+-- KEY RESPONSIBILITIES:
+--
+-- 1.  **Module Initialization (`Init`, `Setup`)**:
+--     *   Registers the "Banking" panel in the BetterUI addon settings.
+--     *   Defines default settings (`DEFAULTS`) for fonts and toggleable features.
+--
+-- 2.  **Configuration Options**:
+--     *   **Fonts**: Custom font selection, size, and style for Name and Columns.
+--     *   **Features**: Toggles for Carousel Navigation (navigating tabs via shoulders/triggers)
+--         and icon visibility (Unbound, Enchanted, Set Gear).
+--
+-- 3.  **Font Helpers**:
+--     *   `GetNameFontDescriptor`: Returns a valid font string for the item name column.
+--     *   `GetColumnFontDescriptor`: Returns a valid font string for other columns (Trait, Value, etc.).
+--------------------------------------------------------------------------------
 
 local _
 local LAM = LibAddonMenu2
@@ -64,7 +83,10 @@ BETTERUI.Banking.DEFAULTS = {
 	columnFontStyle = "",
 }
 
--- Converts size setting to pixel value (handles legacy string values and new numeric values)
+--- Converts a font size setting to a numeric pixel value.
+--- Purpose: Handles migration from legacy string values ("Small", "Large") to numbers.
+--- @param sizeValue string|number The size setting value.
+--- @return number The font size in pixels.
 local function GetFontSizeValue(sizeValue)
 	-- Handle new numeric values directly
 	if type(sizeValue) == "number" then
@@ -75,7 +97,8 @@ local function GetFontSizeValue(sizeValue)
 	return legacyMap[sizeValue] or 24
 end
 
--- Returns font descriptor string for Name column
+--- Generates the font descriptor string for the Name column.
+--- @return string ESO font descriptor (path|size|style).
 function BETTERUI.Banking.GetNameFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
@@ -91,7 +114,8 @@ function BETTERUI.Banking.GetNameFontDescriptor()
 	end
 end
 
--- Returns font descriptor string for column labels (Type, Trait, Stat, Value)
+--- Generates the font descriptor string for metadata columns (Type, Trait, etc.).
+--- @return string ESO font descriptor (path|size|style).
 function BETTERUI.Banking.GetColumnFontDescriptor()
 	local settings = BETTERUI.Settings.Modules["Banking"]
 	local defaults = BETTERUI.Banking.DEFAULTS
@@ -107,7 +131,9 @@ function BETTERUI.Banking.GetColumnFontDescriptor()
 	end
 end
 
--- Initializes settings panel for Banking module
+--- Registers the Banking settings panel with LibAddonMenu.
+--- @param mId string The module ID suffix.
+--- @param moduleName string The display name for the panel.
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
@@ -351,9 +377,10 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
--- Initializes Banking default settings (handles legacy migration)
---- @param m_options table: Options table
---- @return table: Initialized options
+--- Initializes default values and migrates legacy settings for the Banking module.
+--- Purpose: Ensures all necessary settings exist and converts old formats (strings -> numbers).
+--- @param m_options table The raw settings table for this module.
+--- @return table The initialized and migrated settings table.
 function BETTERUI.Banking.InitModule(m_options)
 	-- Core settings (preserve existing user values)
 	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
@@ -409,7 +436,8 @@ function BETTERUI.Banking.InitModule(m_options)
 	return m_options
 end
 
--- Sets up Banking module
+--- Lifecycle hook to setup the Banking module.
+--- Purpose: Called by the core when the module should initialize its keybinds, settings, and UI.
 function BETTERUI.Banking.Setup()
 
 	Init("Bank", "Banking")

@@ -1,20 +1,27 @@
 <GuiXml>
+    <!--
+        BetterUI Generic Footer Template
+        Description: Defines the virtual controls for the bottom bar (Footer).
+        Includes labels for Bag/Bank capacity and all supported currencies.
+        
+        Note: Currently primarily used by the Inventory/Banking modules.
+    -->
     <Controls>
 
-        <!-- Please Read!! -->
-        <!-- Currently, GenericFooter isn't actually generic but specifically used within
-        GAMEPAD_INVENTORY to display the bottom status bar. Aiming to sort this in a future update
-        where I need to use GenericFooter again -->
-
-
+        <!-- Template for Footer Labels (Uppercase) -->
         <Label name="BETTERUI_GamepadScreenFooterTemplate" font="ZoFontGamepad27"
             horizontalAlignment="LEFT" wrapMode="ELLIPSIS" virtual="true" modifyTextType="UPPERCASE" />
 
+        <!-- Anchoring Helper -->
         <Control name="BETTERUI_GamepadFooterAnchors" virtual="true">
             <Anchor point="TOPLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT" />
             <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" />
         </Control>
 
+        <!-- 
+            Template: Horizontal Divider (Footer style)
+            Similar to Header divider but usage context differs.
+        -->
         <Control name="BETTERUI_GamepadFooterHorizontalDivider" resizeToFitDescendents="true"
             virtual="true">
             <Controls>
@@ -42,7 +49,10 @@
             </Controls>
         </Control>
 
-
+        <!-- 
+            Template: Generic Screen Footer
+            The actual container with all label controls defined.
+        -->
         <Control name="BETTERUI_GamepadGenericScreenFooter" inherits="BETTERUI_GamepadFooterAnchors"
             resizeToFitDescendents="false" virtual="true">
             <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" offsetY="-195" />
@@ -57,6 +67,10 @@
                         offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER" offsetY="15" />
                 </Control>
 
+                <!-- 
+                    Currency Labels
+                    All labels are created here but hidden/positioned dynamically by GenericFooter.lua
+                -->
                 <Label name="$(parent)CWLabel" inherits="BETTERUI_GamepadScreenFooterTemplate"
                     text="SI_BETTERUI_FOOTER_CARRY">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
@@ -121,12 +135,11 @@
             </Controls>
         </Control>
 
-
+        <!-- Template Wrapper for Footer -->
         <Control name="BETTERUI_GamepadScreenFooterContainer" virtual="true">
             <Dimensions y="40" />
             <Controls>
                 <Control name="$(parent)Footer" inherits="BETTERUI_GamepadGenericScreenFooter">
-
                     <OnInitialized>
                         self:GetParent().footer = self
                     </OnInitialized>

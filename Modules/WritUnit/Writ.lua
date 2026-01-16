@@ -1,9 +1,21 @@
--- BetterUI Writ Display
--- Functions for retrieving and displaying writ quest progress
+---------------------------------------------------------------------------------------------------
+-- BetterUI - Writ Logic
+--
+-- This file handles the retrieval and formatting of writ quest objectives.
+-- It scans the quest journal for crafting writs, formats their completion status (color coding),
+-- and updates the UI panel with the relevant information for the current crafting station.
+--
+-- TODO(refactor): Pattern matching uses hardcoded strings - extract to localization or constants
+-- TODO(enhancement): Add support for additional crafting types as ESO adds them
+-- TODO(cleanup): Magic color values ("00FF00", "CCCCCC") should use BETTERUI.CONST.COLORS
+---------------------------------------------------------------------------------------------------
 
 local _
 
--- Gets formatted writ conditions for a quest (colored by completion)
+--- Gets formatted writ conditions for a specific quest.
+--- Colors the text green if the condition is met, otherwise grey.
+--- @param qId number The quest ID.
+--- @return string The concatenated and formatted writ conditions.
 function BETTERUI.Writs.Get(qId)
 	local writLines = {}
 	local writConcate = ''
@@ -26,7 +38,9 @@ function BETTERUI.Writs.Get(qId)
 	return writConcate
 end
 
--- Scans journal for active writ quests and updates the list
+--- Scans the quest journal for active Writ quests.
+--- Populates `BETTERUI.Writs.List` with relevant writ quests indexed by crafting type.
+--- Handles name matching for all crafting professions (Blacksmithing, Clothier, etc.).
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
 	for qId=1, MAX_JOURNAL_QUESTS do
@@ -61,7 +75,9 @@ function BETTERUI.Writs.Update()
 	end
 end
 
--- Shows writ panel for a specific crafting type
+--- Shows the Writ panel for a specific crafting station type.
+--- Updates the writ list, finds the relevant writ quest, and populates the UI with its status.
+--- @param writType number The crafting type ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
@@ -72,7 +88,7 @@ function BETTERUI.Writs.Show(writType)
 	end
 end
 
--- Hides writ panel
+--- Hides the Writ panel.
 function BETTERUI.Writs.Hide()
 	BETTERUI_WritsPanel:SetHidden(true)
 end

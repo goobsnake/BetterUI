@@ -1,12 +1,27 @@
+--------------------------------------------------------------------------------
 -- BetterUI Interface Library
--- Base window class and UI utilities for gamepad inventory/banking
--- Compatibility patches for ESO Update 33+
+--
+-- Base window class and UI utilities for gamepad inventory/banking.
+-- Provides core abstractions shared across BetterUI's gamepad screens.
+--
+-- KEY COMPONENTS:
+--   - BETTERUI.Interface.Window: Base class for all BetterUI windows
+--   - Search functionality: Text search header integration
+--   - Spinner utilities: Stack splitting and quantity selection
+--   - Scene/Fragment management: ESO scene system integration
+--
+-- TODO(architecture): This file mixes utility functions with the Window class.
+--                     Consider splitting into InterfaceUtilities.lua and WindowBase.lua
+-- TODO(cleanup): BETTERUI_TEST_SCENE_NAME appears to be legacy naming - rename or document
+-- TODO(refactor): AddSearch() is 100+ lines - extract sub-functions for readability
+--------------------------------------------------------------------------------
 
 local _
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--- Ensures a keybind descriptor is added to the keybind strip (handles duplicates)
+--- Ensures a keybind descriptor is added to the keybind strip (handles duplicates).
+--- @param descriptor table The keybind descriptor to add.
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor or not KEYBIND_STRIP then return end
     local groups = KEYBIND_STRIP.keybindButtonGroups or {}
@@ -20,9 +35,9 @@ function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(descriptor)
 end
 
--- Creates keybind descriptors for text search functionality
---- @param context table: The search context object
---- @return table: Array of keybind descriptors
+--- Creates keybind descriptors for text search functionality.
+--- @param context table The search context object (must have textSearchHeaderControl, searchQuery, etc.).
+--- @return table Array of keybind descriptors.
 function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     local function HasVisibleSearchControl()
         if not context or not context.textSearchHeaderControl then return false end
@@ -110,7 +125,9 @@ local function WrapInt(value, min, max)
     return (zo_floor(value) - min) % (max - min + 1) + min
 end
 
--- Sets tooltip panel width and repositions left tooltip accordingly
+--- Sets tooltip panel width and repositions the left tooltip.
+--- Purpose: Adjusts the UI layout to accommodate wider or narrower lists.
+--- @param width number The new width of the background fragment.
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
@@ -120,12 +137,19 @@ end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
+--- Creates a new instance of the window.
+--- @param ... any Arguments passed to Initialize.
+--- @return table The new window object.
 function BETTERUI.Interface.Window:New(...)
 	local object = ZO_Object.New(self)
     object:Initialize(...)
 	return object
 end
 
+--- Initializes the window.
+--- Purpose: Sets up the control, header, footer, spinner, and scene fragments.
+--- @param tlw_name string The name of the TopLevelWindow control.
+--- @param scene_name string The name of the scene to create/associate.
 function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.windowName = tlw_name
     self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, "BETTERUI_GenericInterface")
@@ -156,6 +180,9 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self:InitializeList()
 end
 
+--- Sets the spinner's value range and current value.
+--- @param max number The maximum value.
+--- @param value number The current value.
 function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
     self.spinner:SetMinMax(1, max)
     self.spinner:SetValue(value)
@@ -163,12 +190,14 @@ end
 
 
 
+--- Shows and activates the spinner, deactivating the main list.
 function BETTERUI.Interface.Window:ActivateSpinner()
     self.spinner:SetHidden(false)
     self.spinner:Activate()
     if(self:GetList() ~= nil) then self:GetList():Deactivate() end
 end
 
+--- Hides and deactivates the spinner, reactivating the main list.
 function BETTERUI.Interface.Window:DeactivateSpinner()
     self.spinner:SetValue(1)
     self.spinner:SetHidden(true)
@@ -176,6 +205,9 @@ function BETTERUI.Interface.Window:DeactivateSpinner()
     if(self:GetList() ~= nil) then self:GetList():Activate() end
 end
 
+--- Toggles spinner confirmation mode (e.g., when splitting stacks).
+--- @param activateSpinner boolean True to show spinner, False to hide.
+--- @param list table The list control to refresh.
 function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, list)
     self.confirmationMode = activateSpinner
     if activateSpinner then
@@ -202,12 +234,16 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     end
 end
 
--- GetList() can be extended to allow for multiple lists in one Window object
+--- Gets the current primary list.
+--- Can be overridden by subclasses to support multiple lists.
+--- @return table The active scroll list.
 function BETTERUI.Interface.Window:GetList()
     return self.list
 end
 
 
+--- Initializes keybinds for the window.
+--- Subclasses should override this to add their own keybinds.
 function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
     }
@@ -218,6 +254,8 @@ function BETTERUI.Interface.Window:InitializeKeybind()
 end
 
 
+--- Initializes the main parametric scroll list.
+--- @param listName string|nil Optional list name (not used in default implementation).
 function BETTERUI.Interface.Window:InitializeList(listName)
     self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild("List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
 
@@ -229,8 +267,9 @@ function BETTERUI.Interface.Window:InitializeList(listName)
     self:GetList().universalPostPadding = 5
 end
 
--- Add a gamepad text-search header (lightweight copy of ZO_Gamepad_ParametricList_Screen:AddSearch behavior)
--- textSearchKeybindStripDescriptor is optional; onTextSearchTextChangedCallback(text) will be called when text changes
+--- Adds text search capability to the window.
+--- @param textSearchKeybindStripDescriptor table Optional keybind descriptor.
+--- @param onTextSearchTextChangedCallback function Callback when search text changes.
 function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, onTextSearchTextChangedCallback)
     -- Create the header editbox control from the common virtual template
     if not self.header then return end
@@ -421,6 +460,9 @@ function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():Commit()
 end
 
+--- Adds a column header to the window.
+--- @param columnName string The text to display.
+--- @param xOffset number The horizontal position (left-aligned anchor).
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     self.header.columns[colNumber] = CreateControlFromVirtual("Column"..colNumber,self.header:GetNamedChild("HeaderColumnBar"),"BETTERUI_GenericColumn_Label")
@@ -429,6 +471,8 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     self.header.columns[colNumber]:SetText(columnName)
 end
 
+--- Sets the window title.
+--- @param headerText string The title text.
 function BETTERUI.Interface.Window:SetTitle(headerText)
     self.header:GetNamedChild("Header"):GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(headerText)
 end
@@ -442,6 +486,7 @@ function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedData
     self.selectedDataCallback = selectedDataCallback
 end
 
+--- Initializes the main scene fragment.
 function BETTERUI.Interface.Window:InitializeFragment()
 	self.fragment = ZO_SimpleSceneFragment:New(self.control)
     self.fragment:SetHideOnSceneHidden(true)
@@ -450,6 +495,8 @@ function BETTERUI.Interface.Window:InitializeFragment()
     self.footerFragment:SetHideOnSceneHidden(true)
 end
 
+--- Initializes the ESO scene object and registers callbacks.
+--- @param SCENE_NAME object The existing scene object to reuse (or nil to create new? Implementation suggests existing object).
 function BETTERUI.Interface.Window:InitializeScene(SCENE_NAME)
     self.sceneName = SCENE_NAME
     SCENE_NAME:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)

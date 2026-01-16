@@ -1,14 +1,33 @@
--- BetterUI Tooltips
--- Adds pricing info (MM, ATT, TTC) and research status to item tooltips
--- Includes caching for performance on inventory-heavy operations
+---------------------------------------------------------------------------------------------------
+-- BetterUI - Tooltip Enhancements
+--
+-- This module enriches item tooltips with useful information:
+-- 1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).
+-- 2. Research Status: Indicates if an item's trait is researchable and where other copies are located.
+-- 3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
+---------------------------------------------------------------------------------------------------
 
 _G.gsErrorSuppress = 0  -- Global flag for guild store error suppression
 local _
 
--- Per-bag cache of researchable trait counts (invalidated on inventory events)
-local ResearchableTraitCache = {}
+-------------------------------------------------------------------------------------------------
+-- RESEARCH TRAIT CACHING
+-------------------------------------------------------------------------------------------------
+-- Performance optimization for trait research lookups. Building research info is expensive
+-- (requires iterating all items in a bag), so we cache results and invalidate on changes.
+--
+-- TODO(optimization): Consider using bag update events for targeted invalidation instead
+--                     of clearing entire bag cache
+-- TODO(enhancement): Add support for caching craft bag (BAG_VIRTUAL) traits
+-------------------------------------------------------------------------------------------------
 
--- Builds cache of researchable trait counts for a specific bag
+--- Builds the cache of researchable trait counts for a specific bag.
+---
+--- WHY USE SHARED_INVENTORY:
+---   SHARED_INVENTORY.GenerateFullSlotData() is faster than iterating all slots
+---   because it only processes slots that actually contain items.
+---
+--- @param bagId number The bag ID to cache
 local function BuildBagResearchCache(bagId)
     local counts = {}
     -- Prefer SHARED_INVENTORY cache to iterate only used slots
@@ -26,7 +45,10 @@ local function BuildBagResearchCache(bagId)
     ResearchableTraitCache[bagId] = counts
 end
 
--- Returns count of researchable items matching itemLink's trait in specified bag
+--- Returns count of researchable items matching itemLink's trait in specified bag.
+--- @param itemLink string The item link to check.
+--- @param bagId number The bag ID to check against.
+--- @return number The count of matching researchable items.
 function BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
@@ -47,7 +69,29 @@ function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
     end
 end
 
--- Adds trading addon price info to tooltip (TTC, MM, ATT)
+-------------------------------------------------------------------------------------------------
+-- TRADING ADDON INTEGRATION
+-------------------------------------------------------------------------------------------------
+-- This section integrates with popular trading addons to show market prices in tooltips:
+--   - TTC (Tamriel Trade Centre): Most popular, uses web-scraped listing data
+--   - MM (Master Merchant): Guild store sales history
+--   - ATT (Arkadius Trade Tools): Alternative sales tracker
+--
+-- TODO(refactor): The three addon integrations are very similar - extract to reusable function
+-- TODO(enhancement): Add support for additional trading addons (e.g., Pricey)
+-- TODO(cleanup): Magic numbers (fontSize = 24) should be constants
+-------------------------------------------------------------------------------------------------
+
+--- Adds trading addon price info to tooltip (TTC, MM, ATT).
+---
+--- Shows per-item price and stack total when applicable.
+--- Uses per-addon integration settings to allow selective enabling.
+---
+--- @param tooltip Control The tooltip control
+--- @param itemLink string The item link to price
+--- @param bagId number|nil The bag ID (for stack count)
+--- @param slotIndex number|nil The slot index (for stack count)
+--- @param storeStackCount number|nil Stack count for store items (overrides bag lookup)
 local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeStackCount)
     if itemLink then
         local stackCount
@@ -111,7 +155,9 @@ local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeSt
     end
 end
 
--- Adds item style and research status to tooltip
+-- Adds item style and research status to tooltip.
+--- @param tooltip object The tooltip control.
+--- @param itemLink string The item link.
 local function AddInventoryPreInfo(tooltip, itemLink)
     if itemLink and BETTERUI.Settings.Modules["Tooltips"].showStyleTrait then
         local traitString
@@ -154,7 +200,14 @@ local function AddInventoryPreInfo(tooltip, itemLink)
     end
 end
 
--- Hooks tooltip layout methods to inject pricing and research info
+--- Hooks tooltip layout methods to inject pricing and research info.
+--- @param tooltipControl object The tooltip control to hook.
+--- @param method string The method name to hook/override.
+--- @param linkFunc function Function to retrieve item link.
+--- @param method2 string Secondary method to hook (typically for bag/slot retrieval).
+--- @param linkFunc2 function Secondary link function.
+--- @param method3 string Tertiary method to hook (for store search).
+--- @param linkFunc3 function Tertiary link function.
 function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local newMethod = tooltipControl[method]
     local newMethod2 = tooltipControl[method2]

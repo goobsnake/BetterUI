@@ -1,5 +1,22 @@
 <GuiXml>
+    <!--
+        BetterUI Generic Header Template
+        Description: Defines the structure of the custom Gamepad Header.
+        
+        Visual Hierarchy:
+        1. Tab Bar (Carousel): Top section, scrolling icons.
+        2. Title & Slots: Middle section, dynamic text and equipment icons.
+        3. Column Headers: Bottom section, aligned with grid columns.
+
+        Features:
+        - Tab Bar (Carousel of icons)
+        - Title & Subtitle
+        - Equipment Slot Indicators (Main/Backup)
+        - Grid view column headers
+        - Dividers
+    -->
     <Controls>
+        <!-- Font Templates -->
         <Label name="BETTERUI_GamepadScreenHeaderTitleTextTemplate" font="ZoFontGamepad36"
             horizontalAlignment="LEFT" wrapMode="ELLIPSIS" virtual="true" modifyTextType="UPPERCASE" />
         <Label name="BETTERUI_GamepadScreenHeaderEquipSlotTemplate" font="ZoFontGamepad34"
@@ -8,6 +25,10 @@
         <Label name="BETTERUI_GamepadScreenColumnBarTextTemplate" font="ZoFontGamepad27"
             horizontalAlignment="LEFT" wrapMode="ELLIPSIS" virtual="true" modifyTextType="UPPERCASE" />
 
+        <!-- 
+            Template: Horizontal Divider
+            A 3-part textured divider (Left cap, Center stretch, Right cap).
+        -->
         <Control name="BETTERUI_GamepadHeaderHorizontalDivider" resizeToFitDescendents="true"
             virtual="true">
             <Controls>
@@ -36,12 +57,18 @@
         </Control>
 
 
+        <!-- Header Anchoring Helper -->
         <Control name="BETTERUI_GamepadHeaderTitleAnchors" virtual="true">
             <Anchor point="TOPLEFT" />
             <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" />
         </Control>
 
+        <!-- 
+            Template: Tab Bar Button
+            A single icon in the tab bar (e.g., Helmet icon).
+        -->
         <Control name="BETTERUI_GamepadTabBarTemplate" virtual="true">
+            <!-- TODO: [Magic Values] Extract "50" to a constant (e.g., BETTERUI_TAB_ICON_SIZE) -->
             <Dimensions x="50" y="50" />
             <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetY="50" />
             <OnInitialized>
@@ -64,6 +91,10 @@
             </Controls>
         </Control>
 
+        <!-- 
+            Template: Tab Bar Scroll ListContainer
+            Holds the scrolling list of tab icons.
+        -->
         <Control name="BETTERUI_GamepadTabBarScrollListTemplate" virtual="true">
             <Anchor point="TOPLEFT" offsetY="25" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH" y="100" />
@@ -71,10 +102,13 @@
                 <Scroll name="$(parent)Scroll">
                     <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH" y="100" />
                 </Scroll>
-
             </Controls>
         </Control>
 
+        <!-- 
+            Template: Generic Screen Header
+            Main header implementation. Includes TabBar, Title, and Dividers.
+        -->
         <Control name="BETTERUI_GamepadGenericScreenHeader" resizeToFitDescendents="true"
             virtual="true">
             <Anchor point="TOPLEFT" />
@@ -115,6 +149,8 @@
                             inherits="BETTERUI_GamepadHeaderHorizontalDivider">
                             <Anchor point="LEFT" relativeTo="$(parent)parent"
                                 relativePoint="BOTTOMLEFT" offsetX="0" />
+                            <!-- TODO: [Magic Values] offsetY="77" is a magic number for divider
+                            positioning. -->
                             <Anchor point="RIGHT" relativeTo="$(parent)parent"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="77" />
                         </Control>
@@ -136,6 +172,8 @@
                             text="SI_BETTERUI_FULL_INVENTORY_ALL" color="FFFFFF" hidden="false">
                             <Anchor point="LEFT" />
                         </Label>
+
+                        <!-- Backup Equip Text/Icons -->
                         <Label name="$(parent)BackupEquipText"
                             inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
                             text="SI_BETTERUI_EQUIP"
@@ -161,6 +199,7 @@
                             <Anchor point="RIGHT" offsetX="-65" offsetY="-5" />
                         </Texture>
 
+                        <!-- Main Equip Text/Icons -->
                         <Label name="$(parent)EquipText"
                             inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
                             text="SI_BETTERUI_EQUIP"
@@ -172,6 +211,8 @@
                         <Texture name="$(parent)MainHandIcon"
                             textureFile="/esoui/art/inventory/inventory_slot.dds">
                             <Dimensions x="40" y="40" />
+                            <!-- TODO: [Magic Values] absolute offsets (-155, -210) are brittle. Use
+                            relative anchoring between elements. -->
                             <Anchor point="RIGHT" relativeTo="$(parent)BackupEquipText"
                                 relativePoint="LEFT" offsetX="-155" />
                         </Texture>
@@ -200,6 +241,14 @@
                         offsetX="0" offsetY="110" />
                 </Control>
 
+                <!-- 
+                    Column Headers
+                    These labels anchor to fixed X offsets to match the grid columns.
+                    TODO: [Brittle Layout] These absolute offsets (87, 637...) DO NOT automatically align with the list
+                grid.
+                    If columns are resized/reordered in logic, these headers will likely be wrong.
+                    Consider using a shared definition for column widths.
+                -->
                 <Control name="$(parent)ColumnBar" inherits="BETTERUI_GamepadHeaderTitleAnchors">
                     <Controls>
                         <Label name="$(parent)Column1Label"
@@ -207,6 +256,7 @@
                             text="SI_BETTERUI_BANKING_COLUMN_NAME">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="87" />
+                            <!-- TODO: [Magic Layout] offsetX="87" -->
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
@@ -215,6 +265,7 @@
                             text="SI_BETTERUI_BANKING_COLUMN_TYPE">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="637" />
+                            <!-- TODO: [Magic Layout] offsetX="637" -->
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
@@ -248,11 +299,11 @@
             </Controls>
         </Control>
 
+        <!-- Template Wrapper for Header -->
         <Control name="BETTERUI_GamepadScreenHeaderContainer" virtual="true">
             <Dimensions y="115" />
             <Controls>
                 <Control name="$(parent)Header" inherits="BETTERUI_GamepadGenericScreenHeader">
-
                     <OnInitialized>
                         self:GetParent().header = self
                     </OnInitialized>
@@ -260,6 +311,10 @@
             </Controls>
         </Control>
 
+        <!-- 
+            Template: Browse Results Header
+            Specialized header for Guils Store Browse results.
+        -->
         <Control name="BETTERUI_Header_BrowseResults" resizeToFitDescendents="true" virtual="true">
             <Anchor point="TOPLEFT" />
             <Anchor point="TOPRIGHT" offsetY="26" />
@@ -295,11 +350,7 @@
                             inherits="BETTERUI_GamepadScreenHeaderTitleTextTemplate"
                             text="SI_BETTERUI_BROWSE_LISTINGS" color="FFFFFF" hidden="false">
                             <Anchor point="LEFT" />
-                        </Label> <!--
-                          <Label name="$(parent)EquipText" inherits="BETTERUI_GamepadScreenHeaderEquipSlotTemplate"
-                        text="SI_BETTERUI_EQUIP" hidden="false">
-                            <Anchor point="RIGHT" offsetX="-50"/>
-                        </Label> -->
+                        </Label>
                     </Controls>
                 </Control>
 
@@ -312,6 +363,7 @@
                         offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" offsetY="110" />
                 </Control>
 
+                <!-- Browse Columns -->
                 <Control name="$(parent)ColumnBar" inherits="BETTERUI_GamepadHeaderTitleAnchors">
                     <Controls>
                         <Label name="$(parent)Column1Label"
@@ -372,7 +424,7 @@
             </Controls>
         </Control>
 
-
+        <!-- Legacy/Fallback Header -->
         <Control name="BETTERUI_GenericHeader" resizeToFitDescendents="true" virtual="true">
             <Anchor point="TOPLEFT" />
             <Anchor point="TOPRIGHT" />
@@ -450,7 +502,6 @@
                 </Control>
             </Controls>
         </Control>
-
 
     </Controls>
 </GuiXml>

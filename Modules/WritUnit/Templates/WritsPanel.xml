@@ -1,26 +1,39 @@
 <GuiXml>
-	<Controls>
-        <Control name="BETTERUI_WritsPanel" inherits="ZO_GamepadGrid_NavQuadrant_1_Anchors"  virtual="true">
+    <!--
+        BetterUI Writs Panel
+        Definition for the floating panel that displays daily writ progress status.
+        Anchored relative to the top right of the screen.
+    -->
+    <Controls>
+        <Control name="BETTERUI_WritsPanel" inherits="ZO_GamepadGrid_NavQuadrant_1_Anchors"
+            virtual="true">
             <Controls>
                 <Control name="$(parent)SlotContainer">
                     <Dimensions x="325" y="200" />
-                    <Anchor point="TOPLEFT" relativeTo="GuiRoot" offsetX="580" offsetY="50"/>
+                    <Anchor point="TOPLEFT" relativeTo="GuiRoot" offsetX="580" offsetY="50" />
                     <Controls>
                         <Button name="$(parent)ExtractionSlot">
-                            <Anchor point="TOP" relativePoint="TOP"/>
+                            <Anchor point="TOP" relativePoint="TOP" />
                             <Controls>
-								 <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop_Gamepad" excludeFromResizeToFitExtents="true">
-									<Anchor point="TOPLEFT" offsetX="-190" offsetY="-22" />
+                                <Backdrop name="$(parent)Bg" inherits="ZO_DefaultBackdrop_Gamepad"
+                                    excludeFromResizeToFitExtents="true">
+                                    <Anchor point="TOPLEFT" offsetX="-190" offsetY="-22" />
                                     <Anchor point="BOTTOMRIGHT" offsetX="225" offsetY="147" />
-								</Backdrop>
+                                </Backdrop>
 
-                                <Label name="$(parent)WritName" font="ZoFontGamepad27" horizontalAlignment="LEFT" inherits="ZO_TooltipIfTruncatedLabel" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
+                                <Label name="$(parent)WritName" font="ZoFontGamepad27"
+                                    horizontalAlignment="LEFT" inherits="ZO_TooltipIfTruncatedLabel"
+                                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_SELECTED">
                                     <Dimensions x="325" />
                                     <Anchor point="TOP" relativePoint="BOTTOM" />
                                 </Label>
-                                <Label name="$(parent)WritDesc" font="ZoFontGamepad25" horizontalAlignment="LEFT" color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL" hidden="false">
-                                    <Dimensions x="325"/>
-                                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="40" offsetX="35"/>
+                                <Label name="$(parent)WritDesc" font="ZoFontGamepad25"
+                                    horizontalAlignment="LEFT"
+                                    color="INTERFACE_COLOR_TYPE_TEXT_COLORS:INTERFACE_TEXT_COLOR_NORMAL"
+                                    hidden="false">
+                                    <Dimensions x="325" />
+                                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="40"
+                                        offsetX="35" />
                                 </Label>
                             </Controls>
                         </Button>

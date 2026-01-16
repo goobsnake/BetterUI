@@ -1,5 +1,36 @@
--- BetterUI Inventory List - Entry Setup and Display
--- Functions for setting up inventory list entries and handling item display
+--------------------------------------------------------------------------------
+-- BetterUI Inventory List Module
+--
+-- This file handles the customized setup and display of inventory list entries.
+-- It works in conjunction with the main Inventory class to render individual items.
+--
+-- KEY RESPONSIBILITIES:
+--
+-- 1.  **Entry Formatting (`BETTERUI_SharedGamepadEntryLabelSetup`)**:
+--     *   Styles text based on item state (Locked, BoP, Bound, Enchanted, Set Gear).
+--     *   Adds iconography (Stolen, Guild Trader, Enchantment, etc.) directly into the label.
+--     *   Handles font scaling and coloring based on selection or item quality.
+--
+-- 2.  **Item Setup (`BETTERUI_SharedGamepadEntry_OnSetup`)**:
+--     *   The main "render" function called for every row in the inventory.
+--     *   Populates columns: Item Type, Trait, Stat (Damage/Armor/Recipe), and Value.
+--     *   Optimizes performance by using cached values (`cached_itemLink`, etc.) from the main inventory loop.
+--     *   Handles dynamic icon sizing based on user font settings.
+--
+-- 3.  **Visual Indicators**:
+--     *   `BETTERUI_IconSetup`: Manages the "New Item" status indicator and "Equipped" checkmarks.
+--     *   `BETTERUI_Cooldown`: Draws cooldown timers on items (e.g. potions).
+--
+-- 4.  **List Class (`BETTERUI.Inventory.List`)**:
+--     *   A subclass of `ZO_GamepadInventoryList` tailored for BetterUI.
+--     *   Uses `BETTERUI_VerticalParametricScrollList` for the actual scrolling mechanic.
+--     *   Handles list refreshes, data binding, and trigger keybinds.
+--
+-- TODO(refactor): FormatAbbreviatedNumber is duplicated in multiple files - move to shared utilities
+-- TODO(optimization): BETTERUI_SharedGamepadEntry_OnSetup is called per-row per-frame during scrolling.
+--                     Consider caching more computed values to reduce GetItemLink/GetItemTrait calls.
+-- TODO(cleanup): Icon path constants at top should use a centralized icon registry
+--------------------------------------------------------------------------------
 
 local TEXTURE_EQUIP_ICON = "BetterUI/Modules/CIM/Images/inv_equip.dds"
 local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds"
@@ -74,10 +105,11 @@ end
 
 
 
---- Sets up the label for a shared gamepad entry with icons and formatting
---- @param label table: The label control
---- @param data table: The entry data
---- @param selected boolean: Whether the entry is selected
+--- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
+--- Adds specific icons for stolen items, guild trader ownership, enchantments, set gear, and unknown recipes.
+--- @param label table The label control.
+--- @param data table The data for the entry.
+--- @param selected boolean True if the entry is selected.
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
     if label then
@@ -141,10 +173,10 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     end
 end
 
---- Sets up icons for equipped and new item status
---- @param statusIndicator table: The status indicator control
---- @param equippedIcon table: The equipped icon control
---- @param data table: The entry data
+--- Configures the status indicator (New icon) and equipped icon for an entry.
+--- @param statusIndicator table The control for the status indicator (New item icon).
+--- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
+--- @param data table The data for the entry.
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
 
     statusIndicator:ClearIcons()
@@ -178,11 +210,11 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     end
 end
 
---- Sets up the icon for a shared gamepad entry
---- @param icon table: The icon control
---- @param stackCountLabel table: The stack count label
---- @param data table: The entry data
---- @param selected boolean: Whether the entry is selected
+--- Sets up the main icon for a shared gamepad entry, including stacking counts and cooldown overlays.
+--- @param icon table The icon control.
+--- @param stackCountLabel table The label for the stack count.
+--- @param data table The data for the entry.
+--- @param selected boolean True if the entry is selected.
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
         if data.iconUpdateFn then
@@ -224,16 +256,16 @@ function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selec
     end
 end
 
---- Sets up cooldown display on a control
---- @param control table: The control to apply cooldown to
---- @param remaining number: Remaining cooldown time
---- @param duration number: Total cooldown duration
---- @param cooldownType number: Type of cooldown display
---- @param timeType number: Type of time display
---- @param useLeadingEdge boolean: Whether to use leading edge
---- @param alpha number: Alpha value
---- @param desaturation number: Desaturation value
---- @param preservePreviousCooldown boolean: Whether to preserve previous cooldown
+--- Applies a visual cooldown effect to a control.
+--- @param control table The control to apply the cooldown to.
+--- @param remaining number The remaining time in milliseconds.
+--- @param duration number The total duration in milliseconds.
+--- @param cooldownType number The visual type of the cooldown (e.g., radial, vertical).
+--- @param timeType number The time type (e.g., time until).
+--- @param useLeadingEdge boolean Whether to show a leading edge visual.
+--- @param alpha number The transparency of the cooldown overlay.
+--- @param desaturation number The desaturation level.
+--- @param preservePreviousCooldown boolean Whether to keep the existing cooldown if active.
 function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType, useLeadingEdge, alpha, desaturation, preservePreviousCooldown)
     local inCooldownNow = remaining > 0 and duration > 0
     if inCooldownNow then
@@ -249,9 +281,9 @@ function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType,
     control.cooldown:SetHidden(not inCooldownNow)
 end
 
---- Sets up cooldown for a control based on data
---- @param control table: The control
---- @param data table: The data containing cooldown info
+--- High-level setup for cooldown indicators on an item entry.
+--- @param control table The control (usually the row control).
+--- @param data table The data containing cooldown information.
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"
     if control.cooldown then
@@ -272,14 +304,15 @@ function BETTERUI_CooldownSetup(control, data)
     end
 end
 
---- Set up a gamepad inventory entry with all visual elements and data
---- This is a performance-critical function called for every item in the inventory list
---- @param control table: The UI control for the entry
---- @param data table: The item data to display
---- @param selected boolean: Whether this entry is currently selected
---- @param reselectingDuringRebuild boolean: Whether this is a reselection during rebuild
---- @param enabled boolean: Whether the entry is enabled
---- @param active boolean: Whether the entry is active
+--- Configures a shared gamepad inventory entry (row).
+--- Populates all displayed data including labels, icons, traits, stats (Value/Damage), and market price.
+--- Handles dynamic font scaling for icons to ensure visual consistency.
+--- @param control table The UI control for the row.
+--- @param data table The data item to display.
+--- @param selected boolean True if the row is selected.
+--- @param reselectingDuringRebuild boolean True if preserving selection during a list rebuild.
+--- @param enabled boolean True if the row is enabled.
+--- @param active boolean True if the row is active.
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
 
@@ -405,6 +438,10 @@ local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
     end
 end
 
+--- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
+--- Handles special cases like Stolen items, Uncategorized weapons, and Armor/Weapon types.
+--- @param itemData table The item data.
+--- @return string The localized category description.
 function GetBestItemCategoryDescription(itemData)
 
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
@@ -439,6 +476,7 @@ function GetBestItemCategoryDescription(itemData)
 	return fullDesc
 end
 
+--- @class BETTERUI.Inventory.List : ZO_GamepadInventoryList
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
 
 function BETTERUI.Inventory.List:New(...)
@@ -446,6 +484,8 @@ function BETTERUI.Inventory.List:New(...)
     return object
 end
 
+--- Initializes the inventory list.
+--- Sets up the parametric scroll list, data templates, and update callbacks.
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback, categorizationFunction, sortFunction, useTriggers, template, templateSetupFunction)
     self.control = control
     self.selectedDataCallback = selectedDataCallback
@@ -536,6 +576,8 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnSingleSlotInventoryUpdate)
 end
 
+--- Populates the slot table with item data from the inventory.
+--- Filters items using `itemFilterFunction` and assigns category names.
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
@@ -551,8 +593,9 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
     end
 end
 
--- this function is a VERY basic generic refresh, with no form of sorting or specific interface information
--- if you want to use BETTERUI.Inventory.List, it will be very useful if you OVERWRITE THIS METHOD!
+--- Refreshes the inventory list.
+--- Clears the current list, regenerates the slot table, creates entry data, and commits the list to the UI.
+--- This method is designed to be overridden by subclasses for specific list behavior.
 function BETTERUI.Inventory.List:RefreshList()
     if self.control:IsHidden() then
         self.isDirty = true

@@ -1,12 +1,41 @@
--- BetterUI General Interface Module
--- Settings panel for tooltips, chat history, nameplates, and third-party integrations
+---------------------------------------------------------------------------------------------------
+-- BetterUI - General Interface Module
+--
+-- This module acts as the central configuration hub for various General Interface enhancements.
+-- It integrates with LibAddonMenu to provide settings for:
+-- 1. Tooltips: Font size, MasterMerchant/TTC integration, and mail deletion confirmation.
+-- 2. Nameplates: Enabling/disabling, font customization, and style adjustments.
+-- 3. Resource Orb Frames: Configuration for the custom resource orb UI (Health/Magicka/Stamina).
+--
+-- ARCHITECTURE:
+--   This file defines the settings panel structure using LAM (LibAddonMenu2).
+--   Actual functionality is implemented in separate files:
+--     - Tooltips.lua: Tooltip enhancement logic
+--     - Nameplates.lua: Nameplate font customization
+--     - ResourceOrbFrames.lua: Orb UI implementation
+--
+-- TODO(architecture): This file is 1100+ lines and hard to navigate. Consider splitting
+--                     settings into separate files per feature (TooltipSettings, NameplateSettings, etc.)
+-- TODO(refactor): Many setFunc callbacks duplicate the pattern of updating setting + calling ApplySettings.
+--                 Extract to helper function like `createSettingSetter(settingsPath, callback)`
+-- TODO(cleanup): Some settings check for module existence multiple times in get/set/disabled.
+--                Could be consolidated into wrapper functions.
+---------------------------------------------------------------------------------------------------
 
 local _
 local LAM = LibAddonMenu2
 
--- Initializes settings panel for General Interface options
---- @param mId string: Module ID
---- @param moduleName string: Display name
+--- Initializes the settings panel for General Interface options.
+---
+--- Creates a LibAddonMenu panel with all configurable options for:
+---   - Tooltip integrations (TTC, MM, ATT)
+---   - Nameplate font customization
+---   - Resource Orb Frames appearance and behavior
+---   - Experience bar settings
+---   - Food bar settings
+---
+--- @param mId string The Module ID (unused, for standardized module signature)
+--- @param moduleName string The display name of the module for the settings panel
 local function Init(mId, moduleName)
 	local panelData = Init_ModulePanel(moduleName, "General Interface Settings")
 
@@ -1023,9 +1052,10 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
--- Initializes ResourceOrbFrames default settings
---- @param m_options table: Options table
---- @return table: Initialized options
+--- Initializes ResourceOrbFrames default settings.
+--- Defines defaults for scale, offset, colors, and visibility of orb elements.
+--- @param m_options table The options table to initialize.
+--- @return table The initialized options table with defaults applied.
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = {
@@ -1092,9 +1122,10 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     return m_options
 end
 
--- Initializes Nameplates default settings (preserves existing values)
---- @param m_options table: Options table
---- @return table: Initialized options
+--- Initializes Nameplates default settings.
+--- Preserves existing values if they exist, otherwise fills in defaults for font, style, and size.
+--- @param m_options table The options table to initialize.
+--- @return table The initialized options table.
 function BETTERUI.Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS
@@ -1106,9 +1137,10 @@ function BETTERUI.Nameplates.InitModule(m_options)
     return m_options
 end
 
--- Initializes Tooltips default settings
---- @param m_options table: Options table
---- @return table: Initialized options
+--- Initializes Tooltips default settings.
+--- Sets defaults for chat history, trait visibility, mail handling, and integrations (MM, TTC, ATT).
+--- @param m_options table The options table to initialize.
+--- @return table The initialized options table.
 function BETTERUI.Tooltips.InitModule(m_options)
     if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
     if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
@@ -1120,7 +1152,9 @@ function BETTERUI.Tooltips.InitModule(m_options)
     return m_options
 end
 
--- Sets up Tooltips module: registers hooks, event handlers, and scene callbacks
+--- Sets up the General Interface (Tooltips) module.
+--- Registers hooks for inventory and tooltip layouts, sets up event handlers for error suppression,
+--- and initializes keybind overrides for mail deletion.
 function BETTERUI.Tooltips.Setup()
 
 	Init("General", "General Interface")

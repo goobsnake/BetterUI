@@ -1,11 +1,23 @@
 <GuiXml>
+    <!--
+        BetterUI Parametric Scroll List Templates XML
+        Description: Visual definitions for custom scroll lists.
+        Key Features:
+        - Mouse mouseHandlers (Wheel, Click) for hybrid input support.
+        - Custom Anchors for NavQuadrant_1 (Main panel area).
+        - Virtual definitions for Grid and List Containers.
+    -->
     <Controls>
 
-        <!-- The below 2 controls are redefinitions of ZOS's original NavQuadrant_1 anchors to facilitate smooth transitions and compatibility -->
+        <!-- 
+            Custom Anchors for Navigation Quadrant 1.
+            Redefinitions of ZOS's original anchors to facilitate smooth transitions and custom width.
+        -->
         <Control name="BETTERUI_GamepadGrid_NavQuadrant_1_Anchors" virtual="true">
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH" />
             <Anchor point="TOPLEFT" relativeTo="GuiRoot" offsetX="BETTERUI_GAMEPAD_QUADRANT_1_LEFT" />
-            <Anchor point="BOTTOMLEFT" relativeTo="GuiRoot" offsetX="BETTERUI_GAMEPAD_QUADRANT_1_LEFT" />
+            <Anchor point="BOTTOMLEFT" relativeTo="GuiRoot"
+                offsetX="BETTERUI_GAMEPAD_QUADRANT_1_LEFT" />
         </Control>
         <Control name="BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" virtual="true">
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH" />
@@ -13,41 +25,49 @@
             <Anchor point="BOTTOMLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
         </Control>
 
-        <Control name="BETTERUI_VerticalParametricScrollListTemplate" mouseEnabled="true" virtual="true">
+        <!-- 
+            Vertical Scroll List Template with Mouse Support.
+            Includes logic for MouseWheel navigation and exiting search focus.
+        -->
+        <Control name="BETTERUI_VerticalParametricScrollListTemplate" mouseEnabled="true"
+            virtual="true">
             <OnMouseWheel>
                 if self.scrollList and self.scrollList.active then
-                    if delta > 0 then
-                        local atTop = self.scrollList:GetSelectedIndex() == 1
-                        local succeeded = self.scrollList:MovePrevious()
-                        -- If at top and MovePrevious fails, try to enter header/search
-                        if atTop and not succeeded then
-                            local owner = self.scrollList.owner
-                            if owner and owner.RequestEnterHeader then
-                                owner:RequestEnterHeader()
-                            elseif GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RequestEnterHeader then
-                                GAMEPAD_INVENTORY:RequestEnterHeader()
-                            end
-                        end
-                    else
-                        self.scrollList:MoveNext()
-                    end
+                if delta > 0 then
+                -- Scroll Up
+                local atTop = self.scrollList:GetSelectedIndex() == 1
+                local succeeded = self.scrollList:MovePrevious()
+
+                -- If at top and MovePrevious fails, try to enter header/search (PC-like behavior)
+                if atTop and not succeeded then
+                local owner = self.scrollList.owner
+                if owner and owner.RequestEnterHeader then
+                owner:RequestEnterHeader()
+                elseif GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RequestEnterHeader then
+                GAMEPAD_INVENTORY:RequestEnterHeader()
+                end
+                end
+                else
+                -- Scroll Down
+                self.scrollList:MoveNext()
+                end
                 elseif self.scrollList and not self.scrollList.active and delta &lt; 0 then
-                    -- List is not active (header/search is active) and scrolling down
-                    -- Exit search and return to list
-                    local owner = self.scrollList.owner or GAMEPAD_INVENTORY
-                    if owner then
-                        if owner.ExitSearchFocus then
-                            owner:ExitSearchFocus()
-                        elseif owner.RequestLeaveHeader then
-                            owner:RequestLeaveHeader()
-                        end
-                    end
+                -- List is inactive (e.g., Search Header is focused) and user scrolls DOWN
+                -- Exit search focus and return to list
+                local owner = self.scrollList.owner or GAMEPAD_INVENTORY
+                if owner then
+                if owner.ExitSearchFocus then
+                owner:ExitSearchFocus()
+                elseif owner.RequestLeaveHeader then
+                owner:RequestLeaveHeader()
+                end
+                end
                 end
             </OnMouseWheel>
 
             <OnMouseUp>
-                -- Allow mouse click to select an item, will probably have an option to disable this behaviour
-                    -- Will implement
+                -- Placeholder: Allow mouse click to select an item.
+                -- Use OnClicked on individual rows for selection, this is for background clicks.
             </OnMouseUp>
 
             <Controls>
@@ -55,6 +75,7 @@
                     <AnchorFill />
                 </Scroll>
 
+                <!-- Centering Helper -->
                 <Control name="$(parent)ListScreenCenterIsAlongTop">
                     <Anchor point="TOPLEFT" relativeTo="GuiRoot" relativePoint="LEFT" />
                     <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOM" />
@@ -69,29 +90,44 @@
             </Controls>
         </Control>
 
-        <Control name="BETTERUI_Gamepad_ParametricList_Screen_ListContainer" inherits="BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" virtual="true">
+        <!-- 
+            List Container (Screen wrapper for lists)
+        -->
+        <Control name="BETTERUI_Gamepad_ParametricList_Screen_ListContainer"
+            inherits="BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" virtual="true">
             <Controls>
-                <Control name="$(parent)List" inherits="BETTERUI_VerticalParametricScrollListTemplate">
+                <Control name="$(parent)List"
+                    inherits="BETTERUI_VerticalParametricScrollListTemplate">
                     <AnchorFill />
 
                     <OnInitialized>
                         self:GetParent().list = self
                     </OnInitialized>
 
-                    <Anchor point="TOPLEFT" relativeTo="$(grandparent)HeaderContainerHeader" relativePoint="BOTTOMLEFT" offsetX="-50" offsetY="-25"/>
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(grandparent)FooterContainerFooter" relativePoint="TOPRIGHT" offsetX="0" offsetY="10" />
+                    <!-- Anchor list between Header and Footer -->
+                    <Anchor point="TOPLEFT" relativeTo="$(grandparent)HeaderContainerHeader"
+                        relativePoint="BOTTOMLEFT" offsetX="-50" offsetY="-25" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(grandparent)FooterContainerFooter"
+                        relativePoint="TOPRIGHT" offsetX="0" offsetY="10" />
 
                     <Controls>
-                        <Label name="$(parent)NoItemsLabel"  font="ZoFontGamepadCondensed36" horizontalAlignment="CENTER" verticalAlignment="CENTER">
+                        <Label name="$(parent)NoItemsLabel" font="ZoFontGamepadCondensed36"
+                            horizontalAlignment="CENTER" verticalAlignment="CENTER">
                             <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
-                            <Anchor point="BOTTOMRIGHT" offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+                            <Anchor point="BOTTOMRIGHT"
+                                offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
                         </Label>
                     </Controls>
                 </Control>
             </Controls>
         </Control>
 
-        <Control name="BETTERUI_Gamepad_ParametricList_Screen" inherits="BETTERUI_GamepadGrid_NavQuadrant_1_Anchors" hidden="true" virtual="true">
+        <!-- 
+            Full Screen Template (CIM Screen)
+            Combines Header, Footer, and List Container into a full scene fragment structure.
+        -->
+        <Control name="BETTERUI_Gamepad_ParametricList_Screen"
+            inherits="BETTERUI_GamepadGrid_NavQuadrant_1_Anchors" hidden="true" virtual="true">
             <Controls>
                 <Scroll name="$(parent)Mask">
                     <AnchorFill />
@@ -101,8 +137,11 @@
                             <AnchorFill />
 
                             <Controls>
-                                <Control name="$(parent)HeaderContainer" inherits="BETTERUI_GamepadScreenHeaderContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
-                                <Control name="$(parent)FooterContainer" inherits="BETTERUI_GamepadScreenFooterContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
+                                <!-- Header and Footer inherit CIM generic styles -->
+                                <Control name="$(parent)HeaderContainer"
+                                    inherits="BETTERUI_GamepadScreenHeaderContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
+                                <Control name="$(parent)FooterContainer"
+                                    inherits="BETTERUI_GamepadScreenFooterContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
                             </Controls>
 
                         </Control>

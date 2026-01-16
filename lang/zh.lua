@@ -1,4 +1,8 @@
 -- BetterUI Chinese Localization
+---
+--- Purpose: Defines localized string constants for Chinese.
+--- Mechanics: Registers string IDs with the ESO localization system (ZO_CreateStringId).
+---
 
 -- UI Labels (Resource Orb Frames)
 ZO_CreateStringId("SI_BETTERUI_LABEL_CAST_BAR", "施法条")

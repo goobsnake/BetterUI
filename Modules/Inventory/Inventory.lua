@@ -1,31 +1,102 @@
--- BetterUI Inventory Class - Main Implementation
--- Core inventory functionality: item management, equipping, and UI interactions
--- Compatibility patches for ESO Update 34 (CinderDarkfire)
+--------------------------------------------------------------------------------
+-- BetterUI Inventory Module
+--
+-- This file contains the core implementation of the BetterUI Inventory system.
+-- It works by subclassing ZO_GamepadInventory to provide a completely overhauled
+-- gamepad inventory experience.
+--
+-- KEY FEATURES:
+--
+-- 1.  **Dual List Architecture**:
+--     *   `itemList`: Handles the main backpack inventory (Weapons, Armor, Consumables, etc.).
+--     *   `craftBagList`: Handles the ESO Plus Craft Bag (Alchemy, Blacksmithing, etc.).
+--     *   Uses `SwitchActiveList` to toggle between them with sophisticated state management.
+--
+-- 2.  **Advanced List Management**:
+--     *   `RefreshCategoryList`: dynamically rebuilds category tabs (including auto-hiding Junk/Stolen tabs).
+--     *   `RefreshItemList` & `RefreshCraftBagList`: Rebuilds item lists with custom sorting, filtering, and caching.
+--     *   **State Persistence**: `SaveListPosition` and `ToSavedPosition` ensure that when users switch
+--         between categories (e.g. Weapons -> Armor -> Weapons), their scroll position and selection
+--         are perfectly preserved.
+--
+-- 3.  **Custom Dialogs & Interactions**:
+--     *   `BETTERUI_EQUIP_SLOT_DIALOG`: A smart dialog for equipping items, allowing choice between
+--         Main Hand, Off Hand, Backup Main, Backup Off, and Ring slots.
+--     *   `BETTERUI_QUICKSLOT_ASSIGN_DIALOG`: An embedded parametric dialog that lets users visually
+--         assign items to the quickslot wheel.
+--     *   `BETTERUI_CONFIRM_DESTROY_DIALOG`: A safer item destruction flow.
+--     *   `HookActionDialog`: Deep integration with the Inventory Action ("Y") menu to inject custom options.
+--
+-- 4.  **Header Integration**:
+--     *   Displays real-time currency (Gold, AP, Tel Var) and Bag Space in the header.
+--     *   Integrates with `BETTERUI.GenericHeader` for tab navigation and carousel support.
+--
+-- 5.  **Search Integration**:
+--     *   Integrates a text search input that filters both the inventory and craft bag.
+--     *   Includes custom focus management to allow controller navigation to/from the search bar.
+--
+-- 6.  **Keybinds**:
+--     *   Context-aware keybinds (`InitializeKeybindStrip`) that change based on the selected item
+--         (e.g., showing "Equip", "Use", or "Assign" on the 'A' button).
+--
+-- TODO(architecture): This file is 4300+ lines and handles too many concerns. Consider splitting into:
+--   - InventoryCore.lua: Class definition, initialization, scene management
+--   - InventoryLists.lua: List management, refresh, sorting, filtering
+--   - InventoryDialogs.lua: Custom dialogs (equip slot, quickslot, destroy)
+--   - InventoryKeybinds.lua: Keybind strip configuration
+--   - InventoryActions.lua: Action menu hooks and item interactions
+--
+-- TODO(refactor): Many helper functions are defined at module scope but only used by the class.
+--                 Consider moving them to class methods or a separate utilities file.
+--
+-- TODO(optimization): SHARED_INVENTORY:GenerateFullSlotData() is called frequently during refreshes.
+--                     Consider caching results and invalidating on inventory events.
+--
+-- TODO(cleanup): Some functions have duplicate comments (see lines 120-121 pattern). Clean up.
+--------------------------------------------------------------------------------
 
 local _
+
+-------------------------------------------------------------------------------------------------
+-- CONSTANTS & GLOBALS
+-------------------------------------------------------------------------------------------------
+-- Module-level constants and global overrides.
+--
+-- TODO(cleanup): BLOCK_TABBAR_CALLBACK is defined but may not be used - verify and remove if dead code
+-- TODO(cleanup): ZO_GAMEPAD_INVENTORY_SCENE_NAME override should be documented - why is this needed?
+-------------------------------------------------------------------------------------------------
 
 local BLOCK_TABBAR_CALLBACK = true
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
--- Action mode constants
+-- Action mode constants for tracking inventory UI state
 local CATEGORY_ITEM_ACTION_MODE = 1
 local ITEM_LIST_ACTION_MODE = 2
 local CRAFT_BAG_ACTION_MODE = 3
 
--- Timing constants
-local DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION = 300
-local INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS = 300
+-- Timing constants for UI operations
+local DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION = 300  -- Delay before showing secondary dialogs to avoid ESO dialog queue issues
+local INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS = 300  -- Debounce for tooltip updates during navigation
 
--- List type identifiers
+-- List type identifiers for SwitchActiveList
 local INVENTORY_CATEGORY_LIST = "categoryList"
 local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
--- Helper for tab bar navigation wrap-around
+-------------------------------------------------------------------------------------------------
+-- HELPER FUNCTIONS
+-------------------------------------------------------------------------------------------------
+-- Utility functions used throughout the inventory module.
+-------------------------------------------------------------------------------------------------
+
+--- Wraps a value around min/max bounds for circular navigation.
+--- @param newValue number The value to wrap
+--- @param maxValue number The maximum value (1 is implicit minimum)
+--- @return number The wrapped value
 local function WrapValue(newValue, maxValue)
 	if newValue < 1 then
 		return maxValue
@@ -36,7 +107,9 @@ local function WrapValue(newValue, maxValue)
 	return newValue
 end
 
--- Check if player has unlocked weapon swap (backup bar) - requires level 15
+--- Checks if the player has unlocked weapon swap (requires level 15).
+--- Used to determine if backup bar equip options should be shown.
+--- @return boolean True if player can use backup bar
 local function CanUseBackupBar()
 	return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
 end
@@ -311,6 +384,8 @@ local function SafeGetTargetData(list)
 	return list.selectedData
 end
 
+--- Restores the list position and selection from saved state.
+--- Handles both inventory and craft bag lists, ensuring the user returns to the exact spot they left.
 function BETTERUI.Inventory.Class:ToSavedPosition()
 	-- Determine if we're on inventory or craft bag based on current category
 	local catData = self.categoryList and self.categoryList.selectedData
@@ -391,6 +466,8 @@ function BETTERUI.Inventory.Class:ToSavedPosition()
 	end
 end
 
+--- Saves the current list position and selection.
+--- Stores the index and unique ID of the selected item to allow precise restoration later.
 function BETTERUI.Inventory.Class:SaveListPosition()
 	-- Guard against nil state
 	if not self.categoryList or not self.categoryList.selectedData then return end
@@ -433,6 +510,8 @@ end
 
 --- Build the category list UI and wire up selection/target callbacks
 --- Responds to category selection by switching between item and craft bag lists
+--- Initializes the category list (tabs) for the inventory.
+--- Sets up templates, selection callbacks, and target change handlers.
 function BETTERUI.Inventory.Class:InitializeCategoryList()
 	self.categoryList = self:AddList("Category", SetupCategoryList)
 	self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
@@ -493,6 +572,10 @@ local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilter
 	end
 end
 
+--- Checks if the item list is empty for a given filter.
+--- @param filteredEquipSlot number|nil The equip slot to filter by (optional).
+--- @param nonEquipableFilterType number|nil The item filter type to check (optional).
+--- @return boolean True if the list would be empty, false otherwise.
 function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
 	local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 	local function comparatorExcludingJunk(itemData)
@@ -531,6 +614,10 @@ end
 --- Attempt to equip an item in gamepad inventory, handling bind-on-equip, bar/hand choices
 --- inventorySlot: parametric entry for the selected item
 --- isCallingFromActionDialog: true when invoked from the Y actions dialog (defers dialogs slightly)
+--- Attempts to equip the selected item.
+--- Handles various equip types, bind-on-equip confirmation, and slot selection (main/off hand, backup bar).
+--- @param inventorySlot table The data of the item to equip.
+--- @param isCallingFromActionDialog boolean True if called from the actions dialog (delays dialogs slightly).
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
 	local equipType = inventorySlot.dataSource.equipType
 	local bagId = inventorySlot.dataSource.bagId
@@ -683,6 +770,10 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 	end
 end
 
+--- Adds a new category entry to the category list if it contains items.
+--- @param filterType number|nil The item filter type for the category.
+--- @param iconFile string The path to the icon texture.
+--- @param FilterFunct function|nil Optional custom filter function.
 function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
 	if FilterFunct == nil then
 		FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
@@ -711,6 +802,9 @@ end
 
 --- Rebuild category tabs based on current list (backpack vs craft bag) and item presence
 --- Ensures All Items is always present; includes Stolen/Junk when items exist
+--- Rebuilds the category list based on the current state (Inventory vs Craft Bag).
+--- Dynamically adds categories like "All", "Weapons", "Armor", and relevant Craft Bag professions.
+--- Also handles "Equipped", "Stolen", and "Junk" categories if they contain items.
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 	local function IsStolenAndNotJunk()
 		if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
@@ -1093,7 +1187,8 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 	self:EnsureHeaderKeybindsActive()
 end
 
---- Initialize the gamepad header with tab bar and currency rows used by the inventory
+--- Initializes the gamepad header, including the tab bar and currency display.
+--- Configures the tab bar with specific callbacks for category and craft bag switching.
 function BETTERUI.Inventory.Class:InitializeHeader()
 	local function UpdateTitleText()
 		return GetString(
@@ -1164,7 +1259,9 @@ function BETTERUI.Inventory.Class:RefreshCraftBagList()
 	self.craftBagList:RefreshList(craftFilter, self.searchQuery)
 end
 
---- Build and sort the item list for the selected category, setting headers and cached fields
+--- Refreshes the item list based on the selected category and filter.
+--- Gathers items from the shared inventory, applies filters (including text search),
+--- sorts them, and populates the UI list. Handles equipping indicators and Quest item specifics.
 function BETTERUI.Inventory.Class:RefreshItemList()
 	self.itemList:Clear()
 	if self.categoryList:IsEmpty() then
@@ -1372,6 +1469,9 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 	end
 end
 
+--- Updates the left-side tooltip with details about the selected item.
+--- Handles different item types (Quest, Equipment, etc.) and comparisons (if active).
+--- @param selectedData table The data of the currently selected item.
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 	-- Guard: selectedData may be a category/header entry without bag/slot fields.
 	-- Avoid calling inventory helper functions on non-item rows which expect item tables.
@@ -1480,6 +1580,8 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 	end
 end
 
+--- Initializes the main item list (used for backpack items).
+--- Sets up the parametric scroll list with callbacks for selection changes.
 function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
 
@@ -1524,6 +1626,8 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 	self.itemList:SetNoItemText(emptyText)
 end
 
+--- Initializes the craft bag list.
+--- Uses a specialized `BETTERUI.Inventory.CraftList` to handle craft bag specific logic.
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
 	local function OnSelectedDataCallback(list, selectedData)
 		if selectedData ~= nil and self.scene:IsShowing() then
@@ -1559,10 +1663,14 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 	self.craftBagList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
 end
 
+--- Initializes the action slot manager for item interactions.
 function BETTERUI.Inventory.Class:InitializeItemActions()
 	self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
 end
 
+--- Initializes the actions dialog (Y-button menu).
+--- Registers callbacks to modify the dialog's content dynamically, injecting custom actions
+--- like "Mark as Junk" and handling the "Destroy" action safely.
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
 	local function ActionDialogSetup(dialog, data)
 		if self.scene:IsShowing() then
@@ -2097,7 +2205,8 @@ end
 -- Expose the patch helper so other initialization flows can trigger it regardless
 BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 
--- Quickslot assignment dialog allowing the user to choose a wheel slot (1..8)
+--- Initializes the custom dialog for visual quickslot assignment.
+--- Allows users to select a slot on the wheel (North, NE, etc.) for a specific item.
 function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
 	local SLOT_LABELS = {
 		[1] = "Southeast",
@@ -2240,6 +2349,10 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
 	})
 end
 
+--- Displays the quickslot assignment dialog for a given item.
+--- First attempts to use the embedded "Y-menu" style, falling back to a standalone dialog if needed.
+--- @param bagId number The bag ID of the item.
+--- @param slotIndex number The slot index of the item.
 function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
 	-- Open the standard Actions dialog in embedded quickslot mode (matches the Y-button prompt UX)
 	local data = { quickslotAssign = true, target = { bagId = bagId, slotIndex = slotIndex } }
@@ -2263,8 +2376,11 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
 	end, 120)
 end
 
--- If force is true, skip Junk gating (used by BetterUI confirmation)
--- Returns true if an item was destroyed, false otherwise (no messaging)
+--- Attempts to destroy an item, dealing with junk status and user confirmation settings.
+--- @param bagId number The bag ID of the item.
+--- @param slotIndex number The slot index of the item.
+--- @param force boolean If true, bypasses junk checks (used when user has explicitly confirmed destruction).
+--- @return boolean True if the item was destroyed, false otherwise.
 function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
 	if not bagId or not slotIndex then
 		return false
@@ -2671,7 +2787,8 @@ function BETTERUI.Inventory.HookActionDialog()
 	})
 end
 
--- override of ZO_Gamepad_ParametricList_Screen:OnStateChanged
+--- Handles scene state changes (SHOWING, HIDING, HIDDEN).
+--- Manages initialization deferral, visualization layers, list activation, and state cleanup.
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()
@@ -3166,6 +3283,8 @@ zo_callLater(function()
 	end)
 end, 60)
 
+--- Initializes the Inventory object.
+--- Sets up the root scene, registers update loops, and hooks into visual layer changes.
 function BETTERUI.Inventory.Class:Initialize(control)
 	GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
 	BETTERUI_Gamepad_ParametricList_Screen.Initialize(
@@ -3358,6 +3477,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
 	end, 40)
 end
 
+--- Refreshes the header information (Money, AP, Tel Var, Capacity).
+--- @param blockCallback boolean If true, prevents tab bar callbacks (used during internal updates).
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 	local currentList = self:GetCurrentList()
 
@@ -3550,6 +3671,9 @@ function BETTERUI.Inventory.Class:Switch()
 	end
 end
 
+--- Switches the active list between Inventory and Craft Bag.
+--- Handles saving/restoring list positions, updating keybinds, and refreshing the UI.
+--- @param listDescriptor table|string The list or list ID to switch to.
 function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	if listDescriptor == self.currentListType then
 		return

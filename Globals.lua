@@ -1,15 +1,22 @@
 -- BetterUI Globals
--- Core addon namespace and module definitions
+---
+--- Purpose: Defines the core addon namespace (BETTERUI) and global utility functions.
+---          Serves as the foundation for module registration and shared helper methods.
+--- Mechanics: Initializes the global BETTERUI table and sub-tables for modules.
+---            Provides text formatting, hook management, and external addon integration helpers.
+---
+
 -- Compatibility patch by Friday_The13_rus for AutoCategory integration
 
 BETTERUI = {
-	ResearchTraits = {}  -- Cached research trait data per craft type
+	ResearchTraits = {}  -- Cached research trait data per craft type, indexed by craftType -> researchLine -> traitIndex
 }
 
 BETTERUI.name = "BetterUI"
 BETTERUI.version = "2.92"
 
 -- ESO API references
+--- Cache global API managers for performance and ease of access.
 BETTERUI.WindowManager = GetWindowManager()
 BETTERUI.EventManager = GetEventManager()
 
@@ -52,16 +59,24 @@ BETTERUI.DefaultSettings = {
 	}
 }
 
---- Prints a debug message to chat with BetterUI prefix
---- @param str string: Message to display
+--- Prints a debug message to chat with BetterUI prefix.
+---
+--- Purpose: Standardized debug logging for development.
+--- Mechanics: Prefixes the message with cyan [BETTERUI] tag and prints to chat.
+---
+--- @param str string The message string to display.
 function ddebug(str)
 	return d("|c0066ff[BETTERUI]|r "..str)
 end
 
---- Rounds a number to specified decimal places
---- @param number number: The number to round
---- @param decimals number: Number of decimal places
---- @return number: The rounded number or 0 if invalid input
+--- Rounds a number to a specified number of decimal places.
+---
+--- Purpose: Utility for numeric formatting in UI elements.
+--- Mechanics: Multiplies by power of 10, floors, and divides back to truncate/round.
+---
+--- @param number number The value to round.
+--- @param decimals number The number of decimal places to keep.
+--- @return number|string The rounded number, formatted as a string (via string.format), or 0 if inputs invalid.
 function BETTERUI.roundNumber(number, decimals)
 	if number ~= nil and decimals ~= nil then
 		local power = 10^decimals
@@ -71,10 +86,14 @@ function BETTERUI.roundNumber(number, decimals)
 	end
 end
 
---- Formats a number with comma separators (e.g., 1234567 -> 1,234,567)
---- Thanks to Bart Kiers for this function
---- @param number number: The number to format
---- @return string: The formatted number string
+--- Formats a number with comma separators (e.g., 1234567 -> 1,234,567).
+--- Credits: Bart Kiers
+---
+--- Purpose: Improves readability of large currency values in the UI.
+--- Mechanics: Uses string pattern matching to insert commas every 3 digits.
+---
+--- @param number number The number to format.
+--- @return string The formatted string with commas.
 function BETTERUI.DisplayNumber(number)
 	local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
 	-- reverse the int-string and append a comma to all blocks of 3 digits
@@ -84,15 +103,19 @@ function BETTERUI.DisplayNumber(number)
 	return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
---- Abbreviates large numbers using k/m/b with configurable decimals.
---- Rules:
----  - >= 1,000 => k; show 0 decimals if exact integer (e.g., 1k), else 2 decimals (e.g., 1.24k)
----  - >= 1,000,000 => m; always 2 decimals (e.g., 1.20m)
----  - >= 1,000,000,000 => b; always 2 decimals (e.g., 1.20b)
----  - < 1,000 uses DisplayNumber with separators
---- @param n number
---- @param defaultDecimals number|nil defaults to 2
---- @return string
+--- Abbreviates large numbers using k/m/b suffixes.
+---
+--- Purpose: Compact display of large values (Health, XP, Gold) where space is limited.
+--- Mechanics: Checks magnitude (Billions -> Millions -> Thousands) and formats accordingly.
+---            Rules:
+---             - >= 1B: 'b' suffix, 2 decimals
+---             - >= 1M: 'm' suffix, 2 decimals
+---             - >= 1k: 'k' suffix, 0 decimals if integer, 2 if float
+---             - < 1k: Comma separated (DisplayNumber)
+---
+--- @param n number The number to abbreviate.
+--- @param defaultDecimals number|nil Optional default decimal places (defaults to 2).
+--- @return string The abbreviated number string.
 function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 	local abs = math.abs(n or 0)
 	local suffix = ""
@@ -126,17 +149,26 @@ function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 	return string.format(fmt, value) .. suffix
 end
 
---- Safely returns an icon path string or empty string if nil to avoid passing nil into ESO icon-format helpers.
---- @param iconPath string|nil: Path to the icon texture
---- @return string: iconPath or empty string
+--- Safely returns an icon path string.
+---
+--- Purpose: Prevents crashes or errors when passing nil icon paths to ESO API functions.
+--- Mechanics: Checks if iconPath is nil; returns empty string if so, otherwise returns original path.
+---
+--- @param iconPath string|nil The path to the icon texture.
+--- @return string The icon path or an empty string.
 function BETTERUI.SafeIcon(iconPath)
 	if iconPath == nil then return "" end
 	return iconPath
 end
 
---- Populates research traits data with caching to avoid redundant API calls. Research traits track which item traits (like 'sharp' or 'divine') the player has researched for each crafting skill, used for displaying research status in tooltips.
---- Only rebuilds data if forceRefresh is true or data hasn't been initialized
---- @param forceRefresh boolean: Force a refresh of the research data
+--- Populates the ResearchTraits cache.
+---
+--- Purpose: Caches player's research knowledge to avoid expensive API calls during list rendering.
+--- Mechanics: Iterates through all crafting types, research lines, and traits.
+---            Stores boolean status (known/unknown) in BETTERUI.ResearchTraits.
+--- References: Called on initialization and when research completes.
+---
+--- @param forceRefresh boolean If true, ignores existing cache and rebuilds data.
 function BETTERUI.GetResearch(forceRefresh)
 	if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then
 		return -- Use cached data
@@ -156,10 +188,14 @@ function BETTERUI.GetResearch(forceRefresh)
 	end
 end
 
---- Custom item sort comparator for gamepad inventory
---- @param left table: Left item data for comparison
---- @param right table: Right item data for comparison
---- @return boolean: True if left should come before right
+--- Custom comparison function for sorting gamepad inventory items.
+---
+--- Purpose: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
+--- Mechanics: Uses ZO_TableOrderingFunction with a custom schema.
+---
+--- @param left table The first item data.
+--- @param right table The second item data.
+--- @return boolean True if 'left' should appear before 'right'.
 function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
 	local CUSTOM_GAMEPAD_ITEM_SORT = {
 		sortPriorityName  = { tiebreaker = "bestItemTypeName" },
@@ -173,10 +209,16 @@ function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
 	return ZO_TableOrderingFunction(left, right, "sortPriorityName", CUSTOM_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
 
---- Gets market price for an item from various trading addons (MasterMerchant, Arkadius Trade Tools, Tamriel Trade Centre). Checks each addon in order and returns the average price multiplied by stack count, or 0 if no pricing data is available.
---- @param itemLink string: The item link to get price for
---- @param stackCount number: Number of items (defaults to 1)
---- @return number: The calculated price, or 0 if no price found
+--- Retrieves the market price of an item from third-party trade addons.
+---
+--- Purpose: Integration with MM, ATT, and TTC to display price info in tooltips.
+--- Mechanics: Checks which addon integration is enabled in settings.
+---            Calls the specific addon's API to fetch price data.
+---            Returns the average price multiplied by stack size.
+---
+--- @param itemLink string The item link.
+--- @param stackCount number The stack size (defaults to 1).
+--- @return number The calculated total price, or 0 if unavailable.
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Tooltips"] then
@@ -217,9 +259,17 @@ function BETTERUI.GetMarketPrice(itemLink, stackCount)
     return 0
 end
 
---- Gets custom category information from the AutoCategory addon if available. AutoCategory is a third-party addon that allows custom inventory categorization rules based on item properties.
---- @param itemData table: Item data containing bagId and slotIndex
---- @return boolean, boolean, string, number: useCustomCategory, matched, categoryName, categoryPriority
+--- Retrieves custom category information from AutoCategory addon.
+---
+--- Purpose: Integration with AutoCategory for advanced inventory sorting.
+--- Mechanics: Checks if AutoCategory is loaded and initialized.
+---            Calls MatchCategoryRules to get rule-based categorization.
+---
+--- @param itemData table The item data (must contain bagId and slotIndex).
+--- @return boolean useCustomCategory (True if AutoCategory is active).
+--- @return boolean matched (True if a rule matched).
+--- @return string categoryName (The name of the matched category).
+--- @return number categoryPriority (The priority for sorting).
 function BETTERUI.GetCustomCategory(itemData)
 	local useCustomCategory = false
 	--shadowcep[[
@@ -235,10 +285,14 @@ function BETTERUI.GetCustomCategory(itemData)
 	return useCustomCategory, false, "", 0
 end
 
---- Post-hooks a method on a UI control, ensuring the original method runs first, then the hook function. Useful for extending existing ESO UI behavior without breaking it.
---- @param control table: The UI control to hook
---- @param method string: The method name to hook
---- @param fn function: The hook function to call after the original
+--- Hooks a method to run AFTER the original method.
+---
+--- Purpose: Safe method extension.
+--- Mechanics: Replaces the method on the control with a wrapper that calls Original -> New.
+---
+--- @param control table The UI control or object.
+--- @param method string The name of the method to hook.
+--- @param fn function The function to execute after the original.
 function BETTERUI.PostHook(control, method, fn)
 	if control == nil then return end
 
@@ -249,11 +303,17 @@ function BETTERUI.PostHook(control, method, fn)
 	end
 end
 
---- Hooks a method on a UI control with flexible options. If overwriteOriginal is false, calls the original method first; otherwise, replaces it entirely. Used for modifying ESO's UI systems safely.
---- @param control table: The UI control to hook
---- @param method string: The method name to hook
---- @param postHookFunction function: The hook function to call
---- @param overwriteOriginal boolean: If true, skips calling the original method
+--- Generalized hook function with optional original method suppression.
+---
+--- Purpose: flexible hooking for replacing or extending functionality.
+--- Mechanics: Replaces key 'method' on 'control'.
+---            If overwriteOriginal is false (default), runs Original -> New.
+---            If overwriteOriginal is true, runs ONLY New.
+---
+--- @param control table The UI control.
+--- @param method string The method name.
+--- @param postHookFunction function The new function.
+--- @param overwriteOriginal boolean If true, the original method is NOT called.
 function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
 	if control == nil then return end
 
@@ -264,10 +324,14 @@ function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
 	end
 end
 
---- Creates a standardized module panel configuration for settings menus using LibAddonMenu2, including author, version, and slash command details.
---- @param moduleName string: The name of the module
---- @param moduleDesc string: The description of the module
---- @return table: Panel configuration table for LibAddonMenu
+--- Creates a standardized module configuration panel for LibAddonMenu.
+---
+--- Purpose: Ensures consistent settings menu appearance across modules.
+--- Mechanics: Returns a table matching LAM's panel specification.
+---
+--- @param moduleName string The display name of the module.
+--- @param moduleDesc string The description text.
+--- @return table The LAM panel configuration table.
 function Init_ModulePanel(moduleName, moduleDesc)
 	return {
 		type = "panel",

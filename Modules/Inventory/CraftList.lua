@@ -1,11 +1,38 @@
+--------------------------------------------------------------------------------
 -- BetterUI Craft Bag List
--- Manages craft bag inventory filtering and display
+--
+-- This file implements the specific list logic for the ESO Plus Craft Bag.
+-- It subclasses `BETTERUI.Inventory.List` but overrides key methods to handle
+-- the unique filtering and sorting requirements of the virtual bag.
+--
+-- KEY RESPONSIBILITIES:
+--
+-- 1.  **Filtering (`GetFilterComparator`)**:
+--     *   Generates filter functions based on item types (Alchemy, Blacksmithing, etc.).
+--     *   Supports complex filters (tables of filter types) or "All" mode.
+--
+-- 2.  **List Refresh (`RefreshList`)**:
+--     *   Rebuilds the craft bag list based on the current filter and search query.
+--     *   Applies text search filtering (name only) to narrow down results.
+--     *   Sorts items using `BETTERUI_CraftList_DefaultItemSortComparator`.
+--
+-- 3.  **Data Generation**:
+--     *   `AddSlotDataToTable`: Populates the list with cached category information.
+--
+-- TODO(refactor): GetFilterComparator duplicates logic from Inventory.lua - extract to shared utility
+-- TODO(cleanup): Unreachable code at line 54 (return after if/else) - remove dead code
+-- TODO(optimization): Text search in RefreshList creates new table every call - reuse buffer
+--------------------------------------------------------------------------------
 
+--- @class BETTERUI.Inventory.CraftList : BETTERUI.Inventory.List
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
 -- Creates a filter comparator for craft bag items
 --- @param filterType number|table: Filter type(s) to apply
 --- @return function: Returns true if item matches filter
+-- Creates a filter comparator for craft bag items.
+--- @param filterType number|table The filter type(s) to apply. Can be a single filter ID or a table of IDs.
+--- @return function A function that returns true if an item matches the filter(s).
 function GetFilterComparator(filterType)
 	return function(itemData)
 		if filterType then
@@ -75,6 +102,9 @@ end
 
 --- Refreshes the craft list with filtered and sorted items
 --- @param filterType number|table: The filter type(s)
+--- Refreshes the craft list with filtered and sorted items.
+--- @param filterType number|table The filter type(s) to apply.
+--- @param searchQuery string|nil The text search query to filter by name.
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     self.list:Clear()
 

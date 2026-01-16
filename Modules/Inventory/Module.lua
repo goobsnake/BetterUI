@@ -1,5 +1,16 @@
--- BetterUI Inventory Module - Settings and Configuration
--- Handles inventory settings panel, font customization, and currency display options
+--[[
+    BetterUI Inventory Module - Configuration & Initialization
+    Description: Handles settings, font customization, currency configuration, and module initialization.
+    Key Responsibilities:
+    - Defines default settings for Fonts (Name/Column) and Currencies.
+    - Creates the LibAddonMenu settings panel.
+    - Replaces the native GAMEPAD_INVENTORY with BetterUI's custom implementation.
+    - Configures Tooltip styles and Mouse Wheel scrolling support.
+
+    TODO(architecture): This file is 1190 lines - split settings into InventorySettings.lua
+    TODO(refactor): Currency preset logic duplicated - extract ApplyCurrencyPreset to shared utility
+    TODO(cleanup): CURRENCY_PRESETS has many duplicate patterns - use inheritance or defaults merging
+]]
 
 local _
 local LAM = LibAddonMenu2
@@ -7,7 +18,7 @@ local LAM = LibAddonMenu2
 local GENERAL_COLOR_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1
 local GENERAL_COLOR_OFF_WHITE = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_3
 
--- Shared font choices for Inventory (same as Nameplates for consistency)
+-- Shared font choices for Inventory (matches Nameplates for consistency)
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.FONT_CHOICES = {
 	"Univers 57 (Default)",
@@ -63,7 +74,10 @@ BETTERUI.Inventory.DEFAULTS = {
 	columnFontStyle = "",
 }
 
--- Converts size setting to pixel value (handles legacy string values and new numeric values)
+--- Converts a font size setting to a pixel value.
+--- Handles migration from legacy string values ("Small", "Large") to numbers.
+--- @param sizeValue string|number The size setting value.
+--- @return number The font size in pixels.
 local function GetFontSizeValue(sizeValue)
 	-- Handle new numeric values directly
 	if type(sizeValue) == "number" then
@@ -74,7 +88,9 @@ local function GetFontSizeValue(sizeValue)
 	return legacyMap[sizeValue] or 24
 end
 
--- Returns font descriptor for Name column: "fontPath|size|style"
+--- Returns the ESO font descriptor for the Name column.
+--- Format: "fontPath|size|style"
+--- @return string The formatted font descriptor string.
 function BETTERUI.Inventory.GetNameFontDescriptor()
 	local s = BETTERUI.Settings.Modules["Inventory"]
 	local d = BETTERUI.Inventory.DEFAULTS
@@ -84,7 +100,9 @@ function BETTERUI.Inventory.GetNameFontDescriptor()
 	return style ~= "" and string.format("%s|%d|%s", path, size, style) or string.format("%s|%d", path, size)
 end
 
--- Returns font descriptor for column labels (Type, Trait, Stat, Value): "fontPath|size|style"
+--- Returns the ESO font descriptor for other columns (Type, Trait, Stat, Value).
+--- Format: "fontPath|size|style"
+--- @return string The formatted font descriptor string.
 function BETTERUI.Inventory.GetColumnFontDescriptor()
 	local s = BETTERUI.Settings.Modules["Inventory"]
 	local d = BETTERUI.Inventory.DEFAULTS
@@ -217,7 +235,6 @@ local function Init(mId, moduleName)
 	}
 
 	--- Applies a currency preset configuration to the inventory settings
-	--- @param presetName string: The name of the preset to apply
 	local function ApplyCurrencyPreset(presetName)
 		local preset = CURRENCY_PRESETS[presetName]
 		if not preset then return end
@@ -373,6 +390,7 @@ local function Init(mId, moduleName)
 					type = "divider",
 					width = "full",
 				},
+                -- Currency Order Settings (One control per currency)
 				-- Gold
 				{
 					type = "checkbox",
@@ -919,7 +937,6 @@ local function Init(mId, moduleName)
 				},
 			},
 		},
-		-- Removed Global Reset Button
 	}
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
@@ -987,7 +1004,7 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options["columnFontStyle"] = oldStyle
 	end
 
-	-- Currency visibility defaults (preserve existing user values)
+	-- Currency visibility defaults
 	if m_options["showCurrencyGold"] == nil then m_options["showCurrencyGold"] = true end
 	if m_options["showCurrencyAlliancePoints"] == nil then m_options["showCurrencyAlliancePoints"] = true end
 	if m_options["showCurrencyTelVar"] == nil then m_options["showCurrencyTelVar"] = true end
@@ -999,7 +1016,7 @@ function BETTERUI.Inventory.InitModule(m_options)
 	if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
 	if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
 
-	-- Currency order numeric defaults (1..10) - preserve existing user values
+	-- Currency order numeric defaults (1..10)
 	if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
 	if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
 	if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
@@ -1018,17 +1035,17 @@ function BETTERUI.Inventory.InitModule(m_options)
 	return m_options
 end
 
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    Helper functions for tooltip configuration
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
+-- ============================================================================
+-- TOOLTIP CONFIGURATION
+-- ============================================================================
 
---- Sets up tooltip styles based on CIM's tooltipSize setting.
+--- Configures the visual style of tooltips.
+--- Applies font sizes (title, body, values) based on user settings.
+--- Adjusts layout direction and spacing for the gamepad tooltip interface.
 local function SetupTooltipStyles()
     local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
     
-    -- Handle legacy string values (for backwards compatibility)
+    -- Handle legacy string values
     if type(tooltipSize) == "string" then
         local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
         tooltipSize = legacyMap[tooltipSize] or 24
@@ -1074,7 +1091,8 @@ local function SetupTooltipStyles()
     }
 end
 
---- Sets up mouse wheel scrolling for tooltips. Hooks the tooltip control to respond to mouse wheel events, allowing players to scroll through long tooltip text that exceeds the display area.
+--- Enables and configures mouse wheel scrolling for the left-side tooltip container.
+--- Allows users to scroll long item descriptions using the mouse wheel.
 local function SetupTooltipMouseWheel()
 	local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
 	local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
@@ -1096,23 +1114,29 @@ local function SetupTooltipMouseWheel()
 		end)
 	end
 end
--------------------------------------------------------------------------------------------------------------------------------------------------------
---
---    Finally, the Setup() function which replaces the inventory system with a duplicate that I've heavily modified. Duplication is necessary as I don't
---    have access to the beginning :New() method of ZO_GamepadInventory. Will mess quite a few addons up, but will make GAMEPAD_INVENTORY a reference at the end
---
--------------------------------------------------------------------------------------------------------------------------------------------------------
 
---- Sets up the Inventory module by replacing the default gamepad inventory with a custom implementation
+
+-- ============================================================================
+-- MODULE SETUP
+-- ============================================================================
+
+--- Initializes the Inventory module.
+--- 1. Initializes the settings panel (`Init`).
+--- 2. Replaces the native `GAMEPAD_INVENTORY` object with `BETTERUI.Inventory.Class`.
+--- 3. Swaps the native inventory scene fragment with BetterUI's custom fragment.
+--- 4. Configures tooltips and registers custom dialogs (e.g., BoE protection).
 function BETTERUI.Inventory.Setup()
 	Init("Inventory", "Inventory")
 
-	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel) -- Bam! Initialise the custom inventory class so it's integrated neatly
+	-- Replace the native GAMEPAD_INVENTORY global with our custom class
+	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
 
-	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel) -- **Replaces** the old inventory with a new one defined in "Templates/GamepadInventory.xml"
+	-- Create the replacement scene fragment using our custom top level control
+	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel)
 	GAMEPAD_INVENTORY_FRAGMENT:SetHideOnSceneHidden(true)
 
-	-- Now update the changes throughout the interface...
+	-- Update the Inventory Scene with the new fragment
+	-- Note: GAMEPAD_INVENTORY_ROOT_SCENE is the native scene, we are swapping the content fragment.
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_INVENTORY_FRAGMENT)
@@ -1131,10 +1155,10 @@ function BETTERUI.Inventory.Setup()
 	local TOOLTIP_Y_OFFSET = -100
 	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(3, ZO_GamepadTooltipTopLevelLeftTooltip, 3, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
 
-	-- Store reference for other modules
+	-- Store reference for other modules (global 'inv' alias)
 	inv = GAMEPAD_INVENTORY
 
-	-- Register custom dialog for Bind on Equip protection (only if SaveEquip addon is not present)
+	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)
 	if not SaveEquip then
 		ZO_Dialogs_RegisterCustomDialog("CONFIRM_EQUIP_BOE", {
 			gamepadInfo = {
