@@ -46,7 +46,7 @@
 [INDENT]3. Companion inventory support - Mark as Junk functionality for companion items requires an addon like FCO Companion or similar also be installed[/INDENT]
 [INDENT]4. Persistent currency display with visibility toggles and custom ordering[/INDENT]
 [INDENT]5. Currency visibility presets (Default, PvP Focus, Crafter Focus, Events Focus)[/INDENT]
-[INDENT]6. Supported currencies: Gold, Alliance Points, Tel Var, Undaunted Keys, Transmute Crystals, Crowns, Crown Gems, Writ Vouchers, Event Tickets, Outfit Tokens[/INDENT]
+[INDENT]6. Supported currencies: Gold, Alliance Points, Tel Var, Undaunted Keys, Transmute Crystals, Crowns, Crown Gems, Writ Vouchers, Trade Bars, Outfit Tokens, Seals, Tome Points[/INDENT]
 [INDENT]7. Replace item value with average market prices from ATT, MM or TTC[/INDENT]
 [INDENT]8. Quickslot assignments directly from inventory[/INDENT]
 [INDENT]9. Side panel confirmation dialogue for item deletion[/INDENT]

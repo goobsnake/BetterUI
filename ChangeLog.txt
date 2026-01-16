@@ -1,4 +1,15 @@
-Current Release - 2.92 Changes:
+Current Release - 2.93 Changes:
+
+[INDENT]1. Added: Support for new currencies: Endless Archive Fortunes (Tome Points) and Seals of Endeavor (Seals).
+2. Added: Enhanced currency ordering up to 12 positions (display limit of 10 remains).
+3. Changed: Renamed "Event Tickets" to "Trade Bars" to align with game terminology.
+4. Changed: Updated all localization files (en, de, fr, es, jp, ru, zh) with new currency strings and positions.
+5. Improved: Inventory and Banking footers now support up to 12 currency items in the layout logic while maintaining a 10-item visibility cap.
+6. Fixed: Currency settings now enforce a hard limit of 10 enabled currencies to ensure UI stability.
+[/INDENT]
+
+
+2.92 Changes:
 
 [INDENT]1. Added: Left and Right Ornament hiding toggle setting located in the General Interface module -> "Orb Settings"
 2. Added: Resource Orb scaling slider, when an ornament is hidden, also located in the General Interface module -> "Orb Settings"

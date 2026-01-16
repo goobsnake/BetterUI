@@ -120,8 +120,9 @@
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
                         offsetX="700" offsetY="58" />
                 </Label>
-                <Label name="$(parent)TicketsLabel" inherits="BETTERUI_GamepadScreenFooterTemplate"
-                    text="SI_BETTERUI_FOOTER_TICKETS">
+                <Label name="$(parent)TradeBarsLabel"
+                    inherits="BETTERUI_GamepadScreenFooterTemplate"
+                    text="SI_BETTERUI_FOOTER_TRADE_BARS">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
                         offsetX="950" offsetY="58" />
                 </Label>
@@ -129,6 +130,19 @@
                     text="SI_BETTERUI_FOOTER_OUTFIT_TOKENS">
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
                         offsetX="1150" offsetY="58" />
+                </Label>
+                <!-- Seals (formerly Endeavor Seals) -->
+                <Label name="$(parent)SealsLabel" inherits="BETTERUI_GamepadScreenFooterTemplate"
+                    text="SI_BETTERUI_FOOTER_SEALS">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
+                        offsetX="200" offsetY="84" />
+                </Label>
+                <!-- Tome Points (Tamriel Tomes system) -->
+                <Label name="$(parent)TomePointsLabel"
+                    inherits="BETTERUI_GamepadScreenFooterTemplate"
+                    text="SI_BETTERUI_FOOTER_TOME_POINTS">
+                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
+                        offsetX="450" offsetY="84" />
                 </Label>
 
             </Controls>
