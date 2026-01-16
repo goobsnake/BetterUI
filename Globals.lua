@@ -13,7 +13,7 @@ BETTERUI = {
 }
 
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "2.92"
+BETTERUI.version = "2.93"
 
 -- ESO API references
 --- Cache global API managers for performance and ease of access.

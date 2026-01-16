@@ -619,6 +619,21 @@ local function UpdateOrbLayout()
         m_shieldBar.fillOffsetY = cfg.fills.shield.y
     end
 end
+
+-- Layout config using structured constants
+local LAYOUT_CONFIG = {
+    GAMEPAD = {
+        abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.gamepad.width,
+        abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.gamepad.spacing,
+        dualBarOffsetX = BETTERUI_ORB_FRAMES.slots.gamepad.dualBarOffset,
+    },
+    KEYBOARD = {
+        abilitySlotWidth = BETTERUI_ORB_FRAMES.slots.keyboard.width,
+        abilitySlotOffsetX = BETTERUI_ORB_FRAMES.slots.keyboard.spacing,
+        dualBarOffsetX = BETTERUI_ORB_FRAMES.slots.keyboard.dualBarOffset,
+    }
+}
+
 -------------------------------------------------------------------------------------------------
 -- BACK BAR (Inactive Weapon Set)
 -------------------------------------------------------------------------------------------------
