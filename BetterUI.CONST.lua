@@ -21,13 +21,13 @@ BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE
 -- ============================================================================
 
 -- Maximum currencies that can be displayed in the footer (UI space limit)
-BETTERUI_MAX_VISIBLE_CURRENCIES = 10
+BETTERUI_MAX_VISIBLE_CURRENCIES = 12
 
 -- Total available currencies in the system
 BETTERUI_TOTAL_CURRENCIES = 12
 
 -- Footer currency layout positions (X coordinates for each column)
-BETTERUI_CURRENCY_COLUMNS = {200, 450, 700, 950, 1150}
+BETTERUI_CURRENCY_COLUMNS = {190, 350, 510, 670, 830, 990}
 
 -- Footer currency row positions (Y coordinates for each row)
 BETTERUI_CURRENCY_ROWS = {32, 58, 84}
