@@ -135,28 +135,92 @@ local function GetVisibleCurrencyOrder(invSettings)
     return visible
 end
 
---- Position currency labels based on visibility order (max display limit enforced)
+--[[
+Function: PositionCurrencyLabels
+Description: Dynamically positions currency labels in the footer using a proper justified layout.
+Rationale:  Different currencies have vastly different text widths (e.g., "AP" vs "CRYSTALS").
+            Fixed column widths waste space or cause overlap. A justified layout spreads
+            currencies evenly across the *current* footer width, maximizing readability
+            and adapting to any combination of selected currencies (4, 8, 12, etc.).
+Mechanism:
+  1.  Calculates the maximum text width for each column (comparing Row 1 and Row 2).
+  2.  Computes available horizontal space (Total Width - Anchors - Padding).
+  3.  Determines the necessary gapSize to evenly distribute columns (Space-Between).
+  4.  Iterates through columns, setting anchors with the calculated dynamic gap.
+]]
 local function PositionCurrencyLabels(footer, invSettings)
     local visible = GetVisibleCurrencyOrder(invSettings)
-    local ltrX = BETTERUI_CURRENCY_COLUMNS or {200, 450, 700, 950, 1150}
     local yRows = BETTERUI_CURRENCY_ROWS or {32, 58, 84}
-    local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 10
-    local perRow = #ltrX
+    local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 12
     
+    -- Hide excess currencies
     for idx, def in ipairs(visible) do
         local ctrl = GetLabelControl(footer, def.labelName)
-        if ctrl then
-            if idx > maxVisible then
-                -- Hide currencies beyond the display limit
-                ctrl:SetHidden(true)
-            else
-                ctrl:ClearAnchors()
-                local col = ((idx - 1) % perRow) + 1
-                local rowIdx = math.ceil(idx / perRow)
-                local rowY = yRows[rowIdx] or yRows[1]
-                ctrl:SetAnchor(LEFT, footer, BOTTOMLEFT, ltrX[col], rowY)
+        if ctrl and idx > maxVisible then
+            ctrl:SetHidden(true)
+        end
+    end
+
+    -- Layout Configuration
+    local startX = 190                  -- Left anchor position
+    local rightPadding = 50             -- Safety buffer from right edge
+    local footerWidth = footer:GetWidth()
+    
+    -- If footer width isn't valid yet (e.g. at startup), default to a standard 1080p width
+    if footerWidth <= 0 then footerWidth = 1920 end
+    
+    local availableWidth = footerWidth - startX - rightPadding
+    local numRows = #yRows - 1
+    
+    local visibleCount = math.min(#visible, maxVisible)
+    local numCols = math.ceil(visibleCount / numRows)
+    
+    -- Phase 1: Measure Columns
+    local columnWidths = {}
+    local totalTextWidth = 0
+    local columnData = {} -- Store data to avoid re-looping for ctrls
+    
+    for col = 1, numCols do
+        local maxColWidth = 0
+        local items = {}
+        
+        for row = 1, numRows do
+            local idx = (col - 1) * numRows + row
+            if idx <= visibleCount then
+                local def = visible[idx]
+                local ctrl = GetLabelControl(footer, def.labelName)
+                if ctrl then
+                    table.insert(items, { control = ctrl, rowY = yRows[row] })
+                    local width = ctrl:GetTextWidth()
+                    if width > maxColWidth then maxColWidth = width end
+                end
             end
         end
+        
+        columnWidths[col] = maxColWidth
+        totalTextWidth = totalTextWidth + maxColWidth
+        columnData[col] = items
+    end
+    
+    -- Phase 2: Calculate Spacing (Justify)
+    local colGap = 0
+    if numCols > 1 then
+        local freeSpace = availableWidth - totalTextWidth
+        -- Clamp freeSpace to 0 to prevent overlap if content exceeds width
+        if freeSpace < 0 then freeSpace = 0 end
+        colGap = freeSpace / (numCols - 1)
+    end
+    
+    -- Phase 3: Position Items
+    local currentX = startX
+    for col = 1, numCols do
+        local items = columnData[col]
+        for _, item in ipairs(items) do
+            item.control:ClearAnchors()
+            item.control:SetAnchor(LEFT, footer, BOTTOMLEFT, currentX, item.rowY)
+        end
+        
+        currentX = currentX + columnWidths[col] + colGap
     end
 end
 
