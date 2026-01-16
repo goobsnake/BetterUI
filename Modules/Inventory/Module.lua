@@ -150,13 +150,46 @@ local function Init(mId, moduleName)
 		end
 	end
 
+	--- Checks if the user can enable more currencies (limit defined in CONST)
+	local function CanEnableMoreCurrencies()
+		local inv = BETTERUI.Settings.Modules["Inventory"]
+		if not inv then return false end
+		local keys = {
+			"showCurrencyGold", "showCurrencyAlliancePoints", "showCurrencyTelVar",
+			"showCurrencyUndauntedKeys", "showCurrencyTransmute", "showCurrencyCrowns",
+			"showCurrencyCrownGems", "showCurrencyWritVouchers", "showCurrencyTradeBars",
+			"showCurrencyOutfitTokens", "showCurrencySeals", "showCurrencyTomePoints"
+		}
+		local count = 0
+		for _, k in ipairs(keys) do
+			if inv[k] ~= false then count = count + 1 end
+		end
+		return count < BETTERUI_MAX_VISIBLE_CURRENCIES
+	end
+
+	--- Attempts to enable a currency; shows alert if limit reached
+	--- @param settingKey string The settings key (e.g., "showCurrencySeals")
+	--- @param value boolean The new value to set
+	--- @return boolean True if the setting was applied, false if blocked
+	local function TryEnableCurrency(settingKey, value)
+		if value and not CanEnableMoreCurrencies() then
+			ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, GetString(SI_BETTERUI_CURRENCY_LIMIT_REACHED))
+			return false
+		end
+		BETTERUI.Settings.Modules["Inventory"][settingKey] = value
+		BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+		SafeRefresh(true)
+		return true
+	end
+
 	--- Recomputes the currency order string based on user settings and default priorities
 	local function RecomputeCurrencyOrderString()
 		local inv = BETTERUI.Settings.Modules["Inventory"]
 		if not inv then return end
 		local defaultsOrderIdx = {
 			gold = 1, ap = 2, telvar = 3, keys = 4, transmute = 5,
-			crowns = 6, gems = 7, writs = 8, tickets = 9, outfit = 10,
+			crowns = 6, gems = 7, writs = 8, tradebars = 9, outfit = 10,
+			seals = 11, tomepoints = 12,
 		}
 		local map = {
 			{ key = "gold",     orderKey = "orderCurrencyGold" },
@@ -167,13 +200,15 @@ local function Init(mId, moduleName)
 			{ key = "crowns",   orderKey = "orderCurrencyCrowns" },
 			{ key = "gems",     orderKey = "orderCurrencyCrownGems" },
 			{ key = "writs",    orderKey = "orderCurrencyWritVouchers" },
-			{ key = "tickets",  orderKey = "orderCurrencyEventTickets" },
+			{ key = "tradebars",orderKey = "orderCurrencyTradeBars" },
 			{ key = "outfit",   orderKey = "orderCurrencyOutfitTokens" },
+			{ key = "seals",    orderKey = "orderCurrencySeals" },
+			{ key = "tomepoints",orderKey = "orderCurrencyTomePoints" },
 		}
 		local items = {}
 		for _, m in ipairs(map) do
 			local v = tonumber(inv[m.orderKey]) or defaultsOrderIdx[m.key]
-			if v < 1 then v = 1 elseif v > 10 then v = 10 end
+			if v < 1 then v = 1 elseif v > 12 then v = 12 end
 			table.insert(items, { key = m.key, order = v, tiebreak = defaultsOrderIdx[m.key] })
 		end
 		table.sort(items, function(a,b)
@@ -189,18 +224,14 @@ local function Init(mId, moduleName)
 
 	-- Currency order dropdown choices and values
 	local CURRENCY_ORDER_CHOICES = {
-		GetString(SI_BETTERUI_CURRENCY_POS_1),
-		GetString(SI_BETTERUI_CURRENCY_POS_2),
-		GetString(SI_BETTERUI_CURRENCY_POS_3),
-		GetString(SI_BETTERUI_CURRENCY_POS_4),
-		GetString(SI_BETTERUI_CURRENCY_POS_5),
-		GetString(SI_BETTERUI_CURRENCY_POS_6),
-		GetString(SI_BETTERUI_CURRENCY_POS_7),
-		GetString(SI_BETTERUI_CURRENCY_POS_8),
-		GetString(SI_BETTERUI_CURRENCY_POS_9),
-		GetString(SI_BETTERUI_CURRENCY_POS_10),
+		GetString(SI_BETTERUI_CURRENCY_POS_1), GetString(SI_BETTERUI_CURRENCY_POS_2),
+		GetString(SI_BETTERUI_CURRENCY_POS_3), GetString(SI_BETTERUI_CURRENCY_POS_4),
+		GetString(SI_BETTERUI_CURRENCY_POS_5), GetString(SI_BETTERUI_CURRENCY_POS_6),
+		GetString(SI_BETTERUI_CURRENCY_POS_7), GetString(SI_BETTERUI_CURRENCY_POS_8),
+		GetString(SI_BETTERUI_CURRENCY_POS_9), GetString(SI_BETTERUI_CURRENCY_POS_10),
+		GetString(SI_BETTERUI_CURRENCY_POS_11), GetString(SI_BETTERUI_CURRENCY_POS_12),
 	}
-	local CURRENCY_ORDER_VALUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	local CURRENCY_ORDER_VALUES = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}
 
 	-- Currency preset configurations
 	local CURRENCY_PRESETS = {
@@ -213,8 +244,10 @@ local function Init(mId, moduleName)
 			showCurrencyCrowns = true, orderCurrencyCrowns = 6,
 			showCurrencyCrownGems = true, orderCurrencyCrownGems = 7,
 			showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 8,
-			showCurrencyEventTickets = true, orderCurrencyEventTickets = 9,
+			showCurrencyTradeBars = true, orderCurrencyTradeBars = 9,
 			showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 10,
+			showCurrencySeals = false, orderCurrencySeals = 11,
+			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
 		},
 		pvp = {
 			showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 1,
@@ -222,26 +255,30 @@ local function Init(mId, moduleName)
 			showCurrencyGold = true, orderCurrencyGold = 3,
 			showCurrencyTransmute = true, orderCurrencyTransmute = 4,
 			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 5,
-			showCurrencyEventTickets = true, orderCurrencyEventTickets = 6,
+			showCurrencyTradeBars = true, orderCurrencyTradeBars = 6,
 			showCurrencyCrowns = false, orderCurrencyCrowns = 7,
 			showCurrencyCrownGems = false, orderCurrencyCrownGems = 8,
 			showCurrencyWritVouchers = false, orderCurrencyWritVouchers = 9,
 			showCurrencyOutfitTokens = false, orderCurrencyOutfitTokens = 10,
+			showCurrencySeals = false, orderCurrencySeals = 11,
+			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
 		},
 		crafter = {
 			showCurrencyGold = true, orderCurrencyGold = 1,
 			showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 2,
 			showCurrencyTransmute = true, orderCurrencyTransmute = 3,
 			showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 4,
-			showCurrencyEventTickets = true, orderCurrencyEventTickets = 5,
+			showCurrencyTradeBars = true, orderCurrencyTradeBars = 5,
 			showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 6,
 			showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 7,
 			showCurrencyTelVar = false, orderCurrencyTelVar = 8,
 			showCurrencyCrowns = false, orderCurrencyCrowns = 9,
 			showCurrencyCrownGems = false, orderCurrencyCrownGems = 10,
+			showCurrencySeals = false, orderCurrencySeals = 11,
+			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
 		},
 		events = {
-			showCurrencyEventTickets = true, orderCurrencyEventTickets = 1,
+			showCurrencyTradeBars = true, orderCurrencyTradeBars = 1,
 			showCurrencyGold = true, orderCurrencyGold = 2,
 			showCurrencyCrowns = true, orderCurrencyCrowns = 3,
 			showCurrencyCrownGems = true, orderCurrencyCrownGems = 4,
@@ -251,6 +288,8 @@ local function Init(mId, moduleName)
 			showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 8,
 			showCurrencyTelVar = false, orderCurrencyTelVar = 9,
 			showCurrencyOutfitTokens = false, orderCurrencyOutfitTokens = 10,
+			showCurrencySeals = false, orderCurrencySeals = 11,
+			showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
 		},
 	}
 
@@ -411,6 +450,14 @@ local function Init(mId, moduleName)
 					width = "full",
 				},
                 -- Currency Order Settings (One control per currency)
+				--[[
+				NIL-CHECK PATTERN DOCUMENTATION:
+				- Original currencies (Gold, AP, etc.) use `~= false` in getFunc:
+				  This returns TRUE for nil/missing values (default = ENABLED)
+				- New currencies (Seals, Tome Points) use `== true` in getFunc:
+				  This returns FALSE for nil/missing values (default = DISABLED)
+				This pattern ensures proper defaults without requiring explicit initialization.
+				]]
 				-- Gold
 				{
 					type = "checkbox",
@@ -420,6 +467,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyGold ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyGold = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -455,6 +503,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyAlliancePoints = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -490,6 +539,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyTelVar = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -525,6 +575,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyUndauntedKeys = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -560,6 +611,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyTransmute = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -595,6 +647,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrowns = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -630,6 +683,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyCrownGems = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -665,6 +719,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyWritVouchers = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -691,16 +746,17 @@ local function Init(mId, moduleName)
 					end,
 					width = "half",
 				},
-				-- Event Tickets
+				-- Trade Bars (formerly Event Tickets)
 				{
 					type = "checkbox",
-					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TICKETS),
+					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TRADE_BARS),
 					getFunc = function() 
 						if not BETTERUI.Settings.Modules["Inventory"] then return true end
-						return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets ~= false 
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTradeBars ~= false 
 					end,
 					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets = value
+						if value and not CanEnableMoreCurrencies() then return end
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTradeBars = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
 					end,
@@ -708,18 +764,18 @@ local function Init(mId, moduleName)
 				},
 				{
 					type = "dropdown",
-					name = GetString(SI_BETTERUI_CURRENCY_ORDER_TICKETS),
+					name = GetString(SI_BETTERUI_CURRENCY_ORDER_TRADE_BARS),
 					choices = CURRENCY_ORDER_CHOICES,
 					choicesValues = CURRENCY_ORDER_VALUES,
 					disabled = function()
-						return BETTERUI.Settings.Modules["Inventory"].showCurrencyEventTickets == false
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTradeBars == false
 					end,
 					getFunc = function()
 						if not BETTERUI.Settings.Modules["Inventory"] then return 9 end
-						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyEventTickets or 9)
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTradeBars or 9)
 					end,
 					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].orderCurrencyEventTickets = value
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyTradeBars = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						RecomputeCurrencyOrderString()
 						SafeRefresh(true)
@@ -735,6 +791,7 @@ local function Init(mId, moduleName)
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens ~= false 
 					end,
 					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
 						BETTERUI.Settings.Modules["Inventory"].showCurrencyOutfitTokens = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						SafeRefresh(true)
@@ -755,6 +812,78 @@ local function Init(mId, moduleName)
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].orderCurrencyOutfitTokens = value
+						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+						RecomputeCurrencyOrderString()
+						SafeRefresh(true)
+					end,
+					width = "half",
+				},
+				-- Seals
+				{
+					type = "checkbox",
+					name = GetString(SI_BETTERUI_CURRENCY_SHOW_SEALS),
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return false end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencySeals == true
+					end,
+					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
+						BETTERUI.Settings.Modules["Inventory"].showCurrencySeals = value
+						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+						SafeRefresh(true)
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_CURRENCY_ORDER_SEALS),
+					choices = CURRENCY_ORDER_CHOICES,
+					choicesValues = CURRENCY_ORDER_VALUES,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencySeals == false
+					end,
+					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 11 end
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencySeals or 11)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencySeals = value
+						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+						RecomputeCurrencyOrderString()
+						SafeRefresh(true)
+					end,
+					width = "half",
+				},
+				-- Tome Points
+				{
+					type = "checkbox",
+					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS),
+					getFunc = function() 
+						if not BETTERUI.Settings.Modules["Inventory"] then return false end
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints == true
+					end,
+					setFunc = function(value)
+						if value and not CanEnableMoreCurrencies() then return end
+						BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints = value
+						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+						SafeRefresh(true)
+					end,
+					width = "half",
+				},
+				{
+					type = "dropdown",
+					name = GetString(SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS),
+					choices = CURRENCY_ORDER_CHOICES,
+					choicesValues = CURRENCY_ORDER_VALUES,
+					disabled = function()
+						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints == false
+					end,
+					getFunc = function()
+						if not BETTERUI.Settings.Modules["Inventory"] then return 12 end
+						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints or 12)
+					end,
+					setFunc = function(value)
+						BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						RecomputeCurrencyOrderString()
 						SafeRefresh(true)
@@ -1032,11 +1161,13 @@ function BETTERUI.Inventory.InitModule(m_options)
 	if m_options["showCurrencyCrowns"] == nil then m_options["showCurrencyCrowns"] = true end
 	if m_options["showCurrencyTransmute"] == nil then m_options["showCurrencyTransmute"] = true end
 	if m_options["showCurrencyWritVouchers"] == nil then m_options["showCurrencyWritVouchers"] = true end
-	if m_options["showCurrencyEventTickets"] == nil then m_options["showCurrencyEventTickets"] = true end
+	if m_options["showCurrencyTradeBars"] == nil then m_options["showCurrencyTradeBars"] = true end
 	if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
 	if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
+	if m_options["showCurrencySeals"] == nil then m_options["showCurrencySeals"] = false end
+	if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = false end
 
-	-- Currency order numeric defaults (1..10)
+	-- Currency order numeric defaults (1..12)
 	if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
 	if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
 	if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
@@ -1045,12 +1176,27 @@ function BETTERUI.Inventory.InitModule(m_options)
 	if m_options["orderCurrencyCrowns"] == nil then m_options["orderCurrencyCrowns"] = 6 end
 	if m_options["orderCurrencyCrownGems"] == nil then m_options["orderCurrencyCrownGems"] = 7 end
 	if m_options["orderCurrencyWritVouchers"] == nil then m_options["orderCurrencyWritVouchers"] = 8 end
-	if m_options["orderCurrencyEventTickets"] == nil then m_options["orderCurrencyEventTickets"] = 9 end
+	if m_options["orderCurrencyTradeBars"] == nil then m_options["orderCurrencyTradeBars"] = 9 end
 	if m_options["orderCurrencyOutfitTokens"] == nil then m_options["orderCurrencyOutfitTokens"] = 10 end
+	if m_options["orderCurrencySeals"] == nil then m_options["orderCurrencySeals"] = 11 end
+	if m_options["orderCurrencyTomePoints"] == nil then m_options["orderCurrencyTomePoints"] = 12 end
 
 	-- Currency preset tracking (default = all visible in default order)
 	if m_options["currencyPreset"] == nil then m_options["currencyPreset"] = "default" end
-	if m_options["currencyOrder"] == nil then m_options["currencyOrder"] = "gold,ap,telvar,keys,transmute,crowns,gems,writs,tickets,outfit" end
+	if m_options["currencyOrder"] == nil then m_options["currencyOrder"] = "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints" end
+
+	-- Migration: Rename showCurrencyEventTickets -> showCurrencyTradeBars
+	if m_options["showCurrencyEventTickets"] ~= nil then
+		m_options["showCurrencyTradeBars"] = m_options["showCurrencyEventTickets"]
+		m_options["showCurrencyEventTickets"] = nil
+	end
+	if m_options["orderCurrencyEventTickets"] ~= nil then
+		m_options["orderCurrencyTradeBars"] = m_options["orderCurrencyEventTickets"]
+		m_options["orderCurrencyEventTickets"] = nil
+	end
+	if m_options["currencyOrder"] ~= nil then
+		m_options["currencyOrder"] = string.gsub(m_options["currencyOrder"], "tickets", "tradebars")
+	end
 
 	return m_options
 end
