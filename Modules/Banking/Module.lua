@@ -99,9 +99,7 @@ local function GetFontSizeValue(sizeValue)
 	if type(sizeValue) == "number" then
 		return sizeValue
 	end
-	-- Legacy string value migration
-	local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-	return legacyMap[sizeValue] or 24
+	return 24
 end
 
 --[[
@@ -263,10 +261,7 @@ local function Init(mId, moduleName)
 						if settings then
 							val = settings.nameFontSize or val
 						end
-						if type(val) == "string" then
-							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-							return legacyMap[val] or 24
-						end
+
 						return val
 					end,
 					setFunc = function(value)
@@ -347,10 +342,7 @@ local function Init(mId, moduleName)
 						if settings then
 							val = settings.columnFontSize or val
 						end
-						if type(val) == "string" then
-							local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-							return legacyMap[val] or 24
-						end
+
 						return val
 					end,
 					setFunc = function(value)
@@ -439,14 +431,7 @@ function BETTERUI.Banking.InitModule(m_options)
 		m_options["nameFontSize"] = m_options["skinSize"]
 		m_options["columnFontSize"] = m_options["skinSize"]
 	end
-	-- Migrate legacy string font sizes to numeric values
-	local legacySizeMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-	if type(m_options["nameFontSize"]) == "string" then
-		m_options["nameFontSize"] = legacySizeMap[m_options["nameFontSize"]] or 24
-	end
-	if type(m_options["columnFontSize"]) == "string" then
-		m_options["columnFontSize"] = legacySizeMap[m_options["columnFontSize"]] or 24
-	end
+
 	if m_options["fontStyle"] and not m_options["nameFontStyle"] then
 		local oldStyle = m_options["fontStyle"]
 		if type(oldStyle) == "number" then

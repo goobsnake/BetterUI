@@ -167,10 +167,7 @@ local function Init(mId, moduleName)
                 if settings then
                     val = settings.tooltipSize or val
                 end
-                if type(val) == "string" then
-                    local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-                    return legacyMap[val] or 24
-                end
+
                 return val
             end,
             setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
@@ -1213,6 +1210,8 @@ function BETTERUI.Tooltips.Setup()
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
+
+
 
 	-- Move guild store error suppression to scene lifecycle to avoid frequent toggling during tooltip draws
 	if BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress then

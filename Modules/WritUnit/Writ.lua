@@ -10,7 +10,6 @@
 --
 -- TODO(refactor): Pattern matching uses hardcoded strings - extract to localization or constants
 -- TODO(enhancement): Add support for additional crafting types as ESO adds them
--- TODO(cleanup): Magic color values ("00FF00", "CCCCCC") should use BETTERUI.CONST.COLORS
 ---------------------------------------------------------------------------------------------------
 
 local _
@@ -34,9 +33,9 @@ function BETTERUI.Writs.Get(qId)
 		local colour
 		if writLine ~= '' then
 			if current == maximum then
-				colour = "00FF00"
+				colour = BETTERUI.CONST.COLORS.WRIT_COMPLETE
 			else
-				colour = "CCCCCC"
+				colour = BETTERUI.CONST.COLORS.WRIT_INCOMPLETE
 			end
 			writLines[lineId] = {line=zo_strformat("|c<<1>><<2>>|r",colour,writLine),cur=current,max=maximum}
 		end

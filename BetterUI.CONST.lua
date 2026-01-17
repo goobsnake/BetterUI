@@ -465,4 +465,25 @@ BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tal
 -- ============================================================================
 
 -- Set to true to show the shield overlay ring for visual debugging
+-- Set to true to show the shield overlay ring for visual debugging
 BETTERUI_SHIELD_DEBUG = false
+
+-- ============================================================================
+-- GLOBAL CONSTANTS (Colors, Icons, Fonts)
+-- ============================================================================
+
+BETTERUI.CONST.COLORS = {
+    WRIT_COMPLETE = "00FF00",  -- Green
+    WRIT_INCOMPLETE = "CCCCCC" -- Grey
+}
+
+BETTERUI.CONST.TOOLTIP = {
+    DEFAULT_FONT_SIZE = 24
+}
+
+BETTERUI.CONST.ICONS = {
+    EQUIP_MAIN = "BetterUI/Modules/CIM/Images/inv_equip.dds",
+    EQUIP_BACKUP = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds",
+    EQUIP_SLOT = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds",
+    NEW_ITEM = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
+}

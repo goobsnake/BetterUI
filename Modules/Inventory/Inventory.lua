@@ -299,45 +299,351 @@ local function BETTERUI_GetEquipSlotForEquipType(equipType)
 end
 
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
-	ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
-	local isHidden, highestPriorityVisualLayerThatIsShowing =
-		WouldEquipmentBeHidden(equipSlot or EQUIP_SLOT_NONE, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-	local equipSlotText = ""
-	local equipSlotTextHidden = ""
-	local equippedHeader = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+    local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
+    local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+    local fontSize = BETTERUI.GetTooltipFontSize()
+    local fontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. fontSize .. "|soft-shadow-thick"
+    
+    -- 1. Get BetterUI Info (Price/Trait)
+    local extraText = ""
+    if tooltip and tooltip._betterui_itemLink then
+         local priceLines = BETTERUI.GetInventoryPriceInfo(tooltip._betterui_itemLink, tooltip._betterui_bagId, tooltip._betterui_slotIndex, tooltip._betterui_storeStackCount)
+         local traitLines = BETTERUI.GetInventoryTraitInfo(tooltip._betterui_itemLink)
+         
+         for _, line in ipairs(priceLines) do extraText = extraText .. line .. "\n" end
+         for _, line in ipairs(traitLines) do extraText = extraText .. line .. "\n" end
+         -- Trim trailing newline
+         if extraText ~= "" then extraText = extraText:sub(1, -2) end
+    end
 
-	if equipSlot == EQUIP_SLOT_MAIN_HAND then
-		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_MAIN_HAND_ITEM_HEADER)
-	elseif equipSlot == EQUIP_SLOT_BACKUP_MAIN then
-		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_MAIN_ITEM_HEADER)
-	elseif equipSlot == EQUIP_SLOT_OFF_HAND then
-		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_OFF_HAND_ITEM_HEADER)
-	elseif equipSlot == EQUIP_SLOT_BACKUP_OFF then
-		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_OFF_ITEM_HEADER)
-	end
+    -- 2. Construct "Equipped" text
+    local headerText = ""
+    local valueText = ""
 
-	if isHidden and equipSlotText ~= "" then
-		equipSlotTextHidden = "(Hidden)"
-		GAMEPAD_TOOLTIPS:SetStatusLabelText(
-			tooltipType,
-			zo_strformat("<<1>>: ", equippedHeader),
-			zo_strformat("<<1>> <<2>>", equipSlotText, equipSlotTextHidden)
-		)
-	elseif isHidden then
-		equipSlotTextHidden = "Hidden by Collection"
-		GAMEPAD_TOOLTIPS:SetStatusLabelText(
-			tooltipType,
-			zo_strformat("<<1>> - <<2>>", equippedHeader, equipSlotTextHidden)
-		)
-	elseif not isHidden and equipSlotText ~= "" then
-		GAMEPAD_TOOLTIPS:SetStatusLabelText(
-			tooltipType,
-			zo_strformat("<<1>>: ", equippedHeader),
-			zo_strformat("<<1>>", equipSlotText)
-		)
-	else
-		GAMEPAD_TOOLTIPS:SetStatusLabelText(tooltipType, GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER), equipSlotText)
-	end
+    if equipSlot then
+    	ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
+    	local isHidden, highestPriorityVisualLayerThatIsShowing =
+    		WouldEquipmentBeHidden(equipSlot, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
+    	local equipSlotText = ""
+    	local equipSlotTextHidden = ""
+    	local equippedHeader = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+    
+    	if equipSlot == EQUIP_SLOT_MAIN_HAND then
+    		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_MAIN_HAND_ITEM_HEADER)
+    	elseif equipSlot == EQUIP_SLOT_BACKUP_MAIN then
+    		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_MAIN_ITEM_HEADER)
+    	elseif equipSlot == EQUIP_SLOT_OFF_HAND then
+    		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_OFF_HAND_ITEM_HEADER)
+    	elseif equipSlot == EQUIP_SLOT_BACKUP_OFF then
+    		equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_OFF_ITEM_HEADER)
+    	end
+    
+    	if isHidden and equipSlotText ~= "" then
+    		equipSlotTextHidden = "(|t32:32:EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds|tCosmetic)"
+            headerText = zo_strformat("<<1>>: ", equippedHeader)
+            valueText = zo_strformat("<<1>> <<2>>", equipSlotText, equipSlotTextHidden)
+    	elseif isHidden then
+    		equipSlotTextHidden = "|t32:32:EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds|t Cosmetic"
+            headerText = zo_strformat("<<1>> - <<2>>", equippedHeader, equipSlotTextHidden)
+    	elseif not isHidden and equipSlotText ~= "" then
+            headerText = zo_strformat("<<1>>: ", equippedHeader)
+            valueText = zo_strformat("<<1>>", equipSlotText)
+    	else
+            headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+            valueText = equipSlotText
+    	end
+    end
+
+    -- 3. Custom Label Logic
+    if container then
+        local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+
+        if not container._betterUiStatus then
+            -- Create the label once per container
+            local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
+            -- MAXIMIZED WIDTH: 0 padding, user requested 60 spacing
+            label:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 60) 
+            label:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, 60) -- Spacing from top of header
+            label:SetMaxLineCount(0) -- Allow unlimited lines
+            label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+            -- Default color (Header Color)
+            label:SetColor(ZO_ColorDef:New("D5B526"):UnpackRGBA()) -- Standard Gold header color
+            container._betterUiStatus = label
+        end
+        
+        local customLabel = container._betterUiStatus
+
+        if extraText ~= "" then
+            -- A. Use Custom Label
+            -- Hide native labels first
+            GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+            
+            -- Construct Full Text
+            local fullText = ""
+            
+            -- 1. EQUIPPED text
+             if headerText ~= "" or valueText ~= "" then
+                 -- Colorize valueText to white
+                 local valueColored = valueText
+                 if valueText ~= "" then
+                     valueColored = "|cFFFFFF" .. valueText .. "|r"
+                 end
+                 fullText = headerText .. valueColored .. "\n"
+             end
+             
+             -- 2. ITEM INFO (Lock | Bound | Counts | Traits | BindType | Collected)
+             if tooltip and tooltip._betterui_itemLink then
+                 local itemLink = tooltip._betterui_itemLink
+                 local bagId = tooltip._betterui_bagId
+                 local slotIndex = tooltip._betterui_slotIndex
+                 
+                 -- A. Item Type (Neck, Ring)
+                 local itemType = GetItemLinkItemType(itemLink)
+                 local typeString = GetString("SI_ITEMTYPE", itemType)
+                 local typeStringUpper = zo_strupper(typeString)
+                 
+                 -- B. Lock Icon
+                 local lockString = ""
+                 if bagId and slotIndex and IsItemPlayerLocked(bagId, slotIndex) then
+                     lockString = "|t32:32:EsoUI/Art/Miscellaneous/status_locked.dds|t"
+                 end
+                 
+                 -- C. Bound Status
+                 local boundStringLocal = GetString(SI_ITEM_FORMAT_STR_BOUND)
+                 local boundString = ""
+                 if IsItemBound(bagId, slotIndex) then 
+                     boundString = boundStringLocal
+                 end
+                 
+                 -- D. Bind Type (e.g. Bind on Equip) that is NOT yet bound
+                 local bindTypeString = ""
+                 local bindTypeStringLocal = ""
+                 
+                 local bindType = GetItemLinkBindType(itemLink) -- Always check link for the nature of the item
+
+                 if bindType == BIND_TYPE_ON_EQUIP then
+                     bindTypeStringLocal = GetString(SI_ITEM_FORMAT_STR_BIND_ON_EQUIP)
+                     bindTypeString = bindTypeStringLocal
+                 elseif bindType == BIND_TYPE_ON_PICKUP or bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
+                     bindTypeStringLocal = GetString(SI_ITEM_FORMAT_STR_BIND_ON_PICKUP)
+                     bindTypeString = bindTypeStringLocal
+                 end
+                 
+                 -- E. Traits (Ornate / Intricate)
+                 local traitType = GetItemLinkTraitInfo(itemLink)
+                 local traitString = ""
+                 local traitStringLocal = ""
+                 local traitIcon = ""
+                 
+                 if traitType == ITEM_TRAIT_TYPE_ARMOR_ORNATE or traitType == ITEM_TRAIT_TYPE_WEAPON_ORNATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
+                      traitStringLocal = GetString("SI_ITEMTRAITTYPE", traitType)
+                      traitString = traitStringLocal
+                      traitIcon = "|t32:32:esoui/art/inventory/inventory_trait_ornate_icon.dds|t"
+                 elseif traitType == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or traitType == ITEM_TRAIT_TYPE_WEAPON_INTRICATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE then
+                      traitStringLocal = GetString("SI_ITEMTRAITTYPE", traitType)
+                      traitString = traitStringLocal
+                      traitIcon = "|t32:32:esoui/art/inventory/inventory_trait_intricate_icon.dds|t"
+                 end
+                 
+                 -- E2. Stolen Status
+                 local isStolen = false
+                 if bagId and slotIndex then
+                     isStolen = IsItemStolen(bagId, slotIndex)
+                 else
+                     isStolen = IsItemLinkStolen(itemLink)
+                 end
+                 
+                 local stolenString = ""
+                 local stolenIcon = ""
+                 if isStolen then
+                     stolenString = GetString(SI_GAMEPAD_ITEM_STOLEN_LABEL) -- "Stolen"
+                     stolenIcon = "|t32:32:EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
+                 end
+                 
+                 -- E3. Junk Status
+                 local isJunk = false
+                 if bagId and slotIndex then
+                     isJunk = IsItemJunk(bagId, slotIndex)
+                 end
+
+                 -- F. Collected Status
+                 local isCollected = false
+                 if IsItemSetCollectionPiece and IsItemSetCollectionPieceUnlocked then
+                     if IsItemSetCollectionPiece(itemLink) and IsItemSetCollectionPieceUnlocked(itemLink) then
+                         isCollected = true
+                     end
+                 end
+                 
+                 -- G. Bag/Bank Counts
+                 local bagCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
+                 local bagIcon = "|t32:32:EsoUI/Art/Tooltips/icon_bag.dds|t"
+                 local bankIcon = "|t32:32:EsoUI/Art/Tooltips/icon_bank.dds|t"
+                 local craftBagIcon = "|t32:32:EsoUI/Art/Tooltips/icon_craft_bag.dds|t"
+                 
+                 -- Build Info Line
+                 local infoLine = ""
+                 
+                 -- Lock
+                 if lockString ~= "" then
+                     infoLine = infoLine .. lockString .. " "
+                 end
+                 
+                 -- Traits (Icon + Gold Text)
+                 if traitString ~= "" then
+                      if traitIcon ~= "" then
+                          infoLine = infoLine .. traitIcon .. " "
+                      end
+                      infoLine = infoLine .. "|cD5B526" .. traitString .. "|r "
+                 end
+                 
+                 -- Bind Type (Gold) - Only show if NOT bound
+                 if bindTypeString ~= "" and boundString == "" then
+                      infoLine = infoLine .. "|cD5B526" .. bindTypeString .. "|r "
+                 end
+                 
+                 -- Bound (Gold)
+                 if boundString ~= "" then
+                     infoLine = infoLine .. "|cD5B526" .. boundString .. "|r "
+                 end
+                 
+
+                 if isJunk then
+                     local junkIcon = "|t32:32:esoui/art/inventory/inventory_tabicon_junk_up.dds|t"
+                     infoLine = infoLine .. "|cD5B526" .. junkIcon .. " Junk" .. "|r "
+                 end
+                 
+                 -- Stolen (Red)
+                 if stolenString ~= "" then
+                      -- Wrap both icon and text in Red
+                      infoLine = infoLine .. "|cFF3333"
+                      if stolenIcon ~= "" then
+                          infoLine = infoLine .. stolenIcon .. " "
+                      end
+                      infoLine = infoLine .. stolenString .. "|r "
+                 end
+                 
+                 -- Counts (White)
+                 local countString = ""
+                 if bagCount > 0 then countString = countString .. bagIcon .. " " .. bagCount .. " " end
+                 if bankCount > 0 then countString = countString .. bankIcon .. " " .. bankCount .. " " end
+                 if craftBagCount > 0 then countString = countString .. craftBagIcon .. " " .. craftBagCount .. " " end
+                 
+                 if countString ~= "" then
+                     infoLine = infoLine .. "|cFFFFFF" .. countString .. "|r"
+                 end
+                 
+                 -- Append if we have anything
+                 if infoLine ~= "" then
+                     fullText = fullText .. infoLine .. "\n"
+                 end
+                 
+                 -- HIDE ORIGINAL BODY LABEL via Recursion
+                 local function BetterUI_RecursiveHide(control)
+                    if not control then return end
+                    
+                    if control.GetText and (control:GetType() == CT_LABEL or control:GetType() == CT_EDITBOX) then
+                        local text = control:GetText()
+                        local textUpper = string.upper(text)
+                        
+                        -- Helper to check contain
+                        local function has(str) 
+                            return str and str ~= "" and string.find(textUpper, zo_strupper(str))
+                        end
+                        
+                        -- 1. Bound / Bind on Equip
+                        if has(boundStringLocal) then control:SetHidden(true) return end
+                        -- DEBUG: Unhide BoE to debug why it's missing in custom header
+                        -- if has(bindTypeStringLocal) then control:SetHidden(true) return end
+                        -- Force check for standard strings
+                        -- if string.find(textUpper, "BIND ON EQUIP") then control:SetHidden(true) return end
+                        -- if string.find(textUpper, "BIND ON PICKUP") then control:SetHidden(true) return end
+                        
+                        -- 2. Traits (Ornate/Intricate)
+                        if has(traitStringLocal) then control:SetHidden(true) return end
+                        
+                        -- 3. Collected
+                        -- Using standard string "COLLECTED" which is usually what shows up
+                        if string.find(textUpper, "COLLECTED") then control:SetHidden(true) return end
+                        if string.find(textUpper, "ALREADY COLLECTED") then control:SetHidden(true) return end 
+                        
+                        -- 4. Stolen
+                        if string.find(textUpper, "STOLEN") then control:SetHidden(true) return end 
+                        if string.find(textUpper, "JUNK") then control:SetHidden(true) return end 
+                         
+                        -- 5. Bag/Bank Icons
+                        if string.find(textUpper, "ICON_BAG") or string.find(textUpper, "ICON_BANK") or string.find(textUpper, "ICON_CRAFT_BAG") then
+                            control:SetHidden(true)
+                            return
+                        end
+                    end
+                    
+                    if control.GetNumChildren then
+                        for i = 1, control:GetNumChildren() do
+                            BetterUI_RecursiveHide(control:GetChild(i))
+                        end
+                    end
+                 end
+                 
+                 BetterUI_RecursiveHide(tooltip)
+             end
+
+             -- 3. MARKET DATA (White Color) -> Moved BELOW Info
+             local extraTextWhite = "|cFFFFFF" .. extraText .. "|r"
+             fullText = fullText .. extraTextWhite
+
+            -- Configure and Show Custom Label
+            local statusFontSize = math.floor(fontSize * 0.80) 
+            local statusFontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. statusFontSize .. "|shadow"
+            
+            customLabel:SetFont(statusFontStr)
+            customLabel:SetText(fullText)
+            customLabel:SetHidden(false)
+            
+            -- FIX OVERLAP: Re-anchor BottomRail to our Custom Label
+            if bottomRail then
+                bottomRail:ClearAnchors()
+                -- Anchor below custom label with reduced padding (0) for tighter look (User Request)
+                bottomRail:SetAnchor(TOPLEFT, customLabel, BOTTOMLEFT, 0, 0)
+                bottomRail:SetAnchor(TOPRIGHT, customLabel, BOTTOMRIGHT, 0, 0)
+                bottomRail:SetHidden(false)
+            end
+        else
+            -- B. Use Native Labels (Standard Behavior)
+            customLabel:SetHidden(true)
+            -- ... Restore anchors ...
+            if bottomRail then
+                local statusLabel = container.statusLabel or container:GetNamedChild("StatusLabel")
+                if statusLabel then
+                    bottomRail:ClearAnchors()
+                    bottomRail:SetAnchor(TOPLEFT, statusLabel, BOTTOMLEFT, 0, 0)
+                    bottomRail:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y or 50) 
+                end
+            end
+            
+            if equipSlot then
+                GAMEPAD_TOOLTIPS:SetStatusLabelText(tooltipType, headerText, valueText)
+                
+                -- Attempt to scale native labels if they are visible
+                -- Fallback scaling
+                local statusLabel = container.statusLabel or container:GetNamedChild("StatusLabel")
+                local statusLabelValue = container.statusLabelValue or container:GetNamedChild("StatusLabelValue")
+                if statusLabel then statusLabel:SetFont(fontStr) end
+                if statusLabelValue then statusLabelValue:SetFont(fontStr) end
+            else
+                GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+            end
+        end
+    end
+
+    -- 4. Scale Tooltip Body Text (Always)
+    if tooltip then
+        for i = 1, tooltip:GetNumChildren() do
+            local child = tooltip:GetChild(i)
+            if child and child:GetType() == CT_LABEL then
+                child:SetFont(fontStr)
+            end
+        end
+    end
 end
 
 -- The below functions are included from ZO_GamepadInventory.lua
@@ -1661,7 +1967,7 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 			local slotIndex = selectedData.bagId == BAG_WORN and selectedData.slotIndex or nil --equipped quickslottables slotIndex is not the same as slot index's in BAG_WORN
 			BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
 		else
-			GAMEPAD_TOOLTIPS:ClearStatusLabel(GAMEPAD_LEFT_TOOLTIP)
+			BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
 		end
 	end
 end

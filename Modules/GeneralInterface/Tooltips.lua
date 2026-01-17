@@ -85,7 +85,9 @@ end
 --- @param bagId number|nil: The bag ID to invalidate, or nil to clear all
 function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
     if bagId then
-        ResearchableTraitCache[bagId] = nil
+        if ResearchableTraitCache[bagId] then
+            ResearchableTraitCache[bagId] = nil
+        end
     else
         ResearchableTraitCache = {}
     end
@@ -101,67 +103,86 @@ end
 --
 -- TODO(refactor): The three addon integrations are very similar - extract to reusable function
 -- TODO(enhancement): Add support for additional trading addons (e.g., Pricey)
--- TODO(cleanup): Magic numbers (fontSize = 24) should be constants
+-------------------------------------------------------------------------------------------------
+-- HELPERS
 -------------------------------------------------------------------------------------------------
 
---- Adds trading addon price info to tooltip (TTC, MM, ATT).
----
---- Purpose: Injects market pricing into the bottom of item tooltips.
---- Mechanics:
---- 1. Defines stack size (using store stack count or bag lookup).
---- 2. Checks enabled integrations (TTC, MM, ATT).
---- 3. Retrieves price from external addon APIs.
---- 4. Formats and adds line to tooltip with Gold Icon.
----
---- References: Called by the hooked Tooltip Layout methods.
----
---- @param tooltip Control The tooltip control
---- @param itemLink string The item link to price
---- @param bagId number|nil The bag ID (for stack count)
---- @param slotIndex number|nil The slot index (for stack count)
---- @param storeStackCount number|nil Stack count for store items (overrides bag lookup)
-local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeStackCount)
+--- Retrieves the user-configured tooltip font size.
+--- @return number The font size (e.g., 24, 32).
+-------------------------------------------------------------------------------------------------
+-- HELPERS
+-------------------------------------------------------------------------------------------------
+
+--- Retrieves the user-configured tooltip font size.
+--- @return number The font size (e.g., 24, 32).
+function BETTERUI.GetTooltipFontSize()
+    local size = BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].tooltipSize
+    if not size then
+        return BETTERUI.CONST.TOOLTIP.DEFAULT_FONT_SIZE
+    end
+    
+
+    
+    return size
+end
+
+--- Gets trading addon price info strings (TTC, MM, ATT).
+--- @return table: List of strings to display
+function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCount)
+    local lines = {}
     if itemLink then
         local stackCount
-
         if storeStackCount then
             stackCount = storeStackCount
         else
             stackCount = GetSlotStackSize(bagId, slotIndex)
         end
 
+        local fontSize = BETTERUI.GetTooltipFontSize()
+        -- Use user font size for icons so they match text
+        local iconSize = fontSize 
+
         if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
             local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
             local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
             if(priceInfo == nil) then
-                tooltip:AddLine(string.format("TTC Price: NO LISTING DATA"), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                table.insert(lines, "TTC Price: No Data")
             else
-                local avgPrice
-                if priceInfo.SuggestedPrice then
-                    avgPrice = priceInfo.SuggestedPrice
-                else 
-                    avgPrice = priceInfo.Avg
-                end
-                    if stackCount > 1 then 
-                    tooltip:AddLine(zo_strformat("TTC Price: <<1>> |t18:18:<<2>>|t,   Stack(<<3>>): <<4>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), stackCount, BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                local avgPrice = priceInfo.SuggestedPrice or priceInfo.Avg
+                if stackCount > 1 then 
+                    table.insert(lines, zo_strformat("TTC Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
+                        stackCount, 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
                 else
-                    tooltip:AddLine(zo_strformat("TTC Price: <<1>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                    table.insert(lines, zo_strformat("TTC Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
                 end
             end
         end
 
     	if MasterMerchant ~= nil and BETTERUI.Settings.Modules["Tooltips"].mmIntegration then 
-
             local mmData = MasterMerchant:itemStats(itemLink, false)
-
             if(mmData.avgPrice == nil or mmData.avgPrice == 0) then
-                tooltip:AddLine(string.format("MM Price: NO LISTING DATA"), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                table.insert(lines, "MM Price: No Data")
             else
                 local avgPrice = mmData.avgPrice
                 if stackCount > 1 then 
-                    tooltip:AddLine(zo_strformat("MM Price: <<1>> |t18:18:<<2>>|t,   Stack(<<3>>): <<4>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), stackCount, BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                    table.insert(lines, zo_strformat("MM Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
+                        stackCount, 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
                 else
-                    tooltip:AddLine(zo_strformat("MM Price: <<1>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                    table.insert(lines, zo_strformat("MM Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
                 end
             end
     	end
@@ -169,34 +190,31 @@ local function AddInventoryPostInfo(tooltip, itemLink, bagId, slotIndex, storeSt
         if ArkadiusTradeTools ~= nil and BETTERUI.Settings.Modules["Tooltips"].attIntegration then 
             local avgPrice = ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(itemLink, nil, nil)
             if(avgPrice == nil or avgPrice == 0) then
-                tooltip:AddLine(string.format("ATT Price: NO LISTING DATA"), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                table.insert(lines, "ATT Price: No Data")
             else
                 if stackCount > 1 then 
-                    tooltip:AddLine(zo_strformat("ATT Price: <<1>> |t18:18:<<2>>|t,   Stack(<<3>>): <<4>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), stackCount, BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                    table.insert(lines, zo_strformat("ATT Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
+                        stackCount, 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
                 else
-                    tooltip:AddLine(zo_strformat("ATT Price: <<1>> |t18:18:<<2>>|t ", BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))), { fontSize = 24, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+                    table.insert(lines, zo_strformat("ATT Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+                        iconSize,
+                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
                 end
             end
         end
-        -- Whitespace buffer
-        tooltip:AddLine(string.format(""), { fontSize = 12, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
     end
+    return lines
 end
 
---- Adds item style and research status to tooltip.
----
---- Purpose: Injects style trait info at the top of item tooltips.
---- Mechanics:
---- 1. Checks `CanItemLinkBeTraitResearched`.
---- 2. Uses cached lookups to find if trait is known or present in other bags (Bank, House, Worn).
---- 3. Formats status string (e.g., "Found in Bank").
---- 4. Adds line to tooltip.
----
---- References: Called by the hooked Tooltip Layout methods.
----
---- @param tooltip object The tooltip control.
---- @param itemLink string The item link.
-local function AddInventoryPreInfo(tooltip, itemLink)
+--- Gets style and research status info strings.
+--- @return table: List of strings to display
+function BETTERUI.GetInventoryTraitInfo(itemLink)
+    local lines = {}
     if itemLink and BETTERUI.Settings.Modules["Tooltips"].showStyleTrait then
         local traitString
         if(CanItemLinkBeTraitResearched(itemLink))  then
@@ -222,20 +240,19 @@ local function AddInventoryPreInfo(tooltip, itemLink)
                 traitString = "|c00FF00Researchable|r"
             end
         else
-            return
+            return lines
         end    
 
         local style = GetItemLinkItemStyle(itemLink)
         local itemStyle = string.upper(GetString("SI_ITEMSTYLE", style))                    
 
-        tooltip:AddLine(zo_strformat("<<1>> Trait: <<2>>", itemStyle, traitString), { fontSize = 28, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+        table.insert(lines, zo_strformat("<<1>> Trait: <<2>>", itemStyle, traitString))
 
         if(itemStyle ~= ("NONE")) then
-            tooltip:AddLine(zo_strformat("<<1>>", itemStyle), { fontSize = 28, fontColorField = GAMEPAD_TOOLTIP_COLOR_GENERAL_COLOR_1 }, tooltip:GetStyle("title"))
+            table.insert(lines, zo_strformat("<<1>>", itemStyle))
         end
-    else
-        return
     end
+    return lines
 end
 
 --- Hooks tooltip layout methods to inject pricing and research info.
@@ -244,7 +261,8 @@ end
 --- Mechanics:
 --- 1. Wraps standard methods (`method2`, `method3`, `method`) with closures.
 --- 2. Captures arguments (bagId, itemLink, etc.) before calling original method.
---- 3. Calls `AddInventoryPreInfo` and `AddInventoryPostInfo` around the original implementation.
+--- 3. Calls AddLine after the original to append Price/Trait info at the bottom.
+--- 4. Scales labels to user's font preference.
 ---
 --- References: Called by Setup.
 ---
@@ -270,7 +288,7 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         newMethod2(self, ...)
     end
     tooltipControl[method3] = function(self, ...)
-        storeItemLink, storeStackCount = linkFunc3(...)
+        storeItemLink, storeStackCount = linkFunc3(...) 
         newMethod3(self, ...)
     end
     tooltipControl[method] = function(self, ...)
@@ -279,9 +297,26 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         else
             itemLink = linkFunc(...)
         end
-        AddInventoryPreInfo(self, itemLink)
-        AddInventoryPostInfo(self, itemLink, bagId, slotIndex, storeStackCount)
+        
+        -- Capture current item link for Status Hook/Inventory Update to read
+        self._betterui_itemLink = itemLink
+        self._betterui_bagId = bagId
+        self._betterui_slotIndex = slotIndex
+        self._betterui_storeStackCount = storeStackCount
+
+        -- 1. Draw the standard tooltip first
         newMethod(self, ...)
+
+        -- 2. Scale Fonts
+        local fontSize = BETTERUI.GetTooltipFontSize()
+        local fontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. fontSize .. "|soft-shadow-thick"
+        
+        for i = 1, self:GetNumChildren() do
+            local child = self:GetChild(i)
+            if child and child:GetType() == CT_LABEL then
+                child:SetFont(fontStr)
+            end
+        end
     end
 end
 

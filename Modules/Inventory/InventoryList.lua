@@ -28,13 +28,9 @@
 --
 -- TODO(optimization): BETTERUI_SharedGamepadEntry_OnSetup is called per-row per-frame during scrolling.
 --                     Consider caching more computed values to reduce GetItemLink/GetItemTrait calls.
--- TODO(cleanup): Icon path constants at top should use a centralized icon registry
 --------------------------------------------------------------------------------
 
-local TEXTURE_EQUIP_ICON = "BetterUI/Modules/CIM/Images/inv_equip.dds"
-local TEXTURE_EQUIP_BACKUP_ICON = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds"
-local TEXTURE_EQUIP_SLOT_ICON = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds"
-local NEW_ICON_TEXTURE = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
+
 
 
  
@@ -161,7 +157,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     end
 
     if isItemNew and data.enabled then
-        statusIndicator:AddIcon(NEW_ICON_TEXTURE)
+        statusIndicator:SetTexture(BETTERUI.CONST.ICONS.NEW_ITEM)
         statusIndicator:SetHidden(false)
     end
 
@@ -169,12 +165,12 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
         local slotIndex = data.dataSource.slotIndex
         local equipType = data.dataSource.equipType
         if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_TRINKET2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
-            equippedIcon:SetTexture(TEXTURE_EQUIP_BACKUP_ICON)
+            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_BACKUP)
         else
-            equippedIcon:SetTexture(TEXTURE_EQUIP_ICON)
+            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_MAIN)
         end
         if equipType == EQUIP_TYPE_INVALID then
-            equippedIcon:SetTexture(TEXTURE_EQUIP_SLOT_ICON)
+            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_SLOT)
         end
         equippedIcon:SetHidden(false)
     else
@@ -392,11 +388,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
     local fontSize = invSettings and invSettings.nameFontSize or 24
     
-    -- Handle legacy string values (for backwards compatibility)
-    if type(fontSize) == "string" then
-        local legacyMap = { Small = 20, Default = 24, Medium = 28, Large = 32, XLarge = 36 }
-        fontSize = legacyMap[fontSize] or 24
-    end
+
     
     -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
     local baseIconSize = 34
