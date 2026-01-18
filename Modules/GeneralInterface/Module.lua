@@ -155,12 +155,36 @@ local function Init(mId, moduleName)
             width = "full",
         },
 		{
+            type = "checkbox",
+            name = "Enable BetterUI Tooltip Enhancements",
+            tooltip = "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.\n\nNOTE: Tooltip Font Scaling requires this to be ENABLED.",
+            getFunc = function() 
+                local settings = BETTERUI.Settings.Modules["CIM"]
+                if not settings then return false end
+                if settings.enableTooltipEnhancements == nil then return false end
+                return settings.enableTooltipEnhancements
+            end,
+            setFunc = function(value) 
+                BETTERUI.Settings.Modules["CIM"].enableTooltipEnhancements = value 
+                ReloadUI()
+            end,
+            width = "full",
+            warning = "Requires Reload UI",
+            default = false,
+        },
+        {
             type = "slider",
             name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
 			tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
 			min = 12,
 			max = 48,
 			step = 1,
+            disabled = function() 
+                local settings = BETTERUI.Settings.Modules["CIM"]
+                if not settings then return true end
+                -- Explicit check: Disabled if NOT true (nil or false)
+                return settings.enableTooltipEnhancements ~= true 
+            end,
             getFunc = function() 
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 local val = 24

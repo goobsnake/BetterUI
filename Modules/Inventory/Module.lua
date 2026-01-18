@@ -1225,7 +1225,13 @@ function BETTERUI.Inventory.Setup()
 
 	-- Configure tooltip appearance and behavior
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = 10
-	SetupTooltipStyles()
+    
+    -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
+    local cimSettings = BETTERUI.Settings.Modules["CIM"]
+    if cimSettings and cimSettings.enableTooltipEnhancements then
+	    SetupTooltipStyles()
+    end
+    
 	SetupTooltipMouseWheel()
 
 	-- Position tooltip container
