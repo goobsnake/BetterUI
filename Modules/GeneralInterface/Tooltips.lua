@@ -20,6 +20,7 @@ local _
 --                     of clearing entire bag cache
 -- TODO(enhancement): Add support for caching craft bag (BAG_VIRTUAL) traits
 -------------------------------------------------------------------------------------------------
+local ResearchableTraitCache = {}
 
 --- Builds the cache of researchable trait counts for a specific bag.
 ---
@@ -85,7 +86,7 @@ end
 --- @param bagId number|nil: The bag ID to invalidate, or nil to clear all
 function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
     if bagId then
-        if ResearchableTraitCache[bagId] then
+        if ResearchableTraitCache and ResearchableTraitCache[bagId] then
             ResearchableTraitCache[bagId] = nil
         end
     else
@@ -139,8 +140,8 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         end
 
         local fontSize = BETTERUI.GetTooltipFontSize()
-        -- Use user font size for icons so they match text
-        local iconSize = fontSize 
+        -- Use user font size for icons so they match text, slightly smaller for clean look
+        local iconSize = math.floor(fontSize * 0.8) 
 
         if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
             local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
