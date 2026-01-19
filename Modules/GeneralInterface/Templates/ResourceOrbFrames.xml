@@ -324,7 +324,6 @@
              
              TODO(refactor): Ultimate charge animation is complex - consider
                              documenting the Lua-side animation logic in detail
-             TODO(cleanup): Frame backdrop is always hidden - verify if still needed
              ================================================================ -->
         <Control name="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template"
             inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template" virtual="true">
@@ -363,20 +362,6 @@
                         offsetY="36" />
                 </Texture>
 
-
-                <!-- Ultimate frame: Special decorative border (currently unused)
-                     WHY hidden true: Frame is replaced by FillAnimation borders
-                     TODO(removal): If always hidden, consider removing entirely -->
-                <Backdrop name="$(parent)Frame" hidden="true">
-                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-12"
-                        offsetY="-12" />
-                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="12"
-                        offsetY="12" />
-                    <Edge file="EsoUI/Art/HUD/Gamepad/gp_UltimateFrame_edge.dds"
-                        edgeFileWidth="128" edgeFileHeight="16" />
-                    <Center file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_16.dds" />
-                    <Insets left="16" top="16" right="-16" bottom="-16" />
-                </Backdrop>
 
                 <!-- Left bumper (LB) keybind texture
                      Shows player that LB + RB triggers ultimate
@@ -682,8 +667,11 @@
                  - OrbShield: Shield overlay on health orb
                  - OrbResource: Right orb containing magicka + stamina
              
-             TODO(fixme): BgMiddle contains duplicate button definitions that
-                          also exist in the template - investigate consolidation
+             NOTE: BackBarContainer is defined both in templates (ResourceOrbFrames_Double_Keyboard)
+             AND in this TopLevelControl. This is intentional - templates are virtual and may be
+             inherited, while this TopLevelControl needs explicit children for direct initialization.
+             Future refactor could consolidate if templates are never inherited elsewhere.
+
              TODO(refactor): Consider moving inline Lua from OnMouseEnter/Exit
                              to the main ResourceOrbFrames.lua file
              TODO(optimization): Orb textures are 240x240/256x256 - could be
@@ -720,8 +708,7 @@
                         </Control>
 
                         <!-- BackBarContainer: Inactive weapon set (hidden by default)
-                             Contains 6 buttons using BackBarButton_Template
-                             TODO(fixme): This duplicates template code - should inherit instead -->
+                             Contains 6 buttons using BackBarButton_Template -->
                         <Control name="$(grandparent)BackBarContainer" hidden="true">
                             <Dimensions x="260" y="50" />
                             <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"

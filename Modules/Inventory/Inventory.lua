@@ -52,7 +52,6 @@
 -- TODO(optimization): SHARED_INVENTORY:GenerateFullSlotData() is called frequently during refreshes.
 --                     Consider caching results and invalidating on inventory events.
 --
--- TODO(cleanup): Some functions have duplicate comments (see lines 120-121 pattern). Clean up.
 --------------------------------------------------------------------------------
 
 local _
@@ -60,10 +59,13 @@ local _
 -------------------------------------------------------------------------------------------------
 -- CONSTANTS & GLOBALS
 -------------------------------------------------------------------------------------------------
--- Module-level constants and global overrides.
+-- BLOCK_TABBAR_CALLBACK: When passed to RefreshHeader(), prevents the header's tab bar
+-- onSelectedChanged callback from firing. This avoids recursive refresh loops during
+-- programmatic header updates (e.g., category changes, scene transitions).
 --
--- TODO(cleanup): BLOCK_TABBAR_CALLBACK is defined but may not be used - verify and remove if dead code
--- TODO(cleanup): ZO_GAMEPAD_INVENTORY_SCENE_NAME override should be documented - why is this needed?
+-- ZO_GAMEPAD_INVENTORY_SCENE_NAME override: BetterUI uses its own inventory implementation,
+-- but must hijack this global to ensure native scene references point to our custom scene.
+-- Without this, ESO's internal GAMEPAD_INVENTORY references would route to the vanilla object.
 -------------------------------------------------------------------------------------------------
 
 local BLOCK_TABBAR_CALLBACK = true

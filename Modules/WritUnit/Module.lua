@@ -12,7 +12,6 @@
 -- 2.  **Event Handling**: Responses to interaction start/end and craft completion to toggle UI.
 --
 -- TODO(enhancement): Add setting to enable/disable writ panel display
--- TODO(cleanup): Event handlers check eventCode != 0 but ESO events don't return 0 - verify necessity
 ---------------------------------------------------------------------------------------------------
 
 local _
@@ -31,17 +30,14 @@ end
 --- Event handler for crafting station interaction (Start).
 ---
 --- Purpose: Triggered when user enters a crafting station.
---- Mechanics:
---- - Validates event code.
---- - Calls `BETTERUI.Writs.Show` with the station's craft ID to display relevant writs.
+--- Mechanics: Calls BETTERUI.Writs.Show with the station's craft ID.
+--- Note: eventCode check removed - ESO events never pass 0.
 ---
---- @param eventCode number The event code.
+--- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
---- @param sameStation boolean Whether the user is interacting with the same station type.
+--- @param sameStation boolean Whether interacting with same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
-	if eventCode ~= 0 then -- 0 is an invalid code
-			BETTERUI.Writs.Show(tonumber(craftId))
-	end
+    BETTERUI.Writs.Show(tonumber(craftId))
 end
 
 --- Event handler for crafting station interaction (End).
@@ -57,14 +53,13 @@ end
 --- Event handler for crafting completion.
 ---
 --- Purpose: Triggered when an item is crafted.
---- Mechanics: Calls `BETTERUI.Writs.Show` to refresh the progress (e.g., 1/3 -> 2/3).
+--- Mechanics: Calls BETTERUI.Writs.Show to refresh progress (e.g., 1/3 -> 2/3).
+--- Note: eventCode check removed - ESO events never pass 0.
 ---
---- @param eventCode number The event code.
+--- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
-	if eventCode ~= 0 then -- 0 is an invalid code
-			BETTERUI.Writs.Show(tonumber(craftId))
-	end
+    BETTERUI.Writs.Show(tonumber(craftId))
 end
 
 -- Sets up Writs module: creates UI and registers event handlers

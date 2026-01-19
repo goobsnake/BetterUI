@@ -69,9 +69,9 @@
             A single icon in the tab bar (e.g., Helmet icon).
         -->
         <Control name="BETTERUI_GamepadTabBarTemplate" mouseEnabled="true" virtual="true">
-            <!-- TODO: [Magic Values] Extract "50" to a constant (e.g., BETTERUI_TAB_ICON_SIZE) -->
-            <Dimensions x="50" y="50" />
-            <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetY="50" />
+            <!-- Uses BETTERUI_TABBAR_ICON_WIDTH constant defined in BetterUI.CONST.lua -->
+            <Dimensions x="BETTERUI_TABBAR_ICON_WIDTH" y="BETTERUI_TABBAR_ICON_WIDTH" />
+            <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetY="BETTERUI_TABBAR_ICON_WIDTH" />
             <OnInitialized>
                 ZO_GamepadTabBarTemplate_OnInitialized(self)
             </OnInitialized>
