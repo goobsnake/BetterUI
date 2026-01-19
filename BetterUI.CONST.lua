@@ -474,7 +474,10 @@ BETTERUI_SHIELD_DEBUG = false
 
 BETTERUI.CONST.COLORS = {
     WRIT_COMPLETE = "00FF00",  -- Green
-    WRIT_INCOMPLETE = "CCCCCC" -- Grey
+    WRIT_INCOMPLETE = "CCCCCC", -- Grey
+    -- Tab bar icon colors for category navigation
+    TAB_ICON_GOLD = {1, 0.95, 0.5, 1},      -- Gold tint for category icons
+    TAB_ICON_FILTER = {1, 1, 1, 1},          -- White for filter type icons
 }
 
 BETTERUI.CONST.TOOLTIP = {
@@ -485,5 +488,12 @@ BETTERUI.CONST.ICONS = {
     EQUIP_MAIN = "BetterUI/Modules/CIM/Images/inv_equip.dds",
     EQUIP_BACKUP = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds",
     EQUIP_SLOT = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds",
-    NEW_ITEM = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds"
+    NEW_ITEM = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds",
+    DEFAULT_SLOT = "/esoui/art/inventory/inventory_slot.dds"
+}
+-- Default settings for Common Interface Module components
+BETTERUI.CONST.CIM = {
+    DEFAULT_TRIGGER_SPEED = 10,
+    DEFAULT_RH_SCROLL_SPEED = 50,
+    DEFAULT_TOOLTIP_SIZE = 24,
 }

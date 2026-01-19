@@ -4,7 +4,7 @@ Purpose: Core initialization for the Common Interface Module (CIM).
          CIM provides shared UI components like generic headers, footers,
          and parametric scroll lists used across BetterUI.
 Author: BetterUI Team
-Last Modified: 2026-01-16
+Last Modified: 2026-01-19
 ]]
 
 local _
@@ -18,12 +18,12 @@ Mechanism: Checks for nil values in the provided options table and assigns defau
 param: m_options (table) - The raw settings/options table to be initialized.
 return: table - The modified options table with default values applied.
 References: Called by BetterUI.lua during addon initialization.
-TODO: Move magic numbers (10, 50, 24) to a constants file.
 ]]
 function BETTERUI.CIM.InitModule(m_options)
-    if m_options["triggerSpeed"] == nil then m_options["triggerSpeed"] = 10 end
+    local defaults = BETTERUI.CONST.CIM
+    if m_options["triggerSpeed"] == nil then m_options["triggerSpeed"] = defaults.DEFAULT_TRIGGER_SPEED end
     if m_options["enhanceCompat"] == nil then m_options["enhanceCompat"] = false end
-    if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = 50 end
-    if m_options["tooltipSize"] == nil then m_options["tooltipSize"] = 24 end
+    if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = defaults.DEFAULT_RH_SCROLL_SPEED end
+    if m_options["tooltipSize"] == nil then m_options["tooltipSize"] = defaults.DEFAULT_TOOLTIP_SIZE end
     return m_options
 end

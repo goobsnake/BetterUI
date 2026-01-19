@@ -5,7 +5,7 @@ Purpose: Manages the custom Gamepad Header logic for BetterUI.
          dynamic title, and equipment slot tracking.
          Replaces stock ZO_GamepadGenericHeader functionality.
 Author: BetterUI Team
-Last Modified: 2026-01-16
+Last Modified: 2026-01-19
 ]]
 
 local _
@@ -17,9 +17,7 @@ local TITLE_BASELINE    = ZO_GAMEPAD_HEADER_CONTROLS.TITLE_BASELINE
 local DIVIDER_SIMPLE    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_SIMPLE
 local DIVIDER_PIPPED    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 
--- Height of the info label area (legacy constant?)
--- TODO: [Sanitation] Verify if this legacy constant is actually used or dead code.
-local GENERIC_HEADER_INFO_LABEL_HEIGHT = 33
+-- Height of the info label area (historical reference, unused)
 
 --[[
 Function: TabBar_Setup
@@ -51,12 +49,9 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     icon:SetTexture(iconPath)
 
     -- Tint icons: Gold/Yellow for normal categories, White for filter types (sub-filters)
-    -- TODO: [Magic Values] Extract these color literals (1, 0.95, 0.5) to BETTERUI.CONST.COLORS.
-	if not data.filterType then
-		icon:SetColor(1, 0.95, 0.5, icon:GetControlAlpha())
-	else
-		icon:SetColor(1, 1, 1, icon:GetControlAlpha())
-	end
+    local colors = BETTERUI.CONST.COLORS
+    local color = data.filterType and colors.TAB_ICON_FILTER or colors.TAB_ICON_GOLD
+    icon:SetColor(color[1], color[2], color[3], icon:GetControlAlpha())
 
     if data.canSelect == nil then
         data.canSelect = true
@@ -137,53 +132,53 @@ function BETTERUI.GenericHeader.AddToList(control, data)
 end
 
 --[[
+Function: UpdateEquipText
+Description: Updates equipment slot text styling for main or backup bar.
+Rationale: Houses shared logic for weapon bar text highlights to avoid duplication.
+Mechanism: Sets text based on active status and handles visibility for locked weapon swaps.
+param: control (table) - Header control
+param: controlName (string) - Name of the child label control
+param: slotStringKey (number) - String identifier for the slot name
+param: isActive (boolean) - Whether this slot's bar is active
+param: hideIfLocked (boolean) - Whether to hide if weapon swap is locked
+]]
+local function UpdateEquipText(control, controlName, slotStringKey, isActive, hideIfLocked)
+    local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild(controlName)
+    if not equipControl then return end
+
+    if hideIfLocked and GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
+        equipControl:SetHidden(true)
+        return
+    end
+
+    equipControl:SetHidden(false)
+    local formatKey = isActive and SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT or SI_BETTERUI_INV_EQUIP_TEXT_NORMAL
+    equipControl:SetText(zo_strformat(GetString(formatKey), GetString(slotStringKey)))
+    equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+end
+
+--[[
 Function: BETTERUI.GenericHeader.SetEquipText
 Description: Set the primary equip text in the header (Main Hand).
 Rationale: Updates the visual indicator for the active weapon bar (text color/highlight).
-Mechanism: Sets text and alignment for the EquipText label.
+Mechanism: Uses UpdateEquipText helper.
 param: control (table) - Header control.
 param: isEquipMain (boolean) - True if Main Hand is the active weapon bar.
-TODO: [DRY] Refactor with SetBackupEquipText into `UpdateEquipText(control, type, isActive)`.
 ]]
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
-    local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("EquipText")
-    if isEquipMain then
-        equipControl:SetText(zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT), GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)))
-    else
-        equipControl:SetText(zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_TEXT_NORMAL), GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)))
-    end
-    equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    UpdateEquipText(control, "EquipText", SI_BETTERUI_INV_EQUIPSLOT_MAIN, isEquipMain, false)
 end
 
 --[[
 Function: BETTERUI.GenericHeader.SetBackupEquipText
 Description: Set the backup equip text in the header (Back Up).
 Rationale: Updates visual indicator for backup bar. Hides entirely if weapon swap is locked.
-Mechanism: Checks player level for weapon swap unlock. Sets text/color based on active bar.
+Mechanism: Uses UpdateEquipText helper.
 param: control (table) - Header control.
 param: isEquipMain (boolean) - True if Main Hand is active (Backup is inactive).
 ]]
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
-    local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild("BackupEquipText")
-    if not equipControl then return end
-    
-    -- Hide backup bar UI if player hasn't unlocked weapon swap
-    -- Why: Weapon swap is a core mechanic unlocked at level 15. Showing these slots earlier clutters the UI.
-    if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
-        equipControl:SetHidden(true)
-        return
-    end
-    
-    equipControl:SetHidden(false)
-    if isEquipMain then
-        -- If Main is active, Backup is inactive (Normal/Grey)
-        equipControl:SetText(zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_TEXT_NORMAL), GetString(SI_BETTERUI_INV_EQUIPSLOT_BACKUP)))
-    else
-        -- If Main is NOT active, Backup is active (Highlight/Orange)
-        equipControl:SetText(zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT), GetString(SI_BETTERUI_INV_EQUIPSLOT_BACKUP)))
-    end
-
-    equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
+    UpdateEquipText(control, "BackupEquipText", SI_BETTERUI_INV_EQUIPSLOT_BACKUP, not isEquipMain, true)
 end
 
 --- Update the header title text.
@@ -195,63 +190,76 @@ function BETTERUI.GenericHeader.SetTitleText(control, titleText)
 end
 
 
---- Populate current equipped icons for the main bar.
---- Uses default empty slot icon if texture path is empty.
---- TODO: [DRY] Near-identical to SetBackupEquippedIcons. Refactor to `UpdateEquippedIcons(control, iconsData)`.
---- @param control table The header control.
---- @param equipMain string Texture path for main hand icon.
---- @param equipOff string Texture path for off hand icon.
---- @param equipPoison string Texture path for poison icon.
-function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
-	local equipMainControl = control:GetNamedChild("TitleContainer"):GetNamedChild("MainHandIcon")
-	local equipOffControl = control:GetNamedChild("TitleContainer"):GetNamedChild("OffHandIcon")
-	local equipPoisonControl = control:GetNamedChild("TitleContainer"):GetNamedChild("PoisonIcon")
-	
-    -- TODO: [Magic Values] Extract string literal to constant.
-	local DEFAULT_INVSLOT_ICON = "/esoui/art/inventory/inventory_slot.dds"
-
-	if(equipMain ~= "") then equipMainControl:SetTexture(equipMain) else equipMainControl:SetTexture(DEFAULT_INVSLOT_ICON) end
-	if(equipOff ~= "") then equipOffControl:SetTexture(equipOff) else equipOffControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
-	if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON)  end
-end
-
---- Populate current equipped icons for the backup bar.
---- Handles visibility based on Weapon Swap unlock status.
---- TODO: [DRY] Duplicate logic.
---- @param control table The header control.
---- @param equipMain string Texture path for main hand icon.
---- @param equipOff string Texture path for off hand icon.
---- @param equipPoison string Texture path for poison icon.
-function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
+--[[
+Function: UpdateEquippedIcons
+Description: Updates equipment icons for main or backup bar.
+Rationale: Consolidates texture setting and visibility logic for weapon bar icons.
+Mechanism: Checks weapon swap unlock status and applies textures or default icons to child controls.
+param: control (table) - Header control
+param: iconNames (table) - Table mapping 'main', 'off', 'poison' to child control names
+param: iconsData (table) - Table with 'main', 'off', 'poison' texture paths
+param: hideIfLocked (boolean) - Whether to hide if weapon swap is locked
+]]
+local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     local titleContainer = control:GetNamedChild("TitleContainer")
-    local equipMainControl = titleContainer:GetNamedChild("BackupMainHandIcon")
-    local equipOffControl = titleContainer:GetNamedChild("BackupOffHandIcon")
-    local equipPoisonControl = titleContainer:GetNamedChild("BackupPoisonIcon")
-    
-    -- Hide backup bar icons if player hasn't unlocked weapon swap
-    if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
-        if equipMainControl then equipMainControl:SetHidden(true) end
-        if equipOffControl then equipOffControl:SetHidden(true) end
-        if equipPoisonControl then equipPoisonControl:SetHidden(true) end
+    if not titleContainer then return end
+
+    if hideIfLocked and GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
+        if iconNames.main then titleContainer:GetNamedChild(iconNames.main):SetHidden(true) end
+        if iconNames.off then titleContainer:GetNamedChild(iconNames.off):SetHidden(true) end
+        if iconNames.poison then titleContainer:GetNamedChild(iconNames.poison):SetHidden(true) end
         return
     end
-    
-    -- TODO: [Magic Values] Extract string literal.
-    local DEFAULT_INVSLOT_ICON = "/esoui/art/inventory/inventory_slot.dds"
 
-    -- Ensure controls are shown and textured
-    if equipMainControl then
-        equipMainControl:SetHidden(false)
-        if(equipMain ~= "") then equipMainControl:SetTexture(equipMain) else equipMainControl:SetTexture(DEFAULT_INVSLOT_ICON) end
+    local defaultIcon = BETTERUI.CONST.ICONS.DEFAULT_SLOT
+    local mapping = {
+        { name = iconNames.main, texture = iconsData.main },
+        { name = iconNames.off, texture = iconsData.off },
+        { name = iconNames.poison, texture = iconsData.poison },
+    }
+
+    for _, entry in ipairs(mapping) do
+        local ctrl = titleContainer:GetNamedChild(entry.name)
+        if ctrl then
+            ctrl:SetHidden(false)
+            local texture = entry.texture
+            ctrl:SetTexture((texture and texture ~= "") and texture or defaultIcon)
+        end
     end
-    if equipOffControl then
-        equipOffControl:SetHidden(false)
-        if(equipOff ~= "") then equipOffControl:SetTexture(equipOff) else equipOffControl:SetTexture(DEFAULT_INVSLOT_ICON) end
-    end
-    if equipPoisonControl then
-        equipPoisonControl:SetHidden(false)
-        if(equipPoison ~= "") then equipPoisonControl:SetTexture(equipPoison) else equipPoisonControl:SetTexture(DEFAULT_INVSLOT_ICON) end
-    end
+end
+
+--[[
+Function: BETTERUI.GenericHeader.SetEquippedIcons
+Description: Populate current equipped icons for the main bar.
+Rationale: Updates visual indicators for equipped items on the primary bar.
+Mechanism: Uses UpdateEquippedIcons helper.
+param: control (table) - The header control.
+param: equipMain (string) - Texture path for main hand icon.
+param: equipOff (string) - Texture path for off hand icon.
+param: equipPoison (string) - Texture path for poison icon.
+]]
+function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
+    UpdateEquippedIcons(control, 
+        { main = "MainHandIcon", off = "OffHandIcon", poison = "PoisonIcon" },
+        { main = equipMain, off = equipOff, poison = equipPoison },
+        false)
+end
+
+--[[
+Function: BETTERUI.GenericHeader.SetBackupEquippedIcons
+Description: Populate current equipped icons for the backup bar.
+Rationale: Updates visual indicators for equipped items on the backup bar.
+Mechanism: Uses UpdateEquippedIcons helper.
+param: control (table) - The header control.
+param: equipMain (string) - Texture path for main hand icon.
+param: equipOff (string) - Texture path for off hand icon.
+param: equipPoison (string) - Texture path for poison icon.
+]]
+function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
+    UpdateEquippedIcons(control,
+        { main = "BackupMainHandIcon", off = "BackupOffHandIcon", poison = "BackupPoisonIcon" },
+        { main = equipMain, off = equipOff, poison = equipPoison },
+        true)
 end
 
 --- Refresh the header with provided data.

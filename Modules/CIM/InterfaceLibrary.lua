@@ -4,7 +4,7 @@ Purpose: Base window class and UI utilities for gamepad inventory/banking.
          Provides core abstractions shared across BetterUI's gamepad screens,
          including window management, search integration, and spinner utilities.
 Author: BetterUI Team
-Last Modified: 2026-01-16
+Last Modified: 2026-01-19
 ]]
 
 local _
@@ -122,7 +122,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     }
 end
 
-BETTERUI_TEST_SCENE_NAME = "BETTERUI_BANKING"
+BETTERUI_BANKING_SCENE_NAME = "BETTERUI_BANKING"
 
 local BANKING_INTERACTION =
 {
@@ -192,7 +192,6 @@ Mechanism:
   4. Sets up parametric list and scene fragments.
 param: tlw_name (string) - The name of the TopLevelWindow control.
 param: scene_name (string) - The name of the scene to create/associate.
-TODO: [Legacy] BETTERUI_TEST_SCENE naming suggests temporary code.
 ]]
 function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.windowName = tlw_name
@@ -216,10 +215,10 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
 
 	self.header.columns = {}
 
-    BETTERUI_TEST_SCENE = ZO_InteractScene:New(BETTERUI_TEST_SCENE_NAME, SCENE_MANAGER, BANKING_INTERACTION)
+    BETTERUI_BANKING_SCENE = ZO_InteractScene:New(BETTERUI_BANKING_SCENE_NAME, SCENE_MANAGER, BANKING_INTERACTION)
 
-    self:InitializeFragment("BETTERUI_TEST_FRAGMENT")
-    self:InitializeScene(BETTERUI_TEST_SCENE)
+    self:InitializeFragment("BETTERUI_BANKING_FRAGMENT")
+    self:InitializeScene(BETTERUI_BANKING_SCENE)
 
     self:InitializeList()
 end
@@ -721,7 +720,7 @@ Description: Toggles the window's scene visibility.
 ]]
 function BETTERUI.Interface.Window:ToggleScene()
 	--SCENE_MANAGER:Show
-	SCENE_MANAGER:Toggle(BETTERUI_TEST_SCENE_NAME)
+	SCENE_MANAGER:Toggle(BETTERUI_BANKING_SCENE_NAME)
 end
 
 --[[

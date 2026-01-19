@@ -1,13 +1,10 @@
----------------------------------------------------------------------------------------------------
--- BetterUI - Resource Orb Frames
---
--- This massive module implements a complete replacement for the standard attribute bars.
--- It features:
--- 1. Diablo-style Orbs: Visually distinct orbs for Health, Magicka, and Stamina.
--- 2. Dynamic Layout: Orbs resize and reposition based on settings and active combat state.
--- 3. Theming: Supports custom textures and visual effects (fog, overlays).
--- 4. Event Handling: Reacts to stat changes (health drop, resource consumption) in real-time.
----------------------------------------------------------------------------------------------------
+--[[
+File: Modules/GeneralInterface/ResourceOrbFrames.lua
+Purpose: Implements a complete replacement for the standard attribute bars.
+         Features Diablo-style orbs with dynamic layouts, theming, and real-time event handling.
+Author: BetterUI Team
+Last Modified: 2026-01-19
+]]
 
 local NAME = "ResourceOrbFrames"
 if BETTERUI == nil then BETTERUI = {} end
@@ -333,7 +330,6 @@ end
 ---   - UpdateResourceOrbLayout()
 ---   - UpdateShieldOrbLayout()
 --- TODO(optimization): Only update elements that have actually changed
---- TODO(cleanup): Remove BETTERUI_ORB_DEBUG_PRINTS references or make configurable
 --- Updates the positioning and sizing of all orb elements based on BETTERUI_ORB_FRAMES config.
 ---
 --- Purpose: Performs the complex layout calculations for the Diablo-style orbs.
@@ -481,10 +477,6 @@ local function UpdateOrbLayout()
                 ctrl:SetAnchor(CENTER, healthOrb, CENTER, healthFillOffsetX, healthFillOffsetY)
             end
         end
-        if BETTERUI_ORB_DEBUG_PRINTS then
-            d(string.format("BetterUI: UpdateOrbLayout Health: border=%d fullW=%d fullH=%d offsetX=%d offsetY=%d", leftBorderSize, healthFillWidth, healthFillHeight, healthFillOffsetX, healthFillOffsetY))
-        end
-        
         -- Resize and show Border
         local border = FindControl(healthOrb, 'Border')
         if border then 
@@ -545,11 +537,6 @@ local function UpdateOrbLayout()
                 -- No floor rounding here either to preserve relative positioning at high scales
                 local leftFogAnchorX = (rightBorderSize / 4) - (magickaRoundedW / 2) + magickaFillOffsetX
                 local rightFogAnchorX = (3 * rightBorderSize / 4) - (staminaRoundedW / 2) + staminaFillOffsetX
-                
-                if BETTERUI_ORB_DEBUG_PRINTS then
-                    d(string.format("BetterUI: UpdateOrbLayout ResourceFill: magickaW=%.2f magickaH=%.2f staminaW=%.2f staminaH=%.2f leftAnchor=%.2f rightAnchor=%.2f",
-                        magickaRoundedW, magickaRoundedH, staminaRoundedW, staminaRoundedH, leftFogAnchorX, rightFogAnchorX))
-                end
                 
                 -- Update Label Positioning for split orbs (uses CONST offsets)
                 local label = FindControl(container, 'Label')
