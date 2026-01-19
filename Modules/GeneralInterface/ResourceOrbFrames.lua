@@ -853,12 +853,12 @@ local function UpdateBackBarLayout(rootFrame)
         local btn5 = FindControl(backBarContainer, 'Button5')
         
         -- Get ultimate offset from back bar config
-        local ultOffsetX = (modeConfig.ultimate and modeConfig.ultimate.offsetX) or 0
-        local ultOffsetY = (modeConfig.ultimate and modeConfig.ultimate.offsetY) or 0
+        local ultOffsetX = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetX) or 0
+        local ultOffsetY = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetY) or 0
         
         ultBtn:SetDimensions(ultimateSize, ultimateSize)
         ultBtn:ClearAnchors()
-        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + ultOffsetX, ultOffsetY)
+        ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX, ultOffsetY)
         
         -- Resize Icon to match front bar sizing (ultimateSize - 3)
         local icon = ultBtn:GetNamedChild("Icon")
