@@ -166,25 +166,18 @@ local function Init(mId, moduleName)
             end,
             setFunc = function(value) 
                 BETTERUI.Settings.Modules["CIM"].enableTooltipEnhancements = value 
-                ReloadUI()
             end,
             width = "full",
-            warning = "Requires Reload UI",
+            requiresReload = true,
             default = false,
         },
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
+            name = "BetterUI Tooltip Font Size",
 			tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
 			min = 12,
 			max = 48,
 			step = 1,
-            disabled = function() 
-                local settings = BETTERUI.Settings.Modules["CIM"]
-                if not settings then return true end
-                -- Explicit check: Disabled if NOT true (nil or false)
-                return settings.enableTooltipEnhancements ~= true 
-            end,
             getFunc = function() 
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 local val = 24
@@ -195,7 +188,12 @@ local function Init(mId, moduleName)
                 return val
             end,
             setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
-            disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+            disabled = function() 
+                local settings = BETTERUI.Settings.Modules["CIM"]
+                if not settings then return true end
+                -- Disabled unless tooltip enhancements are enabled
+                return settings.enableTooltipEnhancements ~= true 
+            end,
             width = "full",
             requiresReload = true,
             default = 24,

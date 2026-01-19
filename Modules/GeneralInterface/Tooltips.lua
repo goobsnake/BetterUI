@@ -141,7 +141,7 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
 
         local fontSize = BETTERUI.GetTooltipFontSize()
         -- Use user font size for icons so they match text, slightly smaller for clean look
-        local iconSize = math.floor(fontSize * 0.8) 
+        local iconSize = math.floor(fontSize * 0.7) 
 
         if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
             local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
