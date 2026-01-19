@@ -26,8 +26,6 @@
 --     *   Uses `BETTERUI_VerticalParametricScrollList` for the actual scrolling mechanic.
 --     *   Handles list refreshes, data binding, and trigger keybinds.
 --
--- TODO(optimization): BETTERUI_SharedGamepadEntry_OnSetup is called per-row per-frame during scrolling.
---                     Consider caching more computed values to reduce GetItemLink/GetItemTrait calls.
 --------------------------------------------------------------------------------
 
 
@@ -332,15 +330,14 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Set item type
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
 
-    -- Set trait information
-    local traitType = (bagId and slotIndex) and GetItemTrait(bagId, slotIndex) or ITEM_TRAIT_TYPE_NONE
-    traitControl:SetText(traitType == ITEM_TRAIT_TYPE_NONE and "-" or string.upper(GetString("SI_ITEMTRAITTYPE", traitType)))
+    -- Set trait information (Uses cached values from Inventory:RefreshItemList)
+    traitControl:SetText(data.cached_traitName or "-")
 
     -- Set stat information based on item type
     local statText
     if itemType == ITEMTYPE_RECIPE then
         statText = data.cached_isRecipeAndUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
-    elseif IsItemLinkBook(itemLink) then
+    elseif data.cached_isBook then
         statText = data.cached_isBookKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
     else
         local statValue = data.dataSource and data.dataSource.statValue

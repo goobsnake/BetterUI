@@ -49,9 +49,6 @@
 -- TODO(refactor): Many helper functions are defined at module scope but only used by the class.
 --                 Consider moving them to class methods or a separate utilities file.
 --
--- TODO(optimization): SHARED_INVENTORY:GenerateFullSlotData() is called frequently during refreshes.
---                     Consider caching results and invalidating on inventory events.
---
 --------------------------------------------------------------------------------
 
 local _
@@ -88,6 +85,55 @@ local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
+
+-- Slot data cache for GenerateFullSlotData optimization
+local g_slotDataCache = {}
+local g_slotDataCacheDirty = true
+
+--[[
+Function: InvalidateSlotDataCache
+Description: Marks the inventory slot data cache as dirty to trigger a refresh on next access.
+Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
+Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
+]]
+local function InvalidateSlotDataCache()
+    g_slotDataCacheDirty = true
+    g_slotDataCache = {}
+end
+
+--[[
+Function: GetCachedSlotData
+Description: Wrapped version of SHARED_INVENTORY:GenerateFullSlotData with internal caching.
+Rationale: Calling GenerateFullSlotData multiple times per frame (junk check, stolen check, list refresh) is expensive.
+Mechanism: 
+1. Checks dirty flag.
+2. If dirty, clears cache.
+3. If not dirty and bag cached, returns cached data.
+4. Otherwise, calls native GenerateFullSlotData(nil, ...) and caches it.
+param: ... (bagIds) - The bag identifiers to fetch data for.
+return: table - Table of slot data for the requested bags.
+]]
+local function GetCachedSlotData(...)
+    local bags = {...}
+    table.sort(bags) -- Ensure consistent key
+    local cacheKey = table.concat(bags, ",")
+    
+    if g_slotDataCacheDirty then
+        g_slotDataCache = {}
+        g_slotDataCacheDirty = false
+    end
+    
+    if not g_slotDataCache[cacheKey] then
+        if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
+            -- Fetch ALL items (no filter) for these bags to populate the cache
+            g_slotDataCache[cacheKey] = SHARED_INVENTORY:GenerateFullSlotData(nil, unpack(bags))
+        else
+            g_slotDataCache[cacheKey] = {}
+        end
+    end
+    
+    return g_slotDataCache[cacheKey]
+end
 
 -------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
@@ -1118,13 +1164,12 @@ end
 -- with a direct IsItemJunk fallback as a safety net.
 local function HasAnyJunkInBackpack()
 	-- Prefer shared inventory cache, which we explicitly refresh after junk toggles.
-	if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
-		local function IsJunkSlot(slotData)
-			return slotData and slotData.isJunk == true and slotData.bagId == BAG_BACKPACK
-		end
-		local junkSlots = SHARED_INVENTORY:GenerateFullSlotData(IsJunkSlot, BAG_BACKPACK)
-		if type(junkSlots) == "table" and #junkSlots > 0 then
-			return true
+	local backpack = GetCachedSlotData(BAG_BACKPACK)
+	if backpack then
+		for _, slotData in ipairs(backpack) do
+			if slotData and slotData.isJunk == true then
+				return true
+			end
 		end
 	end
 
@@ -1354,13 +1399,12 @@ end
 ---
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 	local function IsStolenAndNotJunk()
-		if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
-			local function Filter(slotData)
-				return slotData and slotData.bagId == BAG_BACKPACK and slotData.stolen and not slotData.isJunk
-			end
-			local stolenSlots = SHARED_INVENTORY:GenerateFullSlotData(Filter, BAG_BACKPACK)
-			if type(stolenSlots) == "table" and #stolenSlots > 0 then
-				return true
+		local backpack = GetCachedSlotData(BAG_BACKPACK)
+		if backpack then
+			for _, slotData in ipairs(backpack) do
+				if slotData and slotData.stolen and not slotData.isJunk then
+					return true
+				end
 			end
 		end
 
@@ -1941,11 +1985,29 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 		local comparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 
 		if showEquippedCategory then
-			filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(comparator, BAG_WORN)
+			local worn = GetCachedSlotData(BAG_WORN)
+			filteredDataTable = {}
+			for _, slotData in ipairs(worn) do
+				if comparator(slotData) then
+					table.insert(filteredDataTable, slotData)
+				end
+			end
 		elseif showStolenCategory then
-			filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsStolenItem, BAG_BACKPACK)
+			local backpack = GetCachedSlotData(BAG_BACKPACK)
+			filteredDataTable = {}
+			for _, slotData in ipairs(backpack) do
+				if IsStolenItem(slotData) then
+					table.insert(filteredDataTable, slotData)
+				end
+			end
 		else
-			filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(comparator, BAG_BACKPACK, BAG_WORN)
+			local bags = GetCachedSlotData(BAG_BACKPACK, BAG_WORN)
+			filteredDataTable = {}
+			for _, slotData in ipairs(bags) do
+				if comparator(slotData) then
+					table.insert(filteredDataTable, slotData)
+				end
+			end
 		end
 		-- Process items and set up categories in a single pass
 		-- Localize frequently used globals for performance inside tight loop
@@ -1955,6 +2017,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 		local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
 		local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
 		local IsItemLinkBookKnown = IsItemLinkBookKnown
+		local IsItemLinkBook = IsItemLinkBook
+		local GetItemTrait = GetItemTrait
 		local IsItemBound = IsItemBound
 		local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 		local zo_strformat = zo_strformat
@@ -2006,10 +2070,19 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 			itemData.cached_hasEnchantment = GetItemLinkEnchantInfo(itemData.cached_itemLink)
 			itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE)
 				and not IsItemLinkRecipeKnown(itemData.cached_itemLink)
-			itemData.cached_isBookKnown = IsItemLinkBookKnown(itemData.cached_itemLink)
+			itemData.cached_isBook = IsItemLinkBook(itemData.cached_itemLink)
+			itemData.cached_isBookKnown = itemData.cached_isBook and IsItemLinkBookKnown(itemData.cached_itemLink)
 			itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex)
 				and not itemData.stolen
 				and itemData.quality ~= ITEM_QUALITY_TRASH
+			
+			-- Trait caching (reduces GetItemTrait calls during scrolling)
+			itemData.cached_traitType = GetItemTrait(itemData.bagId, itemData.slotIndex)
+			if itemData.cached_traitType ~= ITEM_TRAIT_TYPE_NONE then
+				itemData.cached_traitName = string.upper(GetString("SI_ITEMTRAITTYPE", itemData.cached_traitType))
+			else
+				itemData.cached_traitName = "-"
+			end
 		end
 	end
 
@@ -3999,6 +4072,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
 	local function OnInventoryUpdated(bagId)
+		InvalidateSlotDataCache()
 		self:MarkDirty()
 		-- Debounce heavy updates to the next frame to batch rapid changes
 		if GetFrameTimeSeconds then
