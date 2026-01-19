@@ -390,8 +390,12 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 valueText = equipSlotText
         	end
         else
-            -- Native Standard Logic replication
-            headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+            -- Native Standard Logic replication with dash separator
+            if equipSlotText ~= "" then
+                headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER) .. " -"
+            else
+                headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+            end
             valueText = equipSlotText
         end
     end
@@ -682,8 +686,6 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
             customLabel:SetHidden(true)
             
-            -- 3. Update Custom Label (Header)
-            
             if bottomRail then
                 bottomRail:ClearAnchors()
                 bottomRail:SetAnchor(TOPLEFT, container, TOPLEFT, 0, ZO_GAMEPAD_CONTENT_HEADER_DIVIDER_OFFSET_Y or 0)
@@ -692,23 +694,108 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             end
         end
 
-        if equipSlot and not enhancementsEnabled then
-                -- Fallback: Use priceText only (no traits)
-                -- "default tooltip UI should only include our TCC/Market pricing added info"
-                if priceText ~= "" then
-                    headerText = headerText .. "\n|cFFFFFF" .. priceText .. "|r"
-                    valueText = "" -- Suppress native "Main Hand" text
-
-                    -- Ensure native header label supports multiline to show price underneath
-                    if container then
-                        local statusHeader = container:GetNamedChild("StatusLabel")
-                        if statusHeader then
-                            statusHeader:SetMaxLineCount(0)
-                        end
+        --[[
+        Native Fallback: Price Display (when BetterUI tooltip enhancements are disabled)
+        
+        Rationale: When users disable tooltip enhancements, we still want to show TTC/MM/ATT 
+                   market pricing. This section handles displaying price info in the native 
+                   tooltip layout without modifying the tooltip's internal anchor structure.
+        
+        Mechanism: 
+        1. Creates a price label as a child of the container (not inside scroll content)
+        2. Positions it just below the BottomRail divider
+        3. Shifts the entire scroll tooltip (Tip) down to make room
+        4. Must run for ALL items to properly reset state between tooltip switches
+        
+        Why not modify tooltip anchors directly?
+        The native ZO_Tooltip uses a complex internal layout system. Modifying anchors on
+        internal controls (like ScrollChild->Tooltip) causes circular reference errors.
+        Instead, we add our label outside and shift the containing scroll control.
+        ]]
+        if not enhancementsEnabled then
+            -- Get the scroll container structure
+            local scrollTooltip = container and container:GetNamedChild("Tip")
+            local scrollContainer = scrollTooltip and scrollTooltip:GetNamedChild("Scroll")
+            local scrollChild = scrollContainer and scrollContainer:GetNamedChild("ScrollChild")
+            
+            -- Show price text for ALL items
+            -- NOTE: We add the price label as a sibling to the tooltip, NOT modifying tooltip anchors
+            -- This avoids anchor circular reference errors
+            if priceText ~= "" and scrollChild then
+                -- Create/get the price label in the container (before tooltip in visual order)
+                if not container._betterUiNativePriceLabel then
+                    local priceLabel = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
+                    priceLabel:SetMaxLineCount(0)
+                    priceLabel:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+                    priceLabel:SetColor(1, 1, 1, 1) -- White color for price text
+                    priceLabel:SetFont("ZoFontGamepad27")
+                    priceLabel:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+                    container._betterUiNativePriceLabel = priceLabel
+                end
+                
+                local priceLabel = container._betterUiNativePriceLabel
+                if priceLabel then
+                    local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+                    
+                    -- Position price just below the BottomRail divider
+                    priceLabel:ClearAnchors()
+                    if bottomRail then
+                        priceLabel:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 5)
+                        priceLabel:SetAnchor(TOPRIGHT, bottomRail, BOTTOMRIGHT, 0, 5)
+                    else
+                        priceLabel:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 40)
+                        priceLabel:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, 40)
+                    end
+                    priceLabel:SetText(priceText)
+                    priceLabel:SetHidden(false)
+                    
+                    -- Calculate height needed for price text
+                    local numPriceLines = 1
+                    for _ in string.gmatch(priceText, "\n") do
+                        numPriceLines = numPriceLines + 1
+                    end
+                    local priceHeight = numPriceLines * 32
+                    
+                    -- Move the scroll tooltip (Tip) down to make room
+                    if scrollTooltip then
+                        scrollTooltip:ClearAnchors()
+                        scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, priceHeight + 5)
+                        scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
                     end
                 end
-
+            else
+                -- No price text - hide price label and restore normal Tip position
+                if container and container._betterUiNativePriceLabel then
+                    container._betterUiNativePriceLabel:SetHidden(true)
+                end
+                
+                -- Restore Tip to normal position
+                if scrollTooltip then
+                    local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+                    scrollTooltip:ClearAnchors()
+                    if bottomRail then
+                        scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
+                    else
+                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 40)
+                    end
+                    scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+                end
+            end
+            
+            -- Handle status label (header)
+            if equipSlot then
+                -- Equipped item - show EQUIPPED header with slot text (Main Hand, etc.)
                 GAMEPAD_TOOLTIPS:SetStatusLabelText(tooltipType, headerText, valueText)
+                
+                -- Reduce font size of the slot text (StatusLabelValue) for cleaner appearance
+                local statusLabelValue = container and container:GetNamedChild("StatusLabelValue")
+                if statusLabelValue then
+                    statusLabelValue:SetFont("ZoFontGamepad34")
+                end
+            else
+                -- Non-equipped item - CLEAR the status label so it doesn't persist
+                GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
+            end
         end        
 
         end        
