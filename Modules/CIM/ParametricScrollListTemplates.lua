@@ -708,10 +708,21 @@ Description: Sets selection with animation.
 Mechanism: Updates pips and triggers UpdateAnchors if in Carousel mode.
 ]]
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
+    -- BetterUI Fix: Capture old data BEFORE calling base class (which updates selectedData)
+    local oldSelectedData = self.selectedData
+    local oldSelectedIndex = self.selectedIndex
+    
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
     if self.carouselMode and self.UpdateAnchors then
         self:UpdateAnchors(selectedIndex, false, false)
+    end
+    
+    -- BetterUI Fix: Fire callback directly if selection actually changed
+    -- This is necessary because the base class updates selectedData before UpdateAnchors,
+    -- causing the "selectedData ~= oldSelectedData" check to fail
+    if self.selectedIndex ~= oldSelectedIndex and self.onSelectedDataChangedCallback then
+        self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, false)
     end
 end
 
@@ -819,6 +830,12 @@ end
 Function: BETTERUI_TabBar_OnCategoryIconClicked
 Description: Global handler for direct category icon click.
 Rationale: Allows clicking directly on a category icon to jump to it.
+Mechanism:
+1. Identifies the parent scrollList.
+2. Finds the data index for the clicked control.
+3. Special Case: If in Inventory scene, dispatches directly to GAMEPAD_INVENTORY:OnCategoryClicked to ensure reliable switching.
+4. Default: Calls scrollList:SetSelectedIndex.
+param: categoryControl (table) - The UI control that was clicked.
 ]]
 function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
     local scrollList = nil
@@ -840,15 +857,30 @@ function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
     end
 
     -- Match control to data to set index
+    local foundIndex = nil
     for i, data in ipairs(scrollList.dataList) do
         local control = scrollList:GetControlFromData(data)
         if control == categoryControl then
-            if scrollList.SetNavigationGuard then
-                scrollList:SetNavigationGuard()
-            end
-            scrollList:SetSelectedIndex(i, true, true)
+            foundIndex = i
+            break
+        end
+    end
+    
+    if foundIndex then
+        if scrollList.SetNavigationGuard then
+            scrollList:SetNavigationGuard()
+        end
+
+        -- BetterUI Fix: Explicitly handle Inventory scene to ensure reliable switching
+        if SCENE_MANAGER and SCENE_MANAGER:IsShowing("gamepad_inventory_root") and GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.OnCategoryClicked then
+            GAMEPAD_INVENTORY:OnCategoryClicked(foundIndex)
+            -- Sync the visual tab bar to match the logic update
+            scrollList:SetSelectedIndexWithoutAnimation(foundIndex, true, true)
             return
         end
+
+        -- Standard Behavior: Use SetSelectedIndex with callback enabled
+        scrollList:SetSelectedIndex(foundIndex, true, false)
     end
 end
 

@@ -1787,7 +1787,75 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 
 	BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
 
+	-- Fix for non-clickable category icons: Ensure scrollList is explicitly linked to the UI control
+	-- Even though GenericHeader.Refresh does this, we enforce it here to ensure it persists in the Inventory scene
+	local tabBarControl = self.header:GetNamedChild("TabBar")
+	if tabBarControl and self.header.tabBar then
+		tabBarControl.scrollList = self.header.tabBar
+        
+        -- (Callback attached via categoryHeaderData now)
+	end
+
 	BETTERUI.GenericFooter.Initialize(self)
+end
+
+--[[
+Function: BETTERUI.Inventory.Class:OnCategoryClicked
+Description: Handles direct category icon clicks from the header.
+Rationale: Bypasses the fragile scroll list callback mechanism (which fails in Inventory context) to ensure reliable category switching.
+Mechanism: 
+1. Validates index and state.
+2. Saves current position (SaveListPosition).
+3. Updates categoryList state (selectedIndex, selectedData).
+4. Triggers ToSavedPosition to switch content lists.
+References: Called by BETTERUI_TabBar_OnCategoryIconClicked (ParametricScrollListTemplates.lua).
+param: index (number) - The index of the clicked category (1-based).
+]]
+function BETTERUI.Inventory.Class:OnCategoryClicked(index)
+    if not index or not self.categoryList then return end
+    
+    local count = #self.categoryList.dataList
+    if index < 1 or index > count then return end
+    
+    -- Sync check: If we are already on this index, do nothing (or should we force refresh?)
+    -- Usually clicking the active tab does nothing.
+    if self.categoryList.selectedIndex == index then return end
+
+    -- Save position of the OLD category before switching
+    self:SaveListPosition()
+    
+    -- Update Inventory Class state to match the new selection
+    self.categoryList.selectedIndex = index
+    self.categoryList.targetSelectedIndex = index
+    self.categoryList.selectedData = self.categoryList.dataList[index]
+    self.categoryList.defaultSelectedIndex = index
+    
+    -- Update Title immediatley
+    if self.categoryList.selectedData and self.categoryList.selectedData.text then
+        BETTERUI.GenericHeader.SetTitleText(self.header, self.categoryList.selectedData.text)
+    end
+    
+    -- Switch list and restore position for NEW category
+    self:ToSavedPosition()
+end
+
+--- Refreshes the header, ensuring callbacks are preserved.
+---
+--- Purpose: Overrides base RefreshHeader to enforce BetterUI logic.
+--- Mechanics:
+--- - Calls GenericHeader.Refresh.
+--- - Re-attaches the mouse click callback (which might be wiped by Refresh).
+--- - Ensures scrollList link.
+--- @param blockCallback boolean Whether to block the tab bar callback during refresh.
+function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
+    BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)
+
+    -- Ensure scrollList is explicitly linked
+    local tabBarControl = self.header:GetNamedChild("TabBar")
+    if tabBarControl and self.header.tabBar then
+        tabBarControl.scrollList = self.header.tabBar
+        
+    end
 end
 
 --- Sets up visual data for an inventory row.
