@@ -61,6 +61,14 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     if data.canSelect == nil then
         data.canSelect = true
     end
+    
+    -- BetterUI Fix: Explicitly enable mouse and attach click handler
+    -- XML template handlers may not be inherited by pooled controls
+    control:SetMouseEnabled(true)
+    control:SetHandler("OnMouseUp", function(self)
+        BETTERUI_TabBar_OnCategoryIconClicked(self)
+    end)
+    
     ZO_GamepadMenuHeaderTemplate_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
 end
 
@@ -290,6 +298,17 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         if data.carouselConfig.enabled ~= nil then
             control.tabBar.carouselMode = data.carouselConfig.enabled
         end
+    end
+    
+    -- BetterUI Fix: Ensure callback from data is applied to the tab bar
+    -- This allows context switching (Inventory <-> Craft Bag) to update the listener
+    if control.tabBar and data.callback then
+        control.tabBar:SetOnSelectedDataChangedCallback(data.callback)
+    end
+    
+    -- If tab bar exists, commit the list to show items
+    if control.tabBar then
+        control.tabBar:Commit(blockTabBarCallbacks)
     end
 
     if control.tabBar then
