@@ -1,6 +1,6 @@
 ## Title: BetterUI
 ## Description: Reshaping the gamepad interface!
-## APIVersion: 101050
+## APIVersion: 101049
 ## Author: Goobsnake
 ## Contributers: prasoc, RockingDice
 ## Version: 2.93
