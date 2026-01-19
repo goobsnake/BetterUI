@@ -85,7 +85,9 @@
                 <!-- Gamepad-style backdrop frame
                      WHY hidden by default: Only shown in gamepad mode, toggled via Lua
                      WHY offsets -4/+4: Creates padding around icon for the edge texture
-                     TODO(removal): Evaluate if this backdrop is actually used - may be legacy code -->
+                     NOTE: This backdrop IS used - toggled in UpdateBackBarLayout() based on input mode.
+                           Gamepad mode: backdrop visible, border hidden.
+                           Keyboard mode: backdrop hidden, border visible. -->
                 <Backdrop name="$(parent)Backdrop" inherits="ZO_DefaultBackdrop_Gamepad"
                     hidden="true">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-4" offsetY="-4" />
