@@ -173,11 +173,6 @@ end
 --   - Scaling the entire frame based on user settings
 --   - Applying theme textures (default vs custom)
 --   - Positioning orbs, ornaments, and skill bars
---
--- TODO(architecture): This section is ~400 lines and handles too much. Consider splitting into:
---   - OrbLayoutManager: Orb positioning and sizing
---   - ThemeManager: Texture application and theme switching
---   - BarLayoutManager: Skill bar positioning
 -------------------------------------------------------------------------------------------------
 
 --- Updates the frame's scale and vertical position based on user settings.
@@ -191,7 +186,6 @@ end
 ---   conflicts with companion spawn animations and weapon swap positioning.
 ---   See: "buttons get bigger" bug reports.
 ---
---- TODO(fixme): The scale check `if scale then` is always true since scale defaults to 1
 --- TODO(enhancement): Add animation when scale/position changes for smoother transitions
 --- Updates the frame's scale and vertical position based on user settings.
 ---
@@ -208,14 +202,13 @@ local function UpdateFrameDimensions()
     local scale = settings.scale or DEFAULTS.scale
     local offsetY = settings.offsetY or DEFAULTS.offsetY
 
-    if scale then 
-        m_rootFrame:SetScale(scale)
-        -- NOTE: We intentionally do NOT scale ZO_ActionBar1.
-        -- ESO's internal ApplyStyle/SetCompanionAnchors/animation code
-        -- assumes scale 1.0. When we set a different scale, ESO's
-        -- positioning calculations conflict with our scaled container,
-        -- causing the "buttons get bigger" issue on companion spawn/weapon swap.
-    end
+    -- Always apply scale (defaults to 1.0)
+    m_rootFrame:SetScale(scale)
+    -- NOTE: We intentionally do NOT scale ZO_ActionBar1.
+    -- ESO's internal ApplyStyle/SetCompanionAnchors/animation code
+    -- assumes scale 1.0. When we set a different scale, ESO's
+    -- positioning calculations conflict with our scaled container,
+    -- causing the "buttons get bigger" issue on companion spawn/weapon swap.
     if offsetY ~= nil then
         m_rootFrame:ClearAnchors()
         -- Invert offsetY because positive values should move the frame UP
@@ -225,18 +218,6 @@ end
 
 
 
---- Applies theme-appropriate textures to all orb UI elements.
----
---- Handles two types of textures:
----   1. Main frame elements (ornaments)
----   2. Orb-specific textures (fills, borders, overlays)
----
---- WHY SEPARATE ApplyOrbTextures:
----   Each orb type (Health, Magicka, Stamina) has the same texture structure
----   but different parent controls. The nested function avoids code duplication.
----
---- TODO(refactor): ApplyOrbTextures is defined inline - move to module scope for testability
---- TODO(optimization): Only update textures that have actually changed
 --- Applies theme-appropriate textures to all orb UI elements.
 ---
 --- Purpose: Refreshes all textures (borders, fills, ornaments) based on current theme path.
@@ -303,63 +284,11 @@ local function ApplyThemeVisuals()
     end
 end
 
---- Updates the positioning and sizing of all orb elements based on BETTERUI_ORB_FRAMES config.
----
---- This is the CORE LAYOUT FUNCTION for the orb system. It handles:
----   - Ornament visibility and positioning
----   - Orb positioning (relative to ornaments or absolute when ornaments hidden)
----   - Fill texture sizing for health, magicka, stamina
----   - Shield overlay positioning
----   - Label positioning for resource values
----   - Splitter (divider) positioning for split resources orb
----
---- WHY SO COMPLEX:
----   The layout supports multiple configurations:
----     - Ornaments visible vs hidden (different anchor points)
----     - Variable orb scales when ornaments are hidden
----     - Precise sub-pixel fill positioning for smooth animations
----
---- CALLED BY:
----   - ResourceOrbFrames_Initialize() during addon load
----   - Settings changes that affect layout
----   - Input mode changes (keyboard vs gamepad)
----
---- TODO(refactor): This function is 320+ lines - split into smaller functions:
----   - UpdateOrnamentLayout()
----   - UpdateHealthOrbLayout()
----   - UpdateResourceOrbLayout()
----   - UpdateShieldOrbLayout()
---- TODO(optimization): Only update elements that have actually changed
---- Updates the positioning and sizing of all orb elements based on BETTERUI_ORB_FRAMES config.
----
---- Purpose: Performs the complex layout calculations for the Diablo-style orbs.
---- Mechanics:
---- 1. Determines layout mode (Ornaments Visible vs Hidden).
---- 2. Calculates dimensions for Fills (Health, Magicka, Stamina) based on scale factors.
---- 3. Positions Ornaments relative to `BgMiddle`.
---- 4. Positions Orbs relative to Ornaments (or `BgMiddle` if hidden).
---- 5. Adjusts "Fog" (fill) textures, borders, and splitters.
---- 6. Updates `m_pools` with new fill dimensions for smooth animation.
----
---- References: Called during Init and ApplySettings.
-local function UpdateOrbLayout()
-    local leftOrb = FindControl(m_rootFrame, 'OrbHealth')
-    local rightOrb = FindControl(m_rootFrame, 'OrbResource')
-    local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
-    local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
-    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
-    
-    if not bgMiddle then return end
-
-    -- Local aliases for config table
-    local cfg = BETTERUI_ORB_FRAMES
-    
-    -- Get settings early so we can apply orb size scale
-    local settings = GetModuleSettings()
+--- Calculates border sizes based on settings and config.
+local function CalculateBorderSizes(cfg, settings)
     local hideLeftOrnament = settings.hideLeftOrnament or false
     local hideRightOrnament = settings.hideRightOrnament or false
     
-    -- Orb border sizes - apply scale when ornament is hidden 
     local leftBorderSize = cfg.orbs.left.borderSize
     local rightBorderSize = cfg.orbs.right.borderSize
     
@@ -371,290 +300,253 @@ local function UpdateOrbLayout()
         local rightScale = settings.rightOrbSizeScale or 1.0
         rightBorderSize = rightBorderSize * rightScale
     end
-    
-    -- Ornament scales
-    local leftOrnamentScale = cfg.ornaments.left.scale
-    local rightOrnamentScale = cfg.ornaments.right.scale
-    
-    -- Fill scales from config
-    -- REMOVED math.floor rounding to prevent scaling alignment issues (user reported misalignment at 1.5 scale)
-    local healthFillWidth = math.min(leftBorderSize * cfg.fills.health.scaleW, leftBorderSize)
-    local healthFillHeight = math.min(leftBorderSize * cfg.fills.health.scaleH, leftBorderSize)
-    local healthFillOffsetX = cfg.fills.health.x
-    local healthFillOffsetY = cfg.fills.health.y
-    
-    -- Shield fill uses scaled leftBorderSize (for when ornament is hidden)
-    local shieldFillWidth = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize)
-    local shieldFillHeight = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize)
-    
-    local magickaFillWidth = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize)
-    local magickaFillHeight = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize)
-    local staminaFillWidth = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize)
-    local staminaFillHeight = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize)
-    local resourceFillWidth = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize)
-    local resourceFillHeight = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize)
-    
-    local magickaFillOffsetX = cfg.fills.magicka.x
-    local magickaFillOffsetY = cfg.fills.magicka.y
-    local staminaFillOffsetX = cfg.fills.stamina.x
-    local staminaFillOffsetY = cfg.fills.stamina.y
-    
-    -- Splitter settings
-    local splitterWidth = cfg.splitter.width
-    local splitterHeight = rightBorderSize * cfg.splitter.heightScale
-    local splitterOffsetX = cfg.splitter.x
-    local splitterOffsetY = cfg.splitter.y
-    
-    -- ========================================
-    -- ORNAMENTS: Position relative to BgMiddle (center of skill bars)
-    -- Apply visibility based on settings
-    -- ========================================
+    return leftBorderSize, rightBorderSize
+end
+
+--- Calculates fill dimensions and offsets.
+local function CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
+    return {
+        health = {
+            width = math.min(leftBorderSize * cfg.fills.health.scaleW, leftBorderSize),
+            height = math.min(leftBorderSize * cfg.fills.health.scaleH, leftBorderSize),
+            x = cfg.fills.health.x,
+            y = cfg.fills.health.y
+        },
+        shield = {
+            width = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize),
+            height = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize),
+            x = cfg.fills.shield.x,
+            y = cfg.fills.shield.y
+        },
+        magicka = {
+            width = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize),
+            x = cfg.fills.magicka.x,
+            y = cfg.fills.magicka.y
+        },
+        stamina = {
+            width = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize),
+            x = cfg.fills.stamina.x,
+            y = cfg.fills.stamina.y
+        },
+        resource = {
+            width = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize)
+        }
+    }
+end
+
+--- Updates ornament positioning and visibility.
+local function UpdateOrnamentLayout(cfg, bgMiddle, settings)
+    local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
+    local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
     
     if leftOrnament then
-        local leftSize = cfg.ornaments.left.size * leftOrnamentScale
+        local leftSize = cfg.ornaments.left.size * cfg.ornaments.left.scale
         leftOrnament:ClearAnchors()
         leftOrnament:SetDimensions(leftSize, leftSize)
         leftOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.left.x, cfg.ornaments.left.y)
-        leftOrnament:SetHidden(hideLeftOrnament)
+        leftOrnament:SetHidden(settings.hideLeftOrnament or false)
     end
     
     if rightOrnament then
-        local rightSize = cfg.ornaments.right.size * rightOrnamentScale
+        local rightSize = cfg.ornaments.right.size * cfg.ornaments.right.scale
         rightOrnament:ClearAnchors()
         rightOrnament:SetDimensions(rightSize, rightSize)
         rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x, cfg.ornaments.right.y)
-        rightOrnament:SetHidden(hideRightOrnament)
+        rightOrnament:SetHidden(settings.hideRightOrnament or false)
     end
-    
-    -- ========================================
-    -- ORBS: Position based on ornament visibility
-    -- When ornament is hidden, use noOrnament coordinates relative to BgMiddle
-    -- When ornament is visible, use ornament-relative positioning
-    -- ========================================
+end
+
+--- Updates orb positioning based on ornament visibility.
+local function UpdateOrbPositions(cfg, bgMiddle, settings, leftBorderSize, rightBorderSize)
+    local leftOrb = FindControl(m_rootFrame, 'OrbHealth')
+    local rightOrb = FindControl(m_rootFrame, 'OrbResource')
+    local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
+    local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
     
     if leftOrb then
         leftOrb:ClearAnchors()
-        if hideLeftOrnament then
-            -- Anchor directly to BgMiddle using noOrnament coordinates
+        if settings.hideLeftOrnament then
             local noOrnamentX = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)
             local noOrnamentY = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, noOrnamentX, noOrnamentY)
         elseif leftOrnament then
-            -- Normal: anchor to ornament
             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
         end
-        leftOrb:SetDimensions(leftBorderSize, leftBorderSize)  -- Uses pre-scaled value when ornament hidden
+        leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
     end
     
     if rightOrb then
         rightOrb:ClearAnchors()
-        if hideRightOrnament then
-            -- Anchor directly to BgMiddle using noOrnament coordinates
+        if settings.hideRightOrnament then
             local noOrnamentX = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)
             local noOrnamentY = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, noOrnamentX, noOrnamentY)
         elseif rightOrnament then
-            -- Normal: anchor to ornament
             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
         end
-        rightOrb:SetDimensions(rightBorderSize, rightBorderSize)  -- Uses pre-scaled value when ornament hidden
+        rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
     end
-    
-    -- ========================================
-    -- HEALTH ORB FILL (Left - Red)
-    -- ========================================
+end
+
+--- Updates health orb fill and border.
+local function UpdateHealthOrbLayout(cfg, leftBorderSize, fillParams)
     local healthOrb = FindControl(m_rootFrame, 'OrbHealth')
-    if healthOrb then
-        -- Show and resize Fog textures (health fill)
-        local fogElements = {'Fog', 'Fog2'}
-        for _, name in ipairs(fogElements) do
-            local ctrl = FindControl(healthOrb, name)
-                    if ctrl then 
-                ctrl:ClearAnchors()
-                ctrl:SetHidden(false)
-                ctrl:SetAlpha(1)
-                ctrl:SetDimensions(healthFillWidth, healthFillHeight)
-                ctrl:SetAnchor(CENTER, healthOrb, CENTER, healthFillOffsetX, healthFillOffsetY)
-            end
-        end
-        -- Resize and show Border
-        local border = FindControl(healthOrb, 'Border')
-        if border then 
-            border:SetHidden(false)
-            border:SetDimensions(leftBorderSize, leftBorderSize) 
+    if not healthOrb then return end
+    
+    local fogElements = {'Fog', 'Fog2'}
+    for _, name in ipairs(fogElements) do
+        local ctrl = FindControl(healthOrb, name)
+        if ctrl then 
+            ctrl:ClearAnchors()
+            ctrl:SetHidden(false)
+            ctrl:SetAlpha(1)
+            ctrl:SetDimensions(fillParams.health.width, fillParams.health.height)
+            ctrl:SetAnchor(CENTER, healthOrb, CENTER, fillParams.health.x, fillParams.health.y)
         end
     end
+    
+    local border = FindControl(healthOrb, 'Border')
+    if border then 
+        border:SetHidden(false)
+        border:SetDimensions(leftBorderSize, leftBorderSize) 
+    end
+end
 
-    -- ========================================
-    -- SHIELD ORB OVERLAY (Position relative to Health Orb)
-    -- The shield displays as a RING around the health orb, so we make it slightly larger
-    -- ========================================
+--- Updates shield overlay positioning relative to health orb.
+local function UpdateShieldOrbLayout(cfg, leftBorderSize)
     local shieldOrb = FindControl(m_rootFrame, 'OrbShield')
-    if shieldOrb and healthOrb then
-        -- Make shield 20% larger than health orb to create ring effect
-        local shieldSize = leftBorderSize * 1.2
-        shieldOrb:SetDimensions(shieldSize, shieldSize)
-        shieldOrb:ClearAnchors()
-        shieldOrb:SetAnchor(CENTER, healthOrb, CENTER, 0, 0)
-        
-        -- Position shield label below health label using config offset
-        local shieldLabel = FindControl(shieldOrb, 'Label')
-        if shieldLabel then
-            local labelCfg = cfg.labels.shield
-            shieldLabel:ClearAnchors()
-            -- Anchor to the health orb's center, offset down by the config value
-            shieldLabel:SetAnchor(CENTER, healthOrb, CENTER, labelCfg.x, labelCfg.y)
-        end
+    local healthOrb = FindControl(m_rootFrame, 'OrbHealth')
+    if not shieldOrb or not healthOrb then return end
+    
+    local shieldSize = leftBorderSize * 1.2
+    shieldOrb:SetDimensions(shieldSize, shieldSize)
+    shieldOrb:ClearAnchors()
+    shieldOrb:SetAnchor(CENTER, healthOrb, CENTER, 0, 0)
+    
+    local shieldLabel = FindControl(shieldOrb, 'Label')
+    if shieldLabel then
+        local labelCfg = cfg.labels.shield
+        shieldLabel:ClearAnchors()
+        shieldLabel:SetAnchor(CENTER, healthOrb, CENTER, labelCfg.x, labelCfg.y)
     end
-    
-    -- ========================================
-    -- RESOURCE ORB FILL (Right - Blue/Green for Magicka/Stamina)
-    -- ========================================
-    local subContainers = {'OrbMagicka', 'OrbStamina'}
+end
+
+--- Updates resource orb (Magicka/Stamina) fills and splitters.
+local function UpdateResourceOrbLayout(cfg, rightBorderSize, fillParams)
     local resourceOrb = FindControl(m_rootFrame, 'OrbResource')
+    if not resourceOrb then return end
     
-    if resourceOrb then
-        for _, containerName in ipairs(subContainers) do
-            local container = FindControl(resourceOrb, containerName)
-            if container then
-                -- Explicitly size and position the container to match the parent OrbResource
-                -- This ensures container:GetWidth() returns the correct border size for fill calculations
-                container:SetDimensions(rightBorderSize, rightBorderSize)
-                container:ClearAnchors()
-                container:SetAnchor(CENTER, resourceOrb, CENTER, 0, 0)
+    local subContainers = {'OrbMagicka', 'OrbStamina'}
+    local splitterWidth = cfg.splitter.width
+    local splitterHeight = rightBorderSize * cfg.splitter.heightScale
+    
+    for _, containerName in ipairs(subContainers) do
+        local container = FindControl(resourceOrb, containerName)
+        if container then
+            container:SetDimensions(rightBorderSize, rightBorderSize)
+            container:ClearAnchors()
+            container:SetAnchor(CENTER, resourceOrb, CENTER, 0, 0)
 
-                -- Show and resize Fog textures (resource fill)
-                local fogElements = {'Fog', 'Fog2'}
-                -- For Magicka/Stamina we want to use full square fills and offset them to the left/right halves
-                
-                -- REMOVED rounding
-                local magickaRoundedW = magickaFillWidth
-                local magickaRoundedH = magickaFillHeight
-                local staminaRoundedW = staminaFillWidth
-                local staminaRoundedH = staminaFillHeight
-                
-                -- Compute TOPLEFT anchors for placing a full-size square over the left and right halves
-                -- No floor rounding here either to preserve relative positioning at high scales
-                local leftFogAnchorX = (rightBorderSize / 4) - (magickaRoundedW / 2) + magickaFillOffsetX
-                local rightFogAnchorX = (3 * rightBorderSize / 4) - (staminaRoundedW / 2) + staminaFillOffsetX
-                
-                -- Update Label Positioning for split orbs (uses CONST offsets)
-                local label = FindControl(container, 'Label')
-                if label then
-                    label:ClearAnchors()
-                    local labelOffsetX, labelOffsetY = 0, 0
-                    
-                    if containerName == 'OrbMagicka' then
-                        labelOffsetX = -(rightBorderSize * 0.25) + cfg.labels.magicka.x
-                        labelOffsetY = cfg.labels.magicka.y
-                    elseif containerName == 'OrbStamina' then
-                        labelOffsetX = (rightBorderSize * 0.25) + cfg.labels.stamina.x
-                        labelOffsetY = cfg.labels.stamina.y
-                    end
-                    
-                    label:SetAnchor(CENTER, container, CENTER, labelOffsetX, labelOffsetY)
-                end
+            local fogElements = {'Fog', 'Fog2'}
+            local isMagicka = (containerName == 'OrbMagicka')
+            local currentFill = isMagicka and fillParams.magicka or fillParams.stamina
+            
+            local anchorX = isMagicka and ((rightBorderSize / 4) - (currentFill.width / 2) + currentFill.x)
+                                       or ((3 * rightBorderSize / 4) - (currentFill.width / 2) + currentFill.x)
+            local centerOffsetY = (rightBorderSize - currentFill.height) / 2
 
-                -- compute vertical center offsets for per-half fills
-                local magickaCenterOffsetY = (rightBorderSize - magickaFillHeight) / 2
-                local staminaCenterOffsetY = (rightBorderSize - staminaFillHeight) / 2
-                
-                for _, name in ipairs(fogElements) do
-                    local ctrl = FindControl(container, name)
-                        if ctrl then 
-                        ctrl:ClearAnchors()
-                        ctrl:SetHidden(false)
-                        ctrl:SetAlpha(1)
-                            if containerName == 'OrbMagicka' then
-                            -- Left half of the resource orb (Magicka): use a full square, anchored to the left half
-                            ctrl:SetDimensions(magickaRoundedW, magickaRoundedH)
-                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, leftFogAnchorX, magickaCenterOffsetY + magickaFillOffsetY)
-                        elseif containerName == 'OrbStamina' then
-                            -- Right half of the resource orb (Stamina): use a full square, anchored to the right half
-                            ctrl:SetDimensions(staminaRoundedW, staminaRoundedH)
-                            ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, rightFogAnchorX, staminaCenterOffsetY + staminaFillOffsetY)
-                        else
-                            -- Fallback: center-aligned full-size square for other types
-                            ctrl:SetDimensions(resourceFillWidth, resourceFillHeight)
-                            ctrl:SetAnchor(CENTER, container, CENTER, cfg.fills.resource.x, cfg.fills.resource.y)
-                        end
-                        -- If this is the background layer (Fog2), ensure it's shown at full texture coords
-                        if name == 'Fog2' then
-                            -- Use the same horizontal texture coords as the foreground fog so Fog2 visually matches the same segment
-                            if containerName == 'OrbMagicka' then
-                                local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_MAGICKA])
-                                boundingBox = {baseLeft, baseRight}
-                                ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
-                            elseif containerName == 'OrbStamina' then
-                                local baseLeft, baseRight = unpack(ORB_CONFIG[POWERTYPE_STAMINA])
-                                ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
-                            else
-                                -- Fallback: full texture coords
-                                ctrl:SetTextureCoords(0, 1, 0, 1)
-                            end
-                        end
-                    end
-                end
-                
-                -- Resize and show Border
-                local border = FindControl(container, 'Border')
-                if border then 
-                    border:SetHidden(false)
-                    border:SetDimensions(rightBorderSize, rightBorderSize) 
-                end
-                
-                -- Resize and position Divide (magicka/stamina separator - OrbSplitter.dds)
-                local divide = FindControl(container, 'Divide')
-                if divide then 
-                    divide:ClearAnchors()
-                    -- Ensure integer pixel dimensions
-                    local w = splitterWidth
-                    local h = splitterHeight
-                    divide:SetDimensions(w, h)
-                    divide:SetAnchor(CENTER, container, CENTER, splitterOffsetX, splitterOffsetY)
-                    -- Make sure the texture is visible and fully opaque
-                    divide:SetHidden(false)
-                    divide:SetAlpha(1)
-                    -- Ensure the border draws in front of the divide: use border draw level as divide + 1
-                    if border and border.SetDrawLevel and divide.GetDrawLevel then
-                        local divLevel = divide:GetDrawLevel() or 0
-                        border:SetDrawLevel(divLevel + 1)
+            for _, name in ipairs(fogElements) do
+                local ctrl = FindControl(container, name)
+                if ctrl then 
+                    ctrl:ClearAnchors()
+                    ctrl:SetHidden(false)
+                    ctrl:SetAlpha(1)
+                    ctrl:SetDimensions(currentFill.width, currentFill.height)
+                    ctrl:SetAnchor(TOPLEFT, container, TOPLEFT, anchorX, centerOffsetY + currentFill.y)
+                    
+                    if name == 'Fog2' then
+                        local powerType = isMagicka and POWERTYPE_MAGICKA or POWERTYPE_STAMINA
+                        local baseLeft, baseRight = unpack(ORB_CONFIG[powerType])
+                        ctrl:SetTextureCoords(baseLeft, baseRight, 0, 1)
                     end
                 end
             end
+            
+            local label = FindControl(container, 'Label')
+            if label then
+                label:ClearAnchors()
+                local labelCfg = isMagicka and cfg.labels.magicka or cfg.labels.stamina
+                local labelOffsetX = (isMagicka and -0.25 or 0.25) * rightBorderSize + labelCfg.x
+                label:SetAnchor(CENTER, container, CENTER, labelOffsetX, labelCfg.y)
+            end
+            
+            local border = FindControl(container, 'Border')
+            if border then 
+                border:SetHidden(false)
+                border:SetDimensions(rightBorderSize, rightBorderSize) 
+            end
+            
+            local divide = FindControl(container, 'Divide')
+            if divide then 
+                divide:ClearAnchors()
+                divide:SetDimensions(splitterWidth, splitterHeight)
+                divide:SetAnchor(CENTER, container, CENTER, cfg.splitter.x, cfg.splitter.y)
+                divide:SetHidden(false)
+                divide:SetAlpha(1)
+                
+                if border and border.SetDrawLevel and divide.GetDrawLevel then
+                    border:SetDrawLevel(divide:GetDrawLevel() + 1)
+                end
+            end
         end
-
     end
-    
-    -- ========================================
-    -- UPDATE M_POOLS FILL SIZES (for RefreshVisuals)
-    -- This ensures the orb fill animations use the scaled sizes
-    -- ========================================
+end
+
+--- Updates the m_pools and m_shieldBar size caches.
+local function UpdatePoolFillSizes(fillParams)
     if m_pools then
         if m_pools[POWERTYPE_HEALTH] then
-            m_pools[POWERTYPE_HEALTH].fillWidth = healthFillWidth
-            m_pools[POWERTYPE_HEALTH].fillHeight = healthFillHeight
+            m_pools[POWERTYPE_HEALTH].fillWidth = fillParams.health.width
+            m_pools[POWERTYPE_HEALTH].fillHeight = fillParams.health.height
         end
         if m_pools[POWERTYPE_MAGICKA] then
-            m_pools[POWERTYPE_MAGICKA].fillWidth = magickaFillWidth
-            m_pools[POWERTYPE_MAGICKA].fillHeight = magickaFillHeight
+            m_pools[POWERTYPE_MAGICKA].fillWidth = fillParams.magicka.width
+            m_pools[POWERTYPE_MAGICKA].fillHeight = fillParams.magicka.height
         end
         if m_pools[POWERTYPE_STAMINA] then
-            m_pools[POWERTYPE_STAMINA].fillWidth = staminaFillWidth
-            m_pools[POWERTYPE_STAMINA].fillHeight = staminaFillHeight
+            m_pools[POWERTYPE_STAMINA].fillWidth = fillParams.stamina.width
+            m_pools[POWERTYPE_STAMINA].fillHeight = fillParams.stamina.height
         end
     end
     
-    -- ========================================
-    -- UPDATE M_SHIELDBAR FILL SIZES (for RefreshVisuals)
-    -- This ensures the shield ring uses the scaled sizes when ornament is hidden
-    -- ========================================
     if m_shieldBar then
-        m_shieldBar.fillWidth = shieldFillWidth
-        m_shieldBar.fillHeight = shieldFillHeight
-        m_shieldBar.fillOffsetX = cfg.fills.shield.x
-        m_shieldBar.fillOffsetY = cfg.fills.shield.y
+        m_shieldBar.fillWidth = fillParams.shield.width
+        m_shieldBar.fillHeight = fillParams.shield.height
+        m_shieldBar.fillOffsetX = fillParams.shield.x
+        m_shieldBar.fillOffsetY = fillParams.shield.y
     end
+end
+
+--- Updates the positioning and sizing of all orb elements based on config.
+local function UpdateOrbLayout()
+    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
+    if not bgMiddle then return end
+
+    local cfg = BETTERUI_ORB_FRAMES
+    local settings = GetModuleSettings()
+    
+    local leftBorderSize, rightBorderSize = CalculateBorderSizes(cfg, settings)
+    local fillParams = CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
+    
+    UpdateOrnamentLayout(cfg, bgMiddle, settings)
+    UpdateOrbPositions(cfg, bgMiddle, settings, leftBorderSize, rightBorderSize)
+    UpdateHealthOrbLayout(cfg, leftBorderSize, fillParams)
+    UpdateShieldOrbLayout(cfg, leftBorderSize)
+    UpdateResourceOrbLayout(cfg, rightBorderSize, fillParams)
+    UpdatePoolFillSizes(fillParams)
 end
 
 -- Layout config using structured constants
