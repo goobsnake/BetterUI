@@ -104,13 +104,13 @@ param: list (table) - The scroll list control.
 param: selectedData (table) - The new selected data item.
 param: oldSelectedData (table) - The previous selected data item.
 param: reselectingDuringRebuild (boolean) - True during list rebuilds.
-TODO: [Coupling] Decouple from 'GAMEPAD_INVENTORY' global to allow reuse in other screens.
+-- NOTE: categoryList can now be injected via selectedData.categoryList for Banking/Vendor reuse.
+--       Fallback to GAMEPAD_INVENTORY for backwards compatibility.
 ]]
 local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
     if selectedData then
-        -- Sync with the global Gamepad Inventory category list
-        -- logic should be injected or passed via data to allow reuse in Banking/Vendor screens.
-        local categoryList = GAMEPAD_INVENTORY.categoryList
+        -- Injected categoryList allows reuse in Banking/Vendor screens
+        local categoryList = (selectedData and selectedData.categoryList) or GAMEPAD_INVENTORY.categoryList
         for i = 1, categoryList:GetNumEntries() do
             if categoryList:GetEntryData(i) == selectedData then
                 categoryList:SetSelectedIndex(i)

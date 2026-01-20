@@ -421,7 +421,7 @@ local function UpdateShieldOrbLayout(cfg, leftBorderSize)
     local healthOrb = FindControl(m_rootFrame, 'OrbHealth')
     if not shieldOrb or not healthOrb then return end
     
-    local shieldSize = leftBorderSize * 1.2
+    local shieldSize = leftBorderSize * cfg.fills.shield.ringScale
     shieldOrb:SetDimensions(shieldSize, shieldSize)
     shieldOrb:ClearAnchors()
     shieldOrb:SetAnchor(CENTER, healthOrb, CENTER, 0, 0)
