@@ -821,6 +821,29 @@ local function Init(mId, moduleName)
                 },
             },
         },
+        -- ============================================================================
+        -- ANIMATED ORB FILL SETTINGS
+        -- ============================================================================
+        {
+            type = "submenu",
+            name = "Animated Orb Fill",
+            controls = {
+                {
+                    type = "checkbox",
+                    name = "Enable Swirl Effect",
+                    tooltip = "Slowly rotates the orb fill texture, creating a gentle swirling effect.",
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow = value
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "full",
+                },
+            },
+        },
         {
             type = "submenu",
             name = GetString(SI_BETTERUI_XP_BAR_SUBMENU),

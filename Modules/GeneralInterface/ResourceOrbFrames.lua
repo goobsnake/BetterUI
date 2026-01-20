@@ -3,7 +3,7 @@ File: Modules/GeneralInterface/ResourceOrbFrames.lua
 Purpose: Implements a complete replacement for the standard attribute bars.
          Features Diablo-style orbs with dynamic layouts, theming, and real-time event handling.
 Author: BetterUI Team
-Last Modified: 2026-01-19
+Last Modified: 2026-01-20
 ]]
 
 local NAME = "ResourceOrbFrames"
@@ -39,6 +39,12 @@ local DEFAULTS = {
     shieldTextColor = {0, 1, 1, 1}, -- Cyan matching shield graphic
     -- Fine-tune resource orb fills (magicka/stamina)
     -- developer-only
+    
+    -- Animated Orb Fill Settings
+    orbAnimFlow = false,          -- Swirl/flow effect for orb fills
+    
+    -- Animation tuning parameter (health orb full rotation speed)
+    orbAnimFlowSpeed = 60000,     -- Milliseconds per full rotation (60 seconds)
 }
 
 local ORB_CONFIG = {
@@ -1945,6 +1951,39 @@ local function SetupNativeBackBar(rootFrame)
     end
     EVENT_MANAGER:RegisterForUpdate(NAME .. "BackBarCooldown", 100, CooldownTick)
     
+    --[[
+    Animation Tick: Updates flow effects on resource orbs.
+    Rationale: Runs at ~30fps (33ms) to provide smooth animation without excessive CPU usage.
+    Mechanism: Checks if flow animation is enabled, then updates each pool's animation state.
+    ]]
+    local lastAnimTime = GetGameTimeMilliseconds()
+    local function AnimationTick()
+        local settings = GetModuleSettings()
+        
+        -- Check if flow animation is enabled
+        if not settings.orbAnimFlow then return end
+        
+        -- Calculate delta time
+        local now = GetGameTimeMilliseconds()
+        local deltaMs = now - lastAnimTime
+        lastAnimTime = now
+        
+        -- Update animation on each pool (Health, Magicka, Stamina)
+        if m_pools then
+            for powerType, pool in pairs(m_pools) do
+                if pool and pool.UpdateAnimation then
+                    pool:UpdateAnimation(deltaMs, settings)
+                end
+            end
+        end
+        
+        -- Update shield bar animation if applicable
+        if m_shieldBar and m_shieldBar.UpdateAnimation then
+            m_shieldBar:UpdateAnimation(deltaMs, settings)
+        end
+    end
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", 33, AnimationTick)
+    
     -- Re-hide native action bar when HUD scene returns (fixes scene exit issue)
     if useCustomFrontBar then
         -- Register for HUD scene state changes
@@ -2042,9 +2081,17 @@ function BetterUIOrbBar:New(...)
     return obj
 end
 
---- Initializes the Orb Bar.
---- @param control object The XML control.
---- @param powerType number The POWERTYPE constant (e.g., POWERTYPE_HEALTH).
+--[[
+Function: BetterUIOrbBar:Initialize
+Description: Initializes the Orb Bar with control references and animation state.
+Rationale: Sets up all required properties for resource visualization and optional animation effects.
+Mechanism:
+  - Caches references to fog (fill) and fog2 (background) textures
+  - Stores base texture coordinates from ORB_CONFIG for fill calculations
+  - Initializes animation state for swirl/flow effects
+param: control (object) - The XML control representing this orb
+param: powerType (number) - The POWERTYPE constant (e.g., POWERTYPE_HEALTH)
+]]
 function BetterUIOrbBar:Initialize(control, powerType)
     self.control = control
     self.fog = FindControl(control, 'Fog')
@@ -2059,6 +2106,14 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.baseCoordLeft = baseCoordLeft
     self.baseCoordRight = baseCoordRight
     self.baseAnchorX = baseAnchorX
+    
+    -- Animation state for swirl/flow effects
+    self.animState = {
+        time = 0,             -- Accumulated time for animation cycle
+        scrollOffset = 0,     -- Unused, kept for compatibility
+        baseAlpha = 1,        -- Unused, kept for compatibility
+        rotationAngle = 0,    -- Current rotation angle (health orb)
+    }
 end
 
 -- NOTE: MirrorFogToFog2 method removed - Fog2 is now handled inline in RefreshVisuals with CENTER anchoring
@@ -2166,6 +2221,97 @@ function BetterUIOrbBar:RefreshVisuals()
             self.baseAnchorX + halfOffsetX + fillOffsetX, 
             fillOffsetY)
     end
+end
+
+--[[
+Function: BetterUIOrbBar:UpdateAnimation
+Description: Applies animation effects to the orb fills.
+Rationale: Provides visual flair for resource orbs with different effects per orb type.
+Mechanism:
+  - Full orbs (health): Continuous 360° rotation for swirling effect
+  - Half orbs (magicka/stamina): Horizontal texture coordinate flow (oscillation)
+  - Detects half-texture by checking if |baseCoordRight - baseCoordLeft| ≈ 0.5
+param: deltaMs (number) - Milliseconds since last update (from GetFrameDeltaTimeMilliseconds)
+param: settings (table) - Current module settings containing animation parameters
+]]
+function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
+    if not self.fog or not self.animState then return end
+    
+    -- Check if flow animation is enabled
+    if not settings.orbAnimFlow then
+        -- Reset rotation when disabled
+        if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
+            self.fog:SetTextureRotation(0)
+            self.animState.rotationAngle = 0
+        end
+        return
+    end
+    
+    -- Get animation parameters from settings
+    local flowSpeed = settings.orbAnimFlowSpeed or 30000  -- 30 seconds per cycle
+    
+    -- Update animation time
+    self.animState.time = self.animState.time + deltaMs
+    
+    -- Detect if this is a half-texture (magicka/stamina split orb)
+    local textureWidth = math.abs(self.baseCoordRight - self.baseCoordLeft)
+    local isHalfTexture = math.abs(textureWidth - 0.5) < 0.001
+    
+    if isHalfTexture then
+        -- HORIZONTAL FLOW for split orbs (magicka/stamina)
+        -- Oscillate texture coordinates back and forth
+        local flowRange = 0.0150  -- Further reduced to prevent any edge overflow
+        local halfOrbSpeed = 6000  -- Faster 6-second cycle for split orbs
+        local oscillation = math.sin(self.animState.time / halfOrbSpeed * math.pi * 2) * flowRange
+        
+        -- Calculate current fill percentage to preserve vertical fill
+        local percent = 0
+        if self.currentValue >= self.maxValue then
+            percent = 100
+        elseif self.maxValue ~= 0 then
+            percent = zo_roundToNearest((self.currentValue / self.maxValue) * 100, 0.1)
+        end
+        percent = zo_max(0, percent - 3)
+        local coordTop = 1 - (percent / 100)
+        
+        -- Apply horizontal oscillation while preserving fill level
+        local scrolledLeft = self.baseCoordLeft + oscillation
+        local scrolledRight = self.baseCoordRight + oscillation
+        self.fog:SetTextureCoords(scrolledLeft, scrolledRight, coordTop, 1)
+        
+        -- Ensure no rotation on half-textures
+        if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
+            self.fog:SetTextureRotation(0)
+            self.animState.rotationAngle = 0
+        end
+    else
+        -- CONTINUOUS ROTATION for full orbs (health)
+        -- Full 360° rotation over flowSpeed duration
+        local rotationAngle = (self.animState.time / flowSpeed) * math.pi * 2
+        self.fog:SetTextureRotation(rotationAngle)
+        self.animState.rotationAngle = rotationAngle
+    end
+end
+
+--[[
+Function: BetterUIOrbBar:ResetAnimation
+Description: Resets animation state to defaults when animation is disabled.
+Rationale: Ensures clean visual state when user toggles animation off.
+Mechanism: Resets rotation to 0 and animation time, then calls RefreshVisuals to restore static state.
+]]
+function BetterUIOrbBar:ResetAnimation()
+    if not self.animState then return end
+    
+    self.animState.time = 0
+    self.animState.rotationAngle = 0
+    
+    -- Reset texture rotation to 0
+    if self.fog then
+        self.fog:SetTextureRotation(0)
+    end
+    
+    -- Refresh to restore static texture coordinates
+    self:RefreshVisuals()
 end
 
 -------------------------------------------------------------------------------------------------

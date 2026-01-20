@@ -381,11 +381,11 @@ BETTERUI_ORB_FRAMES = {
     -- x/y: offset from orb center (+ right/down, - left/up)
     -- =======================================================================
     fills = {
-        health = { scaleW = 0.54, scaleH = 0.54, x = 2, y = -3 },
-        magicka = { scaleW = 0.28, scaleH = 0.54, x = -10, y = -3 },
-        stamina = { scaleW = 0.28, scaleH = 0.54, x = -60, y = -3 },
-        resource = { scaleW = 0.50, scaleH = 0.54, x = 0, y = 0 },
-        shield = { scaleW = 0.54, scaleH = 0.54, x = 2.5, y = -1.5, ringScale = 1.2 },  -- ringScale: shield ring is 20% larger than health orb
+        health = { scaleW = 0.535, scaleH = 0.535, x = 2, y = -3 },
+        magicka = { scaleW = 0.28, scaleH = 0.535, x = -10, y = -1 },
+        stamina = { scaleW = 0.28, scaleH = 0.535, x = -61, y = -1 },
+        resource = { scaleW = 0.50, scaleH = 0.535, x = 0, y = 0 },
+        shield = { scaleW = 0.535, scaleH = 0.535, x = 2.5, y = -1.5, ringScale = 1.2 },  -- ringScale: shield ring is 20% larger than health orb
     },
     
     -- =======================================================================
