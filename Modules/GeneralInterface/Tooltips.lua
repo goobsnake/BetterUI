@@ -315,3 +315,27 @@ end
 function BETTERUI.ReturnStoreSearch(storeItemLink, storeStackCount)
     return storeItemLink, storeStackCount
 end
+
+-------------------------------------------------------------------------------------------------
+-- EVENT HANDLERS
+-------------------------------------------------------------------------------------------------
+
+--- Handles single slot updates to invalidate the research trait cache for the specific bag.
+---
+--- Purpose: targeted invalidation instead of clearing the entire cache.
+--- @param eventCode number The event code
+--- @param bagId number The bag ID of the updated slot
+--- @param slotIndex number The slot index
+--- @param isNewItem boolean Whether the item is new
+--- @param itemSoundCategory number Sound category
+--- @param updateReason number Reason for the update
+--- @param stackCountChange number Change in stack count
+local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason, stackCountChange)
+    -- Only invalidate if item was added/removed/changed (not just equipped status on self, though trait research usually doesn't change on equip)
+    -- Check for DEFAULT update reason which covers most inventory mutations
+    if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then
+        BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+    end
+end
+
+EVENT_MANAGER:RegisterForEvent("BetterUI_TooltipCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
