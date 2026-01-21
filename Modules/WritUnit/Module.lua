@@ -11,7 +11,7 @@
 -- 1.  **Lifecycle Management**: Registers event listeners for crafting station interactions.
 -- 2.  **Event Handling**: Responses to interaction start/end and craft completion to toggle UI.
 --
--- TODO(enhancement): Add setting to enable/disable writ panel display
+
 ---------------------------------------------------------------------------------------------------
 
 local _
@@ -24,6 +24,8 @@ local _
 --- @param m_options table The module options table.
 --- @return table The initialized options table.
 function BETTERUI.Writs.InitModule(m_options)
+    -- Default to enabled if not specified
+    if m_options.enabled == nil then m_options.enabled = true end
     return m_options
 end
 
@@ -37,7 +39,9 @@ end
 --- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 --- @param sameStation boolean Whether interacting with same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
-    BETTERUI.Writs.Show(tonumber(craftId))
+    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].enabled then
+        BETTERUI.Writs.Show(tonumber(craftId))
+    end
 end
 
 --- Event handler for crafting station interaction (End).
@@ -59,7 +63,9 @@ end
 --- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
-    BETTERUI.Writs.Show(tonumber(craftId))
+    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].enabled then
+        BETTERUI.Writs.Show(tonumber(craftId))
+    end
 end
 
 -- Sets up Writs module: creates UI and registers event handlers

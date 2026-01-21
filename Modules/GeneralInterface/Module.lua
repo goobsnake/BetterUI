@@ -123,6 +123,26 @@ local function Init(mId, moduleName)
 			requiresReload = true,
 		},
 		{
+			type = "header",
+			name = "Daily Writ Overlay",
+			width = "full",
+		},
+		{
+			type = "checkbox",
+			name = "Enable Writ Panel",
+			tooltip = "When enabled, shows the daily writ progress panel while at a crafting station. This can be toggled without a UI reload.",
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["Writs"] then return true end
+				return BETTERUI.Settings.Modules["Writs"].enabled ~= false
+			end,
+			setFunc = function(value)
+				if BETTERUI.Settings.Modules["Writs"] then
+					BETTERUI.Settings.Modules["Writs"].enabled = value
+				end
+			end,
+			width = "full",
+		},
+		{
             type = "editbox",
             name = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED),
             tooltip = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP),
