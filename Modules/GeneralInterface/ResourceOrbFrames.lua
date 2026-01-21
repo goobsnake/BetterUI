@@ -236,6 +236,8 @@ end
 local function ApplyThemeVisuals()
     if not m_rootFrame then return end
     
+    local settings = GetModuleSettings()
+    
     -- Always use double bar textures
     local elements = {
         OrnamentLeft = 'OrnamentLeft.dds',
@@ -273,6 +275,36 @@ local function ApplyThemeVisuals()
     ApplyOrbTextures('OrbHealth')
     ApplyOrbTextures('OrbMagicka')
     ApplyOrbTextures('OrbStamina')
+
+    -- Helper to manage overlay textures
+    local function UpdateOverlay(parentName, textureFile, showOverlay)
+        local parent = FindControl(m_rootFrame, parentName)
+        if not parent then return end
+        
+        local overlayName = parent:GetName() .. "CustomOverlay"
+        local overlay = _G[overlayName]
+        
+        if showOverlay then
+            if not overlay then
+                overlay = WINDOW_MANAGER:CreateControl(overlayName, parent, CT_TEXTURE)
+                overlay:SetAnchor(CENTER, parent, CENTER, 0, 0)
+                -- Initial sizing, will be updated by Layout functions
+                overlay:SetDimensions(256, 256) 
+                overlay:SetDrawLayer(DL_CONTROLS) -- Ensure it's on the same layer as Border (1)
+                overlay:SetDrawLevel(15) -- Above Border (7/9), below Label (20)
+            end
+            overlay:SetTexture(ResolveTexturePath(textureFile))
+            overlay:SetHidden(false)
+        else
+            if overlay then
+                overlay:SetHidden(true)
+            end
+        end
+    end
+
+    UpdateOverlay('OrbHealth', 'Health.dds', settings.hideLeftOrnament)
+    UpdateOverlay('OrbResource', 'MagStam.dds', settings.hideRightOrnament)
+
 
     -- Update Overlays (special textures for shield, etc.)
     local overlays = {
@@ -419,6 +451,23 @@ local function UpdateHealthOrbLayout(cfg, leftBorderSize, fillParams)
         border:SetHidden(false)
         border:SetDimensions(leftBorderSize, leftBorderSize) 
     end
+
+    -- Update Custom Overlay (Health.dds) if present
+    -- Purpose: Resizes and positions the custom overlay when visible
+    -- Mechanics: Uses config from BETTERUI_ORB_FRAMES.overlays.health
+    local overlayName = healthOrb:GetName() .. "CustomOverlay"
+    local overlay = _G[overlayName]
+    if overlay and not overlay:IsHidden() then
+        local overlayCfg = cfg.overlays and cfg.overlays.health
+        local scale = overlayCfg and overlayCfg.scale or 1.0
+        local offsetX = overlayCfg and overlayCfg.x or 0
+        local offsetY = overlayCfg and overlayCfg.y or 0
+        
+        local size = leftBorderSize * scale
+        overlay:SetDimensions(size, size)
+        overlay:ClearAnchors()
+        overlay:SetAnchor(CENTER, healthOrb, CENTER, offsetX, offsetY)
+    end
 end
 
 --- Updates shield overlay positioning relative to health orb.
@@ -448,6 +497,23 @@ local function UpdateResourceOrbLayout(cfg, rightBorderSize, fillParams)
     local subContainers = {'OrbMagicka', 'OrbStamina'}
     local splitterWidth = cfg.splitter.width
     local splitterHeight = rightBorderSize * cfg.splitter.heightScale
+
+    -- Update Custom Overlay (MagStam.dds) if present on the parent ResourceOrb
+    -- Purpose: Resizes and positions the custom overlay when visible
+    -- Mechanics: Uses config from BETTERUI_ORB_FRAMES.overlays.magStam
+    local overlayName = resourceOrb:GetName() .. "CustomOverlay"
+    local overlay = _G[overlayName]
+    if overlay and not overlay:IsHidden() then
+        local overlayCfg = cfg.overlays and cfg.overlays.magStam
+        local scale = overlayCfg and overlayCfg.scale or 1.0
+        local offsetX = overlayCfg and overlayCfg.x or 0
+        local offsetY = overlayCfg and overlayCfg.y or 0
+        
+        local size = rightBorderSize * scale
+        overlay:SetDimensions(size, size)
+        overlay:ClearAnchors()
+        overlay:SetAnchor(CENTER, resourceOrb, CENTER, offsetX, offsetY)
+    end
     
     for _, containerName in ipairs(subContainers) do
         local container = FindControl(resourceOrb, containerName)
@@ -2248,7 +2314,7 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     end
     
     -- Get animation parameters from settings
-    local flowSpeed = settings.orbAnimFlowSpeed or 30000  -- 30 seconds per cycle
+    local flowSpeed = DEFAULTS.orbAnimFlowSpeed
     
     -- Update animation time
     self.animState.time = self.animState.time + deltaMs
@@ -2260,8 +2326,8 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     if isHalfTexture then
         -- HORIZONTAL FLOW for split orbs (magicka/stamina)
         -- Oscillate texture coordinates back and forth
-        local flowRange = 0.0150  -- Further reduced to prevent any edge overflow
-        local halfOrbSpeed = 6000  -- Faster 6-second cycle for split orbs
+        local flowRange = 0.0225  -- Reduced to prevent any edge overflow
+        local halfOrbSpeed = 6500  -- Faster 6-second cycle for split orbs
         local oscillation = math.sin(self.animState.time / halfOrbSpeed * math.pi * 2) * flowRange
         
         -- Calculate current fill percentage to preserve vertical fill

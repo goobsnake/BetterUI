@@ -409,6 +409,23 @@ BETTERUI_ORB_FRAMES = {
         stamina = { x = -20, y = 0 },-- (+ right/down, - left/up)
         shield = { x = 0, y = 25 },  -- (+ right/down, - left/up)
     },
+
+    -- =======================================================================
+    -- CUSTOM OVERLAYS
+    -- Optional images displayed when Ornaments are hidden (e.g., Health.dds)
+    -- =======================================================================
+    overlays = {
+        health = { 
+            scale = 0.835,           -- Size multiplier relative to border size
+            x = 1,                 -- Horizontal offset from center (+ left, - right)
+            y = 1                  -- Vertical offset from center (+ up, - down)
+        },
+        magStam = { 
+            scale = 0.83,           -- Size multiplier relative to border size
+            x = 4,                 -- Horizontal offset from center (+ left, - right)
+            y = -1                  -- Vertical offset from center (+ up, - down)
+        },
+    },
 }
 
 -- ============================================================================
