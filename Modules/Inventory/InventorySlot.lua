@@ -25,7 +25,6 @@
 --
 -- TODO(refactor): PrimaryCommandActivate is 150+ lines - split into smaller functions
 --                 (e.g., HandleCraftBagPrimary, HandleInventoryPrimary, HandleBankPrimary)
--- TODO(cleanup): IsPrimaryAction/ShouldReplacePrimaryAction could use a lookup table
 -- TODO(enhancement): Add support for custom actions from other addons
 --------------------------------------------------------------------------------
 
@@ -275,14 +274,29 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return actionName == GetActionString(actionStringId)
     end
 
+    --- Table of action string IDs that should trigger a primary action replacement.
+    --- Rationale: Data-driven approach is faster and easier to maintain than if-chains.
+    local PRIMARY_ACTION_REPLACEMENTS = {
+        [SI_ITEM_ACTION_USE] = true,
+        [SI_ITEM_ACTION_EQUIP] = true,
+        [SI_ITEM_ACTION_UNEQUIP] = true,
+        [SI_ITEM_ACTION_BANK_WITHDRAW] = true,
+        [SI_ITEM_ACTION_BANK_DEPOSIT] = true,
+        [SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG] = true,
+        [SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG] = true,
+    }
+
+    -- Build a name-based lookup table for O(1) access
+    local ACTION_REPLACEMENT_LOOKUP = {}
+    for actionId, _ in pairs(PRIMARY_ACTION_REPLACEMENTS) do
+        local name = GetActionString(actionId)
+        if name then
+            ACTION_REPLACEMENT_LOOKUP[name] = true
+        end
+    end
+
     local function ShouldReplacePrimaryAction(primaryAction)
-        return IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) or
-            IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+        return ACTION_REPLACEMENT_LOOKUP[primaryAction] == true
             -- Note: Split stack is intentionally NOT included here so it remains
             -- available in the Y (actions) list. We still wire it up as a
             -- primary action below so A can invoke the split dialog when needed.
