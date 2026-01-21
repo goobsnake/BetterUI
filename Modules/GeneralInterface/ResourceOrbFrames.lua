@@ -45,6 +45,20 @@ local DEFAULTS = {
     
     -- Animation tuning parameter (health orb full rotation speed)
     orbAnimFlowSpeed = 60000,     -- Milliseconds per full rotation (60 seconds)
+    
+    -- Ultimate Number Display Settings
+    showUltimateNumber = false,      -- Show current ultimate value on ultimate button
+    ultimateTextSize = 27,           -- Font size (matches quickslot)
+    ultimateTextColor = {1, 1, 1, 1}, -- White (matches quickslot)
+    
+    -- Quickslot Cooldown Timer Settings
+    showQuickslotCooldown = false,   -- Show cooldown timer on quickslot (replaces count)
+    
+    -- Combat Indicator Settings
+    showCombatGlow = false,          -- Pulsing red/orange glow on skill bar
+    showCombatIcon = false,          -- Crossed swords icon near health orb
+    playCombatAudio = false,         -- Audio cue on combat enter/exit
+    combatGlowColor = {1, 0.3, 0.1, 0.8}, -- Red/orange glow color
 }
 
 local ORB_CONFIG = {
@@ -1263,6 +1277,234 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
     end
 end
 
+
+-------------------------------------------------------------------------------------------------
+-- ULTIMATE NUMBER DISPLAY
+-------------------------------------------------------------------------------------------------
+-- Shows the current ultimate value as a number on the ultimate button.
+-- Matches quickslot text styling (customizable font size and color).
+-------------------------------------------------------------------------------------------------
+
+--[[
+    Function: UpdateFrontBarUltimateNumber
+    Description: Updates the ultimate number text on the front bar ultimate button.
+    Rationale: Display current ultimate value to player for easier ability management.
+    Mechanism:
+      - Uses GetUnitPower with POWERTYPE_ULTIMATE to get current value.
+      - Applies styling from settings (ultimateTextSize, ultimateTextColor).
+      - Hidden when setting is disabled.
+    References: Called by EVENT_POWER_UPDATE filter.
+    param rootFrame - The root UI frame containing the front bar
+]]
+local function UpdateFrontBarUltimateNumber(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local settings = GetModuleSettings()
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
+    if not ultBtn then return end
+    
+    local ultText = ultBtn:GetNamedChild("UltimateText")
+    if not ultText then return end
+    
+    if not settings.showUltimateNumber then
+        ultText:SetHidden(true)
+        return
+    end
+    
+    -- Get current ultimate
+    local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+    
+    -- Apply styling from settings (matching quickslot pattern)
+    local textSize = settings.ultimateTextSize or BETTERUI_DEFAULT_SKILL_TEXT_SIZE
+    local textColor = settings.ultimateTextColor or {1, 1, 1, 1}
+    
+    local fontName = string.format("$(GAMEPAD_BOLD_FONT)|%d|soft-shadow-thick", textSize)
+    ultText:SetFont(fontName)
+    ultText:SetColor(unpack(textColor))
+    
+    ultText:SetText(tostring(currentUltimate))
+    ultText:SetHidden(false)
+end
+
+-------------------------------------------------------------------------------------------------
+-- QUICKSLOT COOLDOWN TIMER
+-------------------------------------------------------------------------------------------------
+-- Shows cooldown timer on quickslot, hiding the item count during cooldown.
+-- Matches skill cooldown behavior - when on cooldown, display timer instead of count.
+-------------------------------------------------------------------------------------------------
+
+--[[
+    Function: UpdateQuickslotCooldown
+    Description: Updates the quickslot cooldown display.
+    Rationale: Show remaining cooldown time on quickslot button, replacing item count.
+    Mechanism:
+      - Uses GetSlotCooldownInfo for cooldown remaining.
+      - Hides CountText, shows CooldownText during cooldown.
+      - Restores CountText when cooldown ends.
+      - Applies desaturation to icon during cooldown.
+    References: Called from OnUpdate handler.
+    param rootFrame - The root UI frame containing the front bar
+]]
+local function UpdateQuickslotCooldown(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local settings = GetModuleSettings()
+    if not settings.showQuickslotCooldown then return end
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    if not qsBtn then return end
+    
+    local countText = qsBtn:GetNamedChild("CountText")
+    local cooldownText = qsBtn:GetNamedChild("CooldownText")
+    local cooldownOverlay = qsBtn:GetNamedChild("CooldownOverlay")
+    local icon = qsBtn:GetNamedChild("Icon")
+    
+    local slotIndex = GetCurrentQuickslot()
+    local remainMs, durationMs = GetSlotCooldownInfo(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    
+    -- Only show cooldown if it's a real cooldown (not just global cooldown from weapon swap)
+    if remainMs and remainMs > 0 and durationMs and durationMs > BETTERUI_MIN_COOLDOWN_DISPLAY_MS then
+        local remaining = remainMs / 1000
+        
+        -- Hide count, show cooldown
+        if countText then countText:SetHidden(true) end
+        
+        if cooldownText then
+            -- Apply styling from settings (uses cooldown text settings)
+            local textSize = settings.cooldownTextSize or 27
+            local textColor = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
+            
+            local fontName = string.format("$(GAMEPAD_BOLD_FONT)|%d|soft-shadow-thick", textSize)
+            cooldownText:SetFont(fontName)
+            cooldownText:SetColor(unpack(textColor))
+            
+            cooldownText:SetText(string.format("%.1f", remaining))
+            cooldownText:SetHidden(false)
+        end
+        
+        if cooldownOverlay then cooldownOverlay:SetHidden(false) end
+        if icon then icon:SetDesaturation(1) end
+    else
+        -- Show count, hide cooldown
+        if countText then countText:SetHidden(false) end
+        if cooldownText then cooldownText:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        if icon then icon:SetDesaturation(0) end
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- COMBAT INDICATOR
+-------------------------------------------------------------------------------------------------
+-- Visual and audio indicators when player enters/exits combat.
+-- Individual toggles for: skill bar glow, combat icon, audio cue.
+-------------------------------------------------------------------------------------------------
+
+-- Module-level state for combat indicator
+local m_combatGlowTimeline = nil
+local m_wasInCombat = false
+
+--[[
+    Function: CreateCombatGlowAnimation
+    Description: Creates the combat glow animation timeline.
+    Rationale: Set up ping-pong alpha animation for skill bar combat glow.
+    Mechanism:
+      - Uses ANIMATION_ALPHA with ping-pong playback.
+      - Loops indefinitely while in combat.
+    References: Called by UpdateCombatIndicator when glow is needed.
+    param control - The CombatGlow texture control
+    return Timeline - The animation timeline
+]]
+local function CreateCombatGlowAnimation(control)
+    local timeline = ANIMATION_MANAGER:CreateTimeline()
+    local anim = timeline:InsertAnimation(ANIMATION_ALPHA, control, 0)
+    anim:SetDuration(800)
+    anim:SetAlphaValues(0.3, 0.9)
+    anim:SetEasingFunction(ZO_EaseInOutQuadratic)
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_PING_PONG, LOOP_INDEFINITELY)
+    return timeline
+end
+
+--[[
+    Function: UpdateCombatIndicator
+    Description: Updates the combat indicator based on current combat state.
+    Rationale: Show/hide combat indicators and play audio cue on state change.
+    Mechanism:
+      - Uses IsUnitInCombat("player") to detect combat state.
+      - Toggles CombatGlow and CombatIcon visibility based on settings.
+      - Plays audio cue on state change (enter/exit).
+      - Uses duel sounds (SOUNDS.DUEL_BOUNDARY_WARNING for enter, SOUNDS.DUEL_WON for exit).
+    References: Called by EVENT_PLAYER_COMBAT_STATE.
+    param rootFrame - The root UI frame containing the front bar
+]]
+local function UpdateCombatIndicator(rootFrame)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.enabled then return end
+    
+    local settings = GetModuleSettings()
+    
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+    
+    local inCombat = IsUnitInCombat("player") and not IsUnitDead("player")
+    
+    -- Combat Glow
+    local combatGlow = frontBarContainer:GetNamedChild("CombatGlow")
+    if combatGlow then
+        if settings.showCombatGlow and inCombat then
+            -- Apply color from settings
+            local glowColor = settings.combatGlowColor or {1, 0.3, 0.1, 0.8}
+            combatGlow:SetColor(unpack(glowColor))
+            
+            combatGlow:SetHidden(false)
+            
+            -- Create animation if needed
+            if not m_combatGlowTimeline then
+                m_combatGlowTimeline = CreateCombatGlowAnimation(combatGlow)
+            end
+            
+            if not m_combatGlowTimeline:IsPlaying() then
+                m_combatGlowTimeline:PlayFromStart()
+            end
+        else
+            if m_combatGlowTimeline and m_combatGlowTimeline:IsPlaying() then
+                m_combatGlowTimeline:Stop()
+            end
+            combatGlow:SetHidden(true)
+            combatGlow:SetAlpha(0)
+        end
+    end
+    
+    -- Combat Icon
+    local combatIcon = frontBarContainer:GetNamedChild("CombatIcon")
+    if combatIcon then
+        if settings.showCombatIcon and inCombat then
+            combatIcon:SetHidden(false)
+        else
+            combatIcon:SetHidden(true)
+        end
+    end
+    
+    -- Audio Cue (only on state change)
+    if settings.playCombatAudio and inCombat ~= m_wasInCombat then
+        if inCombat then
+            PlaySound(SOUNDS.DUEL_BOUNDARY_WARNING)
+        else
+            PlaySound(SOUNDS.DUEL_WON)
+        end
+    end
+    
+    m_wasInCombat = inCombat
+end
 
 -- Setup tooltip handlers for front bar buttons
 -- Setup tooltip handlers for front bar buttons
@@ -3443,12 +3685,48 @@ local function SetupModule(control)
     -- Initial Refresh
     RefreshAllData(control, updateDeathFragment)
     
-
     
     -- Register for OnGamepadPreferredModeChanged
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
         ReloadUI() -- Reload UI to switch templates cleanly
     end)
+    
+    -- ========================================
+    -- NEW FEATURE EVENT REGISTRATIONS
+    -- ========================================
+    
+    -- Ultimate Number Display: Update when ultimate power changes
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_UltimateNumber", EVENT_POWER_UPDATE, function(_, unitTag, _, powerType, powerPool)
+        if unitTag == "player" and powerType == POWERTYPE_ULTIMATE then
+            UpdateFrontBarUltimateNumber(control)
+        end
+    end)
+    EVENT_MANAGER:AddFilterForEvent(NAME .. "_UltimateNumber", EVENT_POWER_UPDATE, 
+        REGISTER_FILTER_POWER_TYPE, POWERTYPE_ULTIMATE, 
+        REGISTER_FILTER_UNIT_TAG, "player")
+    
+    -- Combat Indicator: Update on combat state change
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_CombatIndicator", EVENT_PLAYER_COMBAT_STATE, function()
+        UpdateCombatIndicator(control)
+    end)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_CombatIndicator_Dead", EVENT_PLAYER_DEAD, function()
+        UpdateCombatIndicator(control)
+    end)
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_CombatIndicator_Alive", EVENT_PLAYER_ALIVE, function()
+        UpdateCombatIndicator(control)
+    end)
+    
+    -- Quickslot Cooldown: Set up OnUpdate handler for smooth countdown
+    local frontBarContainer = FindControl(control, 'FrontBarContainer')
+    if frontBarContainer then
+        frontBarContainer:SetHandler("OnUpdate", function()
+            UpdateQuickslotCooldown(control)
+        end, "QuickslotCooldownUpdate")
+    end
+    
+    -- Initial update calls
+    UpdateFrontBarUltimateNumber(control)
+    UpdateCombatIndicator(control)
 end
 
 --- Applies visual settings to skill bar buttons.

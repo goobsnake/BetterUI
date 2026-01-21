@@ -99,6 +99,20 @@ BETTERUI_CURRENCY_ROWS = {32, 58, 84}
 -- UI LAYOUT
 -- ============================================================================
 
+-- ============================================================================
+-- SKILL BAR ENHANCEMENT CONSTANTS
+-- ============================================================================
+-- These constants are used by ResourceOrbFrames.lua for the skill bar enhancements.
+
+-- Minimum cooldown duration (in ms) to display a cooldown timer.
+-- Cooldowns shorter than this are treated as global cooldowns (GCD) and not shown.
+-- Why 1500ms: Most potions have 45-60 second cooldowns; GCD is ~1 second.
+BETTERUI_MIN_COOLDOWN_DISPLAY_MS = 1500
+
+-- Default text size used for ultimate number and quickslot displays
+BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27
+
+
 -- Panel widths
 --- Defines the standard width for the gamepad interface right-hand panel.
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = 1350

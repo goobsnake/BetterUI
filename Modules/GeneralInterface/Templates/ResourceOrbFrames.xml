@@ -287,6 +287,23 @@
                     <Anchor point="BOTTOMRIGHT" offsetX="-4" />
                 </Label>
 
+                <!-- Cooldown overlay: Dark semi-transparent cover shown during cooldown
+                     Used by quickslot to indicate item is on cooldown -->
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                    textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+
+                <!-- Cooldown text: Shows remaining cooldown time in seconds
+                     Used by quickslot to display potion/item cooldown
+                     WHY tier HIGH: Render above overlay and icon -->
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH" color="DCD822"
+                    verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" offsetY="0" />
+                </Label>
+
                 <!-- Gamepad backdrop frame: Semi-transparent border around button
                      Creates the distinctive gamepad UI look
                      WHY offsets -4/+4: Extends frame slightly beyond button bounds -->
@@ -415,6 +432,14 @@
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="19"
                         offsetY="19" />
                 </Texture>
+
+                <!-- Ultimate number text: Shows current ultimate value
+                     Styled to match quickslot text (font/color set via Lua settings)
+                     WHY tier HIGH: Ensures text renders above icon and effects -->
+                <Label name="$(parent)UltimateText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" offsetY="0" />
+                </Label>
             </Controls>
         </Control>
 
@@ -807,6 +832,36 @@
                                     inherits="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template">
                                     <!-- Anchor set dynamically in Lua -->
                                 </Control>
+
+                                <!-- ============================================================
+                                     COMBAT INDICATORS
+                                     Visual cues that player is in combat
+                                     ============================================================ -->
+
+                                <!-- Combat glow: Pulsing red/orange glow around skill bar frame
+                                     WHY blendMode ADD: Creates additive glow effect
+                                     Animation handled in Lua via ping-pong alpha -->
+                                <Texture name="$(parent)CombatGlow" hidden="true" alpha="0"
+                                    textureFile="EsoUI/Art/HUD/Gamepad/gp_skillGlow.dds"
+                                    blendMode="ADD" tier="LOW">
+                                    <TextureCoords left="0" right="1" top="0" bottom="1" />
+                                    <!-- Color is applied via Lua in UpdateCombatIndicator() -->
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="-20"
+                                        offsetY="-20" />
+                                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetX="20"
+                                        offsetY="20" />
+                                </Texture>
+
+                                <!-- Combat icon: Crossed swords icon indicating combat state
+                                     Positioned near the left edge of skill bar
+                                     WHY tier HIGH: Render above other elements -->
+                                <Texture name="$(parent)CombatIcon" hidden="true"
+                                    textureFile="EsoUI/Art/Miscellaneous/Gamepad/gp_playerStatus_inCombat.dds"
+                                    tier="HIGH">
+                                    <Dimensions x="32" y="32" />
+                                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                        relativePoint="TOPLEFT" offsetX="0" offsetY="-5" />
+                                </Texture>
                             </Controls>
                         </Control>
                     </Controls>
