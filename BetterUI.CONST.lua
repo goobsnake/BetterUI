@@ -217,6 +217,19 @@ BETTERUI_STATUS_INDICATOR_OFFSET_X = -2 -- Status indicator (new item, stolen, e
 -- nil values inherit from parent config (e.g., slots or front bar)
 -- ============================================================================
 
+--- Dimensions for the Resource Orb Frames layout.
+--- Rationale: Centralizing these values allows for easier UI scaling and theme support.
+BETTERUI.CONST.ORBS = {
+    DIMENSIONS = {
+        GAMEPAD_FRAME_WIDTH = 600,
+        GAMEPAD_FRAME_HEIGHT = 256,
+        KEYBOARD_FRAME_WIDTH = 550,
+        ORNAMENT_SIZE = 465,
+        ORB_TEXTURE_SIZE = 240,
+        FILL_TEXTURE_SIZE = 256,
+    }
+}
+
 --- Configuration table for the Resource Orb Frames (Health/Magicka/Stamina orbs).
 ---
 --- Purpose: Defines all spatial relationships and sizing for the ARPG-style interface.
@@ -224,6 +237,21 @@ BETTERUI_STATUS_INDICATOR_OFFSET_X = -2 -- Status indicator (new item, stolen, e
 --- References: Used by Modules/GeneralInterface/ResourceOrbFrames.lua to build the custom HUD.
 --- TODO: Consider moving this to a separate file (e.g. Modules/GeneralInterface/OrbsConfig.lua) to reduce global namespace pollution.
 BETTERUI_ORB_FRAMES = {
+    -- =======================================================================
+    -- FRAME DIMENSIONS
+    -- Top-level container sizing
+    -- =======================================================================
+    frame = {
+        gamepad = { 
+            width = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_WIDTH, 
+            height = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_HEIGHT 
+        },
+        keyboard = { 
+            width = BETTERUI.CONST.ORBS.DIMENSIONS.KEYBOARD_FRAME_WIDTH, 
+            height = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_HEIGHT 
+        },
+    },
+
     -- =======================================================================
     -- SKILL BUTTON DIMENSIONS
     -- Controls the size and spacing of skill bar buttons
@@ -515,6 +543,8 @@ BETTERUI.CONST.COLORS = {
 BETTERUI.CONST.TOOLTIP = {
     DEFAULT_FONT_SIZE = 24
 }
+
+
 
 BETTERUI.CONST.ICONS = {
     EQUIP_MAIN = "BetterUI/Modules/CIM/Images/inv_equip.dds",

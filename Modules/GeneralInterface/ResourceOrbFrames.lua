@@ -79,32 +79,24 @@ local ORB_CONFIG = {
 --                 by multiple modules.
 -------------------------------------------------------------------------------------------------
 
+--- Cache for control lookups to avoid repeated parent-chain traversals.
+local ControlCache = {}
+
+--- Clears the control lookup cache.
+--- Rationale: Call this when the UI layout is rebuilt or m_rootFrame changes.
+local function InvalidateControlCache()
+    ControlCache = {}
+end
+
 --- Finds a control by name, handling ESO's complex naming conventions.
 ---
---- ESO XML templates use $(parent), $(grandparent), etc. to create globally-unique names.
---- This function handles that complexity by:
----   1. First checking for a direct child with the given name
----   2. Walking up the parent chain and checking for global names
----   3. Falling back to direct global name lookup
----
---- WHY THIS COMPLEXITY:
----   ESO's UI system doesn't have a simple parent.FindChild() that works consistently.
----   Controls created via XML templates often have names like "ParentGrandparentChildName"
----   which requires iterating through possible name combinations.
----
---- TODO(optimization): Cache found controls to avoid repeated lookups during frame updates
---- TODO(cleanup): The guards variable limits iterations to 6 - document why this limit exists
----
---- @param parent Control The parent control to search from
---- @param name string The short name of the control to find (e.g., "Icon", "Button1")
---- @return Control|nil The found control, or nil if not found
---- Finds a control by name, handling ESO's complex naming conventions.
----
---- Purpose: Robust control lookup traversing parent hierarchies.
+--- Purpose: Robust control lookup traversing parent hierarchies with caching.
 --- Mechanics:
---- 1. Checks direct child (`GetNamedChild`).
---- 2. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
---- 3. Falls back to global `_G[name]`.
+--- 1. Checks `ControlCache` for a hit.
+--- 2. Checks direct child (`GetNamedChild`).
+--- 3. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
+--- 4. Falls back to global `_G[name]`.
+--- 5. Stores result in cache.
 ---
 --- References: Used pervasively in this module to find XML-defined controls.
 ---
@@ -112,22 +104,32 @@ local ORB_CONFIG = {
 --- @param name string The short name of the control to find (e.g., "Icon", "Button1")
 --- @return Control|nil The found control, or nil if not found
 local function FindControl(parent, name)
+    if not parent then return nil end
+
+    -- Check cache first
+    local cacheKey = tostring(parent) .. "|" .. name
+    if ControlCache[cacheKey] then
+        return ControlCache[cacheKey]
+    end
+
     -- First try to grab a direct child with the given short name
     local child = parent:GetNamedChild(name)
-    if child then return child end
+    if child then 
+        ControlCache[cacheKey] = child
+        return child 
+    end
 
-    -- Try global by several possible name prefixes. We iterate up the parent chain
-    -- and check for a global control name formed by concatenating that ancestor's
-    -- name + name. This accommodates XML controls that use $(parent), $(grandparent)
-    -- or similar variable substitution to provide a name that doesn't match the
-    -- direct child name.
+    -- Try global by several possible name prefixes.
     local probe = parent
     local guards = 0
     while probe ~= nil and guards < 6 do
         local globalName = probe:GetName() .. name
         local ctrl = _G[globalName]
-        if ctrl ~= nil then return ctrl end
-        -- Move to the next ancestor. If GetParent is not available, bail out.
+        if ctrl ~= nil then 
+            ControlCache[cacheKey] = ctrl
+            return ctrl 
+        end
+        -- Move to the next ancestor.
         if probe.GetParent then
             probe = probe:GetParent()
         else
@@ -137,7 +139,12 @@ local function FindControl(parent, name)
     end
 
     -- Fall back to direct global name (name without prefix)
-    if _G[name] then return _G[name] end
+    local globalCtrl = _G[name]
+    if globalCtrl then 
+        ControlCache[cacheKey] = globalCtrl
+        return globalCtrl 
+    end
+
     return nil
 end
 
@@ -234,6 +241,12 @@ local function UpdateFrameDimensions()
         -- Invert offsetY because positive values should move the frame UP
         m_rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
     end
+    
+    -- Apply frame dimensions from constants (replacing XML magic numbers)
+    local cfg = BETTERUI_ORB_FRAMES
+    local isGamepad = IsInGamepadPreferredMode()
+    local frameCfg = isGamepad and cfg.frame.gamepad or cfg.frame.keyboard
+    m_rootFrame:SetDimensions(frameCfg.width, frameCfg.height)
 end
 
 
