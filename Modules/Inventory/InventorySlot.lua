@@ -422,6 +422,109 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return (self.actionName ~= nil) or self:HasSelectedAction()
     end
 
+        --[[
+        Function: SecureOpenSkills
+        Description: Wraps the "Open Skills" action callback in a secure call.
+        Rationale: The engine's "Open Skills" callback may call UseItem directly, which
+                   causes tainting errors. This wrapper ensures CallSecureProtected is used.
+        Mechanism: Iterates through slot actions, finds "Open Skills" action, and replaces
+                   its callback with a secure wrapper.
+        References: Called by PrimaryCommandActivate.
+        param: slotActions (table) - The slot actions object
+        param: inventorySlot (table) - The inventory slot data
+        ]]
+        local function SecureOpenSkills(slotActions, inventorySlot)
+            local INDEX_ACTION_CALLBACK = 2
+            for i, action in ipairs(slotActions.m_slotActions) do
+                local actionName = action[1]
+                if actionName == "Open Skills" then
+                    local wrappedCallback = function()
+                        if inventorySlot then
+                            local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                            CallSecureProtected("UseItem", bag, index)
+                        end
+                    end
+                    action[INDEX_ACTION_CALLBACK] = wrappedCallback
+                end
+            end
+        end
+
+        --[[
+        Function: ResolveCraftBagState
+        Description: Determines the correct primary action based on Craft Bag context.
+        Rationale: Items in Craft Bag should show "Retrieve"; items in Inventory should
+                   show "Stow" if eligible. Centralizes this logic for maintainability.
+        Mechanism:
+          - If in Craft Bag: removes "Stow" action, ensures "Retrieve" is primary.
+          - If in Inventory and eligible: removes duplicates, adds Stow as primary.
+        References: Called by PrimaryCommandActivate.
+        param: slotActions (table) - The slot actions object
+        param: inventorySlot (table) - The inventory slot data
+        param: primaryAction (string) - The current primary action name
+        param: canUseItem (boolean) - Whether the item is also usable
+        return: string - The resolved action name for display
+        ]]
+        local function ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
+            local actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+            local isInCraftBag = IsSlotInCraftBag(inventorySlot)
+            
+            if isInCraftBag then
+                -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
+                for i = #slotActions.m_slotActions, 1, -1 do
+                    if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                        table.remove(slotActions.m_slotActions, i)
+                    end
+                end
+                -- Ensure Retrieve is primary action
+                if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                    actionName = GetActionString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+                end
+            elseif CanItemMoveToCraftBag(inventorySlot) then
+                -- INVENTORY VIEW: Force "Stow" as primary for eligible items
+                -- Remove any existing craft-bag entries to avoid duplicates
+                for i = #slotActions.m_slotActions, 1, -1 do
+                    if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                        table.remove(slotActions.m_slotActions, i)
+                    end
+                end
+
+                -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
+                HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+                
+                -- We forced Stow to be primary; clear any prior split-stack override
+                slotActions._betterui_primaryOverride = nil
+
+                -- Ensure the displayed action name is "Stow"
+                actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+            end
+            return actionName
+        end
+
+        --[[
+        Function: DeduplicateActions
+        Description: Removes duplicate entries from the slot actions list.
+        Rationale: Multiple code paths may add the same action (e.g., "Stow"); this
+                   ensures the Y-button actions menu doesn't show duplicates.
+        Mechanism: Iterates backwards through actions, tracking seen names. Removes
+                   any entry whose name was already encountered.
+        References: Called by PrimaryCommandActivate.
+        param: slotActions (table) - The slot actions object to deduplicate
+        ]]
+        local function DeduplicateActions(slotActions)
+            local seen = {}
+            for i = #slotActions.m_slotActions, 1, -1 do
+                local entry = slotActions.m_slotActions[i]
+                local name = entry and entry[1]
+                if name and seen[name] then
+                    table.remove(slotActions.m_slotActions, i)
+                else
+                    if name then
+                        seen[name] = true
+                    end
+                end
+            end
+        end
+
     --- The main logic invoked when the primary action (A button) is potentially triggered.
     ---
     --- Purpose: **Action Discovery and Selection**.
@@ -449,27 +552,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
         ZO_InventorySlot_DiscoverSlotActionsFromActionList(inventorySlot, slotActions)
 
-        -- For special items like "Open Skills", replace the discovered callback with a secure version
-        -- The engine's callbacks may call functions that require secure context
-        local INDEX_ACTION_CALLBACK = 2
-        for i, action in ipairs(slotActions.m_slotActions) do
-            local actionName = action[1]
-            
-            -- For "Open Skills", replace with a secure wrapper that uses the item properly
-            if actionName == "Open Skills" then
-                local wrappedCallback = function()
-                    if inventorySlot then
-                        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-                        -- Use CallSecureProtected to consume the item securely
-                        CallSecureProtected("UseItem", bag, index)
-                    end
-                end
-                action[INDEX_ACTION_CALLBACK] = wrappedCallback
-            end
-        end
+        -- 1. Secure "Open Skills" callback
+        SecureOpenSkills(slotActions, inventorySlot)
 
-    local primaryAction = slotActions:GetPrimaryActionName()
-    local canUseItem = false
+        local primaryAction = slotActions:GetPrimaryActionName()
+        local canUseItem = false
 
         -- If no primary action was identified by the engine, use the first discovered action
         if not primaryAction and #slotActions.m_slotActions > 0 then
@@ -492,14 +579,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 end
             end
         elseif not primaryAction then
-            -- No primary action available and not a craft bag item
             self.actionName = nil
             return
         end
 
-        -- If the primary action is Split Stack, set a lightweight per-slot override
-        -- so the A button will invoke the engine split flow while leaving the
-        -- action present in the Y (actions) list.
+        -- Split Stack Override logic
         if primaryAction and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
             slotActions._betterui_primaryOverride = function()
                 if ZO_InventorySlot_TrySplitStack then
@@ -510,48 +594,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             slotActions._betterui_primaryOverride = nil
         end
 
-        -- Set the action name for display
-        self.actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+        -- 2. Resolve Craft Bag vs Inventory State (Stow vs Retrieve)
+        self.actionName = ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
 
-        -- Handle craft bag vs inventory actions:
-        -- - In CRAFT BAG: "Retrieve" should be primary, "Stow" should NOT appear
-        -- - In INVENTORY: "Stow" should be primary for eligible items
-        local isInCraftBag = IsSlotInCraftBag(inventorySlot)
-        
-        if isInCraftBag then
-            -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
-            for i = #slotActions.m_slotActions, 1, -1 do
-                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                    table.remove(slotActions.m_slotActions, i)
-                end
-            end
-            -- Ensure Retrieve is primary action
-            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
-                self.actionName = GetActionString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
-            end
-        elseif CanItemMoveToCraftBag(inventorySlot) then
-            -- INVENTORY VIEW: Force "Stow" as primary for eligible items
-            -- Remove any existing craft-bag entries to avoid duplicates
-            for i = #slotActions.m_slotActions, 1, -1 do
-                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                    table.remove(slotActions.m_slotActions, i)
-                end
-            end
-
-            -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
-            HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-            -- We forced Stow to be primary; clear any prior split-stack override so
-            -- the A key invokes the newly-added Stow primary rather than the old
-            -- split-stack override which may still be set earlier.
-            slotActions._betterui_primaryOverride = nil
-
-            -- Ensure the displayed action name is "Stow"
-            self.actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-        end
-
-        -- Setup secure actions based on action type
+        -- 3. Setup secure actions based on action type
         if primaryAction then
-            -- Check if this is a known action type we handle
             if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
@@ -560,12 +607,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
-            -- Ensure Split Stack also gets wired as a primary action so A will
-            -- open the split dialog while leaving the action available in Y.
+            
             if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
-                -- Only wire up Split Stack as primary if we aren't already set to "Stow".
-                -- This prevents "Split Stack" from overriding "Stow" (Add to Craft Bag)
-                -- when both are available, ensuring the A button does what it says.
                 local isStowAction = self.actionName == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
                 if not isStowAction then
                     SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
@@ -573,24 +616,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             end
         end
 
-        -- (Craft-bag handling is consolidated above; nothing needed here.)
-
-        -- Deduplicate discovered slot actions by name so we don't show the same
-        -- action (for example, "Stow") multiple times in the Y actions menu.
-        do
-            local seen = {}
-            for i = #slotActions.m_slotActions, 1, -1 do
-                local entry = slotActions.m_slotActions[i]
-                local name = entry and entry[1]
-                if name and seen[name] then
-                    table.remove(slotActions.m_slotActions, i)
-                else
-                    if name then
-                        seen[name] = true
-                    end
-                end
-            end
-        end
+        -- 4. Deduplicate Action List
+        DeduplicateActions(slotActions)
     end
 
     self:AddSubCommand(primaryCommand, PrimaryCommandHasBind, PrimaryCommandActivate)
