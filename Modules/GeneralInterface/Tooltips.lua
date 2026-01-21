@@ -110,21 +110,55 @@ end
 
 --- Retrieves the user-configured tooltip font size.
 --- @return number The font size (e.g., 24, 32).
--------------------------------------------------------------------------------------------------
--- HELPERS
--------------------------------------------------------------------------------------------------
-
---- Retrieves the user-configured tooltip font size.
---- @return number The font size (e.g., 24, 32).
 function BETTERUI.GetTooltipFontSize()
     local size = BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].tooltipSize
     if not size then
         return BETTERUI.CONST.TOOLTIP.DEFAULT_FONT_SIZE
     end
-    
-
-    
     return size
+end
+
+--- Generic helper to retrieve pricing from a specific trading addon.
+---
+--- Purpose: Eliminates boilerplate for MM, TTC, ATT, and future integrations.
+--- Mechanics:
+--- 1. Checks if addon exists and is enabled in settings.
+--- 2. Executes getPriceFunc.
+--- 3. Formats result with currency icon and stack calculations.
+---
+--- @param addonName string Friendly name of the addon (e.g., "TTC")
+--- @param addonGlobal table|nil Reference to the addon's global object
+--- @param getPriceFunc function Function that returns the average price for the item
+--- @param settingKey string Settings key to check for enabling/disabling
+--- @param itemLink string The item link
+--- @param stackCount number The stack size
+--- @param iconSize number The desired icon size
+--- @return string|nil The formatted price string, or nil if data missing/addon disabled
+local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settingKey, itemLink, stackCount, iconSize)
+    if addonGlobal == nil or not BETTERUI.Settings.Modules["Tooltips"][settingKey] then
+        return nil
+    end
+
+    local avgPrice = getPriceFunc(itemLink)
+    if not avgPrice or avgPrice == 0 then
+        return string.format("%s Price: No Data", addonName)
+    end
+
+    if stackCount > 1 then
+        return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t,   Stack(<<5>>): <<6>> |t<<3>>:<<3>>:<<4>>|t",
+            addonName, 
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+            iconSize,
+            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
+            stackCount, 
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)))
+    else
+        return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t",
+            addonName, 
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+            iconSize,
+            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
+    end
 end
 
 --- Gets trading addon price info strings (TTC, MM, ATT).
@@ -132,82 +166,30 @@ end
 function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCount)
     local lines = {}
     if itemLink then
-        local stackCount
-        if storeStackCount then
-            stackCount = storeStackCount
-        else
-            stackCount = GetSlotStackSize(bagId, slotIndex)
-        end
-
+        local stackCount = storeStackCount or GetSlotStackSize(bagId, slotIndex)
         local fontSize = BETTERUI.GetTooltipFontSize()
-        -- Use user font size for icons so they match text, slightly smaller for clean look
         local iconSize = math.floor(fontSize * 0.7) 
 
-        if TamrielTradeCentre ~= nil and BETTERUI.Settings.Modules["Tooltips"].ttcIntegration then
-            local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
+        -- TTC Integration
+        local ttcLine = GetAddonPriceDisplay("TTC", TamrielTradeCentre, function(link)
+            local itemInfo = TamrielTradeCentre_ItemInfo:New(link)
             local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
-            if(priceInfo == nil) then
-                table.insert(lines, "TTC Price: No Data")
-            else
-                local avgPrice = priceInfo.SuggestedPrice or priceInfo.Avg
-                if stackCount > 1 then 
-                    table.insert(lines, zo_strformat("TTC Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
-                        stackCount, 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
-                else
-                    table.insert(lines, zo_strformat("TTC Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
-                end
-            end
-        end
+            return priceInfo and (priceInfo.SuggestedPrice or priceInfo.Avg)
+        end, "ttcIntegration", itemLink, stackCount, iconSize)
+        if ttcLine then table.insert(lines, ttcLine) end
 
-    	if MasterMerchant ~= nil and BETTERUI.Settings.Modules["Tooltips"].mmIntegration then 
-            local mmData = MasterMerchant:itemStats(itemLink, false)
-            if(mmData.avgPrice == nil or mmData.avgPrice == 0) then
-                table.insert(lines, "MM Price: No Data")
-            else
-                local avgPrice = mmData.avgPrice
-                if stackCount > 1 then 
-                    table.insert(lines, zo_strformat("MM Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
-                        stackCount, 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
-                else
-                    table.insert(lines, zo_strformat("MM Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
-                end
-            end
-    	end
+        -- MM Integration
+        local mmLine = GetAddonPriceDisplay("MM", MasterMerchant, function(link)
+            local mmData = MasterMerchant:itemStats(link, false)
+            return mmData and mmData.avgPrice
+        end, "mmIntegration", itemLink, stackCount, iconSize)
+        if mmLine then table.insert(lines, mmLine) end
 
-        if ArkadiusTradeTools ~= nil and BETTERUI.Settings.Modules["Tooltips"].attIntegration then 
-            local avgPrice = ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(itemLink, nil, nil)
-            if(avgPrice == nil or avgPrice == 0) then
-                table.insert(lines, "ATT Price: No Data")
-            else
-                if stackCount > 1 then 
-                    table.insert(lines, zo_strformat("ATT Price: <<1>> |t<<2>>:<<2>>:<<3>>|t,   Stack(<<4>>): <<5>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
-                        stackCount, 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2))))
-                else
-                    table.insert(lines, zo_strformat("ATT Price: <<1>> |t<<2>>:<<2>>:<<3>>|t", 
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
-                        iconSize,
-                        BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))))
-                end
-            end
-        end
+        -- ATT Integration
+        local attLine = GetAddonPriceDisplay("ATT", ArkadiusTradeTools, function(link)
+            return ArkadiusTradeTools.Modules.Sales:GetAveragePricePerItem(link, nil, nil)
+        end, "attIntegration", itemLink, stackCount, iconSize)
+        if attLine then table.insert(lines, attLine) end
     end
     return lines
 end
