@@ -413,6 +413,7 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     -- CUSTOM OVERLAYS
     -- Optional images displayed when Ornaments are hidden (e.g., Health.dds)
+    -- NOTE: Offset directions are user-calibrated for these specific textures.
     -- =======================================================================
     overlays = {
         health = { 

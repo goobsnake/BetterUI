@@ -276,7 +276,18 @@ local function ApplyThemeVisuals()
     ApplyOrbTextures('OrbMagicka')
     ApplyOrbTextures('OrbStamina')
 
-    -- Helper to manage overlay textures
+    --[[
+    Function: UpdateOverlay (local helper)
+    Description: Creates or updates a custom overlay texture when an ornament is hidden.
+    Rationale: When the user hides the large wing ornaments, we display a smaller decorative
+               texture (Health.dds or MagStam.dds) to maintain visual interest around the orbs.
+    Mechanism:
+        1. Finds the parent orb control (e.g., OrbHealth, OrbResource).
+        2. Creates a CT_TEXTURE control if it doesn't exist, registering globally as ParentNameCustomOverlay.
+        3. Sets DrawLayer to DL_CONTROLS and DrawLevel to 15 to render above OrbBorder (level 7/9).
+        4. Shows/hides the overlay based on the showOverlay parameter.
+    References: Called by ApplyThemeVisuals when settings change.
+    ]]
     local function UpdateOverlay(parentName, textureFile, showOverlay)
         local parent = FindControl(m_rootFrame, parentName)
         if not parent then return end
