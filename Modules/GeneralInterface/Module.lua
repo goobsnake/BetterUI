@@ -532,6 +532,167 @@ local function Init(mId, moduleName)
                     end,
                     width = "full",
                 },
+                -- ============================================================================
+                -- ULTIMATE NUMBER DISPLAY
+                -- ============================================================================
+                {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_ULTIMATE_DISPLAY_HEADER),
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_SHOW_ULTIMATE_NUMBER),
+                    tooltip = GetString(SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].showUltimateNumber == true
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].showUltimateNumber = value
+                        ReloadUI()
+                    end,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                },
+                {
+                    type = "slider",
+                    name = GetString(SI_BETTERUI_ULTIMATE_TEXT_SIZE),
+                    tooltip = GetString(SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP),
+                    min = 12,
+                    max = 48,
+                    step = 1,
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 27 end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].ultimateTextSize or 27 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].ultimateTextSize = value
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function()
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        return not settings or not settings.showUltimateNumber
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "colorpicker",
+                    name = GetString(SI_BETTERUI_ULTIMATE_TEXT_COLOR),
+                    tooltip = GetString(SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP),
+                    getFunc = function()
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 1, 1, 1 end
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].ultimateTextColor or {1, 1, 1, 1}
+                        return color[1], color[2], color[3], color[4] or 1
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].ultimateTextColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function()
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        return not settings or not settings.showUltimateNumber
+                    end,
+                    width = "full",
+                },
+                -- ============================================================================
+                -- QUICKSLOT COOLDOWN TIMER
+                -- ============================================================================
+                {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER),
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN),
+                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].showQuickslotCooldown == true
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].showQuickslotCooldown = value
+                        ReloadUI()
+                    end,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                },
+                -- ============================================================================
+                -- COMBAT INDICATORS
+                -- ============================================================================
+                {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_COMBAT_INDICATORS_HEADER),
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_COMBAT_GLOW_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatGlow == true
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatGlow = value
+                        ReloadUI()
+                    end,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                },
+                {
+                    type = "colorpicker",
+                    name = GetString(SI_BETTERUI_COMBAT_GLOW_COLOR),
+                    tooltip = GetString(SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP),
+                    getFunc = function()
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return 1, 0.3, 0.1, 0.8 end
+                        local color = BETTERUI.Settings.Modules["ResourceOrbFrames"].combatGlowColor or {1, 0.3, 0.1, 0.8}
+                        return color[1], color[2], color[3], color[4] or 0.8
+                    end,
+                    setFunc = function(r, g, b, a)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].combatGlowColor = {r, g, b, a}
+                        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
+                            BETTERUI.ResourceOrbFrames.ApplySettings()
+                        end
+                    end,
+                    disabled = function()
+                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        return not settings or not settings.showCombatGlow
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatIcon == true
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatIcon = value
+                        ReloadUI()
+                    end,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_COMBAT_AUDIO_ENABLED),
+                    tooltip = GetString(SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP),
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].playCombatAudio == true
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].playCombatAudio = value
+                        ReloadUI()
+                    end,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                },
                 {
                     type = "button",
                     name = GetString(SI_BETTERUI_RESET_SKILL_BAR),
@@ -543,6 +704,15 @@ local function Init(mId, moduleName)
                         settings.quickslotTextSize = 27
                         settings.quickslotTextColor = {1, 1, 1, 1}
                         settings.backBarOpacity = 1
+                        -- Reset new settings (default to off - user must opt-in)
+                        settings.showUltimateNumber = false
+                        settings.ultimateTextSize = 27
+                        settings.ultimateTextColor = {1, 1, 1, 1}
+                        settings.showQuickslotCooldown = false
+                        settings.showCombatGlow = false
+                        settings.showCombatIcon = false
+                        settings.playCombatAudio = false
+                        settings.combatGlowColor = {1, 0.3, 0.1, 0.8}
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -557,6 +727,21 @@ local function Init(mId, moduleName)
             type = "submenu",
             name = GetString(SI_BETTERUI_ORB_TEXT_SUBMENU),
             controls = {
+                -- Animated Orb Fill
+                {
+                    type = "checkbox",
+                    name = "Enable Swirl Effect",
+                    tooltip = "Slowly rotates the orb fill texture, creating a gentle swirling effect.",
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow 
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow = value
+                    end,
+                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    width = "full",
+                },
                 -- Ornament Visibility Settings
                 {
                     type = "checkbox",
@@ -818,29 +1003,6 @@ local function Init(mId, moduleName)
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
                     width = "half",
-                },
-            },
-        },
-        -- ============================================================================
-        -- ANIMATED ORB FILL SETTINGS
-        -- ============================================================================
-        {
-            type = "submenu",
-            name = "Animated Orb Fill",
-            controls = {
-                {
-                    type = "checkbox",
-                    name = "Enable Swirl Effect",
-                    tooltip = "Slowly rotates the orb fill texture, creating a gentle swirling effect.",
-                    getFunc = function() 
-                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
-                        return BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow 
-                    end,
-                    setFunc = function(value)
-                        BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow = value
-                    end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
-                    width = "full",
                 },
             },
         },
