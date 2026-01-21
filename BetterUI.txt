@@ -14,6 +14,7 @@ lang\en.lua
 lang\$(language).lua
 
 BetterUI.CONST.lua
+Modules\Shared\CategoryDefinitions.lua
 BetterUI_Shared.xml
 
 ; Module: Common Interface Module

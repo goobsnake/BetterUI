@@ -1426,308 +1426,105 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
 	local currentList = self:GetCurrentList()
 
 	if currentList == self.craftBagList then
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_CRAFTING_BAG)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_all.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data.onClickDirection = "CRAFTBAG"
-			data:SetIconTintOnSelection(true)
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_ALCHEMY)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_alchemy.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data.onClickDirection = "CRAFTBAG"
-			data:SetIconTintOnSelection(true)
-
-			data.filterType = ITEMFILTERTYPE_ALCHEMY
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_BLACKSMITHING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_blacksmithing.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data.onClickDirection = "CRAFTBAG"
-			data:SetIconTintOnSelection(true)
-
-			data.filterType = ITEMFILTERTYPE_BLACKSMITHING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_CLOTHING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_clothing.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data:SetIconTintOnSelection(true)
-			data.onClickDirection = "CRAFTBAG"
-
-			data.filterType = ITEMFILTERTYPE_CLOTHING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_ENCHANTING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_enchanting.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data.onClickDirection = "CRAFTBAG"
-			data:SetIconTintOnSelection(true)
-
-			data.filterType = ITEMFILTERTYPE_ENCHANTING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_JEWELRY_CRAFTING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_tabicon_craftbag_jewelrycrafting.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data:SetIconTintOnSelection(true)
-			data.onClickDirection = "CRAFTBAG"
-
-			data.filterType = ITEMFILTERTYPE_JEWELRYCRAFTING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_PROVISIONING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data.onClickDirection = "CRAFTBAG"
-			data:SetIconTintOnSelection(true)
-
-			data.filterType = ITEMFILTERTYPE_PROVISIONING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_WOODWORKING)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_woodworking.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data:SetIconTintOnSelection(true)
-			data.onClickDirection = "CRAFTBAG"
-
-			data.filterType = ITEMFILTERTYPE_WOODWORKING
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_STYLE_MATERIAL)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_stylematerial.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data:SetIconTintOnSelection(true)
-			data.onClickDirection = "CRAFTBAG"
-
-			data.filterType = ITEMFILTERTYPE_STYLE_MATERIALS
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
-
-		do
-			local name = GetString(SI_BETTERUI_CATEGORY_TRAIT_GEMS)
-			local iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_itemtrait.dds"
-			local data = ZO_GamepadEntryData:New(name, iconFile)
-			data:SetIconTintOnSelection(true)
-			data.onClickDirection = "CRAFTBAG"
-
-			data.filterType = ITEMFILTERTYPE_TRAIT_ITEMS
-
-			if not HasCraftBagAccess() then
-				data.enabled = false
-			end
-
-			self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-			BETTERUI.GenericHeader.AddToList(self.header, data)
-			if not self.populatedCraftPos then
-				self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-			end
-		end
+        local categories = BETTERUI.Inventory.Categories.CraftBag
+        for _, catDef in ipairs(categories) do
+            local name = GetString(catDef.nameStringId)
+            local data = ZO_GamepadEntryData:New(name, catDef.iconFile)
+            data:SetIconTintOnSelection(true)
+            
+            if catDef.onClickDirection then
+                data.onClickDirection = catDef.onClickDirection
+            end
+            
+            if catDef.filterType ~= nil then
+                data.filterType = catDef.filterType
+            end
+            
+            if not HasCraftBagAccess() then
+                data.enabled = false
+            end
+            
+            self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
+            BETTERUI.GenericHeader.AddToList(self.header, data)
+            if not self.populatedCraftPos then
+                self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
+            end
+        end
 
 		self.populatedCraftPos = true
 	else
-		self:NewCategoryItem(nil, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds")
-
-		do
-			local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
-			if usedBagSize > 0 then
-				local name = GetString(SI_BETTERUI_INV_ITEM_EQUIPPED)
-				local iconFile = "esoui/art/inventory/gamepad/gp_inventory_icon_equipped.dds"
-				local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function()
-					return true
-				end, nil, BAG_WORN)
-				local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-				data.showEquipped = true
-				data:SetIconTintOnSelection(true)
-				self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-				BETTERUI.GenericHeader.AddToList(self.header, data)
-				if not self.populatedCategoryPos then
-					self.categoryPositions[#self.categoryPositions + 1] = 1
-				end
-			end
-		end
-
-		self:NewCategoryItem(ITEMFILTERTYPE_WEAPONS, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds")
-
-		self:NewCategoryItem(ITEMFILTERTYPE_ARMOR, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds")
-
-		self:NewCategoryItem(ITEMFILTERTYPE_JEWELRY, "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds")
-
-		self:NewCategoryItem(ITEMFILTERTYPE_CONSUMABLE, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds")
-
-		self:NewCategoryItem(ITEMFILTERTYPE_CRAFTING, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds")
-
-		self:NewCategoryItem(
-			ITEMFILTERTYPE_FURNISHING,
-			"EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds"
-		)
-
-		self:NewCategoryItem(
-			ITEMFILTERTYPE_COMPANION,
-			"EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds"
-		)
-
-		self:NewCategoryItem(
-			ITEMFILTERTYPE_MISCELLANEOUS,
-			"EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds"
-		)
-
-		self:NewCategoryItem(ITEMFILTERTYPE_QUICKSLOT, "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds")
-
-		do
-			local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-			if next(questCache) then
-				local name = GetString(SI_GAMEPAD_INVENTORY_QUEST_ITEMS)
-				local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quest.dds"
-				local data = ZO_GamepadEntryData:New(name, iconFile)
-				data.filterType = ITEMFILTERTYPE_QUEST
-				data:SetIconTintOnSelection(true)
-				self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-				BETTERUI.GenericHeader.AddToList(self.header, data)
-				if not self.populatedCategoryPos then
-					self.categoryPositions[#self.categoryPositions + 1] = 1
-				end
-			end
-		end
-
-		do
-			if IsStolenAndNotJunk() then
-				local name = GetString(SI_BETTERUI_INV_ITEM_STOLEN)
-				local iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds"
-				local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function()
-					return true
-				end, nil, BAG_BACKPACK)
-				local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-				data.showStolen = true
-				data:SetIconTintOnSelection(true)
-				self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-				BETTERUI.GenericHeader.AddToList(self.header, data)
-				if not self.populatedCategoryPos then
-					self.categoryPositions[#self.categoryPositions + 1] = 1
-				end
-			end
-		end
-
-		do
-			if HasAnyJunkInBackpack() then
-				local isListEmpty = self:IsItemListEmpty(nil, nil)
-				if not isListEmpty then
-					local name = GetString(SI_BETTERUI_INV_ITEM_JUNK)
-					local iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds"
-					local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function()
-						return true
-					end, nil, BAG_BACKPACK)
-					local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-					data.showJunk = true
-					data:SetIconTintOnSelection(true)
-					self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-					BETTERUI.GenericHeader.AddToList(self.header, data)
-					if not self.populatedCategoryPos then
-						self.categoryPositions[#self.categoryPositions + 1] = 1
-					end
-				end
-			end
-		end
+        local categories = BETTERUI.Inventory.Categories.Inventory
+        for _, catDef in ipairs(categories) do
+            local shouldAdd = false
+            local data = nil
+            
+            -- STATIC CATEGORIES (e.g. All, Weapons, Armor, etc)
+            if not catDef.type then
+                -- Standard NewCategoryItem logic
+                -- If it's "All" (filterType == nil), we pass nil.
+                -- NewCategoryItem checks IsItemListEmpty internaly.
+                 local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
+                 
+                 -- "All" (nil filter) is always added unless explicitly empty (which logic handles)
+                 if catDef.isStatic or not isListEmpty then
+                    -- Replicating NewCategoryItem logic inline or calling it?
+                    -- Calling it is safer to preserve existing logic (new item flags etc)
+                    -- But NewCategoryItem is complex. Let's stick to calling it for standard types.
+                    self:NewCategoryItem(catDef.filterType, catDef.iconFile)
+                    shouldAdd = false -- Handled by NewCategoryItem
+                 end
+                 
+            -- SPECIAL CATEGORIES (Equipped, Quest, Stolen, Junk)
+            elseif catDef.type == "Equipped" then
+                local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
+                if usedBagSize > 0 then
+                    local name = GetString(catDef.nameStringId)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_WORN)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
+                    data.showEquipped = true
+                    shouldAdd = true
+                end
+                
+            elseif catDef.type == "Quest" then
+                local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
+                if next(questCache) then
+                    local name = GetString(catDef.nameStringId)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile)
+                    data.filterType = catDef.filterType
+                    shouldAdd = true
+                end
+                
+            elseif catDef.type == "Stolen" then
+                if IsStolenAndNotJunk() then
+                    local name = GetString(catDef.nameStringId)
+                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
+                    data.showStolen = true
+                    shouldAdd = true
+                end
+                
+            elseif catDef.type == "Junk" then
+                if HasAnyJunkInBackpack() then
+                    local isListEmpty = self:IsItemListEmpty(nil, nil)
+					if not isListEmpty then
+                        local name = GetString(catDef.nameStringId)
+                        local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
+                        data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
+                        data.showJunk = true
+                        shouldAdd = true
+                    end
+                end
+            end
+            
+            if shouldAdd and data then
+                data:SetIconTintOnSelection(true)
+                self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
+                BETTERUI.GenericHeader.AddToList(self.header, data)
+                if not self.populatedCategoryPos then
+                    self.categoryPositions[#self.categoryPositions + 1] = 1
+                end
+            end
+        end
 
 		self.populatedCategoryPos = true
 	end
