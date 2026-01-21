@@ -27,6 +27,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS", "Handelsbarren")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_TOKENS", "Outfit-Token")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS", "Siegel")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS", "Tome-Punkte")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event-Tickets")
 
 -- Footer Currency Display Labels (short versions for footer display)
 ZO_CreateStringId("SI_BETTERUI_FOOTER_GOLD_LABEL", "GOLD:")
@@ -41,6 +42,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", "BARREN:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_LABEL", "OUTFIT:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SIEGEL:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMES:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
 -- Currency limit alert
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Maximal 10 Währungen können angezeigt werden. Deaktivieren Sie zuerst eine andere Währung.")
@@ -202,6 +204,9 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_SEALS", "Siegel anzeigen")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_SEALS", "Siegel Position")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS", "Tome-Punkte anzeigen")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS", "Tome-Punkte Position")
+-- Event Tickets (legacy name for Trade Bars, used for backwards compatibility)
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Event-Tickets anzeigen")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event-Tickets Position")
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Verbesserte Namensschilder")

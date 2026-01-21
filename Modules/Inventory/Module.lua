@@ -678,7 +678,7 @@ local function Init(mId, moduleName)
 				-- Trade Bars (formerly Event Tickets)
 				{
 					type = "checkbox",
-					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TRADE_BARS),
+					name = ((CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil)) and GetString(SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS) or GetString(SI_BETTERUI_CURRENCY_SHOW_TRADE_BARS),
 					getFunc = function() 
 						if not BETTERUI.Settings.Modules["Inventory"] then return true end
 						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTradeBars ~= false 
@@ -693,7 +693,7 @@ local function Init(mId, moduleName)
 				},
 				{
 					type = "dropdown",
-					name = GetString(SI_BETTERUI_CURRENCY_ORDER_TRADE_BARS),
+					name = ((CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil)) and GetString(SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS) or GetString(SI_BETTERUI_CURRENCY_ORDER_TRADE_BARS),
 					choices = CURRENCY_ORDER_CHOICES,
 					choicesValues = CURRENCY_ORDER_VALUES,
 					disabled = function()
@@ -777,42 +777,6 @@ local function Init(mId, moduleName)
 					end,
 					setFunc = function(value)
 						BETTERUI.Settings.Modules["Inventory"].orderCurrencySeals = value
-						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
-						RecomputeCurrencyOrderString()
-						SafeRefresh(true)
-					end,
-					width = "half",
-				},
-				-- Tome Points
-				{
-					type = "checkbox",
-					name = GetString(SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS),
-					getFunc = function() 
-						if not BETTERUI.Settings.Modules["Inventory"] then return false end
-						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints == true
-					end,
-					setFunc = function(value)
-						if value and not CanEnableMoreCurrencies() then return end
-						BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints = value
-						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
-						SafeRefresh(true)
-					end,
-					width = "half",
-				},
-				{
-					type = "dropdown",
-					name = GetString(SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS),
-					choices = CURRENCY_ORDER_CHOICES,
-					choicesValues = CURRENCY_ORDER_VALUES,
-					disabled = function()
-						return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints == false
-					end,
-					getFunc = function()
-						if not BETTERUI.Settings.Modules["Inventory"] then return 12 end
-						return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints or 12)
-					end,
-					setFunc = function(value)
-						BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints = value
 						BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
 						RecomputeCurrencyOrderString()
 						SafeRefresh(true)
@@ -1010,6 +974,57 @@ local function Init(mId, moduleName)
 			},
 		},
 	}
+
+	-- Dynamically append Tome Points controls to the Currency Submenu if supported.
+	-- Uses reference lookup instead of hardcoded index to avoid fragility.
+	-- This prevents the settings from appearing on older game clients where the API is missing.
+	if CURT_TOME_POINTS ~= nil then
+		local currencySubmenu = nil
+		for _, control in ipairs(optionsTable) do
+			if control.reference == "BETTERUI_Inventory_CurrencyVisibility_Submenu" then
+				currencySubmenu = control
+				break
+			end
+		end
+		if currencySubmenu and currencySubmenu.controls then
+			table.insert(currencySubmenu.controls, {
+				type = "checkbox",
+				name = GetString(SI_BETTERUI_CURRENCY_SHOW_TOME_POINTS),
+				getFunc = function() 
+					if not BETTERUI.Settings.Modules["Inventory"] then return false end
+					return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints == true
+				end,
+				setFunc = function(value)
+					if value and not CanEnableMoreCurrencies() then return end
+					BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints = value
+					BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+					SafeRefresh(true)
+				end,
+				width = "half",
+			})
+			table.insert(currencySubmenu.controls, {
+				type = "dropdown",
+				name = GetString(SI_BETTERUI_CURRENCY_ORDER_TOME_POINTS),
+				choices = CURRENCY_ORDER_CHOICES,
+				choicesValues = CURRENCY_ORDER_VALUES,
+				disabled = function()
+					return BETTERUI.Settings.Modules["Inventory"].showCurrencyTomePoints ~= true
+				end,
+				getFunc = function()
+					if not BETTERUI.Settings.Modules["Inventory"] then return 12 end
+					return (BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints or 12)
+				end,
+				setFunc = function(value)
+					BETTERUI.Settings.Modules["Inventory"].orderCurrencyTomePoints = value
+					BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+					RecomputeCurrencyOrderString()
+					SafeRefresh(true)
+				end,
+				width = "half",
+			})
+		end
+	end
+
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 

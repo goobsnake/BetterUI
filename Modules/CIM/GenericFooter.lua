@@ -4,10 +4,12 @@ Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
          Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
          Supports dynamic ordering and formatting of currency values.
 Author: BetterUI Team
-Last Modified: 2026-01-16
+Last Modified: 2026-01-20
 
 REFACTORED: Eliminated code duplication by using shared CURRENCY_DEFS table
             and helper functions for both main and fallback paths.
+BACKWARDS COMPATIBILITY: Added support for pre-Update 49 clients where
+            CURT_TRADE_BARS (formerly CURT_EVENT_TICKETS) and CURT_TOME_POINTS may not exist.
 ]]
 
 local _
@@ -16,6 +18,14 @@ local _
 -- SHARED CURRENCY DEFINITIONS
 -- Single source of truth for all currency metadata
 -- ============================================================================
+
+-- Backwards Compatibility:
+-- "Trade Bars" (Update 49+) used to be "Event Tickets".
+-- "Tome Points" are new in Update 49 and may not exist on older clients.
+local IS_LEGACY_TICKETS = (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil)
+local TRADE_BARS_ID = CURT_TRADE_BARS or CURT_EVENT_TICKETS
+local TOME_POINTS_ID = CURT_TOME_POINTS -- can be nil
+
 local CURRENCY_DEFS = {
     { token = "gold",      labelName = "GoldLabel",      settingKey = "showCurrencyGold",
       apiConst = CURT_MONEY, labelStringId = "SI_BETTERUI_FOOTER_GOLD_LABEL", color = "FFBF00",
@@ -39,7 +49,9 @@ local CURRENCY_DEFS = {
       apiConst = CURT_WRIT_VOUCHERS, labelStringId = "SI_BETTERUI_FOOTER_WRITS_LABEL", color = "00FF00",
       location = nil },
     { token = "tradebars", labelName = "TradeBarsLabel", settingKey = "showCurrencyTradeBars",
-      apiConst = CURT_TRADE_BARS, labelStringId = "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", color = "00FF00",
+      apiConst = TRADE_BARS_ID, 
+      labelStringId = IS_LEGACY_TICKETS and "SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL" or "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", 
+      color = "00FF00",
       location = CURRENCY_LOCATION_ACCOUNT },
     { token = "keys",      labelName = "KeysLabel",      settingKey = "showCurrencyUndauntedKeys",
       apiConst = CURT_UNDAUNTED_KEYS, labelStringId = "SI_BETTERUI_FOOTER_KEYS_LABEL", color = "00FF00",
@@ -53,7 +65,7 @@ local CURRENCY_DEFS = {
     -- Note: CURT_TOME_POINTS uses GetPlayerStoredCurrencyAmount instead of GetCurrencyAmount
     -- because Endless Archive currency storage is character-specific, not account-wide
     { token = "tomepoints", labelName = "TomePointsLabel", settingKey = "showCurrencyTomePoints",
-      apiConst = CURT_TOME_POINTS, labelStringId = "SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", color = "00FF00",
+      apiConst = TOME_POINTS_ID, labelStringId = "SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", color = "00FF00",
       location = CURRENCY_LOCATION_ACCOUNT,
       useStoredAmount = true },
 }
@@ -68,7 +80,17 @@ end
 -- HELPER FUNCTIONS
 -- ============================================================================
 
---- Get currency amount using appropriate API based on currency type
+--[[
+Function: GetCurrencyValue
+Description: Retrieves the current amount of a currency for display.
+Rationale: Different currencies use different APIs - some are character-specific
+           (GetPlayerStoredCurrencyAmount) while others are account-wide (GetCurrencyAmount
+           with CURRENCY_LOCATION_ACCOUNT). This function abstracts that complexity.
+Mechanism: Checks def.useStoredAmount flag first (for Tome Points), then checks
+           def.location for account-wide currencies, otherwise uses default GetCurrencyAmount.
+param: def (table) - Currency definition from CURRENCY_DEFS containing apiConst, location, useStoredAmount
+return: number - The currency amount
+]]
 local function GetCurrencyValue(def)
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
@@ -79,7 +101,16 @@ local function GetCurrencyValue(def)
     end
 end
 
---- Format currency label text with localized label, color, value, and icon
+--[[
+Function: FormatCurrencyLabel
+Description: Formats a currency label with localized text, color, value, and icon.
+Rationale: Provides consistent formatting across all currency types in the footer.
+Mechanism: Retrieves localized label string, gets currency icon, formats with
+           zo_strformat using color codes and icon markup.
+param: def (table) - Currency definition from CURRENCY_DEFS
+param: amount (number) - The currency amount to display
+return: string - Formatted label text with color codes and icon
+]]
 local function FormatCurrencyLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     local icon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(def.apiConst))
@@ -87,20 +118,44 @@ local function FormatCurrencyLabel(def, amount)
         label, def.color, BETTERUI.AbbreviateNumber(amount), icon)
 end
 
---- Get a label control from the footer (works for both direct property and named child)
+--[[
+Function: GetLabelControl
+Description: Retrieves a label control from the footer by name.
+Rationale: Footer controls can be accessed either as direct properties or via
+           GetNamedChild. This function handles both cases for compatibility.
+Mechanism: Tries direct property access first, falls back to GetNamedChild.
+param: footer (table) - The footer control object
+param: labelName (string) - Name of the label to retrieve
+return: control|nil - The label control or nil if not found
+]]
 local function GetLabelControl(footer, labelName)
     return footer[labelName] or footer:GetNamedChild(labelName)
 end
 
---- Update all currency labels with current values
+--[[
+Function: UpdateCurrencyLabels
+Description: Updates all currency labels in the footer with current values.
+Rationale: Called on refresh to sync footer display with current player currency amounts.
+Mechanism: Iterates through CURRENCY_DEFS, checks if API constant exists (for backwards
+           compatibility), checks user visibility settings, then formats and sets text.
+           Currencies with nil apiConst (e.g., Tome Points on old clients) are hidden.
+param: footer (table) - The footer control object
+param: invSettings (table) - Inventory settings containing currency visibility flags
+return: nil
+]]
 local function UpdateCurrencyLabels(footer, invSettings)
     for _, def in ipairs(CURRENCY_DEFS) do
         local label = GetLabelControl(footer, def.labelName)
         if label then
-            local enabled = invSettings[def.settingKey] ~= false
-            label:SetHidden(not enabled)
-            if enabled then
-                label:SetText(FormatCurrencyLabel(def, GetCurrencyValue(def)))
+            -- If the API constant is missing (e.g. Tome Points on old versions), force hide the label.
+            if def.apiConst == nil then
+                label:SetHidden(true)
+            else
+                local enabled = invSettings[def.settingKey] ~= false
+                label:SetHidden(not enabled)
+                if enabled then
+                    label:SetText(FormatCurrencyLabel(def, GetCurrencyValue(def)))
+                end
             end
         end
     end
