@@ -1,7 +1,6 @@
 # Default ignored files
 /.idea/
 /.images/
-/esoui/
 /.vscode/
 /.venv/
 /tools/
@@ -13,3 +12,25 @@
 # UN-ignore the skills directory and its contents for Antigravity
 !/.agent/skills/
 !/.agent/workflows/
+
+# Ignore the entire esoui directory by default
+/esoui/
+
+# UN-ignore the contents for AI model reference (Antigravity etc)
+!/esoui/app/
+!/esoui/appandingame/
+!/esoui/common/
+!/esoui/fontdefs/
+!/esoui/fontstrings/
+!/esoui/ingame/
+!/esoui/ingamelocalization/
+!/esoui/internalingame/
+!/esoui/internalingamelocalization/
+!/esoui/lang/
+!/esoui/libraries/
+!/esoui/overlay/
+!/esoui/pregame/
+!/esoui/pregameandingame/
+!/esoui/pregameandinternalingame/
+!/esoui/pregamelocalization/
+!/esoui/publicallingames/
