@@ -36,6 +36,7 @@ This skill defines the required standards for the BetterUI codebase. Adhering to
 *   **Performance**: Avoid expensive operations in `OnUpdate` handlers; use `zo_callLater` for deferred work.
 *   **Global Pollution**: Never add unintentional globals; use `local` for all file-level variables. For module-level constants, use the module's specific `Constants.lua` file. For shared or global constants, use `BetterUI.CONST.lua`.
 *   **API Compatibility**: Check for API existence before calling (e.g., `if GetTomePoints then ... end`).
+*   **esoui Reference Folder**: The `esoui/` directory contains ESO's in-game UI source code. Use it freely for API research, function signatures, and understanding game code patterns. **NEVER modify files within `esoui/`** — it is read-only reference material.
 
 ## Core Standards
 
