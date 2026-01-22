@@ -113,7 +113,7 @@ Add comments above complex `<Control>` definitions explaining their role.
 
 ### 3. TODO & FIXME Guidelines
 
-Use actionable, structured TODOs.
+Use actionable, structured TODOs. **Remove them once the described task is successfully implemented.**
 
 **Format:** `TODO(type): [Description]`
 
