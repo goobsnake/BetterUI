@@ -92,6 +92,29 @@ Used By: [Module.lua, Feature.lua]
 local MyTable = { ... }
 ```
 
+**Offset Constants (X/Y Positioning):**
+When defining any offset or positioning constants, always document the directional effect:
+
+```lua
+--[[
+Constant: BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX
+Description: Horizontal offset for the backbar ultimate button.
+Direction: Positive (+) moves RIGHT, Negative (-) moves LEFT.
+Used By: ResourceOrbFrames.lua
+]]
+backUltimateOffsetX = -10,
+
+--[[
+Constant: BETTERUI_ORB_FRAMES.bars.backUltimateOffsetY
+Description: Vertical offset for the backbar ultimate button.
+Direction: Positive (+) moves DOWN, Negative (-) moves UP.
+Used By: ResourceOrbFrames.lua
+]]
+backUltimateOffsetY = 5,
+```
+
+This allows future developers to tweak positioning without trial-and-error.
+
 ### 2. XML Documentation Standards
 
 XML files must include a header comment block at the very top.
@@ -143,6 +166,7 @@ Use actionable, structured TODOs. **Remove them once the described task is succe
 | Removing comments during refactoring | Update comments, don't delete them |
 | Not updating `Last Modified` date | Update the date in file headers |
 | Adding globals accidentally | Use `local` for all file-level variables |
+| Hardcoding magic numbers | Extract to `Constants.lua` or `BetterUI.CONST.lua` |
 
 ## Instructions for Contributors
 
@@ -160,3 +184,30 @@ Use actionable, structured TODOs. **Remove them once the described task is succe
 - **In-Game**: Addon loads without errors; feature works; no regressions.
 - **Documentation**: File headers up-to-date; function docs complete.
 - **Git Hygiene**: `git diff` shows only intended changes; no debug code.
+
+> **ESO Testing Note**: Since ESO addons cannot use automated test frameworks, verification relies on manual in-game testing. Use `d()` for temporary debugging output during development, but **always remove before committing**.
+
+## Related Skills
+
+These skills complement the development workflow:
+
+| Skill | When to Use |
+|-------|-------------|
+| `brainstorming` | Before creating new features |
+| `writing-plans` | Before touching code on multi-step tasks |
+| `executing-plans` | When implementing a written plan |
+| `dispatching-parallel-agents` | For 2+ independent implementation tasks |
+| `requesting-code-review` | After completing major features, before merging |
+| `systematic-debugging` | When encountering bugs or test failures |
+| `verification-before-completion` | Before claiming any task is complete |
+
+## Workflow Integration
+
+A complete development cycle chains these skills together:
+
+1. **Brainstorm** → Define requirements and design
+2. **Write Plan** → Detail implementation steps with TDD
+3. **Execute Plan** → Batch tasks with checkpoints
+4. **Dispatch Parallel Agents** → For independent phases
+5. **Request Code Review** → Before merging
+6. **Verify** → Before claiming completion
