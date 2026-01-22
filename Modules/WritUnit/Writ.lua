@@ -33,9 +33,9 @@ function BETTERUI.Writs.Get(qId)
 		local colour
 		if writLine ~= '' then
 			if current == maximum then
-				colour = BETTERUI.CONST.COLORS.WRIT_COMPLETE
+				colour = BETTERUI.Writs.CONST.COLORS.COMPLETE
 			else
-				colour = BETTERUI.CONST.COLORS.WRIT_INCOMPLETE
+				colour = BETTERUI.Writs.CONST.COLORS.INCOMPLETE
 			end
 			writLines[lineId] = {line=zo_strformat("|c<<1>><<2>>|r",colour,writLine),cur=current,max=maximum}
 		end

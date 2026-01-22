@@ -164,24 +164,18 @@ end
 --- Determines the base path for orb texture files.
 ---
 --- Supports custom textures by checking the useCustomTextures setting.
---- Default textures are in OrbTextures/, custom in CustomOrbTextures/.
+--- Default textures are in Textures/, custom in CustomTextures/.
 ---
 --- TODO(enhancement): Add validation that custom texture folder exists
 --- TODO(enhancement): Support additional texture sets (e.g., holiday themes)
 ---
 --- @return string Base path for texture files
---- Determines the base path for orb texture files.
----
---- Purpose: Supports texture themes (default vs custom).
---- Mechanics: checks 'useCustomTextures' setting.
----
---- @return string Base path for texture files
 local function GetTextureRootPath()
     local settings = GetModuleSettings()
     if settings.useCustomTextures then
-        return "BetterUI/Modules/GeneralInterface/CustomOrbTextures"
+        return "BetterUI/Modules/ResourceOrbFrames/CustomTextures"
     end
-    return "BetterUI/Modules/GeneralInterface/OrbTextures"
+    return "BetterUI/Modules/ResourceOrbFrames/Textures"
 end
 
 --- Resolves a texture filename to a full path.

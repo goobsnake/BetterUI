@@ -90,6 +90,21 @@ function BETTERUI.InitModuleOptions()
 		},
 		{
 			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_ORBS),
+			tooltip = GetString(SI_BETTERUI_ENABLE_ORBS_TOOLTIP),
+			getFunc = function() 
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+				return BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled 
+			end,
+			setFunc = function(value)
+				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then BETTERUI.Settings.Modules["ResourceOrbFrames"] = {} end
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled = value
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_WRITS),
 			tooltip = GetString(SI_BETTERUI_ENABLE_WRITS_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Writs"].m_enabled end,
@@ -310,6 +325,11 @@ function BETTERUI.LoadModules()
 		BETTERUI.Nameplates.Setup()
 	end
 
+	-- Initialize Resource Orb Frames module
+	if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
+		BETTERUI.ResourceOrbFrames.Setup()
+	end
+
 	ddebug("Finished! BETTERUI is loaded")
 	BETTERUI._initialized = true
 end
@@ -348,7 +368,7 @@ function BETTERUI.Initialize(event, addon)
 			{"Writs", BETTERUI.Writs},
 			{"Tooltips", BETTERUI.Tooltips},
 			{"Nameplates", BETTERUI.Nameplates},
-			{"Orbs", BETTERUI.Orbs}
+			{"ResourceOrbFrames", BETTERUI.ResourceOrbFrames}
 		}
 
 		for _, moduleInfo in ipairs(modules) do
@@ -362,12 +382,12 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.Settings.firstInstall = false
 	end
 
-	-- Ensure Orbs module settings exist for existing users (added in later update)
-	if BETTERUI.Settings.Modules["Orbs"] == nil then
-		BETTERUI.Settings.Modules["Orbs"] = {}
+	-- Ensure ResourceOrbFrames module settings exist for existing users
+	if BETTERUI.Settings.Modules["ResourceOrbFrames"] == nil then
+		BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
 	end
-	if BETTERUI.Orbs and BETTERUI.Orbs.InitModule then
-		BETTERUI.Orbs.InitModule(BETTERUI.Settings.Modules["Orbs"])
+	if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.InitModule then
+		BETTERUI.ResourceOrbFrames.InitModule(BETTERUI.Settings.Modules["ResourceOrbFrames"])
 	end
 
 	-- Unregister the initialization event

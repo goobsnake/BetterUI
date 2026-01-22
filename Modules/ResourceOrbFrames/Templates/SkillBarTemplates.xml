@@ -1,0 +1,215 @@
+<!--
+File: Modules/ResourceOrbFrames/Templates/SkillBarTemplates.xml
+Purpose: Defines skill bar button templates for the Resource Orb Frames module.
+         Includes BackBarButton, FrontBarButton, and FrontBarUltimate templates.
+-->
+<GuiXml>
+    <Controls>
+        <!-- ================================================================
+             BACK BAR BUTTON TEMPLATE
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_BackBarButton_Template" virtual="true">
+            <Dimensions x="64" y="64" />
+            <Controls>
+                <Texture name="$(parent)Icon" linkEnabled="true" layer="1">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                    textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
+                    <AnchorFill />
+                </Texture>
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH"
+                    verticalAlignment="1" horizontalAlignment="1" color="DCD822">
+                    <Anchor point="CENTER" relativePoint="CENTER" offsetY="11" />
+                </Label>
+                <Texture name="$(parent)Border"
+                    textureFile="esoui/art/actionbar/abilityframe64_up.dds" layer="2">
+                    <AnchorFill />
+                </Texture>
+                <Backdrop name="$(parent)Backdrop" inherits="ZO_DefaultBackdrop_Gamepad"
+                    hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Icon" offsetX="-4" offsetY="-4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" offsetX="4" offsetY="4" />
+                    <Edge file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_edge_semiTrans_16.dds"
+                        edgeFileWidth="128" edgeFileHeight="16" />
+                    <Center
+                        file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_semiTrans_16.dds" />
+                </Backdrop>
+            </Controls>
+        </Control>
+
+        <!-- ================================================================
+             FRONT BAR BUTTON TEMPLATE (Gamepad)
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_FrontBarButton_Gamepad_Template" virtual="true">
+            <Dimensions x="64" y="64" />
+            <Controls>
+                <Control name="$(parent)FlipCard">
+                    <Dimensions x="61" y="61" />
+                    <Anchor point="CENTER" />
+                </Control>
+                <Texture name="$(parent)Icon" layer="1">
+                    <Dimensions x="61" y="61" />
+                    <Anchor point="CENTER" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)UnusableOverlay" hidden="true" color="000000" alpha="0.65"
+                    layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)CooldownIcon" hidden="true" layer="1">
+                    <TextureCoords left="0" right="1" top="0" bottom="0" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)Icon" relativePoint="TOPRIGHT" />
+                </Texture>
+                <Texture name="$(parent)BG"
+                    textureFile="EsoUI/Art/ActionBar/abilityInset.dds"
+                    layer="0" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)Status"
+                    textureFile="EsoUI/Art/ActionBar/ActionSlot_toggledon.dds"
+                    tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)ActivationHighlight"
+                    textureFile="EsoUI/Art/ActionBar/abilityHighlightAnimation.dds"
+                    blendMode="ADD" tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)Glow"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_skillGlow.dds"
+                    tier="HIGH" hidden="true" alpha="0">
+                    <TextureCoords left="0.1875" right="0.8125" top="0.1875" bottom="0.8125" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-12"
+                        offsetY="-12" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="12"
+                        offsetY="12" />
+                </Texture>
+                <Cooldown name="$(parent)Cooldown" inherits="ZO_DefaultCooldown"
+                    tier="HIGH" alpha="0.7" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Cooldown>
+                <Texture name="$(parent)CooldownEdge"
+                    textureFile="EsoUI/Art/ActionBar/Gamepad/gp_QuickslotFill.dds"
+                    layer="2" hidden="true">
+                    <Dimensions y="8" />
+                </Texture>
+                <Texture name="$(parent)CooldownCompleteAnimation"
+                    textureFile="EsoUI/Art/ActionBar/coolDown_completeEFX.dds"
+                    blendMode="ADD" tier="HIGH" hidden="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Label name="$(parent)ButtonText" font="ZoFontGamepad18"
+                    horizontalAlignment="CENTER" verticalAlignment="TOP" tier="HIGH">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="TOP" relativePoint="BOTTOM" offsetY="-6" />
+                </Label>
+                <Label name="$(parent)TimerText" font="ZoFontGamepad27" color="DCD822"
+                    horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH"
+                    hidden="true">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="CENTER" offsetY="4" />
+                </Label>
+                <Label name="$(parent)StackCountText" font="ZoFontGamepad27" color="DCD822"
+                    horizontalAlignment="CENTER" verticalAlignment="CENTER" tier="HIGH"
+                    hidden="true">
+                    <Dimensions x="0" y="25" />
+                    <Anchor point="CENTER" offsetX="23" offsetY="-20" />
+                </Label>
+                <Label name="$(parent)CountText" font="ZoFontGamepadBold27" tier="HIGH">
+                    <Anchor point="BOTTOMRIGHT" offsetX="-4" />
+                </Label>
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                    textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH" color="DCD822"
+                    verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" offsetY="0" />
+                </Label>
+                <Backdrop name="$(parent)Backdrop" inherits="ZO_DefaultBackdrop_Gamepad">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-4" offsetY="-4" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="4"
+                        offsetY="4" />
+                    <Edge file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_edge_semiTrans_16.dds"
+                        edgeFileWidth="128" edgeFileHeight="16" />
+                    <Center
+                        file="EsoUI/Art/Miscellaneous/Gamepad/gp_toolTip_center_semiTrans_16.dds" />
+                </Backdrop>
+            </Controls>
+        </Control>
+
+        <!-- ================================================================
+             FRONT BAR ULTIMATE BUTTON TEMPLATE (Gamepad)
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template"
+            inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template" virtual="true">
+            <Dimensions x="70" y="70" />
+            <Controls>
+                <Control name="$(parent)FlipCard" override="true">
+                    <Dimensions x="67" y="67" />
+                </Control>
+                <Texture name="$(parent)FillAnimationLeft" layer="2"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds">
+                    <Dimensions x="71" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-37"
+                        offsetY="-36" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)FlipCard" offsetX="-37"
+                        offsetY="36" />
+                </Texture>
+                <Texture name="$(parent)FillAnimationRight" layer="2"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateFill_512.dds">
+                    <Dimensions x="71" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="33"
+                        offsetY="-36" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)FlipCard" offsetX="33"
+                        offsetY="36" />
+                </Texture>
+                <Texture name="$(parent)LeftKeybind" tier="HIGH"
+                    textureFile="EsoUI/Art/Buttons/Gamepad/gp_leftShoulder.dds">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="TOPRIGHT" relativePoint="BOTTOMLEFT" offsetY="-18" />
+                </Texture>
+                <Texture name="$(parent)RightKeybind" tier="HIGH"
+                    textureFile="EsoUI/Art/Buttons/Gamepad/gp_rightShoulder.dds">
+                    <Dimensions x="40" y="40" />
+                    <Anchor point="TOPLEFT" relativePoint="BOTTOMRIGHT" offsetY="-18" />
+                </Texture>
+                <Texture name="$(parent)ReadyBurst"
+                    textureFile="EsoUI/Art/ActionBar/coolDown_completeEFX.dds"
+                    blendMode="ADD" hidden="true" layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)ReadyLoop"
+                    textureFile="EsoUI/Art/ActionBar/abilityHighlight_mage_med.dds"
+                    blendMode="ADD" hidden="true" layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)Glow" override="true"
+                    textureFile="EsoUI/Art/HUD/Gamepad/gp_UltimateGlow.dds">
+                    <TextureCoords left="0.1171875" right="0.8828125" top="0.1171875"
+                        bottom="0.8828125" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" offsetX="-19"
+                        offsetY="-19" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" offsetX="19"
+                        offsetY="19" />
+                </Texture>
+                <Label name="$(parent)UltimateText" hidden="true" font="ZoFontGamepad27"
+                    tier="HIGH" verticalAlignment="CENTER" horizontalAlignment="CENTER">
+                    <Anchor point="CENTER" offsetY="0" />
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

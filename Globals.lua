@@ -48,6 +48,7 @@ BETTERUI.Banking = {
 
 BETTERUI.Tooltips = {}   -- Tooltip enhancements (pricing, traits)
 BETTERUI.Nameplates = {} -- Enhanced nameplate customization
+BETTERUI.ResourceOrbFrames = {} -- Custom ARPG-style resource orbs
 
 -- Settings storage
 BETTERUI.Settings = {}

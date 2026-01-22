@@ -1,0 +1,304 @@
+<!--
+File: Modules/ResourceOrbFrames/Templates/ResourceOrbFrames.xml
+Purpose: Main TopLevelControl for the Resource Orb Frames feature.
+         Contains orb containers, skill bar containers, and ornament textures.
+-->
+<GuiXml>
+    <Controls>
+        <!-- ================================================================
+             MAIN RESOURCE ORB FRAMES CONTROL
+             ================================================================ -->
+        <TopLevelControl name="ResourceOrbFrames">
+            <Anchor point="BOTTOM" relativeTo="$(parent)" relativePoint="BOTTOM" offsetX="0"
+                offsetY="0" />
+            <OnInitialized>
+                ResourceOrbFrames_Initialize(self)
+            </OnInitialized>
+            <Controls>
+
+                <!-- BgMiddle: Central layout container -->
+                <Control name="$(parent)BgMiddle" layer="1" level="0">
+                    <Dimensions y="256" />
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
+                        offsetX="0" offsetY="0" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
+                        offsetX="0" offsetY="0" />
+
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="0" offsetY="-13" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-13" />
+                        </Control>
+
+                        <Control name="$(grandparent)BackBarContainer" hidden="true">
+                            <Dimensions x="260" y="50" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-65" />
+                            <Controls>
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"
+                                        offsetX="0" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button6"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                                </Control>
+                            </Controls>
+                        </Control>
+
+                        <Control name="$(grandparent)FrontBarContainer" hidden="true">
+                            <Dimensions x="450" y="70" />
+                            <Anchor point="BOTTOM" relativeTo="$(parent)"
+                                relativePoint="BOTTOM" offsetX="0" offsetY="-15" />
+                            <Controls>
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="10" />
+                                </Control>
+                                <Control name="$(parent)UltimateButton"
+                                    inherits="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" />
+                                </Control>
+                                <Control name="$(parent)QuickslotButton"
+                                    inherits="ResourceOrbFrames_FrontBarButton_Gamepad_Template">
+                                    <!-- Anchor set dynamically in Lua -->
+                                </Control>
+                                <Control name="$(parent)CompanionButton" hidden="true"
+                                    inherits="ResourceOrbFrames_FrontBarUltimate_Gamepad_Template">
+                                    <!-- Anchor set dynamically in Lua -->
+                                </Control>
+
+                                <Texture name="$(parent)CombatGlow" hidden="true" alpha="0"
+                                    textureFile="EsoUI/Art/HUD/Gamepad/gp_skillGlow.dds"
+                                    blendMode="ADD" tier="LOW">
+                                    <TextureCoords left="0" right="1" top="0" bottom="1" />
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="-20"
+                                        offsetY="-20" />
+                                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetX="20"
+                                        offsetY="20" />
+                                </Texture>
+
+                                <Texture name="$(parent)CombatIcon" hidden="true"
+                                    textureFile="EsoUI/Art/Miscellaneous/Gamepad/gp_playerStatus_inCombat.dds"
+                                    tier="HIGH">
+                                    <Dimensions x="32" y="32" />
+                                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                        relativePoint="TOPLEFT" offsetX="0" offsetY="-5" />
+                                </Texture>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Texture name="$(parent)OrnamentLeft"
+                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrnamentLeft.dds"
+                    layer="1" level="501">
+                    <Dimensions x="465" y="465" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbHealth"
+                        relativePoint="CENTER" offsetX="-135" offsetY="-85" />
+                </Texture>
+
+                <Texture name="$(parent)OrnamentRight"
+                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrnamentRight.dds"
+                    layer="1" level="501">
+                    <Dimensions x="480" y="480" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbResource"
+                        relativePoint="CENTER" offsetX="0" offsetY="0" />
+                </Texture>
+
+                <StatusBar name="$(parent)FoodBar" color="ba4d09" mouseEnabled="true" layer="0"
+                    level="1">
+                    <Limits min="0" max="100" />
+                    <Dimensions y="8" />
+                    <OnInitialized>
+                        self:SetValue(99)
+                        self.ttt = nil
+                    </OnInitialized>
+                    <OnMouseEnter>
+                        if self.ttt ~= nil then
+                        InitializeTooltip(InformationTooltip, self, CENTER, 0, -35, CENTER)
+                        SetTooltipText(InformationTooltip, self.ttt)
+                        end
+                    </OnMouseEnter>
+                    <OnMouseExit>
+                        ClearTooltip(InformationTooltip)
+                    </OnMouseExit>
+                </StatusBar>
+
+                <Control name="$(parent)OrbHealth">
+                    <Dimensions x="240" y="240" />
+                    <Controls>
+                        <Texture name="$(parent)Fog2" color="4d0000"
+                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                            layer="1" level="3">
+                            <AnchorFill />
+                            <Dimensions x="240" y="240" />
+                            <TextureCoords left="0" right="1" top="0" bottom="1" />
+                        </Texture>
+                        <Texture name="$(parent)Fog" color="ff0000"
+                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                            layer="1" level="4">
+                            <AnchorFill />
+                            <Dimensions x="240" y="240" />
+                            <TextureCoords left="0" right="1" top="0" bottom="1" />
+                        </Texture>
+                        <Texture name="$(parent)Border"
+                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbBorder.dds"
+                            layer="1" level="7">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
+                            <Dimensions x="256" y="256" />
+                        </Texture>
+                        <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
+                                offsetX="0" offsetY="0" />
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)OrbShield">
+                    <Dimensions x="150" y="150" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbHealth" relativePoint="CENTER" />
+                    <Controls>
+                        <Texture name="$(parent)Fog" color="00ffff"
+                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbOverlay_Shield.dds"
+                            layer="1" level="6">
+                            <AnchorFill />
+                            <Dimensions x="150" y="150" />
+                        </Texture>
+                        <Label name="$(parent)Label" font="ZoFontGame" layer="1"
+                            level="20" color="00ffff"
+                            verticalAlignment="1" horizontalAlignment="1">
+                            <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
+                                offsetX="12" offsetY="25" />
+                        </Label>
+                        <Texture name="$(parent)ShieldIcon"
+                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/Shield.dds"
+                            tier="HIGH"
+                            layer="1" level="21">
+                            <Dimensions x="32" y="32" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)Label" relativePoint="LEFT"
+                                offsetX="3" offsetY="-3" />
+                        </Texture>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)OrbResource">
+                    <Dimensions x="150" y="150" />
+                    <Controls>
+                        <Control name="$(grandparent)OrbMagicka">
+                            <AnchorFill />
+                            <Controls>
+                                <Texture name="$(parent)Fog2" color="000033"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                                    layer="1" level="3">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="0"
+                                        offsetY="0" />
+                                    <Dimensions x="75" y="150" />
+                                    <TextureCoords left="0" right="0.5" top="0" bottom="1" />
+                                </Texture>
+                                <Texture name="$(parent)Fog" color="0066ff"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                                    layer="1" level="4">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="0"
+                                        offsetY="0" />
+                                    <Dimensions x="75" y="150" />
+                                    <TextureCoords left="0" right="0.5" top="0" bottom="1" />
+                                </Texture>
+                                <Texture name="$(parent)Border"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbBorder.dds"
+                                    layer="1" level="9">
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" />
+                                    <Dimensions x="256" y="256" />
+                                </Texture>
+                                <Texture name="$(parent)Divide"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbSplitter.dds"
+                                    layer="1" level="8">
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" />
+                                    <Dimensions x="256" y="256" />
+                                </Texture>
+                                <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" offsetX="-65" />
+                                </Control>
+                            </Controls>
+                        </Control>
+
+                        <Control name="$(grandparent)OrbStamina">
+                            <AnchorFill />
+                            <Controls>
+                                <Texture name="$(parent)Fog2" color="004d00"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                                    layer="1" level="3">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="75"
+                                        offsetY="0" />
+                                    <Dimensions x="75" y="150" />
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
+                                </Texture>
+                                <Texture name="$(parent)Fog" color="00ff00"
+                                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbFill.dds"
+                                    layer="1" level="4">
+                                    <Anchor point="TOPLEFT" relativeTo="$(parent)" offsetX="75"
+                                        offsetY="0" />
+                                    <Dimensions x="75" y="150" />
+                                    <TextureCoords left="0.5" right="0" top="0" bottom="1" />
+                                </Texture>
+                                <Control inherits="ResourceOrbFrames_OrbLabel_Template">
+                                    <Anchor point="CENTER" relativeTo="$(parent)"
+                                        relativePoint="CENTER" offsetX="65" />
+                                </Control>
+                            </Controls>
+                        </Control>
+
+                    </Controls>
+                </Control>
+            </Controls>
+        </TopLevelControl>
+    </Controls>
+</GuiXml>

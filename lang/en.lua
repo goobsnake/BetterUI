@@ -130,7 +130,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Enable |c0066FFEnhanced Inven
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Completely redesigns the gamepad's inventory interface")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the gamepad's banking interface")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writ module|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Common Interface Module")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "Enables added functionality to the completely redesigned \"Enhanced\" interfaces!")
@@ -351,6 +351,13 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Number of lines to skip on trigge
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip font size")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Allows more or less item information to be displayed at once in tooltips")
+
+-- Resource Orb Frames
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Enable Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Replaces default attribute bars with ARPG-style orbs.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
 
 -- Skill Bars Settings (ResourceOrbFrames)
 ZO_CreateStringId("SI_BETTERUI_SKILL_BARS_SUBMENU", "Skill Bars")

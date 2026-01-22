@@ -1,0 +1,21 @@
+<!--
+File: Modules/ResourceOrbFrames/Templates/OrbTemplates.xml
+Purpose: Defines the label template for resource orb displays.
+         Used for Health, Magicka, Stamina, and Shield labels.
+-->
+<GuiXml>
+    <Controls>
+        <!-- ================================================================
+             ORB LABEL TEMPLATE
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_OrbLabel_Template" virtual="true">
+            <Dimensions x="50" y="50" />
+            <Controls>
+                <Label name="$(grandparent)Label" font="ZoFontGame" layer="1" level="20"
+                    verticalAlignment="1" horizontalAlignment="1">
+                    <AnchorFill />
+                </Label>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

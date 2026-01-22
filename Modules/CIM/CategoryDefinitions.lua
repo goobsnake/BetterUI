@@ -1,5 +1,5 @@
 --[[
-File: Modules/Shared/CategoryDefinitions.lua
+File: Modules/CIM/CategoryDefinitions.lua
 Purpose: Centralized configuration for inventory categories and craft bag filters.
          Used by Inventory module to populate category lists dynamically instead of
          hardcoding definitions in multiple places.

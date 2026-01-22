@@ -1,0 +1,125 @@
+<!--
+File: Modules/ResourceOrbFrames/Templates/LayoutTemplates.xml
+Purpose: Defines layout templates for Keyboard and Gamepad modes.
+         Contains ResourceOrbFrames_Double_Keyboard and ResourceOrbFrames_Double_Gamepad.
+-->
+<GuiXml>
+    <Controls>
+        <!-- ================================================================
+             KEYBOARD LAYOUT TEMPLATE
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_Double_Keyboard" virtual="true">
+            <Dimensions x="600" y="256" />
+            <Controls>
+                <Control name="$(parent)BgMiddle">
+                    <Dimensions x="550" y="100" />
+                    <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER" />
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-58" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-58" />
+                        </Control>
+
+                        <Control name="$(grandparent)BackBarContainer" hidden="true">
+                            <Dimensions x="260" y="50" />
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="10" offsetY="-110" />
+                            <Controls>
+                                <Control name="$(parent)Button1"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="LEFT"
+                                        offsetX="0" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button2"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button1"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button3"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button2"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button4"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button3"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button5"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button4"
+                                        relativePoint="RIGHT" offsetX="2" offsetY="0" />
+                                </Control>
+                                <Control name="$(parent)Button6"
+                                    inherits="ResourceOrbFrames_BackBarButton_Template">
+                                    <Anchor point="LEFT" relativeTo="$(parent)Button5"
+                                        relativePoint="RIGHT" offsetX="20" offsetY="0" />
+                                </Control>
+                            </Controls>
+                        </Control>
+                    </Controls>
+                </Control>
+
+                <Control name="$(parent)OrbHealth">
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMLEFT" offsetX="-30" offsetY="-16" />
+                </Control>
+
+                <Control name="$(parent)OrbResource">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMRIGHT" offsetX="30" offsetY="-17" />
+                </Control>
+
+                <Texture name="$(parent)OrnamentLeft"
+                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrnamentLeft.dds"
+                    layer="1" level="501">
+                    <Dimensions x="465" y="465" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbHealth"
+                        relativePoint="CENTER" offsetX="0" offsetY="0" />
+                </Texture>
+
+                <Texture name="$(parent)OrnamentRight"
+                    textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrnamentRight.dds"
+                    layer="1" level="501">
+                    <Dimensions x="480" y="480" />
+                    <Anchor point="CENTER" relativeTo="$(parent)OrbResource"
+                        relativePoint="CENTER" offsetX="0" offsetY="0" />
+                </Texture>
+
+                <StatusBar name="$(parent)FoodBar">
+                    <Anchor point="BOTTOMLEFT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMLEFT" offsetX="7" offsetY="-114" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)BgMiddle"
+                        relativePoint="BOTTOMRIGHT" offsetX="-7" offsetY="-114" />
+                </StatusBar>
+            </Controls>
+        </Control>
+
+        <!-- ================================================================
+             GAMEPAD LAYOUT TEMPLATE
+             ================================================================ -->
+        <Control name="ResourceOrbFrames_Double_Gamepad"
+            inherits="ResourceOrbFrames_Double_Keyboard"
+            virtual="true">
+            <Dimensions x="650" y="256" />
+            <Controls>
+                <Control name="$(parent)BgMiddle">
+                    <Controls>
+                        <Control name="$(grandparent)ActionBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="3" offsetY="-73" />
+                            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="-73" />
+                        </Control>
+                        <Control name="$(grandparent)BackBarContainer">
+                            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="3" offsetY="-125" />
+                        </Control>
+                    </Controls>
+                </Control>
+            </Controls>
+        </Control>
+    </Controls>
+</GuiXml>

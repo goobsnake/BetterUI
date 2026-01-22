@@ -19,13 +19,11 @@ local _
 --- Initializes the Writs module settings.
 ---
 --- Purpose: Callback for module initialization.
---- Mechanics: Currently a pass-through; placeholder for future settings overrides.
+--- Mechanics: Pass-through; module is controlled by Master Settings m_enabled.
 ---
 --- @param m_options table The module options table.
 --- @return table The initialized options table.
 function BETTERUI.Writs.InitModule(m_options)
-    -- Default to enabled if not specified
-    if m_options.enabled == nil then m_options.enabled = true end
     return m_options
 end
 
@@ -39,7 +37,7 @@ end
 --- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 --- @param sameStation boolean Whether interacting with same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
-    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].enabled then
+    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
         BETTERUI.Writs.Show(tonumber(craftId))
     end
 end
@@ -63,7 +61,7 @@ end
 --- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
-    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].enabled then
+    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
         BETTERUI.Writs.Show(tonumber(craftId))
     end
 end
