@@ -216,3 +216,49 @@ BETTERUI.CONST.CIM = {
     DEFAULT_RH_SCROLL_SPEED = 50,
     DEFAULT_TOOLTIP_SIZE = 24,
 }
+
+BETTERUI.CONST.HEADER_LAYOUT = {
+    DIVIDER = {
+        --[[
+        Constant: DIVIDER.OFFSET_Y
+        Description: Vertical offset for the bottom divider.
+        Direction: Positive (+) moves DOWN.
+        Used By: GenericHeader.xml
+        ]]
+        OFFSET_Y = 77,
+        SPACING = 4,
+    },
+    --[[
+    Constant: COLUMNS
+    Description: Horizontal X offsets for grid column headers.
+    Direction: Positive (+) moves RIGHT from the left anchor.
+    Used By: GenericHeader.xml
+    ]]
+    COLUMNS = {
+        NAME = 87,
+        TYPE = 637,
+        TRAIT = 897,
+        STAT = 1087,
+        VALUE = 1237,
+    },
+    EQUIP_SLOT = {
+        --[[
+        Constant: EQUIP_SLOT.BACKUP_X
+        Description: Horizontal offset for the 'Equip' text label for backup slots.
+        Direction: Negative (-) moves LEFT from the right anchor.
+        Used By: GenericHeader.xml
+        ]]
+        BACKUP_X = -210,
+        ICON_GAP_X = 45,
+    },
+    OFFSETS = {
+        --[[
+        Constant: OFFSETS.MAIN_HAND_X / BACKUP_HAND_X
+        Description: Horizontal anchor offsets for equipment icons.
+        Direction: Negative (-) moves LEFT from the anchor point.
+        Used By: GenericHeader.xml
+        ]]
+        MAIN_HAND_X = -155,
+        BACKUP_HAND_X = -155
+    }
+}

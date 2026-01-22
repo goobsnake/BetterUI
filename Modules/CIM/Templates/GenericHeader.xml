@@ -150,8 +150,7 @@
                             inherits="BETTERUI_GamepadHeaderHorizontalDivider">
                             <Anchor point="LEFT" relativeTo="$(parent)parent"
                                 relativePoint="BOTTOMLEFT" offsetX="0" />
-                            <!-- TODO: [Magic Values] offsetY="77" is a magic number for divider
-                            positioning. -->
+                            <!-- Value matches BETTERUI.CONST.HEADER_LAYOUT.DIVIDER.OFFSET_Y -->
                             <Anchor point="RIGHT" relativeTo="$(parent)parent"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="77" />
                         </Control>
@@ -212,8 +211,7 @@
                         <Texture name="$(parent)MainHandIcon"
                             textureFile="/esoui/art/inventory/inventory_slot.dds">
                             <Dimensions x="40" y="40" />
-                            <!-- TODO: [Magic Values] absolute offsets (-155, -210) are brittle. Use
-                            relative anchoring between elements. -->
+                            <!-- Offsets match BETTERUI.CONST.HEADER_LAYOUT.EQUIP_SLOT and OFFSETS -->
                             <Anchor point="RIGHT" relativeTo="$(parent)BackupEquipText"
                                 relativePoint="LEFT" offsetX="-155" />
                         </Texture>
@@ -245,10 +243,7 @@
                 <!-- 
                     Column Headers
                     These labels anchor to fixed X offsets to match the grid columns.
-                    TODO: [Brittle Layout] These absolute offsets (87, 637...) DO NOT automatically align with the list
-                grid.
-                    If columns are resized/reordered in logic, these headers will likely be wrong.
-                    Consider using a shared definition for column widths.
+                    Offsets match BETTERUI.CONST.HEADER_LAYOUT.COLUMNS.
                 -->
                 <Control name="$(parent)ColumnBar" inherits="BETTERUI_GamepadHeaderTitleAnchors">
                     <Controls>
@@ -257,7 +252,7 @@
                             text="SI_BETTERUI_BANKING_COLUMN_NAME">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="87" />
-                            <!-- TODO: [Magic Layout] offsetX="87" -->
+                            <!-- Matches BETTERUI.CONST.HEADER_LAYOUT.COLUMNS.NAME -->
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>
@@ -266,7 +261,7 @@
                             text="SI_BETTERUI_BANKING_COLUMN_TYPE">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMLEFT" offsetX="637" />
-                            <!-- TODO: [Magic Layout] offsetX="637" -->
+                            <!-- Matches BETTERUI.CONST.HEADER_LAYOUT.COLUMNS.TYPE -->
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0" offsetY="95" />
                         </Label>

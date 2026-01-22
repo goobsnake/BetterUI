@@ -107,7 +107,7 @@ Mechanism:
   - Ensures clean fades at the edges of the scroll area.
 param: ... (any) - Arguments passed to ZO_ParametricScrollList:New.
 return: table - The new list instance.
-TODO: [Performance] EnsureValidGradient is called frequently; consider caching calculations.
+
 ]]
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
@@ -115,6 +115,16 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     -- Override EnsureValidGradient to provide custom fade behavior
     list.EnsureValidGradient = function(self)
         if self.validateGradient and self.validGradientDirty then
+            -- Cache key based on inputs
+            local listHeight = self.scrollControl:GetHeight()
+            local centerOffset = self.fixedCenterOffset
+
+            -- Optimization: Skip recalculation if dimensions haven't changed
+            if self._gradientCacheHeight == listHeight and self._gradientCacheOffset == centerOffset then
+                self.validGradientDirty = false
+                return 
+            end
+
             if self.mode == PARAMETRIC_SCROLL_LIST_VERTICAL then
                 local listStart = GetStartOfControl(self.mode, self.scrollControl)
                 local listEnd = GetEndOfControl(self.mode, self.scrollControl)
@@ -157,6 +167,10 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                 
                 self.scrollControl:SetFadeGradient(FIRST_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_1, gradientStartSize)
                 self.scrollControl:SetFadeGradient(SECOND_FADE_GRADIENT, GRADIENT_TEX_CORD_0, GRADIENT_TEX_CORD_NEG_1, gradientEndSize)
+                
+                -- Update cache
+                self._gradientCacheHeight = listHeight
+                self._gradientCacheOffset = centerOffset
             end
             self.validGradientDirty = false
         end

@@ -74,78 +74,15 @@ local ORB_CONFIG = {
 -- This section contains helper functions used throughout the module. These are general-purpose
 -- utilities that don't directly modify UI state but support other operations.
 --
--- TODO(refactor): Consider moving these utilities to a shared utilities module
---                 (e.g., BetterUI/Shared/ControlUtils.lua) since FindControl is used
---                 by multiple modules.
 -------------------------------------------------------------------------------------------------
 
---- Cache for control lookups to avoid repeated parent-chain traversals.
-local ControlCache = {}
 
---- Clears the control lookup cache.
---- Rationale: Call this when the UI layout is rebuilt or m_rootFrame changes.
-local function InvalidateControlCache()
-    ControlCache = {}
+local function FindControl(parent, name)
+    return BETTERUI.ControlUtils.FindControl(parent, name)
 end
 
---- Finds a control by name, handling ESO's complex naming conventions.
----
---- Purpose: Robust control lookup traversing parent hierarchies with caching.
---- Mechanics:
---- 1. Checks `ControlCache` for a hit.
---- 2. Checks direct child (`GetNamedChild`).
---- 3. Walks up 6 levels of parents, checking for global name matches (`ParentName..Name`).
---- 4. Falls back to global `_G[name]`.
---- 5. Stores result in cache.
----
---- References: Used pervasively in this module to find XML-defined controls.
----
---- @param parent Control The parent control to search from
---- @param name string The short name of the control to find (e.g., "Icon", "Button1")
---- @return Control|nil The found control, or nil if not found
-local function FindControl(parent, name)
-    if not parent then return nil end
-
-    -- Check cache first
-    local cacheKey = tostring(parent) .. "|" .. name
-    if ControlCache[cacheKey] then
-        return ControlCache[cacheKey]
-    end
-
-    -- First try to grab a direct child with the given short name
-    local child = parent:GetNamedChild(name)
-    if child then 
-        ControlCache[cacheKey] = child
-        return child 
-    end
-
-    -- Try global by several possible name prefixes.
-    local probe = parent
-    local guards = 0
-    while probe ~= nil and guards < 6 do
-        local globalName = probe:GetName() .. name
-        local ctrl = _G[globalName]
-        if ctrl ~= nil then 
-            ControlCache[cacheKey] = ctrl
-            return ctrl 
-        end
-        -- Move to the next ancestor.
-        if probe.GetParent then
-            probe = probe:GetParent()
-        else
-            probe = nil
-        end
-        guards = guards + 1
-    end
-
-    -- Fall back to direct global name (name without prefix)
-    local globalCtrl = _G[name]
-    if globalCtrl then 
-        ControlCache[cacheKey] = globalCtrl
-        return globalCtrl 
-    end
-
-    return nil
+local function InvalidateControlCache()
+    BETTERUI.ControlUtils.InvalidateControlCache()
 end
 
 --- Retrieves the current settings for the ResourceOrbFrames module.
@@ -166,7 +103,8 @@ end
 --- Supports custom textures by checking the useCustomTextures setting.
 --- Default textures are in Textures/, custom in CustomTextures/.
 ---
---- TODO(enhancement): Add validation that custom texture folder exists
+--- Note: Custom texture folder validation is not possible via API.
+--- User must ensure 'BetterUI/Modules/ResourceOrbFrames/CustomTextures' exists.
 --- TODO(enhancement): Support additional texture sets (e.g., holiday themes)
 ---
 --- @return string Base path for texture files
@@ -679,7 +617,7 @@ local LAYOUT_CONFIG = {
 --   - Swapping changes which bar is "front" vs "back"
 --
 -- TODO(enhancement): Add animation when weapon swap occurs
--- TODO(optimization): Only update changed slots, not all 6
+-- TODO(enhancement): Add animation when weapon swap occurs
 -------------------------------------------------------------------------------------------------
 
 --- Checks if the player has unlocked weapon swap (requires level 15).
@@ -701,6 +639,8 @@ end
 ---   ESO slot indices: 1-2 are reserved, 3-7 are skills, 8 is ultimate
 ---
 --- @param rootFrame Control The root control frame
+local m_lastBackBarState = {}
+
 local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -727,27 +667,34 @@ local function UpdateBackBar(rootFrame)
             local iconControl = FindControl(btn, 'Icon')
             local icon = GetSlotTexture(slotIndex, backBarCategory)
             
-            if iconControl then
-                if icon and icon ~= '' then
-                    iconControl:SetTexture(icon)
-                    iconControl:SetHidden(false)
-                    -- Apply dimming opacity to icon
-                    iconControl:SetAlpha(backBarOpacity)
-                else
-                    iconControl:SetHidden(true)
+            -- Optimization: Only update if icon/context changed
+            local cacheKey = slotIndex .. "_" .. backBarCategory
+            local needsUpdate = (m_lastBackBarState[cacheKey] ~= icon)
+            
+            if needsUpdate then
+                m_lastBackBarState[cacheKey] = icon
+                if iconControl then
+                    if icon and icon ~= '' then
+                        iconControl:SetTexture(icon)
+                        iconControl:SetHidden(false)
+                        -- Apply dimming opacity to icon
+                        iconControl:SetAlpha(backBarOpacity)
+                    else
+                        iconControl:SetHidden(true)
+                    end
                 end
+                
+                -- Also apply opacity to backdrop and border for consistent dimming
+                local backdrop = btn:GetNamedChild("Backdrop")
+                if backdrop then backdrop:SetAlpha(backBarOpacity) end
+                
+                local border = btn:GetNamedChild("Border")
+                if border then border:SetAlpha(backBarOpacity) end
+                
+                -- Store slot reference for tooltips
+                btn.slotIndex = slotIndex
+                btn.hotbarCategory = backBarCategory
             end
-            
-            -- Also apply opacity to backdrop and border for consistent dimming
-            local backdrop = btn:GetNamedChild("Backdrop")
-            if backdrop then backdrop:SetAlpha(backBarOpacity) end
-            
-            local border = btn:GetNamedChild("Border")
-            if border then border:SetAlpha(backBarOpacity) end
-            
-            -- Store slot reference for tooltips
-            btn.slotIndex = slotIndex
-            btn.hotbarCategory = backBarCategory
         end
     end
     

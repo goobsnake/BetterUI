@@ -102,7 +102,7 @@ end
 --   - MM (Master Merchant): Guild store sales history
 --   - ATT (Arkadius Trade Tools): Alternative sales tracker
 --
--- TODO(refactor): The three addon integrations are very similar - extract to reusable function
+
 -- TODO(enhancement): Add support for additional trading addons (e.g., Pricey)
 -------------------------------------------------------------------------------------------------
 -- HELPERS

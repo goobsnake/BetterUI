@@ -156,6 +156,7 @@ Use actionable, structured TODOs. **Remove them once the described task is succe
     *   Locals: `camelCase`
 *   **Safety**: Always nil-check deeply nested tables before access.
 *   **Consistency**: Respect existing patterns unless actively refactoring.
+*   **Shared Code**: Any refactored code deemed "shared" across modules must go into the **CIM (Common Interface Module)** at `Modules/CIM/`. **Do NOT create new "Shared" folders.**
 
 ## Common Mistakes
 
@@ -196,8 +197,10 @@ These skills complement the development workflow:
 | `brainstorming` | Before creating new features |
 | `writing-plans` | Before touching code on multi-step tasks |
 | `executing-plans` | When implementing a written plan |
+| `subagent-driven-development` | For executing independent tasks in current session |
 | `dispatching-parallel-agents` | For 2+ independent implementation tasks |
 | `requesting-code-review` | After completing major features, before merging |
+| `receiving-code-review` | When addressing feedback from reviews |
 | `systematic-debugging` | When encountering bugs or test failures |
 | `verification-before-completion` | Before claiming any task is complete |
 
@@ -207,7 +210,15 @@ A complete development cycle chains these skills together:
 
 1. **Brainstorm** → Define requirements and design
 2. **Write Plan** → Detail implementation steps with TDD
-3. **Execute Plan** → Batch tasks with checkpoints
+3. **Execute Plan** → Batch tasks with checkpoints, using `subagent-driven-development` where appropriate
 4. **Dispatch Parallel Agents** → For independent phases
 5. **Request Code Review** → Before merging
-6. **Verify** → Before claiming completion
+6. **Receive Code Review** → Address feedback critically
+7. **Verify** → Before claiming completion
+
+### Implementation Plans & Task Status
+When creating implementation plans:
+- **Presentation**: Explicitly list which Applicable Workflows will be used (e.g., "Using `subagent-driven-development` for Phase 1").
+- **Task Detail**: Every generated task must include both a **Status** (To Do / In Progress / Done) and **Detail** (what specifically will be done).
+  - *Bad*: `- [ ] Fix bug`
+  - *Good*: `- [ ] [To Do] Fix nil reference in Inventory.lua:L123 by adding safety check`
