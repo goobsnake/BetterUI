@@ -237,15 +237,11 @@ When creating implementation plans:
 
 **CRITICAL**: When a workflow or major task sequence concludes, you **MUST** generate and present the following **individual artifact files** for the User to review. Do not combine these into a single message or file.
 
-### 1. `implementation_plan.md`
--   **Purpose**: The final state of the plan with all tasks marked as `[x]`.
--   **Content**: Ensure the plan reflects reality. If steps were skipped or added, the plan should show this history.
-
-### 2. `task.md`
+### 1. `task.md`
 -   **Purpose**: The granular checklist of executed actions.
 -   **Content**: All items should be valid and checked off.
 
-### 3. `code_review.md`
+### 2. `code_review.md`
 -   **Purpose**: A dedicated Code Review & Corrective Action Report.
 -   **Content**:
     -   **Self-Correction Report**: Summarize any deviations from the original plan.
@@ -257,7 +253,7 @@ When creating implementation plans:
         -   Consistency with project style.
         -   Compliance with the specific standards in this skill.
 
-### 4. `verification_plan.md`
+### 3. `verification_plan.md`
 -   **Purpose**: A standalone user-facing report for verifying the changes.
 -   **Content**:
     -   **Reproduction Steps**: How to trigger or exercise the new/fixed functionality.
