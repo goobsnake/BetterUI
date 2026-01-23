@@ -1,9 +1,5 @@
 -- BetterUI English Localization
--- TODO(architecture): Create a localization validation script that:
---   1. Ensures all keys in en.lua exist in all other language files
---   2. Reports missing translations with placeholders
---   3. Validates no orphaned keys in non-English files
--- Add to tools/ directory and run as pre-commit hook.
+
 --
 ---
 --- Purpose: Defines localized string constants for English.
@@ -54,7 +50,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Maximum of 10 currencies can be displayed. Disable another currency first.")
+
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -100,9 +96,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Switch Info")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Equip")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "First Slot")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Second Slot")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "Equip Item")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Equipping <<t:1>> will bind it to you. Continue?")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "Equip")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Equip Item")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Equipping <<t:1>> will bind it to you. Continue?")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Equip")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "Do you want to equip <<t:1>>\ninto main hand or off hand in |cFF6600<<2>>|r weapon bar?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Do you want to equip <<t:1>> in |cFF6600<<2>>|r weapon bar?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Do you want to equip <<t:1>> in first or second ring slot?")
@@ -303,8 +299,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Adjust the color
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Enable Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Toggle the ARPG-style health and resource orbs.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Scale")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Overall size of the frame.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertical Offset (Up/Down)")
@@ -360,8 +355,7 @@ ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Allows more or less 
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Enable Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Replaces default attribute bars with ARPG-style orbs.")
+
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
 

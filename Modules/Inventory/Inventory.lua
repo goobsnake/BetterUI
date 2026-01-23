@@ -102,8 +102,7 @@ Description: Marks the inventory slot data cache as dirty to trigger a refresh o
 Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
 Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
 ]]
--- TODO(cleanup): Remove duplicate function documentation block (lines 94-99
--- are identical to lines 88-93). Keep only the first occurrence.
+
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
@@ -121,25 +120,19 @@ Mechanism:
 param: ... (bagIds) - The bag identifiers to fetch data for.
 return: table - Table of slot data for the requested bags.
 ]]
---[[
-Function: GetCachedSlotData
-Description: Wrapped version of SHARED_INVENTORY:GenerateFullSlotData with internal caching.
-Rationale: Calling GenerateFullSlotData multiple times per frame (junk check, stolen check, list refresh) is expensive.
-Mechanism: 
-1. Checks dirty flag.
-2. If dirty, clears cache.
-3. If not dirty and bag cached, returns cached data.
-4. Otherwise, calls native GenerateFullSlotData(nil, ...) and caches it.
-param: ... (bagIds) - The bag identifiers to fetch data for.
-return: table - Table of slot data for the requested bags.
-]]
+
+-- Optimized cache key generation for common bag combinations
+local function GetBagCacheKey(bags)
+    if #bags == 1 then return bags[1] end
+    -- Use string concatenation to avoid collisions with bagId 0 (BAG_WORN)
+    -- e.g. "0,1" vs 1 (number)
+    return table.concat(bags, ",")
+end
+
 function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = {...}
     table.sort(bags) -- Ensure consistent key
-    -- TODO(optimization): GetCachedSlotData uses table.concat for cache key.
-    -- For hot paths, consider using a pre-allocated key buffer or numeric hash
-    -- instead of string concatenation each call.
-    local cacheKey = table.concat(bags, ",")
+    local cacheKey = GetBagCacheKey(bags)
     
     if g_slotDataCacheDirty then
         g_slotDataCache = {}
@@ -1810,15 +1803,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					GAMEPAD_INVENTORY:RefreshItemList()
 				end
 				if self and self.RefreshItemActions then
--- TODO(refactor): Audit pcall usage in this section. Current pattern:
---   pcall(function() pcall(function() ... end) end)
--- This silently swallows errors and makes debugging impossible.
--- Replace with proper nil-checks:
---   if obj and obj.method then obj:method() end
--- Only use pcall for genuinely unsafe external API calls.
-					pcall(function()
-						self:RefreshItemActions()
-					end)
+					self:RefreshItemActions()
 				end
 				if self and self.RefreshKeybinds then
 					pcall(function()
@@ -3343,39 +3328,31 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", OnInventoryUpdated)
 	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnInventoryUpdated)
 
-	SHARED_INVENTORY:RegisterCallback("FullQuestUpdate", OnInventoryUpdated)
 	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", OnInventoryUpdated)
-end
 
--- Ensure keybinds (including the Clear Search prompt) are updated once
--- deferred initialization finishes. Some UI elements become visible only
--- after a short delay; refreshing keybinds here prevents the Clear Search
--- button from not appearing until the player scrolls the list.
-zo_callLater(function()
--- TODO(refactor): Replace nested pcall pattern with defensive nil-checks.
--- Consider creating a safe-call utility:
---   BETTERUI.SafeCall(obj, "method", arg1, arg2)
-	pcall(function()
+	-- Ensure keybinds (including the Clear Search prompt) are updated once
+	-- deferred initialization finishes. Some UI elements become visible only
+	-- after a short delay; refreshing keybinds here prevents the Clear Search
+	-- button from not appearing until the player scrolls the list.
+	zo_callLater(function()
 		if self.RefreshKeybinds then
 			self:RefreshKeybinds()
 		elseif self.mainKeybindStripDescriptor then
 			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
 			-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
-			pcall(function()
+			if self.SetActiveKeybinds then
+				self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+			end
+			zo_callLater(function()
 				if self.SetActiveKeybinds then
 					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 				end
-			end)
-			zo_callLater(function()
-				pcall(function()
-					if self.SetActiveKeybinds then
-						self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-					end
-				end)
 			end, 40)
 		end
-	end)
-end, 60)
+	end, 60)
+end
+
+
 
 --- Initializes the Inventory object.
 ---

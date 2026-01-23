@@ -43,7 +43,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "ПЕЧАТИ:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "ТОМА:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Можно отобразить максимум 10 валют. Сначала отключите другую валюту.")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -90,9 +89,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Изменить вид")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Экипировать")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "Первый слот")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Второй слот")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "Экипировать предмет")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Экипировав <<t:1>>, вы навсегда привяжете его к своей учетной записи.")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "Экипировать")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Экипировать предмет")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Экипировав <<t:1>>, вы навсегда привяжете его к своей учетной записи.")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Экипировать")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "Экипировать <<t:1>>\nв правую или левую руку на |cFF6600<<2>>|r набор оружия?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Экипировать <<t:1>> на |cFF6600<<2>>|r набор оружия?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Экипировать <<t:1>> в первый или второй слот?")
@@ -290,8 +289,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Настроит
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Включить Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Переключить сферы здоровья и ресурсов в стиле ARPG.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Масштаб")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Общий размер рамки.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Вертикальное смещение (Вверх/Вниз)")

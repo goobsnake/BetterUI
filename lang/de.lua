@@ -45,7 +45,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMES:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Maximal 10 Währungen können angezeigt werden. Deaktivieren Sie zuerst eine andere Währung.")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -92,9 +91,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Info wechseln")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Ausrüsten")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "Erster Platz")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Zweiter Platz")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "Gegenstand ausrüsten")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Das Ausrüsten von <<t:1>> bindet es an dich. Fortfahren?")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "Ausrüsten")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Gegenstand ausrüsten")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Das Ausrüsten von <<t:1>> bindet es an dich. Fortfahren?")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Ausrüsten")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "Möchtest du <<t:1>>\nin Haupthand oder Nebenhand der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Möchtest du <<t:1>> im ersten oder zweiten Ringplatz ausrüsten?")
@@ -295,8 +294,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Passen Sie die F
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Ressourcen-Kugel-Rahmen")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Resource Orb Frames aktivieren")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Schaltet die Gesundheits- und Ressourcenkugeln im ARPG-Stil ein/aus.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Skalierung")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröße des Rahmens.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz (Auf/Ab)")

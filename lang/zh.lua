@@ -43,7 +43,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "印章:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "秘典:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "最多可显示10种货币。请先禁用其他货币。")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -90,9 +89,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "切换信息")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "装备")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "第一个槽")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "第二个槽")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "装备物品")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "装备 <<t:1>> 将会绑定, 是否继续?")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "装备")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "装备物品")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "装备 <<t:1>> 将会绑定, 是否继续?")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "装备")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "是否要将 <<t:1>> 装备到 |cFF6600<<2>>|r 武器栏的主手或副手？")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "是否要将 <<t:1>> 装备到 |cFF6600<<2>>|r 武器栏？")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "是否要将 <<t:1>> 装备到第一个或第二个指环槽位？")
@@ -290,8 +289,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "调整护盾文�
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "资源球框架")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "启用 Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "切换 ARPG 风格的生命和资源球。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "缩放")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "框架的整体大小。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直偏移 (上/下)")

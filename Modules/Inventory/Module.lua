@@ -66,14 +66,14 @@ function BETTERUI.Inventory.Setup()
 				dialogType = GAMEPAD_DIALOGS.BASIC,
 			},
 			title = {
-				text = SI_SAVE_EQUIP_CONFIRM_TITLE,
+				text = SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE,
 			},
 			mainText = {
-				text = SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE,
+				text = SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE,
 			},
 			buttons = {
 				[1] = {
-					text = SI_SAVE_EQUIP_EQUIP,
+					text = SI_BETTERUI_SAVE_EQUIP_EQUIP,
 					callback = function(dialog)
 						dialog.data.callback()
 					end

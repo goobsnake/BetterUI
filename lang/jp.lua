@@ -43,7 +43,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "シール:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "トーム:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "表示できる通貨は最大10種類です。先に別の通貨を無効にしてください。")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -90,9 +89,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "情報切り替え")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "装備")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "1番目のスロット")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "2番目のスロット")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "アイテムを装備")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "<<t:1>>を装備すると譲渡できなくなります。続行しますか？")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "装備")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "アイテムを装備")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "<<t:1>>を装備すると譲渡できなくなります。続行しますか？")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "装備")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "<<t:1>>を\n|cFF6600<<2>>|r武器としてメインハンドまたはサブハンドに装備しますか？")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "<<t:1>>を|cFF6600<<2>>|r武器として装備しますか？")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "<<t:1>>を指輪の1番または2番目のスロットに装備しますか？")
@@ -290,8 +289,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "シールドテ�
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Resource Orb Framesを有効にする")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "ARPGスタイルのヘルスおよびリソースオーブを切り替えます。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "スケール")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "フレーム全体のサイズ。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直オフセット（上/下）")

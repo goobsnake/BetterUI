@@ -43,7 +43,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SCEAUX:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMES:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Maximum de 10 devises affichables. Désactivez d'abord une autre devise.")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -90,9 +89,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Changer info")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Équiper")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "Premier emplacement")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Second emplacement")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "Équiper l'objet")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Équiper <<t:1>> le liera à vous. Continuer?")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "Équiper")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Équiper l'objet")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Équiper <<t:1>> le liera à vous. Continuer?")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Équiper")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "Voulez-vous équiper <<t:1>>\ndans la main principale ou secondaire de la barre d'armes |cFF6600<<2>>|r?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Voulez-vous équiper <<t:1>> dans la barre d'armes |cFF6600<<2>>|r?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Voulez-vous équiper <<t:1>> dans le premier ou second emplacement de bague?")
@@ -290,8 +289,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Ajuster la coule
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Activer les cadres d'orbes de ressources")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Active les orbes de santé et de ressources de style ARPG.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Échelle")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Taille globale du cadre.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Décalage vertical (Haut/Bras)")

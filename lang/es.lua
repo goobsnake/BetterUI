@@ -43,7 +43,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SELLOS:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMOS:")
 
 -- Currency limit alert
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_LIMIT_REACHED", "Se pueden mostrar un máximo de 10 monedas. Desactive otra moneda primero.")
 
 
 -- Header Labels (Inventory/Guild Store)
@@ -90,9 +89,9 @@ ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Cambiar info")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Equipar")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "Primera ranura")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Segunda ranura")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_TITLE", "Equipar objeto")
-ZO_CreateStringId("SI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Equipar <<t:1>> lo vinculará a ti. ¿Continuar?")
-ZO_CreateStringId("SI_SAVE_EQUIP_EQUIP", "Equipar")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Equipar objeto")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Equipar <<t:1>> lo vinculará a ti. ¿Continuar?")
+ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Equipar")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "¿Quieres equipar <<t:1>>\nen la mano principal o secundaria de la barra de armas |cFF6600<<2>>|r?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "¿Quieres equipar <<t:1>> en la barra de armas |cFF6600<<2>>|r?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "¿Quieres equipar <<t:1>> en la primera o segunda ranura de anillo?")
@@ -263,8 +262,6 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Ajustar el color
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Marcos de Orbes de Recursos")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED", "Habilitar Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_ENABLED_TOOLTIP", "Alterna los orbes de salud y recursos al estilo ARPG.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Escala")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Tamaño general del marco.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Desplazamiento vertical (Arriba/Abajo)")
