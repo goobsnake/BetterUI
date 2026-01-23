@@ -217,6 +217,22 @@ local function Init(mId, moduleName)
                     end,
                     width = "full",
                 },
+                {
+                    type = "checkbox",
+                    name = "Enable Weapon Swap Animation",
+                    tooltip = "Plays a slide animation when switching between main and backup weapon bars.",
+                    getFunc = function() 
+                        if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
+                        -- Default to false if nil
+                        local val = BETTERUI.Settings.Modules["ResourceOrbFrames"].weaponSwapAnimation
+                        if val == nil then return false end
+                        return val
+                    end,
+                    setFunc = function(value)
+                        BETTERUI.Settings.Modules["ResourceOrbFrames"].weaponSwapAnimation = value
+                    end,
+                    width = "full",
+                },
                 -- ============================================================================
                 -- ULTIMATE NUMBER DISPLAY
                 -- ============================================================================

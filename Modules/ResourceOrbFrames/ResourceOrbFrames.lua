@@ -21,6 +21,9 @@ local m_experienceBar = nil
 local m_castBar = nil
 local m_mountStaminaBar = nil
 local m_updateDeathFragment = nil
+local m_backBarBaseX = 0
+local m_backBarBaseY = 0
+local m_swapTimeline = nil
 
 
 
@@ -42,6 +45,7 @@ local DEFAULTS = {
     
     -- Animated Orb Fill Settings
     orbAnimFlow = false,          -- Swirl/flow effect for orb fills
+    weaponSwapAnimation = true,   -- Slide animation on weapon swap
     
     -- Animation tuning parameter (health orb full rotation speed)
     orbAnimFlowSpeed = 60000,     -- Milliseconds per full rotation (60 seconds)
@@ -105,7 +109,6 @@ end
 ---
 --- Note: Custom texture folder validation is not possible via API.
 --- User must ensure 'BetterUI/Modules/ResourceOrbFrames/CustomTextures' exists.
---- TODO(enhancement): Support additional texture sets (e.g., holiday themes)
 ---
 --- @return string Base path for texture files
 local function GetTextureRootPath()
@@ -140,38 +143,89 @@ end
 ---   User expectation is that positive values move the frame UP, but SetAnchor uses
 ---   positive values to move DOWN. We invert to match user intuition.
 ---
+-- State tracking for animation
+local m_lastScale = nil
+local m_lastOffsetY = nil
+local m_dimensionsTimeline = nil
+
+local function AnimateFrameDimensions(targetScale, targetOffsetY)
+    if not m_rootFrame then return end
+    
+    -- Stop existing animation
+    if m_dimensionsTimeline then m_dimensionsTimeline:Stop() end
+    
+    if not m_dimensionsTimeline then
+        m_dimensionsTimeline = ANIMATION_MANAGER:CreateTimeline()
+        
+        -- Fade Animation (Flash effect)
+        local alphaAnim = m_dimensionsTimeline:InsertAnimation(ANIMATION_ALPHA, m_rootFrame)
+        alphaAnim:SetDuration(250)
+        alphaAnim:SetAlphaValues(0.5, 1.0)
+        alphaAnim:SetEasingFunction(ZO_EaseInQuadratic)
+        
+        -- Custom Animation for Scale and Position
+        local customAnim = m_dimensionsTimeline:InsertAnimation(ANIMATION_CUSTOM, m_rootFrame)
+        customAnim:SetDuration(300)
+        customAnim:SetEasingFunction(ZO_EaseOutQuadratic)
+        
+        customAnim:SetUpdateFunction(function(anim, progress)
+            local currentScale = zo_lerp(anim.startScale, anim.endScale, progress)
+            local currentY = zo_lerp(anim.startY, anim.endY, progress)
+            
+            m_rootFrame:SetScale(currentScale)
+            m_rootFrame:ClearAnchors()
+            m_rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -currentY)
+        end)
+    end
+    
+    -- Setup animation data
+    local customAnim = m_dimensionsTimeline:GetFirstAnimationOfType(ANIMATION_CUSTOM)
+    customAnim.startScale = m_rootFrame:GetScale()
+    customAnim.endScale = targetScale
+    customAnim.startY = m_lastOffsetY or targetOffsetY -- Use last known valid Y, or target if none
+    customAnim.endY = targetOffsetY
+    
+    m_dimensionsTimeline:PlayFromStart()
+    
+    -- Update state
+    m_lastScale = targetScale
+    m_lastOffsetY = targetOffsetY
+end
+
 --- WHY NOT SCALE ZO_ActionBar1:
 ---   ESO's internal positioning code assumes scale 1.0. Scaling the action bar causes
 ---   conflicts with companion spawn animations and weapon swap positioning.
 ---   See: "buttons get bigger" bug reports.
 ---
---- TODO(enhancement): Add animation when scale/position changes for smoother transitions
---- Updates the frame's scale and vertical position based on user settings.
----
---- Purpose: Applies user configuration to the root frame.
---- Mechanics:
---- - Sets Scale: Directly on `m_rootFrame`.
---- - Sets Offset: Inverted offsetY (Positive = Up).
---- - NOTE: Explicitly avoids scaling `ZO_ActionBar1` to prevent native ESO layout bugs.
----
---- References: Called by ApplySettings and Layout updates.
 local function UpdateFrameDimensions()
     if not m_rootFrame then return end
     local settings = GetModuleSettings()
     local scale = settings.scale or DEFAULTS.scale
     local offsetY = settings.offsetY or DEFAULTS.offsetY
 
-    -- Always apply scale (defaults to 1.0)
-    m_rootFrame:SetScale(scale)
-    -- NOTE: We intentionally do NOT scale ZO_ActionBar1.
-    -- ESO's internal ApplyStyle/SetCompanionAnchors/animation code
-    -- assumes scale 1.0. When we set a different scale, ESO's
-    -- positioning calculations conflict with our scaled container,
-    -- causing the "buttons get bigger" issue on companion spawn/weapon swap.
-    if offsetY ~= nil then
-        m_rootFrame:ClearAnchors()
-        -- Invert offsetY because positive values should move the frame UP
-        m_rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
+    -- Check for changes (skip animation on first load)
+    local changed = false
+    if m_lastScale and m_lastOffsetY then
+        -- Use a tolerance for floats? == is usually fine for direct assignment check
+        if m_lastScale ~= scale or m_lastOffsetY ~= offsetY then
+             changed = true
+        end
+    end
+
+    if changed then
+         AnimateFrameDimensions(scale, offsetY)
+    else
+         -- Instant update (Initialization or no change)
+         m_rootFrame:SetScale(scale)
+         if offsetY ~= nil then
+            m_rootFrame:ClearAnchors()
+            -- Invert offsetY because positive values should move the frame UP
+            m_rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
+         end
+         
+         -- Initialize/Update state
+         m_lastScale = scale
+         m_lastOffsetY = offsetY
     end
     
     -- Apply frame dimensions from constants (replacing XML magic numbers)
@@ -616,8 +670,14 @@ local LAYOUT_CONFIG = {
 --   - Two weapon sets: ACTIVE_WEAPON_PAIR_MAIN and ACTIVE_WEAPON_PAIR_BACKUP
 --   - Swapping changes which bar is "front" vs "back"
 --
--- TODO(enhancement): Add animation when weapon swap occurs
 -------------------------------------------------------------------------------------------------
+
+-------------------------------------------------------------------------------------------------
+-- WEAPON SWAP ANIMATION
+-------------------------------------------------------------------------------------------------
+-- Moved to later in file to ensure correct scope access to UpdateBackBar/UpdateFrontBar
+-- See: WeaponSwapAnimation below UpdateBarPositions
+
 
 --- Checks if the player has unlocked weapon swap (requires level 15).
 --- @return boolean True if player can use backup bar
@@ -1860,10 +1920,15 @@ local function UpdateFrontBarCompanion(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
     
-    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
-    if not frontBarContainer then return end
-    
-    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    -- Companion Button is reparented to root frame during SetupModule
+    local compBtn = FindControl(rootFrame, 'CompanionButton')
+    if not compBtn then 
+         -- Fallback: check FrontBarContainer in case reparenting hasn't happened yet
+         local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+         if frontBarContainer then
+             compBtn = FindControl(frontBarContainer, 'CompanionButton')
+         end
+    end
     if not compBtn then return end
     
     local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
@@ -1960,7 +2025,11 @@ local function SetupFrontBarKeybinds(rootFrame)
     end
     
     -- Quickslot uses ACTION_BUTTON_9
-    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    -- Quickslot Button is reparented to root frame during SetupModule
+    local qsBtn = FindControl(rootFrame, 'QuickslotButton')
+    if not qsBtn and frontBarContainer then
+        qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    end
     if qsBtn then
         local buttonText = qsBtn:GetNamedChild("ButtonText")
         if buttonText then
@@ -1981,7 +2050,11 @@ local function SetupFrontBarKeybinds(rootFrame)
     end
     
     -- Companion uses COMMAND_PET
-    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    -- Companion Button is reparented to root frame during SetupModule
+    local compBtn = FindControl(rootFrame, 'CompanionButton')
+    if not compBtn and frontBarContainer then
+         compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    end
     if compBtn then
         local buttonText = compBtn:GetNamedChild("ButtonText")
         if buttonText then
@@ -2115,10 +2188,140 @@ local function UpdateBarPositions(rootFrame)
     local backBarOffsetX = (backBarCfg and backBarCfg.offsetX) or 0
     local backBarOffsetY = (backBarCfg and backBarCfg.offsetY) or 0
     
+    -- Store base coordinates for animation
+    m_backBarBaseX = topX + backBarOffsetX
+    m_backBarBaseY = topY + backBarOffsetY
+    
     actionBarContainer:ClearAnchors()
     backBarContainer:ClearAnchors()
     actionBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, bottomX, bottomY)
-    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, topX + backBarOffsetX, topY + backBarOffsetY)
+    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX, m_backBarBaseY)
+end
+
+local function WeaponSwapAnimation(rootFrame)
+    local settings = GetModuleSettings()
+    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    
+    -- Fallback to instant update usage (if anim disabled or missing controls)
+    if not settings.weaponSwapAnimation or not backBarContainer or not frontBarContainer or not bgMiddle then
+        UpdateBackBar(rootFrame)
+        local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        if frontBarCfg and frontBarCfg.enabled then
+             UpdateFrontBar(rootFrame)
+        end
+        return
+    end
+
+    -- If already playing, stop and force immediate update to ensure consistency
+    if m_swapTimeline and m_swapTimeline:IsPlaying() then
+         m_swapTimeline:Stop()
+         UpdateBackBar(rootFrame)
+         UpdateFrontBar(rootFrame)
+         
+         -- Reset visual state
+         backBarContainer:SetAlpha(1)
+         backBarContainer:ClearAnchors()
+         backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX or 0, m_backBarBaseY or 0)
+         
+         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+         local barOffsetX = frontBarCfg.offsetX or 0
+         local barOffsetY = frontBarCfg.offsetY or 0
+         frontBarContainer:SetAlpha(1)
+         frontBarContainer:ClearAnchors()
+         frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+    end
+
+    if not m_swapTimeline then
+         m_swapTimeline = ANIMATION_MANAGER:CreateTimeline()
+         
+         -- Get Base Positions
+         -- Back Bar
+         local backBaseX = m_backBarBaseX or 0
+         local backBaseY = m_backBarBaseY or 0
+         
+         -- Front Bar
+         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+         local frontBaseX = (frontBarCfg.offsetX or 0) + 10
+         local frontBaseY = -15 + (frontBarCfg.offsetY or 0)
+         
+         -- Distance to slide (vertical distance between bars)
+         -- Usually Back Bar is higher (e.g. Y=0 vs Y=-15? No, back is usually top).
+         -- Let's use a fixed visible distance for the slide effect ~60px
+         local SLIDE_DIST = 60
+         
+         -- 300ms total duration: 150ms Out, Update, 150ms In
+         local anim = m_swapTimeline:InsertAnimation(ANIMATION_CUSTOM, backBarContainer) -- Use generic, we update both manually
+         anim:SetDuration(300)
+         anim:SetEasingFunction(ZO_EaseInOutQuadratic)
+         
+         anim:SetUpdateFunction(function(self, progress)
+              local backCtr = backBarContainer
+              local frontCtr = frontBarContainer
+              local bg = FindControl(rootFrame, 'BgMiddle')
+              if not backCtr or not frontCtr or not bg then return end
+              
+              if progress < 0.5 then
+                  -- OUT Phase (0 to 0.5)
+                  -- Old Active (Front) -> Slides UP (-Y) to Back Position
+                  -- Old Inactive (Back) -> Slides DOWN (+Y) to Front Position
+                  
+                  local p = progress * 2 -- Normalized 0-1
+                  local alpha = 1 - p
+                  
+                  backCtr:SetAlpha(alpha)
+                  frontCtr:SetAlpha(alpha)
+                  
+                  -- Back slides DOWN (+Y)
+                  local backOffset = SLIDE_DIST * p
+                  backCtr:ClearAnchors()
+                  backCtr:SetAnchor(BOTTOM, bg, BOTTOM, backBaseX, backBaseY + backOffset)
+                  
+                  -- Front slides UP (-Y, assuming negative is up?) 
+                  -- Wait, anchors: Positive Y is DOWN. Negative Y is UP.
+                  -- So sliding UP means DECREASING Y.
+                  local frontOffset = -SLIDE_DIST * p
+                  frontCtr:ClearAnchors()
+                  frontCtr:SetAnchor(BOTTOM, bg, BOTTOM, frontBaseX, frontBaseY + frontOffset)
+                  
+              else
+                  -- IN Phase (0.5 to 1.0)
+                  -- Content has updated!
+                  -- New Active (Front container) -> Slides DOWN from Top
+                  -- New Inactive (Back container) -> Slides UP from Bottom
+                  
+                  local p = (progress - 0.5) * 2 -- Normalized 0-1
+                  local alpha = p
+                  
+                  backCtr:SetAlpha(alpha)
+                  frontCtr:SetAlpha(alpha)
+                  
+                  -- Back (New Inactive) slides UP from Bottom (starts at +Start, ends at 0)
+                  -- Start: Base + SlideDist. End: Base.
+                  local backOffset = SLIDE_DIST * (1 - p)
+                  backCtr:ClearAnchors()
+                  backCtr:SetAnchor(BOTTOM, bg, BOTTOM, backBaseX, backBaseY + backOffset)
+                  
+                  -- Front (New Active) slides DOWN from Top (starts at -Start, ends at 0)
+                  -- Start: Base - SlideDist. End: Base.
+                  local frontOffset = -SLIDE_DIST * (1 - p)
+                  frontCtr:ClearAnchors()
+                  frontCtr:SetAnchor(BOTTOM, bg, BOTTOM, frontBaseX, frontBaseY + frontOffset)
+              end
+         end)
+         
+         -- Middle Callback: Update Content
+         m_swapTimeline:InsertCallback(function()
+              UpdateBackBar(rootFrame)
+              local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+              if frontBarCfg and frontBarCfg.enabled then
+                   UpdateFrontBar(rootFrame)
+              end
+         end, 150)
+    end
+    
+    m_swapTimeline:PlayFromStart()
 end
 
 local function SetupNativeBackBar(rootFrame)
@@ -2165,10 +2368,7 @@ local function SetupNativeBackBar(rootFrame)
     
     -- Weapon swap: Wait for animation (approx 400ms) then re-apply layout/scale
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() 
-        UpdateBackBar(rootFrame)
-        if useCustomFrontBar then
-            UpdateFrontBar(rootFrame)
-        end
+        WeaponSwapAnimation(rootFrame)
         -- Short delay to let ESO start animation, then force layout logic at end
         zo_callLater(ApplyFullLayout, 500)
     end)
@@ -3630,6 +3830,22 @@ local function SetupModule(control)
     -- Apply layout constants for orbs and ornaments
     UpdateOrbLayout()
     
+    -- Apply layout constants for orbs and ornaments
+    UpdateOrbLayout()
+    
+    -- Reparent Quickslot and Companion buttons to root frame to isolate them from FrontBar animations
+    local frontBarContainer = FindControl(control, 'FrontBarContainer')
+    if frontBarContainer then
+        local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+        if qsBtn then
+             qsBtn:SetParent(control)
+        end
+        local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+        if compBtn then
+             compBtn:SetParent(control)
+        end
+    end
+
     -- Initial Refresh
     RefreshAllData(control, updateDeathFragment)
     
