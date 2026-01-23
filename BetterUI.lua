@@ -97,6 +97,8 @@ function BETTERUI.InitModuleOptions()
 		{
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
+            -- TODO(refactor): Rename "Tooltips" module key to "GeneralInterface" to avoid confusion.
+            -- Currently "Tooltips" acts as the master switch for the entire General Interface module.
 			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
 			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].m_enabled end,
 			setFunc = function(value)
@@ -359,18 +361,20 @@ function BETTERUI.LoadModules()
 	end
 
 	-- Initialize General Interface (Settings & Tooltips)
-	-- We call this unconditionally so settings panel is registered; Setup checks m_enabled internally.
-	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
+	-- We call this conditionally (based on Master Setting "Enable General Interface Improvements")
+	if settings["Tooltips"].m_enabled and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
 		BETTERUI.GeneralInterface.Setup()
 	end
 
-	-- Initialize Enhanced Nameplates module (independent of gamepad mode)
-	if BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
+	-- Initialize Independent modules (Settings-aware)
+    -- Nameplates (Dependent on General Interface Master Setting)
+	if settings["Tooltips"].m_enabled and settings["Nameplates"].m_enabled and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
 		BETTERUI.Nameplates.Setup()
 	end
 
-	-- Initialize Resource Orb Frames module
-	if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
+	-- Resource Orb Frames
+    -- Logic: If enabled, load it. If disabled, do NOT load it (so settings panel won't register).
+	if settings["ResourceOrbFrames"].enabled and BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
 		BETTERUI.ResourceOrbFrames.Setup()
 	end
 
