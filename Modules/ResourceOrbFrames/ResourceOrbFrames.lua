@@ -354,6 +354,12 @@ function ResourceOrbFrames.Initialize(control)
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
         
         zo_callLater(function()
+            local settings = GetModuleSettings()
+            if not settings.enabled then
+                m_rootFrame:SetHidden(true)
+                return
+            end
+
             if not m_isInitialized then
                 SetupModule(control)
             end
