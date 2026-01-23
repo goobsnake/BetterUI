@@ -27,7 +27,7 @@
                 <Texture name="$(parent)Left"
                     textureFile="EsoUI/Art/Windows/Gamepad/gp_nav1_horDivider.dds">
                     <Anchor point="LEFT" />
-                    <Dimensions x="0" y="8" />
+                    <Dimensions x="0" y="BETTERUI_DIVIDER_HEIGHT" />
                     <TextureCoords left="0" right="0.29296875" top="0" bottom="1" />
                 </Texture>
 
@@ -54,8 +54,10 @@
         -->
         <Control name="BETTERUI_GamepadGenericScreenFooter" inherits="BETTERUI_GamepadFooterAnchors"
             resizeToFitDescendents="false" virtual="true">
-            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)" offsetY="-195" />
-            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)" offsetY="-195" />
+            <Anchor point="BOTTOMLEFT" relativeTo="$(parent)"
+                offsetY="BETTERUI_FOOTER_BOTTOM_OFFSET_Y" />
+            <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)"
+                offsetY="BETTERUI_FOOTER_BOTTOM_OFFSET_Y" />
 
             <Controls>
                 <Control name="$(parent)DividerBottom"
@@ -63,7 +65,8 @@
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
                         offsetX="0" />
                     <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
-                        offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER" offsetY="15" />
+                        offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER"
+                        offsetY="BETTERUI_FOOTER_DIVIDER_OFFSET_Y" />
                 </Control>
 
                 <!-- 

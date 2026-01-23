@@ -217,8 +217,8 @@ local function PositionCurrencyLabels(footer, invSettings)
     end
 
     -- Layout Configuration
-    local startX = 190                  -- Left anchor position
-    local rightPadding = 50             -- Safety buffer from right edge
+    local startX = BETTERUI_FOOTER_START_X                  -- Left anchor position
+    local rightPadding = BETTERUI_FOOTER_RIGHT_PADDING             -- Safety buffer from right edge
     local footerWidth = footer:GetWidth()
     
     -- If footer width isn't valid yet (e.g. at startup), default to a standard 1080p width

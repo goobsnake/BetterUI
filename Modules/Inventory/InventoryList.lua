@@ -93,8 +93,8 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
         local labelTxt = ""
 
-        if isLocked then labelTxt = labelTxt.."|t24:24:"..ZO_GAMEPAD_LOCKED_ICON_32.."|t" end
-        if isBoPTradeable then labelTxt = labelTxt.."|t24:24:"..ZO_TRADE_BOP_ICON.."|t" end
+        if isLocked then labelTxt = labelTxt.."|t"..BETTERUI_ICON_SIZE_MEDIUM..":"..BETTERUI_ICON_SIZE_MEDIUM..":"..ZO_GAMEPAD_LOCKED_ICON_32.."|t" end
+        if isBoPTradeable then labelTxt = labelTxt.."|t"..BETTERUI_ICON_SIZE_MEDIUM..":"..BETTERUI_ICON_SIZE_MEDIUM..":"..ZO_TRADE_BOP_ICON.."|t" end
 
         labelTxt = labelTxt .. data.text
 
@@ -112,11 +112,11 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
 		local isUnbound = data.cached_isUnbound or (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
-        if data.stolen then labelTxt = labelTxt.." |t16:16:/BetterUI/Modules/CIM/Images/inv_stolen.dds|t" end
-		if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then labelTxt = labelTxt.." |t16:16:/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t" end
-        if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then labelTxt = labelTxt.." |t16:16:/BetterUI/Modules/CIM/Images/inv_enchanted.dds|t" end
-        if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then labelTxt = labelTxt.." |t16:16:/BetterUI/Modules/CIM/Images/inv_setitem.dds|t" end
-        if isRecipeAndUnknown then labelTxt = labelTxt.." |t16:16:/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds|t" end
+        if data.stolen then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_stolen.dds|t" end
+		if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t" end
+        if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_enchanted.dds|t" end
+        if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_setitem.dds|t" end
+        if isRecipeAndUnknown then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds|t" end
 
         label:SetText(labelTxt)
 
@@ -383,17 +383,15 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
-    local fontSize = invSettings and invSettings.nameFontSize or 24
+    local fontSize = invSettings and invSettings.nameFontSize or BETTERUI_LIST_ENTRY_BASE_FONT_SIZE
     
 
     
     -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
-    local baseIconSize = 34
-    local baseFontSize = 24
-    local iconSize = math.floor(baseIconSize * (fontSize / baseFontSize) + 0.5)
-    local equipIconWidth = math.floor(28 * (fontSize / baseFontSize) + 0.5)
-    local equipIconHeight = math.floor(24 * (fontSize / baseFontSize) + 0.5)
-    local iconOffset = math.floor(-42 + (fontSize - baseFontSize) * 0.4 + 0.5)  -- Adjust offset as font grows
+    local iconSize = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_SIZE * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    local equipIconWidth = math.floor(28 * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    local equipIconHeight = math.floor(24 * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    local iconOffset = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_OFFSET + (fontSize - BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) * BETTERUI_LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5)  -- Adjust offset as font grows
     
     iconControl:SetDimensions(iconSize, iconSize)
     iconControl:ClearAnchors()
