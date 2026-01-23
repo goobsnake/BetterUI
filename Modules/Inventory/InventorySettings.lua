@@ -1,11 +1,8 @@
 --[[
-    BetterUI Inventory Module - Settings & Configuration
-    Description: Handles font definitions, currency presets, and the LAM settings panel.
-    Key Responsibilities:
-    - Defines shared font choices and styles.
-    - Manages default values for the Inventory module.
-    - Implements currency preset application and ordering logic.
-    - Registers the Inventory settings panel with LibAddonMenu.
+File: Modules/Inventory/InventorySettings.lua
+Purpose: Handles font definitions, currency presets, and the LAM settings panel.
+Author: BetterUI Team
+Last Modified: 2026-01-23
 ]]
 
 local LAM = LibAddonMenu2

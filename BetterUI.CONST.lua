@@ -245,6 +245,20 @@ BETTERUI.CONST.CIM = {
     DEFAULT_TOOLTIP_SIZE = 24,
 }
 
+BETTERUI.CONST.LAYOUT = {
+    TOOLTIP = {
+        STATUS_LABEL_OFFSET_Y = 60,
+        BODY_OFFSET_Y_ENHANCED = 50,
+        PRICE_LABEL_HEIGHT = 32,
+        PRICE_LABEL_OFFSET_Y = 5,
+    }
+}
+
+BETTERUI.CONST.INVENTORY = {
+    DIALOG_QUEUE_TIMEOUT_MS = 300,  -- Delay before showing secondary dialogs to avoid ESO dialog queue issues
+    TOOLTIP_REFRESH_DELAY_MS = 300,  -- Debounce for tooltip updates during navigation
+}
+
 BETTERUI.CONST.HEADER_LAYOUT = {
     DIVIDER = {
         --[[

@@ -1,95 +1,13 @@
 --[[
-    BetterUI Inventory Module - Configuration & Initialization
-    Description: Handles settings, font customization, currency configuration, and module initialization.
-    Key Responsibilities:
-    - Defines default settings for Fonts (Name/Column) and Currencies.
-    - Creates the LibAddonMenu settings panel.
-    - Replaces the native GAMEPAD_INVENTORY with BetterUI's custom implementation.
-    - Configures Tooltip styles and Mouse Wheel scrolling support.
-
-    TODO(architecture): This file is 1190 lines - split settings into InventorySettings.lua
-
+File: Modules/Inventory/Module.lua
+Purpose: Handles settings, font customization, currency configuration, and module initialization.
+Author: BetterUI Team
+Last Modified: 2026-01-23
 ]]
 
 -- Shared font choices for Inventory (matches Nameplates for consistency)
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
-
--- ============================================================================
--- TOOLTIP CONFIGURATION
--- ============================================================================
-
---- Configures the visual style of tooltips.
---- Applies font sizes (title, body, values) based on user settings.
---- Adjusts layout direction and spacing for the gamepad tooltip interface.
-local function SetupTooltipStyles()
-    local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
-    
-
-    
-    -- Calculate derived sizes from base font size
-    local baseFontSize = tooltipSize
-    local titleFontSize = baseFontSize + 6   -- Title is 6px larger
-    local valueFontSize = baseFontSize + 4   -- Value is 4px larger
-    
-    -- Apply tooltip styles with size adjustments
-    ZO_TOOLTIP_STYLES["topSection"] = {
-        layoutPrimaryDirection = "up",
-        layoutSecondaryDirection = "right",
-        widthPercent = 100,
-        childSpacing = 1,
-        fontSize = baseFontSize,
-        height = 64,
-        uppercase = true,
-        fontColorField = GENERAL_COLOR_OFF_WHITE,
-    }
-    ZO_TOOLTIP_STYLES["flavorText"] = {
-        fontSize = baseFontSize,
-    }
-    ZO_TOOLTIP_STYLES["statValuePairStat"] = {
-        fontSize = baseFontSize,
-        uppercase = true,
-        fontColorField = GENERAL_COLOR_OFF_WHITE,
-    }
-    ZO_TOOLTIP_STYLES["statValuePairValue"] = {
-        fontSize = valueFontSize,
-        fontColorField = GENERAL_COLOR_WHITE,
-    }
-    ZO_TOOLTIP_STYLES["title"] = {
-        fontSize = titleFontSize,
-        customSpacing = 8,
-        widthPercent = 100,
-        uppercase = true,
-        fontColorField = GENERAL_COLOR_WHITE,
-    }
-    ZO_TOOLTIP_STYLES["bodyDescription"] = {
-        fontSize = baseFontSize,
-    }
-end
-
---- Enables and configures mouse wheel scrolling for the left-side tooltip container.
---- Allows users to scroll long item descriptions using the mouse wheel.
-local function SetupTooltipMouseWheel()
-	local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
-	local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
-	if tip and tipScroll then
-		tip:SetMouseEnabled(true)
-		tipScroll:SetMouseEnabled(true)
-		tip:SetHandler("OnMouseWheel", function(self, delta)
-			local speed = (BETTERUI.Settings.Modules["CIM"].rhScrollSpeed) or 20
-			local newScrollValue
-			if delta > 0 then
-				newScrollValue = (self.scrollValue or 0) - speed
-			else
-				newScrollValue = (self.scrollValue or 0) + speed
-			end
-			self.scrollValue = newScrollValue
-			if self.scroll and self.scroll.SetVerticalScroll then
-				self.scroll:SetVerticalScroll(newScrollValue)
-			end
-		end)
-	end
-end
 
 
 -- ============================================================================
@@ -125,12 +43,13 @@ function BETTERUI.Inventory.Setup()
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE
     
     -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
+    -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
     local cimSettings = BETTERUI.Settings.Modules["CIM"]
     if cimSettings and cimSettings.enableTooltipEnhancements then
-	    SetupTooltipStyles()
+	    BETTERUI.Inventory.ApplyTooltipStyles()
     end
     
-	SetupTooltipMouseWheel()
+	BETTERUI.Inventory.EnableTooltipMouseWheel()
 
 	-- Position tooltip container
 	local TOOLTIP_X_OFFSET = BETTERUI_TOOLTIP_X_OFFSET
