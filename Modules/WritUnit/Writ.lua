@@ -8,8 +8,8 @@
 -- It scans the quest journal for crafting writs, formats their completion status (color coding),
 -- and updates the UI panel with the relevant information for the current crafting station.
 --
--- TODO(refactor): Pattern matching uses hardcoded strings - extract to localization or constants
--- TODO(enhancement): Add support for additional crafting types as ESO adds them
+-- Writ detection patterns are defined in Constants.lua for centralized maintenance.
+-- FUTURE: Add support for additional crafting types as ESO adds them
 ---------------------------------------------------------------------------------------------------
 
 local _
@@ -52,7 +52,7 @@ end
 --- Purpose: Identifies which crafting writs the player currently has.
 --- Mechanics:
 --- - Iterates `MAX_JOURNAL_QUESTS`.
---- - Matches Quest Name against hardcoded keywords (e.g., "blacksmith", "cloth", "witches").
+--- - Matches Quest Name against patterns defined in Constants.lua.
 --- - Maps the matching Quest ID to the corresponding `CRAFTING_TYPE_XXX` constant in `BETTERUI.Writs.List`.
 ---
 function BETTERUI.Writs.Update()
@@ -63,19 +63,12 @@ function BETTERUI.Writs.Update()
 				local qName,_,qDesc,_,_,qCompleted  = GetJournalQuestInfo(qId)
 				local currentWrit = -1
 				local q = string.lower(qName or "")
+				-- Use patterns from Constants.lua for maintainability
 				-- Order matters: last match wins as in the original chain
-				local patterns = {
-					{"blacksmith", CRAFTING_TYPE_BLACKSMITHING},
-					{"cloth", CRAFTING_TYPE_CLOTHIER},
-					{"woodwork", CRAFTING_TYPE_WOODWORKING},
-					{"enchant", CRAFTING_TYPE_ENCHANTING},
-					{"provision", CRAFTING_TYPE_PROVISIONING},
-					{"alchemist", CRAFTING_TYPE_ALCHEMY},
-					{"jewelry", CRAFTING_TYPE_JEWELRYCRAFTING},
-					{"witches", CRAFTING_TYPE_PROVISIONING},
-				}
+				local patterns = BETTERUI.Writs.CONST.PATTERNS
 				for i = 1, #patterns do
-					local pat, craft = patterns[i][1], patterns[i][2]
+					local pat = patterns[i].pattern
+					local craft = patterns[i].craftType
 					if string.find(q, pat, 1, true) then
 						currentWrit = craft
 					end
