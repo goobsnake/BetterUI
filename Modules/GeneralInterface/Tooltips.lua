@@ -16,9 +16,10 @@ local _
 -- Performance optimization for trait research lookups. Building research info is expensive
 -- (requires iterating all items in a bag), so we cache results and invalidate on changes.
 --
--- TODO(optimization): Consider using bag update events for targeted invalidation instead
---                     of clearing entire bag cache
--- TODO(enhancement): Add support for caching craft bag (BAG_VIRTUAL) traits
+-- OPTIMIZATION: Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
+-- instead of clearing the entire cache. See OnInventorySlotUpdate handler at end of file.
+--
+-- FUTURE: Add support for caching craft bag (BAG_VIRTUAL) traits
 -------------------------------------------------------------------------------------------------
 local ResearchableTraitCache = {}
 
@@ -103,7 +104,6 @@ end
 --   - ATT (Arkadius Trade Tools): Alternative sales tracker
 --
 
--- TODO(enhancement): Add support for additional trading addons (e.g., Pricey)
 -------------------------------------------------------------------------------------------------
 -- HELPERS
 -------------------------------------------------------------------------------------------------

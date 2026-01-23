@@ -14,16 +14,66 @@
 --     - Nameplates.lua: Nameplate font customization
 --     - ResourceOrbFrames.lua: Orb UI implementation
 --
--- TODO(architecture): This file is 1100+ lines and hard to navigate. Consider splitting
+-- TODO(architecture): This file is 440+ lines and handles multiple features. Consider splitting
 --                     settings into separate files per feature (TooltipSettings, NameplateSettings, etc.)
--- TODO(refactor): Many setFunc callbacks duplicate the pattern of updating setting + calling ApplySettings.
---                 Extract to helper function like `createSettingSetter(settingsPath, callback)`
--- TODO(cleanup): Some settings check for module existence multiple times in get/set/disabled.
---                Could be consolidated into wrapper functions.
+--
+-- NOTE: CreateSettingAccessors helper added to reduce get/set/disabled boilerplate. See below.
 ---------------------------------------------------------------------------------------------------
 
 local _
 local LAM = LibAddonMenu2
+
+-------------------------------------------------------------------------------------------------
+-- SETTINGS HELPER FACTORY
+-------------------------------------------------------------------------------------------------
+-- Reduces boilerplate for LAM settings by providing standardized get/set/disabled patterns.
+-- 
+-- Usage:
+--   local accessors = CreateSettingAccessors("Nameplates", "enabled", ApplySettings)
+--   {
+--       type = "checkbox",
+--       name = "Enable Feature",
+--       getFunc = accessors.get,
+--       setFunc = accessors.set,
+--       disabled = accessors.disabled,
+--   }
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: CreateSettingAccessors
+Description: Factory to generate getFunc/setFunc/disabled for LAM settings.
+Rationale: Reduces repetitive code across 50+ settings definitions.
+param: moduleName (string) - The settings module name (e.g., "Nameplates", "Tooltips")
+param: settingKey (string) - The key within the module settings table
+param: applyCallback (function|nil) - Optional callback to run after setting is changed
+param: defaultValue (any|nil) - Optional default value if setting is nil
+return: table - { get = function, set = function, disabled = function }
+]]
+local function CreateSettingAccessors(moduleName, settingKey, applyCallback, defaultValue)
+    return {
+        get = function()
+            local settings = BETTERUI.Settings.Modules[moduleName]
+            if not settings then return defaultValue end
+            local value = settings[settingKey]
+            if value == nil then return defaultValue end
+            return value
+        end,
+        set = function(value)
+            if BETTERUI.Settings.Modules[moduleName] then
+                BETTERUI.Settings.Modules[moduleName][settingKey] = value
+                if applyCallback then
+                    applyCallback(value)
+                end
+            end
+        end,
+        disabled = function()
+            return not BETTERUI.Settings.Modules[moduleName]
+        end
+    }
+end
+
+-- Export for use by other modules
+BETTERUI.CreateSettingAccessors = CreateSettingAccessors
 
 --- Initializes the settings panel for General Interface options.
 ---

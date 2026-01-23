@@ -23,9 +23,14 @@
 -- 4.  **Action Menu Integration**:
 --     *   Provides the data source for the "Y" button context menu (`HookActionDialog` in Inventory.lua consumes this).
 --
--- TODO(refactor): PrimaryCommandActivate is 150+ lines - split into smaller functions
---                 (e.g., HandleCraftBagPrimary, HandleInventoryPrimary, HandleBankPrimary)
--- TODO(enhancement): Add support for custom actions from other addons
+-- ARCHITECTURE: PrimaryCommandActivate logic has been split into focused helper functions:
+--   - HandleCraftBagActions: Manages Stow/Retrieve with optional USE as secondary
+--   - SetupPrimaryAction: Routes specific actions to specialized handlers
+--   - SecureOpenSkills: Wraps "Open Skills" in secure call
+--   - ResolveCraftBagState: Determines Stow vs Retrieve based on context
+--   - DeduplicateActions: Removes duplicate entries from action list
+--
+-- FUTURE: Add support for custom actions from other addons
 --------------------------------------------------------------------------------
 
 local ACTION_KEY = 1

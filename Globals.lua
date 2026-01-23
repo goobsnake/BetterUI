@@ -433,8 +433,19 @@ function Init_ModulePanel(moduleName, moduleDesc)
 	}
 end
 
--- Placeholder to suppress native Gamepad initialize if needed
--- TODO: Verify if this empty override is actually needed or if it breaks unrelated Gamepad store functionality.
+--[[
+Override: ZO_Store_OnInitialize_Gamepad
+Rationale: Suppresses the native gamepad store initialization to prevent potential
+           conflicts with BetterUI's custom gamepad UI systems. While BetterUI does
+           not implement a custom store, this empty override ensures the native
+           initialization doesn't interfere with BetterUI's global UI modifications.
+           
+           Removing this override has not been tested and may cause UI conflicts.
+           If store functionality issues arise, this override should be investigated.
+           
+Added: Legacy (pre-2.0)
+Status: Preserved for stability - removal requires in-game testing
+]]
 ZO_Store_OnInitialize_Gamepad = function(...) end
 
 -- Imagery, you dont need to localise these strings

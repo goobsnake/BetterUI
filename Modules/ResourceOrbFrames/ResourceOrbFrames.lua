@@ -617,7 +617,6 @@ local LAYOUT_CONFIG = {
 --   - Swapping changes which bar is "front" vs "back"
 --
 -- TODO(enhancement): Add animation when weapon swap occurs
--- TODO(enhancement): Add animation when weapon swap occurs
 -------------------------------------------------------------------------------------------------
 
 --- Checks if the player has unlocked weapon swap (requires level 15).
@@ -639,7 +638,9 @@ end
 ---   ESO slot indices: 1-2 are reserved, 3-7 are skills, 8 is ultimate
 ---
 --- @param rootFrame Control The root control frame
-local m_lastBackBarState = {}
+--- NOTE: This function deliberately updates all slots unconditionally on every call.
+--- Caching slot states causes synchronization bugs during weapon swaps because the 
+--- same UI controls are reused for alternating Primary/Backup contexts.
 
 local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -667,34 +668,27 @@ local function UpdateBackBar(rootFrame)
             local iconControl = FindControl(btn, 'Icon')
             local icon = GetSlotTexture(slotIndex, backBarCategory)
             
-            -- Optimization: Only update if icon/context changed
-            local cacheKey = slotIndex .. "_" .. backBarCategory
-            local needsUpdate = (m_lastBackBarState[cacheKey] ~= icon)
-            
-            if needsUpdate then
-                m_lastBackBarState[cacheKey] = icon
-                if iconControl then
-                    if icon and icon ~= '' then
-                        iconControl:SetTexture(icon)
-                        iconControl:SetHidden(false)
-                        -- Apply dimming opacity to icon
-                        iconControl:SetAlpha(backBarOpacity)
-                    else
-                        iconControl:SetHidden(true)
-                    end
+            if iconControl then
+                if icon and icon ~= '' then
+                    iconControl:SetTexture(icon)
+                    iconControl:SetHidden(false)
+                    -- Apply dimming opacity to icon
+                    iconControl:SetAlpha(backBarOpacity)
+                else
+                    iconControl:SetHidden(true)
                 end
-                
-                -- Also apply opacity to backdrop and border for consistent dimming
-                local backdrop = btn:GetNamedChild("Backdrop")
-                if backdrop then backdrop:SetAlpha(backBarOpacity) end
-                
-                local border = btn:GetNamedChild("Border")
-                if border then border:SetAlpha(backBarOpacity) end
-                
-                -- Store slot reference for tooltips
-                btn.slotIndex = slotIndex
-                btn.hotbarCategory = backBarCategory
             end
+            
+            -- Also apply opacity to backdrop and border for consistent dimming
+            local backdrop = btn:GetNamedChild("Backdrop")
+            if backdrop then backdrop:SetAlpha(backBarOpacity) end
+            
+            local border = btn:GetNamedChild("Border")
+            if border then border:SetAlpha(backBarOpacity) end
+            
+            -- Store slot reference for tooltips
+            btn.slotIndex = slotIndex
+            btn.hotbarCategory = backBarCategory
         end
     end
     
