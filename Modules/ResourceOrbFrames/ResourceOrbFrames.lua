@@ -82,12 +82,16 @@ local function ApplyLayout(updateOrbs, updateSkills)
         SkillBar.UpdateBackBar(m_rootFrame)
         SkillBar.UpdateBackBarLayout(m_rootFrame)
         SkillBar.UpdateMainBarLayout(m_rootFrame)
-        SkillBar.UpdateBarPositions(m_rootFrame)
+        if not SkillBar.IsWeaponSwapAnimating() then
+            SkillBar.UpdateBarPositions(m_rootFrame)
+        end
         
         -- Custom Front Bar Updates
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.enabled then
-            SkillBar.UpdateFrontBarLayout(m_rootFrame)
+            if not SkillBar.IsWeaponSwapAnimating() then
+                SkillBar.UpdateFrontBarLayout(m_rootFrame)
+            end
             SkillBar.UpdateFrontBar(m_rootFrame)
             SkillBar.UpdateFrontBarQuickslot(m_rootFrame)
             SkillBar.UpdateFrontBarCompanion(m_rootFrame)
@@ -278,8 +282,12 @@ local function SetupModule(control)
     
     m_isInitialized = true
     
-    -- Register Layout Force Update
-    CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", ApplyFullLayout)
+    -- Register Layout Force Update (skip during weapon swap animation to prevent orb shifting)
+    CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
+        if not SkillBar.IsWeaponSwapAnimating() then
+            ApplyFullLayout()
+        end
+    end)
     
     -- Register Gamepad Switch
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()

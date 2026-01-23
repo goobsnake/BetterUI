@@ -1,8 +1,4 @@
 --[[
--- TODO(refactor): This module uses 'enabled' for its master switch while
--- other modules use 'm_enabled'. Standardize to match project convention.
--- See BetterUI.lua TODO for coordinated migration plan.
---
 File: Modules/ResourceOrbFrames/Module.lua
 Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
@@ -51,7 +47,7 @@ local function Init(mId, moduleName)
 					BETTERUI.ResourceOrbFrames.ApplySettings()
 				end
 			end,
-			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+			disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
 			default = 1,
 		},
 		{
@@ -71,7 +67,7 @@ local function Init(mId, moduleName)
 					BETTERUI.ResourceOrbFrames.ApplySettings()
 				end
 			end,
-			disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+			disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
 			default = 0,
 		},
 		{
@@ -110,7 +106,7 @@ local function Init(mId, moduleName)
                     BETTERUI.ResourceOrbFrames.ApplySettings()
                 end
             end,
-            disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+            disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             width = "half",
         },
         {
@@ -423,7 +419,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "half",
                 },
             },
@@ -444,7 +440,7 @@ local function Init(mId, moduleName)
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].orbAnimFlow = value
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "full",
                 },
                 -- Ornament Visibility Settings
@@ -462,7 +458,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "full",
                 },
                 {
@@ -486,7 +482,7 @@ local function Init(mId, moduleName)
                     -- Only enabled when left ornament is hidden
                     disabled = function() 
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        return not settings.enabled or not settings.hideLeftOrnament 
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") or not settings.hideLeftOrnament 
                     end,
                     width = "full",
                 },
@@ -504,7 +500,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "full",
                 },
                 {
@@ -528,7 +524,7 @@ local function Init(mId, moduleName)
                     -- Only enabled when right ornament is hidden
                     disabled = function() 
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        return not settings.enabled or not settings.hideRightOrnament 
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") or not settings.hideRightOrnament 
                     end,
                     width = "full",
                 },
@@ -706,7 +702,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled end,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "half",
                 },
             },
@@ -784,7 +780,7 @@ local function Init(mId, moduleName)
                         end
                     end,
                     -- Check for both overall enabled and specific feature enabled
-                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled) end,
+                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled) end,
                     width = "half",
                 },
             },
@@ -878,7 +874,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled) end,
+                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled) end,
                     width = "half",
                 },
             },
@@ -955,7 +951,7 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not (BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled and BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled) end,
+                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled) end,
                     width = "half",
                 },
             },
@@ -1010,6 +1006,16 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         hideRightOrnament = false,
         leftOrbSizeScale = 1.0,   -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
         rightOrbSizeScale = 1.0,  -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
+        customFrontBar = {
+            enabled = true,
+            offsetX = 0,
+            offsetY = 0,
+            ultimate = { offsetX = 0, offsetY = 0 },
+            quickslotButton = { offsetX = 0, offsetY = 0 },
+            companionButton = { offsetX = 0, offsetY = 0 },
+            gamepad = { buttonSize = nil, spacing = nil, ultimateSize = 70 },
+            keyboard = { buttonSize = nil, spacing = nil, ultimateSize = 55 },
+        },
     }
     -- Only set defaults if not already present
     if m_options.enabled == nil then m_options.enabled = defaults.enabled end
@@ -1041,6 +1047,23 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     if m_options.hideRightOrnament == nil then m_options.hideRightOrnament = defaults.hideRightOrnament end
     if m_options.leftOrbSizeScale == nil then m_options.leftOrbSizeScale = defaults.leftOrbSizeScale end
     if m_options.rightOrbSizeScale == nil then m_options.rightOrbSizeScale = defaults.rightOrbSizeScale end
+    
+    if m_options.customFrontBar == nil then 
+        m_options.customFrontBar = defaults.customFrontBar 
+    else
+        -- Deep merge for existing incomplete settings
+        local cfb = m_options.customFrontBar
+        local d_cfb = defaults.customFrontBar
+        if cfb.enabled == nil then cfb.enabled = d_cfb.enabled end
+        if cfb.offsetX == nil then cfb.offsetX = d_cfb.offsetX end
+        if cfb.offsetY == nil then cfb.offsetY = d_cfb.offsetY end
+        
+        if cfb.ultimate == nil then cfb.ultimate = d_cfb.ultimate end
+        if cfb.quickslotButton == nil then cfb.quickslotButton = d_cfb.quickslotButton end
+        if cfb.companionButton == nil then cfb.companionButton = d_cfb.companionButton end
+        if cfb.gamepad == nil then cfb.gamepad = d_cfb.gamepad end
+        if cfb.keyboard == nil then cfb.keyboard = d_cfb.keyboard end
+    end
     return m_options
 end
 
