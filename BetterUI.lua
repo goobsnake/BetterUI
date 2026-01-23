@@ -60,11 +60,12 @@ end
 --- References: Called when toggling module settings in the options panel.
 ---
 function BETTERUI.UpdateCIMState()
-	local settings = BETTERUI.Settings.Modules
-	local shouldEnable = settings["Tooltips"].m_enabled or
-	                    settings["Inventory"].m_enabled or
-	                    settings["Banking"].m_enabled
-	settings["CIM"].m_enabled = shouldEnable
+	local shouldEnable = BETTERUI.GetModuleEnabled("Tooltips") or
+	                    BETTERUI.GetModuleEnabled("Inventory") or
+	                    BETTERUI.GetModuleEnabled("Banking")
+	if BETTERUI.Settings.Modules["CIM"] then
+		BETTERUI.Settings.Modules["CIM"].m_enabled = shouldEnable
+	end
 end
 
 --- Initializes the module options panel in the settings menu.
@@ -143,12 +144,11 @@ function BETTERUI.InitModuleOptions()
 			name = GetString(SI_BETTERUI_ENABLE_ORBS),
 			tooltip = GetString(SI_BETTERUI_ENABLE_ORBS_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then return false end
-				return BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled 
+				return BETTERUI.GetModuleEnabled("ResourceOrbFrames")
 			end,
 			setFunc = function(value)
 				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then BETTERUI.Settings.Modules["ResourceOrbFrames"] = {} end
-				BETTERUI.Settings.Modules["ResourceOrbFrames"].enabled = value
+				BETTERUI.Settings.Modules["ResourceOrbFrames"].m_enabled = value
 			end,
 			width = "full",
 			requiresReload = true,
@@ -351,38 +351,39 @@ function BETTERUI.LoadModules()
 	local settings = BETTERUI.Settings.Modules
 
 	-- Initialize CIM-dependent modules
-	if settings["CIM"].m_enabled then
-		if settings["Inventory"].m_enabled and BETTERUI.Inventory then
+	-- Initialize CIM-dependent modules
+	if BETTERUI.GetModuleEnabled("CIM") then
+		if BETTERUI.GetModuleEnabled("Inventory") and BETTERUI.Inventory then
 			if BETTERUI.Inventory.HookDestroyItem then BETTERUI.Inventory.HookDestroyItem() end
 			if BETTERUI.Inventory.HookActionDialog then BETTERUI.Inventory.HookActionDialog() end
 			if BETTERUI.Inventory.Setup then BETTERUI.Inventory.Setup() end
 		end
 
-		if settings["Banking"].m_enabled and BETTERUI.Banking and BETTERUI.Banking.Setup then
+		if BETTERUI.GetModuleEnabled("Banking") and BETTERUI.Banking and BETTERUI.Banking.Setup then
 			BETTERUI.Banking.Setup()
 		end
 	end
 
 	-- Initialize independent modules
-	if settings["Writs"].m_enabled and BETTERUI.Writs and BETTERUI.Writs.Setup then
+	if BETTERUI.GetModuleEnabled("Writs") and BETTERUI.Writs and BETTERUI.Writs.Setup then
 		BETTERUI.Writs.Setup()
 	end
 
 	-- Initialize General Interface (Settings & Tooltips)
 	-- We call this conditionally (based on Master Setting "Enable General Interface Improvements")
-	if settings["Tooltips"].m_enabled and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
+	if BETTERUI.GetModuleEnabled("Tooltips") and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
 		BETTERUI.GeneralInterface.Setup()
 	end
 
 	-- Initialize Independent modules (Settings-aware)
     -- Nameplates (Dependent on General Interface Master Setting)
-	if settings["Tooltips"].m_enabled and settings["Nameplates"].m_enabled and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
+	if BETTERUI.GetModuleEnabled("Tooltips") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
 		BETTERUI.Nameplates.Setup()
 	end
 
 	-- Resource Orb Frames
     -- Logic: If enabled, load it. If disabled, do NOT load it (so settings panel won't register).
-	if settings["ResourceOrbFrames"].enabled and BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
+	if BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
 		BETTERUI.ResourceOrbFrames.Setup()
 	end
 
@@ -441,6 +442,15 @@ function BETTERUI.Initialize(event, addon)
 	-- Ensure ResourceOrbFrames module settings exist for existing users
 	if BETTERUI.Settings.Modules["ResourceOrbFrames"] == nil then
 		BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
+	end
+
+	-- Migration: Standardize 'enabled' to 'm_enabled'
+	for modName, modSettings in pairs(BETTERUI.Settings.Modules) do
+		if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then
+			modSettings.m_enabled = modSettings.enabled
+			modSettings.enabled = nil
+			if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
+		end
 	end
 	if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.InitModule then
 		BETTERUI.ResourceOrbFrames.InitModule(BETTERUI.Settings.Modules["ResourceOrbFrames"])

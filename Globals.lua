@@ -62,6 +62,27 @@ BETTERUI.DefaultSettings = {
 	}
 }
 
+--- Checks if a specific BetterUI module is enabled.
+--- Handles potential inconsistency between 'm_enabled' and 'enabled' setting keys.
+--- @param moduleName string The key of the module in BETTERUI.Settings.Modules
+--- @return boolean True if the module is enabled
+function BETTERUI.GetModuleEnabled(moduleName)
+	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return false end
+	local settings = BETTERUI.Settings.Modules[moduleName]
+	if not settings then return false end
+
+	-- Check standard key first
+	if settings.m_enabled ~= nil then
+		return settings.m_enabled
+	end
+	-- Fallback to legacy key
+	if settings.enabled ~= nil then
+		return settings.enabled
+	end
+
+	return false
+end
+
 --- Prints a debug message to chat with BetterUI prefix.
 ---
 --- Purpose: Standardized debug logging for development.
@@ -69,9 +90,6 @@ BETTERUI.DefaultSettings = {
 --- References: Used globally throughout the addon for debug logging.
 ---
 --- @param str string The message string to display.
--- TODO(doc): Function ddebug() should have a full documentation block
--- matching the project standard (Function:, Description:, Rationale:, etc.)
--- Currently only has a brief line comment.
 function ddebug(str)
 	return d("|c0066ff[BETTERUI]|r "..str)
 end
@@ -85,11 +103,6 @@ end
 --- @param number number The value to round.
 --- @param decimals number The number of decimal places to keep.
 --- @return number|string The rounded number, formatted as a string (via string.format), or 0 if inputs invalid.
--- TODO(doc): Standardize type annotation format throughout codebase.
--- Current: @param, param:, @return, return:
--- Choose one format and apply consistently. Recommend LuaDoc style:
---   @param paramName type Description
---   @return type Description
 function BETTERUI.roundNumber(number, decimals)
 	if number ~= nil and decimals ~= nil then
 		local power = 10^decimals
@@ -170,8 +183,8 @@ end
 --- Mechanics: similar to AbbreviateNumber but uses capitalized suffixes and slightly different flooring logic.
 --- References: moved from InventoryList.lua
 ---
---- @param value number: The number to format
---- @return string: Formatted string like "1.12K", "12.3K", "123K", "1.23M".
+--- @param value number The number to format
+--- @return string Formatted string like "1.12K", "12.3K", "123K", "1.23M".
 function BETTERUI.FormatAbbreviatedNumber(value)
     if not value or value == 0 then
         return "0"
@@ -222,8 +235,8 @@ end
 --- Mechanics: Lookups up preset in BETTERUI.CONST.CURRENCY_PRESETS and applies values.
 --- References: Used by Inventory settings.
 ---
---- @param presetName string: The key of the preset (e.g., "pvp").
---- @param targetSettings table|nil: The settings table to update. Defaults to BETTERUI.Settings.Modules["Inventory"].
+--- @param presetName string The key of the preset (e.g., "pvp").
+--- @param targetSettings table|nil The settings table to update. Defaults to BETTERUI.Settings.Modules["Inventory"].
 function BETTERUI.ApplyCurrencyPreset(presetName, targetSettings)
     if not BETTERUI.CONST.CURRENCY_PRESETS then return end
     local preset = BETTERUI.CONST.CURRENCY_PRESETS[presetName]

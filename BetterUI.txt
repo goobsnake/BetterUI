@@ -55,6 +55,10 @@ Modules\ResourceOrbFrames\Templates\LayoutTemplates.xml
 Modules\ResourceOrbFrames\OrbAnimations.lua
 Modules\ResourceOrbFrames\OrbVisuals.lua
 Modules\ResourceOrbFrames\OrbBars.lua
+Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
+Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
+Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua
+Modules\ResourceOrbFrames\SkillBar\FrontBarManager.lua
 Modules\ResourceOrbFrames\OrbSkillBar.lua
 Modules\ResourceOrbFrames\OrbEvents.lua
 Modules\ResourceOrbFrames\ResourceOrbFrames.lua

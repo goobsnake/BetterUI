@@ -3,7 +3,7 @@
 /.images/
 /.vscode/
 /.venv/
-/tools/
+#/tools/
 /source/
 
 # Ignore the entire .agent directory by default
