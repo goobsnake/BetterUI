@@ -227,20 +227,42 @@ When creating implementation plans:
   - *Bad*: `- [ ] Fix bug`
   - *Good*: `- [ ] [To Do] Fix nil reference in Inventory.lua:L123 by adding safety check`
 
-### Completion Requirements
-**CRITICAL**: When a workflow or major task sequence concludes, you **MUST** present the following artifacts to the User before finishing:
+## Agent Protocol
 
-1.  **Completed Implementation Plan**: Allow the user to see the final state of the plan with all tasks marked as `[x] Accepted` or `[x] Done`.
-2.  **Corrective Action Report**: A dedicated section summarizing any deviations from the original plan and how they were resolved. If no deviations occurred, explicitly state "N/A - implementation proceeded as planned."
-    - *Example (deviation)*: "Workflow step 3 failed due to missing dependency; manually installed X to resolve."
-    - *Example (pivot)*: "Original plan to modify X was abandoned because Y was found to be a better solution."
-    - *Example (none)*: "N/A - implementation proceeded as planned."
-3.  **Final Code Review**: A self-conducted review of the changes against the standards defined in this skill, explicitly confirming:
-    - No debug prints left behind.
-    - Comments were preserved/updated.
-    - Consistency with project style.
-4.  **Testing & Verification Plan**: A user-facing report with specific instructions for verifying the changes made. This must include:
-    - **Reproduction Steps**: How to trigger or exercise the new/fixed functionality in-game.
-    - **Expected Behavior**: What the user should observe if the changes are working correctly.
-    - **Edge Cases**: Specific configurations, settings, or scenarios that should be tested (e.g., "Test with addon X disabled", "Try with an empty inventory").
-    - **Regression Checks**: Areas of the codebase that might be affected by the changes and should be spot-checked.
+**CRITICAL**: Upon reading this skill file, you MUST immediately:
+1.  **Acknowledge**: Explicitly state that you have read and understood these guidelines in your next response.
+2.  **Identify Workflow Step**: If you are executing a workflow, explicitly state the current Step ID you are on (e.g., "Current Workflow Step: 3").
+
+## Completion Requirements
+
+**CRITICAL**: When a workflow or major task sequence concludes, you **MUST** generate and present the following **individual artifact files** for the User to review. Do not combine these into a single message or file.
+
+### 1. `implementation_plan.md`
+-   **Purpose**: The final state of the plan with all tasks marked as `[x]`.
+-   **Content**: Ensure the plan reflects reality. If steps were skipped or added, the plan should show this history.
+
+### 2. `task.md`
+-   **Purpose**: The granular checklist of executed actions.
+-   **Content**: All items should be valid and checked off.
+
+### 3. `code_review.md`
+-   **Purpose**: A dedicated Code Review & Corrective Action Report.
+-   **Content**:
+    -   **Self-Correction Report**: Summarize any deviations from the original plan.
+        -   *Example*: "Workflow step 3 failed due to missing dependency; manually installed X to resolve."
+        -   *Example*: "N/A - implementation proceeded as planned."
+    -   **Standards Check**: Explicitly confirm:
+        -   No debug prints left behind.
+        -   Comments were preserved/updated.
+        -   Consistency with project style.
+        -   Compliance with the specific standards in this skill.
+
+### 4. `verification_plan.md`
+-   **Purpose**: A standalone user-facing report for verifying the changes.
+-   **Content**:
+    -   **Reproduction Steps**: How to trigger or exercise the new/fixed functionality.
+    -   **Expected Behavior**: What the user should observe.
+    -   **Edge Cases**: Specific configurations or scenarios to test.
+    -   **Regression Checks**: Areas that might be affected.
+
+The user should be presented with these as **individual files** for review.

@@ -29,7 +29,7 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer                                                             │
 │  ├── Globals.lua          (Namespace init, utility functions)           │
-│  ├── BetterUI.CONST.lua   (UI constants, currency config)               │
+│  ├── BetterUI.CONST.lua   (UI const, currency config, header layouts)   │
 │  └── BetterUI_Shared.xml  (Shared XML templates & styles)               │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Common Interface Module (CIM)                                          │
@@ -41,7 +41,8 @@
 │  Feature Modules                                                        │
 │  ├── Inventory/   (Enhanced inventory with categories, search, icons)   │
 │  ├── Banking/     (Bank/Guild Bank/House Bank interface)                │
-│  ├── GeneralInterface/ (Tooltips, Nameplates, Resource Orbs)            │
+│  ├── GeneralInterface/ (Tooltips, Nameplates)                           │
+│  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs)            │
 │  └── WritUnit/    (Writ quest tracking panel)                           │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -117,7 +118,8 @@ BETTERUI = {
 | Module | Entry Point | Key Class | Dependencies | Purpose |
 |--------|-------------|-----------|--------------|---------|
 | **CIM** | `Module.lua` | `BETTERUI.Interface.Window` | None | Shared UI templates (header, footer, lists) |
-| **GeneralInterface** | `Module.lua` | — | CIM | Tooltips, Nameplates, Resource Orbs |
+| **GeneralInterface** | `Module.lua` | — | CIM | Tooltips, Nameplates |
+| **ResourceOrbFrames**| `Module.lua` | — | CIM | Custom Health/Magicka/Stamina Orbs |
 | **Inventory** | `Module.lua` | `BETTERUI.Inventory.Class` | CIM | Enhanced inventory with categories |
 | **Banking** | `Module.lua` | `BETTERUI.Banking.Class` | CIM | Bank/House Bank interface |
 | **WritUnit** | `Module.lua` | — | CIM | Writ quest tracker |
@@ -236,6 +238,7 @@ self.list:Commit()
 | `Modules/CIM/InterfaceLibrary.lua` | ~600 | Base Window class |
 | `Modules/Inventory/Inventory.lua` | ~2000 | Main inventory logic |
 | `Modules/Banking/Banking.lua` | ~2500 | Banking interface |
+| `Modules/ResourceOrbFrames/Module.lua` | ~1000 | Resource Orbs settings & init |
 
 ---
 
@@ -252,6 +255,7 @@ graph TD
     D --> F[Banking Module]
     D --> G[GeneralInterface Module]
     D --> H[WritUnit Module]
+    D --> L[ResourceOrbFrames Module]
     E --> I[InventoryList.lua]
     E --> J[InventorySlot.lua]
     F --> K[Banking.lua]
