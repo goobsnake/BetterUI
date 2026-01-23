@@ -38,7 +38,7 @@
         -->
         <Texture name="BETTERUI_GamepadMenuEntryStatusIndicationTemplate" inherits="ZO_MultiIcon"
             excludeFromResizeToFitExtents="true" hidden="true" virtual="true">
-            <Dimensions x="24" y="24" />
+            <Dimensions x="BETTERUI_ICON_SIZE_MEDIUM" y="BETTERUI_ICON_SIZE_MEDIUM" />
             <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT"
                 offsetX="BETTERUI_STATUS_INDICATOR_OFFSET_X" />
         </Texture>
@@ -53,7 +53,7 @@
         <Texture name="BETTERUI_GamepadMenuEntryIconTemplate" tier="MEDIUM" inherits="ZO_MultiIcon"
             excludeFromResizeToFitExtents="true" level="1" pixelRoundingEnabled="true"
             virtual="true">
-            <Dimensions x="24" y="24" />
+            <Dimensions x="BETTERUI_ICON_SIZE_MEDIUM" y="BETTERUI_ICON_SIZE_MEDIUM" />
             <Anchor point="CENTER" relativeTo="$(parent)Label" relativePoint="LEFT"
                 offsetX="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET" />
             <Controls>
@@ -100,9 +100,9 @@
         <Control name="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
             <OnInitialized>
                 ZO_SharedGamepadEntry_OnInitialized(self)
+                local itemTypeControl = self:GetNamedChild("ItemType")
                 local function ComputeHeightFromLabelAndItemType(control)
                 local height = control.label:GetTextHeight()
-                local itemTypeControl = control:GetNamedChild("ItemType")
                 if itemTypeControl then
                 local typeHeight = itemTypeControl:GetTextHeight()
                 height = height > typeHeight and height or typeHeight
@@ -150,7 +150,7 @@
                 <Texture name="$(parent)EquippedMain"
                     textureFile="BetterUI/Templates/Images/inv_equip.dds"
                     excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false">
-                    <Dimensions x="28" y="24" />
+                    <Dimensions x="28" y="BETTERUI_ICON_SIZE_MEDIUM" />
                     <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT"
                         offsetX="BETTERUI_EQUIPPED_ICON_OFFSET_X" />
                 </Texture>

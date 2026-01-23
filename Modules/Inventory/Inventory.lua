@@ -758,7 +758,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     if bottomRail then
                         scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
                     else
-                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 40)
+                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI_TOOLTIP_SCROLL_OFFSET_Y)
                     end
                     scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
                 end
@@ -2865,32 +2865,41 @@ end
 --- Purpose: Triggers the quickslot assignment flow.
 --- Mechanics:
 --- 1. Closes any existing Equip dialogs.
---- 2. **Primary**: Tries to open the "Y-Action" menu in "Quickslot Mode" (via `zo_callLater` hack to work around engine timing).
---- 3. **Fallback**: If the Action menu fails to show, opens the standalone `BETTERUI_QUICKSLOT_ASSIGN_DIALOG`.
+--- 2. Directly shows the "Y-Action" menu in "Quickslot Mode".
+--- 3. If that fails to show after a single frame delay, falls back to the custom dialog.
 ---
 --- @param bagId number The bag ID of the item.
 --- @param slotIndex number The slot index of the item.
 function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
-	-- Open the standard Actions dialog in embedded quickslot mode (matches the Y-button prompt UX)
 	local data = { quickslotAssign = true, target = { bagId = bagId, slotIndex = slotIndex } }
+    
 	if ZO_Dialogs_IsShowing(BETTERUI_EQUIP_SLOT_DIALOG) then
 		ZO_Dialogs_ReleaseDialog(BETTERUI_EQUIP_SLOT_DIALOG)
 	end
-	zo_callLater(function()
-		ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
-		-- As a fallback, if the embedded dialog still doesn't appear, show our custom parametric dialog
-		zo_callLater(function()
-			if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-				ZO_Dialogs_ShowDialog(
-					"BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
-					{ target = { bagId = bagId, slotIndex = slotIndex } },
-					nil,
-					true,
-					true
-				)
-			end
-		end, 220)
-	end, 120)
+    
+    -- Attempt to show the primary action dialog immediately
+    ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
+    
+    -- Robust fallback: If the dialog didn't show (possibly due to engine state), 
+    -- attempt once more in the next frame. If both fail, use the standalone dialog.
+    zo_callLater(function()
+        if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+            ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
+            
+            -- Final fallback to standalone if the unified dialog is unavailable/denied
+            zo_callLater(function()
+                if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                    ZO_Dialogs_ShowDialog(
+                        "BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
+                        { target = { bagId = bagId, slotIndex = slotIndex } },
+                        nil,
+                        true,
+                        true
+                    )
+                end
+            end, 50)
+        end
+    end, 10)
 end
 
 --- Attempts to destroy an item, dealing with junk status and user confirmation settings.
@@ -4230,8 +4239,8 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
 		self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
 		self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
 	else
-		self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
-		self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
+		self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, BETTERUI_SEARCH_BAR_SPACING_Y)
+		self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, BETTERUI_SEARCH_BAR_SPACING_Y)
 	end
 	self.textSearchHeaderControl:SetHidden(false)
 end
