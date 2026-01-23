@@ -4,6 +4,19 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
          Includes BackBarButton, FrontBarButton, and FrontBarUltimate templates.
 -->
 <GuiXml>
+    <Animations>
+        <AnimationTimeline name="ResourceOrbFrames_UltimateReadyBurst">
+            <Animations>
+                <TextureAnimation cellsWide="16" cellsHigh="1" framerate="32" />
+            </Animations>
+        </AnimationTimeline>
+        <AnimationTimeline name="ResourceOrbFrames_UltimateReadyLoop" playbackType="LOOP"
+            loopCount="LOOP_INDEFINITELY">
+            <Animations>
+                <TextureAnimation cellsWide="64" cellsHigh="1" framerate="32" />
+            </Animations>
+        </AnimationTimeline>
+    </Animations>
     <Controls>
         <!-- ================================================================
              BACK BAR BUTTON TEMPLATE
@@ -12,6 +25,10 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
             <Dimensions x="64" y="64" />
             <Controls>
                 <Texture name="$(parent)Icon" linkEnabled="true" layer="1">
+                    <AnchorFill />
+                </Texture>
+                <Texture name="$(parent)MouseOverHighlight" layer="2" hidden="true" blendMode="ADD"
+                    textureFile="EsoUI/Art/ActionBar/actionBar_mouseOver.dds">
                     <AnchorFill />
                 </Texture>
                 <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
@@ -55,6 +72,11 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                 </Texture>
                 <Texture name="$(parent)UnusableOverlay" hidden="true" color="000000" alpha="0.65"
                     layer="2">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
+                <Texture name="$(parent)MouseOverHighlight" layer="2" hidden="true" blendMode="ADD"
+                    textureFile="EsoUI/Art/ActionBar/actionBar_mouseOver.dds">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
                 </Texture>

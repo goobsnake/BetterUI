@@ -140,6 +140,11 @@ function SkillBar.UpdateBackBarLayout(rootFrame)
         ultBtn:ClearAnchors()
         ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX, ultOffsetY)
         
+        -- Store references to glow/burst/loop capability
+        ultBtn.readyBurst = ultBtn:GetNamedChild("ReadyBurst")
+        ultBtn.readyLoop = ultBtn:GetNamedChild("ReadyLoop")
+        ultBtn.glow = ultBtn:GetNamedChild("Glow")
+        
         local icon = ultBtn:GetNamedChild("Icon")
         if icon then
             icon:ClearAnchors()
@@ -170,6 +175,11 @@ function SkillBar.SetupBackBarTooltips(rootFrame)
             btn:SetHandler("OnMouseEnter", function(control)
                 local category = control.hotbarCategory
                 local slot = control.slotIndex or slotIndex
+                
+                -- Highlight
+                local highlight = control:GetNamedChild("MouseOverHighlight")
+                if highlight then highlight:SetHidden(false) end
+                
                 if category then
                     local slotType = GetSlotType(slot, category)
                     if slotType and slotType ~= ACTION_TYPE_NOTHING then
@@ -179,6 +189,8 @@ function SkillBar.SetupBackBarTooltips(rootFrame)
                 end
             end)
             btn:SetHandler("OnMouseExit", function(control)
+                local highlight = control:GetNamedChild("MouseOverHighlight")
+                if highlight then highlight:SetHidden(true) end
                 ClearTooltip(AbilityTooltip)
             end)
         end
@@ -358,6 +370,11 @@ function SkillBar.SetupFrontBarTooltips(rootFrame)
             btn:SetHandler("OnMouseEnter", function(control)
                 local category = control.hotbarCategory
                 local slot = control.slotIndex or mapping.slot
+                
+                -- Highlight
+                local highlight = control:GetNamedChild("MouseOverHighlight")
+                if highlight then highlight:SetHidden(false) end
+                
                 if category then
                     local slotType = GetSlotType(slot, category)
                     if slotType and slotType ~= ACTION_TYPE_NOTHING then
@@ -367,6 +384,8 @@ function SkillBar.SetupFrontBarTooltips(rootFrame)
                 end
             end)
             btn:SetHandler("OnMouseExit", function(control)
+                 local highlight = control:GetNamedChild("MouseOverHighlight")
+                 if highlight then highlight:SetHidden(true) end
                  ClearTooltip(AbilityTooltip)
             end)
         end
@@ -491,6 +510,15 @@ function SkillBar.UpdateFrontBarLayout(rootFrame)
         ultBtn:ClearAnchors()
         ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + ultOffsetX, ultOffsetY)
         
+        -- Store references for easy access
+        ultBtn.readyBurst = ultBtn:GetNamedChild("ReadyBurst")
+        ultBtn.readyLoop = ultBtn:GetNamedChild("ReadyLoop")
+        ultBtn.glow = ultBtn:GetNamedChild("Glow")
+        if ultBtn.glow then
+             ultBtn.glowAnimation = ZO_AlphaAnimation:New(ultBtn.glow)
+             ultBtn.glowAnimation:SetMinMaxAlpha(0, 1)
+        end
+        
         local flipCard = ultBtn:GetNamedChild("FlipCard")
         if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
         local icon = ultBtn:GetNamedChild("Icon")
@@ -539,6 +567,58 @@ function SkillBar.UpdateFrontBarLayout(rootFrame)
 end
 
 -- Ultimate & Quickslot Updates
+function SkillBar.PlayUltimateReadyAnimations(btn)
+    local readyBurst = btn.readyBurst
+    local readyLoop = btn.readyLoop
+    local glow = btn.glow
+    local glowAnim = btn.glowAnimation
+    
+    if not btn.readyBurstTimeline then
+        btn.readyBurstTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("ResourceOrbFrames_UltimateReadyBurst", readyBurst)
+        btn.readyLoopTimeline = ANIMATION_MANAGER:CreateTimelineFromVirtual("ResourceOrbFrames_UltimateReadyLoop", readyLoop)
+        
+        btn.readyBurstTimeline:SetHandler("OnPlay", function()
+            -- Sound is handled in UpdateFrontBarUltimateMeter to ensure it plays only once per threshold crossing
+        end)
+        
+        local function OnStop(timeline)
+             if timeline:GetProgress() == 1.0 then
+                 readyBurst:SetHidden(true)
+                 btn.readyLoopTimeline:PlayFromStart()
+                 readyLoop:SetHidden(false)
+             end
+        end
+        btn.readyBurstTimeline:SetHandler("OnStop", OnStop)
+    end
+    
+    local isBursting = btn.readyBurstTimeline:IsPlaying()
+    local isLooping = btn.readyLoopTimeline:IsPlaying()
+    
+    if not isBursting and not isLooping then
+        readyBurst:SetHidden(false)
+        btn.readyBurstTimeline:PlayFromStart()
+        
+        -- Also play glow animation
+        if glowAnim then
+             glowAnim:PingPong(0, 1, 500 * (1/3), 1) -- Bounce duration approx 167ms
+        end
+    elseif not isLooping and not isBursting then
+         btn.readyLoopTimeline:PlayFromStart()
+         readyLoop:SetHidden(false)
+    end
+end
+
+function SkillBar.StopUltimateReadyAnimations(btn)
+    if btn.readyBurstTimeline then
+        btn.readyBurstTimeline:Stop()
+        btn.readyLoopTimeline:Stop()
+    end
+    if btn.readyBurst then btn.readyBurst:SetHidden(true) end
+    if btn.readyLoop then btn.readyLoop:SetHidden(true) end
+    if btn.glowAnimation then btn.glowAnimation:Stop() end
+    if btn.glow then btn.glow:SetAlpha(0) end
+end
+
 function SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.enabled then return end
@@ -577,14 +657,33 @@ function SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
             local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
             local abilityCost = GetSlotAbilityCost(slotIndex, GetActiveHotbarCategory())
             local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+            
             if abilityCost and abilityCost > 0 then
                  local fillPercent = math.min(1, currentUltimate / abilityCost)
                  local frameIndex = math.floor(fillPercent * (TOTAL_FRAMES - 1))
                  SetSpriteFrame(fillLeft, frameIndex, false)
                  SetSpriteFrame(fillRight, frameIndex, true)
                  fillLeft:SetHidden(false); fillRight:SetHidden(false)
+                 
+                 -- Handle Ultimate Ready Animation
+                 if currentUltimate >= abilityCost then
+                      if not ultBtn.isUltimateReady then
+                           ultBtn.isUltimateReady = true
+                           SkillBar.PlayUltimateReadyAnimations(ultBtn)
+                           PlaySound(SOUNDS.ABILITY_ULTIMATE_READY)
+                      end
+                 else
+                      if ultBtn.isUltimateReady then
+                           ultBtn.isUltimateReady = false
+                           SkillBar.StopUltimateReadyAnimations(ultBtn)
+                      end
+                 end
             else
                  fillLeft:SetHidden(true); fillRight:SetHidden(true)
+                 if ultBtn.isUltimateReady then
+                      ultBtn.isUltimateReady = false
+                      SkillBar.StopUltimateReadyAnimations(ultBtn)
+                 end
             end
         end
     end
@@ -634,6 +733,46 @@ function SkillBar.UpdateFrontBarQuickslot(rootFrame)
     end
     qsBtn.slotIndex = slotIndex
     qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+    
+    -- Add Tooltip Handlers
+    if not qsBtn.tooltipHandlersAdded then
+        qsBtn:SetMouseEnabled(true)
+        qsBtn:SetHandler("OnMouseEnter", function(control)
+            local category = control.hotbarCategory
+            local slot = control.slotIndex
+            
+            -- Highlight (Quickslot doesn't have MouseOverHighlight in template? It uses FrontBarButton template? No, it's created manually or likely uses FrontBarButton template if defined in XML)
+            -- Wait, QuickslotButton is defined in ResourceOrbFrames.xml usually. Let's assume it might not have the child unless we check/add it.
+            -- But if it uses FrontBarButton template, it has it.
+            local highlight = control:GetNamedChild("MouseOverHighlight")
+            if highlight then highlight:SetHidden(false) end
+            
+            if category and slot then
+                local slotType = GetSlotType(slot, category)
+                
+                -- Try to show Item Tooltip for Items and Collectibles (using link)
+                if slotType == ACTION_TYPE_ITEM or slotType == ACTION_TYPE_COLLECTIBLE then
+                     local link = GetSlotItemLink(slot, category)
+                     if link and link ~= "" then
+                          InitializeTooltip(ItemTooltip, control, LEFT, 5, 0)
+                          ItemTooltip:SetLink(link)
+                          return
+                     end
+                end
+                
+                -- Fallback to AbilityTooltip for everything else or if link failed
+                InitializeTooltip(AbilityTooltip, control, LEFT, 5, 0)
+                AbilityTooltip:SetAction(slot, category)
+            end
+        end)
+        qsBtn:SetHandler("OnMouseExit", function(control)
+            local highlight = control:GetNamedChild("MouseOverHighlight")
+            if highlight then highlight:SetHidden(true) end
+            ClearTooltip(ItemTooltip)
+            ClearTooltip(AbilityTooltip)
+        end)
+        qsBtn.tooltipHandlersAdded = true
+    end
 end
 
 function SkillBar.UpdateFrontBarCompanion(rootFrame)
