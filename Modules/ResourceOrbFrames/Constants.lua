@@ -3,7 +3,7 @@ File: Modules/ResourceOrbFrames/Constants.lua
 Purpose: Defines all static constants for the ResourceOrbFrames module.
          Centralizes layout dimensions, positioning offsets, and configuration values.
 Author: BetterUI Team
-Last Modified: 2026-01-21
+Last Modified: 2026-01-23
 ]]
 
 local _
@@ -20,6 +20,22 @@ BETTERUI_MIN_COOLDOWN_DISPLAY_MS = 1500
 
 -- Default text size used for ultimate number and quickslot displays
 BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27
+
+-- ============================================================================
+-- LAYOUT CONFIGURATION
+-- Defines the ability slot dimensions and offsets for main bar skinning.
+-- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
+-- ============================================================================
+LAYOUT_CONFIG = {
+    GAMEPAD = { 
+        abilitySlotWidth = 67, 
+        abilitySlotOffsetX = 10 
+    },
+    KEYBOARD = { 
+        abilitySlotWidth = 50, 
+        abilitySlotOffsetX = 2 
+    }
+}
 
 -- ============================================================================
 -- RESOURCE ORB FRAMES - STRUCTURED CONFIGURATION

@@ -16,7 +16,9 @@ lang\$(language).lua
 BetterUI.CONST.lua
 
 ; Module: Common Interface Module
+Modules\CIM\Constants.lua
 Modules\CIM\ControlUtils.lua
+Modules\CIM\SettingsAccessor.lua
 Modules\CIM\CategoryDefinitions.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
@@ -37,6 +39,7 @@ Modules\CIM\InterfaceLibrary.lua
 Modules\CIM\Module.lua
 
 ; Module: General Interface Improvements
+Modules\GeneralInterface\Constants.lua
 Modules\GeneralInterface\Tooltips.lua
 Modules\GeneralInterface\TooltipSettings.lua
 Modules\GeneralInterface\Nameplates.lua
@@ -49,11 +52,17 @@ Modules\ResourceOrbFrames\Constants.lua
 Modules\ResourceOrbFrames\Templates\SkillBarTemplates.xml
 Modules\ResourceOrbFrames\Templates\OrbTemplates.xml
 Modules\ResourceOrbFrames\Templates\LayoutTemplates.xml
+Modules\ResourceOrbFrames\OrbAnimations.lua
+Modules\ResourceOrbFrames\OrbVisuals.lua
+Modules\ResourceOrbFrames\OrbBars.lua
+Modules\ResourceOrbFrames\OrbSkillBar.lua
+Modules\ResourceOrbFrames\OrbEvents.lua
 Modules\ResourceOrbFrames\ResourceOrbFrames.lua
 Modules\ResourceOrbFrames\Templates\ResourceOrbFrames.xml
 Modules\ResourceOrbFrames\Module.lua
 
 ; Module: Inventory Enhanced
+Modules\Inventory\Constants.lua
 Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\InventoryList.lua
 Modules\Inventory\InventorySlot.lua
@@ -65,6 +74,7 @@ Modules\Inventory\InventorySettings.lua
 Modules\Inventory\Module.lua
 
 ; Module: Banking
+Modules\Banking\Constants.lua
 Modules\Banking\Images\nav_vert.dds
 Modules\Banking\Images\selectbg.dds
 Modules\Banking\Banking.lua

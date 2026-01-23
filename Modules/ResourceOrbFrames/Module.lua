@@ -80,10 +80,10 @@ local function Init(mId, moduleName)
 			end,
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["ResourceOrbFrames"].useCustomTextures = value
-				ReloadUI()
 			end,
 			width = "full",
 			warning = "Requires Reload UI",
+			requiresReload = true,
 		},
         {
             type = "button",
@@ -250,10 +250,10 @@ local function Init(mId, moduleName)
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].showUltimateNumber = value
-                        ReloadUI()
                     end,
                     width = "full",
                     warning = "Requires Reload UI",
+                    requiresReload = true,
                 },
                 {
                     type = "slider",
@@ -316,10 +316,10 @@ local function Init(mId, moduleName)
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].showQuickslotCooldown = value
-                        ReloadUI()
                     end,
                     width = "full",
                     warning = "Requires Reload UI",
+                    requiresReload = true,
                 },
                 -- ============================================================================
                 -- COMBAT INDICATORS
@@ -338,10 +338,10 @@ local function Init(mId, moduleName)
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatGlow = value
-                        ReloadUI()
                     end,
                     width = "full",
                     warning = "Requires Reload UI",
+                    requiresReload = true,
                 },
                 {
                     type = "colorpicker",
@@ -374,10 +374,10 @@ local function Init(mId, moduleName)
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].showCombatIcon = value
-                        ReloadUI()
                     end,
                     width = "full",
                     warning = "Requires Reload UI",
+                    requiresReload = true,
                 },
                 {
                     type = "checkbox",
@@ -389,10 +389,10 @@ local function Init(mId, moduleName)
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["ResourceOrbFrames"].playCombatAudio = value
-                        ReloadUI()
                     end,
                     width = "full",
                     warning = "Requires Reload UI",
+                    requiresReload = true,
                 },
                 {
                     type = "button",
