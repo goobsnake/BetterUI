@@ -56,6 +56,7 @@ Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\InventoryList.lua
 Modules\Inventory\InventorySlot.lua
 Modules\Inventory\CraftList.lua
+Modules\Inventory\InventoryUtils.lua
 Modules\Inventory\Inventory.lua
 Modules\Inventory\Module.lua
 
