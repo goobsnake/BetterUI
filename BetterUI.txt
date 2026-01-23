@@ -14,7 +14,6 @@ lang\en.lua
 lang\$(language).lua
 
 BetterUI.CONST.lua
-BetterUI_Shared.xml
 
 ; Module: Common Interface Module
 Modules\CIM\ControlUtils.lua
@@ -26,6 +25,7 @@ Modules\CIM\Images\inv_stolen.dds
 Modules\CIM\Images\inv_enchanted.dds
 Modules\CIM\Images\inv_setitem.dds
 Modules\CIM\Images\select_tabbar.dds
+Modules\CIM\Templates\SharedTemplates.xml
 Modules\CIM\Templates\GenericHeader.xml
 Modules\CIM\GenericHeader.lua
 Modules\CIM\Templates\GenericFooter.xml
@@ -38,7 +38,9 @@ Modules\CIM\Module.lua
 
 ; Module: General Interface Improvements
 Modules\GeneralInterface\Tooltips.lua
+Modules\GeneralInterface\TooltipSettings.lua
 Modules\GeneralInterface\Nameplates.lua
+Modules\GeneralInterface\NameplateSettings.lua
 
 Modules\GeneralInterface\Module.lua
 
@@ -57,6 +59,7 @@ Modules\Inventory\InventoryList.lua
 Modules\Inventory\InventorySlot.lua
 Modules\Inventory\CraftList.lua
 Modules\Inventory\InventoryUtils.lua
+Modules\Inventory\InventoryTooltipUtils.lua
 Modules\Inventory\Inventory.lua
 Modules\Inventory\InventorySettings.lua
 Modules\Inventory\Module.lua

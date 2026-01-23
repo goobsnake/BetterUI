@@ -24,7 +24,6 @@
         3. If enabled, calls BETTERUI_GamepadInventory_OnInitialize(control) manually
         4. This creates BETTERUI.Inventory.Class instance and assigns to GAMEPAD_INVENTORY
 
-        TODO(cleanup): Consider moving the commented code to actual Lua init for clarity
     -->
     <Controls>
         <!-- 
@@ -35,10 +34,9 @@
         <TopLevelControl name="BETTERUI_GamepadInventoryTopLevel"
             inherits="BETTERUI_Gamepad_ParametricList_Screen">
             <OnInitialized>
-                -- Intentionally empty - manual initialization allows module to be disabled.
-                -- See: BETTERUI.Inventory.Setup() in Inventory.lua for actual initialization.
-                -- Original code preserved for reference:
-                -- BETTERUI_GamepadInventory_OnInitialize(self)
+                -- Intentionally empty.
+                -- Initialization is handled manually by BETTERUI.Inventory.Setup() in Module.lua
+                -- to allow for setting-based enabling/disabling of the module.
             </OnInitialized>
         </TopLevelControl>
     </Controls>

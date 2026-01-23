@@ -10,6 +10,48 @@ local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
+
+-- Shared font choices for Inventory (matches Nameplates for consistency)
+BETTERUI.Inventory = BETTERUI.Inventory or {}
+
+
+-- ============================================================================
+-- SETTINGS HELPER FACTORY
+-- ============================================================================
+
+--[[
+Function: CreateSettingAccessors
+Description: Factory to generate getFunc/setFunc/disabled for LAM settings.
+Rationale: Reduces repetitive code across 50+ settings definitions.
+param: moduleName (string) - The settings module name (e.g., "Nameplates", "Tooltips")
+param: settingKey (string) - The key within the module settings table
+param: applyCallback (function|nil) - Optional callback to run after setting is changed
+param: defaultValue (any|nil) - Optional default value if setting is nil
+return: table - { get = function, set = function, disabled = function }
+]]
+function BETTERUI.CreateSettingAccessors(moduleName, settingKey, applyCallback, defaultValue)
+    return {
+        get = function()
+            local settings = BETTERUI.Settings.Modules[moduleName]
+            if not settings then return defaultValue end
+            local value = settings[settingKey]
+            if value == nil then return defaultValue end
+            return value
+        end,
+        set = function(value)
+            if BETTERUI.Settings.Modules[moduleName] then
+                BETTERUI.Settings.Modules[moduleName][settingKey] = value
+                if applyCallback then
+                    applyCallback(value)
+                end
+            end
+        end,
+        disabled = function()
+            return not BETTERUI.Settings.Modules[moduleName]
+        end
+    }
+end
+
 --- Updates the Common Interface Module (CIM) state based on dependents.
 ---
 --- Purpose: Ensures CIM is enabled if any module requiring it (Inventory, Banking) is active.
@@ -153,7 +195,7 @@ end
 ---            Initializes research data and module-specific setups (Inventory, Banking, Wraps, etc.).
 ---            Includes Monkey-Patches for ZO_Global functions to prevent crashes with nil icon paths.
 --- References: Called on initialization and when switching to Gamepad mode.
---- TODO: Check if patch #2 (HandleDuplicateAddKeybind) can be simplified in recent API versions.
+--- References: Called on initialization and when switching to Gamepad mode.
 ---
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
@@ -316,8 +358,10 @@ function BETTERUI.LoadModules()
 		BETTERUI.Writs.Setup()
 	end
 
-	if settings["Tooltips"].m_enabled and BETTERUI.Tooltips and BETTERUI.Tooltips.Setup then
-		BETTERUI.Tooltips.Setup()
+	-- Initialize General Interface (Settings & Tooltips)
+	-- We call this unconditionally so settings panel is registered; Setup checks m_enabled internally.
+	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
+		BETTERUI.GeneralInterface.Setup()
 	end
 
 	-- Initialize Enhanced Nameplates module (independent of gamepad mode)
