@@ -186,6 +186,10 @@ BETTERUI_TRAIT_WIDTH = 180
 BETTERUI_STAT_OFFSET_X = 1000
 BETTERUI_STAT_WIDTH = 130
 
+-- Value column
+BETTERUI_VALUE_OFFSET_X = 1150
+BETTERUI_VALUE_WIDTH = 100
+
 -- ============================================================================
 -- GLOBAL CONSTANTS (Colors, Icons, Fonts)
 -- ============================================================================

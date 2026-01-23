@@ -43,7 +43,7 @@ local esoSubscriber
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
 -------------------------------------------------------------------------------------------------
 local BANK_CATEGORY_DEFS = BETTERUI.Inventory.Categories.Bank
-local BANK_CATEGORY_ICONS = BETTERUI.Inventory.Categories.BankIcons
+-- BANK_CATEGORY_ICONS was removed; icons are now inside category definitions.
 
 local EnsureKeybindGroupAdded = BETTERUI.Interface.EnsureKeybindGroupAdded
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
@@ -63,10 +63,12 @@ return: table - A list of category definitions (key, name, filterType).
 local function BuildAllBankCategories(isFurnitureVault)
     -- Always include 'All Items' to ensure a non-empty tab bar and a safe default,
     -- even for special bank types (e.g., house storage/furniture vault).
+    -- Fetch 'all' and 'furnishing' definitions from the master list (or duplicate minimal defs for safety)
     if isFurnitureVault then
+        -- Retrieve standard icons/IDs from shared defs if possible, or hardcode fallback
         return {
-            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil },
-            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING },
+            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                         iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
+            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING,   iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
         }
     end
     local out = {}
@@ -74,13 +76,9 @@ local function BuildAllBankCategories(isFurnitureVault)
         local def = BANK_CATEGORY_DEFS[i]
         -- Skip optional categories if the filter type constant isn't available in this API
         if not def.optional or (def.optional and def.filterType ~= nil) then
-            local name
-            if type(def.name) == "number" then
-                name = GetString(def.name)
-            else
-                name = tostring(def.name)
-            end
-            out[#out+1] = { key = def.key, name = name, filterType = def.filterType, special = def.special }
+            local name = GetString(def.nameStringId)
+            -- Pass through the iconFile from the definition
+            out[#out+1] = { key = def.key, name = name, filterType = def.filterType, special = def.special, iconFile = def.iconFile }
         end
     end
     return out
@@ -659,6 +657,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
 	self.itemActions:SetUseKeybindStrip(false) 
     self:InitializeActionsDialog()
+
+    -- Re-anchor the list to match Inventory's offset (-50) to align columns with header
+    local listContainer = self.control:GetNamedChild("Container"):GetNamedChild("List")
+    if listContainer then
+        listContainer:ClearAnchors()
+        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT, -35, 0)
+        listContainer:SetAnchor(BOTTOMRIGHT, self.footer:GetNamedChild("Footer"), TOPRIGHT, 0, 10)
+    end
 	
 	local function CallbackSplitStackFinished()
 		--refresh list
@@ -2448,8 +2454,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
     for i = 1, #self.bankCategories do
         local cat = self.bankCategories[i]
-        local icon = BANK_CATEGORY_ICONS[cat.key] or BANK_CATEGORY_ICONS.all
-        local entryData = ZO_GamepadEntryData:New(cat.name, icon)
+        local entryData = ZO_GamepadEntryData:New(cat.name, cat.iconFile)
         entryData.filterType = cat.filterType -- influences icon tint like inventory
         entryData:SetIconTintOnSelection(true)
         BETTERUI.GenericHeader.AddToList(self.headerGeneric, entryData)

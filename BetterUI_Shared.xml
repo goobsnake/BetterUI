@@ -114,6 +114,12 @@
         </Control>
 
         <!-- 
+            TODO: Migrate BETTERUI_GamepadSubMenuEntryTemplate and BETTERUI_GamepadItemSubEntryTemplate
+            to Modules/CIM/Templates/ for better module organization. These templates are used by
+            Inventory, Banking, and Vendor lists and belong with other CIM interface templates.
+        -->
+
+        <!-- 
             Template: Sub-Menu Entry (Grid Row)
             Purpose: The main template for inventory rows in BetterUI's grid view.
             Structure:
