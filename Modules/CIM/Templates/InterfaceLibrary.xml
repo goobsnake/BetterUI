@@ -18,11 +18,18 @@
     - Templates inherit from ZO_ base templates where possible for consistency
     - Mouse wheel handlers enable hybrid controller+mouse navigation
 
-    TODO(refactor): Many templates duplicate anchor patterns - extract to shared base
-    TODO(cleanup): Some commented-out anchor code should be removed or documented
-    TODO(enhancement): Add support for dynamic font scaling via settings
     -->
+
     <Controls>
+        <!-- Reusable Anchor and Dimension Patterns -->
+        <Control name="BETTERUI_CenteredInParent_Anchors" virtual="true">
+            <AnchorFill />
+        </Control>
+
+        <Control name="BETTERUI_LeftMenuEntry_Anchors" virtual="true">
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
+        </Control>
 
 
         <!--
@@ -108,11 +115,8 @@
         <Label name="BETTERUI_GenericColumn_TextTemplate" font="ZoFontGamepad27"
             horizontalAlignment="LEFT" wrapMode="ELLIPSIS" virtual="true" modifyTextType="UPPERCASE" />
 
-        <Label name="BETTERUI_MenuEntryLabelTemplate" font="ZoFontGamepad34"
-            verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true">
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
-            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
-        </Label>
+        <Label name="BETTERUI_MenuEntryLabelTemplate" inherits="BETTERUI_LeftMenuEntry_Anchors"
+            font="ZoFontGamepad34" verticalAlignment="CENTER" wrapMode="ELLIPSIS" virtual="true" />
 
         <Label name="BETTERUI_FooterTemplate" font="ZoFontGamepad45" wrapMode="ELLIPSIS"
             virtual="true" modifyTextType="UPPERCASE" />
@@ -220,11 +224,8 @@
 
 
         <Control name="BETTERUI_HeaderRow_Template"
-            inherits="BETTERUI_GamepadMenuEntryLabelSizedTemplate" virtual="true">
-            <!--  <Dimensions y="32" /> -->
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
-            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
-
+            inherits="BETTERUI_GamepadMenuEntryLabelSizedTemplate BETTERUI_LeftMenuEntry_Anchors"
+            virtual="true">
             <Controls>
                 <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate"
                     font="ZoFontGamepad27">
