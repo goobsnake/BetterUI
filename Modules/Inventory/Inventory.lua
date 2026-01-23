@@ -96,7 +96,13 @@ Description: Marks the inventory slot data cache as dirty to trigger a refresh o
 Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
 Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
 ]]
-local function InvalidateSlotDataCache()
+--[[
+Function: InvalidateSlotDataCache
+Description: Marks the inventory slot data cache as dirty to trigger a refresh on next access.
+Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
+Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
+]]
+function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
 end
@@ -113,7 +119,19 @@ Mechanism:
 param: ... (bagIds) - The bag identifiers to fetch data for.
 return: table - Table of slot data for the requested bags.
 ]]
-local function GetCachedSlotData(...)
+--[[
+Function: GetCachedSlotData
+Description: Wrapped version of SHARED_INVENTORY:GenerateFullSlotData with internal caching.
+Rationale: Calling GenerateFullSlotData multiple times per frame (junk check, stolen check, list refresh) is expensive.
+Mechanism: 
+1. Checks dirty flag.
+2. If dirty, clears cache.
+3. If not dirty and bag cached, returns cached data.
+4. Otherwise, calls native GenerateFullSlotData(nil, ...) and caches it.
+param: ... (bagIds) - The bag identifiers to fetch data for.
+return: table - Table of slot data for the requested bags.
+]]
+function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = {...}
     table.sort(bags) -- Ensure consistent key
     local cacheKey = table.concat(bags, ",")
@@ -150,92 +168,8 @@ end
 --- @param newValue number The value to wrap
 --- @param maxValue number The maximum value (1 is implicit minimum)
 --- @return number The wrapped value
-local function WrapValue(newValue, maxValue)
-	if newValue < 1 then
-		return maxValue
-	end
-	if newValue > maxValue then
-		return 1
-	end
-	return newValue
-end
-
---- Checks if the player has unlocked weapon swap (requires level 15).
----
---- Purpose: Determines if "Back" bar equip options should be shown.
---- Mechanics: compares player level against GetWeaponSwapUnlockedLevel().
----
---- @return boolean True if player can use backup bar
-local function CanUseBackupBar()
-	return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
-end
-
--- Tab bar navigation callbacks - called on successful LB/RB navigation
--- These are more stable than onSelectedChanged because they only fire on actual user navigation,
--- not during list rebuilds or dialog operations
---- Callback for Right Bumper (Next) navigation.
----
---- Purpose: Advances the category tab selection.
---- Mechanics:
---- 1. Checks for valid category list data.
---- 2. Saves current list position.
---- 3. Increments target index (wrapping via WrapValue).
---- 4. Updates header text immediately.
---- 5. Restores saved position for the new category.
---- References: Called by ParametricScrollListTemplates.lua (BETTERUI_TabBarScrollList).
----
---- @param parent table The inventory object.
---- @param successful boolean Whether the navigation action was successful.
-function BETTERUI_TabBar_OnTabNext(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
-		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
-	end
-end
-
---- Callback for Left Bumper (Previous) navigation.
----
---- Purpose: Reverses the category tab selection.
---- Mechanics:
---- 1. Checks for valid category list data.
---- 2. Saves current list position.
---- 3. Decrements target index (wrapping via WrapValue).
---- 4. Updates header text immediately.
---- 5. Restores saved position for the new category.
---- References: Called by ParametricScrollListTemplates.lua (BETTERUI_TabBarScrollList).
----
---- @param parent table The inventory object.
---- @param successful boolean Whether the navigation action was successful.
-function BETTERUI_TabBar_OnTabPrev(parent, successful)
-	if successful then
-		if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-			return
-		end
-		parent:SaveListPosition()
-
-		parent.categoryList.targetSelectedIndex =
-			WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
-		parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-		parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-		parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-		BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-		parent:ToSavedPosition()
-	end
-end
+-- Helper logic moved to InventoryUtils.lua
+-- WrapValue, CanUseBackupBar, TabBarNext/Prev removed.
 
 -- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
@@ -310,12 +244,12 @@ local function EnsureCompanionEquipPatched()
 end
 
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
-local function BETTERUI_GetEquipSlotForEquipType(equipType)
+function BETTERUI.Inventory.Class:GetEquipSlotForEquipType(equipType)
 	-- Prefer the slot corresponding to the currently intended bar (primary/backup)
 	-- for combat-related equipment (weapons/poison). For armor/jewelry, primary/backup is irrelevant.
 	local wantPrimary = true
-	if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.isPrimaryWeapon ~= nil then
-		wantPrimary = GAMEPAD_INVENTORY.isPrimaryWeapon
+	if self.isPrimaryWeapon ~= nil then
+		wantPrimary = self.isPrimaryWeapon
 	end
 
 	local lastMatchingSlot = nil
@@ -1162,9 +1096,9 @@ end
 
 -- Robust check for any junk in the backpack using the shared inventory cache,
 -- with a direct IsItemJunk fallback as a safety net.
-local function HasAnyJunkInBackpack()
+function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
 	-- Prefer shared inventory cache, which we explicitly refresh after junk toggles.
-	local backpack = GetCachedSlotData(BAG_BACKPACK)
+	local backpack = self:GetCachedSlotData(BAG_BACKPACK)
 	if backpack then
 		for _, slotData in ipairs(backpack) do
 			if slotData and slotData.isJunk == true then
@@ -1328,7 +1262,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 					bagId,
 					slotIndex,
 					BAG_WORN,
-					BETTERUI_GetEquipSlotForEquipType(equipType),
+					self:GetEquipSlotForEquipType(equipType),
 					1
 				)
 			end)
@@ -1399,7 +1333,7 @@ end
 ---
 function BETTERUI.Inventory.Class:RefreshCategoryList()
 	local function IsStolenAndNotJunk()
-		local backpack = GetCachedSlotData(BAG_BACKPACK)
+		local backpack = self:GetCachedSlotData(BAG_BACKPACK)
 		if backpack then
 			for _, slotData in ipairs(backpack) do
 				if slotData and slotData.stolen and not slotData.isJunk then
@@ -1458,24 +1392,8 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             local shouldAdd = false
             local data = nil
             
-            -- STATIC CATEGORIES (e.g. All, Weapons, Armor, etc)
-            if not catDef.type then
-                -- Standard NewCategoryItem logic
-                -- If it's "All" (filterType == nil), we pass nil.
-                -- NewCategoryItem checks IsItemListEmpty internaly.
-                 local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
-                 
-                 -- "All" (nil filter) is always added unless explicitly empty (which logic handles)
-                 if catDef.isStatic or not isListEmpty then
-                    -- Replicating NewCategoryItem logic inline or calling it?
-                    -- Calling it is safer to preserve existing logic (new item flags etc)
-                    -- But NewCategoryItem is complex. Let's stick to calling it for standard types.
-                    self:NewCategoryItem(catDef.filterType, catDef.iconFile)
-                    shouldAdd = false -- Handled by NewCategoryItem
-                 end
-                 
-            -- SPECIAL CATEGORIES (Equipped, Quest, Stolen, Junk)
-            elseif catDef.type == "Equipped" then
+            -- SPECIAL CATEGORIES
+            if catDef.key == "Equipped" then
                 local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
                 if usedBagSize > 0 then
                     local name = GetString(catDef.nameStringId)
@@ -1485,7 +1403,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                     shouldAdd = true
                 end
                 
-            elseif catDef.type == "Quest" then
+            elseif catDef.key == "Quest" then
                 local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
                 if next(questCache) then
                     local name = GetString(catDef.nameStringId)
@@ -1494,7 +1412,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                     shouldAdd = true
                 end
                 
-            elseif catDef.type == "Stolen" then
+            elseif catDef.key == "Stolen" then
                 if IsStolenAndNotJunk() then
                     local name = GetString(catDef.nameStringId)
                     local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
@@ -1503,10 +1421,10 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                     shouldAdd = true
                 end
                 
-            elseif catDef.type == "Junk" then
-                if HasAnyJunkInBackpack() then
+            elseif catDef.key == "Junk" then
+                if self:HasAnyJunkInBackpack() then
                     local isListEmpty = self:IsItemListEmpty(nil, nil)
-					if not isListEmpty then
+                    if not isListEmpty then
                         local name = GetString(catDef.nameStringId)
                         local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
                         data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
@@ -1514,6 +1432,15 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                         shouldAdd = true
                     end
                 end
+                
+            -- STANDARD CATEGORIES (All, Weapons, etc)
+            else
+                 local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
+                 
+                 if catDef.isStatic or not isListEmpty then
+                    self:NewCategoryItem(catDef.filterType, catDef.iconFile)
+                    shouldAdd = false -- Handled by NewCategoryItem
+                 end
             end
             
             if shouldAdd and data then
@@ -1614,7 +1541,7 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 		-- Use onNext/onPrev callbacks instead of onSelectedChanged
 		-- This pattern only fires on actual user navigation (LB/RB), not during list rebuilds
 		-- which prevents keybind interference during equip operations and dialogs
-		tabBarData = { parent = self, onNext = BETTERUI_TabBar_OnTabNext, onPrev = BETTERUI_TabBar_OnTabPrev },
+		tabBarData = { parent = self, onNext = BETTERUI.Inventory.Utils.OnTabNext, onPrev = BETTERUI.Inventory.Utils.OnTabPrev },
 		carouselConfig = {
 			enabled = isCarousel,
 		},
@@ -1782,7 +1709,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 		local comparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 
 		if showEquippedCategory then
-			local worn = GetCachedSlotData(BAG_WORN)
+			local worn = self:GetCachedSlotData(BAG_WORN)
 			filteredDataTable = {}
 			for _, slotData in ipairs(worn) do
 				if comparator(slotData) then
@@ -1790,7 +1717,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 				end
 			end
 		elseif showStolenCategory then
-			local backpack = GetCachedSlotData(BAG_BACKPACK)
+			local backpack = self:GetCachedSlotData(BAG_BACKPACK)
 			filteredDataTable = {}
 			for _, slotData in ipairs(backpack) do
 				if IsStolenItem(slotData) then
@@ -1798,7 +1725,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 				end
 			end
 		else
-			local bags = GetCachedSlotData(BAG_BACKPACK, BAG_WORN)
+			local bags = self:GetCachedSlotData(BAG_BACKPACK, BAG_WORN)
 			filteredDataTable = {}
 			for _, slotData in ipairs(bags) do
 				if comparator(slotData) then
@@ -3869,7 +3796,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
 	local function OnInventoryUpdated(bagId)
-		InvalidateSlotDataCache()
+		self:InvalidateSlotDataCache()
 		self:MarkDirty()
 		-- Debounce heavy updates to the next frame to batch rapid changes
 		if GetFrameTimeSeconds then
