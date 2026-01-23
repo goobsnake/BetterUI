@@ -67,7 +67,7 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.baseCoordRight = baseCoordRight
     self.baseAnchorX = baseAnchorX
     
-    -- Animation state for swirl/flow effects
+    -- Animation state for flow effects (horizontal oscillation)
     self.animState = {
         time = 0,             -- Accumulated time for animation cycle
         rotationAngle = 0,    -- Current rotation angle (health orb)
@@ -177,54 +177,48 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     if not self.fog or not self.animState then return end
     
     if not settings.orbAnimFlow then
+        -- Reset any animation state when flow is disabled
         if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
             self.fog:SetTextureRotation(0)
             self.animState.rotationAngle = 0
         end
+        self.animState.currentLeft = nil
+        self.animState.currentRight = nil
         return
     end
     
-    local flowSpeed = 60000 -- Hardcoded default
+    -- Animation parameters (unified for all orbs)
+    local flowRange = 0.0225  -- Horizontal oscillation range
+    local flowSpeed = 6500    -- Speed of oscillation cycle in ms
     
     self.animState.time = self.animState.time + deltaMs
     
-    local textureWidth = math.abs(self.baseCoordRight - self.baseCoordLeft)
-    local isHalfTexture = math.abs(textureWidth - 0.5) < 0.001
+    -- Calculate oscillation offset (gentle horizontal shift)
+    local oscillation = math.sin(self.animState.time / flowSpeed * math.pi * 2) * flowRange
     
-    if isHalfTexture then
-        local flowRange = 0.0225 
-        local halfOrbSpeed = 6500
-        local oscillation = math.sin(self.animState.time / halfOrbSpeed * math.pi * 2) * flowRange
-        
-        local percent = 0
-        if self.currentValue >= self.maxValue then
-            percent = 100
-        elseif self.maxValue ~= 0 then
-            percent = zo_roundToNearest((self.currentValue / self.maxValue) * 100, 0.1)
-        end
-        percent = zo_max(0, percent - 3)
-        local coordTop = 1 - (percent / 100)
-        
-        local scrolledLeft = self.baseCoordLeft + oscillation
-        local scrolledRight = self.baseCoordRight + oscillation
-        self.fog:SetTextureCoords(scrolledLeft, scrolledRight, coordTop, 1)
-        
-        -- Cache current swirl state for RefreshVisuals
-        self.animState.currentLeft = scrolledLeft
-        self.animState.currentRight = scrolledRight
-        
-        if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
-            self.fog:SetTextureRotation(0)
-            self.animState.rotationAngle = 0
-        end
-    else
-        -- Clear cached swirl state if not using half-texture swirl
-        self.animState.currentLeft = nil
-        self.animState.currentRight = nil
-
-        local rotationAngle = (self.animState.time / flowSpeed) * math.pi * 2
-        self.fog:SetTextureRotation(rotationAngle)
-        self.animState.rotationAngle = rotationAngle
+    -- Calculate current fill percent
+    local percent = 0
+    if self.currentValue >= self.maxValue then
+        percent = 100
+    elseif self.maxValue ~= 0 then
+        percent = zo_roundToNearest((self.currentValue / self.maxValue) * 100, 0.1)
+    end
+    percent = zo_max(0, percent - 3) -- Visual adjustment
+    local coordTop = 1 - (percent / 100)
+    
+    -- Apply oscillation to texture coordinates
+    local scrolledLeft = self.baseCoordLeft + oscillation
+    local scrolledRight = self.baseCoordRight + oscillation
+    self.fog:SetTextureCoords(scrolledLeft, scrolledRight, coordTop, 1)
+    
+    -- Cache current flow state for RefreshVisuals
+    self.animState.currentLeft = scrolledLeft
+    self.animState.currentRight = scrolledRight
+    
+    -- Ensure no rotation is applied (only use horizontal flow)
+    if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
+        self.fog:SetTextureRotation(0)
+        self.animState.rotationAngle = 0
     end
 end
 
