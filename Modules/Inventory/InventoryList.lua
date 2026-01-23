@@ -1,32 +1,30 @@
---------------------------------------------------------------------------------
--- BetterUI Inventory List Module
---
--- This file handles the customized setup and display of inventory list entries.
--- It works in conjunction with the main Inventory class to render individual items.
---
--- KEY RESPONSIBILITIES:
---
--- 1.  **Entry Formatting (`BETTERUI_SharedGamepadEntryLabelSetup`)**:
---     *   Styles text based on item state (Locked, BoP, Bound, Enchanted, Set Gear).
---     *   Adds iconography (Stolen, Guild Trader, Enchantment, etc.) directly into the label.
---     *   Handles font scaling and coloring based on selection or item quality.
---
--- 2.  **Item Setup (`BETTERUI_SharedGamepadEntry_OnSetup`)**:
---     *   The main "render" function called for every row in the inventory.
---     *   Populates columns: Item Type, Trait, Stat (Damage/Armor/Recipe), and Value.
---     *   Optimizes performance by using cached values (`cached_itemLink`, etc.) from the main inventory loop.
---     *   Handles dynamic icon sizing based on user font settings.
---
--- 3.  **Visual Indicators**:
---     *   `BETTERUI_IconSetup`: Manages the "New Item" status indicator and "Equipped" checkmarks.
---     *   `BETTERUI_Cooldown`: Draws cooldown timers on items (e.g. potions).
---
--- 4.  **List Class (`BETTERUI.Inventory.List`)**:
---     *   A subclass of `ZO_GamepadInventoryList` tailored for BetterUI.
---     *   Uses `BETTERUI_VerticalParametricScrollList` for the actual scrolling mechanic.
---     *   Handles list refreshes, data binding, and trigger keybinds.
---
---------------------------------------------------------------------------------
+--[[
+File: Modules/Inventory/InventoryList.lua
+Purpose: Handles the customized setup and display of inventory list entries.
+         Works with the main Inventory class to render individual items.
+Last Modified: 2026-01-23
+
+KEY RESPONSIBILITIES:
+1.  Entry Formatting (BETTERUI_SharedGamepadEntryLabelSetup):
+    *   Styles text based on item state (Locked, BoP, Bound, Enchanted, Set Gear).
+    *   Adds iconography (Stolen, Guild Trader, Enchantment, etc.) directly into the label.
+    *   Handles font scaling and coloring based on selection or item quality.
+
+2.  Item Setup (BETTERUI_SharedGamepadEntry_OnSetup):
+    *   The main "render" function called for every row in the inventory.
+    *   Populates columns: Item Type, Trait, Stat (Damage/Armor/Recipe), and Value.
+    *   Optimizes performance by using cached values (cached_itemLink, etc.) from the main inventory loop.
+    *   Handles dynamic icon sizing based on user font settings.
+
+3.  Visual Indicators:
+    *   BETTERUI_IconSetup: Manages the "New Item" status indicator and "Equipped" checkmarks.
+    *   BETTERUI_Cooldown: Draws cooldown timers on items (e.g. potions).
+
+4.  List Class (BETTERUI.Inventory.List):
+    *   A subclass of ZO_GamepadInventoryList tailored for BetterUI.
+    *   Uses BETTERUI_VerticalParametricScrollList for the actual scrolling mechanic.
+    *   Handles list refreshes, data binding, and trigger keybinds.
+]]
 
 
 

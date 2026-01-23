@@ -1,11 +1,14 @@
----------------------------------------------------------------------------------------------------
--- BetterUI - Tooltip Enhancements
---
--- This module enriches item tooltips with useful information:
--- 1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).
--- 2. Research Status: Indicates if an item's trait is researchable and where other copies are located.
--- 3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
----------------------------------------------------------------------------------------------------
+--[[
+File: Modules/GeneralInterface/Tooltips.lua
+Purpose: Enriches item tooltips with useful information.
+         Integrates market pricing, research status, and font scaling.
+Last Modified: 2026-01-23
+
+FEATURES:
+1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).
+2. Research Status: Indicates if an item's trait is researchable and where other copies are located.
+3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
+]]
 
 _G.gsErrorSuppress = 0  -- Global flag for guild store error suppression
 local _

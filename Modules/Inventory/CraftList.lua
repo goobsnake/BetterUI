@@ -1,25 +1,22 @@
---------------------------------------------------------------------------------
--- BetterUI Craft Bag List
---
--- This file implements the specific list logic for the ESO Plus Craft Bag.
--- It subclasses `BETTERUI.Inventory.List` but overrides key methods to handle
--- the unique filtering and sorting requirements of the virtual bag.
---
--- KEY RESPONSIBILITIES:
---
---
--- 1.  **Filtering (`GetFilterComparator`)**:
---     *   Generates filter functions based on item types (Alchemy, Blacksmithing, etc.).
---     *   Supports complex filters (tables of filter types) or "All" mode.
---
--- 2.  **List Refresh (`RefreshList`)**:
---     *   Rebuilds the craft bag list based on the current filter and search query.
---     *   Applies text search filtering (name only) to narrow down results.
---     *   Sorts items using `BETTERUI_CraftList_DefaultItemSortComparator`.
---
--- 3.  **Data Generation**:
---     *   `AddSlotDataToTable`: Populates the list with cached category information.
---------------------------------------------------------------------------------
+--[[
+File: Modules/Inventory/CraftList.lua
+Purpose: Implements the specific list logic for the ESO Plus Craft Bag.
+         Subclasses BETTERUI.Inventory.List.
+Last Modified: 2026-01-23
+
+KEY RESPONSIBILITIES:
+1.  Filtering (GetFilterComparator):
+    *   Generates filter functions based on item types (Alchemy, Blacksmithing, etc.).
+    *   Supports complex filters (tables of filter types) or "All" mode.
+
+2.  List Refresh (RefreshList):
+    *   Rebuilds the craft bag list based on the current filter and search query.
+    *   Applies text search filtering (name only) to narrow down results.
+    *   Sorts items using BETTERUI_CraftList_DefaultItemSortComparator.
+
+3.  Data Generation:
+    *   AddSlotDataToTable: Populates the list with cached category information.
+]]
 
 --- @class BETTERUI.Inventory.CraftList : BETTERUI.Inventory.List
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()

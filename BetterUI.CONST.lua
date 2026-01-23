@@ -17,85 +17,6 @@ local _
 BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER, CRAFTING_TYPE_JEWELRYCRAFTING, CRAFTING_TYPE_WOODWORKING }
 
 -- ============================================================================
--- CURRENCY FOOTER CONFIGURATION
--- ============================================================================
-
--- Maximum currencies that can be displayed in the footer (UI space limit)
-BETTERUI_MAX_VISIBLE_CURRENCIES = 12
-
--- Total available currencies in the system
-BETTERUI_TOTAL_CURRENCIES = 12
-
--- ============================================================================
--- CURRENCY PRESETS
--- ============================================================================
-
-BETTERUI.CURRENCY_PRESETS = {
-    default = {
-        showCurrencyGold = true, orderCurrencyGold = 1,
-        showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 2,
-        showCurrencyTelVar = true, orderCurrencyTelVar = 3,
-        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 4,
-        showCurrencyTransmute = true, orderCurrencyTransmute = 5,
-        showCurrencyCrowns = true, orderCurrencyCrowns = 6,
-        showCurrencyCrownGems = true, orderCurrencyCrownGems = 7,
-        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 8,
-        showCurrencyTradeBars = true, orderCurrencyTradeBars = 9,
-        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 10,
-        showCurrencySeals = true, orderCurrencySeals = 11,
-        showCurrencyTomePoints = true, orderCurrencyTomePoints = 12,
-    },
-    pvp = {
-        showCurrencyAlliancePoints = true, orderCurrencyAlliancePoints = 1,
-        showCurrencyTelVar = true, orderCurrencyTelVar = 2,
-        showCurrencyGold = true, orderCurrencyGold = 3,
-        showCurrencyTransmute = true, orderCurrencyTransmute = 4,
-        showCurrencySeals = true, orderCurrencySeals = 5,
-        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 6,
-        showCurrencyTradeBars = true, orderCurrencyTradeBars = 7,
-        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 8,
-        showCurrencyCrowns = false, orderCurrencyCrowns = 9,
-        showCurrencyCrownGems = false, orderCurrencyCrownGems = 10,
-        showCurrencyWritVouchers = false, orderCurrencyWritVouchers = 11,
-        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-    },
-    crafter = {
-        showCurrencyGold = true, orderCurrencyGold = 1,
-        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 2,
-        showCurrencyTransmute = true, orderCurrencyTransmute = 3,
-        showCurrencySeals = true, orderCurrencySeals = 4,
-        showCurrencyOutfitTokens = true, orderCurrencyOutfitTokens = 5,
-        showCurrencyTradeBars = true, orderCurrencyTradeBars = 6,
-        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 7,
-        showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 8,
-        showCurrencyTelVar = false, orderCurrencyTelVar = 9,
-        showCurrencyCrowns = false, orderCurrencyCrowns = 10,
-        showCurrencyCrownGems = false, orderCurrencyCrownGems = 11,
-        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-    },
-    events = {
-        showCurrencyTradeBars = true, orderCurrencyTradeBars = 1,
-        showCurrencySeals = true, orderCurrencySeals = 2,
-        showCurrencyGold = true, orderCurrencyGold = 3,
-        showCurrencyCrowns = true, orderCurrencyCrowns = 4,
-        showCurrencyCrownGems = true, orderCurrencyCrownGems = 5,
-        showCurrencyTransmute = true, orderCurrencyTransmute = 6,
-        showCurrencyWritVouchers = true, orderCurrencyWritVouchers = 7,
-        showCurrencyUndauntedKeys = true, orderCurrencyUndauntedKeys = 8,
-        showCurrencyAlliancePoints = false, orderCurrencyAlliancePoints = 9,
-        showCurrencyTelVar = false, orderCurrencyTelVar = 10,
-        showCurrencyOutfitTokens = false, orderCurrencyOutfitTokens = 11,
-        showCurrencyTomePoints = false, orderCurrencyTomePoints = 12,
-    },
-}
-
--- Footer currency layout positions (X coordinates for each column)
-BETTERUI_CURRENCY_COLUMNS = {190, 350, 510, 670, 830, 990}
-
--- Footer currency row positions (Y coordinates for each row)
-BETTERUI_CURRENCY_ROWS = {32, 58, 84}
-
--- ============================================================================
 -- UI LAYOUT
 -- ============================================================================
 
@@ -117,36 +38,7 @@ BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = 1325
 BETTERUI_TABBAR_ICON_WIDTH = 50
 
 -- ============================================================================
--- CATEGORY CAROUSEL (Tab Bar Icons)
--- Used for the rotating category icon bar in Inventory and Banking headers
--- ============================================================================
-
--- Default carousel settings (used by Inventory)
-BETTERUI_CAROUSEL_START_OFFSET = 710       -- Horizontal position of first category icon (increase to move right)
-BETTERUI_CAROUSEL_ITEM_SPACING = 50        -- Space between each category icon
-BETTERUI_CAROUSEL_VERTICAL_OFFSET = 12     -- Vertical offset to align icons with LB/RB buttons (increase to move down)
-
--- Banking-specific carousel overrides (nil means use default)
-BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705   -- Horizontal position for banking carousel (increase to move right)
-BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1  -- Vertical offset for banking (lower value moves icons up)
-
--- ============================================================================
--- SEARCH BAR POSITIONING
--- Controls the position of the search input field in headers
--- ============================================================================
-
--- Inventory search bar position
-BETTERUI_INV_SEARCH_X_OFFSET = 56          -- Horizontal offset from left edge (increase to move right)
-BETTERUI_INV_SEARCH_Y_OFFSET = 1           -- Vertical offset from header bottom (increase to move down)
-BETTERUI_INV_SEARCH_RIGHT_INSET = -4       -- Right edge inset (more negative = narrower search bar)
-
--- Banking search bar position
-BETTERUI_BANK_SEARCH_X_OFFSET = 58         -- Horizontal offset from left edge (increase to move right)
-BETTERUI_BANK_SEARCH_Y_OFFSET = 15         -- Vertical offset from header bottom (increase to move down)
-BETTERUI_BANK_SEARCH_RIGHT_INSET = -8      -- Right edge inset (more negative = narrower search bar)
-
--- ============================================================================
--- LIST ENTRY DIMENSIONS
+-- LIST ENTRY DIMENSIONS (Shared)
 -- ============================================================================
 
 -- Entry widths (used in XML templates)
@@ -156,27 +48,6 @@ BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDT
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET = -20
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT = BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET - BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT = BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH - BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT
-
--- Icon Scaling Constants (Used in InventoryList.lua)
-BETTERUI_LIST_ENTRY_BASE_FONT_SIZE = 24
-BETTERUI_LIST_ENTRY_BASE_ICON_SIZE = 34
-BETTERUI_LIST_ENTRY_BASE_ICON_OFFSET = -42
-BETTERUI_LIST_ENTRY_ICON_OFFSET_FACTOR = 0.4
-
--- Status & Equipment Indicator Offsets
-BETTERUI_STATUS_INDICATOR_OFFSET_X = -2
-BETTERUI_EQUIPPED_ICON_OFFSET_X = -2
-
--- Standard Icon Sizes
-BETTERUI_ICON_SIZE_SMALL = 16
-BETTERUI_ICON_SIZE_MEDIUM = 24
-BETTERUI_ICON_SIZE_LARGE = 34
-
--- Tooltip Layout Constants
-BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE = 10
-BETTERUI_TOOLTIP_X_OFFSET = 40
-BETTERUI_TOOLTIP_Y_OFFSET = -100
-BETTERUI_TOOLTIP_SCROLL_OFFSET_Y = 40
 
 -- Header Layout Extras
 BETTERUI_SEARCH_BAR_SPACING_Y = 8
@@ -304,26 +175,3 @@ BETTERUI.CONST.HEADER_LAYOUT = {
         BACKUP_HAND_X = -155
     }
 }
-
--- Header Geometry (Used in GenericHeader.xml)
-BETTERUI_DIVIDER_HEIGHT = 8
-BETTERUI_HEADER_TABBAR_Y_OFFSET = 25
-BETTERUI_HEADER_TABBAR_HEIGHT = 100
-BETTERUI_HEADER_Y_OFFSET = 26
-BETTERUI_HEADER_TABBAR_LIST_Y_OFFSET = 75
-BETTERUI_HEADER_SELECTED_BG_WIDTH = 50
-BETTERUI_HEADER_SELECTED_BG_HEIGHT = 25
-BETTERUI_HEADER_SELECTED_BG_Y_OFFSET = 32
-BETTERUI_HEADER_BUMPER_ICON_SIZE = 60
-BETTERUI_HEADER_BUMPER_ICON_Y_OFFSET = 5
-BETTERUI_HEADER_EQUIP_ROW_Y_OFFSET = -5
-BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET = 95
-BETTERUI_HEADER_DIVIDER_OFFSET_Y = 77
-BETTERUI_HEADER_DIVIDER_OFFSET_Y_SPACED = 81
-BETTERUI_HEADER_BOTTOM_DIVIDER_Y_OFFSET = 110
-
--- Footer Geometry (Used in GenericFooter.xml and GenericFooter.lua)
-BETTERUI_FOOTER_START_X = 190
-BETTERUI_FOOTER_RIGHT_PADDING = 50
-BETTERUI_FOOTER_BOTTOM_OFFSET_Y = -195
-BETTERUI_FOOTER_DIVIDER_OFFSET_Y = 15
