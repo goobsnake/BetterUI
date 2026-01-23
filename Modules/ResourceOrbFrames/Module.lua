@@ -1,4 +1,8 @@
 --[[
+-- TODO(refactor): This module uses 'enabled' for its master switch while
+-- other modules use 'm_enabled'. Standardize to match project convention.
+-- See BetterUI.lua TODO for coordinated migration plan.
+--
 File: Modules/ResourceOrbFrames/Module.lua
 Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.

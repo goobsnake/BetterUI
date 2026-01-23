@@ -1,4 +1,10 @@
 --[[
+-- TODO(doc): Add file header block matching project standard:
+--   File: Modules/CIM/GenericHeader.lua
+--   Purpose: [description]
+--   Author: [author]
+--   Last Modified: [date]
+--
 File: Modules/CIM/GenericHeader.lua
 Purpose: Manages the custom Gamepad Header logic for BetterUI.
          Provides a standardized header with a parametric tab bar (carousel),

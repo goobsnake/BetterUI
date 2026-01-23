@@ -377,6 +377,9 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
                 end
                 -- enlarge icon/texture children if possible
                 if child.SetDimensions then
+                    -- TODO(refactor): pcall(function() child:SetDimensions(28, 28) end)
+                    -- If child can be nil, add a nil-check instead:
+                    --   if child then child:SetDimensions(28, 28) end
                     pcall(function() child:SetDimensions(28, 28) end)
                 end
             end
@@ -507,6 +510,8 @@ param: isFocused (boolean) - True to focus, False to unfocus.
 function BETTERUI.Interface.Window:SetTextSearchFocused(isFocused)
     if self.textSearchHeaderFocus and self.headerFocus then
         self.textSearchHeaderFocus:SetFocused(isFocused)
+        -- TODO(refactor): Multiple pcall wrappers in search focus handling.
+        -- Refactor to explicit nil-checking pattern for clarity and debuggability.
         pcall(function()
             -- Bring search control to front so it's visible and not layered behind header elements
             if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then

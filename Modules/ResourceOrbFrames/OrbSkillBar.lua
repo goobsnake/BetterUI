@@ -1,4 +1,11 @@
 --[[
+-- TODO(architecture): This file is 1000+ lines. Consider splitting:
+--   1. OrbSkillBar/FrontBarManager.lua - Front bar updates and layout
+--   2. OrbSkillBar/BackBarManager.lua - Back bar updates and layout  
+--   3. OrbSkillBar/UltimateManager.lua - Ultimate meter and animations
+--   4. OrbSkillBar/TooltipManager.lua - Tooltip setup for skills
+-- Target: Each file < 400 lines.
+--
 File: Modules/ResourceOrbFrames/OrbSkillBar.lua
 Purpose: Manages the Front and Back skill bars, including layout, content, and weapon swap animations.
 Last Modified: 2026-01-23

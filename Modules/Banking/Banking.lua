@@ -24,7 +24,14 @@ KEY MECHANICS:
 5.  **Search**:
     *   Integrated text search filtering by name.
 
-TODO: This file is large. Consider splitting into BankingCore, BankingLists, and BankingActions.
+-- TODO(architecture): CRITICAL - This file is 2529 lines (~113KB).
+-- Split into:
+--   1. Banking/Core/BankingClass.lua - Main class and initialization
+--   2. Banking/Lists/BankListManager.lua - List refresh and filtering
+--   3. Banking/Actions/DepositWithdrawActions.lua - Transfer logic
+--   4. Banking/UI/BankingFooter.lua - Footer refresh logic
+--   5. Banking/Categories/BankCategoryManager.lua - Category building
+-- Target: Each file < 500 lines.
 ]]
 
 local _

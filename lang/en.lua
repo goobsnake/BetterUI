@@ -1,4 +1,10 @@
 -- BetterUI English Localization
+-- TODO(architecture): Create a localization validation script that:
+--   1. Ensures all keys in en.lua exist in all other language files
+--   2. Reports missing translations with placeholders
+--   3. Validates no orphaned keys in non-English files
+-- Add to tools/ directory and run as pre-commit hook.
+--
 ---
 --- Purpose: Defines localized string constants for English.
 --- Mechanics: Registers string IDs with the ESO localization system (ZO_CreateStringId).

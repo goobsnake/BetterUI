@@ -1,6 +1,17 @@
 --------------------------------------------------------------------------------
 -- BetterUI Inventory Module
 --
+-- TODO(architecture): CRITICAL - This file is 4545 lines (~174KB).
+-- Decompose into smaller focused files:
+--   1. Inventory/Core/InventoryClass.lua - Class definition, initialization
+--   2. Inventory/Lists/ItemListManager.lua - Item list refresh/filter logic
+--   3. Inventory/Lists/CraftBagListManager.lua - Craft bag specific logic
+--   4. Inventory/Actions/EquipAction.lua - TryEquipItem and equip dialogs
+--   5. Inventory/Actions/QuickslotAction.lua - Quickslot assignment
+--   6. Inventory/Keybinds/InventoryKeybinds.lua - Keybind strip setup
+--   7. Inventory/State/PositionManager.lua - SaveListPosition/ToSavedPosition
+-- Target: Each file < 500 lines.
+--
 -- This file contains the core implementation of the BetterUI Inventory system.
 -- It works by subclassing ZO_GamepadInventory to provide a completely overhauled
 -- gamepad inventory experience.
@@ -91,12 +102,8 @@ Description: Marks the inventory slot data cache as dirty to trigger a refresh o
 Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
 Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
 ]]
---[[
-Function: InvalidateSlotDataCache
-Description: Marks the inventory slot data cache as dirty to trigger a refresh on next access.
-Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy).
-Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
-]]
+-- TODO(cleanup): Remove duplicate function documentation block (lines 94-99
+-- are identical to lines 88-93). Keep only the first occurrence.
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
@@ -129,6 +136,9 @@ return: table - Table of slot data for the requested bags.
 function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = {...}
     table.sort(bags) -- Ensure consistent key
+    -- TODO(optimization): GetCachedSlotData uses table.concat for cache key.
+    -- For hot paths, consider using a pre-allocated key buffer or numeric hash
+    -- instead of string concatenation each call.
     local cacheKey = table.concat(bags, ",")
     
     if g_slotDataCacheDirty then
@@ -163,6 +173,9 @@ end
 --- @param newValue number The value to wrap
 --- @param maxValue number The maximum value (1 is implicit minimum)
 --- @return number The wrapped value
+-- TODO(cleanup): "Helper logic moved to InventoryUtils.lua" comment references
+-- WrapValue, CanUseBackupBar, TabBarNext/Prev functions that were moved.
+-- Clean up these orphaned comments or add proper cross-references.
 -- Helper logic moved to InventoryUtils.lua
 -- WrapValue, CanUseBackupBar, TabBarNext/Prev removed.
 
@@ -1797,6 +1810,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					GAMEPAD_INVENTORY:RefreshItemList()
 				end
 				if self and self.RefreshItemActions then
+-- TODO(refactor): Audit pcall usage in this section. Current pattern:
+--   pcall(function() pcall(function() ... end) end)
+-- This silently swallows errors and makes debugging impossible.
+-- Replace with proper nil-checks:
+--   if obj and obj.method then obj:method() end
+-- Only use pcall for genuinely unsafe external API calls.
 					pcall(function()
 						self:RefreshItemActions()
 					end)
@@ -3333,6 +3352,9 @@ end
 -- after a short delay; refreshing keybinds here prevents the Clear Search
 -- button from not appearing until the player scrolls the list.
 zo_callLater(function()
+-- TODO(refactor): Replace nested pcall pattern with defensive nil-checks.
+-- Consider creating a safe-call utility:
+--   BETTERUI.SafeCall(obj, "method", arg1, arg2)
 	pcall(function()
 		if self.RefreshKeybinds then
 			self:RefreshKeybinds()

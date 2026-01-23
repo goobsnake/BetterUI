@@ -23,6 +23,13 @@ BETTERUI.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE
 
 -- Panel widths
 --- Defines the standard width for the gamepad interface right-hand panel.
+-- TODO(refactor): Move these global constants into BETTERUI.CONST.LAYOUT to
+-- reduce namespace pollution. Currently exposed as:
+--   BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH (global)
+-- Should be:
+--   BETTERUI.CONST.LAYOUT.PANEL_WIDTH (namespaced)
+-- This requires updating all references in XML templates and Lua files.
+-- Consider a migration approach that supports both during transition.
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = 1350
 BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = 470
 
@@ -62,6 +69,10 @@ BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 -- ============================================================================
 -- XML TEMPLATE VALUES (Column Layout)
 -- ============================================================================
+-- TODO(refactor): Move XML template values (BETTERUI_SUBMENU_LABEL_OFFSET_X,
+-- BETTERUI_ITEM_TYPE_OFFSET_X, etc.) into BETTERUI.CONST.COLUMNS table.
+-- Since XML templates reference these by name, may need a compatibility
+-- layer or update the XML files to use Lua-bound values.
 -- TODO: Consider moving these to a layout configuration table instead of global variables to reduce namespace pollution.
 -- Note: These are referenced directly in XML templates via their global names.
 

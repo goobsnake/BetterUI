@@ -1,4 +1,6 @@
 --[[
+-- TODO(doc): Add file header block matching project standard.
+--
 File: Modules/CIM/GenericFooter.lua
 Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
          Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).

@@ -97,6 +97,12 @@ function BETTERUI.InitModuleOptions()
 		{
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
+            -- TODO(refactor): Rename "Tooltips" module key to "GeneralInterface".
+            -- Also standardize settings property names:
+            --   CURRENT: m_enabled (Tooltips, Inventory, Banking, Writs, CIM)
+            --            enabled (ResourceOrbFrames)
+            --   TARGET: All modules should use either 'm_enabled' OR 'enabled' consistently.
+            -- Recommend: Use 'enabled' (simpler) and migrate m_enabled during next major version.
             -- TODO(refactor): Rename "Tooltips" module key to "GeneralInterface" to avoid confusion.
             -- Currently "Tooltips" acts as the master switch for the entire General Interface module.
 			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
@@ -207,6 +213,8 @@ function BETTERUI.LoadModules()
 	-- Apply runtime safety patches for ESO API issues (nil icon paths)
 	if not BETTERUI._patchesApplied then
 		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
+		-- TODO(refactor): The zo_icon* patches use pcall for safety but are well-documented.
+		-- Consider extracting to Modules/CIM/RuntimePatches.lua for better organization.
 		if type(zo_iconFormat) == "function" then
 			local _orig_zo_iconFormat = zo_iconFormat
 			zo_iconFormat = function(path, width, height)

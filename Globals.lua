@@ -69,6 +69,9 @@ BETTERUI.DefaultSettings = {
 --- References: Used globally throughout the addon for debug logging.
 ---
 --- @param str string The message string to display.
+-- TODO(doc): Function ddebug() should have a full documentation block
+-- matching the project standard (Function:, Description:, Rationale:, etc.)
+-- Currently only has a brief line comment.
 function ddebug(str)
 	return d("|c0066ff[BETTERUI]|r "..str)
 end
@@ -82,6 +85,11 @@ end
 --- @param number number The value to round.
 --- @param decimals number The number of decimal places to keep.
 --- @return number|string The rounded number, formatted as a string (via string.format), or 0 if inputs invalid.
+-- TODO(doc): Standardize type annotation format throughout codebase.
+-- Current: @param, param:, @return, return:
+-- Choose one format and apply consistently. Recommend LuaDoc style:
+--   @param paramName type Description
+--   @return type Description
 function BETTERUI.roundNumber(number, decimals)
 	if number ~= nil and decimals ~= nil then
 		local power = 10^decimals
@@ -446,6 +454,10 @@ Rationale: Suppresses the native gamepad store initialization to prevent potenti
 Added: Legacy (pre-2.0)
 Status: Preserved for stability - removal requires in-game testing
 ]]
+-- TODO(cleanup): ZO_Store_OnInitialize_Gamepad = function(...) end
+-- This empty override has been here since pre-2.0 with uncertain purpose.
+-- Test removing it in-game to verify if still needed. If no issues arise,
+-- remove this override entirely. Document findings in commit message.
 ZO_Store_OnInitialize_Gamepad = function(...) end
 
 -- Imagery, you dont need to localise these strings

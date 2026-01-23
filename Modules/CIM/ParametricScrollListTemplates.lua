@@ -113,6 +113,10 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
     -- Override EnsureValidGradient to provide custom fade behavior
+    -- TODO(optimization): EnsureValidGradient calculation could be expensive.
+    -- Consider caching result per unique (listHeight, centerOffset) tuple
+    -- instead of recalculating. Current caching only checks height/offset,
+    -- but could be extended to cache the actual gradient values.
     list.EnsureValidGradient = function(self)
         if self.validateGradient and self.validGradientDirty then
             -- Cache key based on inputs
@@ -218,11 +222,9 @@ end
 -- ============================================================================
 BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
--- ============================================================================
--- CLASS: BETTERUI_HorizontalScrollList_Gamepad
--- Basic Horizontal List (Non-Parametric) wrapper
--- ============================================================================
-BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
+-- TODO(cleanup): Duplicate class declaration removed. This was:
+-- BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
+-- declared twice at lines 219 and 225. Keep only one.
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:New
@@ -392,11 +394,9 @@ end
 -- Base class for horizontal parametric lists.
 -- ============================================================================
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
--- ============================================================================
--- CLASS: BETTERUI_HorizontalParametricScrollList
--- Base class for horizontal parametric lists.
--- ============================================================================
-BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
+-- TODO(cleanup): Duplicate class declaration removed. This was:
+-- BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
+-- declared twice at lines 394 and 399. Keep only one.
 
 --[[
 Function: BETTERUI_HorizontalParametricScrollList:New
