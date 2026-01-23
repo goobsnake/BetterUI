@@ -269,26 +269,26 @@ function BETTERUI.GetResearch(forceRefresh)
 	end
 end
 
+local CUSTOM_GAMEPAD_ITEM_SORT = {
+	sortPriorityName  = { tiebreaker = "bestItemTypeName" },
+	bestItemTypeName = { tiebreaker = "name" },
+	name = { tiebreaker = "requiredLevel" },
+	requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
+	requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
+	iconFile = { tiebreaker = "uniqueId" },
+	uniqueId = { isId64 = true },
+}
+
 --- Custom comparison function for sorting gamepad inventory items.
 ---
 --- Purpose: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
 --- Mechanics: Uses ZO_TableOrderingFunction with a custom schema.
 --- References: Used by the gamepad inventory list (Sort Comparator).
---- TODO: Check if this custom comparator is still performing optimally for large inventory lists.
 ---
 --- @param left table The first item data.
 --- @param right table The second item data.
 --- @return boolean True if 'left' should appear before 'right'.
 function BETTERUI_GamepadInventory_DefaultItemSortComparator(left, right)
-	local CUSTOM_GAMEPAD_ITEM_SORT = {
-		sortPriorityName  = { tiebreaker = "bestItemTypeName" },
-		bestItemTypeName = { tiebreaker = "name" },
-		name = { tiebreaker = "requiredLevel" },
-		requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
-		requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
-		iconFile = { tiebreaker = "uniqueId" },
-		uniqueId = { isId64 = true },
-	}
 	return ZO_TableOrderingFunction(left, right, "sortPriorityName", CUSTOM_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
 end
 
