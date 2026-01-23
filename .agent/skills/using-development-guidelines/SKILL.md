@@ -203,6 +203,10 @@ These skills complement the development workflow:
 | `receiving-code-review` | When addressing feedback from reviews |
 | `systematic-debugging` | When encountering bugs or test failures |
 | `verification-before-completion` | Before claiming any task is complete |
+| `test-driven-development` | When writing tests alongside code |
+| `finishing-a-development-branch` | When preparing to merge a feature branch |
+| `using-git-worktrees` | For working on multiple branches simultaneously |
+| `writing-skills` | When creating or updating skill documentation |
 
 ## Workflow Integration
 
@@ -222,3 +226,21 @@ When creating implementation plans:
 - **Task Detail**: Every generated task must include both a **Status** (To Do / In Progress / Done) and **Detail** (what specifically will be done).
   - *Bad*: `- [ ] Fix bug`
   - *Good*: `- [ ] [To Do] Fix nil reference in Inventory.lua:L123 by adding safety check`
+
+### Completion Requirements
+**CRITICAL**: When a workflow or major task sequence concludes, you **MUST** present the following artifacts to the User before finishing:
+
+1.  **Completed Implementation Plan**: Allow the user to see the final state of the plan with all tasks marked as `[x] Accepted` or `[x] Done`.
+2.  **Corrective Action Report**: A dedicated section summarizing any deviations from the original plan and how they were resolved. If no deviations occurred, explicitly state "N/A - implementation proceeded as planned."
+    - *Example (deviation)*: "Workflow step 3 failed due to missing dependency; manually installed X to resolve."
+    - *Example (pivot)*: "Original plan to modify X was abandoned because Y was found to be a better solution."
+    - *Example (none)*: "N/A - implementation proceeded as planned."
+3.  **Final Code Review**: A self-conducted review of the changes against the standards defined in this skill, explicitly confirming:
+    - No debug prints left behind.
+    - Comments were preserved/updated.
+    - Consistency with project style.
+4.  **Testing & Verification Plan**: A user-facing report with specific instructions for verifying the changes made. This must include:
+    - **Reproduction Steps**: How to trigger or exercise the new/fixed functionality in-game.
+    - **Expected Behavior**: What the user should observe if the changes are working correctly.
+    - **Edge Cases**: Specific configurations, settings, or scenarios that should be tested (e.g., "Test with addon X disabled", "Try with an empty inventory").
+    - **Regression Checks**: Areas of the codebase that might be affected by the changes and should be spot-checked.
