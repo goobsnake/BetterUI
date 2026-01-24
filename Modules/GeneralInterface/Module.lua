@@ -36,24 +36,26 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 --- @param mId string The Module ID (unused, for standardized module signature)
 --- @param moduleName string The display name of the module for the settings panel
 local function Init(mId, moduleName)
-	local panelData = Init_ModulePanel(moduleName, "General Interface Settings")
+	local panelData = BETTERUI.Init_ModulePanel(moduleName, "General Interface Settings")
 
 	local optionsTable = {}
 
-    -- Append Tooltip settings
+    -- Tooltip Settings Submenu
     if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
-        local tooltipOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
-        for _, opt in ipairs(tooltipOptions) do
-            table.insert(optionsTable, opt)
-        end
+        table.insert(optionsTable, {
+            type = "submenu",
+            name = "General",
+            controls = BETTERUI.GeneralInterface.GetSettingsOptions()
+        })
     end
 
-    -- Append Nameplate settings
+    -- Nameplate Settings Submenu
     if BETTERUI.Nameplates and BETTERUI.Nameplates.GetSettingsOptions then
-        local nameplateOptions = BETTERUI.Nameplates.GetSettingsOptions()
-        for _, opt in ipairs(nameplateOptions) do
-            table.insert(optionsTable, opt)
-        end
+        table.insert(optionsTable, {
+            type = "submenu",
+            name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
+            controls = BETTERUI.Nameplates.GetSettingsOptions()
+        })
     end
 
 	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)

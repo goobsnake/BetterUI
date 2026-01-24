@@ -13,14 +13,47 @@ if not BETTERUI.Banking.CONST then BETTERUI.Banking.CONST = {} end
 -- Banking-specific carousel overrides (nil means use default)
 -- ============================================================================
 
-BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705   -- Horizontal position for banking carousel (increase to move right)
-BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1  -- Vertical offset for banking (lower value moves icons up)
+--[[
+Constant: BETTERUI_BANKING_CAROUSEL_START_OFFSET
+Description: Horizontal position for banking carousel.
+Direction: Positive (+) moves RIGHT.
+Used By: Banking.lua
+]]
+BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705
+
+--[[
+Constant: BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET
+Description: Vertical offset for banking carousel.
+Direction: Positive (+) moves DOWN, Negative (-) moves UP.
+Used By: Banking.lua
+]]
+BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1
 
 -- ============================================================================
 -- SEARCH BAR POSITIONING
 -- Controls the position of the search input field in banking headers
 -- ============================================================================
 
-BETTERUI_BANK_SEARCH_X_OFFSET = 58         -- Horizontal offset from left edge (increase to move right)
-BETTERUI_BANK_SEARCH_Y_OFFSET = 15         -- Vertical offset from header bottom (increase to move down)
-BETTERUI_BANK_SEARCH_RIGHT_INSET = -8      -- Right edge inset (more negative = narrower search bar)
+--[[
+Constant: BETTERUI_BANK_SEARCH_X_OFFSET
+Description: Horizontal offset from left edge for search bar.
+Direction: Positive (+) moves RIGHT.
+Used By: Banking.lua
+]]
+BETTERUI_BANK_SEARCH_X_OFFSET = 58
+
+--[[
+Constant: BETTERUI_BANK_SEARCH_Y_OFFSET
+Description: Vertical offset from header bottom for search bar.
+Direction: Positive (+) moves DOWN.
+Used By: Banking.lua
+]]
+BETTERUI_BANK_SEARCH_Y_OFFSET = 15
+
+--[[
+Constant: BETTERUI_BANK_SEARCH_RIGHT_INSET
+Description: Right edge inset for search bar width.
+Direction: Negative (-) moves LEFT (narrower).
+Used By: Banking.lua
+]]
+BETTERUI_BANK_SEARCH_RIGHT_INSET = -8

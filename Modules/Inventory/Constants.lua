@@ -18,9 +18,29 @@ BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = 300
 -- Controls the position of the search input field in inventory headers
 -- ============================================================================
 
-BETTERUI_INV_SEARCH_X_OFFSET = 56          -- Horizontal offset from left edge (increase to move right)
-BETTERUI_INV_SEARCH_Y_OFFSET = 1           -- Vertical offset from header bottom (increase to move down)
-BETTERUI_INV_SEARCH_RIGHT_INSET = -4       -- Right edge inset (more negative = narrower search bar)
+--[[
+Constant: BETTERUI_INV_SEARCH_X_OFFSET
+Description: Horizontal offset from left edge for search bar.
+Direction: Positive (+) moves RIGHT.
+Used By: Inventory.lua
+]]
+BETTERUI_INV_SEARCH_X_OFFSET = 56
+
+--[[
+Constant: BETTERUI_INV_SEARCH_Y_OFFSET
+Description: Vertical offset from header bottom for search bar.
+Direction: Positive (+) moves DOWN.
+Used By: Inventory.lua
+]]
+BETTERUI_INV_SEARCH_Y_OFFSET = 1
+
+--[[
+Constant: BETTERUI_INV_SEARCH_RIGHT_INSET
+Description: Right edge inset for search bar width.
+Direction: Negative (-) moves LEFT (narrower).
+Used By: Inventory.lua
+]]
+BETTERUI_INV_SEARCH_RIGHT_INSET = -4
 
 -- ============================================================================
 -- LIST ENTRY ICON SCALING

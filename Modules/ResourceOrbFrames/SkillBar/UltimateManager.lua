@@ -135,14 +135,26 @@ function SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
 end
 
 function SkillBar.UpdateFrontBarUltimateNumber(rootFrame)
+    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
     local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
     if ultBtn then
-        local countText = ultBtn:GetNamedChild("CountText")
+        local countText = ultBtn:GetNamedChild("UltimateText")
         if countText then
-             local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
-             countText:SetText(currentUltimate)
+             if settings.showUltimateNumber then
+                 local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+                 countText:SetText(currentUltimate)
+                 countText:SetHidden(false)
+                 
+                 local size = settings.ultimateTextSize or 27
+                 local color = settings.ultimateTextColor or {1, 1, 1, 1}
+                 -- Standardize font string format
+                 countText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
+                 countText:SetColor(unpack(color))
+             else
+                 countText:SetHidden(true)
+             end
         end
     end
 end

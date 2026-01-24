@@ -104,6 +104,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
             SkillBar.UpdateFrontBarCooldowns(rootFrame)
             SkillBar.UpdateFrontBarUsability(rootFrame)
             SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
+            SkillBar.UpdateFrontBarUltimateNumber(rootFrame)
         end
     end
     EVENT_MANAGER:RegisterForUpdate(NAME .. "BackBarCooldown", 100, CooldownTick)

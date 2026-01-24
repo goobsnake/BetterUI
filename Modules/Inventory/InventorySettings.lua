@@ -109,7 +109,7 @@ end
 
 --- Initializes the settings panel for the Inventory module.
 function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
-	local panelData = Init_ModulePanel(moduleName, "Inventory Improvement Settings")
+	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
 	-- Safe refresh helper: only refresh header/footer when inventory scene is visible
 	local function SafeRefresh(headerToo)

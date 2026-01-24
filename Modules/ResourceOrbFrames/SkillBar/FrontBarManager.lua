@@ -189,6 +189,17 @@ function SkillBar.SetupFrontBarKeybinds(rootFrame)
              countText:SetAnchor(BOTTOM, qsBtn, BOTTOM, 0, -4)
              countText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
          end
+         
+         local timerText = qsBtn:GetNamedChild("TimerText")
+         if timerText then
+              timerText:ClearAnchors()
+              timerText:SetAnchor(TOP, qsBtn, TOP, 0, 4)
+         end
+         local cdText = qsBtn:GetNamedChild("CooldownText")
+         if cdText then
+              cdText:ClearAnchors()
+              cdText:SetAnchor(TOP, qsBtn, TOP, 0, 4)
+         end
     end
     
     local compBtn = FindControl(rootFrame, 'CompanionButton') or FindControl(frontBarContainer, 'CompanionButton')
@@ -388,7 +399,7 @@ function SkillBar.UpdateFrontBarCompanion(rootFrame)
 end
 
 function SkillBar.UpdateFrontBarCooldowns(rootFrame)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -396,42 +407,78 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
     
     local isGamepad = IsInGamepadPreferredMode()
     local slotMapping = {
-        {buttonName = "Button1", slot = 3},
-        {buttonName = "Button2", slot = 4},
-        {buttonName = "Button3", slot = 5},
-        {buttonName = "Button4", slot = 6},
-        {buttonName = "Button5", slot = 7},
-        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1},
+        {buttonName = "Button1", slot = 3, category = activeCategory},
+        {buttonName = "Button2", slot = 4, category = activeCategory},
+        {buttonName = "Button3", slot = 5, category = activeCategory},
+        {buttonName = "Button4", slot = 6, category = activeCategory},
+        {buttonName = "Button5", slot = 7, category = activeCategory},
+        {buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = activeCategory},
+        {buttonName = "QuickslotButton", slot = GetCurrentQuickslot(), category = HOTBAR_CATEGORY_QUICKSLOT_WHEEL},
+        {buttonName = "CompanionButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = HOTBAR_CATEGORY_COMPANION},
     }
     
-    local settings = GetModuleSettings()
+    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
     local cooldownSize = settings.cooldownTextSize or 27
     local cooldownColor = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
     
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
-        if btn then
-            local remainMs, durationMs, isGlobal = GetSlotCooldownInfo(mapping.slot, activeCategory)
-            local showCooldown = remainMs and remainMs > 0 and durationMs > 1000 and not isGlobal
+        -- Quickslot and Companion might be direct children of rootFrame in some layouts? Check SetupFrontBarKeybinds logic.
+        if not btn and mapping.buttonName == "QuickslotButton" then
+             btn = FindControl(rootFrame, 'QuickslotButton')
+        end
+        if not btn and mapping.buttonName == "CompanionButton" then
+             btn = FindControl(rootFrame, 'CompanionButton')
+        end
+        
+        if btn and not btn:IsHidden() then -- Only update if visible
+            local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, mapping.category)
+            -- Use BackBar logic: stricter duration filter (1500) and ignore isGlobal
+            local showCooldown = false
+            if remainMs and remainMs > 0 and durationMs and durationMs > 1500 then
+                showCooldown = true
+            end
+            
+            if not showCooldown then
+                 local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, mapping.category)
+                 if effectRemaining and effectRemaining > 0 then
+                     remainMs = effectRemaining
+                     durationMs = remainMs -- Effect timer doesn't have total duration usually accessible this way, just countdown
+                     showCooldown = true
+                 end
+            end
             
             local cooldown = btn:GetNamedChild("Cooldown")
             local cooldownEdge = btn:GetNamedChild("CooldownEdge")
+            local cooldownOverlay = btn:GetNamedChild("CooldownOverlay")
             local iconControl = btn:GetNamedChild("Icon")
+            -- Force use CooldownText if TimerText fails? BackBar uses CooldownText.
+            -- FrontBar uses TimerText. Let's try CooldownText first as it might be better layered?
+            -- But earlier I forced TimerText to DL_OVERLAY. I will stick with TimerText but apply fallback logic.
             local timerText = btn:GetNamedChild("TimerText")
+            -- Also support CooldownText if TimerText is missing?
+            local altTimerText = btn:GetNamedChild("CooldownText")
             
             if showCooldown then
                 if iconControl then iconControl:SetDesaturation(1) end
+                if cooldownOverlay then cooldownOverlay:SetHidden(false) end
                 
                 if isGamepad then
                     if cooldown then cooldown:SetHidden(true) end
-                    if cooldownEdge and iconControl then
+                    if cooldownEdge and iconControl and durationMs and durationMs > 0 then
                         local percentComplete = 1 - (remainMs / durationMs)
+                        -- Clamp
+                        if percentComplete < 0 then percentComplete = 0 end
+                        if percentComplete > 1 then percentComplete = 1 end
+                        
                         local _, iconHeight = iconControl:GetDimensions()
                         local offsetY = (1 - percentComplete) * iconHeight
                         cooldownEdge:ClearAnchors()
+                        -- Ensure cooldownEdge is visible
                         cooldownEdge:SetAnchor(TOPLEFT, iconControl, TOPLEFT, 0, offsetY)
                         cooldownEdge:SetWidth(iconControl:GetWidth())
                         cooldownEdge:SetHidden(false)
+                        cooldownEdge:SetDrawLayer(DL_OVERLAY) -- Force on top just in case
                     end
                 else
                      if cooldownEdge then cooldownEdge:SetHidden(true) end
@@ -441,25 +488,35 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                      end
                 end
                 
+                -- Text Logic
+                local textToSet = string.format("%.1f", remainMs / 1000)
                 if timerText then
-                    timerText:SetText(string.format("%.1f", remainMs / 1000))
+                    timerText:SetText(textToSet)
                     timerText:SetHidden(false)
+                    timerText:SetDrawLayer(DL_OVERLAY)
                     timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     timerText:SetColor(unpack(cooldownColor))
+                elseif altTimerText then
+                     altTimerText:SetText(textToSet)
+                     altTimerText:SetHidden(false)
+                     altTimerText:SetColor(unpack(cooldownColor))
                 end
             else
                 if iconControl then iconControl:SetDesaturation(0) end
+                if cooldownOverlay then cooldownOverlay:SetHidden(true) end
                 if cooldown then cooldown:SetHidden(true) end
                 if cooldownEdge then cooldownEdge:SetHidden(true) end
                 if timerText then timerText:SetHidden(true) end
+                if altTimerText then altTimerText:SetHidden(true) end
             end
             
             local stackCountText = btn:GetNamedChild("StackCountText")
             if stackCountText then
-                 local stackCount = GetActionSlotEffectStackCount(mapping.slot, activeCategory)
+                 local stackCount = GetActionSlotEffectStackCount(mapping.slot, mapping.category)
                  if stackCount and stackCount > 0 then
                      stackCountText:SetText(stackCount)
                      stackCountText:SetHidden(false)
+                     stackCountText:SetDrawLayer(DL_OVERLAY)
                  else
                      stackCountText:SetHidden(true)
                  end

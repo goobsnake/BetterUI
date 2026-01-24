@@ -326,15 +326,7 @@ local function SetupModule(control)
         end
     end)
     
-    -- Feature Events (Combat, Ultimate #)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_UltimateNumber", EVENT_POWER_UPDATE, function(_, unitTag, _, powerType)
-        if unitTag == "player" and powerType == POWERTYPE_ULTIMATE then
-             if SkillBar.UpdateFrontBarUltimateNumber then
-                 SkillBar.UpdateFrontBarUltimateNumber(control)
-             end
-        end
-    end)
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "_UltimateNumber", EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, POWERTYPE_ULTIMATE, REGISTER_FILTER_UNIT_TAG, "player")
+
 
     -- Zone Change Cleanup (for subsequent zones after initial setup)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
