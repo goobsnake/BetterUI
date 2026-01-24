@@ -389,9 +389,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         -- Ensure our keybind groups and header tab bar are active on first show
         self:AddKeybinds()
 
-        if wykkydsToolbar then
-            wykkydsToolbar:SetHidden(true)
-        end
+        self:UpdateExternalAddons(true)
 
         self.control:RegisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, UpdateSingle_Handler)
         self:RefreshList()
@@ -422,9 +420,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
 
-        if wykkydsToolbar then
-            wykkydsToolbar:SetHidden(false)
-        end
+        self:UpdateExternalAddons(false)
 
         self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
@@ -511,17 +507,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing (ms)
     local directionalFixDelayMs = 60
 
-    -- Diagnostics removed in production: kept stub for manual debugging if needed.
-    local function DumpDirectionalInputDiagnostics()
-        -- intentionally left blank
-    end
 
-    -- Expose helpers on self for calls inside handlers
-    self.DumpDirectionalInputDiagnostics = DumpDirectionalInputDiagnostics
-    self.AggressiveDirectionalCleanup = function()
-        -- Deprecated: Aggressive cleanup removed in favor of explicit state management.
-        -- Kept as no-op stub to prevent errors if external code calls it.
-    end
 
     self.control:SetHandler("OnEffectivelyShown", OnEffectivelyShown)
     self.control:SetHandler("OnEffectivelyHidden", OnEffectivelyHidden)
@@ -669,6 +655,18 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
             self:EnsureHeaderKeybindsActive()
         end
+    end
+end
+
+--[[
+Function: BETTERUI.Banking.Class:UpdateExternalAddons
+Description: Handles visibility of supported external addon elements (e.g. Wykkyds Toolbar).
+param: hidden (boolean) - Whether to hide the external elements.
+]]
+function BETTERUI.Banking.Class:UpdateExternalAddons(hidden)
+    -- Wykkyds Toolbar
+    if wykkydsToolbar then
+        wykkydsToolbar:SetHidden(hidden)
     end
 end
 
