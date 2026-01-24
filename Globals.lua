@@ -329,12 +329,15 @@ end
 --- @return number The calculated total price, or 0 if unavailable.
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
-    if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Tooltips"] then
+    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then
         return 0
     end
-
+    -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys
+    local tooltipSettings = BETTERUI.Settings.Modules["GeneralInterface"] or BETTERUI.Settings.Modules["Tooltips"]
+    if not tooltipSettings then
+        return 0
+    end
     stackCount = stackCount or 1
-    local tooltipSettings = BETTERUI.Settings.Modules["Tooltips"]
 
     -- Check MasterMerchant integration first (most commonly used)
     if MasterMerchant ~= nil and tooltipSettings.mmIntegration then
