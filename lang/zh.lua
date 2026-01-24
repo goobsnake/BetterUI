@@ -395,6 +395,49 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "使用扳机键移动到下�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键移动到下一个物品类型，而不是跳过一定数量的物品（默认全局行为）")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "将\"价值\"替换为市场价格")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将物品\"价值\"替换为 MM、ATT 或 TTC 的平均价格")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
+
+-- Event Tickets
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
+
+-- Resource Orb Frames
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+
+-- Skill Bars Settings
+ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP", "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+
+-- Ultimate Number Display Settings
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP", "Display your current ultimate value on the ultimate button.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
+
+-- Combat Indicators Settings
+ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP", "Display a pulsing red/orange glow around the skill bar when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Play a sound when entering and exiting combat.")
+
+-- Banking Specific Strings
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 

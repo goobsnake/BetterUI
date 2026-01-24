@@ -395,6 +395,49 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les gâchettes pour
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Plutôt que de sauter un certain nombre d'éléments à chaque pression sur la gâchette (comportement global par défaut), cela passera au type d'élément suivant")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du marché")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Remplace la \"Valeur\" de l'objet par le prix moyen de MM, ATT ou TTC")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Protection Lier à l'équipement")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Afficher un dialogue avant d'équiper des objets Lier à l'équipement")
+
+-- Event Tickets
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
+
+-- Resource Orb Frames
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+
+-- Skill Bars Settings
+ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP", "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+
+-- Ultimate Number Display Settings
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP", "Display your current ultimate value on the ultimate button.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
+
+-- Combat Indicators Settings
+ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP", "Display a pulsing red/orange glow around the skill bar when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Play a sound when entering and exiting combat.")
+
+-- Banking Specific Strings
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 
