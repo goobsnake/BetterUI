@@ -448,6 +448,11 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.Settings.Modules["Tooltips"] = BETTERUI.Settings.Modules["GeneralInterface"]
 	end
 
+    -- Ensure GeneralInterface module settings exist for existing users (if migration didn't run)
+    if BETTERUI.Settings.Modules["GeneralInterface"] == nil then
+        BETTERUI.Settings.Modules["GeneralInterface"] = {}
+    end
+
 	-- Migration: Standardize 'enabled' to 'm_enabled'
 	for modName, modSettings in pairs(BETTERUI.Settings.Modules) do
 		if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then

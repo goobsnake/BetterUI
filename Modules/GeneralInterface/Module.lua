@@ -60,30 +60,6 @@ local function Init(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
 end
 
--- InitModule functions have been moved to TooltipSettings.lua and NameplateSettings.lua
--- to keep configuration logic alongside the settings definitions.
-
---- Sets up the General Interface (Tooltips) module.
----
---- Purpose: Registers hooks and event handlers for tooltip enhancements.
---- Mechanics:
---- 1. Calls local `Init` to build the settings menu.
---- 2. Defines `ZO_IsIngameUI` polyfill if missing (for Scribing).
---- 3. Hooks `ZO_MailInbox_Gamepad` to allow 'X' keybind for deletion if enabled.
---- 4. Hooks Gamepad Tooltips (`LayoutItem`, `LayoutBagItem`, etc.) to inject custom data.
---- 5. Manages Guild Store error suppression based on scene state (`gamepad_trading_house`).
---- 6. Registers inventory update events to invalidate trait caches.
---- 7. Applies chat history limit.
----
---- References: Called by the core Addon initialization.
----
---- @param m_options table The options table to initialize (unused here, handled by InitModule).
---- @return table The initialized options table.
-function BETTERUI.GeneralInterface.InitModule(m_options)
-    -- This top-level InitModule is less critical now as sub-modules handle their own,
-    -- but we keep it for signature compatibility if needed.
-    return m_options
-end
 
 --- Sets up the General Interface (Tooltips) module.
 ---
