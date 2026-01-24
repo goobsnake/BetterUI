@@ -146,6 +146,22 @@ function BETTERUI.Banking.GetColumnFontDescriptor()
 	end
 end
 
+--- Retrieves a setting value for the Banking module.
+--- @param key string The setting key.
+--- @return any The setting value or nil.
+function BETTERUI.Banking.GetSetting(key)
+    if not BETTERUI.Settings.Modules["Banking"] then return nil end
+    return BETTERUI.Settings.Modules["Banking"][key]
+end
+
+--- Sets a setting value for the Banking module.
+--- @param key string The setting key.
+--- @param value any The value to set.
+function BETTERUI.Banking.SetSetting(key, value)
+    if not BETTERUI.Settings.Modules["Banking"] then return end
+    BETTERUI.Settings.Modules["Banking"][key] = value
+end
+
 --[[
 Function: Init
 Description: Registers the Banking settings panel with LibAddonMenu.
@@ -164,10 +180,9 @@ local function Init(mId, moduleName)
 			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
 			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Banking"] then return false end
-				return BETTERUI.Settings.Modules["Banking"].enableCarousel 
+				return BETTERUI.Banking.GetSetting("enableCarousel") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Banking"].enableCarousel = value end,
+			setFunc = function(value) BETTERUI.Banking.SetSetting("enableCarousel", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -176,12 +191,10 @@ local function Init(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_UNBOUND),
 			tooltip = GetString(SI_BETTERUI_ICON_UNBOUND_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Banking"] then return true end
-				return BETTERUI.Settings.Modules["Banking"].showIconUnboundItem 
+				local v = BETTERUI.Banking.GetSetting("showIconUnboundItem")
+				return v == nil and true or v
 			end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["Banking"].showIconUnboundItem = value
-			end,
+			setFunc = function(value) BETTERUI.Banking.SetSetting("showIconUnboundItem", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -190,12 +203,10 @@ local function Init(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_ENCHANTMENT),
 			tooltip = GetString(SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Banking"] then return true end
-				return BETTERUI.Settings.Modules["Banking"].showIconEnchantment 
+				local v = BETTERUI.Banking.GetSetting("showIconEnchantment")
+				return v == nil and true or v
 			end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["Banking"].showIconEnchantment = value
-			end,
+			setFunc = function(value) BETTERUI.Banking.SetSetting("showIconEnchantment", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -204,12 +215,10 @@ local function Init(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_SET_GEAR),
 			tooltip = GetString(SI_BETTERUI_ICON_SET_GEAR_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Banking"] then return true end
-				return BETTERUI.Settings.Modules["Banking"].showIconSetGear 
+				local v = BETTERUI.Banking.GetSetting("showIconSetGear")
+				return v == nil and true or v
 			end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["Banking"].showIconSetGear = value
-			end,
+			setFunc = function(value) BETTERUI.Banking.SetSetting("showIconSetGear", value) end,
 			width = "full",
 			requiresReload = true,
 		},

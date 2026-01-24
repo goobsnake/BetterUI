@@ -81,6 +81,7 @@ function BETTERUI.Inventory.GetNameFontDescriptor()
 end
 
 --- Returns the ESO font descriptor for other columns (Type, Trait, Stat, Value).
+--- Returns the ESO font descriptor for other columns (Type, Trait, Stat, Value).
 function BETTERUI.Inventory.GetColumnFontDescriptor()
 	local s = BETTERUI.Settings.Modules["Inventory"]
 	local d = BETTERUI.Inventory.DEFAULTS
@@ -88,6 +89,22 @@ function BETTERUI.Inventory.GetColumnFontDescriptor()
 	local size = GetFontSizeValue(s.columnFontSize or d.columnFontSize)
 	local style = s.columnFontStyle or d.columnFontStyle
 	return style ~= "" and string.format("%s|%d|%s", path, size, style) or string.format("%s|%d", path, size)
+end
+
+--- Retrieves a setting value for the Inventory module.
+--- @param key string The setting key.
+--- @return any The setting value or nil.
+function BETTERUI.Inventory.GetSetting(key)
+    if not BETTERUI.Settings.Modules["Inventory"] then return nil end
+    return BETTERUI.Settings.Modules["Inventory"][key]
+end
+
+--- Sets a setting value for the Inventory module.
+--- @param key string The setting key.
+--- @param value any The value to set.
+function BETTERUI.Inventory.SetSetting(key, value)
+    if not BETTERUI.Settings.Modules["Inventory"] then return end
+    BETTERUI.Settings.Modules["Inventory"][key] = value
 end
 
 --- Initializes the settings panel for the Inventory module.
@@ -178,10 +195,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_QUICK_DESTROY),
 			tooltip = GetString(SI_BETTERUI_QUICK_DESTROY_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].quickDestroy 
+				return BETTERUI.Inventory.GetSetting("quickDestroy") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].quickDestroy = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("quickDestroy", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -190,10 +206,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
 			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].enableCarousel 
+				return BETTERUI.Inventory.GetSetting("enableCarousel") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].enableCarousel = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCarousel", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -202,10 +217,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE),
 			tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip 
+				return BETTERUI.Inventory.GetSetting("useTriggersForSkip") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].useTriggersForSkip = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("useTriggersForSkip", value) end,
 			width = "full",
 		},
 		{
@@ -213,10 +227,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_SHOW_MARKET_PRICE),
 			tooltip = GetString(SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].showMarketPrice 
+				return BETTERUI.Inventory.GetSetting("showMarketPrice") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showMarketPrice = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("showMarketPrice", value) end,
 			width = "full",
 		},
 		{
@@ -224,10 +237,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_BOE_PROTECTION),
 			tooltip = GetString(SI_BETTERUI_BOE_PROTECTION_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection 
+				return BETTERUI.Inventory.GetSetting("bindOnEquipProtection") 
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("bindOnEquipProtection", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -236,10 +248,10 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_UNBOUND),
 			tooltip = GetString(SI_BETTERUI_ICON_UNBOUND_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return true end
-				return BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem 
+				local v = BETTERUI.Inventory.GetSetting("showIconUnboundItem")
+				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconUnboundItem", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -248,10 +260,10 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_ENCHANTMENT),
 			tooltip = GetString(SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return true end
-				return BETTERUI.Settings.Modules["Inventory"].showIconEnchantment 
+				local v = BETTERUI.Inventory.GetSetting("showIconEnchantment")
+				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconEnchantment = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconEnchantment", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -260,10 +272,10 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_ICON_SET_GEAR),
 			tooltip = GetString(SI_BETTERUI_ICON_SET_GEAR_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return true end
-				return BETTERUI.Settings.Modules["Inventory"].showIconSetGear 
+				local v = BETTERUI.Inventory.GetSetting("showIconSetGear")
+				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].showIconSetGear = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconSetGear", value) end,
 			width = "full",
 			requiresReload = true,
 		},
@@ -272,10 +284,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			name = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK),
 			tooltip = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP),
 			getFunc = function() 
-				if not BETTERUI.Settings.Modules["Inventory"] then return false end
-				return BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+				return BETTERUI.Inventory.GetSetting("enableCompanionJunk") == true
 			end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk = value end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCompanionJunk", value) end,
 			width = "full",
 		},
 		{

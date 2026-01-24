@@ -8,6 +8,11 @@ Last Modified: 2026-01-23
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 if not BETTERUI.Inventory.CONST then BETTERUI.Inventory.CONST = {} end
 
+-- Global Inventory Constants (Migrated from BetterUI.CONST.lua)
+if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
+BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS = 300
+BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = 300
+
 -- ============================================================================
 -- SEARCH BAR POSITIONING
 -- Controls the position of the search input field in inventory headers
