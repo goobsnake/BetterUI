@@ -57,3 +57,37 @@ Direction: Negative (-) moves LEFT (narrower).
 Used By: Banking.lua
 ]]
 BETTERUI_BANK_SEARCH_RIGHT_INSET = -8
+
+-- ============================================================================
+-- UI TWEAKS
+-- Magic numbers extracted from Banking.lua and StateManager.lua
+-- ============================================================================
+
+--[[
+Constant: BETTERUI_BANK_LIST_MAX_OFFSET
+Description: Maximum vertical offset for the banking list.
+Used By: Banking.lua
+]]
+BETTERUI_BANK_LIST_MAX_OFFSET = 30
+
+--[[
+Constant: BETTERUI_BANK_HEADER_PADDING_SCALE
+Description: Scale factor for header padding to align with list.
+Used By: Banking.lua
+]]
+BETTERUI_BANK_HEADER_PADDING_SCALE = 0.75
+
+--[[
+Constant: BETTERUI_BANK_INACTIVE_LABEL_COLOR
+Description: Color for inactive footer toggle buttons (Withdraw/Deposit).
+Used By: StateManager.lua
+Format: {R, G, B, A}
+]]
+BETTERUI_BANK_INACTIVE_LABEL_COLOR = { 0.26, 0.26, 0.26, 1 }
+
+--[[
+Constant: BETTERUI_BANK_DEPOSIT_ARROW_ROTATION
+Description: Rotation (radians) for the selection background arrow in Deposit mode.
+Used By: StateManager.lua
+]]
+BETTERUI_BANK_DEPOSIT_ARROW_ROTATION = 3.1415 -- Pi

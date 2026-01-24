@@ -234,13 +234,13 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     if (self.currentMode == LIST_WITHDRAW) then
         footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
 
-        footer:GetNamedChild("DepositButtonLabel"):SetColor(0.26, 0.26, 0.26, 1)
+        footer:GetNamedChild("DepositButtonLabel"):SetColor(unpack(BETTERUI_BANK_INACTIVE_LABEL_COLOR))
         footer:GetNamedChild("WithdrawButtonLabel"):SetColor(1, 1, 1, 1)
     else
-        footer:GetNamedChild("SelectBg"):SetTextureRotation(3.1415)
+        footer:GetNamedChild("SelectBg"):SetTextureRotation(BETTERUI_BANK_DEPOSIT_ARROW_ROTATION)
 
         footer:GetNamedChild("DepositButtonLabel"):SetColor(1, 1, 1, 1)
-        footer:GetNamedChild("WithdrawButtonLabel"):SetColor(0.26, 0.26, 0.26, 1)
+        footer:GetNamedChild("WithdrawButtonLabel"):SetColor(unpack(BETTERUI_BANK_INACTIVE_LABEL_COLOR))
     end
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     --KEYBIND_STRIP:UpdateKeybindButtonGroup(self.spinnerKeybindStripDescriptor)

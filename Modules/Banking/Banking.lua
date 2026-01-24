@@ -137,13 +137,10 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     end
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
 
-    -- TODO(MAGIC-NUMBER): Extract these padding values to BetterUI.CONST.lua
-    -- self.list.maxOffset = 30 -> BETTERUI.CONST.BANKING.LIST_MAX_OFFSET
-    -- 0.75 multiplier -> BETTERUI.CONST.UI.HEADER_PADDING_SCALE
-    -- This improves readability and makes UI tuning easier across modules.
-    self.list.maxOffset = 30
-    self.list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
-    self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
+    self.list.maxOffset = BETTERUI_BANK_LIST_MAX_OFFSET
+    self.list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE,
+        GAMEPAD_HEADER_SELECTED_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
+    self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
 
     -- Setup data templates of the lists
     BETTERUI.Banking.Class.SetupItemList(self.list)
