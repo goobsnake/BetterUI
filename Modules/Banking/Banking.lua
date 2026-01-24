@@ -488,32 +488,23 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local _origMovePrevious = self.list.MovePrevious
         self.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
             local ok = false
-            -- TODO(OVER-DEFENSIVE): Remove excessive pcall wrapping throughout this file.
-            -- pcall here is unnecessary - _origMovePrevious is our own code, not external.
-            -- pcall should only be used for:
-            --   1. Calling APIs that may not exist (version compatibility)
-            --   2. User-provided callbacks
-            --   3. External addon integration
-            -- NOT for: Our own code, standard ESO API calls.
-            -- This file has 25+ unnecessary pcalls that hide bugs and hurt performance.
-            -- call original implementation in protected call
-            local status, res = pcall(function() return _origMovePrevious(list, allowWrapping, suppressFailSound) end)
-            if status then ok = res end
+            -- call original implementation
+            local ok = _origMovePrevious(list, allowWrapping, suppressFailSound)
+
             if not ok then
                 -- No previous entry; attempt to focus header/search like Inventory does
-                pcall(function()
-                    if self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden() then
-                        if self.OnEnterHeader then
-                            self:OnEnterHeader()
-                        elseif BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
-                            BETTERUI.Interface.Window.SetTextSearchFocused(self, true)
-                        else
-                            if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.Activate then
-                                self.headerGeneric.tabBar:Activate()
-                            end
+                -- No previous entry; attempt to focus header/search like Inventory does
+                if self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden() then
+                    if self.OnEnterHeader then
+                        self:OnEnterHeader()
+                    elseif BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
+                        BETTERUI.Interface.Window.SetTextSearchFocused(self, true)
+                    else
+                        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.Activate then
+                            self.headerGeneric.tabBar:Activate()
                         end
                     end
-                end)
+                end
                 return true
             end
             return ok

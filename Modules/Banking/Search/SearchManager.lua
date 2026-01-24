@@ -21,9 +21,9 @@ Description: Clears the text search input and resets the query.
 function BETTERUI.Banking.Class:ClearTextSearch()
     self.searchQuery = ""
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-        pcall(function() BETTERUI.Interface.Window.ClearSearchText(self) end)
+        BETTERUI.Interface.Window.ClearSearchText(self)
     elseif self.ClearSearchText then
-        pcall(function() self:ClearSearchText() end)
+        self:ClearSearchText()
     end
 end
 
@@ -34,10 +34,8 @@ return: boolean - True if header or search is active.
 ]]
 function BETTERUI.Banking.Class:IsHeaderActive()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
-        local ok, active = pcall(function() return self.textSearchHeaderFocus:IsActive() end)
-        if ok then
-            return active
-        end
+        local active = self.textSearchHeaderFocus:IsActive()
+        return active
     end
     return self._searchModeActive == true
 end
@@ -63,27 +61,25 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     self._searchModeActive = true
 
 
-    pcall(function()
-        if self.coreKeybinds then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-        end
-        if self.withdrawDepositKeybinds then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-        end
-    end)
+    if self.coreKeybinds then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    end
+    if self.withdrawDepositKeybinds then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    end
 
     if self.textSearchKeybindStripDescriptor then
-        pcall(function() EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor) end)
+        EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
     end
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate then
         if not self.textSearchHeaderFocus:IsActive() then
-            pcall(function() self.textSearchHeaderFocus:Activate() end)
+            self.textSearchHeaderFocus:Activate()
         end
     end
 
     if self.SetTextSearchFocused then
-        pcall(function() self:SetTextSearchFocused(true) end)
+        self:SetTextSearchFocused(true)
     end
 end
 
@@ -95,39 +91,35 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
     -- LeaveSearchMode: restore keybinds and header focus. No debug logging in production.
-    pcall(function()
-        if self.textSearchKeybindStripDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-        end
-    end)
+    if self.textSearchKeybindStripDescriptor then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
 
     -- Add back core keybinds and ensure coreKeybinds group is added
-    pcall(function()
-        if self.coreKeybinds then
-            EnsureKeybindGroupAdded(self.coreKeybinds)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-        end
-    end)
+    if self.coreKeybinds then
+        EnsureKeybindGroupAdded(self.coreKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    end
 
     -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
     -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
-    pcall(function()
-        self:RefreshActiveKeybinds()
-    end)
+    -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
+    -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
+    self:RefreshActiveKeybinds()
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
         if self.textSearchHeaderFocus:IsActive() then
-            pcall(function() self.textSearchHeaderFocus:Deactivate() end)
+            self.textSearchHeaderFocus:Deactivate()
         end
     end
 
     if self.SetTextSearchFocused then
-        pcall(function() self:SetTextSearchFocused(false) end)
+        self:SetTextSearchFocused(false)
     end
 
-    pcall(function() self:EnsureHeaderKeybindsActive() end)
+    self:EnsureHeaderKeybindsActive()
 
-    pcall(function() self:UpdateActions() end)
+    self:UpdateActions()
 
     -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
 end
@@ -183,7 +175,7 @@ function BETTERUI.Banking.Class:OnEnterHeader()
 
         -- Call base implementation if present
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
-            pcall(function() BETTERUI.Interface.Window.OnEnterHeader(self) end)
+            BETTERUI.Interface.Window.OnEnterHeader(self)
         end
 
         -- Ensure only the Clear keybind group remains visible shortly after entering header
@@ -191,30 +183,26 @@ function BETTERUI.Banking.Class:OnEnterHeader()
             if not self._searchModeActive then return end
             if not KEYBIND_STRIP then return end
 
-            pcall(function()
-                local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
-                if keybindGroups then
-                    for i = #keybindGroups, 1, -1 do
-                        local group = keybindGroups[i]
-                        if group and group ~= self.textSearchKeybindStripDescriptor then
-                            KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
-                        end
+            local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
+            if keybindGroups then
+                for i = #keybindGroups, 1, -1 do
+                    local group = keybindGroups[i]
+                    if group and group ~= self.textSearchKeybindStripDescriptor then
+                        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
                     end
                 end
-            end)
+            end
 
             if not self._searchModeActive then return end
 
             if self.textSearchKeybindStripDescriptor then
-                pcall(function()
-                    EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
-                end)
+                EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
         end, 20)
     else
         -- Fallback to base behavior if no text search available
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
-            pcall(function() BETTERUI.Interface.Window.OnEnterHeader(self) end)
+            BETTERUI.Interface.Window.OnEnterHeader(self)
         end
     end
 end

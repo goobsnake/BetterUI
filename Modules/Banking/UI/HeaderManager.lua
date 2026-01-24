@@ -172,16 +172,14 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- module's generic header target when available (self.headerGeneric) to match
     -- where the tabBar and focusable controls were initialized.
     if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
-        pcall(function()
-            local headerTarget = nil
-            if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
-                headerTarget = self.headerGeneric.tabBar.control
-            elseif self.headerGeneric then
-                headerTarget = self.headerGeneric
-            else
-                headerTarget = self.header
-            end
-            ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, self.textSearchHeaderControl)
-        end)
+        local headerTarget = nil
+        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
+            headerTarget = self.headerGeneric.tabBar.control
+        elseif self.headerGeneric then
+            headerTarget = self.headerGeneric
+        else
+            headerTarget = self.header
+        end
+        ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, self.textSearchHeaderControl)
     end
 end

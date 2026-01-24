@@ -135,21 +135,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     self:ClearTextSearch()
                 end
                 -- After clearing search, restore the standard banking keybinds
-                pcall(function()
-                    if self.textSearchKeybindStripDescriptor then
-                        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-                    end
-                end)
-                pcall(function()
-                    if self.coreKeybinds then
-                        KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-                        pcall(function() KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds) end)
-                    end
-                end)
+                if self.textSearchKeybindStripDescriptor then
+                    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+                end
+                if self.coreKeybinds then
+                    KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+                    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+                end
                 -- Restore keybinds based on current selection (handles currency rows properly)
-                pcall(function()
-                    self:RefreshActiveKeybinds()
-                end)
+                self:RefreshActiveKeybinds()
             end,
         },
         {
