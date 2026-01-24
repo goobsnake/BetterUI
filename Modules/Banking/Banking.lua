@@ -1,8 +1,8 @@
 --[[
 File: Modules/Banking/Banking.lua
 Purpose: Implements the comprehensive banking interface for BetterUI.
-Authors: BUI Team
-Last Modified: 2026-01-16
+Author: BetterUI Team
+Last Modified: 2026-01-23
 
 This module completely replaces the default gamepad banking interface with a feature-rich,
 inventory-like experience. It supports advanced filtering, searching, custom categories,
@@ -726,8 +726,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
                 query = editOrText:GetText() or ""
             elseif editOrText and type(editOrText) == "userdata" then
-                local ok, txt = pcall(function() return editOrText:GetText() end)
-                if ok and txt then
+                local txt = editOrText:GetText()
+                if txt then
                     query = txt
                 else
                     query = tostring(editOrText)
@@ -771,14 +771,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
-            if origOnTextChanged then pcall(function() origOnTextChanged(eb) end) end
+            if origOnTextChanged then origOnTextChanged(eb) end
             local txt = ""
-            local ok, t = pcall(function() return eb:GetText() end)
-            if ok and t then txt = t end
+            local t = eb:GetText()
+            if t then txt = t end
             self.searchQuery = txt or ""
             -- When search changes, reset selection to top and refresh
-           -- pcall(function() self:SaveListPosition() end)
-            pcall(function() self:RefreshList() end)
+            self:RefreshList()
         end)
 
         editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
@@ -977,54 +976,36 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
 
         -- Ensure we exit any active search mode so keybinds/focus are restored
-    -- Attempt to leave search mode to restore keybinds/focus
-        pcall(function()
-            if self.LeaveSearchMode then
-                self:LeaveSearchMode()
-            elseif self.ExitSearchFocus then
-                -- fallback
-                self:ExitSearchFocus()
-            end
-        end)
-    -- Search mode left; continue cleanup
+        -- Ensure we exit any active search mode so keybinds/focus are restored
+        if self.LeaveSearchMode then
+            self:LeaveSearchMode()
+        elseif self.ExitSearchFocus then
+            -- fallback
+            self:ExitSearchFocus()
+        end
 
         -- Check KEYBIND_STRIP groups (no debug output)
+        if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        end
 
-    -- Perform any directional input diagnostics or cleanup if needed (no logging).
-        -- Extra safety: remove any lingering search keybind group and re-enable directional input
-        pcall(function()
-            if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-            end
-        end)
-
-        pcall(function()
-            local ok, list = pcall(function() return self:GetList() end)
-            if ok and list and list.SetDirectionalInputEnabled then
-                list:SetDirectionalInputEnabled(true)
-            elseif self.list and self.list.SetDirectionalInputEnabled then
-                self.list:SetDirectionalInputEnabled(true)
-            end
-        end)
+        local list = self:GetList()
+        if list and list.SetDirectionalInputEnabled then
+            list:SetDirectionalInputEnabled(true)
+        elseif self.list and self.list.SetDirectionalInputEnabled then
+            self.list:SetDirectionalInputEnabled(true)
+        end
 
         -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
         -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
-        -- Delayed fallback to re-enable list directional input (avoid re-adding keybinds)
-        pcall(function()
-            zo_callLater(function()
-                pcall(function()
-                    local ok, list = pcall(function() return self:GetList() end)
-                    if ok and list and list.SetDirectionalInputEnabled then
-                        list:SetDirectionalInputEnabled(true)
-                    elseif self.list and self.list.SetDirectionalInputEnabled then
-                        self.list:SetDirectionalInputEnabled(true)
-                    end
-                end)
-            end, directionalFixDelayMs)
-        end)
-
-        -- Aggressive cleanup: attempt to deactivate selected DIRECTIONAL_INPUT owners (safer)
-        pcall(function() self:AggressiveDirectionalCleanup() end)
+        zo_callLater(function()
+            local listDelayed = self:GetList()
+            if listDelayed and listDelayed.SetDirectionalInputEnabled then
+                listDelayed:SetDirectionalInputEnabled(true)
+            elseif self.list and self.list.SetDirectionalInputEnabled then
+                self.list:SetDirectionalInputEnabled(true)
+            end
+        end, directionalFixDelayMs)
 
         -- Clear search text when exiting the banking scene
         self.searchQuery = ""
@@ -1082,67 +1063,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         -- intentionally left blank
     end
 
-    -- Aggressive cleanup helper: deactivates selected owners based on safer pattern matching
-    local function AggressiveDirectionalCleanupImpl()
-        pcall(function()
-            if not DIRECTIONAL_INPUT then return end
-            local objs = DIRECTIONAL_INPUT.inputObjects
-            local ctrls = DIRECTIONAL_INPUT.inputControls
-            if not objs or type(objs) ~= "table" then return end
-
-            local patterns = {"BETTERUI", "Wykkyds", "ZO_", "Gamepad", "ZOGamepad", "BetterUI"}
-
-            for i = #objs, 1, -1 do
-                local obj = objs[i]
-                local ctl = (ctrls and ctrls[i]) or nil
-                local skipEngine = false
-                pcall(function()
-                    if obj == CLIENT_INPUT then
-                        skipEngine = true
-                    end
-                    if type(ctl) == "userdata" then
-                        local okName, name = pcall(function() return ctl:GetName() end)
-                        if okName and tostring(name) == "GuiRoot" then
-                            skipEngine = true
-                        end
-                    end
-                end)
-                if not skipEngine then
-                    -- Decide whether to allow deactivation based on patterns or hidden controls
-                    local allow = false
-                    pcall(function()
-                        if type(ctl) == "userdata" then
-                            local okName, name = pcall(function() return ctl:GetName() end)
-                            if okName and name then
-                                for _, pat in ipairs(patterns) do
-                                    if string.find(tostring(name), pat, 1, true) then allow = true break end
-                                end
-                            end
-                            if not allow then
-                                local okHidden, hidden = pcall(function() return ctl:IsControlHidden() end)
-                                if okHidden and hidden then allow = true end
-                            end
-                        end
-                        if not allow then
-                            -- check object tostring for patterns
-                            local s = tostring(obj)
-                            for _, pat in ipairs(patterns) do
-                                if string.find(s, pat, 1, true) then allow = true break end
-                            end
-                        end
-                    end)
-                    if allow then
-                        pcall(function() DIRECTIONAL_INPUT:Deactivate(obj) end)
-                    end
-                end
-            end
-        end)
-    end
-
     -- Expose helpers on self for calls inside handlers
     self.DumpDirectionalInputDiagnostics = DumpDirectionalInputDiagnostics
     self.AggressiveDirectionalCleanup = function()
-        zo_callLater(function() AggressiveDirectionalCleanupImpl() end, directionalFixDelayMs + 10)
+        -- Deprecated: Aggressive cleanup removed in favor of explicit state management.
+        -- Kept as no-op stub to prevent errors if external code calls it.
     end
 
     self.control:SetHandler("OnEffectivelyShown", OnEffectivelyShown)

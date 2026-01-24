@@ -1,10 +1,12 @@
--- BetterUI.lua
----
---- Purpose: Main entry point for the BetterUI addon.
----          Handles module initialization, event registration, and runtime patches.
---- Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
----            Manages the loading of sub-modules based on Gamepad mode.
----
+--[[
+File: BetterUI.lua
+Purpose: Main entry point for the BetterUI addon.
+         Handles module initialization, event registration, and runtime patches.
+Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
+           Manages the loading of sub-modules based on Gamepad mode.
+Author: BetterUI Team
+Last Modified: 2026-01-23
+]]
 
 local LAM = LibAddonMenu2
 
@@ -205,8 +207,7 @@ function BETTERUI.LoadModules()
 	-- Apply runtime safety patches for ESO API issues (nil icon paths)
 	if not BETTERUI._patchesApplied then
 		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-		-- TODO(refactor): The zo_icon* patches use pcall for safety but are well-documented.
-		-- Consider extracting to Modules/CIM/RuntimePatches.lua for better organization.
+		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
 		if type(zo_iconFormat) == "function" then
 			local _orig_zo_iconFormat = zo_iconFormat
 			zo_iconFormat = function(path, width, height)

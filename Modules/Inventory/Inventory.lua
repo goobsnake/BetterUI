@@ -1,19 +1,21 @@
---------------------------------------------------------------------------------
--- BetterUI Inventory Module
---
--- TODO(architecture): CRITICAL - This file is 4545 lines (~174KB).
--- Decompose into smaller focused files:
---   1. Inventory/Core/InventoryClass.lua - Class definition, initialization
---   2. Inventory/Lists/ItemListManager.lua - Item list refresh/filter logic
---   3. Inventory/Lists/CraftBagListManager.lua - Craft bag specific logic
---   4. Inventory/Actions/EquipAction.lua - TryEquipItem and equip dialogs
---   5. Inventory/Actions/QuickslotAction.lua - Quickslot assignment
---   6. Inventory/Keybinds/InventoryKeybinds.lua - Keybind strip setup
---   7. Inventory/State/PositionManager.lua - SaveListPosition/ToSavedPosition
--- Target: Each file < 500 lines.
---
--- This file contains the core implementation of the BetterUI Inventory system.
--- It works by subclassing ZO_GamepadInventory to provide a completely overhauled
+--[[
+File: Modules/Inventory/Inventory.lua
+Purpose: Core implementation of the BetterUI Inventory system.
+         Subclasses ZO_GamepadInventory to overhaul the interface.
+Architectural Notes:
+         TODO(architecture): CRITICAL - This file is 4545 lines (~174KB).
+         Decompose into smaller focused files:
+           1. Inventory/Core/InventoryClass.lua - Class definition, initialization
+           2. Inventory/Lists/ItemListManager.lua - Item list refresh/filter logic
+           3. Inventory/Lists/CraftBagListManager.lua - Craft bag specific logic
+           4. Inventory/Actions/EquipAction.lua - TryEquipItem and equip dialogs
+           5. Inventory/Actions/QuickslotAction.lua - Quickslot assignment
+           6. Inventory/Keybinds/InventoryKeybinds.lua - Keybind strip setup
+           7. Inventory/State/PositionManager.lua - SaveListPosition/ToSavedPosition
+         Target: Each file < 500 lines.
+Author: BetterUI Team
+Last Modified: 2026-01-23
+]]
 -- gamepad inventory experience.
 --
 -- KEY FEATURES:
@@ -1406,17 +1408,18 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 	end
 end
 
---- Updates the left-side tooltip with details about the selected item.
----
---- Purpose: Displays item stats, comparisons, or quest info.
---- Mechanics:
---- 1. Validates selected data.
---- 2. Determines item type (Quest vs Regular).
---- 3. Handles `switchInfo` toggle to show Right Tooltip (Comparisons).
---- 4. Updates "Equipped" indicator text.
---- References: Called on selection change.
----
---- @param selectedData table The data of the currently selected item.
+--[[
+Function: BETTERUI.Inventory.Class:UpdateItemLeftTooltip
+Description: Updates the left-side tooltip with details about the selected item.
+Purpose: Displays item stats, comparisons, or quest info.
+Mechanics: 
+  1. Validates selected data.
+  2. Determines item type (Quest vs Regular).
+  3. Handles `switchInfo` toggle to show Right Tooltip (Comparisons).
+  4. Updates "Equipped" indicator text.
+References: Called on selection change.
+param: selectedData (table) - The data of the currently selected item.
+]]
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 	-- Guard: selectedData may be a category/header entry without bag/slot fields.
 	-- Avoid calling inventory helper functions on non-item rows which expect item tables.
@@ -1498,6 +1501,16 @@ end
 --- References: Called by UpdateItemLeftTooltip.
 ---
 --- @param selectedData table The data of the currently selected item.
+--[[
+Function: BETTERUI.Inventory.Class:UpdateRightTooltip
+Description: Updates the right-side tooltip (Equipped Item comparison).
+Rationale: Enables side-by-side comparison of the selected inventory item against currently equipped gear.
+Mechanism: 
+  - Identifies the equip slot for the selected item type.
+  - Uses GAMEPAD_TOOLTIPS:LayoutItemStatComparison to render the comparison.
+  - Falls back to standard worn item layout if no comparison data exists.
+param: selectedData (table) - The data of the currently selected row/item.
+]]
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 	local selectedItemData = selectedData
 	--
@@ -1801,25 +1814,17 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					self:RefreshItemActions()
 				end
 				if self and self.RefreshKeybinds then
-					pcall(function()
-						self:RefreshKeybinds()
-					end)
+					self:RefreshKeybinds()
 				end
 				-- Ensure the main keybind descriptor becomes active after toggling junk
-				pcall(function()
-					if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
-						pcall(function()
+				if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+					zo_callLater(function()
+						if self.SetActiveKeybinds then
 							self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-						end)
-						zo_callLater(function()
-							pcall(function()
-								if self.SetActiveKeybinds then
-									self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-								end
-							end)
-						end, 40)
-					end
-				end)
+						end
+					end, 40)
+				end
 			end
 			-- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
 			-- so we no longer inject or maintain synthetic lock/unlock helper functions here.
@@ -1835,30 +1840,20 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					GAMEPAD_INVENTORY:RefreshItemList()
 				end
 				if self and self.RefreshItemActions then
-					pcall(function()
-						self:RefreshItemActions()
-					end)
+					self:RefreshItemActions()
 				end
 				if self and self.RefreshKeybinds then
-					pcall(function()
-						self:RefreshKeybinds()
-					end)
+					self:RefreshKeybinds()
 				end
 				-- Ensure the main keybind descriptor becomes active after toggling junk
-				pcall(function()
-					if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
-						pcall(function()
+				if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+					zo_callLater(function()
+						if self.SetActiveKeybinds then
 							self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-						end)
-						zo_callLater(function()
-							pcall(function()
-								if self.SetActiveKeybinds then
-									self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-								end
-							end)
-						end, 40)
-					end
-				end)
+						end
+					end, 40)
+				end
 			end
 
 			local parametricList = dialog.info.parametricList
@@ -1933,34 +1928,25 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 											origCallback(...)
 										end
 										-- Immediately refresh item list and actions to restore UI/keybind state
+										-- Immediately refresh item list and actions to restore UI/keybind state
 										if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
 											GAMEPAD_INVENTORY:RefreshItemList()
 										end
 										if self and self.RefreshItemActions then
-											pcall(function()
-												self:RefreshItemActions()
-											end)
+											self:RefreshItemActions()
 										end
 										if self and self.RefreshKeybinds then
-											pcall(function()
-												self:RefreshKeybinds()
-											end)
+											self:RefreshKeybinds()
 										end
 										-- Ensure the main keybind descriptor is active after lock/unlock flows
-										pcall(function()
-											if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
-												pcall(function()
+										if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+											self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+											zo_callLater(function()
+												if self.SetActiveKeybinds then
 													self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-												end)
-												zo_callLater(function()
-													pcall(function()
-														if self.SetActiveKeybinds then
-															self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-														end
-													end)
-												end, 40)
-											end
-										end)
+												end
+											end, 40)
+										end
 									end
 									-- Only wrap the first matching entry (there should typically be one)
 									break
@@ -3484,16 +3470,12 @@ function BETTERUI.Inventory.Class:Initialize(control)
 			editBox:SetHandler("OnTextChanged", function(eb)
 				-- Preserve original handler behavior first
 				if origOnTextChanged then
-					pcall(function()
-						origOnTextChanged(eb)
-					end)
+					origOnTextChanged(eb)
 				end
 
 				local txt = ""
-				local ok, t = pcall(function()
-					return eb:GetText()
-				end)
-				if ok and t then
+				local t = eb:GetText()
+				if t then
 					txt = t
 				end
 
@@ -3509,12 +3491,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
 				end
 
 				if self:GetCurrentList() == self.craftBagList and not willEngineFilter then
-					pcall(function()
-						self:SaveListPosition()
-					end)
-					pcall(function()
-						self:RefreshCraftBagList()
-					end)
+					self:SaveListPosition()
+					self:RefreshCraftBagList()
 				end
 			end)
 
@@ -3541,13 +3519,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
 	-- newly-created `textSearchHeaderControl`. This fixes the case where the
 	-- clear prompt didn't appear until the list was interacted with.
 	zo_callLater(function()
-		pcall(function()
-			if self.RefreshKeybinds then
-				self:RefreshKeybinds()
-			elseif self.mainKeybindStripDescriptor then
-				KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-			end
-		end)
+		if self.RefreshKeybinds then
+			self:RefreshKeybinds()
+		elseif self.mainKeybindStripDescriptor then
+			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+		end
 	end, 40)
 end
 

@@ -1,10 +1,12 @@
--- BetterUI Globals
----
---- Purpose: Defines the core addon namespace (BETTERUI) and global utility functions.
----          Serves as the foundation for module registration and shared helper methods.
---- Mechanics: Initializes the global BETTERUI table and sub-tables for modules.
----            Provides text formatting, hook management, and external addon integration helpers.
----
+--[[
+File: Globals.lua
+Purpose: Defines the core addon namespace (BETTERUI) and global utility functions.
+         Serves as the foundation for module registration and shared helper methods.
+Mechanics: Initializes the global BETTERUI table and sub-tables for modules.
+           Provides text formatting, hook management, and external addon integration helpers.
+Author: BetterUI Team
+Last Modified: 2026-01-23
+]]
 
 -- Compatibility patch by Friday_The13_rus for AutoCategory integration
 -- and shared utilities for BetterUI
@@ -471,6 +473,4 @@ Status: Preserved for stability - removal requires in-game testing
 -- Empty override for store initialization (testing status: confirmed needed for some UI refresh cycles)
 ZO_Store_OnInitialize_Gamepad = function(...) end
 
--- Imagery, you dont need to localise these strings
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT","|cFF6600<<1>>|r")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL","|cCCCCCC<<1>>|r")
+

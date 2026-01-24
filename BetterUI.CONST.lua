@@ -1,10 +1,11 @@
--- BetterUI.CONST.lua
----
---- Purpose: Defines all static constants, configuration values, and layout definitions used throughout the BetterUI addon.
----          This file serves as the central configuration repository for UI dimensions, positioning, and default values.
---- Mechanics: Populates the BETTERUI.CONST table which is accessed globally by other modules.
---- References: Referenced by virtually all modules (Inventory, Banking, GeneralInterface) for layout and logical constants.
----
+--[[
+File: BetterUI.CONST.lua
+Purpose: Defines all static constants, configuration values, and layout definitions.
+         Serves as the central configuration repository for UI dimensions and defaults.
+Mechanics: Populates the BETTERUI.CONST table accessed globally by other modules.
+Author: BetterUI Team
+Last Modified: 2026-01-23
+]]
 
 local _
 
@@ -82,6 +83,12 @@ BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
 -- ============================================================================
 -- XML TEMPLATE VALUES (Column Layout)
 -- ============================================================================
+--[[
+Constant: BETTERUI.CONST.LAYOUT.COLUMNS
+Description: X Offsets and Widths for the inventory grid columns.
+Direction: OFFSET_X is Positive (+) moving RIGHT from the left edge of the list entry.
+Used By: Inventory list templates.
+]]
 BETTERUI.CONST.LAYOUT.COLUMNS = {
     SUBMENU = { OFFSET_X = 87, WIDTH = 540 },
     TYPE    = { OFFSET_X = 550, WIDTH = 250 },
@@ -140,10 +147,7 @@ BETTERUI.CONST.LAYOUT.TOOLTIP = {
         PRICE_LABEL_OFFSET_Y = 5,
     }
 
-BETTERUI.CONST.INVENTORY = {
-    DIALOG_QUEUE_TIMEOUT_MS = 300,  -- Delay before showing secondary dialogs to avoid ESO dialog queue issues
-    TOOLTIP_REFRESH_DELAY_MS = 300,  -- Debounce for tooltip updates during navigation
-}
+
 
 BETTERUI.CONST.HEADER_LAYOUT = {
     DIVIDER = {
