@@ -172,7 +172,7 @@ param: mId (string) - The module ID suffix.
 param: moduleName (string) - The display name for the panel.
 ]]
 local function Init(mId, moduleName)
-	local panelData = Init_ModulePanel(moduleName, "Banking Improvement Settings")
+	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
 	local optionsTable = {
 		{
