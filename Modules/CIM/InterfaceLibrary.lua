@@ -5,6 +5,9 @@ Purpose: Base window class and UI utilities for gamepad inventory/banking.
          including window management, search integration, and spinner utilities.
 Author: BetterUI Team
 Last Modified: 2026-01-19
+-- TODO(DOCS): This file is 754 lines and well-structured but needs comprehensive
+-- docs explaining the Window class hierarchy and how modules should subclass it.
+-- Add a class diagram in comments showing: Window <- Banking.Class, Inventory.Class
 ]]
 
 local _
@@ -122,6 +125,9 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     }
 end
 
+-- TODO(GLOBAL-SCENE): BETTERUI_BANKING_SCENE_NAME is a global constant.
+-- Consider: BETTERUI.CONST.SCENES.BANKING = "BETTERUI_BANKING"
+-- This improves discoverability and reduces global namespace pollution.
 BETTERUI_BANKING_SCENE_NAME = "BETTERUI_BANKING"
 
 local BANKING_INTERACTION =
@@ -522,6 +528,10 @@ Mechanism: Tries to call `GetCurrentList` (polymorphic) if it exists, otherwise 
 return: table - The active list control.
 ]]
 function BETTERUI.Interface.Window:GetActiveList()
+-- TODO(PCALL-AUDIT): This pcall around GetCurrentList may hide real errors.
+-- If GetCurrentList doesn't exist, returning nil is fine, but swallowing
+-- exceptions from a valid method call masks bugs. Consider:
+--   if type(self.GetCurrentList) == "function" then return self:GetCurrentList() end
     if self.GetCurrentList then
         local ok, list = pcall(function() return self:GetCurrentList() end)
         if ok then

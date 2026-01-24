@@ -25,13 +25,17 @@ KEY MECHANICS:
     *   Integrated text search filtering by name.
 
 
--- Split into:
---   1. Banking/Core/BankingClass.lua - Main class and initialization
---   2. Banking/Lists/BankListManager.lua - List refresh and filtering
---   3. Banking/Actions/DepositWithdrawActions.lua - Transfer logic
---   4. Banking/UI/BankingFooter.lua - Footer refresh logic
---   5. Banking/Categories/BankCategoryManager.lua - Category building
--- Target: Each file < 500 lines.
+-- TODO(CRITICAL-DECOMPOSITION): This file is 2461 lines - UNACCEPTABLE for maintainability.
+-- Split into the following structure (target: each file < 500 lines):
+--   1. Banking/Core/BankingClass.lua (~300 lines) - Main class skeleton, Initialize
+--   2. Banking/Lists/BankListManager.lua (~400 lines) - RefreshList, filtering, sorting
+--   3. Banking/Actions/TransferActions.lua (~300 lines) - MoveItem, DisplaySelector, currency
+--   4. Banking/Actions/KeybindManager.lua (~300 lines) - All keybind descriptors
+--   5. Banking/UI/FooterManager.lua (~150 lines) - RefreshFooter, footer state
+--   6. Banking/UI/HeaderManager.lua (~200 lines) - RebuildHeaderCategories, tab bar
+--   7. Banking/Search/SearchManager.lua (~150 lines) - EnterSearchMode, LeaveSearchMode
+--   8. Banking/State/PositionManager.lua (~150 lines) - SaveListPosition, ReturnToSaved
+-- Current violation: 2461 lines in single file.
 ]]
 
 local _
@@ -421,6 +425,9 @@ function BETTERUI.Banking.Class:RefreshList()
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checking_bags))
 
     local tempDataTable = {}
+    -- TODO(PERF): Move global localizations to MODULE SCOPE (top of file after line 37).
+    -- Current location inside RefreshList means they're re-captured on EVERY refresh.
+    -- This is called frequently during scrolling and item updates.
     -- Localize globals used in the loop for performance
     local zo_strformat = zo_strformat
     local GetBestItemCategoryDescription = GetBestItemCategoryDescription
@@ -506,6 +513,10 @@ function BETTERUI.Banking.Class:RefreshList()
         filteredDataTable = matches
     end
 
+    -- TODO(DUPLICATION): This entire RefreshList function shares ~80% logic with Inventory.RefreshItemList.
+    -- Extract to shared utility: BETTERUI.ListUtils.BuildFilteredItemList(bags, filters, sortFunc, searchQuery)
+    -- This would eliminate ~200 lines of duplication and ensure consistent behavior.
+    -- Both use: SHARED_INVENTORY:GenerateFullSlotData, category matching, search filtering, sorting.
     table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
 
     local currentBestCategoryName
@@ -684,6 +695,10 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 	end
 	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
 	
+    -- TODO(MAGIC-NUMBER): Extract these padding values to BetterUI.CONST.lua
+    -- self.list.maxOffset = 30 -> BETTERUI.CONST.BANKING.LIST_MAX_OFFSET
+    -- 0.75 multiplier -> BETTERUI.CONST.UI.HEADER_PADDING_SCALE  
+    -- This improves readability and makes UI tuning easier across modules.
     self.list.maxOffset = 30
     self.list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
 	self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)    
@@ -1031,6 +1046,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local _origMovePrevious = self.list.MovePrevious
         self.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
             local ok = false
+            -- TODO(OVER-DEFENSIVE): Remove excessive pcall wrapping throughout this file.
+            -- pcall here is unnecessary - _origMovePrevious is our own code, not external.
+            -- pcall should only be used for:
+            --   1. Calling APIs that may not exist (version compatibility)
+            --   2. User-provided callbacks
+            --   3. External addon integration
+            -- NOT for: Our own code, standard ESO API calls.
+            -- This file has 25+ unnecessary pcalls that hide bugs and hurt performance.
             -- call original implementation in protected call
             local status, res = pcall(function() return _origMovePrevious(list, allowWrapping, suppressFailSound) end)
             if status then ok = res end

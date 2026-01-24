@@ -86,6 +86,10 @@ function BETTERUI.GetModuleEnabled(moduleName)
 	return false
 end
 
+-- TODO(NAMESPACE): Move ddebug to BETTERUI.Debug(str) to avoid global namespace pollution.
+-- Global function names risk collision with other addons.
+-- Pattern to follow: BETTERUI.SomeModule.SomeFunction()
+-- Current usage: ~50 call sites across codebase.
 --- Prints a debug message to chat with BetterUI prefix.
 ---
 --- Purpose: Standardized debug logging for development.
@@ -147,6 +151,10 @@ end
 --- @param n number The number to abbreviate.
 --- @param defaultDecimals number|nil Optional default decimal places (defaults to 2).
 --- @return string The abbreviated number string.
+-- TODO(DUPLICATION): AbbreviateNumber and FormatAbbreviatedNumber (line 191) have overlapping functionality.
+-- Consider consolidating into single function with options parameter:
+--   BETTERUI.FormatNumber(n, {style="abbreviated", case="upper", decimals=2})
+-- This would reduce code and ensure consistent formatting across the addon.
 function BETTERUI.AbbreviateNumber(n, defaultDecimals)
 	local abs = math.abs(n or 0)
 	local suffix = ""
@@ -293,6 +301,8 @@ function BETTERUI.GetResearch(forceRefresh)
 	end
 end
 
+-- TODO(NAMESPACE): Move CUSTOM_GAMEPAD_ITEM_SORT to BETTERUI.CONST.INVENTORY.SORT_SCHEMA
+-- This constant is only used by the sort comparator below.
 local CUSTOM_GAMEPAD_ITEM_SORT = {
 	sortPriorityName  = { tiebreaker = "bestItemTypeName" },
 	bestItemTypeName = { tiebreaker = "name" },
@@ -303,6 +313,10 @@ local CUSTOM_GAMEPAD_ITEM_SORT = {
 	uniqueId = { isId64 = true },
 }
 
+-- TODO(NAMESPACE): Rename to BETTERUI.Inventory.DefaultSortComparator
+-- Global function BETTERUI_GamepadInventory_DefaultItemSortComparator pollutes namespace.
+-- This is referenced in: Banking.lua:509, Inventory.lua (multiple), InventoryList.lua
+-- After renaming, update all call sites and remove this global.
 --- Custom comparison function for sorting gamepad inventory items.
 ---
 --- Purpose: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
@@ -397,6 +411,13 @@ function BETTERUI.GetCustomCategory(itemData)
 	return useCustomCategory, false, "", 0
 end
 
+-- TODO(DUPLICATION): PostHook and Hook (below) share 80% of their implementation.
+-- Consider refactoring to a single internal function:
+--   local function createHook(control, method, fn, position) -- position = "before"|"after"|"replace"
+-- Then expose as:
+--   BETTERUI.PreHook(control, method, fn)   -- runs before original
+--   BETTERUI.PostHook(control, method, fn)  -- runs after original  
+--   BETTERUI.ReplaceHook(control, method, fn) -- replaces original
 --- Hooks a method to run AFTER the original method.
 ---
 --- Purpose: Safe method extension.
@@ -460,6 +481,13 @@ function BETTERUI.Init_ModulePanel(moduleName, moduleDesc)
 	}
 end
 
+-- TODO(RISKY-OVERRIDE): Investigate if this ZO_Store_OnInitialize_Gamepad override is still necessary.
+-- This completely suppresses the native gamepad store initialization.
+-- Risk: If this breaks store functionality, users have no recourse.
+-- Recommendation: Test removal in isolated environment. If needed, consider:
+--   1. Hook AFTER native init instead of replacing entirely
+--   2. Document specific conflict this prevents
+--   3. Add runtime check to skip if not needed
 --[[
 Override: ZO_Store_OnInitialize_Gamepad
 Rationale: Suppresses the native gamepad store initialization to prevent potential

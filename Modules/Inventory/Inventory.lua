@@ -13,6 +13,22 @@ Architectural Notes:
            6. Inventory/Keybinds/InventoryKeybinds.lua - Keybind strip setup
            7. Inventory/State/PositionManager.lua - SaveListPosition/ToSavedPosition
          Target: Each file < 500 lines.
+-- TODO(CRITICAL-DECOMPOSITION): This file is 4515 lines - THE WORST OFFENDER.
+-- This is 9x the recommended maximum file size (500 lines).
+-- NO developer can hold 4500 lines of code in their mental model.
+-- Priority P0: Must decompose before adding ANY new features.
+-- Proposed structure:
+--   1. Inventory/Core/InventoryClass.lua (~400 lines) - Class skeleton, New, Initialize
+--   2. Inventory/Lists/ItemListManager.lua (~600 lines) - RefreshItemList, sorting, filtering
+--   3. Inventory/Lists/CraftBagListManager.lua (~400 lines) - Craft bag specific logic
+--   4. Inventory/Lists/CategoryListManager.lua (~300 lines) - RefreshCategoryList, tab logic
+--   5. Inventory/Actions/EquipAction.lua (~400 lines) - TryEquipItem, slot selection dialogs
+--   6. Inventory/Actions/QuickslotAction.lua (~200 lines) - Quickslot assignment dialog
+--   7. Inventory/Actions/ItemActionsDialog.lua (~300 lines) - "Y" menu customization
+--   8. Inventory/Keybinds/InventoryKeybinds.lua (~500 lines) - All keybind definitions
+--   9. Inventory/State/PositionManager.lua (~200 lines) - SaveListPosition, ToSavedPosition
+--  10. Inventory/Tooltips/TooltipManager.lua (~200 lines) - UpdateItemLeftTooltip, etc.
+-- Current violation: 4515 lines in single file.
 Author: BetterUI Team
 Last Modified: 2026-01-23
 ]]
@@ -72,6 +88,10 @@ local _
 -- Without this, ESO's internal GAMEPAD_INVENTORY references would route to the vanilla object.
 -------------------------------------------------------------------------------------------------
 
+
+-- TODO(GLOBAL-OVERRIDE): This ZO_GAMEPAD_INVENTORY_SCENE_NAME override hijacks a global.
+-- Risk: Other addons checking this global will get our scene name, potentially causing conflicts.
+-- Consider: Document all known interactions, or use ZO_PreHook to intercept scene registration.
 local BLOCK_TABBAR_CALLBACK = true
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
@@ -91,7 +111,9 @@ local CRAFT_BAG_ACTION_MODE = 3
 local INVENTORY_CATEGORY_LIST = "categoryList"
 local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
-
+-- TODO(GLOBAL-DIALOG): This global dialog name could conflict with other addons.
+-- Consider: BETTERUI.Inventory.EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
+-- Then reference via the namespace instead of a global.
 BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 
 -- Slot data cache for GenerateFullSlotData optimization
