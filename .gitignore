@@ -3,15 +3,8 @@
 /.images/
 /.vscode/
 /.venv/
-#/tools/
+/tools/
 /source/
-
-# Ignore the entire .agent directory by default
-/.agent/
-
-# UN-ignore the skills directory and its contents for Antigravity
-!/.agent/skills/
-!/.agent/workflows/
 
 # Ignore the entire esoui directory by default
 /esoui/

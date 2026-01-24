@@ -80,6 +80,12 @@ Modules\Inventory\Module.lua
 
 ; Module: Banking
 Modules\Banking\Constants.lua
+Modules\Banking\Core\BankingClass.lua
+Modules\Banking\Lists\BankListManager.lua
+Modules\Banking\Actions\TransferActions.lua
+Modules\Banking\Keybinds\KeybindManager.lua
+Modules\Banking\UI\FooterManager.lua
+Modules\Banking\UI\HeaderManager.lua
 Modules\Banking\Images\nav_vert.dds
 Modules\Banking\Images\selectbg.dds
 Modules\Banking\Banking.lua
