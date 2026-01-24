@@ -86,6 +86,8 @@ Modules\Banking\Actions\TransferActions.lua
 Modules\Banking\Keybinds\KeybindManager.lua
 Modules\Banking\UI\FooterManager.lua
 Modules\Banking\UI\HeaderManager.lua
+Modules\Banking\Search\SearchManager.lua
+Modules\Banking\State\StateManager.lua
 Modules\Banking\Images\nav_vert.dds
 Modules\Banking\Images\selectbg.dds
 Modules\Banking\Banking.lua
