@@ -447,7 +447,7 @@ end
 --- @param moduleName string The display name of the module.
 --- @param moduleDesc string The description text.
 --- @return table The LAM panel configuration table.
-function Init_ModulePanel(moduleName, moduleDesc)
+function BETTERUI.Init_ModulePanel(moduleName, moduleDesc)
 	return {
 		type = "panel",
 		name = "|t24:24:/esoui/art/buttons/gamepad/xbox/nav_xbone_b.dds|t " .. BETTERUI.name .. " (" .. moduleName .. ")",

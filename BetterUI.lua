@@ -1,11 +1,12 @@
 --[[
 File: BetterUI.lua
 Purpose: Main entry point for the BetterUI addon.
-         Handles module initialization, event registration, and runtime patches.
+         Handles module initialization and event registration.
 Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
            Manages the loading of sub-modules based on Gamepad mode.
+           Runtime patches and settings migrations are delegated to CIM/RuntimeSetup.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-23
+Last Modified: 2026-01-24
 ]]
 
 local LAM = LibAddonMenu2
@@ -16,43 +17,6 @@ if BETTERUI == nil then BETTERUI = {} end
 -- Shared font choices for Inventory (matches Nameplates for consistency)
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
-
--- ============================================================================
--- SETTINGS HELPER FACTORY
--- ============================================================================
-
---[[
-Function: CreateSettingAccessors
-Description: Factory to generate getFunc/setFunc/disabled for LAM settings.
-Rationale: Reduces repetitive code across 50+ settings definitions.
-param: moduleName (string) - The settings module name (e.g., "Nameplates", "Tooltips")
-param: settingKey (string) - The key within the module settings table
-param: applyCallback (function|nil) - Optional callback to run after setting is changed
-param: defaultValue (any|nil) - Optional default value if setting is nil
-return: table - { get = function, set = function, disabled = function }
-]]
-function BETTERUI.CreateSettingAccessors(moduleName, settingKey, applyCallback, defaultValue)
-    return {
-        get = function()
-            local settings = BETTERUI.Settings.Modules[moduleName]
-            if not settings then return defaultValue end
-            local value = settings[settingKey]
-            if value == nil then return defaultValue end
-            return value
-        end,
-        set = function(value)
-            if BETTERUI.Settings.Modules[moduleName] then
-                BETTERUI.Settings.Modules[moduleName][settingKey] = value
-                if applyCallback then
-                    applyCallback(value)
-                end
-            end
-        end,
-        disabled = function()
-            return not BETTERUI.Settings.Modules[moduleName]
-        end
-    }
-end
 
 --- Updates the Common Interface Module (CIM) state based on dependents.
 ---
@@ -78,7 +42,7 @@ end
 --- References: Called during BETTERUI.Initialize.
 ---
 function BETTERUI.InitModuleOptions()
-	local panelData = Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
+	local panelData = BETTERUI.Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
 
 	local optionsTable = {
 		{
@@ -193,10 +157,8 @@ end
 --- Loads and initializes all enabled modules.
 ---
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
---- Mechanics: Applies runtime patches for API compatibility.
----            Initializes research data and module-specific setups (Inventory, Banking, Wraps, etc.).
----            Includes Monkey-Patches for ZO_Global functions to prevent crashes with nil icon paths.
---- References: Called on initialization and when switching to Gamepad mode.
+--- Mechanics: Calls RuntimeSetup.Apply() for API patches and settings migrations.
+---            Initializes research data and module-specific setups (Inventory, Banking, Writs, etc.).
 --- References: Called on initialization and when switching to Gamepad mode.
 ---
 function BETTERUI.LoadModules()
@@ -204,137 +166,10 @@ function BETTERUI.LoadModules()
 
 	ddebug("Initializing BETTERUI...")
 
-	-- Apply runtime safety patches for ESO API issues (nil icon paths)
-	if not BETTERUI._patchesApplied then
-		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-		if type(zo_iconFormat) == "function" then
-			local _orig_zo_iconFormat = zo_iconFormat
-			zo_iconFormat = function(path, width, height)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconFormat(path, width, height)
-				end)
-				return ok and res or ""
-			end
-		end
-
-		if type(zo_iconFormatInheritColor) == "function" then
-			local _orig_zo_iconFormatInheritColor = zo_iconFormatInheritColor
-			zo_iconFormatInheritColor = function(path, width, height)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconFormatInheritColor(path, width, height)
-				end)
-				return ok and res or ""
-			end
-		end
-
-		if type(zo_iconTextFormat) == "function" then
-			local _orig_zo_iconTextFormat = zo_iconTextFormat
-			zo_iconTextFormat = function(path, width, height, text, inheritColor, noGrammar)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconTextFormat(path, width, height, text, inheritColor, noGrammar)
-				end)
-				return ok and res or tostring(text or "")
-			end
-		end
-
-		if type(zo_iconTextFormatAlignedRight) == "function" then
-			local _orig_zo_iconTextFormatAlignedRight = zo_iconTextFormatAlignedRight
-			zo_iconTextFormatAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconTextFormatAlignedRight(path, width, height, text, inheritColor, noGrammar)
-				end)
-				return ok and res or tostring(text or "")
-			end
-		end
-
-		if type(zo_iconTextFormatNoSpace) == "function" then
-			local _orig_zo_iconTextFormatNoSpace = zo_iconTextFormatNoSpace
-			zo_iconTextFormatNoSpace = function(path, width, height, text, inheritColor)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconTextFormatNoSpace(path, width, height, text, inheritColor)
-				end)
-				return ok and res or tostring(text or "")
-			end
-		end
-
-		if type(zo_iconTextFormatNoSpaceAlignedRight) == "function" then
-			local _orig_zo_iconTextFormatNoSpaceAlignedRight = zo_iconTextFormatNoSpaceAlignedRight
-			zo_iconTextFormatNoSpaceAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-				if path == nil then path = "" end
-				local ok, res = pcall(function()
-					return _orig_zo_iconTextFormatNoSpaceAlignedRight(path, width, height, text, inheritColor, noGrammar)
-				end)
-				return ok and res or tostring(text or "")
-			end
-		end
-
-		-- Patch 2: Wrap ZO_KeybindStrip:HandleDuplicateAddKeybind to safely evaluate descriptor names.
-		-- The original function calls GetKeybindDescriptorDebugIdentifier on descriptors, which can
-		-- call formatting helpers (like zo_iconFormat) with nil paths. We wrap this to silently
-		-- handle any errors. On error, we attempt to remove the conflicting descriptor so the
-		-- new one can be registered, restoring keybind strip functionality.
-		if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
-			local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
-			ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
-				local ok, res = pcall(function()
-					return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
-				end)
-				-- If the call succeeded, return normally
-				if ok then return res end
-				
-				-- If the call failed, attempt a safe recovery by removing the conflicting descriptor
-				-- so the new keybind can be registered. This ensures LB/RB navigation is restored
-				-- even when duplicate handling errors occur.
-				pcall(function()
-					if existingButtonOrEtherealDescriptor then
-						local descriptor = existingButtonOrEtherealDescriptor
-						-- If it's a button control, extract the descriptor
-						if type(descriptor) == "userdata" and descriptor.keybindButtonDescriptor then
-							descriptor = descriptor.keybindButtonDescriptor
-						end
-						-- Attempt removal
-						if descriptor and self.RemoveKeybindButton then
-							self:RemoveKeybindButton(descriptor, stateIndex)
-						end
-					end
-				end)
-				
-				-- Schedule a deferred re-add of the new keybind to handle timing edge cases where
-				-- removal and re-add happen too quickly in the same frame. This is especially important
-				-- during scene transitions (like search enter/exit) where multiple duplicate keybind
-				-- errors may occur in quick succession. Use zo_callLater with a 0ms delay to defer
-				-- until the next frame cycle, ensuring the removal has settled.
-				pcall(function()
-					if zo_callLater and type(zo_callLater) == "function" then
-						zo_callLater(function()
-							pcall(function()
-								-- Only re-add if not already present
-								if self and self.HasKeybindButton then
-									local present = self:HasKeybindButton(keybindButtonDescriptor, stateIndex)
-									if not present then
-										self:AddKeybindButton(keybindButtonDescriptor, stateIndex)
-										-- Force update keybind strip layout to ensure buttons are visible
-										if self.UpdateAnchors then
-											self:UpdateAnchors()
-										end
-									end
-								end
-							end)
-						end, 0)
-					end
-				end)
-				
-				-- Do not log to chat/debug as per user requirement. The keybind strip will
-				-- continue, and duplicate handling was attempted (even if it failed gracefully).
-			end
-		end
-
-		BETTERUI._patchesApplied = true
+	-- Apply runtime safety patches and settings migrations
+	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
+	if BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup and BETTERUI.CIM.RuntimeSetup.Apply then
+		BETTERUI.CIM.RuntimeSetup.Apply(BETTERUI.Settings)
 	end
 
 	-- Initialize research data once
@@ -438,31 +273,8 @@ function BETTERUI.Initialize(event, addon)
 	end
 
 
-	-- Migration: Rename "Tooltips" to "GeneralInterface" for consistency
-	if BETTERUI.Settings.Modules["Tooltips"] ~= nil then
-		if BETTERUI.Settings.Modules["GeneralInterface"] == nil then
-			BETTERUI.Settings.Modules["GeneralInterface"] = BETTERUI.Settings.Modules["Tooltips"]
-			if ddebug then ddebug("Migrated settings: Tooltips -> GeneralInterface") end
-		end
-		-- Keep 'Tooltips' key in settings pointing to same table to avoid breaking older modules
-		-- until they are all updated, then we can nil it out. 
-		-- For now, redirecting the reference is safest.
-		BETTERUI.Settings.Modules["Tooltips"] = BETTERUI.Settings.Modules["GeneralInterface"]
-	end
-
-    -- Ensure GeneralInterface module settings exist for existing users (if migration didn't run)
-    if BETTERUI.Settings.Modules["GeneralInterface"] == nil then
-        BETTERUI.Settings.Modules["GeneralInterface"] = {}
-    end
-
-	-- Migration: Standardize 'enabled' to 'm_enabled'
-	for modName, modSettings in pairs(BETTERUI.Settings.Modules) do
-		if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then
-			modSettings.m_enabled = modSettings.enabled
-			modSettings.enabled = nil
-			if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
-		end
-	end
+	-- Note: Settings migrations (Tooltips->GeneralInterface, enabled->m_enabled)
+	-- are now handled in Modules/CIM/RuntimeSetup.lua via RuntimeSetup.Apply()
 
 	-- Unregister the initialization event
 	BETTERUI.EventManager:UnregisterForEvent("BetterUIInitialize", EVENT_ADD_ON_LOADED)

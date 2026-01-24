@@ -19,6 +19,7 @@ BetterUI.CONST.lua
 Modules\CIM\Constants.lua
 Modules\CIM\ControlUtils.lua
 Modules\CIM\SettingsAccessor.lua
+Modules\CIM\RuntimeSetup.lua
 Modules\CIM\CategoryDefinitions.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
