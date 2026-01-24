@@ -408,33 +408,35 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.Settings = BETTERUI.SavedVars
 	end
 
-	-- Initialize module settings on first install
+	-- Initialize or update module settings with defaults
+    -- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
+    local modules = {
+        {"CIM", BETTERUI.CIM},
+        {"Inventory", BETTERUI.Inventory},
+        {"Banking", BETTERUI.Banking},
+        {"Writs", BETTERUI.Writs},
+        {"GeneralInterface", BETTERUI.GeneralInterface},
+        {"Nameplates", BETTERUI.Nameplates},
+        {"ResourceOrbFrames", BETTERUI.ResourceOrbFrames}
+    }
+
+    for _, moduleInfo in ipairs(modules) do
+        local moduleName, moduleNamespace = moduleInfo[1], moduleInfo[2]
+        if moduleNamespace then
+            -- Ensure the settings table exists before initializing
+            if BETTERUI.Settings.Modules[moduleName] == nil then
+                BETTERUI.Settings.Modules[moduleName] = {}
+            end
+            BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName])
+        end
+    end
+
+	-- Mark first install as complete
 	if BETTERUI.Settings.firstInstall then
-		local modules = {
-			{"CIM", BETTERUI.CIM},
-			{"Inventory", BETTERUI.Inventory},
-			{"Banking", BETTERUI.Banking},
-			{"Writs", BETTERUI.Writs},
-			{"GeneralInterface", BETTERUI.GeneralInterface},
-			{"Nameplates", BETTERUI.Nameplates},
-			{"ResourceOrbFrames", BETTERUI.ResourceOrbFrames}
-		}
-
-		for _, moduleInfo in ipairs(modules) do
-			local moduleName, moduleNamespace = moduleInfo[1], moduleInfo[2]
-			if moduleNamespace then
-				BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName])
-			end
-		end
-
-		ddebug("First install detected - initializing module settings")
+		ddebug("First install detected - initialized module settings")
 		BETTERUI.Settings.firstInstall = false
 	end
 
-	-- Ensure ResourceOrbFrames module settings exist for existing users
-	if BETTERUI.Settings.Modules["ResourceOrbFrames"] == nil then
-		BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
-	end
 
 	-- Migration: Rename "Tooltips" to "GeneralInterface" for consistency
 	if BETTERUI.Settings.Modules["Tooltips"] ~= nil then
@@ -460,9 +462,6 @@ function BETTERUI.Initialize(event, addon)
 			modSettings.enabled = nil
 			if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
 		end
-	end
-	if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.InitModule then
-		BETTERUI.ResourceOrbFrames.InitModule(BETTERUI.Settings.Modules["ResourceOrbFrames"])
 	end
 
 	-- Unregister the initialization event
