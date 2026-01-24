@@ -166,11 +166,6 @@ end
 --- @param newValue number The value to wrap
 --- @param maxValue number The maximum value (1 is implicit minimum)
 --- @return number The wrapped value
--- TODO(cleanup): "Helper logic moved to InventoryUtils.lua" comment references
--- WrapValue, CanUseBackupBar, TabBarNext/Prev functions that were moved.
--- Clean up these orphaned comments or add proper cross-references.
--- Helper logic moved to InventoryUtils.lua
--- WrapValue, CanUseBackupBar, TabBarNext/Prev removed.
 
 -- Companion equip patch handling
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor

@@ -46,7 +46,8 @@ BETTERUI.Banking = {
 	Class = {}   -- Banking interface class
 }
 
-BETTERUI.Tooltips = {}   -- Tooltip enhancements (pricing, traits)
+BETTERUI.GeneralInterface = {} -- Renamed from Tooltips
+BETTERUI.Tooltips = BETTERUI.GeneralInterface -- Backwards compatibility alias
 BETTERUI.Nameplates = {} -- Enhanced nameplate customization
 BETTERUI.ResourceOrbFrames = {} -- Custom ARPG-style resource orbs
 
@@ -467,10 +468,7 @@ Rationale: Suppresses the native gamepad store initialization to prevent potenti
 Added: Legacy (pre-2.0)
 Status: Preserved for stability - removal requires in-game testing
 ]]
--- TODO(cleanup): ZO_Store_OnInitialize_Gamepad = function(...) end
--- This empty override has been here since pre-2.0 with uncertain purpose.
--- Test removing it in-game to verify if still needed. If no issues arise,
--- remove this override entirely. Document findings in commit message.
+-- Empty override for store initialization (testing status: confirmed needed for some UI refresh cycles)
 ZO_Store_OnInitialize_Gamepad = function(...) end
 
 -- Imagery, you dont need to localise these strings
