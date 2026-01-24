@@ -1,0 +1,486 @@
+--[[
+File: Modules/Banking/Lists/BankListManager.lua
+Purpose: Manages the banking list, including filtering, sorting, and category logic.
+         Extracted from Banking.lua to separate list management from core logic.
+Author: BetterUI Team
+Last Modified: 2026-01-24
+]]
+
+local _
+
+-------------------------------------------------------------------------------------------------
+-- SHARED CONSTANTS & STATE
+-------------------------------------------------------------------------------------------------
+local LIST_WITHDRAW      = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT       = BETTERUI.Banking.LIST_DEPOSIT
+
+local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
+
+-------------------------------------------------------------------------------------------------
+-- HELPER FUNCTIONS
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BuildAllBankCategories
+Description: Builds the full list of bank categories.
+]]
+local function BuildAllBankCategories(isFurnitureVault)
+    if isFurnitureVault then
+        return {
+            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
+            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+        }
+    end
+    local out = {}
+    for i = 1, #BANK_CATEGORY_DEFS do
+        local def = BANK_CATEGORY_DEFS[i]
+        if not def.optional or (def.optional and def.filterType ~= nil) then
+            local name = GetString(def.nameStringId)
+            out[#out + 1] = {
+                key = def.key,
+                name = name,
+                filterType = def.filterType,
+                special = def.special,
+                iconFile =
+                    def.iconFile
+            }
+        end
+    end
+    return out
+end
+
+--[[
+Function: DoesItemMatchBankCategory
+Description: Wrapper for the shared category matching function.
+]]
+local function DoesItemMatchBankCategory(itemData, category)
+    return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
+end
+
+--[[
+Function: GetCategoryTypeFromWeaponType
+Description: Helper to map a weapon item to a gamepad store category.
+]]
+local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
+    local weaponType = GetItemWeaponType(bagId, slotIndex)
+    if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
+        return GAMEPAD_WEAPON_CATEGORY_ONE_HANDED_MELEE
+    elseif weaponType == WEAPONTYPE_TWO_HANDED_SWORD or weaponType == WEAPONTYPE_TWO_HANDED_AXE or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER then
+        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_MELEE
+    elseif weaponType == WEAPONTYPE_FIRE_STAFF or weaponType == WEAPONTYPE_FROST_STAFF or weaponType == WEAPONTYPE_LIGHTNING_STAFF then
+        return GAMEPAD_WEAPON_CATEGORY_DESTRUCTION_STAFF
+    elseif weaponType == WEAPONTYPE_HEALING_STAFF then
+        return GAMEPAD_WEAPON_CATEGORY_RESTORATION_STAFF
+    elseif weaponType == WEAPONTYPE_BOW then
+        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_BOW
+    elseif weaponType ~= WEAPONTYPE_NONE then
+        return GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED
+    end
+end
+
+--[[
+Function: GetBestItemCategoryDescription
+Description: Computes the best category description string for an item.
+]]
+local function GetBestItemCategoryDescription(itemData)
+    local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
+
+    if isItemStolen then
+        return GetString(SI_BETTERUI_STOLEN)
+    end
+
+    if itemData.equipType == EQUIP_TYPE_INVALID then
+        return GetString("SI_ITEMTYPE", itemData.itemType)
+    end
+    local categoryType = GetCategoryTypeFromWeaponType(itemData.bagId, itemData.slotIndex)
+    if categoryType == GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
+        local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
+        return GetString("SI_WEAPONTYPE", weaponType)
+    elseif categoryType then
+        return GetString("SI_GAMEPADWEAPONCATEGORY", categoryType)
+    end
+    local armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
+    local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
+    if armorType ~= ARMORTYPE_NONE then
+        return GetString("SI_ARMORTYPE", armorType) .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
+    end
+    local fullDesc = GetString("SI_ITEMTYPE", itemData.itemType)
+
+    -- Stops types like "Poison" displaying "Poison" twice
+    if (fullDesc ~= GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))) then
+        fullDesc = fullDesc .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
+    end
+
+    return fullDesc
+end
+
+
+-------------------------------------------------------------------------------------------------
+-- EXTERNAL FUNCTIONS (Attached to Class)
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: SetupLabelListing
+Description: Template setup for simple label rows (e.g. headers or currency).
+]]
+function BETTERUI.Banking.Class.SetupLabelListing(control, data)
+    control:GetNamedChild("Label"):SetText(data.label)
+    -- Use Banking module's custom font descriptor for Name column
+    local font = BETTERUI.Banking.GetNameFontDescriptor()
+    control:GetNamedChild("Label"):SetFont(font)
+end
+
+--[[
+Function: ComputeVisibleBankCategories
+Description: Compute the subset of categories that actually contain items for the current bank mode.
+]]
+function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
+    -- Access shared state via namespace since we lack local context
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+
+    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
+    local allCategories = BuildAllBankCategories(isFurnitureVault)
+    -- Always include 'all' explicitly so currency rows can appear even if no items
+    local visibility = {}
+    for _, c in ipairs(allCategories) do visibility[c.key] = false end
+    visibility["all"] = true
+
+    -- Determine which bags to scan based on mode
+    local bags = {}
+    local slotType
+    if self.currentMode == LIST_WITHDRAW then
+        if currentUsedBank == BAG_BANK then
+            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+        else
+            bags = { currentUsedBank }
+        end
+        slotType = SLOT_TYPE_BANK_ITEM
+    else
+        bags = { BAG_BACKPACK }
+        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+    end
+
+    -- Exclude stolen items from banking list per existing behavior
+    local function IsNotStolenItem(itemData)
+        return not itemData.stolen
+    end
+    local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
+    -- Mark visibility by scanning once
+    for i = 1, #data do
+        local itemData = data[i]
+        for _, cat in ipairs(allCategories) do
+            if cat.key ~= "all" then
+                if DoesItemMatchBankCategory(itemData, cat) then
+                    visibility[cat.key] = true
+                end
+            end
+        end
+    end
+
+    -- Build the final ordered list with only visible categories
+    local out = {}
+    for _, cat in ipairs(allCategories) do
+        if visibility[cat.key] then
+            out[#out + 1] = cat
+        end
+    end
+    return out
+end
+
+--[[
+Function: BETTERUI.Banking.Class:RefreshList
+Description: Refreshes the banking list contents.
+]]
+function BETTERUI.Banking.Class:RefreshList()
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+
+    -- If we're in the middle of a tab selection animation, skip interim refreshes
+    if self._suppressListUpdates then return end
+    -- Temporarily deactivate to avoid parametric scroll list update races while rebuilding
+    local wasActive = self.list:IsActive()
+    if wasActive then
+        self.list:Deactivate()
+    end
+
+    self.list:Clear()
+
+    -- Update the header title with current category
+    if self.UpdateHeaderTitle then
+        self:UpdateHeaderTitle()
+    end
+
+    -- We have to add 2 rows to the list, one for Withdraw/Deposit GOLD and one for Withdraw/Deposit TEL-VAR
+    local wdString = self.currentMode == LIST_WITHDRAW and GetString(SI_BETTERUI_BANKING_WITHDRAW) or
+        GetString(SI_BETTERUI_BANKING_DEPOSIT)
+    wdString = zo_strformat("<<Z:1>>", wdString)
+
+    local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    if (currentUsedBank == BAG_BANK) then
+        if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then
+            -- Build currency transfer rows dynamically; guard older APIs without ZO_BANKABLE_CURRENCIES
+            local labelByCurrency = {
+                [CURT_MONEY] = GetString(SI_BETTERUI_CURRENCY_GOLD),
+                [CURT_TELVAR_STONES] = GetString(SI_BETTERUI_CURRENCY_TEL_VAR),
+                [CURT_ALLIANCE_POINTS] = GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT),
+                [CURT_WRIT_VOUCHERS] = GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER),
+            }
+            local bankableList = {}
+            if type(ZO_BANKABLE_CURRENCIES) == "table" then
+                -- Prefer array-style if available
+                if (rawget(ZO_BANKABLE_CURRENCIES, 1) ~= nil) then
+                    bankableList = ZO_BANKABLE_CURRENCIES
+                else
+                    for _, v in pairs(ZO_BANKABLE_CURRENCIES) do table.insert(bankableList, v) end
+                end
+            end
+            if #bankableList == 0 then
+                bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
+            end
+            for _, currencyType in ipairs(bankableList) do
+                local label = labelByCurrency[currencyType] or
+                    (GetCurrencyName and GetCurrencyName(currencyType, true, false)) or tostring(currencyType)
+                self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                    { label = "|cFFFFFF" .. wdString .. " " .. tostring(label) .. "|r", currencyType = currencyType })
+            end
+        end
+    else
+        if (self.currentMode == LIST_WITHDRAW) then
+            if (GetNumBagUsedSlots(currentUsedBank) == 0) then
+                self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE_EMPTY) .. "|r" })
+            else
+                self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE) .. "|r" })
+            end
+        else
+            if (GetNumBagUsedSlots(BAG_BACKPACK) == 0) then
+                self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER_EMPTY) .. "|r" })
+            else
+                self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER) .. "|r" })
+            end
+        end
+    end
+    local checking_bags = {}
+    local slotType
+    if (self.currentMode == LIST_WITHDRAW) then
+        if (currentUsedBank == BAG_BANK) then
+            checking_bags[1] = BAG_BANK
+            checking_bags[2] = BAG_SUBSCRIBER_BANK
+            slotType = SLOT_TYPE_BANK_ITEM
+        else
+            checking_bags[1] = currentUsedBank
+            slotType = SLOT_TYPE_BANK_ITEM
+        end
+    else
+        checking_bags[1] = BAG_BACKPACK
+        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+    end
+
+    local function IsNotStolenItem(itemData)
+        local isNotStolen = not itemData.stolen
+        return isNotStolen
+    end
+
+    --excludes stolen items
+    local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checking_bags))
+
+    local tempDataTable = {}
+    -- Localize globals used in the loop for performance
+    local zo_strformat = zo_strformat
+    local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+    local GetItemLink = GetItemLink
+    local GetItemLinkItemType = GetItemLinkItemType
+    local GetItemLinkSetInfo = GetItemLinkSetInfo
+    local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
+    local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
+    local IsItemLinkBookKnown = IsItemLinkBookKnown
+    local IsItemBound = IsItemBound
+    local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    local showJunkCategory = (activeCategory and activeCategory.key == "junk") or false
+    for i = 1, #filteredDataTable do
+        local itemData = filteredDataTable[i]
+        if activeCategory and not DoesItemMatchBankCategory(itemData, activeCategory) then
+            -- skip items not in the selected category
+        else
+            --use custom categories
+            local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
+            if customCategory and not matched then
+                itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+                itemData.bestItemCategoryName = AC_UNGROUPED_NAME
+                itemData.sortPriorityName = string.format("%03d%s", 999, catName)
+            else
+                if customCategory then
+                    itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER,
+                        GetBestItemCategoryDescription(itemData))
+                    itemData.bestItemCategoryName = catName
+                    itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority, catName)
+                else
+                    itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER,
+                        GetBestItemCategoryDescription(itemData))
+                    itemData.bestItemCategoryName = itemData.bestItemTypeName
+                    itemData.sortPriorityName = itemData.bestItemCategoryName
+                end
+            end
+
+            itemData.isEquippedInCurrentCategory = slotIndex and true or nil
+
+            -- Cache expensive/commonly used item link information
+            if not itemData.cached_itemLink then
+                local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
+                itemData.cached_itemLink = itemLink
+                itemData.cached_itemType = itemLink and GetItemLinkItemType(itemLink) or nil
+                itemData.cached_setItem = itemLink and GetItemLinkSetInfo(itemLink, false) or nil
+                itemData.cached_hasEnchantment = itemLink and GetItemLinkEnchantInfo(itemLink) or nil
+                itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE) and
+                    not (itemLink and IsItemLinkRecipeKnown(itemLink))
+                itemData.cached_isBookKnown = itemLink and IsItemLinkBookKnown(itemLink) or nil
+                itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex) and not itemData.stolen and
+                    itemData.quality ~= ITEM_QUALITY_TRASH
+            end
+
+            table.insert(tempDataTable, itemData)
+            ZO_InventorySlot_SetType(itemData, slotType)
+        end
+    end
+    filteredDataTable = tempDataTable
+
+    -- Apply text search filtering
+    if self.searchQuery and tostring(self.searchQuery) ~= "" then
+        local q = tostring(self.searchQuery):lower()
+        local matches = {}
+
+        for i = 1, #filteredDataTable do
+            local it = filteredDataTable[i]
+            -- If an active non-all category is selected, skip items that do not belong to it
+            if not activeCategory or activeCategory.key == "all" or DoesItemMatchBankCategory(it, activeCategory) then
+                local name = tostring(it.name or "")
+                local lname = name:lower()
+                if string.find(lname, q, 1, true) then
+                    table.insert(matches, it)
+                end
+            end
+        end
+
+        filteredDataTable = matches
+    end
+
+    table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
+
+    local currentBestCategoryName
+
+    local GetItemCooldownInfo = GetItemCooldownInfo
+    local ZO_GamepadEntryData = ZO_GamepadEntryData
+    for i, itemData in ipairs(filteredDataTable) do
+        local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
+        data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
+        data:InitializeInventoryVisualData(itemData)
+
+        local remaining, duration
+        remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
+
+        if remaining > 0 and duration > 0 then
+            data:SetCooldown(remaining, duration)
+        end
+
+        data.bestItemCategoryName = itemData.bestItemCategoryName
+        data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
+        data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
+        data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
+        data.isJunk = itemData.isJunk
+
+        if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
+            if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
+                currentBestCategoryName = data.bestGamepadItemCategoryName
+                data:SetHeader(currentBestCategoryName)
+                if ((AutoCategory) and ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))) then
+                    self.list:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
+                else
+                    self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
+                end
+            else
+                self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
+            end
+        end
+    end
+
+    self.list:Commit()
+    -- If list becomes empty, deactivate to avoid parametric list moving errors
+    local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
+    if entryCount == 0 then
+        self.list:Deactivate()
+    else
+        self.list:Activate()
+    end
+    self:ReturnToSaved()
+    self:UpdateActions()
+    self:RefreshFooter()
+end
+
+--[[
+Function: OnItemSelectedChange
+Description: Callback when list selection changes.
+]]
+function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
+    -- Check if we are on the "Deposit/withdraw" gold/telvar row
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+
+    if not SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        return
+    end
+    if not selectedData then
+        -- No selection (empty list). Default to item keybinds and clear tooltip.
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        self:UpdateActions()
+        return
+    end
+    -- Only treat currency header rows when the active category is All Items
+    local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    if (currentUsedBank == BAG_BANK) then
+        if (selectedData.label ~= nil and activeCategoryForHeader and activeCategoryForHeader.key == "all") then
+            -- Yes! We are, so add the "withdraw/deposit gold/telvar" keybinds here
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
+
+            self:RefreshCurrencyTooltip()
+        else
+            -- We are not, add the "withdraw/deposit" keybinds here
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+            KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+
+            if selectedData.bagId and selectedData.slotIndex then
+                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            else
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            end
+        end
+    else
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        if selectedData.bagId and selectedData.slotIndex then
+            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+        else
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        end
+        self:RefreshCurrencyTooltip()
+    end
+    self:UpdateActions()
+end
+
+local function MenuEntryTemplateEquality(left, right)
+    return left.uniqueId == right.uniqueId
+end
+
+function BETTERUI.Banking.Class.SetupItemList(list)
+    list:AddDataTemplate("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
+    list:AddDataTemplateWithHeader("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
+end
