@@ -25,5 +25,6 @@ function BETTERUI.CIM.InitModule(m_options)
     if m_options["enhanceCompat"] == nil then m_options["enhanceCompat"] = false end
     if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = defaults.DEFAULT_RH_SCROLL_SPEED end
     if m_options["tooltipSize"] == nil then m_options["tooltipSize"] = defaults.DEFAULT_TOOLTIP_SIZE end
+    if m_options["enableTooltipEnhancements"] == nil then m_options["enableTooltipEnhancements"] = true end -- Updated default to TRUE
     return m_options
 end

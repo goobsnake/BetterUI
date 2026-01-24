@@ -45,7 +45,7 @@ function BETTERUI.Inventory.Setup()
     -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
     -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
     local cimSettings = BETTERUI.Settings.Modules["CIM"]
-    if cimSettings and cimSettings.enableTooltipEnhancements then
+    if cimSettings and cimSettings.enableTooltipEnhancements ~= false then
 	    BETTERUI.Inventory.ApplyTooltipStyles()
     end
     

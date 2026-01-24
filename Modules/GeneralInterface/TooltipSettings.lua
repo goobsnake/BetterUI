@@ -130,7 +130,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             getFunc = function() 
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 if not settings then return false end
-                if settings.enableTooltipEnhancements == nil then return false end
+                if settings.enableTooltipEnhancements == nil then return true end
                 return settings.enableTooltipEnhancements
             end,
             setFunc = function(value) 
