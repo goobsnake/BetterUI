@@ -440,3 +440,11 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Replace \"Value\" with the m
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Replaces the item \"Value\" with either MM's, ATT's or TTC's average price")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bind on Equip Protection")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Show a dialog before equipping Bind on Equip items")
+
+-- Banking Specific Strings
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")

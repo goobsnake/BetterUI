@@ -145,7 +145,7 @@ local function GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 
     if isItemStolen then
-        return 'Stolen'
+        return GetString(SI_BETTERUI_STOLEN)
     end
 
     if itemData.equipType == EQUIP_TYPE_INVALID then
@@ -384,15 +384,15 @@ function BETTERUI.Banking.Class:RefreshList()
     else
         if(self.currentMode == LIST_WITHDRAW) then
             if(GetNumBagUsedSlots(currentUsedBank) == 0) then
-                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFFHOUSE BANK IS EMPTY!|r"})
+                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE_EMPTY) .. "|r"})
             else
-                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFFHOUSE BANK|r"})
+                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE) .. "|r"})
             end
         else
             if(GetNumBagUsedSlots(BAG_BACKPACK) == 0) then
-                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFFPLAYER BAG IS EMPTY!|r"})
+                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER_EMPTY) .. "|r"})
             else
-                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFFPLAYER BAG|r"})
+                self.list:AddEntry("BETTERUI_HeaderRow_Template", {label="|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER) .. "|r"})
             end
         end
     end
@@ -703,7 +703,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.currentCategoryIndex = 1
 
     -- Base header title (used as fallback); header title will show selected category like inventory
-    self.headerBaseTitle = "Advanced Banking"
+    self.headerBaseTitle = GetString(SI_BETTERUI_BANK_TITLE)
 
     -- Initialize the banking header with a tab bar similar to inventory
     self.headerGeneric = self.header:GetNamedChild("Header") or self.header
@@ -776,7 +776,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             local ok, t = pcall(function() return eb:GetText() end)
             if ok and t then txt = t end
             self.searchQuery = txt or ""
-            -- Refresh list immediately on text change
+            -- When search changes, reset selection to top and refresh
            -- pcall(function() self:SaveListPosition() end)
             pcall(function() self:RefreshList() end)
         end)
@@ -1578,7 +1578,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.currencySelectorKeybinds)
     else
         -- No, display an alert
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, "Not enough funds available for transfer.")
+        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_BETTERUI_BANK_NO_FUNDS))
     end
 end
 
@@ -1932,7 +1932,7 @@ References: Called before RefreshList, ToggleList, or Mode Switches.
 function BETTERUI.Banking.Class:SaveListPosition()
     -- Able to return to the current position again!
     self.lastPositions[self.currentMode] = self.list.selectedIndex
-    -- Save per-category position for current category (shared across modes during session)
+    -- Save per-category position for current category (shared across modes in session)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
         if cat then
@@ -2138,7 +2138,7 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
         -- Match inventory: use default title color (white), no custom color tags
         self:SetTitle(zo_strformat("<<1>>", cat.name))
     else
-        self:SetTitle(self.headerBaseTitle or "Advanced Banking")
+        self.titleControl:SetText(GetString(SI_BETTERUI_BANK_TITLE))
     end
     -- Reposition the search control so it sits under the header/title (above the list)
     if self.PositionSearchControl then
