@@ -207,7 +207,6 @@ function BETTERUI.LoadModules()
 	-- Apply runtime safety patches for ESO API issues (nil icon paths)
 	if not BETTERUI._patchesApplied then
 		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-		-- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
 		if type(zo_iconFormat) == "function" then
 			local _orig_zo_iconFormat = zo_iconFormat
 			zo_iconFormat = function(path, width, height)
