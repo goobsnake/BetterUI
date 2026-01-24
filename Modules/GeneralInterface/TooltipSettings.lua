@@ -5,22 +5,22 @@
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
-if BETTERUI.Tooltips == nil then BETTERUI.Tooltips = {} end
+if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local LAM = LibAddonMenu2
 
---- Returns the table of LAM settings options for Tooltips.
-function BETTERUI.Tooltips.GetSettingsOptions()
+--- Returns the table of LAM settings options for General Interface.
+function BETTERUI.GeneralInterface.GetSettingsOptions()
     return {
         {
             type = "checkbox",
             name = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS),
             tooltip = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP),
             getFunc = function() 
-                if not BETTERUI.Settings.Modules["Tooltips"] then return false end
-                return BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress 
+                if not BETTERUI.Settings.Modules["GeneralInterface"] then return false end
+                return BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress 
             end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress = value
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress = value
                     end,
             disabled = function() return ArkadiusTradeTools == nil and MasterMerchant == nil end,
             width = "full",
@@ -30,8 +30,8 @@ function BETTERUI.Tooltips.GetSettingsOptions()
             type = "checkbox",
             name = GetString(SI_BETTERUI_ATT_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_ATT_INTEGRATION_TOOLTIP),
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].attIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].attIntegration = value
+            getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].attIntegration end,
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].attIntegration = value
                     end,
             disabled = function() return ArkadiusTradeTools == nil end,
             width = "full",
@@ -41,8 +41,8 @@ function BETTERUI.Tooltips.GetSettingsOptions()
             type = "checkbox",
             name = GetString(SI_BETTERUI_MM_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_MM_INTEGRATION_TOOLTIP),
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].mmIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].mmIntegration = value
+            getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].mmIntegration end,
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].mmIntegration = value
                     end,
             disabled = function() return MasterMerchant == nil end,
             width = "full",
@@ -52,8 +52,8 @@ function BETTERUI.Tooltips.GetSettingsOptions()
             type = "checkbox",
             name = GetString(SI_BETTERUI_TTC_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_TTC_INTEGRATION_TOOLTIP),
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].ttcIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].ttcIntegration = value
+            getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration end,
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration = value
                     end,
             disabled = function() return TamrielTradeCentre == nil end,
             width = "full",
@@ -63,8 +63,8 @@ function BETTERUI.Tooltips.GetSettingsOptions()
         type = "checkbox",
             name = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT),
             tooltip = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP),
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].showStyleTrait end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].showStyleTrait = value end,
+            getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait end,
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait = value end,
             width = "full",
         },
         {
@@ -72,20 +72,20 @@ function BETTERUI.Tooltips.GetSettingsOptions()
             name = GetString(SI_BETTERUI_CHAT_HISTORY),
             tooltip = GetString(SI_BETTERUI_CHAT_HISTORY_TOOLTIP),
             getFunc = function() 
-                if not BETTERUI.Settings.Modules["Tooltips"] then return 200 end
-                return BETTERUI.Settings.Modules["Tooltips"].chatHistory or 200
+                if not BETTERUI.Settings.Modules["GeneralInterface"] then return 200 end
+                return BETTERUI.Settings.Modules["GeneralInterface"].chatHistory or 200
             end,
-            setFunc = function(value) BETTERUI.Settings.Modules["Tooltips"].chatHistory = tonumber(value)
-                                        if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["Tooltips"].chatHistory) end end,
+            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].chatHistory = tonumber(value)
+                                        if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["GeneralInterface"].chatHistory) end end,
             default=200,
             width = "full",
         },
         {
             type = "checkbox",
             name = GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
-            getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog end,
+            getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog end,
             setFunc = function(value)
-                        BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog = value
+                        BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog = value
                     end,
             width = "full",
             requiresReload = true,
@@ -170,19 +170,8 @@ function BETTERUI.Tooltips.GetSettingsOptions()
     }
 end
 
---- Initializes Tooltips default settings.
----
---- Purpose: Sets defaults for chat history, trait visibility, mail handling, and integrations.
---- Mechanics:
---- - Default Chat History: 200 lines.
---- - Integrations (MM, TTC, ATT) enabled by default.
---- - Guild Store error suppression disabled by default.
----
---- References: Called during module initialization.
----
---- @param m_options table The options table to initialize.
---- @return table The initialized options table.
-function BETTERUI.Tooltips.InitModule(m_options)
+--- Initializes General Interface default settings.
+function BETTERUI.GeneralInterface.InitModule(m_options)
     if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
     if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
     if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end

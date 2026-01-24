@@ -68,7 +68,7 @@ end
 --- @param itemLink string The item link to check.
 --- @param bagId number The bag ID to check against.
 --- @return number The count of matching researchable items.
-function BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, bagId)
+function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
     if not traitType or traitType == 0 then return 0 end
@@ -88,7 +88,7 @@ end
 --- References: Called by Item/Inventory Update Event Handlers.
 ---
 --- @param bagId number|nil: The bag ID to invalidate, or nil to clear all
-function BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     if bagId then
         if ResearchableTraitCache and ResearchableTraitCache[bagId] then
             ResearchableTraitCache[bagId] = nil
@@ -138,7 +138,7 @@ end
 --- @param iconSize number The desired icon size
 --- @return string|nil The formatted price string, or nil if data missing/addon disabled
 local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settingKey, itemLink, stackCount, iconSize)
-    if addonGlobal == nil or not BETTERUI.Settings.Modules["Tooltips"][settingKey] then
+    if addonGlobal == nil or not BETTERUI.Settings.Modules["GeneralInterface"][settingKey] then
         return nil
     end
 
@@ -201,26 +201,26 @@ end
 --- @return table: List of strings to display
 function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
-    if itemLink and BETTERUI.Settings.Modules["Tooltips"].showStyleTrait then
+    if itemLink and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
         local traitString
         if(CanItemLinkBeTraitResearched(itemLink))  then
             -- Find owned items that can be researchable
-            if(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
+            if(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Inventory|r"
-            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
+            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Bank|r"
-            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FOUR)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FIVE)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SIX)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SEVEN)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_EIGHT)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_NINE)
-                + BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
+            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FOUR)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FIVE)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SIX)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SEVEN)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_EIGHT)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_NINE)
+                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in House Bank|r"
-            elseif(BETTERUI.Tooltips.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
+            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found Equipped|r"
             else
                 traitString = "|c00FF00Researchable|r"
@@ -337,7 +337,7 @@ local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, ite
     -- Only invalidate if item was added/removed/changed (not just equipped status on self, though trait research usually doesn't change on equip)
     -- Check for DEFAULT update reason which covers most inventory mutations
     if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then
-        BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+        BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     end
 end
 
