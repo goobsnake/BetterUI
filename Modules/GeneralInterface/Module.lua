@@ -41,8 +41,8 @@ local function Init(mId, moduleName)
 	local optionsTable = {}
 
     -- Append Tooltip settings
-    if BETTERUI.Tooltips and BETTERUI.Tooltips.GetSettingsOptions then
-        local tooltipOptions = BETTERUI.Tooltips.GetSettingsOptions()
+    if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
+        local tooltipOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
         for _, opt in ipairs(tooltipOptions) do
             table.insert(optionsTable, opt)
         end
@@ -144,8 +144,8 @@ function BETTERUI.GeneralInterface.Setup()
 
 	-- Invalidate researchable trait cache on inventory changes
 	local function invalidateCacheOnUpdate(_, bagId)
-		if BETTERUI and BETTERUI.Tooltips and BETTERUI.Tooltips.InvalidateResearchableTraitCache then
-			BETTERUI.Tooltips.InvalidateResearchableTraitCache(bagId)
+		if BETTERUI and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.InvalidateResearchableTraitCache then
+			BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
 		end
 	end
 

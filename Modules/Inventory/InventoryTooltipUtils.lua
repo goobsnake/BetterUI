@@ -112,7 +112,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     
     -- Check Setting
     local settings = BETTERUI.Settings.Modules["CIM"]
-    local enhancementsEnabled = false -- Default to false for safety
+    local enhancementsEnabled = true -- Default to true
     if settings and settings.enableTooltipEnhancements ~= nil then
         enhancementsEnabled = settings.enableTooltipEnhancements
     end

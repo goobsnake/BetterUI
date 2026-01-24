@@ -138,7 +138,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             end,
             width = "full",
             requiresReload = true,
-            default = false,
+            default = true,
         },
         {
             type = "slider",
