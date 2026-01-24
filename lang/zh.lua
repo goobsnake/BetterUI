@@ -441,3 +441,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
 ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 
+-- Imagery strings
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
+

@@ -30,7 +30,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS", "Trade Bars")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_TOKENS", "Outfit Tokens")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS", "Seals")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS", "Tome Points")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
+
 
 
 -- Footer Currency Display Labels (short versions for footer display)
@@ -350,8 +350,7 @@ ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Mouse Scrolling speed on Le
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Number of lines to skip on trigger")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip font size")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Allows more or less item information to be displayed at once in tooltips")
+
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
@@ -448,3 +447,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
 ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
+
+-- Imagery strings moved from Globals.lua
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
