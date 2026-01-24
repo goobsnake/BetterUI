@@ -395,6 +395,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "トリガーで次のアイ�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "トリガーを押すたびに一定数のアイテムをスキップする（デフォルトの動作）代わりに、次のアイテムタイプに移動します")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "「価値」を市場価格に置き換え")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "アイテムの「価値」をMM、ATT、またはTTCの平均価格に置き換えます")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装備時バインド保護")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "装備時にバインドされるアイテムを装備する前にダイアログを表示")
 
 -- Event Tickets

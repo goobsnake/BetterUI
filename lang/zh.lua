@@ -395,6 +395,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "使用扳机键移动到下�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键移动到下一个物品类型，而不是跳过一定数量的物品（默认全局行为）")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "将\"价值\"替换为市场价格")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将物品\"价值\"替换为 MM、ATT 或 TTC 的平均价格")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
 
 -- Event Tickets

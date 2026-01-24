@@ -350,6 +350,8 @@ ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Mouse Scrolling speed on Le
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Number of lines to skip on trigger")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip Font Size")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Allows you to see more or less item info at once in tooltips")
 
 
 -- Resource Orb Frames

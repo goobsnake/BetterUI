@@ -59,9 +59,9 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
 | 3. Constants | `BetterUI.CONST.lua` | UI dimensions, currency config |
 | 4. Shared XML | `BetterUI_Shared.xml` | Base templates |
-| 5. CIM Module | `Modules/CIM/*` | Shared UI components (must load before consumers) |
+| 5. CIM Module | `Modules/CIM/*` | Shared UI and Runtime overrides (starts with `RuntimeSetup.lua`) |
 | 6. Feature Modules | `Modules/GeneralInterface/*`, `Modules/Inventory/*`, etc. | Dependent on CIM |
-| 7. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler |
+| 7. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler (Delegates to `RuntimeSetup`) |
 
 > **Critical**: CIM must load before Inventory/Banking because they inherit from CIM templates.
 
@@ -180,6 +180,23 @@ self.list:AddEntry("TemplateName", entryData)
 self.list:Commit()
 ```
 
+### 6.5 Settings Accessor Pattern
+Modules use `BETTERUI.CreateSettingAccessors` to generate `getFunc`/`setFunc` pairs for LAM, reducing boilerplate and ensuring nil-safety.
+
+```lua
+-- In Module.Init:
+local GetSet = BETTERUI.CreateSettingAccessors("ModuleName", ApplyCallback)
+local getScale, setScale = GetSet("scale", 1.0)
+
+local options = {
+    {
+        type = "slider",
+        getFunc = getScale,
+        setFunc = setScale,
+    }
+}
+```
+
 ---
 
 ## 7. External Dependencies
@@ -235,6 +252,8 @@ self.list:Commit()
 | `BetterUI.lua` | ~400 | Entry point, module loading |
 | `Globals.lua` | ~370 | Namespace, utilities |
 | `BetterUI.CONST.lua` | ~500 | Constants, currency config |
+| `Modules/CIM/RuntimeSetup.lua` | ~300 | API patches, migrations, and initialization delegation |
+| `Modules/CIM/SettingsAccessor.lua` | ~100 | Settings get/set factory |
 | `Modules/CIM/InterfaceLibrary.lua` | ~600 | Base Window class |
 | `Modules/Inventory/Inventory.lua` | ~2000 | Main inventory logic |
 | `Modules/Banking/Banking.lua` | ~2500 | Banking interface |

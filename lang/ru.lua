@@ -395,6 +395,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Использовать т�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Вместо пропуска определенного количества предметов при каждом нажатии триггера (поведение по умолчанию), это переведет к следующему типу предметов")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Заменить \"Стоимость\" на рыночную цену")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Заменяет \"Стоимость\" предмета на среднюю цену MM, ATT или TTC")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Защита привязки при экипировке")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
 
 -- Event Tickets

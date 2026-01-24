@@ -395,6 +395,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les gâchettes pour
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Plutôt que de sauter un certain nombre d'éléments à chaque pression sur la gâchette (comportement global par défaut), cela passera au type d'élément suivant")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du marché")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Remplace la \"Valeur\" de l'objet par le prix moyen de MM, ATT ou TTC")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Protection Lier à l'équipement")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Afficher un dialogue avant d'équiper des objets Lier à l'équipement")
 
 -- Event Tickets
