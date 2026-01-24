@@ -3,7 +3,7 @@ File: Modules/Inventory/Inventory.lua
 Purpose: Core implementation of the BetterUI Inventory system.
          Subclasses ZO_GamepadInventory to overhaul the interface.
 Architectural Notes:
-         TODO(architecture): CRITICAL - This file is 4545 lines (~174KB).
+
          Decompose into smaller focused files:
            1. Inventory/Core/InventoryClass.lua - Class definition, initialization
            2. Inventory/Lists/ItemListManager.lua - Item list refresh/filter logic

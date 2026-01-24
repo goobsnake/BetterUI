@@ -171,6 +171,7 @@ function SkillBar.UpdateBackBarCooldowns(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
     
+    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
     local slots = {3, 4, 5, 6, 7, 8}
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
@@ -204,6 +205,11 @@ function SkillBar.UpdateBackBarCooldowns(rootFrame)
                     if icon then icon:SetDesaturation(1) end
                     cooldownText:SetHidden(false)
                     cooldownText:SetText(string.format("%.1f", remaining))
+                    
+                    local size = settings.cooldownTextSize or 27
+                    local color = settings.cooldownTextColor or {0.86, 0.84, 0.13, 1}
+                    cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
+                    cooldownText:SetColor(unpack(color))
                 else
                     cooldownOverlay:SetHidden(true)
                     cooldownText:SetHidden(true)

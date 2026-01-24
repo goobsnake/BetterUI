@@ -50,6 +50,7 @@ local function Init(mId, moduleName)
     local getUltColor, setUltColor = GetColorSet("ultimateTextColor", {1, 1, 1, 1})
     
     local getShowQuickCool, setShowQuickCool = GetSetNoUpdate("showQuickslotCooldown", false)
+    local getShowQuickCount, setShowQuickCount = GetSetNoUpdate("showQuickslotCount", true)
     
     local getShowGlow, setShowGlow = GetSetNoUpdate("showCombatGlow", false)
     local getGlowColor, setGlowColor = GetColorSet("combatGlowColor", {1, 0.3, 0.1, 0.8})
@@ -182,6 +183,26 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_QUICKSLOTS_HEADER),
                 },
                 {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN),
+                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP),
+                    getFunc = getShowQuickCool,
+                    setFunc = setShowQuickCool,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                    requiresReload = true,
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY),
+                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP),
+                    getFunc = getShowQuickCount,
+                    setFunc = setShowQuickCount,
+                    width = "full",
+                    warning = "Requires Reload UI",
+                    requiresReload = true,
+                },
+                {
                     type = "slider",
                     name = GetString(SI_BETTERUI_FONT_SCALE),
                     tooltip = GetString(SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP),
@@ -268,23 +289,7 @@ local function Init(mId, moduleName)
                     end,
                     width = "full",
                 },
-                -- ============================================================================
-                -- QUICKSLOT COOLDOWN TIMER
-                -- ============================================================================
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN),
-                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP),
-                    getFunc = getShowQuickCool,
-                    setFunc = setShowQuickCool,
-                    width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
-                },
+
                 -- ============================================================================
                 -- COMBAT INDICATORS
                 -- ============================================================================

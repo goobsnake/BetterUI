@@ -386,6 +386,8 @@ ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ulti
 ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP", "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Show Quickslot Quantity")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP", "Displays the item count for the current quickslot item.")
 
 -- Combat Indicators Settings
 ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")

@@ -132,7 +132,7 @@ function SkillBar.SetupFrontBarTooltips(rootFrame)
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
         if btn then
-            SkillBar.SetupButtonTooltip(btn, mapping.slot, nil, TOP, 0, 5)
+            SkillBar.SetupButtonTooltip(btn, mapping.slot, nil, RIGHT, -5, 0)
         end
     end
 end
@@ -347,8 +347,13 @@ function SkillBar.UpdateFrontBarQuickslot(rootFrame)
     
     local countText = qsBtn:GetNamedChild("CountText")
     if countText then
+        local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
         local count = GetSlotItemCount(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-        if count and count > 0 then
+        
+        -- Default to true if nil (legacy support)
+        local showCount = (settings.showQuickslotCount ~= false)
+        
+        if showCount and count and count > 0 then
             countText:SetText(count)
             countText:SetHidden(false)
         else
@@ -359,7 +364,7 @@ function SkillBar.UpdateFrontBarQuickslot(rootFrame)
     qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
     
     if not qsBtn.tooltipHandlersAdded then
-        SkillBar.SetupButtonTooltip(qsBtn, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL, LEFT, 5, 0)
+        SkillBar.SetupButtonTooltip(qsBtn, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL, RIGHT, -5, 0)
         qsBtn.tooltipHandlersAdded = true
     end
 end
@@ -390,7 +395,7 @@ function SkillBar.UpdateFrontBarCompanion(rootFrame)
         compBtn.hotbarCategory = HOTBAR_CATEGORY_COMPANION
         
         if not compBtn.tooltipHandlersAdded then
-            SkillBar.SetupButtonTooltip(compBtn, slotIndex, HOTBAR_CATEGORY_COMPANION, LEFT, 5, 0)
+            SkillBar.SetupButtonTooltip(compBtn, slotIndex, HOTBAR_CATEGORY_COMPANION, RIGHT, -5, 0)
             compBtn.tooltipHandlersAdded = true
         end
     else
@@ -494,6 +499,48 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                     timerText:SetText(textToSet)
                     timerText:SetHidden(false)
                     timerText:SetDrawLayer(DL_OVERLAY)
+                    
+                    -- Special handling for QuickslotButton per user requirements
+                    if mapping.buttonName == "QuickslotButton" then
+                         -- Text at BOTTOM like other skill slots
+                         timerText:ClearAnchors()
+                         timerText:SetAnchor(BOTTOM, btn, BOTTOM, 0, -4)
+                         
+                         -- CooldownEdge: Full width, bottom-to-top animation
+                         if cooldownEdge and iconControl and durationMs and durationMs > 0 then
+                             local percentComplete = 1 - (remainMs / durationMs)
+                             if percentComplete < 0 then percentComplete = 0 end
+                             if percentComplete > 1 then percentComplete = 1 end
+                             
+                             local iconWidth, iconHeight = iconControl:GetDimensions()
+                             -- offsetY: At cooldown start (percent=0), slider at bottom (offsetY=iconHeight-3 to stay inside)
+                             -- As cooldown progresses (percent->1), slider moves up (offsetY->0)
+                             local maxY = iconHeight - 3 -- Account for slider thickness to keep it inside icon
+                             local offsetY = (1 - percentComplete) * maxY
+                             
+                             cooldownEdge:ClearAnchors()
+                             -- Use CENTER anchor for horizontal centering with reduced width
+                             cooldownEdge:SetAnchor(TOP, iconControl, TOP, 0, offsetY)
+                             cooldownEdge:SetWidth(iconWidth - 6) -- Reduce by 6px to fit inside visible border
+                             cooldownEdge:SetHidden(false)
+                             cooldownEdge:SetDrawLayer(DL_OVERLAY)
+                             
+                             -- GLASS FILL EFFECT: Resize CooldownOverlay to only cover area above slider
+                             if cooldownOverlay then
+                                 local overlayHeight = offsetY -- Height from top to slider position
+                                 cooldownOverlay:ClearAnchors()
+                                 cooldownOverlay:SetAnchor(TOP, iconControl, TOP, 0, 0)
+                                 cooldownOverlay:SetDimensions(iconWidth, overlayHeight)
+                                 cooldownOverlay:SetHidden(false)
+                             end
+                             
+                             -- Progressively undim the icon as cooldown completes
+                             if iconControl then
+                                 iconControl:SetDesaturation(1 - percentComplete)
+                             end
+                         end
+                    end
+                    
                     timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     timerText:SetColor(unpack(cooldownColor))
                 elseif altTimerText then

@@ -24,7 +24,7 @@ KEY MECHANICS:
 5.  **Search**:
     *   Integrated text search filtering by name.
 
--- TODO(architecture): CRITICAL - This file is 2529 lines (~113KB).
+
 -- Split into:
 --   1. Banking/Core/BankingClass.lua - Main class and initialization
 --   2. Banking/Lists/BankListManager.lua - List refresh and filtering

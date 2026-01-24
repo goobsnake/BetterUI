@@ -34,6 +34,7 @@ local DEFAULTS = {
     scale = 1.0,
     offsetY = 0,
     useCustomTextures = false,
+    showQuickslotCount = true,
     -- (Other defaults handled in GetModuleSettings or specific components)
 }
 

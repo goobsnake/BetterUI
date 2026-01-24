@@ -275,8 +275,8 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     labels = {
         health = { x = 2, y = -2 },   -- (+ right/down, - left/up)
-        magicka = { x = 25, y = 0 }, -- (+ right/down, - left/up)
-        stamina = { x = -20, y = 0 },-- (+ right/down, - left/up)
+        magicka = { x = -20, y = 0 }, -- (+ right/down, - left/up)
+        stamina = { x = 25, y = 0 },-- (+ right/down, - left/up)
         shield = { x = 0, y = 25 },  -- (+ right/down, - left/up)
     },
 
