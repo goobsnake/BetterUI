@@ -106,7 +106,7 @@ function BETTERUI.GeneralInterface.Setup()
 	Init("General", "General Interface")
 
     -- Only apply hooks/logic if Tooltips module is enabled
-    if not BETTERUI.Settings.Modules["Tooltips"].m_enabled then return end
+    if not BETTERUI.Settings.Modules["GeneralInterface"].m_enabled then return end
 
 	if IsPrivateFunction('IsInUI') then
 		ZO_IsIngameUI = function()
@@ -114,7 +114,7 @@ function BETTERUI.GeneralInterface.Setup()
 		end
 	end
 
-	if BETTERUI.Settings.Modules["Tooltips"].removeDeleteDialog then
+	if BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog then
 		BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
 			self.mainKeybindDescriptor[3]["callback"] = function() self:Delete() end
 		end)
@@ -127,7 +127,7 @@ function BETTERUI.GeneralInterface.Setup()
 
 
 	-- Move guild store error suppression to scene lifecycle to avoid frequent toggling during tooltip draws
-	if BETTERUI.Settings.Modules["Tooltips"].guildStoreErrorSuppress then
+	if BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress then
 		local scene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_trading_house']
 		if scene then
 			scene:RegisterCallback("StateChange", function(oldState, newState)
@@ -152,5 +152,5 @@ function BETTERUI.GeneralInterface.Setup()
 	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvSingle", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, invalidateCacheOnUpdate)
 	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE, invalidateCacheOnUpdate)
 
-	if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["Tooltips"].chatHistory) end
+	if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["GeneralInterface"].chatHistory) end
 end

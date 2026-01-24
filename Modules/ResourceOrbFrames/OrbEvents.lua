@@ -18,7 +18,7 @@ end
 
 local function EnforceDefaultUIHidden()
     local settings = GetModuleSettings()
-    if not settings.enabled then return end
+    if not settings.m_enabled then return end
     
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
@@ -100,7 +100,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
     local function CooldownTick()
         SkillBar.UpdateBackBarCooldowns(rootFrame)
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-        if frontBarCfg and frontBarCfg.enabled then
+        if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCooldowns(rootFrame)
             SkillBar.UpdateFrontBarUsability(rootFrame)
             SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
@@ -134,7 +134,7 @@ end
 
 function Events.SetupSceneHandlers(rootFrame)
    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-   if frontBarCfg and frontBarCfg.enabled then
+   if frontBarCfg and frontBarCfg.m_enabled then
         local hudScene = SCENE_MANAGER:GetScene("hud")
         if hudScene then
             hudScene:RegisterCallback("StateChange", function(oldState, newState)

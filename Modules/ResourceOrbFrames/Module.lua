@@ -977,7 +977,7 @@ end
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = {
-        enabled = false,
+        m_enabled = false,
         scale = 1.15,
         offsetY = 80,
         useCustomTextures = false,
@@ -1007,7 +1007,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         leftOrbSizeScale = 1.0,   -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
         rightOrbSizeScale = 1.0,  -- 1.0, 1.1, or 1.2 (only used when ornament hidden)
         customFrontBar = {
-            enabled = true,
+            m_enabled = true,
             offsetX = 0,
             offsetY = 0,
             ultimate = { offsetX = 0, offsetY = 0 },
@@ -1018,7 +1018,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         },
     }
     -- Only set defaults if not already present
-    if m_options.enabled == nil then m_options.enabled = defaults.enabled end
+    if m_options.m_enabled == nil then m_options.m_enabled = defaults.m_enabled end
     if m_options.scale == nil then m_options.scale = defaults.scale end
     if m_options.offsetY == nil then m_options.offsetY = defaults.offsetY end
     if m_options.useCustomTextures == nil then m_options.useCustomTextures = defaults.useCustomTextures end
@@ -1054,7 +1054,7 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         -- Deep merge for existing incomplete settings
         local cfb = m_options.customFrontBar
         local d_cfb = defaults.customFrontBar
-        if cfb.enabled == nil then cfb.enabled = d_cfb.enabled end
+        if cfb.m_enabled == nil then cfb.m_enabled = d_cfb.m_enabled end
         if cfb.offsetX == nil then cfb.offsetX = d_cfb.offsetX end
         if cfb.offsetY == nil then cfb.offsetY = d_cfb.offsetY end
         

@@ -66,7 +66,7 @@ end
 
 function SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
     local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end

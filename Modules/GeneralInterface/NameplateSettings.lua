@@ -28,11 +28,11 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             tooltip = GetString(SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP),
             default = false,
             getFunc = function()
-                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled) or false
+                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled) or false
             end,
             setFunc = function(value)
                 if BETTERUI.Settings.Modules["Nameplates"] then
-                    BETTERUI.Settings.Modules["Nameplates"].enabled = value
+                    BETTERUI.Settings.Modules["Nameplates"].m_enabled = value
                     if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged then
                         BETTERUI.Nameplates.OnEnabledChanged(value)
                     end
@@ -60,7 +60,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 end
             end,
             disabled = function()
-                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled)
             end,
             width = "full",
             scrollable = true,
@@ -85,7 +85,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 end
             end,
             disabled = function()
-                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled)
             end,
             width = "full",
         },
@@ -109,7 +109,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 end
             end,
             disabled = function()
-                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled)
             end,
             width = "full",
         },
@@ -129,7 +129,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 end
             end,
             disabled = function()
-                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].enabled)
+                return not (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled)
             end,
             width = "half",
         },
@@ -140,7 +140,7 @@ end
 ---
 --- Purpose: Ensures Nameplate configuration has valid default values.
 --- Mechanics:
---- - Checks for enabled state, font path, style (outline/soft-shadow-thick), and size.
+--- - Checks for m_enabled state, font path, style (outline/soft-shadow-thick), and size.
 --- - Preserves existing values if present.
 ---
 --- References: Called during module initialization.
@@ -151,7 +151,7 @@ function BETTERUI.Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS
     -- Only set defaults if not already present (preserve existing settings)
-    if m_options.enabled == nil then m_options.enabled = defaults.enabled end
+    if m_options.m_enabled == nil then m_options.m_enabled = defaults.m_enabled end
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end

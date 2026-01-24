@@ -28,7 +28,7 @@ end
 
 function SkillBar.UpdateFrontBar(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -76,7 +76,7 @@ end
 
 function SkillBar.UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarCfg = GetModuleSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     if isCasting then return end
     
     local activeCategory = GetActiveHotbarCategory()
@@ -116,7 +116,7 @@ end
 
 function SkillBar.SetupFrontBarTooltips(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
@@ -139,7 +139,7 @@ end
 
 function SkillBar.SetupFrontBarKeybinds(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
@@ -206,9 +206,9 @@ function SkillBar.SetupFrontBarKeybinds(rootFrame)
 end
 
 function SkillBar.UpdateFrontBarLayout(rootFrame)
-    -- Check if feature is enabled (from settings), but get LAYOUT from constants
+    -- Check if feature is m_enabled (from settings), but get LAYOUT from constants
     local settingsCfg = GetModuleSettings().customFrontBar
-    if not settingsCfg or not settingsCfg.enabled then return end
+    if not settingsCfg or not settingsCfg.m_enabled then return end
     
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg then return end
@@ -389,7 +389,7 @@ end
 
 function SkillBar.UpdateFrontBarCooldowns(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
-    if not frontBarCfg or not frontBarCfg.enabled then return end
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end

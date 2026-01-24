@@ -60,7 +60,7 @@ end
 --- References: Called when toggling module settings in the options panel.
 ---
 function BETTERUI.UpdateCIMState()
-	local shouldEnable = BETTERUI.GetModuleEnabled("Tooltips") or
+	local shouldEnable = BETTERUI.GetModuleEnabled("GeneralInterface") or
 	                    BETTERUI.GetModuleEnabled("Inventory") or
 	                    BETTERUI.GetModuleEnabled("Banking")
 	if BETTERUI.Settings.Modules["CIM"] then
@@ -98,18 +98,10 @@ function BETTERUI.InitModuleOptions()
 		{
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
-            -- TODO(refactor): Rename "Tooltips" module key to "GeneralInterface".
-            -- Also standardize settings property names:
-            --   CURRENT: m_enabled (Tooltips, Inventory, Banking, Writs, CIM)
-            --            enabled (ResourceOrbFrames)
-            --   TARGET: All modules should use either 'm_enabled' OR 'enabled' consistently.
-            -- Recommend: Use 'enabled' (simpler) and migrate m_enabled during next major version.
-            -- TODO(refactor): Rename "Tooltips" module key to "GeneralInterface" to avoid confusion.
-            -- Currently "Tooltips" acts as the master switch for the entire General Interface module.
 			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Tooltips"].m_enabled end,
+			getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].m_enabled end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Tooltips"].m_enabled = value
+				BETTERUI.Settings.Modules["GeneralInterface"].m_enabled = value
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -371,13 +363,13 @@ function BETTERUI.LoadModules()
 
 	-- Initialize General Interface (Settings & Tooltips)
 	-- We call this conditionally (based on Master Setting "Enable General Interface Improvements")
-	if BETTERUI.GetModuleEnabled("Tooltips") and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
+	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
 		BETTERUI.GeneralInterface.Setup()
 	end
 
 	-- Initialize Independent modules (Settings-aware)
     -- Nameplates (Dependent on General Interface Master Setting)
-	if BETTERUI.GetModuleEnabled("Tooltips") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
+	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
 		BETTERUI.Nameplates.Setup()
 	end
 
@@ -423,7 +415,7 @@ function BETTERUI.Initialize(event, addon)
 			{"Inventory", BETTERUI.Inventory},
 			{"Banking", BETTERUI.Banking},
 			{"Writs", BETTERUI.Writs},
-			{"Tooltips", BETTERUI.Tooltips},
+			{"GeneralInterface", BETTERUI.GeneralInterface},
 			{"Nameplates", BETTERUI.Nameplates},
 			{"ResourceOrbFrames", BETTERUI.ResourceOrbFrames}
 		}
@@ -442,6 +434,18 @@ function BETTERUI.Initialize(event, addon)
 	-- Ensure ResourceOrbFrames module settings exist for existing users
 	if BETTERUI.Settings.Modules["ResourceOrbFrames"] == nil then
 		BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
+	end
+
+	-- Migration: Rename "Tooltips" to "GeneralInterface" for consistency
+	if BETTERUI.Settings.Modules["Tooltips"] ~= nil then
+		if BETTERUI.Settings.Modules["GeneralInterface"] == nil then
+			BETTERUI.Settings.Modules["GeneralInterface"] = BETTERUI.Settings.Modules["Tooltips"]
+			if ddebug then ddebug("Migrated settings: Tooltips -> GeneralInterface") end
+		end
+		-- Keep 'Tooltips' key in settings pointing to same table to avoid breaking older modules
+		-- until they are all updated, then we can nil it out. 
+		-- For now, redirecting the reference is safest.
+		BETTERUI.Settings.Modules["Tooltips"] = BETTERUI.Settings.Modules["GeneralInterface"]
 	end
 
 	-- Migration: Standardize 'enabled' to 'm_enabled'

@@ -126,7 +126,7 @@ BETTERUI_ORB_FRAMES = {
         -- Replaces native ZO_ActionBar1 with custom-built bar
         -- ===================================================================
         customFrontBar = {
-            enabled = true,        -- Set false to use native front bar
+            m_enabled = true,        -- Set false to use native front bar
             offsetX = 17,          -- Whole bar horizontal offset (+ right, - left)
             offsetY = 72,          -- Whole bar vertical offset (+ down, - up)
             

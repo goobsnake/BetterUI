@@ -30,7 +30,7 @@ local m_foodTracker = nil
 
 -- Defaults
 local DEFAULTS = {
-    enabled = true,
+    m_enabled = true,
     scale = 1.0,
     offsetY = 0,
     useCustomTextures = false,
@@ -88,7 +88,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
         
         -- Custom Front Bar Updates
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-        if frontBarCfg and frontBarCfg.enabled then
+        if frontBarCfg and frontBarCfg.m_enabled then
             if not SkillBar.IsWeaponSwapAnimating() then
                 SkillBar.UpdateFrontBarLayout(m_rootFrame)
             end
@@ -250,7 +250,7 @@ local function SetupModule(control)
     SkillBar.ApplyActionBarSkin(control, layout)
     
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-    if frontBarCfg and frontBarCfg.enabled then
+    if frontBarCfg and frontBarCfg.m_enabled then
         -- Reparent specific buttons if needed for animation isolation
         -- (Logic from original: Quickslot and Companion reparented to root)
         local frontBarContainer = FindControl(control, 'FrontBarContainer')
@@ -303,25 +303,25 @@ local function SetupModule(control)
     
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function() 
         SkillBar.UpdateBackBar(control)
-        if frontBarCfg and frontBarCfg.enabled then SkillBar.UpdateFrontBar(control) end
+        if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
         -- Only update skills layout
         ApplyLayout(false, true)
     end)
     
     EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() 
         SkillBar.UpdateBackBar(control)
-        if frontBarCfg and frontBarCfg.enabled then SkillBar.UpdateFrontBar(control) end
+        if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
     end)
     
     EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
-        if frontBarCfg and frontBarCfg.enabled then
+        if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCompanion(control)
         end
         zo_callLater(ApplyFullLayout, 200)
     end)
     
     EVENT_MANAGER:RegisterForEvent(NAME .. "Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
-        if frontBarCfg and frontBarCfg.enabled then
+        if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarQuickslot(control)
         end
     end)
@@ -363,7 +363,7 @@ function ResourceOrbFrames.Initialize(control)
         
         zo_callLater(function()
             local settings = GetModuleSettings()
-            if not settings.enabled then
+            if not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
                 return
             end
@@ -387,7 +387,7 @@ function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
 
-    if settings.enabled then
+    if settings.m_enabled then
         if not m_isInitialized then
              SetupModule(m_rootFrame)
         end

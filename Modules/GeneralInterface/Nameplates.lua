@@ -61,7 +61,7 @@ BETTERUI.Nameplates.FONTSTYLE_VALUES = {
 
 -- Default nameplate settings
 BETTERUI.Nameplates.DEFAULTS = {
-    enabled = false,
+    m_enabled = false,
     font = "EsoUI/Common/Fonts/Univers67.otf",
     style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
     size = 16,
@@ -146,13 +146,13 @@ local function SetupEvents(enabled)
     if enabled then
         EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
             local settings = GetSettings()
-            if settings.enabled then
+            if settings.m_enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
         end)
         EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
             local settings = GetSettings()
-            if settings.enabled then
+            if settings.m_enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
         end)
@@ -178,11 +178,11 @@ end
 --- Sets up the Nameplates module.
 ---
 --- Purpose: Entry point for Nameplate initialization.
---- Mechanics: Check settings; if enabled, apply fonts and register events.
+--- Mechanics: Check settings; if m_enabled, apply fonts and register events.
 --- References: Called by GeneralInterface Setup.
 function BETTERUI.Nameplates.Setup()
     local settings = GetSettings()
-    if settings.enabled then
+    if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
         SetupEvents(true)
     end
@@ -192,13 +192,13 @@ end
 ---
 --- Purpose: Updates state dynamically when user toggles checkbox.
 --- Mechanics:
---- - If enabled: Setup events, apply fonts.
+--- - If m_enabled: Setup events, apply fonts.
 --- - If disabled: Unregister events, reset to defaults.
 ---
---- @param enabled boolean The new enabled state.
-function BETTERUI.Nameplates.OnEnabledChanged(enabled)
-    SetupEvents(enabled)
-    if enabled then
+--- @param m_enabled boolean The new m_enabled state.
+function BETTERUI.Nameplates.OnEnabledChanged(m_enabled)
+    SetupEvents(m_enabled)
+    if m_enabled then
         local settings = GetSettings()
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     else
@@ -206,19 +206,19 @@ function BETTERUI.Nameplates.OnEnabledChanged(enabled)
     end
 end
 
--- Returns whether Enhanced Nameplates is enabled
+-- Returns whether Enhanced Nameplates is m_enabled
 function BETTERUI.Nameplates.IsEnabled()
-    return GetSettings().enabled
+    return GetSettings().m_enabled
 end
 
 --- Applies current settings immediately.
 ---
 --- Purpose: Live update callback for settings menu.
---- Mechanics: Applies font settings if enabled.
+--- Mechanics: Applies font settings if m_enabled.
 --- References: Called by Slider/Dropdown setters.
 function BETTERUI.Nameplates.ApplyCurrentSettings()
     local settings = GetSettings()
-    if settings.enabled then
+    if settings.m_enabled then
         ApplyNameplateFont(settings.font, settings.style, settings.size)
     end
 end
