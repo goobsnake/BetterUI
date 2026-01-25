@@ -28,8 +28,9 @@ KEY RESPONSIBILITIES:
 
 
 
+-- Default template for inventory list entries
+local DEFAULT_TEMPLATE = "BETTERUI_GamepadItemSubEntryTemplate"
 
- 
 local DEFAULT_GAMEPAD_ITEM_SORT =
 {
     bestGamepadItemCategoryName = { tiebreaker = "name" },
@@ -49,11 +50,9 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 --- @param right table: Right item data
 --- @return boolean: True if left should come before right
 function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
-    return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
+    return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
+        ZO_SORT_ORDER_UP)
 end
-
-
-
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
 ---
@@ -68,17 +67,16 @@ end
 --- @param data table The data for the entry.
 --- @param selected boolean True if the entry is selected.
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
-
     if label then
-    	-- Determine which scene is active and use appropriate font settings
-    	local font
-    	if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-    		font = BETTERUI.Banking.GetNameFontDescriptor()
-    	else
-    		font = BETTERUI.Inventory.GetNameFontDescriptor()
-    	end
-		label:SetFont(font)
-		
+        -- Determine which scene is active and use appropriate font settings
+        local font
+        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+            font = BETTERUI.Banking.GetNameFontDescriptor()
+        else
+            font = BETTERUI.Inventory.GetNameFontDescriptor()
+        end
+        label:SetFont(font)
+
         if data.modifyTextType then
             label:SetModifyTextType(data.modifyTextType)
         end
@@ -91,13 +89,20 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 
         local labelTxt = ""
 
-        if isLocked then labelTxt = labelTxt.."|t"..BETTERUI_ICON_SIZE_MEDIUM..":"..BETTERUI_ICON_SIZE_MEDIUM..":"..ZO_GAMEPAD_LOCKED_ICON_32.."|t" end
-        if isBoPTradeable then labelTxt = labelTxt.."|t"..BETTERUI_ICON_SIZE_MEDIUM..":"..BETTERUI_ICON_SIZE_MEDIUM..":"..ZO_TRADE_BOP_ICON.."|t" end
+        if isLocked then
+            labelTxt = labelTxt ..
+                "|t" .. BETTERUI_ICON_SIZE_MEDIUM .. ":" .. BETTERUI_ICON_SIZE_MEDIUM .. ":" ..
+                ZO_GAMEPAD_LOCKED_ICON_32 .. "|t"
+        end
+        if isBoPTradeable then
+            labelTxt = labelTxt ..
+                "|t" .. BETTERUI_ICON_SIZE_MEDIUM .. ":" .. BETTERUI_ICON_SIZE_MEDIUM .. ":" .. ZO_TRADE_BOP_ICON .. "|t"
+        end
 
         labelTxt = labelTxt .. data.text
 
-        if(data.stackCount > 1) then
-           labelTxt = labelTxt..zo_strformat(" |cFFFFFF(<<1>>)|r",data.stackCount)
+        if (data.stackCount > 1) then
+            labelTxt = labelTxt .. zo_strformat(" |cFFFFFF(<<1>>)|r", data.stackCount)
         end
 
         local itemData = data.cached_itemLink or GetItemLink(bagId, slotIndex)
@@ -106,15 +111,43 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local hasEnchantment = data.cached_hasEnchantment or GetItemLinkEnchantInfo(itemData)
 
         local currentItemType = data.cached_itemType or GetItemLinkItemType(itemData)
-        local isRecipeAndUnknown = data.cached_isRecipeAndUnknown or ((currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData))
+        local isRecipeAndUnknown = data.cached_isRecipeAndUnknown or
+            ((currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData))
 
-		local isUnbound = data.cached_isUnbound or (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
+        local isUnbound = data.cached_isUnbound or
+            (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
-        if data.stolen then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_stolen.dds|t" end
-		if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t" end
-        if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_enchanted.dds|t" end
-        if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/BetterUI/Modules/CIM/Images/inv_setitem.dds|t" end
-        if isRecipeAndUnknown then labelTxt = labelTxt.." |t"..BETTERUI_ICON_SIZE_SMALL..":"..BETTERUI_ICON_SIZE_SMALL..":/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds|t" end
+        if data.stolen then
+            labelTxt = labelTxt ..
+                " |t" ..
+                BETTERUI_ICON_SIZE_SMALL .. ":" .. BETTERUI_ICON_SIZE_SMALL ..
+                ":/BetterUI/Modules/CIM/Images/inv_stolen.dds|t"
+        end
+        if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then
+            labelTxt = labelTxt ..
+                " |t" ..
+                BETTERUI_ICON_SIZE_SMALL ..
+                ":" .. BETTERUI_ICON_SIZE_SMALL .. ":/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t"
+        end
+        if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then
+            labelTxt = labelTxt ..
+                " |t" ..
+                BETTERUI_ICON_SIZE_SMALL ..
+                ":" .. BETTERUI_ICON_SIZE_SMALL .. ":/BetterUI/Modules/CIM/Images/inv_enchanted.dds|t"
+        end
+        if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then
+            labelTxt = labelTxt ..
+                " |t" ..
+                BETTERUI_ICON_SIZE_SMALL .. ":" ..
+                BETTERUI_ICON_SIZE_SMALL .. ":/BetterUI/Modules/CIM/Images/inv_setitem.dds|t"
+        end
+        if isRecipeAndUnknown then
+            labelTxt = labelTxt ..
+                " |t" ..
+                BETTERUI_ICON_SIZE_SMALL ..
+                ":" ..
+                BETTERUI_ICON_SIZE_SMALL .. ":/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds|t"
+        end
 
         label:SetText(labelTxt)
 
@@ -142,7 +175,6 @@ end
 --- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
 --- @param data table The data for the entry.
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
-
     statusIndicator:ClearIcons()
 
     local isItemNew
@@ -241,7 +273,8 @@ end
 --- @param alpha number The transparency of the cooldown overlay.
 --- @param desaturation number The desaturation level.
 --- @param preservePreviousCooldown boolean Whether to keep the existing cooldown if active.
-function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType, useLeadingEdge, alpha, desaturation, preservePreviousCooldown)
+function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType, useLeadingEdge, alpha, desaturation,
+                           preservePreviousCooldown)
     local inCooldownNow = remaining > 0 and duration > 0
     if inCooldownNow then
         local timeLeftOnPreviousCooldown = control.cooldown:GetTimeLeft()
@@ -272,9 +305,11 @@ function BETTERUI_CooldownSetup(control, data)
         if data.cooldownIcon then
             control.cooldown:SetFillColor(ZO_SELECTED_TEXT:UnpackRGBA())
             control.cooldown:SetVerticalCooldownLeadingEdgeHeight(4)
-            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_VERTICAL_REVEAL, CD_TIME_TYPE_TIME_UNTIL, USE_LEADING_EDGE, 1, 1, PRESERVE_PREVIOUS_COOLDOWN)
+            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_VERTICAL_REVEAL, CD_TIME_TYPE_TIME_UNTIL,
+                USE_LEADING_EDGE, 1, 1, PRESERVE_PREVIOUS_COOLDOWN)
         else
-            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_UNTIL, DONT_USE_LEADING_EDGE, 0.85, 0, OVERWRITE_PREVIOUS_COOLDOWN)
+            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_UNTIL,
+                DONT_USE_LEADING_EDGE, 0.85, 0, OVERWRITE_PREVIOUS_COOLDOWN)
         end
     end
 end
@@ -305,13 +340,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     local itemLink = data.cached_itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
     local itemType = data.cached_itemType or (itemLink and GetItemLinkItemType(itemLink))
-    
+
     -- Determine which scene is active and use appropriate column font settings
     local columnFont
     if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
-    	columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
+        columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
     else
-    	columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
+        columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
     end
 
     local itemTypeControl = control:GetNamedChild("ItemType")
@@ -328,15 +363,34 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Set item type
     itemTypeControl:SetText(string.upper(data.bestItemTypeName))
 
-    -- Set trait information (Uses cached values from Inventory:RefreshItemList)
-    traitControl:SetText(data.cached_traitName or "-")
+    -- Set trait information
+    local traitName = data.cached_traitName
+    if not traitName then
+        local traitType = GetItemTrait(bagId, slotIndex)
+        if traitType ~= ITEM_TRAIT_TYPE_NONE then
+            traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
+        else
+            traitName = "-"
+        end
+    end
+    traitControl:SetText(traitName)
 
     -- Set stat information based on item type
     local statText
     if itemType == ITEMTYPE_RECIPE then
-        statText = data.cached_isRecipeAndUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
-    elseif data.cached_isBook then
-        statText = data.cached_isBookKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+        local isUnknown = data.cached_isRecipeAndUnknown
+        if isUnknown == nil then
+            isUnknown = not IsItemLinkRecipeKnown(itemLink)
+        end
+        statText = isUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or
+            GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
+    elseif data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK then
+        local isKnown = data.cached_isBookKnown
+        if isKnown == nil then
+            isKnown = IsItemLinkBookKnown(itemLink)
+        end
+        statText = isKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or
+            GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
     else
         local statValue = data.dataSource and data.dataSource.statValue
         if statValue == nil then
@@ -349,8 +403,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Handle market price display
     if BETTERUI.Settings.Modules["Inventory"].showMarketPrice and
-       (SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() or SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing()) then
-
+        (SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() or SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing()) then
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)
@@ -382,15 +435,17 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local equipIconControl = control:GetNamedChild("EquippedMain")
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
     local fontSize = invSettings and invSettings.nameFontSize or BETTERUI_LIST_ENTRY_BASE_FONT_SIZE
-    
 
-    
+
+
     -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
-    local iconSize = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_SIZE * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    local iconSize = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_SIZE * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) +
+        0.5)
     local equipIconWidth = math.floor(28 * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local equipIconHeight = math.floor(24 * (fontSize / BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
-    local iconOffset = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_OFFSET + (fontSize - BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) * BETTERUI_LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5)  -- Adjust offset as font grows
-    
+    local iconOffset = math.floor(BETTERUI_LIST_ENTRY_BASE_ICON_OFFSET +
+        (fontSize - BETTERUI_LIST_ENTRY_BASE_FONT_SIZE) * BETTERUI_LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5) -- Adjust offset as font grows
+
     iconControl:SetDimensions(iconSize, iconSize)
     iconControl:ClearAnchors()
     iconControl:SetAnchor(CENTER, control:GetNamedChild("Label"), LEFT, iconOffset, 0)
@@ -424,7 +479,6 @@ end
 --- @param itemData table The item data.
 --- @return string The localized category description.
 function GetBestItemCategoryDescription(itemData)
-
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 
     if isItemStolen then
@@ -435,26 +489,26 @@ function GetBestItemCategoryDescription(itemData)
         return GetString("SI_ITEMTYPE", itemData.itemType)
     end
     local categoryType = GetCategoryTypeFromWeaponType(itemData.bagId, itemData.slotIndex)
-    if categoryType ==  GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
+    if categoryType == GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
         local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
         return GetString("SI_WEAPONTYPE", weaponType)
     elseif categoryType then
         return GetString("SI_GAMEPADWEAPONCATEGORY", categoryType)
     end
     local armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
-    local itemLink = GetItemLink(itemData.bagId,itemData.slotIndex)
+    local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
     if armorType ~= ARMORTYPE_NONE then
-        return GetString("SI_ARMORTYPE", armorType).." "..GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))
+        return GetString("SI_ARMORTYPE", armorType) .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
     end
 
     local fullDesc = GetString("SI_ITEMTYPE", itemData.itemType)
 
-        -- Stops types like "Poison" displaying "Poison" twice
-    if( fullDesc ~= GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))) then
-        fullDesc = fullDesc.." "..GetString("SI_EQUIPTYPE",GetItemLinkEquipType(itemLink))
+    -- Stops types like "Poison" displaying "Poison" twice
+    if (fullDesc ~= GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))) then
+        fullDesc = fullDesc .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
     end
 
-	return fullDesc
+    return fullDesc
 end
 
 --- @class BETTERUI.Inventory.List : ZO_GamepadInventoryList
@@ -473,7 +527,9 @@ end
 --- - Registers `VendorEntryTemplateSetup` (wraps `BETTERUI_SharedGamepadEntry_OnSetup`).
 --- - Connects to `SHARED_INVENTORY` for real-time updates.
 ---
-function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback, categorizationFunction, sortFunction, useTriggers, template, templateSetupFunction)
+function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
+                                            categorizationFunction, sortFunction, useTriggers, template,
+                                            templateSetupFunction)
     self.control = control
     self.selectedDataCallback = selectedDataCallback
     self.entrySetupCallback = entrySetupCallback
@@ -483,21 +539,23 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.isDirty = true
     self.useTriggers = (useTriggers ~= false) -- nil => true
     self.template = template or DEFAULT_TEMPLATE
-	
+
     if type(inventoryType) == "table" then
         self.inventoryTypes = inventoryType
     else
         self.inventoryTypes = { inventoryType }
     end
-	
-	local function VendorEntryTemplateSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+
+    local function VendorEntryTemplateSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
         ZO_Inventory_BindSlot(data, slotType, data.slotIndex, data.bagId)
         BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
     end
 
     self.list = BETTERUI_VerticalParametricScrollList:New(self.control)
-    self.list:AddDataTemplate(self.template, templateSetupFunction or VendorEntryTemplateSetup, ZO_GamepadMenuEntryTemplateParametricListFunction)	
-	self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup, ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
+    self.list:AddDataTemplate(self.template, templateSetupFunction or VendorEntryTemplateSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction)
+    self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
+        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 
     -- generate the trigger keybinds so we can add/remove them later when necessary
     self.triggerKeybinds = {}
@@ -540,9 +598,9 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
                 local itemData = SHARED_INVENTORY:GenerateSingleSlotData(self.inventoryType, slotIndex)
                 if itemData then
                     itemData.bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemData)
-					if self.inventoryType ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
-						itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)
-					end
+                    if self.inventoryType ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
+                        itemData.requiredChampionPoints = GetItemLinkRequiredChampionPoints(itemData)
+                    end
                     self:SetupItemEntry(entry, itemData)
                     self.list:RefreshVisible()
                 else -- The item was removed.
@@ -573,7 +631,8 @@ end
 ---
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
-    local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
+    local categorizationFunction = self.categorizationFunction or
+        ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
@@ -610,8 +669,8 @@ function BETTERUI.Inventory.List:RefreshList()
     local currentBestCategoryName
     for i, itemData in ipairs(slots) do
         local entry = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
-		self:SetupItemEntry(entry, itemData)
-         if itemData.bestGamepadItemCategoryName ~= currentBestCategoryName then
+        self:SetupItemEntry(entry, itemData)
+        if itemData.bestGamepadItemCategoryName ~= currentBestCategoryName then
             currentBestCategoryName = itemData.bestGamepadItemCategoryName
             entry:SetHeader(currentBestCategoryName)
 

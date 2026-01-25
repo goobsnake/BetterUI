@@ -13,6 +13,11 @@ if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
 BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS = 300
 BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = 300
 
+-- Action Mode Constants (shared across InventoryClass.lua, Inventory.lua, etc.)
+-- These define what type of list interaction is currently active
+CATEGORY_ITEM_ACTION_MODE = 1
+ITEM_LIST_ACTION_MODE = 2
+
 -- ============================================================================
 -- SEARCH BAR POSITIONING
 -- Controls the position of the search input field in inventory headers
@@ -24,7 +29,7 @@ Description: Horizontal offset from left edge for search bar.
 Direction: Positive (+) moves RIGHT.
 Used By: Inventory.lua
 ]]
-BETTERUI_INV_SEARCH_X_OFFSET = 56
+BETTERUI_INV_SEARCH_X_OFFSET = 55
 
 --[[
 Constant: BETTERUI_INV_SEARCH_Y_OFFSET

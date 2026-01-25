@@ -90,12 +90,15 @@ local _
 
 
 -- TODO(GLOBAL-OVERRIDE): This ZO_GAMEPAD_INVENTORY_SCENE_NAME override hijacks a global.
--- Risk: Other addons checking this global will get our scene name, potentially causing conflicts.
--- Consider: Document all known interactions, or use ZO_PreHook to intercept scene registration.
-local BLOCK_TABBAR_CALLBACK = true
-ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
-BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
+
+
+-- Apply Class Mixins (from PositionManager, etc.)
+if BETTERUI.Inventory.ClassMixins then
+	for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
+		BETTERUI.Inventory.Class[name] = func
+	end
+end
 
 -- Action mode constants for tracking inventory UI state
 local CATEGORY_ITEM_ACTION_MODE = 1
@@ -105,7 +108,7 @@ local CRAFT_BAG_ACTION_MODE = 3
 -- Timing constants for UI operations
 -- Moved to BETTERUI.CONST.INVENTORY
 -- local DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION = 300
--- local INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS = 300 
+-- local INVENTORY_LEFT_TOOL_TIP_REFRESH_DELAY_MS = 300
 
 -- List type identifiers for SwitchActiveList
 local INVENTORY_CATEGORY_LIST = "categoryList"
@@ -127,53 +130,11 @@ Rationale: Ensures UI consistency after inventory changes (loot, equip, destroy)
 Mechanism: Sets g_slotDataCacheDirty to true and clears g_slotDataCache table.
 ]]
 
-function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
-    g_slotDataCacheDirty = true
-    g_slotDataCache = {}
-end
 
---[[
-Function: GetCachedSlotData
-Description: Wrapped version of SHARED_INVENTORY:GenerateFullSlotData with internal caching.
-Rationale: Calling GenerateFullSlotData multiple times per frame (junk check, stolen check, list refresh) is expensive.
-Mechanism: 
-1. Checks dirty flag.
-2. If dirty, clears cache.
-3. If not dirty and bag cached, returns cached data.
-4. Otherwise, calls native GenerateFullSlotData(nil, ...) and caches it.
-param: ... (bagIds) - The bag identifiers to fetch data for.
-return: table - Table of slot data for the requested bags.
-]]
+-- Cache methods extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:InvalidateSlotDataCache
+-- BETTERUI.Inventory.Class:GetCachedSlotData
 
--- Optimized cache key generation for common bag combinations
-local function GetBagCacheKey(bags)
-    if #bags == 1 then return bags[1] end
-    -- Use string concatenation to avoid collisions with bagId 0 (BAG_WORN)
-    -- e.g. "0,1" vs 1 (number)
-    return table.concat(bags, ",")
-end
-
-function BETTERUI.Inventory.Class:GetCachedSlotData(...)
-    local bags = {...}
-    table.sort(bags) -- Ensure consistent key
-    local cacheKey = GetBagCacheKey(bags)
-    
-    if g_slotDataCacheDirty then
-        g_slotDataCache = {}
-        g_slotDataCacheDirty = false
-    end
-    
-    if not g_slotDataCache[cacheKey] then
-        if SHARED_INVENTORY and SHARED_INVENTORY.GenerateFullSlotData then
-            -- Fetch ALL items (no filter) for these bags to populate the cache
-            g_slotDataCache[cacheKey] = SHARED_INVENTORY:GenerateFullSlotData(nil, unpack(bags))
-        else
-            g_slotDataCache[cacheKey] = {}
-        end
-    end
-    
-    return g_slotDataCache[cacheKey]
-end
 
 -------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
@@ -216,19 +177,21 @@ local function AttemptCompanionEquipPatch()
 			local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
 			if sourceBag and sourceSlot then
 				local function DoEquip()
-					CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN, self.selectedEquipSlot, 1)
+					CallSecureProtected("RequestMoveItem", sourceBag, sourceSlot, BAG_COMPANION_WORN,
+						self.selectedEquipSlot, 1)
 				end
 				if ZO_InventorySlot_WillItemBecomeBoundOnEquip(sourceBag, sourceSlot) then
 					local itemDisplayQuality = GetItemDisplayQuality(sourceBag, sourceSlot)
 					local itemDisplayQualityColor = GetItemQualityColor(itemDisplayQuality)
-					ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_ITEM", { onAcceptCallback = DoEquip }, { mainTextParams = { itemDisplayQualityColor:Colorize(GetItemName(sourceBag, sourceSlot)) } })
+					ZO_Dialogs_ShowPlatformDialog("CONFIRM_EQUIP_ITEM", { onAcceptCallback = DoEquip },
+						{ mainTextParams = { itemDisplayQualityColor:Colorize(GetItemName(sourceBag, sourceSlot)) } })
 				else
 					DoEquip()
 				end
 				return
 			end
 		end
-        
+
 		return orig(self, inventorySlot)
 	end
 	class._betterui_tryEquipPatched = true
@@ -245,16 +208,16 @@ local function EnsureCompanionEquipPatched()
 		return true
 	end
 	if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent and not companionEquipPatchQueued then
-			companionEquipPatchQueued = true
-            
+		companionEquipPatchQueued = true
+
 		EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
 			companionEquipPatchQueued = false
 			EnsureCompanionEquipPatched()
 		end)
 	end
 	if not companionEquipPatchRetryPending and zo_callLater then
-			companionEquipPatchRetryPending = true
-            
+		companionEquipPatchRetryPending = true
+
 		zo_callLater(function()
 			companionEquipPatchRetryPending = false
 			EnsureCompanionEquipPatched()
@@ -264,111 +227,27 @@ local function EnsureCompanionEquipPatched()
 end
 
 -- local function copied (and slightly edited for unequipped items!) from "inventoryutils_gamepad.lua"
-function BETTERUI.Inventory.Class:GetEquipSlotForEquipType(equipType)
-	-- Prefer the slot corresponding to the currently intended bar (primary/backup)
-	-- for combat-related equipment (weapons/poison). For armor/jewelry, primary/backup is irrelevant.
-	local wantPrimary = true
-	if self.isPrimaryWeapon ~= nil then
-		wantPrimary = self.isPrimaryWeapon
-	end
 
-	local lastMatchingSlot = nil
-	for _, testSlot in ZO_Character_EnumerateOrderedEquipSlots() do
-		local locked = IsLockedWeaponSlot(testSlot)
-		local isCorrectSlot = ZO_Character_DoesEquipSlotUseEquipType(testSlot, equipType)
-		if not locked and isCorrectSlot then
-			local isActive = IsActiveCombatRelatedEquipmentSlot(testSlot)
-			-- For weapon-like equip types, honor intended bar; otherwise return first match
-			if
-				equipType == EQUIP_TYPE_MAIN_HAND
-				or equipType == EQUIP_TYPE_OFF_HAND
-				or equipType == EQUIP_TYPE_TWO_HAND
-				or equipType == EQUIP_TYPE_POISON
-			then
-				if wantPrimary and isActive then
-					return testSlot
-				elseif not wantPrimary and not isActive then
-					return testSlot
-				end
-				-- Keep a fallback in case we don't find the exact active/inactive match (edge cases)
-				lastMatchingSlot = testSlot
-			else
-				return testSlot
-			end
-		end
-	end
-	return lastMatchingSlot
-end
+-- Helper extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:GetEquipSlotForEquipType
 
 
 -- The below functions are included from ZO_GamepadInventory.lua
-local function MenuEntryTemplateEquality(left, right)
-	return left.uniqueId == right.uniqueId
-end
 
-local function SetupItemList(list)
-	list:AddDataTemplate(
-		"BETTERUI_GamepadItemSubEntryTemplate",
-		BETTERUI_SharedGamepadEntry_OnSetup,
-		ZO_GamepadMenuEntryTemplateParametricListFunction,
-		MenuEntryTemplateEquality
-	)
-	list:AddDataTemplateWithHeader(
-		"BETTERUI_GamepadItemSubEntryTemplate",
-		BETTERUI_SharedGamepadEntry_OnSetup,
-		ZO_GamepadMenuEntryTemplateParametricListFunction,
-		MenuEntryTemplateEquality,
-		"ZO_GamepadMenuEntryHeaderTemplate"
-	)
-end
 
-local function SetupCraftBagList(buiList)
-	buiList.list:AddDataTemplate(
-		"BETTERUI_GamepadItemSubEntryTemplate",
-		BETTERUI_SharedGamepadEntry_OnSetup,
-		ZO_GamepadMenuEntryTemplateParametricListFunction,
-		MenuEntryTemplateEquality
-	)
-	buiList.list:AddDataTemplateWithHeader(
-		"BETTERUI_GamepadItemSubEntryTemplate",
-		BETTERUI_SharedGamepadEntry_OnSetup,
-		ZO_GamepadMenuEntryTemplateParametricListFunction,
-		MenuEntryTemplateEquality,
-		"ZO_GamepadMenuEntryHeaderTemplate"
-	)
-end
-local function SetupCategoryList(list)
-	list:AddDataTemplate(
-		"BETTERUI_GamepadItemEntryTemplate",
-		ZO_SharedGamepadEntry_OnSetup,
-		ZO_GamepadMenuEntryTemplateParametricListFunction
-	)
-end
+
+
+
+
+
 
 -- Helper: compute a stable key for a category entry so we can restore by key when categories are rebuilt
-local function GetCategoryKey(categoryData)
-	if not categoryData then return nil end
-	if categoryData.filterType ~= nil then
-		return "f:" .. tostring(categoryData.filterType)
-	end
-	if categoryData.onClickDirection then
-		return "dir:" .. tostring(categoryData.onClickDirection)
-	end
-	if categoryData.text then
-		return "t:" .. tostring(categoryData.text)
-	end
-	return "idx:" .. tostring(categoryData.index or "")
-end
+-- Extracted to State/PositionManager.lua
+-- BETTERUI.Inventory.GetCategoryKey(categoryData)
 
-local function FindCategoryIndexByKey(self, key)
-	if not key or not self.categoryList or not self.categoryList.dataList then return nil end
-	for i, d in ipairs(self.categoryList.dataList) do
-		if GetCategoryKey(d) == key then
-			return i
-		end
-	end
-	return nil
-end
+-- Extracted to State/PositionManager.lua
+-- BETTERUI.Inventory.FindCategoryIndexByKey(self, key)
+
 
 -- Safe helper for GetTargetData calls (guards against lists without method)
 local function SafeGetTargetData(list)
@@ -391,198 +270,18 @@ end
 --- 6. Refreshes Tooltip.
 --- References: Called by Tab Next/Prev and RefreshList.
 ---
-function BETTERUI.Inventory.Class:ToSavedPosition()
-	-- Determine if we're on inventory or craft bag based on current category
-	local catData = self.categoryList and self.categoryList.selectedData
-	if not catData then return end
-	
-	local isCraftBag = catData.onClickDirection ~= nil
-	local currentList = isCraftBag and self.craftBagList or self.itemList
-	
-	-- Set current list and refresh for the current category
-	if isCraftBag then
-		self:SetCurrentList(self.craftBagList)
-		self:RefreshCraftBagList()
-	else
-		self:SetCurrentList(self.itemList)
-		self:RefreshItemList()
-	end
-	
-	-- Get category key for position lookup
-	local key = GetCategoryKey(catData)
-	local lastPosition = 1
-	
-	if isCraftBag then
-		-- Restore craft bag item position for this category ONLY if previously saved
-		if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
-			lastPosition = self.savedCraftBagPositionsByKey[key]
-			-- Prefer unique id restore if available
-			if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
-				local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
-				local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
-				if dataList then
-					for i, entry in ipairs(dataList) do
-						if entry and entry.uniqueId == uid then
-							lastPosition = i
-							break
-						end
-					end
-				end
-			end
-		end
-	else
-		-- Restore inventory item position for this category ONLY if previously saved
-		if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
-			lastPosition = self.savedInventoryPositionsByKey[key]
-			-- Prefer unique id restore if available
-			if self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
-				local uid = self.savedInventorySelectedItemUniqueByKey[key]
-				local dataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
-				if dataList then
-					for i, entry in ipairs(dataList) do
-						if entry and entry.uniqueId == uid then
-							lastPosition = i
-							break
-						end
-					end
-				end
-			end
-		end
-	end
 
-	-- Apply the position to the current list
-	local dataList = currentList.list and currentList.list.dataList or currentList.dataList
-	if dataList and #dataList > 0 then
-		lastPosition = zo_clamp(lastPosition, 1, #dataList)
-		-- Use inner list for SetSelectedIndexWithoutAnimation if available (craftBagList wraps inner list)
-		local innerList = currentList.list or currentList
-		if innerList.SetSelectedIndexWithoutAnimation then
-			innerList:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
-		end
-		
-		GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-		if self.callLaterLeftToolTip then
-			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-		end
-		local callLaterId = zo_callLater(function()
-			self:UpdateItemLeftTooltip(currentList.selectedData)
-		end, BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS)
-		self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
-	end
-end
+-- State Management (SaveListPosition/ToSavedPosition) extracted to State/PositionManager.lua
+-- Methods injected via Mixins
 
---- Saves the current list position and selection.
----
---- Purpose: Stores the index and unique ID of the selected item to allow precise restoration later.
---- Mechanics:
---- 1. Determines context (CraftBag vs Inventory).
---- 2. Saves Index to `saved*PositionsByKey`.
---- 3. Saves UniqueID to `saved*SelectedItemUniqueByKey` (for list content changes).
---- References: Called before list refreshes or mode info changes.
----
-function BETTERUI.Inventory.Class:SaveListPosition()
-	-- Guard against nil state
-	if not self.categoryList or not self.categoryList.selectedData then return end
-	
-	local catData = self.categoryList.selectedData
-	local key = GetCategoryKey(catData)
-	if not key then return end
-	
-	local isCraftBag = catData.onClickDirection ~= nil
-	
-	-- Get the correct list and its inner list (craftBagList wraps an inner list)
-	local currentList = isCraftBag and self.craftBagList or self.itemList
-	local innerList = currentList and (currentList.list or currentList)
-	
-	if not innerList or not innerList.selectedIndex then return end
-	
-	local itemIndex = innerList.selectedIndex or 1
-	local itemUniqueId = innerList.selectedData and innerList.selectedData.uniqueId
-	
-	if isCraftBag then
-		-- Save craft bag state (completely independent from inventory)
-		self.savedCraftBagCategoryKey = key
-		self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
-		self.savedCraftBagPositionsByKey[key] = itemIndex
-		if itemUniqueId then
-			self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
-			self.savedCraftBagSelectedItemUniqueByKey[key] = itemUniqueId
-		end
-	else
-		-- Save inventory state (completely independent from craft bag)
-		self.savedInventoryCategoryKey = key
-		self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
-		self.savedInventoryPositionsByKey[key] = itemIndex
-		if itemUniqueId then
-			self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
-			self.savedInventorySelectedItemUniqueByKey[key] = itemUniqueId
-		end
-	end
-end
 
 --- Build the category list UI and wire up selection/target callbacks
 --- Responds to category selection by switching between item and craft bag lists
 --- Initializes the category list (tabs) for the inventory.
 --- Sets up templates, selection callbacks, and target change handlers.
-function BETTERUI.Inventory.Class:InitializeCategoryList()
-	self.categoryList = self:AddList("Category", SetupCategoryList)
-	self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
 
-	-- Match the tooltip to the selected data because it looks nicer
-	local function OnSelectedCategoryChanged(list, selectedData)
-		if selectedData ~= nil and self.scene:IsShowing() then
-			self:UpdateCategoryLeftTooltip(selectedData)
+-- InitializeCategoryList extracted to Lists/CategoryListManager.lua
 
-			if selectedData.onClickDirection then
-				self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
-			else
-				self:SwitchActiveList(INVENTORY_ITEM_LIST)
-			end
-		end
-	end
-
-	self.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChanged)
-
-	--Match the functionality to the target data
-	local function OnTargetCategoryChanged(list, targetData)
-		if targetData then
-			self.selectedEquipSlot = targetData.equipSlot
-			self:SetSelectedItemUniqueId(self:GenerateItemSlotData(targetData))
-			self.selectedItemFilterType = targetData.filterType
-		else
-			self:SetSelectedItemUniqueId(nil)
-		end
-
-		self.currentlySelectedData = targetData
-	end
-
-	self.categoryList:SetOnTargetDataChangedCallback(OnTargetCategoryChanged)
-
-	-- Note: Previously this code attempted to hide the search whenever the
-	-- category list activated in order to prevent the search from being
-	-- highlighted. That approach caused navigation/confusion in some flows.
-	-- We removed the hide/wrap behavior and now rely on header-enter handling
-	-- to focus the search when appropriate.
-end
-
-local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
-	return function(itemData)
-		if nonEquipableFilterType then
-			-- Special-case companion items: companion filter should only match companion actorCategory
-			if nonEquipableFilterType == ITEMFILTERTYPE_COMPANION then
-				return itemData and itemData.actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION
-			end
-
-			return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, nonEquipableFilterType)
-				or (itemData.equipType == EQUIP_TYPE_POISON and nonEquipableFilterType == ITEMFILTERTYPE_WEAPONS) -- will fix soon, patched to allow Poison in "Weapons"
-		else
-			-- for "All"
-			return true
-		end
-
-		return ZO_InventoryUtils_DoesNewItemMatchSupplies(itemData)
-	end
-end
 
 --- Checks if the item list is empty for a given filter.
 ---
@@ -593,36 +292,17 @@ end
 --- @param filteredEquipSlot number|nil The equip slot to filter by (optional).
 --- @param nonEquipableFilterType number|nil The item filter type to check (optional).
 --- @return boolean True if the list would be empty, false otherwise.
-function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
-	local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
-	local function comparatorExcludingJunk(itemData)
-		return baseComparator(itemData) and not itemData.isJunk
-	end
-	return SHARED_INVENTORY:IsFilteredSlotDataEmpty(comparatorExcludingJunk, BAG_BACKPACK, BAG_WORN)
-end
+
+-- IsItemListEmpty extracted to Lists/ItemListManager.lua
+-- BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
+
 
 -- Robust check for any junk in the backpack using the shared inventory cache,
 -- with a direct IsItemJunk fallback as a safety net.
-function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
-	-- Prefer shared inventory cache, which we explicitly refresh after junk toggles.
-	local backpack = self:GetCachedSlotData(BAG_BACKPACK)
-	if backpack then
-		for _, slotData in ipairs(backpack) do
-			if slotData and slotData.isJunk == true then
-				return true
-			end
-		end
-	end
 
-	-- Fallback to direct bag scan if needed (should be rare).
-	local size = GetBagSize(BAG_BACKPACK) or 0
-	for slotIndex = 0, size - 1 do
-		if IsItemJunk(BAG_BACKPACK, slotIndex) then
-			return true
-		end
-	end
-	return false
-end
+-- HasAnyJunkInBackpack extracted to Lists/ItemListManager.lua
+-- BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
+
 
 --- Attempts to equip the selected item.
 ---
@@ -779,10 +459,12 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 			showBindOnEquipDialog(function()
 				local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
 				if equipSucceeds then
-					local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or BAG_COMPANION_WORN
+					local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or
+						BAG_COMPANION_WORN
 					RequestEquipItem(bagId, slotIndex, wornBag)
 				else
-					ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
+					ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+						possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
 				end
 			end)
 		end
@@ -801,31 +483,9 @@ end
 --- @param filterType number|nil The item filter type for the category.
 --- @param iconFile string The path to the icon texture.
 --- @param FilterFunct function|nil Optional custom filter function.
-function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
-	if FilterFunct == nil then
-		FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
-	end
 
-	local isListEmpty = self:IsItemListEmpty(nil, filterType)
-	if not isListEmpty then
-		local name
-		if filterType == nil then
-			name = GetString(SI_BETTERUI_INV_ITEM_ALL)
-		else
-			name = GetString("SI_ITEMFILTERTYPE", filterType)
-		end
+-- NewCategoryItem extracted to Lists/CategoryListManager.lua
 
-		local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
-		local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
-		data.filterType = filterType
-		data:SetIconTintOnSelection(true)
-		self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-		BETTERUI.GenericHeader.AddToList(self.header, data)
-		if not self.populatedCategoryPos then
-			self.categoryPositions[#self.categoryPositions + 1] = 1
-		end
-	end
-end
 
 --- Rebuilds the category list based on the current state (Inventory vs Craft Bag).
 ---
@@ -838,176 +498,9 @@ end
 --- 5. Restores previous selection if possible.
 --- References: Called by RefreshItemList.
 ---
-function BETTERUI.Inventory.Class:RefreshCategoryList()
-	local function IsStolenAndNotJunk()
-		local backpack = self:GetCachedSlotData(BAG_BACKPACK)
-		if backpack then
-			for _, slotData in ipairs(backpack) do
-				if slotData and slotData.stolen and not slotData.isJunk then
-					return true
-				end
-			end
-		end
 
-		local bagSize = GetBagSize(BAG_BACKPACK) or 0
-		for slotIndex = 0, bagSize - 1 do
-			if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
-				return true
-			end
-		end
-		return false
-	end
+-- RefreshCategoryList extracted to Lists/CategoryListManager.lua
 
-	-- Store the current selected index before clearing so we can restore it
-	local previousSelectedIndex = self.categoryList.selectedIndex
-
-	self.categoryList:Clear()
-	self.header.tabBar:Clear()
-
-	local currentList = self:GetCurrentList()
-
-	if currentList == self.craftBagList then
-        local categories = BETTERUI.Inventory.Categories.CraftBag
-        for _, catDef in ipairs(categories) do
-            local name = GetString(catDef.nameStringId)
-            local data = ZO_GamepadEntryData:New(name, catDef.iconFile)
-            data:SetIconTintOnSelection(true)
-            
-            if catDef.onClickDirection then
-                data.onClickDirection = catDef.onClickDirection
-            end
-            
-            if catDef.filterType ~= nil then
-                data.filterType = catDef.filterType
-            end
-            
-            if not HasCraftBagAccess() then
-                data.enabled = false
-            end
-            
-            self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-            BETTERUI.GenericHeader.AddToList(self.header, data)
-            if not self.populatedCraftPos then
-                self.categoryCraftPositions[#self.categoryCraftPositions + 1] = 1
-            end
-        end
-
-		self.populatedCraftPos = true
-	else
-        local categories = BETTERUI.Inventory.Categories.Inventory
-        for _, catDef in ipairs(categories) do
-            local shouldAdd = false
-            local data = nil
-            
-            -- SPECIAL CATEGORIES
-            if catDef.key == "Equipped" then
-                local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
-                if usedBagSize > 0 then
-                    local name = GetString(catDef.nameStringId)
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_WORN)
-                    data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
-                    data.showEquipped = true
-                    shouldAdd = true
-                end
-                
-            elseif catDef.key == "Quest" then
-                local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-                if next(questCache) then
-                    local name = GetString(catDef.nameStringId)
-                    data = ZO_GamepadEntryData:New(name, catDef.iconFile)
-                    data.filterType = catDef.filterType
-                    shouldAdd = true
-                end
-                
-            elseif catDef.key == "Stolen" then
-                if IsStolenAndNotJunk() then
-                    local name = GetString(catDef.nameStringId)
-                    local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
-                    data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
-                    data.showStolen = true
-                    shouldAdd = true
-                end
-                
-            elseif catDef.key == "Junk" then
-                if self:HasAnyJunkInBackpack() then
-                    local isListEmpty = self:IsItemListEmpty(nil, nil)
-                    if not isListEmpty then
-                        local name = GetString(catDef.nameStringId)
-                        local hasAnyNewItems = SHARED_INVENTORY:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
-                        data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
-                        data.showJunk = true
-                        shouldAdd = true
-                    end
-                end
-                
-            -- STANDARD CATEGORIES (All, Weapons, etc)
-            else
-                 local isListEmpty = self:IsItemListEmpty(nil, catDef.filterType)
-                 
-                 if catDef.isStatic or not isListEmpty then
-                    self:NewCategoryItem(catDef.filterType, catDef.iconFile)
-                    shouldAdd = false -- Handled by NewCategoryItem
-                 end
-            end
-            
-            if shouldAdd and data then
-                data:SetIconTintOnSelection(true)
-                self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
-                BETTERUI.GenericHeader.AddToList(self.header, data)
-                if not self.populatedCategoryPos then
-                    self.categoryPositions[#self.categoryPositions + 1] = 1
-                end
-            end
-        end
-
-		self.populatedCategoryPos = true
-	end
-
-	local desiredIndex
-	local categoryCount = #self.categoryList.dataList
-	if categoryCount > 0 then
-		if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= categoryCount then
-			desiredIndex = previousSelectedIndex
-		else
-			desiredIndex = 1
-		end
-	end
-
-	-- Temporarily remove the callback before commit to prevent it firing with wrong selection
-	local headerTabBar = self.header and self.header.tabBar
-	local savedCallback = nil
-	if headerTabBar then
-		savedCallback = headerTabBar.onSelectedDataChangedCallback
-		headerTabBar:RemoveOnSelectedDataChangedCallback(savedCallback)
-	end
-	
-	self.categoryList:Commit()
-	self.header.tabBar:Commit()
-
-	if desiredIndex then
-		self.categoryList:SetSelectedIndexWithoutAnimation(desiredIndex, true, false)
-		if headerTabBar then
-			local headerCount = #headerTabBar.dataList
-			if headerCount > 0 then
-				local clampedIndex = zo_clamp(desiredIndex, 1, headerCount)
-				-- Pass true for dontCallSelectedDataChangedCallback to avoid triggering list refresh during rebuild
-				headerTabBar:SetSelectedIndexWithoutAnimation(clampedIndex, true, true)
-				headerTabBar.targetSelectedIndex = clampedIndex
-				-- Force carousel to update visual positions
-				if headerTabBar.UpdateAnchors then
-					headerTabBar:UpdateAnchors(clampedIndex, true, false)
-				end
-			end
-		end
-	end
-	
-	-- Restore the callback after selection is set
-	if headerTabBar and savedCallback then
-		headerTabBar:SetOnSelectedDataChangedCallback(savedCallback)
-	end
-
-	self:EnsureHeaderKeybindsActive()
-end
 
 --- Initializes the gamepad header, including the tab bar and currency display.
 ---
@@ -1069,8 +562,8 @@ function BETTERUI.Inventory.Class:InitializeHeader()
 	local tabBarControl = self.header:GetNamedChild("TabBar")
 	if tabBarControl and self.header.tabBar then
 		tabBarControl.scrollList = self.header.tabBar
-        
-        -- (Callback attached via categoryHeaderData now)
+
+		-- (Callback attached via categoryHeaderData now)
 	end
 
 	BETTERUI.GenericFooter.Initialize(self)
@@ -1080,7 +573,7 @@ end
 Function: BETTERUI.Inventory.Class:OnCategoryClicked
 Description: Handles direct category icon clicks from the header.
 Rationale: Bypasses the fragile scroll list callback mechanism (which fails in Inventory context) to ensure reliable category switching.
-Mechanism: 
+Mechanism:
 1. Validates index and state.
 2. Saves current position (SaveListPosition).
 3. Updates categoryList state (selectedIndex, selectedData).
@@ -1089,86 +582,39 @@ References: Called by BETTERUI_TabBar_OnCategoryIconClicked (ParametricScrollLis
 param: index (number) - The index of the clicked category (1-based).
 ]]
 function BETTERUI.Inventory.Class:OnCategoryClicked(index)
-    if not index or not self.categoryList then return end
-    
-    local count = #self.categoryList.dataList
-    if index < 1 or index > count then return end
-    
-    -- Sync check: If we are already on this index, do nothing (or should we force refresh?)
-    -- Usually clicking the active tab does nothing.
-    if self.categoryList.selectedIndex == index then return end
+	if not index or not self.categoryList then return end
 
-    -- Save position of the OLD category before switching
-    self:SaveListPosition()
-    
-    -- Update Inventory Class state to match the new selection
-    self.categoryList.selectedIndex = index
-    self.categoryList.targetSelectedIndex = index
-    self.categoryList.selectedData = self.categoryList.dataList[index]
-    self.categoryList.defaultSelectedIndex = index
-    
-    -- Update Title immediatley
-    if self.categoryList.selectedData and self.categoryList.selectedData.text then
-        BETTERUI.GenericHeader.SetTitleText(self.header, self.categoryList.selectedData.text)
-    end
-    
-    -- Switch list and restore position for NEW category
-    self:ToSavedPosition()
-end
+	local count = #self.categoryList.dataList
+	if index < 1 or index > count then return end
 
---- Refreshes the header, ensuring callbacks are preserved.
----
---- Purpose: Overrides base RefreshHeader to enforce BetterUI logic.
---- Mechanics:
---- - Calls GenericHeader.Refresh.
---- - Re-attaches the mouse click callback (which might be wiped by Refresh).
---- - Ensures scrollList link.
---- @param blockCallback boolean Whether to block the tab bar callback during refresh.
-function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
-    BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)
+	-- Sync check: If we are already on this index, do nothing (or should we force refresh?)
+	-- Usually clicking the active tab does nothing.
+	if self.categoryList.selectedIndex == index then return end
 
-    -- Ensure scrollList is explicitly linked
-    local tabBarControl = self.header:GetNamedChild("TabBar")
-    if tabBarControl and self.header.tabBar then
-        tabBarControl.scrollList = self.header.tabBar
-        
-    end
-end
+	-- Save position of the OLD category before switching
+	self:SaveListPosition()
 
---- Sets up visual data for an inventory row.
----
---- Purpose: Maps item data to the UI entry.
---- Mechanics:
---- - Copies uniqueId, categoryName, and icon.
---- - Sets name color based on Quality (except for Quest items).
---- - Disables font scaling on selection for cleaner list look.
---- @param itemData table The source item data.
-function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
-	self.uniqueId = itemData.uniqueId --need this on self so that it can be used for a compare by EqualityFunction in ParametricScrollList,
-	self.bestItemCategoryName = itemData.bestItemCategoryName
-	self:SetDataSource(itemData) --SharedInventory modifies the dataSource's uniqueId before the GamepadEntryData is rebuilt,
-	self.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
-	self:AddIcon(itemData.icon) --so by copying it over, we can still have access to the old one during the Equality check
-	if not itemData.questIndex then
-		self:SetNameColors(self:GetColorsBasedOnQuality(self.quality)) --quest items are only white
+	-- Update Inventory Class state to match the new selection
+	self.categoryList.selectedIndex = index
+	self.categoryList.targetSelectedIndex = index
+	self.categoryList.selectedData = self.categoryList.dataList[index]
+	self.categoryList.defaultSelectedIndex = index
+
+	-- Update Title immediatley
+	if self.categoryList.selectedData and self.categoryList.selectedData.text then
+		BETTERUI.GenericHeader.SetTitleText(self.header, self.categoryList.selectedData.text)
 	end
-	self.cooldownIcon = itemData.icon or itemData.iconFile
 
-	self:SetFontScaleOnSelection(false) --item entries don't grow on selection
+	-- Switch list and restore position for NEW category
+	self:ToSavedPosition()
 end
 
---- Refreshes the Craft Bag list content.
----
---- Purpose: Populates the list when in Craft Bag mode.
---- Mechanics: Delegates to `craftBagList:RefreshList` with the current category filter.
---- References: Called by SwitchActiveList.
----
-function BETTERUI.Inventory.Class:RefreshCraftBagList()
-	-- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
-	local craftCategoryTarget = SafeGetTargetData(self.categoryList)
-	local craftFilter = craftCategoryTarget and craftCategoryTarget.filterType or nil
-	self.craftBagList:RefreshList(craftFilter, self.searchQuery)
-end
+--- RefreshHeader extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:RefreshHeader
+
+
+--- RefreshCraftBagList extracted to Lists/CraftBagListManager.lua
+-- BETTERUI.Inventory.Class:RefreshCraftBagList
 
 --- Refreshes the item list based on the selected category and filter.
 ---
@@ -1183,239 +629,18 @@ end
 --- 7. Sorts and populates the parametric list.
 --- References: Called on Slot Updates and Category Changes.
 ---
-function BETTERUI.Inventory.Class:RefreshItemList()
-	self.itemList:Clear()
-	if self.categoryList:IsEmpty() then
-		return
-	end
 
-	local function IsStolenItem(itemData)
-		return itemData.stolen
-	end
+-- RefreshItemList extracted to Lists/ItemListManager.lua
 
-	local targetCategoryData = SafeGetTargetData(self.categoryList)
-	local filteredEquipSlot = targetCategoryData.equipSlot
-	local nonEquipableFilterType = targetCategoryData.filterType
-	local showJunkCategory = (targetCategoryData and targetCategoryData.showJunk ~= nil)
-	local showEquippedCategory = (targetCategoryData and targetCategoryData.showEquipped ~= nil)
-	local showStolenCategory = (targetCategoryData and targetCategoryData.showStolen ~= nil)
-	local filteredDataTable
-
-	local isQuestItem = nonEquipableFilterType == ITEMFILTERTYPE_QUEST
-	--special case for quest items
-	if isQuestItem then
-		filteredDataTable = {}
-		local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-		for _, questItems in pairs(questCache) do
-			for _, questItem in pairs(questItems) do
-				ZO_InventorySlot_SetType(questItem, SLOT_TYPE_QUEST_ITEM)
-				table.insert(filteredDataTable, questItem)
-			end
-		end
-	else
-		local comparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
-
-		if showEquippedCategory then
-			local worn = self:GetCachedSlotData(BAG_WORN)
-			filteredDataTable = {}
-			for _, slotData in ipairs(worn) do
-				if comparator(slotData) then
-					table.insert(filteredDataTable, slotData)
-				end
-			end
-		elseif showStolenCategory then
-			local backpack = self:GetCachedSlotData(BAG_BACKPACK)
-			filteredDataTable = {}
-			for _, slotData in ipairs(backpack) do
-				if IsStolenItem(slotData) then
-					table.insert(filteredDataTable, slotData)
-				end
-			end
-		else
-			local bags = self:GetCachedSlotData(BAG_BACKPACK, BAG_WORN)
-			filteredDataTable = {}
-			for _, slotData in ipairs(bags) do
-				if comparator(slotData) then
-					table.insert(filteredDataTable, slotData)
-				end
-			end
-		end
-		-- Process items and set up categories in a single pass
-		-- Localize frequently used globals for performance inside tight loop
-		local GetItemLink = GetItemLink
-		local GetItemLinkItemType = GetItemLinkItemType
-		local GetItemLinkSetInfo = GetItemLinkSetInfo
-		local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
-		local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
-		local IsItemLinkBookKnown = IsItemLinkBookKnown
-		local IsItemLinkBook = IsItemLinkBook
-		local GetItemTrait = GetItemTrait
-		local IsItemBound = IsItemBound
-		local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
-		local zo_strformat = zo_strformat
-		local GetBestItemCategoryDescription = GetBestItemCategoryDescription
-		local WouldEquipmentBeHidden = WouldEquipmentBeHidden
-		local FindActionSlotMatchingItem = FindActionSlotMatchingItem
-		for i = 1, #filteredDataTable do
-			local itemData = filteredDataTable[i]
-
-			-- Set up custom categories
-			local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
-			if customCategory and not matched then
-				itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-				itemData.bestItemCategoryName = AC_UNGROUPED_NAME
-				itemData.sortPriorityName = string.format("%03d%s", 999, catName)
-			elseif customCategory then
-				itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-				itemData.bestItemCategoryName = catName
-				itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority, catName)
-			else
-				itemData.bestItemTypeName = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
-				itemData.bestItemCategoryName = itemData.bestItemTypeName
-				itemData.sortPriorityName = itemData.bestItemCategoryName
-			end
-
-			-- Handle equipped item status
-			if itemData.bagId == BAG_WORN then
-				itemData.isEquippedInCurrentCategory = (itemData.slotIndex == filteredEquipSlot)
-				itemData.isEquippedInAnotherCategory = (itemData.slotIndex ~= filteredEquipSlot)
-				itemData.isHiddenByWardrobe =
-					WouldEquipmentBeHidden(itemData.slotIndex or EQUIP_SLOT_NONE, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
-			else
-				-- Check quickslot assignment
-				local slotIndex =
-					FindActionSlotMatchingItem(itemData.bagId, itemData.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-				itemData.isEquippedInCurrentCategory = slotIndex and true or nil
-			end
-
-			if isQuestItem then
-				ZO_InventorySlot_SetType(itemData, SLOT_TYPE_QUEST_ITEM)
-			else
-				ZO_InventorySlot_SetType(itemData, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM)
-			end
-
-			-- Cache expensive API calls for performance
-			itemData.cached_itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
-			itemData.cached_itemType = GetItemLinkItemType(itemData.cached_itemLink)
-			itemData.cached_setItem = GetItemLinkSetInfo(itemData.cached_itemLink, false)
-			itemData.cached_hasEnchantment = GetItemLinkEnchantInfo(itemData.cached_itemLink)
-			itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE)
-				and not IsItemLinkRecipeKnown(itemData.cached_itemLink)
-			itemData.cached_isBook = IsItemLinkBook(itemData.cached_itemLink)
-			itemData.cached_isBookKnown = itemData.cached_isBook and IsItemLinkBookKnown(itemData.cached_itemLink)
-			itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex)
-				and not itemData.stolen
-				and itemData.quality ~= ITEM_QUALITY_TRASH
-			
-			-- Trait caching (reduces GetItemTrait calls during scrolling)
-			itemData.cached_traitType = GetItemTrait(itemData.bagId, itemData.slotIndex)
-			if itemData.cached_traitType ~= ITEM_TRAIT_TYPE_NONE then
-				itemData.cached_traitName = string.upper(GetString("SI_ITEMTRAITTYPE", itemData.cached_traitType))
-			else
-				itemData.cached_traitName = "-"
-			end
-		end
-	end
-
-	local GetItemCooldownInfo = GetItemCooldownInfo
-	local GetQuestToolCooldownInfo = GetQuestToolCooldownInfo
-	local GetQuestItemCooldownInfo = GetQuestItemCooldownInfo
-	local ipairs = ipairs
-	local ZO_GamepadEntryData = ZO_GamepadEntryData
-	local ZO_InventoryUtils_DoesNewItemMatchFilterType = ZO_InventoryUtils_DoesNewItemMatchFilterType
-
-	-- Apply text search filtering after item/category metadata has been computed so names/categories are accurate.
-	-- For consistency with the craft-bag, restrict inventory filtering to item name only so
-	-- short queries don't match category/type strings like "(Alchemy)" unintentionally.
-	if self.searchQuery and tostring(self.searchQuery) ~= "" then
-		local q = tostring(self.searchQuery):lower()
-		local matches = {}
-		for i = 1, #filteredDataTable do
-			local it = filteredDataTable[i]
-			local name = tostring(it.name or "")
-			local lname = name:lower()
-			if string.find(lname, q, 1, true) then
-				table.insert(matches, it)
-			end
-		end
-		filteredDataTable = matches
-	end
-
-	table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
-
-	local currentBestCategoryName
-
-	for i, itemData in ipairs(filteredDataTable) do
-		-- Ensure name and icon are available, with fallbacks for missing data
-		local itemName = itemData.name
-		local itemIcon = itemData.iconFile or itemData.icon
-
-		-- Skip invalid items with missing critical data
-		if itemName and itemIcon then
-			local data = ZO_GamepadEntryData:New(itemName, itemIcon)
-			data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
-			data:InitializeInventoryVisualData(itemData)
-
-			local remaining, duration
-			if isQuestItem then
-				if itemData.toolIndex then
-					remaining, duration = GetQuestToolCooldownInfo(itemData.questIndex, itemData.toolIndex)
-				elseif itemData.stepIndex and itemData.conditionIndex then
-					remaining, duration =
-						GetQuestItemCooldownInfo(itemData.questIndex, itemData.stepIndex, itemData.conditionIndex)
-				end
-			else
-				remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
-			end
-
-			if remaining > 0 and duration > 0 then
-				data:SetCooldown(remaining, duration)
-			end
-
-			data.bestItemCategoryName = itemData.bestItemCategoryName
-			data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
-			data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
-			data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
-			data.isJunk = itemData.isJunk
-
-			if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
-				if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
-					currentBestCategoryName = data.bestGamepadItemCategoryName
-					data:SetHeader(currentBestCategoryName)
-					if AutoCategory then
-						self.itemList:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
-					else
-						self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-					end
-				else
-					self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-				end
-			end
-		end
-	end
-
-	self.itemList:Commit()
-	self:RefreshCategoryList()
-end
 
 --- Configure the tooltip for the Craft Bag header.
 ---
 --- Purpose: Shows subscription status explainers.
 --- Mechanics: Checks HasCraftBagAccess() and displays relevant title/messaging.
 ---
-function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
-	local title
-	local description
-	if HasCraftBagAccess() then
-		title = GetString(SI_ESO_PLUS_STATUS_UNLOCKED)
-		description = GetString(SI_CRAFT_BAG_STATUS_ESO_PLUS_UNLOCKED_DESCRIPTION)
-	else
-		title = GetString(SI_ESO_PLUS_STATUS_LOCKED)
-		description = GetString(SI_CRAFT_BAG_STATUS_LOCKED_DESCRIPTION)
-	end
 
-	GAMEPAD_TOOLTIPS:LayoutTitleAndMultiSectionDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, title, description)
-end
+-- LayoutCraftBagTooltip extracted to Lists/CraftBagListManager.lua
+
 
 --- Toggles the tooltip detailed info mode.
 ---
@@ -1430,88 +655,8 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 	end
 end
 
---[[
-Function: BETTERUI.Inventory.Class:UpdateItemLeftTooltip
-Description: Updates the left-side tooltip with details about the selected item.
-Purpose: Displays item stats, comparisons, or quest info.
-Mechanics: 
-  1. Validates selected data.
-  2. Determines item type (Quest vs Regular).
-  3. Handles `switchInfo` toggle to show Right Tooltip (Comparisons).
-  4. Updates "Equipped" indicator text.
-References: Called on selection change.
-param: selectedData (table) - The data of the currently selected item.
-]]
-function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
-	-- Guard: selectedData may be a category/header entry without bag/slot fields.
-	-- Avoid calling inventory helper functions on non-item rows which expect item tables.
-	if
-		not selectedData
-		or (
-			not selectedData.bagId
-			and not selectedData.questIndex
-			and not selectedData.toolIndex
-			and not selectedData.dataSource
-		)
-	then
-		-- Clear tooltips when there's no valid item selected
-		if GAMEPAD_TOOLTIPS then
-			GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-			GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
-		end
-		return
-	end
+-- UpdateItemLeftTooltip extracted to Lists/ItemListManager.lua
 
-	if selectedData then
-		GAMEPAD_TOOLTIPS:ResetScrollTooltipToTop(GAMEPAD_RIGHT_TOOLTIP)
-		if ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_QUEST) then
-			if selectedData.toolIndex then
-				GAMEPAD_TOOLTIPS:LayoutQuestItem(
-					GAMEPAD_LEFT_TOOLTIP,
-					GetQuestToolQuestItemId(selectedData.questIndex, selectedData.toolIndex)
-				)
-			else
-				GAMEPAD_TOOLTIPS:LayoutQuestItem(
-					GAMEPAD_LEFT_TOOLTIP,
-					GetQuestConditionQuestItemId(
-						selectedData.questIndex,
-						selectedData.stepIndex,
-						selectedData.conditionIndex
-					)
-				)
-			end
-		else
-			local showRightTooltip = false
-			if
-				ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_WEAPONS)
-				or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_ARMOR)
-				or ZO_InventoryUtils_DoesNewItemMatchFilterType(selectedData, ITEMFILTERTYPE_JEWELRY)
-			then
-				if self.switchInfo then
-					showRightTooltip = true
-				end
-			end
-
-			if not showRightTooltip then
-				GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
-			else
-				if selectedData.bagId ~= nil and selectedData.slotIndex ~= nil then
-					self:UpdateRightTooltip(selectedData)
-				end
-			end
-		end
-		if
-			selectedData.isEquippedInCurrentCategory
-			or selectedData.isEquippedInAnotherCategory
-			or selectedData.equipSlot
-		then
-			local slotIndex = selectedData.bagId == BAG_WORN and selectedData.slotIndex or nil --equipped quickslottables slotIndex is not the same as slot index's in BAG_WORN
-			BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
-		else
-			BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
-		end
-	end
-end
 
 --- Updates the right-side tooltip for item comparisons.
 ---
@@ -1523,105 +668,13 @@ end
 --- References: Called by UpdateItemLeftTooltip.
 ---
 --- @param selectedData table The data of the currently selected item.
---[[
-Function: BETTERUI.Inventory.Class:UpdateRightTooltip
-Description: Updates the right-side tooltip (Equipped Item comparison).
-Rationale: Enables side-by-side comparison of the selected inventory item against currently equipped gear.
-Mechanism: 
-  - Identifies the equip slot for the selected item type.
-  - Uses GAMEPAD_TOOLTIPS:LayoutItemStatComparison to render the comparison.
-  - Falls back to standard worn item layout if no comparison data exists.
-param: selectedData (table) - The data of the currently selected row/item.
-]]
-function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
-	local selectedItemData = selectedData
-	--
-	local selectedEquipSlot
+-- UpdateRightTooltip extracted to Lists/ItemListManager.lua
 
-	if self:GetCurrentList() == self.itemList then
-		if selectedItemData ~= nil and selectedItemData.dataSource ~= nil then
-			selectedEquipSlot = BETTERUI_GetEquipSlotForEquipType(selectedItemData.dataSource.equipType)
-		end
-	else
-		selectedEquipSlot = 0
-	end
+-- UpdateRightTooltip extracted to Lists/ItemListManager.lua
 
-	--
 
-	if selectedItemData ~= nil then
-		GAMEPAD_TOOLTIPS:LayoutItemStatComparison(
-			GAMEPAD_LEFT_TOOLTIP,
-			selectedItemData.bagId,
-			selectedItemData.slotIndex,
-			selectedEquipSlot
-		)
-		GAMEPAD_TOOLTIPS:SetStatusLabelText(
-			GAMEPAD_LEFT_TOOLTIP,
-			GetString(SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE)
-		)
-	elseif GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then
-		BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, selectedEquipSlot)
-	end
+-- InitializeItemList extracted to Lists/ItemListManager.lua
 
-	if selectedItemData ~= nil and selectedItemData.dataSource ~= nil and selectedData ~= nil then
-		if selectedData.dataSource and selectedItemData.dataSource.equipType == 0 then
-			GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-		end
-	end
-end
-
---- Initializes the main item list (used for backpack items).
----
---- Purpose: Sets up the visual scroll list for the inventory.
---- Mechanics:
---- - Creates a `BETTERUI_VerticalParametricScrollList`.
---- - Configures selection callbacks to update tooltips and keybinds.
---- - Sets padding and default sorting.
---- References: Called during Initialize.
----
-function BETTERUI.Inventory.Class:InitializeItemList()
-	self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
-
-	self.itemList:SetSortFunction(BETTERUI_GamepadInventory_DefaultItemSortComparator)
-
-	self.itemList:SetOnSelectedDataChangedCallback(function(list, selectedData)
-		if selectedData ~= nil and self.scene:IsShowing() then
-			self.currentlySelectedData = selectedData
-
-			self:SetSelectedInventoryData(selectedData)
-			self:UpdateItemLeftTooltip(selectedData)
-
-			if self.callLaterLeftToolTip ~= nil then
-				EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
-			end
-
-			local callLaterId = zo_callLater(function()
-				self:UpdateItemLeftTooltip(selectedData)
-			end, BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS)
-			self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
-
-			self:PrepareNextClearNewStatus(selectedData)
-			self:RefreshKeybinds()
-		end
-	end)
-
-	self.itemList.maxOffset = 30
-	self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
-	self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
-
-	local emptyText = GetString(SI_BETTERUI_EMPTY_LIST)
-	local listControl = self.itemList and self.itemList.control
-	if listControl and listControl.GetNamedChild then
-		local noItemsLabel = listControl:GetNamedChild("NoItemsLabel")
-		if noItemsLabel and noItemsLabel.GetText then
-			local defaultText = noItemsLabel:GetText()
-			if defaultText and defaultText ~= "" then
-				emptyText = defaultText
-			end
-		end
-	end
-	self.itemList:SetNoItemText(emptyText)
-end
 
 --- Initializes the craft bag list.
 ---
@@ -1632,40 +685,9 @@ end
 --- - Sets "No Item" text specifically for craft bag.
 --- References: Called during Initialize.
 ---
-function BETTERUI.Inventory.Class:InitializeCraftBagList()
-	local function OnSelectedDataCallback(list, selectedData)
-		if selectedData ~= nil and self.scene:IsShowing() then
-			self.currentlySelectedData = selectedData
-			self:UpdateItemLeftTooltip(selectedData)
 
-			--self:SetSelectedInventoryData(selectedData)
-			local currentList = self:GetCurrentList()
-			if currentList == self.craftBagList or ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-				self:SetSelectedInventoryData(selectedData)
-				self.craftBagList:RefreshVisible()
-			end
-			self:RefreshKeybinds()
-		end
-	end
+-- InitializeCraftBagList extracted to Lists/CraftBagListManager.lua
 
-	self.craftBagList = self:AddList(
-		"CraftBag",
-		SetupCraftBagList,
-		BETTERUI.Inventory.CraftList,
-		BAG_VIRTUAL,
-		SLOT_TYPE_CRAFT_BAG_ITEM,
-		OnSelectedDataCallback,
-		nil,
-		nil,
-		nil,
-		false,
-		"BETTERUI_GamepadItemSubEntryTemplate"
-	)
-	self.craftBagList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY))
-	self.craftBagList:SetAlignToScreenCenter(true, 30)
-
-	self.craftBagList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
-end
 
 --- Initializes the action slot manager for item interactions.
 ---
@@ -1887,7 +909,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
 			do
 				local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
-						and (self.itemList and SafeGetTargetData(self.itemList))
+					and (self.itemList and SafeGetTargetData(self.itemList))
 					or nil
 				local isLocked = false
 				if target and target.bagId and target.slotIndex then
@@ -1914,11 +936,13 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					local tmpCat = SafeGetTargetData(self.categoryList)
 					if tmpCat and tmpCat.showJunk ~= nil then
 						-- Unmark should remain available even if locked
-						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk, "secondary")
+						self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk,
+							"secondary")
 					else
 						-- Hide Mark as Junk when the item is locked
 						if not isLocked and canMarkJunk then
-							self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk, "secondary")
+							self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk,
+								"secondary")
 						end
 					end
 				end
@@ -1932,7 +956,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 					for i = 1, numActions do
 						local action = actions:GetSlotAction(i)
 						local actionName = actions:GetRawActionName(action)
-						local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+						local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+							SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+							SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
 						if
 							actionName == GetString(SI_ITEM_ACTION_MARK_AS_LOCKED)
 							or actionName == GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED)
@@ -1997,7 +1023,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				local hideMarkJunk = false
 				do
 					local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
-							and (self.itemList and SafeGetTargetData(self.itemList))
+						and (self.itemList and SafeGetTargetData(self.itemList))
 						or nil
 					if
 						target
@@ -2070,7 +1096,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 				local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
 				local selected = SafeGetTargetData(dialog.entryList)
 				if selected and selected.isUnassign then
-					local assigned = FindActionSlotMatchingItem and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+					local assigned = FindActionSlotMatchingItem and
+						FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
 					if assigned then
 						CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
 						if SOUNDS and PlaySound then
@@ -2095,7 +1122,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 		end
 
 		-- Handle BetterUI synthetic Destroy entry
-	local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
+		local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
 		if selectedRow and selectedRow.isBetterUIDestroy then
 			local targetData
 			if dialog and dialog.data and dialog.data.target then
@@ -2116,11 +1143,14 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			if bag and slot then
 				ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 				local link = GetItemLink(bag, slot)
-				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and
+					BETTERUI.Settings.Modules["Inventory"] and
+					BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
 				if quick then
 					BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
 				else
-					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+						{ bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
 				end
 			end
 			return
@@ -2148,11 +1178,14 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 			if bag and slot then
 				ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 				local link = GetItemLink(bag, slot)
-				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+				local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and
+					BETTERUI.Settings.Modules["Inventory"] and
+					BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
 				if quick then
 					BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
 				else
-					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+					ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+						{ bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
 				end
 			end
 			return
@@ -2160,7 +1193,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
 		-- Link to chat handling; hide for companion scene
 		if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
-			local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+			local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+				SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+				SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
 			if isCompanionSceneShowing then
 				return
 			end
@@ -2361,34 +1396,34 @@ end
 --- @param slotIndex number The slot index of the item.
 function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
 	local data = { quickslotAssign = true, target = { bagId = bagId, slotIndex = slotIndex } }
-    
+
 	if ZO_Dialogs_IsShowing(BETTERUI_EQUIP_SLOT_DIALOG) then
 		ZO_Dialogs_ReleaseDialog(BETTERUI_EQUIP_SLOT_DIALOG)
 	end
-    
-    -- Attempt to show the primary action dialog immediately
-    ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
-    
-    -- Robust fallback: If the dialog didn't show (possibly due to engine state), 
-    -- attempt once more in the next frame. If both fail, use the standalone dialog.
-    zo_callLater(function()
-        if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-            ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
-            
-            -- Final fallback to standalone if the unified dialog is unavailable/denied
-            zo_callLater(function()
-                if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
-                    ZO_Dialogs_ShowDialog(
-                        "BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
-                        { target = { bagId = bagId, slotIndex = slotIndex } },
-                        nil,
-                        true,
-                        true
-                    )
-                end
-            end, 50)
-        end
-    end, 10)
+
+	-- Attempt to show the primary action dialog immediately
+	ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
+
+	-- Robust fallback: If the dialog didn't show (possibly due to engine state),
+	-- attempt once more in the next frame. If both fail, use the standalone dialog.
+	zo_callLater(function()
+		if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+			ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
+
+			-- Final fallback to standalone if the unified dialog is unavailable/denied
+			zo_callLater(function()
+				if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+					ZO_Dialogs_ShowDialog(
+						"BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
+						{ target = { bagId = bagId, slotIndex = slotIndex } },
+						nil,
+						true,
+						true
+					)
+				end
+			end, 50)
+		end
+	end, 10)
 end
 
 --- Attempts to destroy an item, dealing with junk status and user confirmation settings.
@@ -2470,7 +1505,9 @@ end
 ---
 function BETTERUI.Inventory.HookActionDialog()
 	local function ActionsDialogSetup(dialog, data)
-		local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+		local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+			SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+			SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
 		dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
 			data.itemActions:SetSelectedAction(selectedData and selectedData.action)
 		end)
@@ -2500,12 +1537,12 @@ function BETTERUI.Inventory.HookActionDialog()
 				if actionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
 					-- skip adding this action entirely
 				else
-				if isDestroy then
-					entryData.isBetterUIDestroy = true
-					entryData.action = nil -- prevent engine destroy from being selected/executed
-				else
-					entryData.action = action
-				end
+					if isDestroy then
+						entryData.isBetterUIDestroy = true
+						entryData.action = nil -- prevent engine destroy from being selected/executed
+					else
+						entryData.action = action
+					end
 
 					local listItem = {
 						template = "ZO_GamepadItemEntryTemplate",
@@ -2623,7 +1660,7 @@ function BETTERUI.Inventory.HookActionDialog()
 				return
 			end
 			-- Debug: if the selected action is Equip and the companion scene is active, check if patch is present
-            
+
 
 			-- Normal BetterUI override path when enabled/visible
 			-- Title provided via dialog's dynamic title function; avoid overriding here
@@ -2780,7 +1817,8 @@ function BETTERUI.Inventory.HookActionDialog()
 								actionController = self.itemActions
 							end
 							if actionController and actionController.selectedAction then
-								selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController.selectedAction)
+								selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController
+									.selectedAction)
 							end
 						end
 						if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
@@ -2841,6 +1879,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
+
+		-- Mark when scene showed so we can skip redundant category refreshes during initial load
+		self._sceneShowedTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
 
 		--figure out which list to land on
 		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
@@ -3140,7 +2181,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
 				end,
 				visible = function(dialog)
 					-- Hide switch bar button if player hasn't unlocked weapon swap
-					if not CanUseBackupBar() then
+					if not (GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()) then
 						return false
 					end
 					local equipType = dialog.data[1].dataSource.equipType
@@ -3228,6 +2269,9 @@ end
 --- References: Called by `OnStateChanged`.
 ---
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
+	if self.isDeferredInitialized then return end
+	self.isDeferredInitialized = true
+
 	local SAVED_VAR_DEFAULTS = {
 		useStatComparisonTooltip = true,
 	}
@@ -3256,6 +2300,12 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self:InitializeItemActions()
 	self:InitializeActionsDialog()
 	self:InitializeQuickslotAssignDialog()
+
+	-- Initialize Footer using shared GenericFooter
+	if BETTERUI.GenericFooter then
+		BETTERUI.GenericFooter.control = self.control
+		BETTERUI.GenericFooter:Initialize()
+	end
 
 	local function RefreshHeader()
 		if not self.control:IsHidden() then
@@ -3293,8 +2343,11 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
-	local function OnInventoryUpdated(bagId)
+	local function OnInventoryUpdated(bagId, slotIndex)
 		self:InvalidateSlotDataCache()
+		if self.InvalidateItemMeta then
+			self:InvalidateItemMeta(bagId, slotIndex)
+		end
 		self:MarkDirty()
 		-- Debounce heavy updates to the next frame to batch rapid changes
 		if GetFrameTimeSeconds then
@@ -3315,7 +2368,10 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				RefreshSelectedData()
 				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 				-- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly
-				if not self._pendingCategoryListRefresh then
+				-- BUT skip if we just opened the scene (within 200ms) since SwitchActiveList already refreshed
+				local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or
+					999
+				if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
 					self._pendingCategoryListRefresh = true
 					zo_callLater(function()
 						self._pendingCategoryListRefresh = false
@@ -3353,9 +2409,10 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 			end, 40)
 		end
 	end, 60)
+
+	-- Set the active list to ItemList by default
+	self:SwitchActiveList(INVENTORY_ITEM_LIST)
 end
-
-
 
 --- Initializes the Inventory object.
 ---
@@ -3367,187 +2424,10 @@ end
 --- - Sets up the "Search" control logic (Focus hooks, Key handlers).
 --- References: Called by Module.lua.
 ---
-function BETTERUI.Inventory.Class:Initialize(control)
-	GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
-	BETTERUI_Gamepad_ParametricList_Screen.Initialize(
-		self,
-		control,
-		ZO_GAMEPAD_HEADER_TABBAR_CREATE,
-		false,
-		GAMEPAD_INVENTORY_ROOT_SCENE
-	)
 
-	self:InitializeSplitStackDialog()
+-- Initialize extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:Initialize
 
-	local function CallbackSplitStackFinished()
-		--refresh list
-		if self.scene:IsShowing() then
-			self:ToSavedPosition()
-		end
-	end
-	CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
-
-	-- Use base UI destroy lifecycle; no custom cancel handler required
-
-	-- Guard update loop so we only process while the inventory scene is visible.
-	-- Prevents nil access inside RefreshItemActions when the scene is hidden but
-	-- the control still ticks (reported by a user; mirrors ESO base patterns).
-	local function OnUpdate(updateControl, currentFrameTimeSeconds)
-		if self.scene and self.scene:IsShowing() then
-			self:OnUpdate(currentFrameTimeSeconds)
-		end
-	end
-
-	self.trySetClearNewFlagCallback = function(callId)
-		self:TrySetClearNewFlag(callId)
-	end
-
-	local function RefreshVisualLayer()
-		if self.scene:IsShowing() then
-			self:OnUpdate()
-			if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
-				self:RefreshCategoryList()
-				self:SwitchActiveList(INVENTORY_ITEM_LIST)
-			end
-		end
-	end
-
-	-- Do not intercept base destroy cancel events to avoid input blockage
-	control:RegisterForEvent(EVENT_VISUAL_LAYER_CHANGED, RefreshVisualLayer)
-	control:SetHandler("OnUpdate", OnUpdate)
-
-	-- Add gamepad text search support using the shared helper (from BETTERUI.Interface.Window)
-	if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.AddSearch then
-		-- Provide a dedicated keybind group for the text-search header. When the
-		-- header is active the parametric screen will swap to this group so the
-		-- only visible button is the Clear action (B).
-		-- Store the descriptor on self immediately so callbacks can reference it.
-		self.textSearchKeybindStripDescriptor = CreateSearchKeybindDescriptor(self)
-
-		BETTERUI.Interface.Window.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
-			-- Normalize the OnTextChanged argument like Banking does
-			local query = ""
-			if type(editOrText) == "string" then
-				query = editOrText
-			elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
-				query = editOrText:GetText() or ""
-			elseif editOrText and type(editOrText) == "userdata" then
-				local ok, txt = pcall(function()
-					return editOrText:GetText()
-				end)
-				if ok and txt then
-					query = txt
-				else
-					query = tostring(editOrText)
-				end
-			else
-				query = tostring(editOrText or "")
-			end
-
-			self.searchQuery = query or ""
-			-- When search changes, reset selection to top and refresh the active list
-			self:SaveListPosition()
-			-- If craft bag is currently active, refresh craft bag list so filtering is immediate
-			if self:GetCurrentList() == self.craftBagList then
-				self:RefreshCraftBagList()
-			else
-				self:RefreshItemList()
-			end
-		end)
-		if self.PositionSearchControl then
-			self:PositionSearchControl()
-		end
-		-- Hook into the actual edit box to detect when it gains/loses keyboard focus.
-		-- This is more reliable than the FocusActivated callback which tracks the
-		-- ZO_TextSearch_Header_Gamepad object's activation state, not keyboard focus.
-		if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
-			local editBox = self.textSearchHeaderFocus:GetEditBox()
-			local origOnFocusGained = editBox:GetHandler("OnFocusGained")
-			local origOnFocusLost = editBox:GetHandler("OnFocusLost")
-			local origOnTextChanged = editBox:GetHandler("OnTextChanged")
-			local origOnKeyDown = editBox:GetHandler("OnKeyDown")
-
-			editBox:SetHandler("OnFocusGained", function(eb)
-				-- Fire original handler if any
-				if origOnFocusGained then
-					origOnFocusGained(eb)
-				end
-				if not self:IsHeaderActive() then
-					self:RequestEnterHeader()
-				end
-			end)
-
-			editBox:SetHandler("OnFocusLost", function(eb)
-				-- Fire original handler if any
-				if origOnFocusLost then
-					origOnFocusLost(eb)
-				end
-				self:ExitSearchFocus()
-			end)
-
-			-- Targeted OnTextChanged handler: perform a local immediate craft-bag refresh
-			-- when the engine's text-search manager will not run its background search
-			-- (for example, single-character queries). This avoids editing engine
-			-- files while allowing craft-bag filtering to feel instant for short queries.
-			editBox:SetHandler("OnTextChanged", function(eb)
-				-- Preserve original handler behavior first
-				if origOnTextChanged then
-					origOnTextChanged(eb)
-				end
-
-				local txt = ""
-				local t = eb:GetText()
-				if t then
-					txt = t
-				end
-
-				-- Mirror AddSearch normalization
-				self.searchQuery = txt or ""
-
-				-- Only force a local refresh for the craft-bag when the engine
-				-- will not perform background filtering (to avoid doubling work).
-				local willEngineFilter = false
-				if ZO_TextSearchManager and ZO_TextSearchManager.CanFilterByText then
-					-- Use the raw text to decide (avoids needing the engine search context)
-					willEngineFilter = ZO_TextSearchManager.CanFilterByText(self.searchQuery)
-				end
-
-				if self:GetCurrentList() == self.craftBagList and not willEngineFilter then
-					self:SaveListPosition()
-					self:RefreshCraftBagList()
-				end
-			end)
-
-			editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
-				if origOnKeyDown then
-					local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
-					if handled then
-						return handled
-					end
-				end
-
-				if command == "UI_SHORTCUT_DOWN" then
-					self:ExitSearchFocus()
-					return true
-				end
-			end)
-		end
-		-- NOTE: search is now invoked via holding X/Y (see holdDown/holdUp callbacks on X/Y descriptors below).
-	end
-
-	-- After Initialize completes the search control and descriptors should exist.
-	-- Force a short delayed refresh of the main keybind group so visibility
-	-- predicates (like the Clear Search QUATERNARY) get evaluated with the
-	-- newly-created `textSearchHeaderControl`. This fixes the case where the
-	-- clear prompt didn't appear until the list was interacted with.
-	zo_callLater(function()
-		if self.RefreshKeybinds then
-			self:RefreshKeybinds()
-		elseif self.mainKeybindStripDescriptor then
-			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-		end
-	end, 40)
-end
 
 --- Refreshes the header information (Money, AP, Tel Var, Capacity).
 ---
@@ -3560,109 +2440,10 @@ end
 --- References: Called on Currency Update or List Switch.
 ---
 --- @param blockCallback boolean If true, prevents tab bar callbacks (used during internal updates).
-function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
-	local currentList = self:GetCurrentList()
 
-	local function HeaderGoldText()
-		return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_MONEY))
-	end
-	local function HeaderAPText()
-		return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_ALLIANCE_POINTS))
-	end
-	local function HeaderTelVarText()
-		return BETTERUI.AbbreviateNumber(GetCurrencyAmount(CURT_TELVAR_STONES))
-	end
+-- RefreshHeader extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:RefreshHeader
 
-	local function BuildHeaderData(listRef, useAbbrev)
-		-- Category list uses prebuilt header with tab bar
-		if listRef == self.categoryList then
-			return self.categoryHeaderData
-		end
-
-		local invSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"]
-			or {}
-		local data = {
-			titleText = function()
-				return GetString(
-					self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_CB
-						or SI_BETTERUI_INV_ACTION_INV
-				)
-			end,
-			-- CRITICAL: Always include the tabBarData to preserve onNext/onPrev callbacks
-			-- and carouselConfig to prevent GenericHeader.Refresh from using broken defaults
-			tabBarData = self.categoryHeaderData and self.categoryHeaderData.tabBarData,
-			carouselConfig = self.categoryHeaderData and self.categoryHeaderData.carouselConfig,
-		}
-		local slot = 1
-		local function add(headerText, valueFunc)
-			if slot == 1 then
-				data.data1HeaderText, data.data1Text = headerText, valueFunc
-			elseif slot == 2 then
-				data.data2HeaderText, data.data2Text = headerText, valueFunc
-			elseif slot == 3 then
-				data.data3HeaderText, data.data3Text = headerText, valueFunc
-			elseif slot == 4 then
-				data.data4HeaderText, data.data4Text = headerText, valueFunc
-			end
-			slot = slot + 1
-		end
-
-		local goldFunc = useAbbrev and HeaderGoldText or UpdateGold
-		local apFunc = useAbbrev and HeaderAPText or UpdateAlliancePoints
-		local tvFunc = useAbbrev and HeaderTelVarText or UpdateTelvarStones
-
-		if invSettings.showCurrencyGold ~= false then
-			add(GetString(SI_GAMEPAD_INVENTORY_AVAILABLE_FUNDS), goldFunc)
-		end
-		if listRef ~= self.craftBagList then
-			if invSettings.showCurrencyAlliancePoints ~= false then
-				add(GetString(SI_GAMEPAD_INVENTORY_ALLIANCE_POINTS), apFunc)
-			end
-			if invSettings.showCurrencyTelVar ~= false then
-				add(GetString(SI_GAMEPAD_INVENTORY_TELVAR_STONES), tvFunc)
-			end
-			add(GetString(SI_GAMEPAD_INVENTORY_CAPACITY), UpdateCapacityString)
-		end
-		return data
-	end
-
-	local headerData = BuildHeaderData(currentList, true) -- use abbreviated values by default
-
-	BETTERUI.GenericHeader.Refresh(self.header, headerData, blockCallback)
-
-	-- Ensure the header's focus control includes the search control when present.
-	-- We no longer try to hide or remove the search from header focus here; instead
-	-- the header-enter lifecycle will programmatically focus the search when the
-	-- user actually enters the header. This avoids navigation surprises while
-	-- browsing categories but still allows the user to navigate to the search.
-	if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
-		pcall(function()
-			ZO_GamepadGenericHeader_SetHeaderFocusControl(self.header, self.textSearchHeaderControl)
-		end)
-	end
-
-	BETTERUI.GenericHeader.SetEquipText(self.header, self.isPrimaryWeapon)
-	BETTERUI.GenericHeader.SetBackupEquipText(self.header, self.isPrimaryWeapon)
-	BETTERUI.GenericHeader.SetEquippedIcons(
-		self.header,
-		GetEquippedItemInfo(EQUIP_SLOT_MAIN_HAND),
-		GetEquippedItemInfo(EQUIP_SLOT_OFF_HAND),
-		GetEquippedItemInfo(EQUIP_SLOT_POISON)
-	)
-	BETTERUI.GenericHeader.SetBackupEquippedIcons(
-		self.header,
-		GetEquippedItemInfo(EQUIP_SLOT_BACKUP_MAIN),
-		GetEquippedItemInfo(EQUIP_SLOT_BACKUP_OFF),
-		GetEquippedItemInfo(EQUIP_SLOT_BACKUP_POISON)
-	)
-
-	self:RefreshCategoryList()
-	BETTERUI.GenericFooter.Refresh(self)
-	-- Reposition the search control so it sits under the header/title (above the list)
-	if self.PositionSearchControl then
-		self:PositionSearchControl()
-	end
-end
 
 --- Positions the text search control in the header.
 ---
@@ -3670,54 +2451,10 @@ end
 --- Mechanics: Finds the "TitleContainer" or equivalent anchor and offsets the control.
 --- References: Called by RefreshHeader.
 ---
-function BETTERUI.Inventory.Class:PositionSearchControl()
-	if not self.textSearchHeaderControl then
-		return
-	end
-	self.textSearchHeaderControl:ClearAnchors()
-	local anchorTarget = self.header
-	local titleContainer = nil
-	if anchorTarget and anchorTarget.GetNamedChild then
-		local candidates =
-			{ "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" }
-		for _, name in ipairs(candidates) do
-			local ok, c = pcall(function()
-				return anchorTarget:GetNamedChild(name)
-			end)
-			if ok and c then
-				titleContainer = c
-				break
-			end
-		end
-		if not titleContainer then
-			local ok, h = pcall(function()
-				return anchorTarget:GetNamedChild("Header")
-			end)
-			if ok and h and h.GetNamedChild then
-				local ok2, tc = pcall(function()
-					return h:GetNamedChild("TitleContainer")
-				end)
-				if ok2 and tc then
-					titleContainer = tc
-				end
-			end
-		end
-	end
-	local parentForAnchor = titleContainer or anchorTarget
-	if parentForAnchor then
-		-- Search bar position configured in BetterUI.CONST.lua
-		local xOffset = BETTERUI_INV_SEARCH_X_OFFSET
-		local yOffset = BETTERUI_INV_SEARCH_Y_OFFSET
-		local rightInset = BETTERUI_INV_SEARCH_RIGHT_INSET
-		-- TOPLEFT uses xOffset, TOPRIGHT uses rightInset so the control width is constrained
-		self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
-		self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
-	else
-		self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, BETTERUI_SEARCH_BAR_SPACING_Y)
-		self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, BETTERUI_SEARCH_BAR_SPACING_Y)
-	end
-	self.textSearchHeaderControl:SetHidden(false)
-end
+
+-- PositionSearchControl extracted to Core/InventoryClass.lua
+-- BETTERUI.Inventory.Class:PositionSearchControl
+
 
 --- Centralized helper to clear the text search UI and internal state.
 ---
@@ -3740,8 +2477,10 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	end
 end
 
-function BETTERUI.Inventory:RefreshFooter()
-	BETTERUI.GenericFooter.Refresh(self.footer)
+function BETTERUI.Inventory.Class:RefreshFooter()
+	if BETTERUI.GenericFooter then
+		BETTERUI.GenericFooter:Refresh()
+	end
 end
 
 function BETTERUI.Inventory.Class:Select()
@@ -3790,14 +2529,10 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 	self.previousListType = self.currentListType
 	self.currentListType = listDescriptor
 
-	if self.previousListType == INVENTORY_ITEM_LIST or self.previousListType == INVENTORY_CATEGORY_LIST then
+	if self.previousListType then
 		self.listWaitingOnDestroyRequest = nil
 		self:TryClearNewStatusOnHidden()
-		ZO_SavePlayerConsoleProfile()
-	else
-		self.listWaitingOnDestroyRequest = nil
-		self:TryClearNewStatusOnHidden()
-		ZO_SavePlayerConsoleProfile()
+		-- Note: ZO_SavePlayerConsoleProfile removed here; only called on scene hide for performance
 	end
 
 	GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -3813,11 +2548,11 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self:SetCurrentList(self.itemList)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 			self:RefreshCategoryList()
-			
+
 			-- ALWAYS restore saved inventory category when switching to inventory
 			local targetIndex = 1
 			if self.savedInventoryCategoryKey then
-				local idx = FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
+				local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
 				if idx then targetIndex = idx end
 			end
 			-- Validate target is an inventory category, otherwise find first inventory category
@@ -3829,8 +2564,9 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 					end
 				end
 			end
-			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
-			
+			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
+				true, false)
+
 			-- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
 			if self.header and self.header.tabBar then
 				self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex or 1, true, true)
@@ -3839,10 +2575,10 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 					self.header.tabBar:UpdateAnchors(self.categoryList.selectedIndex or 1, true, false)
 				end
 			end
-			
+
 			-- Refresh and restore item position
 			self:RefreshItemList()
-			local key = GetCategoryKey(self.categoryList.selectedData)
+			local key = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
 			local itemIndex = 1
 			-- Only restore saved position if one exists for this category
 			if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
@@ -3870,24 +2606,23 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.actionMode = ITEM_LIST_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-			
+
 			-- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
 			local selectedCatData = self.categoryList.selectedData
 			if selectedCatData and selectedCatData.text then
 				BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
 			end
-			
+
 			self:UpdateItemLeftTooltip(self.itemList.selectedData)
-			
 		elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
 			self:SetCurrentList(self.craftBagList)
 			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 			self:RefreshCategoryList()
-			
+
 			-- ALWAYS restore saved craft bag category when switching to craft bag
 			local targetIndex = 1
 			if self.savedCraftBagCategoryKey then
-				local idx = FindCategoryIndexByKey(self, self.savedCraftBagCategoryKey)
+				local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedCraftBagCategoryKey)
 				if idx then targetIndex = idx end
 			end
 			-- Validate target is a craft bag category, otherwise find first craft bag category
@@ -3899,8 +2634,9 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 					end
 				end
 			end
-			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
-			
+			self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
+				true, false)
+
 			-- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
 			if self.header and self.header.tabBar then
 				local headerTabBar = self.header.tabBar
@@ -3911,10 +2647,10 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 					headerTabBar:UpdateAnchors(idx, true, false)
 				end
 			end
-			
+
 			-- Refresh and restore item position
 			self:RefreshCraftBagList()
-			local key = GetCategoryKey(self.categoryList.selectedData)
+			local key = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
 			local itemIndex = 1
 			-- Only restore saved position if one exists for this category
 			if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
@@ -3922,7 +2658,8 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 				-- Prefer unique ID restoration
 				if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
 					local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
-					local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
+					local dataList = self.craftBagList.list and self.craftBagList.list.dataList or
+						self.craftBagList.dataList
 					if dataList then
 						for i, entry in ipairs(dataList) do
 							if entry and entry.uniqueId == uid then
@@ -3933,7 +2670,8 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 					end
 				end
 			end
-			local craftDataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList.dataList
+			local craftDataList = self.craftBagList.list and self.craftBagList.list.dataList or
+				self.craftBagList.dataList
 			if craftDataList and #craftDataList > 0 then
 				-- craftBagList wraps an inner list; call SetSelectedIndexWithoutAnimation on the inner list
 				local innerList = self.craftBagList.list or self.craftBagList
@@ -3946,13 +2684,13 @@ function BETTERUI.Inventory.Class:SwitchActiveList(listDescriptor)
 			self.actionMode = CRAFT_BAG_ACTION_MODE
 			self:RefreshItemActions()
 			self:RefreshHeader()
-			
+
 			-- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
 			local selectedCatData = self.categoryList.selectedData
 			if selectedCatData and selectedCatData.text then
 				BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
 			end
-			
+
 			self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
 		end
 		self:RefreshKeybinds()
@@ -4053,7 +2791,7 @@ function BETTERUI.Inventory.Class:ExitSearchFocus()
 			KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
 		end
 	end)
-	
+
 	-- Add back main keybinds
 	pcall(function()
 		if self.mainKeybindStripDescriptor then
@@ -4061,14 +2799,14 @@ function BETTERUI.Inventory.Class:ExitSearchFocus()
 			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
 		end
 	end)
-	
+
 	-- Deactivate the search header focus
 	if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
 		if self.textSearchHeaderFocus:IsActive() then
 			pcall(function() self.textSearchHeaderFocus:Deactivate() end)
 		end
 	end
-	
+
 	-- Leave header if active
 	if self:IsHeaderActive() then
 		self:RequestLeaveHeader()
@@ -4203,7 +2941,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 						ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)
 					local target = self.itemList.selectedData
 					local ft = (target and target.bagId and target.slotIndex)
-							and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
+						and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
 						or nil
 					if IsQuickslottable(target) then
 						--assign
@@ -4254,7 +2992,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 					--bag mode
 					local target = self.itemList.selectedData
 					local ft = (target and target.bagId and target.slotIndex)
-							and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
+						and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
 						or nil
 					if IsQuickslottable(target) then
 						-- Open BetterUI quickslot assignment dialog to let user pick the wheel slot visually
@@ -4348,7 +3086,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 					GetString(SI_BETTERUI_INV_ACTION_TO_TEMPLATE),
 					GetString(
 						self:GetCurrentList() == self.craftBagList and SI_BETTERUI_INV_ACTION_INV
-							or SI_BETTERUI_INV_ACTION_CB
+						or SI_BETTERUI_INV_ACTION_CB
 					)
 				)
 				return s or ""
