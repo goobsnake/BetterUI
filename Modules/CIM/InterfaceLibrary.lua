@@ -158,8 +158,8 @@ References: Called during scene state changes (SceneStateChange) in InterfaceLib
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width
     GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT.control:SetWidth(width)
-    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(TOPLEFT,GuiRoot,TOPLEFT, width+66, 52)
-    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(BOTTOMLEFT,GuiRoot,BOTTOMLEFT, width+66, -125)
+    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(TOPLEFT, GuiRoot, TOPLEFT, width + 66, 52)
+    GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control:SetAnchor(BOTTOMLEFT, GuiRoot, BOTTOMLEFT, width + 66, -125)
 end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
@@ -173,9 +173,9 @@ param: ... (any) - Arguments passed to Initialize.
 return: table - The new window object.
 ]]
 function BETTERUI.Interface.Window:New(...)
-	local object = ZO_Object.New(self)
+    local object = ZO_Object.New(self)
     object:Initialize(...)
-	return object
+    return object
 end
 
 --- Initializes the window.
@@ -219,7 +219,7 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.header.MoveNext = function() self:OnTabNext() end
     self.header.MovePrev = function() self:OnTabPrev() end
 
-	self.header.columns = {}
+    self.header.columns = {}
 
     BETTERUI_BANKING_SCENE = ZO_InteractScene:New(BETTERUI_BANKING_SCENE_NAME, SCENE_MANAGER, BANKING_INTERACTION)
 
@@ -251,7 +251,7 @@ Rationale: Shifts focus to the quantity selector (e.g., for splitting stacks).
 function BETTERUI.Interface.Window:ActivateSpinner()
     self.spinner:SetHidden(false)
     self.spinner:Activate()
-    if(self:GetList() ~= nil) then self:GetList():Deactivate() end
+    if (self:GetList() ~= nil) then self:GetList():Deactivate() end
 end
 
 --[[
@@ -263,7 +263,7 @@ function BETTERUI.Interface.Window:DeactivateSpinner()
     self.spinner:SetValue(1)
     self.spinner:SetHidden(true)
     self.spinner:Deactivate()
-    if(self:GetList() ~= nil) then self:GetList():Activate() end
+    if (self:GetList() ~= nil) then self:GetList():Activate() end
 end
 
 --[[
@@ -318,7 +318,6 @@ function BETTERUI.Interface.Window:GetList()
     return self.list
 end
 
-
 --[[
 Function: BETTERUI.Interface.Window:InitializeKeybind
 Description: Initializes keybinds for the window.
@@ -333,7 +332,6 @@ function BETTERUI.Interface.Window:InitializeKeybind()
     self.triggerSpinnerBinds = {}
 end
 
-
 --- Initializes the main parametric scroll list.
 --- @param listName string|nil Optional list name (not used in default implementation).
 --[[
@@ -343,7 +341,8 @@ Rationale: Creates `BETTERUI_VerticalItemParametricScrollList` with custom setti
 param: listName (string|nil) - Optional list name (not used in default implementation).
 ]]
 function BETTERUI.Interface.Window:InitializeList(listName)
-    self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild("List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
+    self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild(
+    "List"))                                                                                                                 -- replace the itemList with my own generic one (with better gradient size, etc.)
 
     self:GetList():SetAlignToScreenCenter(true, 30)
 
@@ -368,7 +367,8 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
     end)
 
     -- Try to enable mouse and click-to-focus on common child names (edit box or icon)
-    local childCandidates = { "Edit", "TextField", "SearchEdit", "Input", "Entry", "EditBox", "SearchIcon", "Icon", "Texture", "InputContainer" }
+    local childCandidates = { "Edit", "TextField", "SearchEdit", "Input", "Entry", "EditBox", "SearchIcon", "Icon",
+        "Texture", "InputContainer" }
     for _, name in ipairs(childCandidates) do
         if searchControl.GetNamedChild then
             local child = searchControl:GetNamedChild(name)
@@ -438,12 +438,14 @@ function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, o
     -- Create the header editbox control from the common virtual template
     if not self.header then return end
     self.textSearchKeybindStripDescriptor = textSearchKeybindStripDescriptor
-    self.textSearchHeaderControl = CreateControlFromVirtual("$(parent)SearchContainer", self.header, "ZO_Gamepad_TextSearch_HeaderEditbox")
+    self.textSearchHeaderControl = CreateControlFromVirtual("$(parent)SearchContainer", self.header,
+        "ZO_Gamepad_TextSearch_HeaderEditbox")
     -- ZO_TextSearch_Header_Gamepad is provided by the engine's common gamepad libraries
     if ZO_TextSearch_Header_Gamepad then
-    self.textSearchHeaderFocus = ZO_TextSearch_Header_Gamepad:New(self.textSearchHeaderControl, onTextSearchTextChangedCallback)
-    -- Keep the callback so callers can recreate the control under GuiRoot if needed
-    self.textSearchCallback = onTextSearchTextChangedCallback
+        self.textSearchHeaderFocus = ZO_TextSearch_Header_Gamepad:New(self.textSearchHeaderControl,
+            onTextSearchTextChangedCallback)
+        -- Keep the callback so callers can recreate the control under GuiRoot if needed
+        self.textSearchCallback = onTextSearchTextChangedCallback
         -- Treat this as the header focus control for the window
         if not self.headerFocus then
             self.headerFocus = self.textSearchHeaderFocus
@@ -477,7 +479,6 @@ function BETTERUI.Interface.Window:AddSearch(textSearchKeybindStripDescriptor, o
         -- Register for narration if available
         RegisterNarrationHandler(self, self.textSearchHeaderFocus)
     end
-
 end
 
 --[[
@@ -528,10 +529,10 @@ Mechanism: Tries to call `GetCurrentList` (polymorphic) if it exists, otherwise 
 return: table - The active list control.
 ]]
 function BETTERUI.Interface.Window:GetActiveList()
--- TODO(PCALL-AUDIT): This pcall around GetCurrentList may hide real errors.
--- If GetCurrentList doesn't exist, returning nil is fine, but swallowing
--- exceptions from a valid method call masks bugs. Consider:
---   if type(self.GetCurrentList) == "function" then return self:GetCurrentList() end
+    -- TODO(PCALL-AUDIT): This pcall around GetCurrentList may hide real errors.
+    -- If GetCurrentList doesn't exist, returning nil is fine, but swallowing
+    -- exceptions from a valid method call masks bugs. Consider:
+    --   if type(self.GetCurrentList) == "function" then return self:GetCurrentList() end
     if self.GetCurrentList then
         local ok, list = pcall(function() return self:GetCurrentList() end)
         if ok then
@@ -633,7 +634,7 @@ param: rowTemplate (string) - The XML template name.
 param: SetupFunct (function) - The setup callback.
 ]]
 function BETTERUI.Interface.Window:AddTemplate(rowTemplate, SetupFunct)
-    self:GetList():AddDataTemplate(rowTemplate,SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
+    self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
 --[[
@@ -654,7 +655,8 @@ param: xOffset (number) - The horizontal position (left-aligned anchor).
 ]]
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
-    self.header.columns[colNumber] = CreateControlFromVirtual("Column"..colNumber,self.header:GetNamedChild("HeaderColumnBar"),"BETTERUI_GenericColumn_Label")
+    self.header.columns[colNumber] = CreateControlFromVirtual("Column" .. colNumber,
+        self.header:GetNamedChild("HeaderColumnBar"), "BETTERUI_GenericColumn_Label")
     -- Nudge column headers further downward for better alignment with divider bars
     self.header.columns[colNumber]:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT, xOffset, 109)
     self.header.columns[colNumber]:SetText(columnName)
@@ -694,7 +696,7 @@ Description: Initializes scene fragments for the window.
 Rationale: Sets up main window fragment and footer fragment.
 ]]
 function BETTERUI.Interface.Window:InitializeFragment()
-	self.fragment = ZO_SimpleSceneFragment:New(self.control)
+    self.fragment = ZO_SimpleSceneFragment:New(self.control)
     self.fragment:SetHideOnSceneHidden(true)
 
     self.footerFragment = ZO_SimpleSceneFragment:New(BETTERUI_BankingFooterBar)
@@ -721,18 +723,17 @@ function BETTERUI.Interface.Window:InitializeScene(SCENE_NAME)
 
 
     local function SceneStateChange(oldState, newState)
-        if(newState == SCENE_SHOWING) then
+        if (newState == SCENE_SHOWING) then
             KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-        	BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
-        elseif(newState == SCENE_HIDING) then
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
+        elseif (newState == SCENE_HIDING) then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
-        elseif(newState == SCENE_HIDDEN) then
+        elseif (newState == SCENE_HIDDEN) then
 
         end
     end
-    SCENE_NAME:RegisterCallback("StateChange",  SceneStateChange)
-
+    SCENE_NAME:RegisterCallback("StateChange", SceneStateChange)
 end
 
 --[[
@@ -740,8 +741,8 @@ Function: BETTERUI.Interface.Window:ToggleScene
 Description: Toggles the window's scene visibility.
 ]]
 function BETTERUI.Interface.Window:ToggleScene()
-	--SCENE_MANAGER:Show
-	SCENE_MANAGER:Toggle(BETTERUI_BANKING_SCENE_NAME)
+    --SCENE_MANAGER:Show
+    SCENE_MANAGER:Toggle(BETTERUI_BANKING_SCENE_NAME)
 end
 
 --[[
@@ -750,7 +751,7 @@ Description: Handler for Next Tab action.
 Rationale: Placeholder debug function. Subclasses should override.
 ]]
 function BETTERUI.Interface.Window:OnTabNext()
-    ddebug("OnTabNext")
+    -- ddebug("OnTabNext")
 end
 
 --[[
@@ -759,5 +760,5 @@ Description: Handler for Previous Tab action.
 Rationale: Placeholder debug function. Subclasses should override.
 ]]
 function BETTERUI.Interface.Window:OnTabPrev()
-    ddebug("OnTabPrev")
+    -- ddebug("OnTabPrev")
 end

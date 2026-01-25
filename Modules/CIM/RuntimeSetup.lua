@@ -2,7 +2,7 @@
 File: Modules/CIM/RuntimeSetup.lua
 Purpose: Consolidates early-initialization logic for BetterUI.
          Applies runtime API patches and runs settings migrations.
-         
+
          This file exists to keep BetterUI.lua clean and focused on module loading.
          All "dirty but necessary" workarounds for ESO API issues are isolated here.
 
@@ -122,13 +122,15 @@ local function ApplyAPIPatches()
     -- new one can be registered, restoring keybind strip functionality.
     if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
         local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
-        ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
+        ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor,
+                                                             keybindButtonDescriptor, state, stateIndex, currentSceneName)
             local ok, res = pcall(function()
-                return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state, stateIndex, currentSceneName)
+                return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state,
+                    stateIndex, currentSceneName)
             end)
             -- If the call succeeded, return normally
             if ok then return res end
-            
+
             -- If the call failed, attempt a safe recovery by removing the conflicting descriptor
             -- so the new keybind can be registered. This ensures LB/RB navigation is restored
             -- even when duplicate handling errors occur.
@@ -145,7 +147,7 @@ local function ApplyAPIPatches()
                     end
                 end
             end)
-            
+
             -- Schedule a deferred re-add of the new keybind to handle timing edge cases where
             -- removal and re-add happen too quickly in the same frame. This is especially important
             -- during scene transitions (like search enter/exit) where multiple duplicate keybind
@@ -170,7 +172,7 @@ local function ApplyAPIPatches()
                     end, 0)
                 end
             end)
-            
+
             -- Do not log to chat/debug as per user requirement. The keybind strip will
             -- continue, and duplicate handling was attempted (even if it failed gracefully).
         end
@@ -201,10 +203,10 @@ local function RunSettingsMigrations(settings)
     if settings.Modules["Tooltips"] ~= nil then
         if settings.Modules["GeneralInterface"] == nil then
             settings.Modules["GeneralInterface"] = settings.Modules["Tooltips"]
-            if ddebug then ddebug("Migrated settings: Tooltips -> GeneralInterface") end
+            -- if ddebug then ddebug("Migrated settings: Tooltips -> GeneralInterface") end
         end
         -- Keep 'Tooltips' key in settings pointing to same table to avoid breaking older modules
-        -- until they are all updated, then we can nil it out. 
+        -- until they are all updated, then we can nil it out.
         -- For now, redirecting the reference is safest.
         settings.Modules["Tooltips"] = settings.Modules["GeneralInterface"]
     end
@@ -219,7 +221,7 @@ local function RunSettingsMigrations(settings)
         if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then
             modSettings.m_enabled = modSettings.enabled
             modSettings.enabled = nil
-            if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
+            -- if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
         end
     end
 end

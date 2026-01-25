@@ -27,47 +27,118 @@ local TRADE_BARS_ID = CURT_TRADE_BARS or CURT_EVENT_TICKETS
 local TOME_POINTS_ID = CURT_TOME_POINTS -- can be nil
 
 local CURRENCY_DEFS = {
-    { token = "gold",      labelName = "GoldLabel",      settingKey = "showCurrencyGold",
-      apiConst = CURT_MONEY, labelStringId = "SI_BETTERUI_FOOTER_GOLD_LABEL", color = "FFBF00",
-      location = nil },
-    { token = "ap",        labelName = "APLabel",        settingKey = "showCurrencyAlliancePoints",
-      apiConst = CURT_ALLIANCE_POINTS, labelStringId = "SI_BETTERUI_FOOTER_AP_LABEL", color = "00FF00",
-      location = nil },
-    { token = "telvar",    labelName = "TVLabel",        settingKey = "showCurrencyTelVar",
-      apiConst = CURT_TELVAR_STONES, labelStringId = "SI_BETTERUI_FOOTER_TELVAR_LABEL", color = "00FF00",
-      location = nil },
-    { token = "gems",      labelName = "GemsLabel",      settingKey = "showCurrencyCrownGems",
-      apiConst = CURT_CROWN_GEMS, labelStringId = "SI_BETTERUI_FOOTER_GEMS_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "transmute", labelName = "TCLabel",        settingKey = "showCurrencyTransmute",
-      apiConst = CURT_TRANSMUTE_CRYSTALS, labelStringId = "SI_BETTERUI_FOOTER_TRANSMUTE_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "crowns",    labelName = "CrownsLabel",    settingKey = "showCurrencyCrowns",
-      apiConst = CURT_CROWNS, labelStringId = "SI_BETTERUI_FOOTER_CROWNS_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "writs",     labelName = "WritsLabel",     settingKey = "showCurrencyWritVouchers",
-      apiConst = CURT_WRIT_VOUCHERS, labelStringId = "SI_BETTERUI_FOOTER_WRITS_LABEL", color = "00FF00",
-      location = nil },
-    { token = "tradebars", labelName = "TradeBarsLabel", settingKey = "showCurrencyTradeBars",
-      apiConst = TRADE_BARS_ID, 
-      labelStringId = IS_LEGACY_TICKETS and "SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL" or "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL", 
-      color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "keys",      labelName = "KeysLabel",      settingKey = "showCurrencyUndauntedKeys",
-      apiConst = CURT_UNDAUNTED_KEYS, labelStringId = "SI_BETTERUI_FOOTER_KEYS_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "outfit",    labelName = "OutfitLabel",    settingKey = "showCurrencyOutfitTokens",
-      apiConst = CURT_STYLE_STONES, labelStringId = "SI_BETTERUI_FOOTER_OUTFIT_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
-    { token = "seals",     labelName = "SealsLabel",     settingKey = "showCurrencySeals",
-      apiConst = CURT_SEALS, labelStringId = "SI_BETTERUI_FOOTER_SEALS_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT },
+    {
+        token = "gold",
+        labelName = "GoldLabel",
+        settingKey = "showCurrencyGold",
+        apiConst = CURT_MONEY,
+        labelStringId = "SI_BETTERUI_FOOTER_GOLD_LABEL",
+        color = "FFBF00",
+        location = nil
+    },
+    {
+        token = "ap",
+        labelName = "APLabel",
+        settingKey = "showCurrencyAlliancePoints",
+        apiConst = CURT_ALLIANCE_POINTS,
+        labelStringId = "SI_BETTERUI_FOOTER_AP_LABEL",
+        color = "00FF00",
+        location = nil
+    },
+    {
+        token = "telvar",
+        labelName = "TVLabel",
+        settingKey = "showCurrencyTelVar",
+        apiConst = CURT_TELVAR_STONES,
+        labelStringId = "SI_BETTERUI_FOOTER_TELVAR_LABEL",
+        color = "00FF00",
+        location = nil
+    },
+    {
+        token = "gems",
+        labelName = "GemsLabel",
+        settingKey = "showCurrencyCrownGems",
+        apiConst = CURT_CROWN_GEMS,
+        labelStringId = "SI_BETTERUI_FOOTER_GEMS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "transmute",
+        labelName = "TCLabel",
+        settingKey = "showCurrencyTransmute",
+        apiConst = CURT_TRANSMUTE_CRYSTALS,
+        labelStringId = "SI_BETTERUI_FOOTER_TRANSMUTE_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "crowns",
+        labelName = "CrownsLabel",
+        settingKey = "showCurrencyCrowns",
+        apiConst = CURT_CROWNS,
+        labelStringId = "SI_BETTERUI_FOOTER_CROWNS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "writs",
+        labelName = "WritsLabel",
+        settingKey = "showCurrencyWritVouchers",
+        apiConst = CURT_WRIT_VOUCHERS,
+        labelStringId = "SI_BETTERUI_FOOTER_WRITS_LABEL",
+        color = "00FF00",
+        location = nil
+    },
+    {
+        token = "tradebars",
+        labelName = "TradeBarsLabel",
+        settingKey = "showCurrencyTradeBars",
+        apiConst = TRADE_BARS_ID,
+        labelStringId = IS_LEGACY_TICKETS and "SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL" or
+            "SI_BETTERUI_FOOTER_TRADE_BARS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "keys",
+        labelName = "KeysLabel",
+        settingKey = "showCurrencyUndauntedKeys",
+        apiConst = CURT_UNDAUNTED_KEYS,
+        labelStringId = "SI_BETTERUI_FOOTER_KEYS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "outfit",
+        labelName = "OutfitLabel",
+        settingKey = "showCurrencyOutfitTokens",
+        apiConst = CURT_STYLE_STONES,
+        labelStringId = "SI_BETTERUI_FOOTER_OUTFIT_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
+    {
+        token = "seals",
+        labelName = "SealsLabel",
+        settingKey = "showCurrencySeals",
+        apiConst = CURT_SEALS,
+        labelStringId = "SI_BETTERUI_FOOTER_SEALS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT
+    },
     -- Note: CURT_TOME_POINTS uses GetPlayerStoredCurrencyAmount instead of GetCurrencyAmount
     -- because Endless Archive currency storage is character-specific, not account-wide
-    { token = "tomepoints", labelName = "TomePointsLabel", settingKey = "showCurrencyTomePoints",
-      apiConst = TOME_POINTS_ID, labelStringId = "SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", color = "00FF00",
-      location = CURRENCY_LOCATION_ACCOUNT,
-      useStoredAmount = true },
+    {
+        token = "tomepoints",
+        labelName = "TomePointsLabel",
+        settingKey = "showCurrencyTomePoints",
+        apiConst = TOME_POINTS_ID,
+        labelStringId = "SI_BETTERUI_FOOTER_TOME_POINTS_LABEL",
+        color = "00FF00",
+        location = CURRENCY_LOCATION_ACCOUNT,
+        useStoredAmount = true
+    },
 }
 
 -- Build token-to-def lookup table for ordering
@@ -114,7 +185,7 @@ return: string - Formatted label text with color codes and icon
 local function FormatCurrencyLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     local icon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(def.apiConst))
-    return zo_strformat("<<1>> |c<<2>><<3>>|r |t24:24:<<4>>|t", 
+    return zo_strformat("<<1>> |c<<2>><<3>>|r |t24:24:<<4>>|t",
         label, def.color, BETTERUI.AbbreviateNumber(amount), icon)
 end
 
@@ -129,7 +200,12 @@ param: labelName (string) - Name of the label to retrieve
 return: control|nil - The label control or nil if not found
 ]]
 local function GetLabelControl(footer, labelName)
-    return footer[labelName] or footer:GetNamedChild(labelName)
+    if not footer._controlCache then footer._controlCache = {} end
+    if not footer._controlCache[labelName] then
+        -- Use global GetControl to resolve $(parent)Suffix naming automatically
+        footer._controlCache[labelName] = GetControl(footer, labelName)
+    end
+    return footer._controlCache[labelName]
 end
 
 --[[
@@ -144,29 +220,51 @@ param: invSettings (table) - Inventory settings containing currency visibility f
 return: nil
 ]]
 local function UpdateCurrencyLabels(footer, invSettings)
+    -- ddebug("UpdateCurrencyLabels Called")
+    if not footer._valueCache then footer._valueCache = {} end
+    local cache = footer._valueCache
+    local anyChanged = false
+
     for _, def in ipairs(CURRENCY_DEFS) do
         local label = GetLabelControl(footer, def.labelName)
         if label then
+            local cached = cache[def.token] or {}
+
             -- If the API constant is missing (e.g. Tome Points on old versions), force hide the label.
             if def.apiConst == nil then
-                label:SetHidden(true)
+                if not label:IsHidden() then
+                    label:SetHidden(true)
+                    anyChanged = true
+                end
             else
                 local enabled = invSettings[def.settingKey] ~= false
-                label:SetHidden(not enabled)
-                if enabled then
-                    label:SetText(FormatCurrencyLabel(def, GetCurrencyValue(def)))
+                local val = enabled and GetCurrencyValue(def) or 0
+
+                -- Check if state changed
+                if cached.enabled ~= enabled or (enabled and cached.amount ~= val) then
+                    label:SetHidden(not enabled)
+                    if enabled then
+                        label:SetText(FormatCurrencyLabel(def, val))
+                    end
+
+                    cache[def.token] = { enabled = enabled, amount = val }
+                    anyChanged = true
                 end
             end
+        else
+            -- ddebug("Could not find label: " .. tostring(def.labelName))
         end
     end
+    return anyChanged
 end
 
 --- Build ordered list of visible currency tokens based on user settings
 local function GetVisibleCurrencyOrder(invSettings)
-    local orderStr = invSettings.currencyOrder or "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
+    local orderStr = invSettings.currencyOrder or
+        "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
     local seen = {}
     local visible = {}
-    
+
     -- First pass: Add enabled tokens found in the order string
     for token in string.gmatch(string.lower(orderStr), "[^,%s]+") do
         local def = TOKEN_TO_DEF[token]
@@ -177,7 +275,7 @@ local function GetVisibleCurrencyOrder(invSettings)
             end
         end
     end
-    
+
     -- Second pass: Add any remaining enabled tokens not in order string (fallback)
     for _, def in ipairs(CURRENCY_DEFS) do
         if not seen[def.token] then
@@ -186,7 +284,7 @@ local function GetVisibleCurrencyOrder(invSettings)
             end
         end
     end
-    
+
     return visible
 end
 
@@ -205,9 +303,9 @@ Mechanism:
 ]]
 local function PositionCurrencyLabels(footer, invSettings)
     local visible = GetVisibleCurrencyOrder(invSettings)
-    local yRows = BETTERUI_CURRENCY_ROWS or {32, 58, 84}
+    local yRows = BETTERUI_CURRENCY_ROWS or { 32, 58, 84 }
     local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 12
-    
+
     -- Hide excess currencies
     for idx, def in ipairs(visible) do
         local ctrl = GetLabelControl(footer, def.labelName)
@@ -217,28 +315,28 @@ local function PositionCurrencyLabels(footer, invSettings)
     end
 
     -- Layout Configuration
-    local startX = BETTERUI_FOOTER_START_X                  -- Left anchor position
-    local rightPadding = BETTERUI_FOOTER_RIGHT_PADDING             -- Safety buffer from right edge
+    local startX = BETTERUI_FOOTER_START_X             -- Left anchor position
+    local rightPadding = BETTERUI_FOOTER_RIGHT_PADDING -- Safety buffer from right edge
     local footerWidth = footer:GetWidth()
-    
+
     -- If footer width isn't valid yet (e.g. at startup), default to a standard 1080p width
     if footerWidth <= 0 then footerWidth = 1920 end
-    
+
     local availableWidth = footerWidth - startX - rightPadding
     local numRows = #yRows - 1
-    
+
     local visibleCount = math.min(#visible, maxVisible)
     local numCols = math.ceil(visibleCount / numRows)
-    
+
     -- Phase 1: Measure Columns
     local columnWidths = {}
     local totalTextWidth = 0
     local columnData = {} -- Store data to avoid re-looping for ctrls
-    
+
     for col = 1, numCols do
         local maxColWidth = 0
         local items = {}
-        
+
         for row = 1, numRows do
             local idx = (col - 1) * numRows + row
             if idx <= visibleCount then
@@ -251,12 +349,12 @@ local function PositionCurrencyLabels(footer, invSettings)
                 end
             end
         end
-        
+
         columnWidths[col] = maxColWidth
         totalTextWidth = totalTextWidth + maxColWidth
         columnData[col] = items
     end
-    
+
     -- Phase 2: Calculate Spacing (Justify)
     local colGap = 0
     if numCols > 1 then
@@ -265,7 +363,7 @@ local function PositionCurrencyLabels(footer, invSettings)
         if freeSpace < 0 then freeSpace = 0 end
         colGap = freeSpace / (numCols - 1)
     end
-    
+
     -- Phase 3: Position Items
     local currentX = startX
     for col = 1, numCols do
@@ -274,7 +372,7 @@ local function PositionCurrencyLabels(footer, invSettings)
             item.control:ClearAnchors()
             item.control:SetAnchor(LEFT, footer, BOTTOMLEFT, currentX, item.rowY)
         end
-        
+
         currentX = currentX + columnWidths[col] + colGap
     end
 end
@@ -293,9 +391,9 @@ param: control (table) - The parent control containing the footer.
 return: nil
 ]]
 function BETTERUI.GenericFooter:Initialize()
-    if(self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
+    if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
-    if(self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
+    if (self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
 --[[
@@ -311,26 +409,45 @@ References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and
 function BETTERUI.GenericFooter:Refresh()
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
     local footer = self.footer
-    
+    if not footer._stringCache then footer._stringCache = {} end
+
+    local stringsChanged = false
+
     -- Update capacity labels (works for both direct property and named child access)
     local cwLabel = GetLabelControl(footer, "CWLabel")
     local bankLabel = GetLabelControl(footer, "BankLabel")
-    
+
     if cwLabel then
-        cwLabel:SetText(zo_strformat("BAG: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t", 
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK))))
+        local bagText = zo_strformat("BAG: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+
+        if footer._stringCache.bag ~= bagText then
+            cwLabel:SetText(bagText)
+            footer._stringCache.bag = bagText
+            stringsChanged = true
+        end
     end
-    
+
     if bankLabel then
-        bankLabel:SetText(zo_strformat("BANK: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t", 
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, 
-                GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK), 
-                GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK))))
+        local bankText = zo_strformat("BANK: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
+                GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK),
+                GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK)))
+
+        if footer._stringCache.bank ~= bankText then
+            bankLabel:SetText(bankText)
+            footer._stringCache.bank = bankText
+            stringsChanged = true
+        end
     end
-    
+
     -- Update all currency labels with current values
-    UpdateCurrencyLabels(footer, invSettings)
-    
-    -- Position labels based on user-defined order
-    PositionCurrencyLabels(footer, invSettings)
+    local currenciesChanged = UpdateCurrencyLabels(footer, invSettings)
+
+    -- Position labels only if something changed
+    -- Note: Initial sizing/positioning might need to run at least once,
+    -- but Initialize calls Refresh which will trigger updates as internal caches start empty.
+    if stringsChanged or currenciesChanged then
+        PositionCurrencyLabels(footer, invSettings)
+    end
 end
