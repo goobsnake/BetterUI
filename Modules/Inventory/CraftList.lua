@@ -32,33 +32,33 @@ BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 --- @param filterType number|table|nil The filter type(s) to apply.
 --- @return function A predicate function (itemData) -> boolean.
 function GetFilterComparator(filterType)
-	return function(itemData)
-		if filterType then
-			-- we can pass a table of filters into the function, and this case has to be handled separately
-			if type(filterType) == "table" then
-				local filterHit = false
+    return function(itemData)
+        if filterType then
+            -- we can pass a table of filters into the function, and this case has to be handled separately
+            if type(filterType) == "table" then
+                local filterHit = false
 
-				for key, filter in pairs(filterType) do
-					if ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, filter) then
-						filterHit = true
-					end
-				end
+                for key, filter in pairs(filterType) do
+                    if ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, filter) then
+                        filterHit = true
+                    end
+                end
 
-				return filterHit
-			else
-				return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, filterType)
-			end
-		else
-			-- for "All"
-			return true
-		end
-	end
+                return filterHit
+            else
+                return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, filterType)
+            end
+        else
+            -- for "All"
+            return true
+        end
+    end
 end
 
 local DEFAULT_GAMEPAD_ITEM_SORT =
 {
     bestGamepadItemCategoryName = { tiebreaker = "bestItemTypeName" },
-	bestItemTypeName = { tiebreaker = "name"},
+    bestItemTypeName = { tiebreaker = "name" },
     name = { tiebreaker = "requiredLevel" },
     requiredLevel = { tiebreaker = "requiredChampionPoints", isNumeric = true },
     requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
@@ -75,7 +75,8 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 --- @param right table: Right item data
 --- @return boolean: True if left should come before right
 local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
-    return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT, ZO_SORT_ORDER_UP)
+    return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
+        ZO_SORT_ORDER_UP)
 end
 
 --- Adds slot data to the table if it passes the filter.
@@ -91,7 +92,8 @@ end
 --- @param slotIndex number: The slot index
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
-    local categorizationFunction = self.categorizationFunction or ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
+    local categorizationFunction = self.categorizationFunction or
+    ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then
@@ -132,11 +134,11 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- short queries (single-character) don't match engine-provided type strings like "(Alchemy)".
     if searchQuery and tostring(searchQuery) ~= "" then
         local q = tostring(searchQuery):lower()
-        
+
         -- Reuse buffer table to avoid garbage creation on every keystroke
         if not self.searchMatches then self.searchMatches = {} end
         ZO_ClearNumericallyIndexedTable(self.searchMatches)
-        
+
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             local name = tostring(it.name or "")
@@ -148,21 +150,79 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
         filteredDataTable = self.searchMatches
     end
 
+
+
     -- Sort the filtered data
     table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
 
-    local lastBestItemCategoryName
-    for i, itemData in ipairs(filteredDataTable) do
+    -- BATCH PROCESSING CONSTANTS
+    local BATCH_SIZE_INITIAL = 50
+    local BATCH_SIZE_REMAINING = 200
+
+    -- Clear existing batch
+    if self.batchCallId then
+        EVENT_MANAGER:UnregisterForUpdate(self.batchCallId)
+        self.batchCallId = nil
+    end
+
+    -- Small List: Synchronous
+    if #filteredDataTable <= BATCH_SIZE_INITIAL then
+        local lastBestItemCategoryName
+        for i, itemData in ipairs(filteredDataTable) do
+            local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
+            data:InitializeInventoryVisualData(itemData)
+            -- Use the pre-calculated category name
+            data.bestItemCategoryName = itemData.bestItemCategoryName
+            data.itemCategoryName = itemData.bestItemCategoryName
+            data.bestItemTypeName = itemData.bestItemTypeName
+            data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
+
+            -- Set header only when category changes
+            if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
+                data:SetHeader(itemData.bestItemCategoryName)
+                lastBestItemCategoryName = itemData.bestItemCategoryName
+            end
+            self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
+        end
+        self.list:Commit()
+        return
+    end
+
+    -- Large List: Batch
+    self.pendingBatchData = filteredDataTable
+    self.pendingBatchIndex = 1
+    self.pendingContext = { lastBestItemCategoryName = nil }
+
+    self:ProcessBatch()
+end
+
+--- Processes a batch of craft bag items.
+function BETTERUI.Inventory.CraftList:ProcessBatch()
+    if not self.pendingBatchData or not self.list then return end
+
+    local BATCH_SIZE_REMAINING = 200
+    local startIndex = self.pendingBatchIndex or 1
+    local totalItems = #self.pendingBatchData
+
+    if startIndex > totalItems then
+        self.pendingBatchData = nil
+        self.pendingBatchIndex = nil
+        return
+    end
+
+    local endIndex = math.min(startIndex + BATCH_SIZE_REMAINING - 1, totalItems)
+    local lastBestItemCategoryName = self.pendingContext.lastBestItemCategoryName
+
+    for i = startIndex, endIndex do
+        local itemData = self.pendingBatchData[i]
         local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
         data:InitializeInventoryVisualData(itemData)
 
-        -- Use the pre-calculated category name
         data.bestItemCategoryName = itemData.bestItemCategoryName
         data.itemCategoryName = itemData.bestItemCategoryName
         data.bestItemTypeName = itemData.bestItemTypeName
         data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
 
-        -- Set header only when category changes
         if itemData.bestItemCategoryName ~= lastBestItemCategoryName then
             data:SetHeader(itemData.bestItemCategoryName)
             lastBestItemCategoryName = itemData.bestItemCategoryName
@@ -171,5 +231,13 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
         self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
     end
 
+    self.pendingContext.lastBestItemCategoryName = lastBestItemCategoryName
     self.list:Commit()
+    self.pendingBatchIndex = endIndex + 1
+
+    if self.pendingBatchIndex <= totalItems then
+        self.batchCallId = zo_callLater(function() self:ProcessBatch() end, 10)
+    else
+        self.pendingBatchData = nil
+    end
 end
