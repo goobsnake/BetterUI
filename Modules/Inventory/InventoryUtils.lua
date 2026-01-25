@@ -37,7 +37,8 @@ function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
         parent:SaveListPosition()
 
         parent.categoryList.targetSelectedIndex =
-            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList.dataList)
+            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList
+            .dataList)
         parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
         parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
         parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
@@ -58,7 +59,8 @@ function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
         parent:SaveListPosition()
 
         parent.categoryList.targetSelectedIndex =
-            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList.dataList)
+            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList
+            .dataList)
         parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
         parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
         parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
@@ -67,4 +69,16 @@ function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
 
         parent:ToSavedPosition()
     end
+end
+
+--- Safe helper for GetTargetData calls (guards against lists without method)
+--- @param list table The list object to query
+--- @return table|nil The target data of the list
+function BETTERUI.Inventory.Utils.SafeGetTargetData(list)
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    -- Fallback for basic tables or parametric lists
+    return list.selectedData
 end

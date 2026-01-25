@@ -1018,3 +1018,462 @@ function BETTERUI.Inventory.HookActionDialog()
         },
     })
 end
+
+--- Initializes the actions dialog (Y-button menu).
+function BETTERUI.Inventory.Class:InitializeActionsDialog()
+    local function ActionDialogSetup(dialog, data)
+        if self.scene:IsShowing() then
+            -- If invoked for quickslot assignment, render the wheel options inside this proven parametric dialog
+            if data and data.quickslotAssign and data.target then
+                -- Title provided via dialog's dynamic title function; avoid overriding here
+                local parametricList = dialog.info.parametricList
+                ZO_ClearNumericallyIndexedTable(parametricList)
+
+                local target = data.target
+                local hasUnassign = false
+                local assignedIndex = nil
+                if FindActionSlotMatchingItem then
+                    assignedIndex =
+                        FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                    if assignedIndex then
+                        hasUnassign = true
+                        -- Ensure the Remove row text is visible; icon not required
+                        local removeText = GetString(SI_ITEM_ACTION_REMOVE)
+                        if not removeText or removeText == "" then
+                            removeText = "Remove"
+                        end
+                        local unassignEntry = ZO_GamepadEntryData:New(removeText)
+                        unassignEntry:SetIconTintOnSelection(true)
+                        local normalColor = ZO_NORMAL_TEXT or ZO_ColorDef:New(1, 1, 1, 1)
+                        local selectedColor = ZO_SELECTED_TEXT or ZO_ColorDef:New(1, 1, 1, 1)
+                        if unassignEntry.SetNameColors then
+                            unassignEntry:SetNameColors(normalColor, selectedColor)
+                        end
+                        unassignEntry.isUnassign = true
+                        unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
+                        table.insert(
+                            parametricList,
+                            { template = "ZO_GamepadMenuEntryTemplate", entryData = unassignEntry }
+                        )
+                    end
+                end
+
+                local function slotLabel(idx)
+                    if idx == 4 then
+                        return "North"
+                    elseif idx == 5 then
+                        return "Northwest"
+                    elseif idx == 6 then
+                        return "West"
+                    elseif idx == 7 then
+                        return "Southwest"
+                    elseif idx == 8 then
+                        return "South"
+                    elseif idx == 1 then
+                        return "Southeast"
+                    elseif idx == 2 then
+                        return "East"
+                    elseif idx == 3 then
+                        return "Northeast"
+                    end
+                    return tostring(idx)
+                end
+
+                -- Clockwise ordering starting at North: N, NE, E, SE, S, SW, W, NW
+                local orderedSlots = { 4, 3, 2, 1, 8, 7, 6, 5 }
+                for _, slotIndex in ipairs(orderedSlots) do
+                    local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
+                    local lower = type(icon) == "string" and icon:lower() or nil
+                    -- Prefer a clearly visible empty-slot texture when the quickslot is unassigned
+                    if not icon or icon == "" or (lower and string.find(lower, "quickslot_empty", 1, true)) then
+                        -- Use a known-good icon that exists in this UI: the gamepad quickslot category icon
+                        icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds"
+                    end
+                    local entryData = ZO_GamepadEntryData:New(slotLabel(slotIndex), icon)
+                    if entryData.AddIcon and icon then
+                        entryData:AddIcon(icon)
+                    end
+                    -- Flash all non-current slots; keep the currently assigned slot steady
+                    local isCurrent = assignedIndex ~= nil and (slotIndex == assignedIndex)
+                    local shouldFlash = not isCurrent
+                    entryData.alphaChangeOnSelection = shouldFlash
+                    entryData.showBarEvenWhenUnselected = shouldFlash
+                    entryData:SetIconTintOnSelection(shouldFlash)
+                    entryData.slotIndex = slotIndex
+                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                    local templateName = isCurrent and "ZO_GamepadMenuEntryTemplate" or "ZO_GamepadItemEntryTemplate"
+                    table.insert(parametricList, { template = templateName, entryData = entryData })
+                end
+
+                dialog.quickslotTarget = target
+                dialog:setupFunc()
+                if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
+                    local offset = hasUnassign and 1 or 0
+                    if assignedIndex then
+                        -- Map the quickslot index to its position in the ordered list
+                        local indexMap = {}
+                        for pos, idx in ipairs(orderedSlots) do
+                            indexMap[idx] = pos
+                        end
+                        local listPos = (indexMap[assignedIndex] or 1) + offset
+                        dialog.entryList:SetSelectedIndexWithoutAnimation(listPos, true, false)
+                    else
+                        dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
+                    end
+                end
+                return
+            end
+
+            -- Default actions list setup
+            -- Title provided via dialog's dynamic title function; avoid overriding here
+            dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
+                self.itemActions:SetSelectedAction(selectedData and selectedData.action)
+            end)
+
+            local function MarkAsJunk()
+                -- Silent junk toggle: skip craft bag and locked errors messaging
+                if self.actionMode == CRAFT_BAG_ACTION_MODE then
+                    return
+                end
+                local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                if not target then
+                    return
+                end
+                -- Respect engine gating: do nothing for companion items or items that cannot be marked as junk
+                if IsItemPlayerLocked(target.bagId, target.slotIndex) then
+                    return
+                end
+                if not CanItemBeMarkedAsJunk(target.bagId, target.slotIndex) then
+                    return
+                end
+                local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+                if not companionJunkEnabled and GetItemActorCategory(target.bagId, target.slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+                    return
+                end
+                -- Close the actions dialog to restore header/keybind focus
+                if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                end
+                SetItemIsJunk(target.bagId, target.slotIndex, true)
+                -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
+                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                    GAMEPAD_INVENTORY:RefreshItemList()
+                end
+                if self and self.RefreshItemActions then
+                    self:RefreshItemActions()
+                end
+                if self and self.RefreshKeybinds then
+                    self:RefreshKeybinds()
+                end
+                -- Ensure the main keybind descriptor becomes active after toggling junk
+                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                    self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                    zo_callLater(function()
+                        if self.SetActiveKeybinds then
+                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                        end
+                    end, 40)
+                end
+            end
+            -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
+            -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
+            local function UnmarkAsJunk()
+                local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                -- Close the actions dialog to restore header/keybind focus
+                if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                end
+                SetItemIsJunk(target.bagId, target.slotIndex, false)
+                -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
+                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                    GAMEPAD_INVENTORY:RefreshItemList()
+                end
+                if self and self.RefreshItemActions then
+                    self:RefreshItemActions()
+                end
+                if self and self.RefreshKeybinds then
+                    self:RefreshKeybinds()
+                end
+                -- Ensure the main keybind descriptor becomes active after toggling junk
+                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                    self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                    zo_callLater(function()
+                        if self.SetActiveKeybinds then
+                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                        end
+                    end, 40)
+                end
+            end
+
+            local parametricList = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(parametricList)
+
+            -- Removed injected "Assign Quickslot" action from Y menu per request
+
+            self:RefreshItemActions()
+
+            do
+                local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
+                    and (self.itemList and SafeGetTargetData(self.itemList))
+                    or nil
+                local isLocked = false
+                if target and target.bagId and target.slotIndex then
+                    isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
+                end
+                local canMarkJunk = true
+                if target and target.bagId and target.slotIndex then
+                    local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+                    canMarkJunk = CanItemBeMarkedAsJunk(target.bagId, target.slotIndex)
+                        and (companionJunkEnabled or GetItemActorCategory(target.bagId, target.slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION)
+                end
+                -- Do not show Mark/Unmark as Junk for quest items (they are not junkable)
+                local isQuestItem = false
+                if target then
+                    -- Use the shared helper to determine if this is a quest item row
+                    if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+                        isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+                    else
+                        isQuestItem = (target.questIndex ~= nil) or (target.toolIndex ~= nil)
+                    end
+                end
+
+                if not isQuestItem then
+                    local tmpCat = SafeGetTargetData(self.categoryList)
+                    if tmpCat and tmpCat.showJunk ~= nil then
+                        -- Unmark should remain available even if locked
+                        self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk,
+                            "secondary")
+                    else
+                        -- Hide Mark as Junk when the item is locked
+                        if not isLocked and canMarkJunk then
+                            self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk,
+                                "secondary")
+                        end
+                    end
+                end
+                -- Ensure engine-provided Lock/Unlock callbacks release the dialog first.
+                -- We do this by wrapping the discovered slot action callbacks rather than injecting synthetic entries.
+                do
+                    local actions = self.itemActions:GetSlotActions()
+                    local numActions = actions:GetNumSlotActions()
+                    for i = 1, numActions do
+                        local action = actions:GetSlotAction(i)
+                        local actionName = actions:GetRawActionName(action)
+                        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+                            SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+                            SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+                        if
+                            actionName == GetString(SI_ITEM_ACTION_MARK_AS_LOCKED)
+                            or actionName == GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED)
+                        then
+                            -- Find the corresponding entry inside the backing m_slotActions table and wrap its callback
+                            for j, slotAction in ipairs(actions.m_slotActions) do
+                                if slotAction and slotAction[1] == actionName then
+                                    local origCallback = slotAction[2]
+                                    slotAction[2] = function(...)
+                                        if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+                                            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                                        end
+                                        -- Call original callback in protected context if it exists
+                                        if origCallback then
+                                            origCallback(...)
+                                        end
+                                        -- Immediately refresh item list and actions to restore UI/keybind state
+                                        if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                                            GAMEPAD_INVENTORY:RefreshItemList()
+                                        end
+                                        if self and self.RefreshItemActions then
+                                            self:RefreshItemActions()
+                                        end
+                                        if self and self.RefreshKeybinds then
+                                            self:RefreshKeybinds()
+                                        end
+                                        -- Ensure the main keybind descriptor becomes active after lock/unlock flows
+                                        if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                                            zo_callLater(function()
+                                                if self.SetActiveKeybinds then
+                                                    self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+                                                end
+                                            end, 40)
+                                        end
+                                    end
+                                    -- Only wrap the first matching entry
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+
+            dialog:setupFunc()
+        end
+    end
+    local function ActionDialogFinish()
+        if self.scene:IsShowing() then
+            -- make sure to wipe out the keybinds added by
+            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+
+            --restore the selected inventory item
+            if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+                --if we refresh item actions we will get a keybind conflict
+                local currentList = self:GetCurrentList()
+                if currentList then
+                    local targetData = SafeGetTargetData(currentList)
+                    if currentList == self.categoryList then
+                        targetData = self:GenerateItemSlotData(targetData)
+                    end
+                    self:SetSelectedItemUniqueId(targetData)
+                end
+            else
+                self:RefreshItemActions()
+            end
+            --refresh so keybinds react to newly selected item
+            self:RefreshKeybinds()
+
+            self:OnUpdate()
+            if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+                self:RefreshCategoryList()
+            end
+        end
+    end
+
+    local function ActionDialogButtonConfirm(dialog)
+        if not (self.scene and self.scene:IsShowing()) then return end
+
+        if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
+            local target = dialog.data.target or dialog.quickslotTarget
+            if target then
+                local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                local selected = SafeGetTargetData(dialog.entryList)
+                if selected and selected.isUnassign then
+                    local assigned = FindActionSlotMatchingItem and
+                        FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
+                    if assigned then
+                        CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
+                        if SOUNDS and PlaySound then
+                            PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+                        end
+                    end
+                else
+                    local wheelSlotIndex = (selected and selected.slotIndex) or 4
+                    CallSecureProtected("SelectSlotItem", target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
+                    if SOUNDS and PlaySound then
+                        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+                    end
+                end
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                zo_callLater(function()
+                    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
+                end, 150)
+            end
+            return
+        end
+
+        local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
+        if selectedRow and selectedRow.isBetterUIDestroy then
+            local targetData
+            if dialog and dialog.data and dialog.data.target then
+                targetData = dialog.data.target
+            elseif dialog.entryList and dialog.entryList.GetTargetData then
+                targetData = SafeGetTargetData(dialog.entryList)
+            else
+                local actionMode = self and self.actionMode or nil
+                if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
+                    targetData = SafeGetTargetData(self.itemList)
+                elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
+                    targetData = SafeGetTargetData(self.craftBagList)
+                elseif self and self.categoryList then
+                    targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                end
+            end
+            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+            if bag and slot then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                local link = GetItemLink(bag, slot)
+                local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and
+                    BETTERUI.Settings.Modules["Inventory"] and
+                    BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                if quick then
+                    BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                else
+                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+                        { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                end
+            end
+            return
+        end
+
+        local actionController = (dialog and dialog.itemActions) or (self and self.itemActions) or nil
+        local selectedActionName = nil
+        if actionController and actionController.selectedAction then
+            selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController.selectedAction)
+        end
+
+        if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == ITEM_LIST_ACTION_MODE then
+                targetData = SafeGetTargetData(self.itemList)
+            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                targetData = SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+            end
+            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+            if bag and slot then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                local link = GetItemLink(bag, slot)
+                local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and
+                    BETTERUI.Settings.Modules["Inventory"] and
+                    BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                if quick then
+                    BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                else
+                    ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+                        { bagId = bag, slotIndex = slot, itemLink = link }, nil, true, true)
+                end
+            end
+            return
+        end
+
+        if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+            local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+                SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+                SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+            if isCompanionSceneShowing then
+                return
+            end
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == ITEM_LIST_ACTION_MODE then
+                targetData = SafeGetTargetData(self.itemList)
+            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                targetData = SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+            end
+            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+            if bag and slot then
+                local itemLink = GetItemLink(bag, slot)
+                if itemLink then
+                    ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                end
+            end
+            return
+        end
+
+        if actionController and actionController.DoSelectedAction then
+            actionController:DoSelectedAction()
+        end
+    end
+    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
+    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
+    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
+    if BETTERUI.Inventory.EnsureCompanionEquipPatched then
+        BETTERUI.Inventory.EnsureCompanionEquipPatched()
+    end
+end
