@@ -71,6 +71,9 @@ Modules\Inventory\Constants.lua
 Modules\Inventory\Loader.lua
 Modules\Inventory\State\PositionManager.lua
 Modules\Inventory\Core\InventoryClass.lua
+Modules\Inventory\Actions\EquipAction.lua
+Modules\Inventory\Actions\QuickslotAction.lua
+Modules\Inventory\Actions\ItemActionsDialog.lua
 Modules\Inventory\Lists\ItemListManager.lua
 Modules\Inventory\Lists\CraftBagListManager.lua
 Modules\Inventory\Lists\CategoryListManager.lua
