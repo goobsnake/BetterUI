@@ -35,6 +35,11 @@ Modules\CIM\Templates\GenericFooter.xml
 Modules\CIM\GenericFooter.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\ParametricScrollListTemplates.lua
+Modules\CIM\Lists\VerticalScrollList.lua
+Modules\CIM\Lists\HorizontalScrollList.lua
+Modules\CIM\Lists\TabBarScrollList.lua
+Modules\CIM\Lists\SubList.lua
+Modules\CIM\Lists\ParametricListScreen.lua
 Modules\CIM\Templates\InterfaceLibrary.xml
 Modules\CIM\InterfaceLibrary.lua
 Modules\CIM\Core\GenericWindow.lua
