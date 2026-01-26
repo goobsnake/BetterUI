@@ -3,7 +3,7 @@ File: Modules/Banking/Lists/BankListManager.lua
 Purpose: Manages the banking list, including filtering, sorting, and category logic.
          Extracted from Banking.lua to separate list management from core logic.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-01-26
 ]]
 
 local _
@@ -60,6 +60,7 @@ end
 --[[
 Function: GetCategoryTypeFromWeaponType
 Description: Helper to map a weapon item to a gamepad store category.
+TODO: Move this to a shared CIM utility helper as it duplicates logic likely needed by Inventory.
 ]]
 local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
     local weaponType = GetItemWeaponType(bagId, slotIndex)
@@ -324,7 +325,9 @@ function BETTERUI.Banking.Class:RefreshList()
                 end
             end
 
-            itemData.isEquippedInCurrentCategory = slotIndex and true or nil
+            -- Bank items are never "equipped" since they're in storage, not on character
+            -- (Unlike Inventory where BAG_WORN items can be equipped)
+            itemData.isEquippedInCurrentCategory = nil
 
             -- Cache expensive/commonly used item link information
             if not itemData.cached_itemLink then
@@ -474,13 +477,10 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     self:UpdateActions()
 end
 
-local function MenuEntryTemplateEquality(left, right)
-    return left.uniqueId == right.uniqueId
-end
-
 function BETTERUI.Banking.Class.SetupItemList(list)
     list:AddDataTemplate("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
+        ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality)
     list:AddDataTemplateWithHeader("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
-        ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
+        ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality,
+        "ZO_GamepadMenuEntryHeaderTemplate")
 end
