@@ -2,7 +2,7 @@
 File: Modules/Inventory/Constants.lua
 Purpose: Constants for the Inventory module.
          Includes search bar positioning and list entry icon sizing.
-Last Modified: 2026-01-23
+Last Modified: 2026-01-26
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
@@ -24,44 +24,44 @@ ITEM_LIST_ACTION_MODE = 2
 -- ============================================================================
 
 --[[
-Constant: BETTERUI_INV_SEARCH_X_OFFSET
+Constant: BETTERUI.Inventory.CONST.SEARCH_X_OFFSET
 Description: Horizontal offset from left edge for search bar.
 Direction: Positive (+) moves RIGHT.
 Used By: Inventory.lua
 ]]
-BETTERUI_INV_SEARCH_X_OFFSET = 55
+BETTERUI.Inventory.CONST.SEARCH_X_OFFSET = 55
 
 --[[
-Constant: BETTERUI_INV_SEARCH_Y_OFFSET
+Constant: BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET
 Description: Vertical offset from header bottom for search bar.
 Direction: Positive (+) moves DOWN.
 Used By: Inventory.lua
 ]]
-BETTERUI_INV_SEARCH_Y_OFFSET = 1
+BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET = 1
 
 --[[
-Constant: BETTERUI_INV_SEARCH_RIGHT_INSET
+Constant: BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET
 Description: Right edge inset for search bar width.
 Direction: Negative (-) moves LEFT (narrower).
 Used By: Inventory.lua
 ]]
-BETTERUI_INV_SEARCH_RIGHT_INSET = -4
+BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET = -4
 
 -- ============================================================================
 -- LIST ENTRY ICON SCALING
 -- Used in InventoryList.lua for dynamic icon sizing based on font settings
 -- ============================================================================
 
-BETTERUI_LIST_ENTRY_BASE_FONT_SIZE = 24
-BETTERUI_LIST_ENTRY_BASE_ICON_SIZE = 34
-BETTERUI_LIST_ENTRY_BASE_ICON_OFFSET = -42
-BETTERUI_LIST_ENTRY_ICON_OFFSET_FACTOR = 0.4
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE = 24
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE = 34
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET = -42
+BETTERUI.Inventory.CONST.LIST_ENTRY_ICON_OFFSET_FACTOR = 0.4
 
 -- Status & Equipment Indicator Offsets
-BETTERUI_STATUS_INDICATOR_OFFSET_X = -2
-BETTERUI_EQUIPPED_ICON_OFFSET_X = -2
+BETTERUI.Inventory.CONST.STATUS_INDICATOR_OFFSET_X = -2
+BETTERUI.Inventory.CONST.EQUIPPED_ICON_OFFSET_X = -2
 
 -- Standard Icon Sizes
-BETTERUI_ICON_SIZE_SMALL = 16
-BETTERUI_ICON_SIZE_MEDIUM = 24
-BETTERUI_ICON_SIZE_LARGE = 34
+BETTERUI.Inventory.CONST.ICON_SIZE_SMALL = 16
+BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM = 24
+BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34

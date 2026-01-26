@@ -1,8 +1,8 @@
 --[[
-File: Modules/Inventory/CraftList.lua
+File: Modules/Inventory/Lists/CraftList.lua
 Purpose: Implements the specific list logic for the ESO Plus Craft Bag.
          Subclasses BETTERUI.Inventory.List.
-Last Modified: 2026-01-23
+Last Modified: 2026-01-26
 
 KEY RESPONSIBILITIES:
 1.  Filtering (GetFilterComparator):
@@ -93,7 +93,7 @@ end
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
-    ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
+        ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then

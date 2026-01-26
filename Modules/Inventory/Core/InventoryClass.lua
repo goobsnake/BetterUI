@@ -3,6 +3,7 @@ File: Modules/Inventory/Core/InventoryClass.lua
 Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization logic,
          header management, and high-level caching mechanisms.
 Author: BetterUI Team
+Last Modified: 2026-01-26
 ]]
 
 -- Subclass ZO_GamepadInventory
@@ -364,15 +365,17 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
     local parentForAnchor = titleContainer or self.header
     if parentForAnchor then
         -- Search bar position configured in BetterUI.Constants.lua
-        local xOffset = BETTERUI_INV_SEARCH_X_OFFSET
-        local yOffset = BETTERUI_INV_SEARCH_Y_OFFSET
-        local rightInset = BETTERUI_INV_SEARCH_RIGHT_INSET
+        local xOffset = BETTERUI.Inventory.CONST.SEARCH_X_OFFSET
+        local yOffset = BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET
+        local rightInset = BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET
         -- TOPLEFT uses xOffset, TOPRIGHT uses rightInset so the control width is constrained
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
-        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, BETTERUI_INV_SEARCH_Y_OFFSET or 10)
-        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, BETTERUI_INV_SEARCH_Y_OFFSET or 10)
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0,
+            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET or 10)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0,
+            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET or 10)
     end
     self.textSearchHeaderControl:SetHidden(false)
 end
