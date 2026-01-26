@@ -60,18 +60,18 @@ BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, visibilityFunction, options)
     local actionName = actionStringId
     visibilityFunction = function()
-	    return not IsUnitDead("player")
-	end
+        return not IsUnitDead("player")
+    end
 
-	-- Set the primary override so the A button callback uses this directly
-	self._betterui_primaryOverride = actionCallback
-	self._betterui_primaryName = actionName
+    -- Set the primary override so the A button callback uses this directly
+    self._betterui_primaryOverride = actionCallback
+    self._betterui_primaryName = actionName
 
-	-- The following line inserts a row into the FIRST slotAction table, which corresponds to ACTION_KEY
+    -- The following line inserts a row into the FIRST slotAction table, which corresponds to ACTION_KEY
     table.insert(self.m_slotActions, 1, { actionName, actionCallback, actionType, visibilityFunction, options })
     self.m_hasActions = true
 
-    if(self.m_contextMenuMode and (not options or options ~= "silent") and (not visibilityFunction or visibilityFunction())) then
+    if (self.m_contextMenuMode and (not options or options ~= "silent") and (not visibilityFunction or visibilityFunction())) then
         AddMenuItem(actionName, actionCallback)
     end
 end
@@ -99,7 +99,8 @@ function TryUseItem(inventorySlot)
             if inventorySlot.toolIndex then
                 CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
             elseif inventorySlot.conditionIndex then
-                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex,
+                    inventorySlot.conditionIndex)
             end
         end
     else
@@ -122,12 +123,12 @@ end
 ---
 --- @param inventorySlot table The inventory slot data.
 local function TryBankItem(inventorySlot)
-    if(PLAYER_INVENTORY:IsBanking()) then
+    if (PLAYER_INVENTORY:IsBanking()) then
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) then
             --Withdraw
             if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
-                CallSecureProtected("PickupInventoryItem",bag, index)
+                CallSecureProtected("PickupInventoryItem", bag, index)
                 CallSecureProtected("PlaceInTransfer")
             else
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
@@ -140,7 +141,7 @@ local function TryBankItem(inventorySlot)
                 local bankingBag = GetBankingBag()
                 local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
                 if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-                    CallSecureProtected("PickupInventoryItem",bag, index)
+                    CallSecureProtected("PickupInventoryItem", bag, index)
                     CallSecureProtected("PlaceInTransfer")
                 else
                     if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
@@ -151,8 +152,8 @@ local function TryBankItem(inventorySlot)
                         end
                     end
                     ZO_AlertEvent(EVENT_BANK_IS_FULL)
-                end                
-             end
+                end
+            end
         end
     end
 end
@@ -235,17 +236,18 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     self.alignment = KEYBIND_STRIP_ALIGN_RIGHT
 
     local slotActions = ZO_InventorySlotActions:New(INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU)
-	slotActions.AddSlotPrimaryAction = BETTERUI_AddSlotPrimary -- Add a new function which allows us to neatly add our own slots *with context* of the original!!
+    slotActions.AddSlotPrimaryAction =
+        BETTERUI_AddSlotPrimary -- Add a new function which allows us to neatly add our own slots *with context* of the original!!
 
     self.slotActions = slotActions
     self.useKeybindStrip = useKeybindStrip == nil and true or useKeybindStrip
 
-        local primaryCommand =
+    local primaryCommand =
     {
         alignment = alignmentOverride,
         name = function()
             local n = nil
-            if(self.selectedAction) then
+            if (self.selectedAction) then
                 n = slotActions:GetRawActionName(self.selectedAction)
             end
             if not n then
@@ -266,9 +268,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 end
             end
         end,
-        visible =   function()
-                        return slotActions:CheckPrimaryActionVisibility() or self:HasSelectedAction()
-                    end,
+        visible = function()
+            return slotActions:CheckPrimaryActionVisibility() or self:HasSelectedAction()
+        end,
     }
 
     local function GetActionString(actionId)
@@ -302,9 +304,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     local function ShouldReplacePrimaryAction(primaryAction)
         return ACTION_REPLACEMENT_LOOKUP[primaryAction] == true
-            -- Note: Split stack is intentionally NOT included here so it remains
-            -- available in the Y (actions) list. We still wire it up as a
-            -- primary action below so A can invoke the split dialog when needed.
+        -- Note: Split stack is intentionally NOT included here so it remains
+        -- available in the Y (actions) list. We still wire it up as a
+        -- primary action below so A can invoke the split dialog when needed.
     end
 
     --- Wraps an action in a secure call if necessary (primarily for USE actions).
@@ -340,10 +342,12 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                     end
                 end
             end
-            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), secureCallback, "primary", nil, {visibleWhenDead = false})
+            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), secureCallback, "primary", nil,
+                { visibleWhenDead = false })
         else
             -- For non-USE actions, use the callback as-is
-            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil, {visibleWhenDead = false})
+            slotActions:AddSlotPrimaryAction(GetActionString(actionStringId), callback, "primary", nil,
+                { visibleWhenDead = false })
         end
     end
 
@@ -364,7 +368,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                         if inventorySlot.toolIndex then
                             CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
                         elseif inventorySlot.conditionIndex then
-                            CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+                            CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex,
+                                inventorySlot.conditionIndex)
                         end
                     end
                 else
@@ -374,7 +379,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                         CallSecureProtected("UseItem", bag, index)
                     end
                 end
-            end, "secondary", nil, {visibleWhenDead = false})
+            end, "secondary", nil, { visibleWhenDead = false })
         else
             SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG,
                 function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_VIRTUAL) end, inventorySlot)
@@ -391,11 +396,15 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
-                function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end, inventorySlot)
+                function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end,
+                inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNEQUIP) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end, inventorySlot)
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end,
+                inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_WITHDRAW) or IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_DEPOSIT) then
-            SetupSecureAction(slotActions, actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or SI_ITEM_ACTION_BANK_DEPOSIT,
+            SetupSecureAction(slotActions,
+                actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or
+                SI_ITEM_ACTION_BANK_DEPOSIT,
                 function(...) TryBankItem(inventorySlot) end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
@@ -407,13 +416,15 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 if ZO_InventorySlot_TrySplitStack then
                     ZO_InventorySlot_TrySplitStack(inventorySlot)
                 end
-            end, "primary", nil, {visibleWhenDead = false})
+            end, "primary", nil, { visibleWhenDead = false })
         end
 
-        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes["companionEquipmentGamepad"] and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+            SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+            SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
         if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
-                -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
-                return
+            -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
+            return
         end
     end
 
@@ -427,7 +438,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return (self.actionName ~= nil) or self:HasSelectedAction()
     end
 
-        --[[
+    --[[
         Function: SecureOpenSkills
         Description: Wraps the "Open Skills" action callback in a secure call.
         Rationale: The engine's "Open Skills" callback may call UseItem directly, which
@@ -438,23 +449,23 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: slotActions (table) - The slot actions object
         param: inventorySlot (table) - The inventory slot data
         ]]
-        local function SecureOpenSkills(slotActions, inventorySlot)
-            local INDEX_ACTION_CALLBACK = 2
-            for i, action in ipairs(slotActions.m_slotActions) do
-                local actionName = action[1]
-                if actionName == "Open Skills" then
-                    local wrappedCallback = function()
-                        if inventorySlot then
-                            local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-                            CallSecureProtected("UseItem", bag, index)
-                        end
+    local function SecureOpenSkills(slotActions, inventorySlot)
+        local INDEX_ACTION_CALLBACK = 2
+        for i, action in ipairs(slotActions.m_slotActions) do
+            local actionName = action[1]
+            if actionName == "Open Skills" then
+                local wrappedCallback = function()
+                    if inventorySlot then
+                        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                        CallSecureProtected("UseItem", bag, index)
                     end
-                    action[INDEX_ACTION_CALLBACK] = wrappedCallback
                 end
+                action[INDEX_ACTION_CALLBACK] = wrappedCallback
             end
         end
+    end
 
-        --[[
+    --[[
         Function: ResolveCraftBagState
         Description: Determines the correct primary action based on Craft Bag context.
         Rationale: Items in Craft Bag should show "Retrieve"; items in Inventory should
@@ -469,43 +480,43 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: canUseItem (boolean) - Whether the item is also usable
         return: string - The resolved action name for display
         ]]
-        local function ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
-            local actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-            local isInCraftBag = IsSlotInCraftBag(inventorySlot)
-            
-            if isInCraftBag then
-                -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
-                for i = #slotActions.m_slotActions, 1, -1 do
-                    if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                        table.remove(slotActions.m_slotActions, i)
-                    end
-                end
-                -- Ensure Retrieve is primary action
-                if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
-                    actionName = GetActionString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
-                end
-            elseif CanItemMoveToCraftBag(inventorySlot) then
-                -- INVENTORY VIEW: Force "Stow" as primary for eligible items
-                -- Remove any existing craft-bag entries to avoid duplicates
-                for i = #slotActions.m_slotActions, 1, -1 do
-                    if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
-                        table.remove(slotActions.m_slotActions, i)
-                    end
-                end
+    local function ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
+        local actionName = primaryAction or GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+        local isInCraftBag = IsSlotInCraftBag(inventorySlot)
 
-                -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
-                HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-                
-                -- We forced Stow to be primary; clear any prior split-stack override
-                slotActions._betterui_primaryOverride = nil
-
-                -- Ensure the displayed action name is "Stow"
-                actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+        if isInCraftBag then
+            -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
+            for i = #slotActions.m_slotActions, 1, -1 do
+                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                    table.remove(slotActions.m_slotActions, i)
+                end
             end
-            return actionName
-        end
+            -- Ensure Retrieve is primary action
+            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                actionName = GetActionString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+            end
+        elseif CanItemMoveToCraftBag(inventorySlot) then
+            -- INVENTORY VIEW: Force "Stow" as primary for eligible items
+            -- Remove any existing craft-bag entries to avoid duplicates
+            for i = #slotActions.m_slotActions, 1, -1 do
+                if slotActions.m_slotActions[i][1] == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG) then
+                    table.remove(slotActions.m_slotActions, i)
+                end
+            end
 
-        --[[
+            -- Use the helper to add the primary craft-bag action (and USE as secondary when appropriate)
+            HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+
+            -- We forced Stow to be primary; clear any prior split-stack override
+            slotActions._betterui_primaryOverride = nil
+
+            -- Ensure the displayed action name is "Stow"
+            actionName = GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+        end
+        return actionName
+    end
+
+    --[[
         Function: DeduplicateActions
         Description: Removes duplicate entries from the slot actions list.
         Rationale: Multiple code paths may add the same action (e.g., "Stow"); this
@@ -515,20 +526,20 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         References: Called by PrimaryCommandActivate.
         param: slotActions (table) - The slot actions object to deduplicate
         ]]
-        local function DeduplicateActions(slotActions)
-            local seen = {}
-            for i = #slotActions.m_slotActions, 1, -1 do
-                local entry = slotActions.m_slotActions[i]
-                local name = entry and entry[1]
-                if name and seen[name] then
-                    table.remove(slotActions.m_slotActions, i)
-                else
-                    if name then
-                        seen[name] = true
-                    end
+    local function DeduplicateActions(slotActions)
+        local seen = {}
+        for i = #slotActions.m_slotActions, 1, -1 do
+            local entry = slotActions.m_slotActions[i]
+            local name = entry and entry[1]
+            if name and seen[name] then
+                table.remove(slotActions.m_slotActions, i)
+            else
+                if name then
+                    seen[name] = true
                 end
             end
         end
+    end
 
     --- The main logic invoked when the primary action (A button) is potentially triggered.
     ---
@@ -605,14 +616,14 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         -- 3. Setup secure actions based on action type
         if primaryAction then
             if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) or
-               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
-               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
-               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
-               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
-               IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_EQUIP) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
-            
+
             if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
                 local isStowAction = self.actionName == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
                 if not isStowAction then
@@ -629,8 +640,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     if additionalMouseOverbinds then
         local mouseOverCommand, mouseOverCommandIsVisible
-        for i=1, #additionalMouseOverbinds do
-                mouseOverCommand =
+        for i = 1, #additionalMouseOverbinds do
+            mouseOverCommand =
             {
                 alignment = alignmentOverride,
                 name = function()
@@ -639,9 +650,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 end,
                 keybind = additionalMouseOverbinds[i],
                 callback = function() slotActions:DoKeybindAction(i) end,
-                visible =   function()
-                                return slotActions:CheckKeybindActionVisibility(i)
-                            end,
+                visible = function()
+                    return slotActions:CheckKeybindActionVisibility(i)
+                end,
             }
 
             mouseOverCommandIsVisible = function()
@@ -653,17 +664,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 end
 
---- Sets the current inventory slot for the actions controller.
---- Triggers action discovery and updates the keybind strip.
---- @param inventorySlot table The new inventory slot data.
-function BETTERUI.Inventory.SlotActions:SetInventorySlot(inventorySlot)
-    self.inventorySlot = inventorySlot
-
-    for i, command in ipairs(self) do
-        if command.activateCallback then
-            command.activateCallback(inventorySlot)
-        end
-    end
-
-    self:RefreshKeybindStrip()
+--- Returns the underlying ZO_InventorySlotActions object.
+--- Purpose: Required for the Y-actions dialog to iterate through available actions.
+--- @return table The inner slotActions object containing the discovered actions.
+function BETTERUI.Inventory.SlotActions:GetSlotActions()
+    return self.slotActions
 end

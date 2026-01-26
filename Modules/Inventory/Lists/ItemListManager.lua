@@ -531,25 +531,30 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
 
     if self:GetCurrentList() == self.itemList then
         if selectedItemData ~= nil and selectedItemData.dataSource ~= nil then
-            selectedEquipSlot = BETTERUI_GetEquipSlotForEquipType(selectedItemData.dataSource.equipType)
+            selectedEquipSlot = self:GetEquipSlotForEquipType(selectedItemData.dataSource.equipType)
         end
     else
         selectedEquipSlot = 0
     end
 
-    if selectedItemData ~= nil then
+    -- Check if item supports comparison (has valid equipType)
+    local canCompare = selectedItemData ~= nil and
+        selectedItemData.dataSource ~= nil and
+        selectedItemData.dataSource.equipType ~= nil and
+        selectedItemData.dataSource.equipType ~= 0
+
+    if canCompare and selectedEquipSlot then
         -- Comparison View: Overwrites the Left Tooltip with comparison data
         GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId,
             selectedItemData.slotIndex, selectedEquipSlot)
         GAMEPAD_TOOLTIPS:SetStatusLabelText(GAMEPAD_LEFT_TOOLTIP,
             GetString(SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE))
-    elseif GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then
+    elseif selectedItemData ~= nil and selectedItemData.bagId ~= nil and selectedItemData.slotIndex ~= nil then
+        -- Fallback: Show standard tooltip for non-comparable items
+        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex)
+        -- Reset switchInfo since this item can't be compared
+        self.switchInfo = false
+    elseif selectedEquipSlot and GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then
         BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, selectedEquipSlot)
-    end
-
-    if selectedItemData ~= nil and selectedItemData.dataSource ~= nil then
-        if selectedData.dataSource and selectedItemData.dataSource.equipType == 0 then
-            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        end
     end
 end

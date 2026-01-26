@@ -4,6 +4,11 @@ Purpose: Manages high-level transitions between item lists (Backpack, Craft Bag,
 Author: BetterUI Team
 ]]
 
+-- Action mode constants (must match other files)
+local CATEGORY_ITEM_ACTION_MODE = 1
+local ITEM_LIST_ACTION_MODE = 2
+local CRAFT_BAG_ACTION_MODE = 3
+
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then
         return

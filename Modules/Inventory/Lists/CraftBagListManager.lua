@@ -46,6 +46,8 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
             local currentList = self:GetCurrentList()
             if currentList == self.craftBagList or ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                 self:SetSelectedInventoryData(selectedData)
+                -- Ensure selectedItemUniqueId is set for craftbag items (needed for Y-button visibility)
+                self:SetSelectedItemUniqueId(selectedData)
                 self.craftBagList:RefreshVisible()
             end
             self:RefreshKeybinds()

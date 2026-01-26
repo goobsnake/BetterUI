@@ -100,8 +100,17 @@ function BETTERUI.Inventory.Class:Initialize(control)
         GAMEPAD_INVENTORY_ROOT_SCENE
     )
 
-    -- Initialize the actions object (Critical for ZO_GamepadInventory base methods)
-    self.itemActions = ZO_InventorySlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
+    -- Initialize the actions object (using BetterUI custom subclass if available)
+    if self.InitializeItemActions then
+        self:InitializeItemActions()
+    else
+        self.itemActions = ZO_InventorySlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
+    end
+
+    -- Hook the Action Dialog (Y-Menu) logic
+    if self.InitializeActionsDialog then
+        self:InitializeActionsDialog()
+    end
 
     self:InitializeSplitStackDialog()
 
