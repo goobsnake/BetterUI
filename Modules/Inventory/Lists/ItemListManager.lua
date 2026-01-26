@@ -180,8 +180,7 @@ function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
 end
 
 -- BATCH LOADING CONSTANTS
-local BATCH_SIZE_INITIAL = 50    -- Show first screen immediately
-local BATCH_SIZE_REMAINING = 200 -- Process rest in larger chunks
+-- Batch constants replaced by BETTERUI.Inventory.CONST equivalents
 
 --- Processes a batch of items for the scroll list.
 --- Used by RefreshItemList to load large lists incrementally.
@@ -198,7 +197,9 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         return
     end
 
-    local endIndex = math.min(startIndex + BATCH_SIZE_REMAINING - 1, totalItems)
+    local batchSize = (startIndex == 1) and BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL or
+        BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING
+    local endIndex = math.min(startIndex + batchSize - 1, totalItems)
 
     local showJunkCategory = self.pendingContext.showJunkCategory
     local filteredEquipSlot = self.pendingContext.filteredEquipSlot
@@ -313,6 +314,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
 
     -- Schedule next batch
     if self.pendingBatchIndex <= totalItems then
+        -- Batch processing: yield to allow frame render, preventing UI freeze
         self.batchCallId = zo_callLater(function() self:ProcessScrollListBatch() end, 10)
     else
         self.pendingBatchData = nil

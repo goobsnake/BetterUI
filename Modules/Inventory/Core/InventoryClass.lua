@@ -92,6 +92,7 @@ end
 --- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
 --- References: Called by Module.lua.
 function BETTERUI.Inventory.Class:Initialize(control)
+    BETTERUI.Inventory.ApplyAllMixins()
     GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(
         self,
@@ -137,7 +138,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
     local function RefreshVisualLayer()
         if self.scene:IsShowing() then
             self:OnUpdate()
-            if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+            if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 self:RefreshCategoryList()
                 self:SwitchActiveList(INVENTORY_ITEM_LIST)
             end

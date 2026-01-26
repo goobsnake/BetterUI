@@ -41,9 +41,8 @@ end
 --- References: Called during Initialize.
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
     -- Action mode constants for tracking inventory UI state
-    local CATEGORY_ITEM_ACTION_MODE = 1
-    local ITEM_LIST_ACTION_MODE = 2
-    local CRAFT_BAG_ACTION_MODE = 3
+    -- Action mode constants (must match other files)
+    -- Replaced by BETTERUI.Inventory.CONST equivalents
     local BLOCK_TABBAR_CALLBACK = true
 
     -- Helper to get Safe Target Data
@@ -160,7 +159,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
             local function MarkAsJunk()
                 -- Silent junk toggle: skip craft bag and locked errors messaging
-                if self.actionMode == CRAFT_BAG_ACTION_MODE then
+                if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return
                 end
                 local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
@@ -241,11 +240,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- Get target data FIRST and set on itemActions before RefreshItemActions
             -- This ensures the slot actions controller knows what item to populate actions for
             local target = nil
-            if self.actionMode == ITEM_LIST_ACTION_MODE then
+            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                 target = self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-            elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+            elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                 target = self.craftBagList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
-            elseif self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+            elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 local catData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
                 target = catData and self:GenerateItemSlotData(catData)
             end
@@ -396,7 +395,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 -- Hide Mark as Junk for locked items
                 local hideMarkJunk = false
                 do
-                    local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
+                    local target = (self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE)
                         and (self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
                         or nil
                     if
@@ -437,7 +436,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 
             --restore the selected inventory item
-            if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+            if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 --if we refresh item actions we will get a keybind conflict
                 local currentList = self:GetCurrentList()
                 if currentList then
@@ -454,7 +453,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             self:RefreshKeybinds()
 
             self:OnUpdate()
-            if self.actionMode == CATEGORY_ITEM_ACTION_MODE then
+            if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 self:RefreshCategoryList()
             end
         end
@@ -505,9 +504,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
             else
                 local actionMode = self and self.actionMode or nil
-                if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
+                if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE and self and self.itemList then
                     targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-                elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
+                elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
                     targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                 elseif self and self.categoryList then
                     targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
@@ -541,9 +540,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
             local targetData
             local actionMode = self.actionMode
-            if actionMode == ITEM_LIST_ACTION_MODE then
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
             else
                 targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
@@ -575,9 +574,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             end
             local targetData
             local actionMode = self.actionMode
-            if actionMode == ITEM_LIST_ACTION_MODE then
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
             else
                 targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))

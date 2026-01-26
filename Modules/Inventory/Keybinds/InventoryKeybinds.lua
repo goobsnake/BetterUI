@@ -10,9 +10,8 @@ Last Modified: 2026-01-25
 -- CONSTANTS
 --------------------------------------------------------------------------------
 
-local CATEGORY_ITEM_ACTION_MODE = 1
-local ITEM_LIST_ACTION_MODE = 2
-local CRAFT_BAG_ACTION_MODE = 3
+-- Action mode constants (must match other files)
+-- Replaced by BETTERUI.Inventory.CONST equivalents
 
 --------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
@@ -76,7 +75,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 local n = ""
-                if self.actionMode == ITEM_LIST_ACTION_MODE then
+                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     --bag mode
                     local isQuestItem =
                         ZO_InventoryUtils_DoesNewItemMatchFilterType(self.itemList.selectedData, ITEMFILTERTYPE_QUEST)
@@ -99,7 +98,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     else
                         n = GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
                     end
-                elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+                elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     --craftbag mode
                     n = GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
                 else
@@ -110,7 +109,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             keybind = "UI_SHORTCUT_SECONDARY",
             -- (no hold callbacks here; tap behavior preserved)
             visible = function()
-                if self.actionMode == ITEM_LIST_ACTION_MODE then
+                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     if self.itemList.selectedData then
                         local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(
                             self.itemList.selectedData,
@@ -124,12 +123,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         end
                     end
                     return false
-                elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+                elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return true
                 end
             end,
             callback = function()
-                if self.actionMode == ITEM_LIST_ACTION_MODE then
+                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     --bag mode
                     local target = self.itemList.selectedData
                     local ft = (target and target.bagId and target.slotIndex)
@@ -173,7 +172,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                             end
                         end
                     end
-                elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+                elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     --craftbag mode
                     local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                     local itemLink
@@ -195,11 +194,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             -- (no hold callbacks here; tap behavior preserved)
             order = 1000,
             visible = function()
-                if self.actionMode == ITEM_LIST_ACTION_MODE then
+                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return self.selectedItemUniqueId ~= nil or
                         self.currentlySelectedData ~= nil or
                         BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
-                elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+                elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     -- More robust check for craftbag: check multiple sources
                     return self.selectedItemUniqueId ~= nil or
                         self.currentlySelectedData ~= nil or
@@ -220,7 +219,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             keybind = "UI_SHORTCUT_LEFT_STICK",
             disabledDuringSceneHiding = true,
             visible = function()
-                return self.actionMode == ITEM_LIST_ACTION_MODE
+                return self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
             end,
             callback = function()
                 StackBag(BAG_BACKPACK)

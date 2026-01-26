@@ -238,9 +238,9 @@ function BETTERUI.Inventory.HookActionDialog()
                         if selectedRow and selectedRow.isBetterUIDestroy then
                             local targetData
                             local actionMode = self.actionMode
-                            if actionMode == ITEM_LIST_ACTION_MODE then
+                            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-                            elseif actionMode == CRAFT_BAG_ACTION_MODE then
+                            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                             else
                                 targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self
@@ -291,9 +291,9 @@ function BETTERUI.Inventory.HookActionDialog()
                                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                             else
                                 local actionMode = self and self.actionMode or nil
-                                if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
+                                if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE and self and self.itemList then
                                     targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-                                elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
+                                elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
                                     targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                                 elseif self and self.categoryList then
                                     targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(

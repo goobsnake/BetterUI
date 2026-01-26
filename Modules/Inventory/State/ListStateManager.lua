@@ -5,9 +5,8 @@ Author: BetterUI Team
 ]]
 
 -- Action mode constants (must match other files)
-local CATEGORY_ITEM_ACTION_MODE = 1
-local ITEM_LIST_ACTION_MODE = 2
-local CRAFT_BAG_ACTION_MODE = 3
+-- Action mode constants (must match other files)
+-- Replaced by BETTERUI.Inventory.CONST equivalents
 
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then
@@ -16,9 +15,7 @@ local function SwitchActiveList(self, listDescriptor)
 
     -- Save the current list position before switching so positions are restored correctly later
     if self.currentListType then
-        pcall(function()
-            self:SaveListPosition()
-        end)
+        self:SaveListPosition()
     end
 
     self.previousListType = self.currentListType
@@ -100,7 +97,7 @@ local function SwitchActiveList(self, listDescriptor)
             end
 
             self:SetSelectedItemUniqueId(BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
-            self.actionMode = ITEM_LIST_ACTION_MODE
+            self.actionMode = BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
             self:RefreshItemActions()
             self:RefreshHeader(true) -- Pass BLOCK_TABBAR_CALLBACK
 
@@ -178,7 +175,7 @@ local function SwitchActiveList(self, listDescriptor)
             end
 
             self:SetSelectedItemUniqueId(BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList))
-            self.actionMode = CRAFT_BAG_ACTION_MODE
+            self.actionMode = BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE
             self:RefreshItemActions()
             self:RefreshHeader()
 

@@ -25,16 +25,11 @@ local _
 --------------------------------------------------------------------------------
 
 -- Apply Class Mixins (from PositionManager, etc.)
-if BETTERUI.Inventory.ClassMixins then
-	for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
-		BETTERUI.Inventory.Class[name] = func
-	end
-end
+-- Mixins are now applied in Initialize() via MixinLoader
 
 -- Action mode constants
-local CATEGORY_ITEM_ACTION_MODE = 1
-local ITEM_LIST_ACTION_MODE = 2
-local CRAFT_BAG_ACTION_MODE = 3
+-- Action mode constants (must match other files)
+-- Replaced by BETTERUI.Inventory.CONST equivalents
 
 -- List type identifiers
 local INVENTORY_CATEGORY_LIST = "categoryList"
@@ -77,7 +72,7 @@ local companionEquipPatchRetryPending = false
 
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
-	if self.actionMode == ITEM_LIST_ACTION_MODE then
+	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
 		self:UpdateItemLeftTooltip(self.itemList.selectedData)
 	end
 end
@@ -148,9 +143,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		end
 		-- search hold behavior is part of main keybind descriptors; nothing to remove here
 		-- Save the current list position so it can be restored when the scene is shown again
-		pcall(function()
-			self:SaveListPosition()
-		end)
+		self:SaveListPosition()
 	elseif newState == SCENE_HIDDEN then
 		self:SwitchActiveList(nil)
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
@@ -177,9 +170,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		end
 		-- nothing to remove for search hold behavior here
 		-- Save the current list position so it can be restored when the scene is shown again
-		pcall(function()
-			self:SaveListPosition()
-		end)
+		self:SaveListPosition()
 	end
 end
 
@@ -215,7 +206,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	then
 		self.nextUpdateTimeSeconds = nil
 
-		if self.actionMode == ITEM_LIST_ACTION_MODE then
+		if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
 			self:RefreshItemList()
 			-- it's possible we removed the last item from this list
 			-- so we want to switch back to the category list
@@ -228,7 +219,7 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 
 				self:RefreshItemActions()
 			end
-		elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
+		elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
 			self:RefreshCraftBagList()
 			self:RefreshItemActions()
 		else -- CATEGORY_ITEM_ACTION_MODE
@@ -352,6 +343,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 					999
 				if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
 					self._pendingCategoryListRefresh = true
+					-- Coalesce category refresh to prevent spam during rapid updates
 					zo_callLater(function()
 						self._pendingCategoryListRefresh = false
 						if self.scene:IsShowing() then
@@ -381,6 +373,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 			if self.SetActiveKeybinds then
 				self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 			end
+			-- Additional delay to ensure main group activation sticks
 			zo_callLater(function()
 				if self.SetActiveKeybinds then
 					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
@@ -446,13 +439,9 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	self.searchQuery = ""
 	-- Prefer shared helper if available
 	if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-		pcall(function()
-			BETTERUI.Interface.Window.ClearSearchText(self)
-		end)
+		BETTERUI.Interface.Window.ClearSearchText(self)
 	elseif self.ClearSearchText then
-		pcall(function()
-			self:ClearSearchText()
-		end)
+		self:ClearSearchText()
 	end
 end
 
