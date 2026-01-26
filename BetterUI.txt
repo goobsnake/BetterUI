@@ -69,6 +69,7 @@ Modules\ResourceOrbFrames\Module.lua
 ; Module: Inventory Enhanced
 Modules\Inventory\Constants.lua
 Modules\Inventory\Loader.lua
+Modules\Inventory\Core\MixinLoader.lua
 Modules\Inventory\State\PositionManager.lua
 Modules\Inventory\State\ListStateManager.lua
 Modules\Inventory\Core\InventoryClass.lua
