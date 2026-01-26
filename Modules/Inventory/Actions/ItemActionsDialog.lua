@@ -5,13 +5,7 @@ Purpose: Manages the "Y-Action" menu (Action Dialog) for inventory items.
          Hooks the native ZO_GAMEPAD_INVENTORY_ACTION_DIALOG.
 ]]
 
-local function SafeGetTargetData(list)
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    return list.targetData
-end
+
 
 --------------------------------------------------------------------------------
 -- SLOT ACTIONS HELPER
@@ -53,13 +47,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local BLOCK_TABBAR_CALLBACK = true
 
     -- Helper to get Safe Target Data
-    local function SafeGetTargetData(list)
-        if not list then return nil end
-        if list.GetTargetData and type(list.GetTargetData) == "function" then
-            return list:GetTargetData()
-        end
-        return list.selectedData
-    end
+
 
     local function ActionDialogSetup(dialog, data)
         if self.scene:IsShowing() then
@@ -175,7 +163,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 if self.actionMode == CRAFT_BAG_ACTION_MODE then
                     return
                 end
-                local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
                 if not target then
                     return
                 end
@@ -218,7 +206,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
             -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
             local function UnmarkAsJunk()
-                local target = SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
                 -- Close the actions dialog to restore header/keybind focus
                 if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
@@ -254,11 +242,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- This ensures the slot actions controller knows what item to populate actions for
             local target = nil
             if self.actionMode == ITEM_LIST_ACTION_MODE then
-                target = self.itemList and SafeGetTargetData(self.itemList)
+                target = self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
             elseif self.actionMode == CRAFT_BAG_ACTION_MODE then
-                target = self.craftBagList and SafeGetTargetData(self.craftBagList)
+                target = self.craftBagList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
             elseif self.actionMode == CATEGORY_ITEM_ACTION_MODE then
-                local catData = SafeGetTargetData(self.categoryList)
+                local catData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
                 target = catData and self:GenerateItemSlotData(catData)
             end
 
@@ -322,7 +310,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end
 
                 if not isQuestItem then
-                    local tmpCat = SafeGetTargetData(self.categoryList)
+                    local tmpCat = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
                     if tmpCat and tmpCat.showJunk ~= nil then
                         -- Unmark should remain available even if locked
                         self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk,
@@ -409,7 +397,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 local hideMarkJunk = false
                 do
                     local target = (self.actionMode == ITEM_LIST_ACTION_MODE)
-                        and (self.itemList and SafeGetTargetData(self.itemList))
+                        and (self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
                         or nil
                     if
                         target
@@ -453,7 +441,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 --if we refresh item actions we will get a keybind conflict
                 local currentList = self:GetCurrentList()
                 if currentList then
-                    local targetData = SafeGetTargetData(currentList)
+                    local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(currentList)
                     if currentList == self.categoryList then
                         targetData = self:GenerateItemSlotData(targetData)
                     end
@@ -480,7 +468,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             local target = dialog.data.target or dialog.quickslotTarget
             if target then
                 local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-                local selected = SafeGetTargetData(dialog.entryList)
+                local selected = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                 if selected and selected.isUnassign then
                     local assigned = FindActionSlotMatchingItem and
                         FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
@@ -508,21 +496,21 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         end
 
         -- Handle BetterUI synthetic Destroy entry
-        local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
+        local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
         if selectedRow and selectedRow.isBetterUIDestroy then
             local targetData
             if dialog and dialog.data and dialog.data.target then
                 targetData = dialog.data.target
             elseif dialog.entryList and dialog.entryList.GetTargetData then
-                targetData = SafeGetTargetData(dialog.entryList)
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
             else
                 local actionMode = self and self.actionMode or nil
                 if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
-                    targetData = SafeGetTargetData(self.itemList)
+                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
                 elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-                    targetData = SafeGetTargetData(self.craftBagList)
+                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                 elseif self and self.categoryList then
-                    targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                    targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
                 end
             end
             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
@@ -554,11 +542,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             local targetData
             local actionMode = self.actionMode
             if actionMode == ITEM_LIST_ACTION_MODE then
-                targetData = SafeGetTargetData(self.itemList)
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
             elseif actionMode == CRAFT_BAG_ACTION_MODE then
-                targetData = SafeGetTargetData(self.craftBagList)
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
             else
-                targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
             end
             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
             if bag and slot then
@@ -588,11 +576,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             local targetData
             local actionMode = self.actionMode
             if actionMode == ITEM_LIST_ACTION_MODE then
-                targetData = SafeGetTargetData(self.itemList)
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
             elseif actionMode == CRAFT_BAG_ACTION_MODE then
-                targetData = SafeGetTargetData(self.craftBagList)
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
             else
-                targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
             end
             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
             if bag and slot then
@@ -949,7 +937,7 @@ function BETTERUI.Inventory.HookActionDialog()
                         local target = dialog.data.target or dialog.quickslotTarget
                         if target then
                             local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-                            local selected = SafeGetTargetData(dialog.entryList)
+                            local selected = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                             if selected and selected.isUnassign then
                                 local assigned = FindActionSlotMatchingItem
                                     and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
@@ -997,16 +985,18 @@ function BETTERUI.Inventory.HookActionDialog()
                     -- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
                     if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
                         -- Check if the selected row is a BetterUI Destroy entry
-                        local selectedRow = dialog.entryList and SafeGetTargetData(dialog.entryList)
+                        local selectedRow = dialog.entryList and
+                        BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                         if selectedRow and selectedRow.isBetterUIDestroy then
                             local targetData
                             local actionMode = self.actionMode
                             if actionMode == ITEM_LIST_ACTION_MODE then
-                                targetData = SafeGetTargetData(self.itemList)
+                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
                             elseif actionMode == CRAFT_BAG_ACTION_MODE then
-                                targetData = SafeGetTargetData(self.craftBagList)
+                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                             else
-                                targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self
+                                .categoryList))
                             end
                             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
                             if bag and slot then
@@ -1050,15 +1040,16 @@ function BETTERUI.Inventory.HookActionDialog()
                             if dialog.data and dialog.data.target then
                                 targetData = dialog.data.target
                             elseif dialog.entryList and dialog.entryList.GetTargetData then
-                                targetData = SafeGetTargetData(dialog.entryList)
+                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                             else
                                 local actionMode = self and self.actionMode or nil
                                 if actionMode == ITEM_LIST_ACTION_MODE and self and self.itemList then
-                                    targetData = SafeGetTargetData(self.itemList)
+                                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
                                 elseif actionMode == CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-                                    targetData = SafeGetTargetData(self.craftBagList)
+                                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                                 elseif self and self.categoryList then
-                                    targetData = self:GenerateItemSlotData(SafeGetTargetData(self.categoryList))
+                                    targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(
+                                    self.categoryList))
                                 end
                             end
                             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
