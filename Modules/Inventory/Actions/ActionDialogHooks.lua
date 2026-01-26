@@ -88,94 +88,30 @@ function BETTERUI.Inventory.HookActionDialog()
             if data and data.quickslotAssign and data.target then
                 -- Title provided via dialog's dynamic title function; avoid overriding here
                 local parametricList = dialog.info.parametricList
-                ZO_ClearNumericallyIndexedTable(parametricList)
 
-                local target = data.target
-                local hasUnassign = false
-                local assignedIndex = nil
-                if FindActionSlotMatchingItem then
-                    assignedIndex =
-                        FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-                    if assignedIndex then
-                        hasUnassign = true
-                        -- Ensure the Remove row text is visible; icon not required
-                        local removeText = GetString(SI_ITEM_ACTION_REMOVE)
-                        if not removeText or removeText == "" then
-                            removeText = "Remove"
-                        end
-                        local unassignEntry = ZO_GamepadEntryData:New(removeText)
-                        unassignEntry:SetIconTintOnSelection(true)
-                        -- Ensure text is visible on dark background
-                        local normalColor = ZO_NORMAL_TEXT or ZO_ColorDef:New(1, 1, 1, 1)
-                        local selectedColor = ZO_SELECTED_TEXT or ZO_ColorDef:New(1, 1, 1, 1)
-                        if unassignEntry.SetNameColors then
-                            unassignEntry:SetNameColors(normalColor, selectedColor)
-                        end
-                        unassignEntry.isUnassign = true
-                        unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
-                        table.insert(
-                            parametricList,
-                            { template = "ZO_GamepadMenuEntryTemplate", entryData = unassignEntry }
-                        )
-                    end
-                end
+                local hasUnassign = BETTERUI.Inventory.PopulateQuickslotDialogEntries(parametricList, data.target)
 
-                local function slotLabel(idx)
-                    if idx == 4 then
-                        return GetString(SI_BETTERUI_DIR_NORTH)
-                    elseif idx == 5 then
-                        return GetString(SI_BETTERUI_DIR_NORTHWEST)
-                    elseif idx == 6 then
-                        return GetString(SI_BETTERUI_DIR_WEST)
-                    elseif idx == 7 then
-                        return GetString(SI_BETTERUI_DIR_SOUTHWEST)
-                    elseif idx == 8 then
-                        return GetString(SI_BETTERUI_DIR_SOUTH)
-                    elseif idx == 1 then
-                        return GetString(SI_BETTERUI_DIR_SOUTHEAST)
-                    elseif idx == 2 then
-                        return GetString(SI_BETTERUI_DIR_EAST)
-                    elseif idx == 3 then
-                        return GetString(SI_BETTERUI_DIR_NORTHEAST)
-                    end
-                    return tostring(idx)
-                end
-
-                -- Clockwise ordering starting at North: N, NE, E, SE, S, SW, W, NW
-                local orderedSlots = { 4, 3, 2, 1, 8, 7, 6, 5 }
-                for _, slotIndex in ipairs(orderedSlots) do
-                    local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
-                    local lower = type(icon) == "string" and icon:lower() or nil
-                    if not icon or icon == "" or (lower and string.find(lower, "quickslot_empty", 1, true)) then
-                        icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds"
-                    end
-                    local entryData = ZO_GamepadEntryData:New(slotLabel(slotIndex), icon)
-                    if entryData.AddIcon and icon then
-                        entryData:AddIcon(icon)
-                    end
-                    -- Flash all non-current slots; keep the currently assigned slot steady
-                    local isCurrent = assignedIndex ~= nil and (slotIndex == assignedIndex)
-                    local shouldFlash = not isCurrent
-                    entryData.alphaChangeOnSelection = shouldFlash
-                    entryData.showBarEvenWhenUnselected = shouldFlash
-                    entryData:SetIconTintOnSelection(shouldFlash)
-                    entryData.slotIndex = slotIndex
-                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
-                    local templateName = isCurrent and "ZO_GamepadMenuEntryTemplate" or "ZO_GamepadItemEntryTemplate"
-                    table.insert(parametricList, { template = templateName, entryData = entryData })
-                end
-
-                dialog.quickslotTarget = target
+                dialog.quickslotTarget = data.target
                 dialog:setupFunc()
                 if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
                     local offset = hasUnassign and 1 or 0
+                    -- Preselect currently assigned slot
+                    local assignedIndex = nil
+                    if FindActionSlotMatchingItem then
+                        assignedIndex = FindActionSlotMatchingItem(data.target.bagId, data.target.slotIndex,
+                            HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+                    end
+
                     if assignedIndex then
-                        local indexMap = {}
-                        for pos, idx in ipairs(orderedSlots) do
-                            indexMap[idx] = pos
+                        -- We need to find which parametric list entry corresponds to assignedIndex
+                        local foundParametricIndex = 1
+                        for i, entry in ipairs(parametricList) do
+                            if entry.entryData.slotIndex == assignedIndex then
+                                foundParametricIndex = i
+                                break
+                            end
                         end
-                        local listPos = (indexMap[assignedIndex] or 1) + offset
-                        dialog.entryList:SetSelectedIndexWithoutAnimation(listPos, true, false)
+                        dialog.entryList:SetSelectedIndexWithoutAnimation(foundParametricIndex, true, false)
                     else
                         dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
                     end
@@ -298,7 +234,7 @@ function BETTERUI.Inventory.HookActionDialog()
                     if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
                         -- Check if the selected row is a BetterUI Destroy entry
                         local selectedRow = dialog.entryList and
-                        BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
                         if selectedRow and selectedRow.isBetterUIDestroy then
                             local targetData
                             local actionMode = self.actionMode
@@ -308,7 +244,7 @@ function BETTERUI.Inventory.HookActionDialog()
                                 targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                             else
                                 targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self
-                                .categoryList))
+                                    .categoryList))
                             end
                             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
                             if bag and slot then
@@ -361,7 +297,7 @@ function BETTERUI.Inventory.HookActionDialog()
                                     targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                                 elseif self and self.categoryList then
                                     targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(
-                                    self.categoryList))
+                                        self.categoryList))
                                 end
                             end
                             local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)

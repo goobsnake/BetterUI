@@ -12,15 +12,7 @@ local function SetupCategoryList(list)
     )
 end
 
--- Safe helper for GetTargetData calls (guards against lists without method)
--- Duplicated locally to avoid tight coupling
-local function SafeGetTargetData(list)
-    if not list then return nil end
-    if list.GetTargetData and type(list.GetTargetData) == "function" then
-        return list:GetTargetData()
-    end
-    return list.selectedData
-end
+
 
 
 --- Build the category list UI and wire up selection/target callbacks

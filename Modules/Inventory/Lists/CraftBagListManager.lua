@@ -24,15 +24,7 @@ local function SetupCraftBagList(buiList)
     )
 end
 
--- Safe helper for GetTargetData calls (guards against lists without method)
--- Duplicated locally to avoid tight coupling
-local function SafeGetTargetData(list)
-    if not list then return nil end
-    if list.GetTargetData and type(list.GetTargetData) == "function" then
-        return list:GetTargetData()
-    end
-    return list.selectedData
-end
+
 
 
 --- Initializes the craft bag list.
@@ -76,7 +68,7 @@ end
 --- Refreshes the Craft Bag list content.
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
     -- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
-    local craftCategoryTarget = SafeGetTargetData(self.categoryList)
+    local craftCategoryTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
     local craftFilter = craftCategoryTarget and craftCategoryTarget.filterType or nil
     self.craftBagList:RefreshList(craftFilter, self.searchQuery)
 end

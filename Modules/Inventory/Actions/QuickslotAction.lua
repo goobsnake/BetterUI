@@ -10,11 +10,98 @@ Purpose: Handles the Quickslot Assignment dialog, allowing users to assign items
 --- Initializes the custom dialog for visual quickslot assignment.
 ---
 --- Purpose: Provides a visual wheel selection for assigning items to quickslots.
---- Mechanics:
---- - Defines the "Wheel" slots (N, NE, E, etc.).
---- - Checks currently assigned slot to pre-select it.
---- - Adds "Remove Assignment" option if needed.
---- References: Called during Initialize.
+--[[
+File: Modules/Inventory/Actions/QuickslotAction.lua
+Purpose: Handles the Quickslot Assignment dialog, allowing users to assign items to the quickslot wheel.
+]]
+
+--------------------------------------------------------------------------------
+-- HELPER: Shared Dialog Population
+--------------------------------------------------------------------------------
+
+--- Populates the parametric list with Quickslot Wheel entries.
+--- Used by both the custom Quickslot Dialog and the hooked Action Dialog.
+function BETTERUI.Inventory.PopulateQuickslotDialogEntries(parametricList, target)
+    if not parametricList or not target then return end
+
+    ZO_ClearNumericallyIndexedTable(parametricList)
+
+    local hasUnassign = false
+    local assignedIndex = nil
+
+    if FindActionSlotMatchingItem then
+        assignedIndex = FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+        if assignedIndex then
+            hasUnassign = true
+            local unassignEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN),
+                "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot_empty.dds")
+            unassignEntry.action = "unassign"
+            unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
+            table.insert(
+                parametricList,
+                { template = "ZO_GamepadMenuEntryTemplate", entryData = unassignEntry }
+            )
+        end
+    end
+
+    local function slotLabel(idx)
+        if idx == 4 then
+            return GetString(SI_BETTERUI_DIR_NORTH)
+        elseif idx == 5 then
+            return GetString(SI_BETTERUI_DIR_NORTHWEST)
+        elseif idx == 6 then
+            return GetString(SI_BETTERUI_DIR_WEST)
+        elseif idx == 7 then
+            return GetString(SI_BETTERUI_DIR_SOUTHWEST)
+        elseif idx == 8 then
+            return GetString(SI_BETTERUI_DIR_SOUTH)
+        elseif idx == 1 then
+            return GetString(SI_BETTERUI_DIR_SOUTHEAST)
+        elseif idx == 2 then
+            return GetString(SI_BETTERUI_DIR_EAST)
+        elseif idx == 3 then
+            return GetString(SI_BETTERUI_DIR_NORTHEAST)
+        end
+        return tostring(idx)
+    end
+
+    -- Clockwise ordering starting at North: N, NE, E, SE, S, SW, W, NW
+    local orderedSlots = { 4, 3, 2, 1, 8, 7, 6, 5 }
+
+    for _, slotIndex in ipairs(orderedSlots) do
+        local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
+        local lower = type(icon) == "string" and icon:lower() or nil
+        if not lower or lower:find("gamepad/gp_inventory_icon_quickslot_empty") then
+            icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot_empty.dds"
+        end
+
+        local name = slotLabel(slotIndex)
+        local entryData = ZO_GamepadEntryData:New(name, icon)
+        entryData.action = "assign"
+        entryData.assignSlotIndex = slotIndex
+
+        -- Highlight currently assigned slot
+        local isCurrent = (assignedIndex == slotIndex)
+        if isCurrent then
+            entryData:SetSelected(true)
+            entryData:SetIconTintOnSelection(true)
+        end
+
+        local shouldFlash = isCurrent
+        entryData.showBarEvenWhenUnselected = shouldFlash
+        entryData:SetIconTintOnSelection(shouldFlash)
+        entryData.slotIndex = slotIndex
+        entryData.setup = ZO_SharedGamepadEntry_OnSetup
+
+        local templateName = isCurrent and "ZO_GamepadMenuEntryTemplate" or "ZO_GamepadItemEntryTemplate"
+        table.insert(parametricList, { template = templateName, entryData = entryData })
+    end
+
+    return hasUnassign
+end
+
+--------------------------------------------------------------------------------
+
 function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
     local SLOT_LABELS = {
         [1] = "Southeast",
