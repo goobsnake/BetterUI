@@ -1,5 +1,5 @@
 --[[
-File: Modules/GeneralInterface/Tooltips.lua
+File: Modules/CIM/Tooltips/Tooltips.lua
 Purpose: Enriches item tooltips with useful information.
          Integrates market pricing, research status, and font scaling.
 Last Modified: 2026-01-23
@@ -10,7 +10,7 @@ FEATURES:
 3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
 ]]
 
-_G.gsErrorSuppress = 0  -- Global flag for guild store error suppression
+_G.gsErrorSuppress = 0 -- Global flag for guild store error suppression
 local _
 
 -------------------------------------------------------------------------------------------------
@@ -149,16 +149,16 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
 
     if stackCount > 1 then
         return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t,   Stack(<<5>>): <<6>> |t<<3>>:<<3>>:<<4>>|t",
-            addonName, 
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+            addonName,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
             iconSize,
-            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)), 
-            stackCount, 
+            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)),
+            stackCount,
             BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)))
     else
         return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t",
-            addonName, 
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)), 
+            addonName,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
             iconSize,
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
     end
@@ -171,7 +171,7 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
     if itemLink then
         local stackCount = storeStackCount or GetSlotStackSize(bagId, slotIndex)
         local fontSize = BETTERUI.GetTooltipFontSize()
-        local iconSize = math.floor(fontSize * 0.7) 
+        local iconSize = math.floor(fontSize * 0.7)
 
         -- TTC Integration
         local ttcLine = GetAddonPriceDisplay("TTC", TamrielTradeCentre, function(link)
@@ -203,38 +203,38 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
     if itemLink and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
         local traitString
-        if(CanItemLinkBeTraitResearched(itemLink))  then
+        if (CanItemLinkBeTraitResearched(itemLink)) then
             -- Find owned items that can be researchable
-            if(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
+            if (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Inventory|r"
-            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
+            elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Bank|r"
-            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FOUR)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FIVE)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SIX)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SEVEN)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_EIGHT)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_NINE)
-                + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
+            elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FOUR)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_FIVE)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SIX)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_SEVEN)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_EIGHT)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_NINE)
+                    + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TEN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in House Bank|r"
-            elseif(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
+            elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found Equipped|r"
             else
                 traitString = "|c00FF00Researchable|r"
             end
         else
             return lines
-        end    
+        end
 
         local style = GetItemLinkItemStyle(itemLink)
-        local itemStyle = string.upper(GetString("SI_ITEMSTYLE", style))                    
+        local itemStyle = string.upper(GetString("SI_ITEMSTYLE", style))
 
         table.insert(lines, zo_strformat("<<1>> Trait: <<2>>", itemStyle, traitString))
 
-        if(itemStyle ~= ("NONE")) then
+        if (itemStyle ~= ("NONE")) then
             table.insert(lines, zo_strformat("<<1>>", itemStyle))
         end
     end
@@ -274,7 +274,7 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         newMethod2(self, ...)
     end
     tooltipControl[method3] = function(self, ...)
-        storeItemLink, storeStackCount = linkFunc3(...) 
+        storeItemLink, storeStackCount = linkFunc3(...)
         newMethod3(self, ...)
     end
     tooltipControl[method] = function(self, ...)
@@ -283,7 +283,7 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         else
             itemLink = linkFunc(...)
         end
-        
+
         -- Capture current item link for Status Hook/Inventory Update to read
         self._betterui_itemLink = itemLink
         self._betterui_bagId = bagId
@@ -296,7 +296,7 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         -- 2. Scale Fonts
         local fontSize = BETTERUI.GetTooltipFontSize()
         local fontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. fontSize .. "|soft-shadow-thick"
-        
+
         for i = 1, self:GetNumChildren() do
             local child = self:GetChild(i)
             if child and child:GetType() == CT_LABEL then
@@ -333,7 +333,8 @@ end
 --- @param itemSoundCategory number Sound category
 --- @param updateReason number Reason for the update
 --- @param stackCountChange number Change in stack count
-local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason, stackCountChange)
+local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason,
+                                     stackCountChange)
     -- Only invalidate if item was added/removed/changed (not just equipped status on self, though trait research usually doesn't change on equip)
     -- Check for DEFAULT update reason which covers most inventory mutations
     if updateReason == INVENTORY_UPDATE_REASON_DEFAULT then

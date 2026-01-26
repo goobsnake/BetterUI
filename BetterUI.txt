@@ -47,13 +47,14 @@ Modules\CIM\Lists\GenericListManager.lua
 Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Module.lua
 
-; Module: General Interface Improvements
-Modules\GeneralInterface\Tooltips.lua
-Modules\GeneralInterface\TooltipSettings.lua
-Modules\GeneralInterface\Nameplates.lua
-Modules\GeneralInterface\NameplateSettings.lua
+; CIM Enhancements (Migrated)
+Modules\CIM\Core\EnhancementModule.lua
+Modules\CIM\Tooltips\Settings.lua
+Modules\CIM\Tooltips\Tooltips.lua
+Modules\CIM\Nameplates\Settings.lua
+Modules\CIM\Nameplates\Nameplates.lua
 
-Modules\GeneralInterface\Module.lua
+
 
 ; Module: Resource Orb Frames
 Modules\ResourceOrbFrames\Constants.lua

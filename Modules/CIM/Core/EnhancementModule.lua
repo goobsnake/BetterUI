@@ -1,7 +1,7 @@
 ---------------------------------------------------------------------------------------------------
--- BetterUI - General Interface Module
+-- BetterUI - CIM Enhancement Module
 --
--- This module acts as the central configuration hub for various General Interface enhancements.
+-- This module acts as the central configuration hub for various CIM enhancements (formerly General Interface).
 -- It integrates with LibAddonMenu to provide settings for:
 -- 1. Tooltips: Font size, MasterMerchant/TTC integration, and mail deletion confirmation.
 -- 2. Nameplates: Enabling/disabling, font customization, and style adjustments.
@@ -40,26 +40,26 @@ local function Init(mId, moduleName)
 
 	local optionsTable = {}
 
-    -- Tooltip Settings Submenu
-    if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
-        table.insert(optionsTable, {
-            type = "submenu",
-            name = "General",
-            controls = BETTERUI.GeneralInterface.GetSettingsOptions()
-        })
-    end
+	-- Tooltip Settings Submenu
+	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
+		table.insert(optionsTable, {
+			type = "submenu",
+			name = "General",
+			controls = BETTERUI.GeneralInterface.GetSettingsOptions()
+		})
+	end
 
-    -- Nameplate Settings Submenu
-    if BETTERUI.Nameplates and BETTERUI.Nameplates.GetSettingsOptions then
-        table.insert(optionsTable, {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
-            controls = BETTERUI.Nameplates.GetSettingsOptions()
-        })
-    end
+	-- Nameplate Settings Submenu
+	if BETTERUI.Nameplates and BETTERUI.Nameplates.GetSettingsOptions then
+		table.insert(optionsTable, {
+			type = "submenu",
+			name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
+			controls = BETTERUI.Nameplates.GetSettingsOptions()
+		})
+	end
 
-	LAM:RegisterAddonPanel("BETTERUI_"..mId, panelData)
-	LAM:RegisterOptionControls("BETTERUI_"..mId, optionsTable)
+	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
+	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
 end
 
 
@@ -80,11 +80,10 @@ end
 --- @param m_options table The options table to initialize (unused here, handled by InitModule).
 --- @return table The initialized options table.
 function BETTERUI.GeneralInterface.Setup()
-
 	Init("General", "General Interface")
 
-    -- Only apply hooks/logic if Tooltips module is enabled
-    if not BETTERUI.Settings.Modules["GeneralInterface"].m_enabled then return end
+	-- Only apply hooks/logic if Tooltips module is enabled
+	if not BETTERUI.Settings.Modules["GeneralInterface"].m_enabled then return end
 
 	if IsPrivateFunction('IsInUI') then
 		ZO_IsIngameUI = function()
@@ -98,9 +97,12 @@ function BETTERUI.GeneralInterface.Setup()
 		end)
 	end
 
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink, "LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
+	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink,
+		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
+	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink,
+		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
+	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink,
+		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 
 
 
@@ -127,8 +129,11 @@ function BETTERUI.GeneralInterface.Setup()
 		end
 	end
 
-	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvSingle", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, invalidateCacheOnUpdate)
-	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE, invalidateCacheOnUpdate)
+	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvSingle", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+		invalidateCacheOnUpdate)
+	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE,
+		invalidateCacheOnUpdate)
 
-	if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["GeneralInterface"].chatHistory) end
+	if (ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings
+		.Modules["GeneralInterface"].chatHistory) end
 end
