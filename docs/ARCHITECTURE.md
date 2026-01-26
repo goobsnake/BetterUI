@@ -36,12 +36,14 @@
 │  ├── GenericHeader.lua/.xml   (Tab bar header with LB/RB navigation)    │
 │  ├── GenericFooter.lua/.xml   (Currency display footer)                 │
 │  ├── InterfaceLibrary.lua/.xml (Base window templates)                  │
-│  └── ParametricScrollListTemplates.lua/.xml (Enhanced list rendering)   │
+│  ├── Lists/                   (Enhanced Vertical/Horizontal/TabBar lists)│
+│  ├── Tooltips/                (Enhanced item tooltips)                  │
+│  └── Nameplates/              (Font customization)                      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Feature Modules                                                        │
 │  ├── Inventory/   (Enhanced inventory with categories, search, icons)   │
 │  ├── Banking/     (Bank/Guild Bank/House Bank interface)                │
-│  ├── GeneralInterface/ (Tooltips, Nameplates)                           │
+│  ├── Banking/     (Bank/Guild Bank/House Bank interface)                │
 │  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs)            │
 │  └── WritUnit/    (Writ quest tracking panel)                           │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -60,7 +62,7 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 | 3. Constants | `BetterUI.CONST.lua` | UI dimensions, currency config |
 | 4. Shared XML | `BetterUI_Shared.xml` | Base templates |
 | 5. CIM Module | `Modules/CIM/*` | Shared UI and Runtime overrides (starts with `RuntimeSetup.lua`) |
-| 6. Feature Modules | `Modules/GeneralInterface/*`, `Modules/Inventory/*`, etc. | Dependent on CIM |
+| 6. Feature Modules | `Modules/Inventory/*`, `Modules/Banking/*`, etc. | Dependent on CIM |
 | 7. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler (Delegates to `RuntimeSetup`) |
 
 > **Critical**: CIM must load before Inventory/Banking because they inherit from CIM templates.
@@ -119,8 +121,7 @@ BETTERUI = {
 
 | Module | Entry Point | Key Class | Dependencies | Purpose |
 |--------|-------------|-----------|--------------|---------|
-| **CIM** | `Module.lua` | `BETTERUI.Interface.Window` | None | Shared UI templates (header, footer, lists) |
-| **GeneralInterface** | `Module.lua` | — | CIM | Tooltips, Nameplates |
+| **CIM** | `Module.lua` | `BETTERUI.Interface.Window` | None | Shared UI templates, List classes, Tooltips, Nameplates |
 | **ResourceOrbFrames**| `Module.lua` | — | CIM | Custom Health/Magicka/Stamina Orbs |
 | **Inventory** | `Module.lua` | `BETTERUI.Inventory.Class` | CIM | Enhanced inventory with categories |
 | **Banking** | `Module.lua` | `BETTERUI.Banking.Class` | CIM | Bank/House Bank interface |
@@ -274,8 +275,7 @@ graph TD
     A --> D[CIM Module]
     D --> E[Inventory Module]
     D --> F[Banking Module]
-    D --> G[GeneralInterface Module]
-    D --> H[WritUnit Module]
+    D --> G[WritUnit Module]
     D --> L[ResourceOrbFrames Module]
     E --> I[InventoryList.lua]
     E --> J[InventorySlot.lua]
