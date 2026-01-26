@@ -16,6 +16,8 @@ BETTERUI.Inventory.Lists = {}
 BETTERUI.Inventory.Keybinds = {}
 BETTERUI.Inventory.State = {}
 BETTERUI.Inventory.Core = {}
+BETTERUI.Inventory.UI = {}
+BETTERUI.Inventory.Settings = {}
 
 -- Forward declarations for cross-module communication
 -- These will be populated by the respective files as they load

@@ -81,13 +81,13 @@ Modules\Inventory\Lists\CraftBagListManager.lua
 Modules\Inventory\Lists\CategoryListManager.lua
 Modules\Inventory\Keybinds\InventoryKeybinds.lua
 Modules\Inventory\Templates\GamepadInventory.xml
-Modules\Inventory\InventoryList.lua
-Modules\Inventory\InventorySlot.lua
-Modules\Inventory\CraftList.lua
+Modules\Inventory\Lists\InventoryList.lua
+Modules\Inventory\Actions\SlotActions.lua
+Modules\Inventory\Lists\CraftList.lua
 Modules\Inventory\InventoryUtils.lua
-Modules\Inventory\InventoryTooltipUtils.lua
+Modules\Inventory\UI\TooltipUtils.lua
 Modules\Inventory\Inventory.lua
-Modules\Inventory\InventorySettings.lua
+Modules\Inventory\Settings\SettingsPanel.lua
 Modules\Inventory\Module.lua
 
 ; Module: Banking
