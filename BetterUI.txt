@@ -79,6 +79,7 @@ Modules\Inventory\Actions\ItemActionsDialog.lua
 Modules\Inventory\Lists\ItemListManager.lua
 Modules\Inventory\Lists\CraftBagListManager.lua
 Modules\Inventory\Lists\CategoryListManager.lua
+Modules\Inventory\Keybinds\InventoryKeybinds.lua
 Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\InventoryList.lua
 Modules\Inventory\InventorySlot.lua
