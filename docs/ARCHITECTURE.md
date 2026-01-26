@@ -83,7 +83,9 @@ BETTERUI = {
 
     -- Core Subsystems
     CONST = {},              -- Constants (BetterUI.CONST.lua)
-    CIM = {},                -- Common Interface Module
+    CIM = {                  -- Common Interface Module
+        CONST = {},          -- CIM-specific constants (header, footer, tooltip geometry)
+    },
     Interface = {            -- Base UI utilities
         Window = {},         -- Window class (InterfaceLibrary.lua)
     },
