@@ -73,6 +73,8 @@ Modules\Inventory\State\PositionManager.lua
 Modules\Inventory\State\ListStateManager.lua
 Modules\Inventory\Core\InventoryClass.lua
 Modules\Inventory\Core\HeaderManager.lua
+Modules\Inventory\Actions\ActionDialogHooks.lua
+Modules\Inventory\Actions\DestroyAction.lua
 Modules\Inventory\Actions\EquipAction.lua
 Modules\Inventory\Actions\QuickslotAction.lua
 Modules\Inventory\Actions\ItemActionsDialog.lua
