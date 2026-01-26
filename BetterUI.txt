@@ -89,6 +89,8 @@ Modules\Inventory\Lists\CraftList.lua
 Modules\Inventory\InventoryUtils.lua
 Modules\Inventory\UI\TooltipUtils.lua
 Modules\Inventory\Inventory.lua
+Modules\Inventory\Settings\FontSettings.lua
+Modules\Inventory\Settings\CurrencySettings.lua
 Modules\Inventory\Settings\SettingsPanel.lua
 Modules\Inventory\Module.lua
 
