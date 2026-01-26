@@ -37,6 +37,9 @@ Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\ParametricScrollListTemplates.lua
 Modules\CIM\Templates\InterfaceLibrary.xml
 Modules\CIM\InterfaceLibrary.lua
+Modules\CIM\Core\GenericWindow.lua
+Modules\CIM\Lists\GenericListManager.lua
+Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Module.lua
 
 ; Module: General Interface Improvements
