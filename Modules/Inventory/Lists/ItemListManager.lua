@@ -426,7 +426,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     local sortFunc = BETTERUI_Inventory_DefaultItemSortComparator or BETTERUI_GamepadInventory_DefaultItemSortComparator
 
     -- If the list is small enough, process synchronously (prevents flickering on small lists)
-    if #filteredDataTable <= BATCH_SIZE_INITIAL then
+    if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then
         table.sort(filteredDataTable, sortFunc)
         self.pendingContext = {
             showJunkCategory = showJunkCategory,

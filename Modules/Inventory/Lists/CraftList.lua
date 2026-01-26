@@ -155,9 +155,7 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- Sort the filtered data
     table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
 
-    -- BATCH PROCESSING CONSTANTS
-    local BATCH_SIZE_INITIAL = 50
-    local BATCH_SIZE_REMAINING = 200
+    -- BATCH PROCESSING CONSTANTS (Using global BetterUI.Inventory.CONST)
 
     -- Clear existing batch
     if self.batchCallId then
@@ -166,7 +164,7 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     end
 
     -- Small List: Synchronous
-    if #filteredDataTable <= BATCH_SIZE_INITIAL then
+    if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then
         local lastBestItemCategoryName
         for i, itemData in ipairs(filteredDataTable) do
             local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
@@ -200,7 +198,6 @@ end
 function BETTERUI.Inventory.CraftList:ProcessBatch()
     if not self.pendingBatchData or not self.list then return end
 
-    local BATCH_SIZE_REMAINING = 200
     local startIndex = self.pendingBatchIndex or 1
     local totalItems = #self.pendingBatchData
 
@@ -210,7 +207,7 @@ function BETTERUI.Inventory.CraftList:ProcessBatch()
         return
     end
 
-    local endIndex = math.min(startIndex + BATCH_SIZE_REMAINING - 1, totalItems)
+    local endIndex = math.min(startIndex + BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING - 1, totalItems)
     local lastBestItemCategoryName = self.pendingContext.lastBestItemCategoryName
 
     for i = startIndex, endIndex do
