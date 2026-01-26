@@ -208,3 +208,14 @@ function BETTERUI.Banking.Class:OnEnterHeader()
         end
     end
 end
+
+--[[
+Function: BETTERUI.Banking.Class:OnSearchTextChanged
+Description: Callback when search text changes.
+]]
+function BETTERUI.Banking.Class:OnSearchTextChanged(editBox)
+    if not (editBox and editBox.GetText) then return end
+    local text = editBox:GetText()
+    self.searchQuery = text
+    self:RefreshList()
+end

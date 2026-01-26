@@ -37,14 +37,10 @@ local _
 -- These reference values from Core/BankingClass.lua (loaded first in manifest).
 -- Using locals for performance in frequently-called functions.
 -------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 
--- Module-scope state accessors (read/write through namespace)
-local function getLastUsedBank() return BETTERUI.Banking.lastUsedBank end
-local function setLastUsedBank(v) BETTERUI.Banking.lastUsedBank = v end
-
-local esoSubscriber = BETTERUI.Banking.esoSubscriber
+local esoSubscriber                 = BETTERUI.Banking.esoSubscriber
 
 -------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY AND UTILITY REFERENCES
@@ -52,8 +48,8 @@ local esoSubscriber = BETTERUI.Banking.esoSubscriber
 -- Use centralized category definitions from CIM module to eliminate duplication.
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
 -------------------------------------------------------------------------------------------------
-local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
-local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
+local BANK_CATEGORY_DEFS            = BETTERUI.Banking.CATEGORY_DEFS
+local EnsureKeybindGroupAdded       = BETTERUI.Banking.EnsureKeybindGroupAdded
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
 

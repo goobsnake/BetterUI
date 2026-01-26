@@ -91,3 +91,24 @@ Description: Rotation (radians) for the selection background arrow in Deposit mo
 Used By: StateManager.lua
 ]]
 BETTERUI_BANK_DEPOSIT_ARROW_ROTATION = 3.1415 -- Pi
+
+-- ============================================================================
+-- TIMING CONSTANTS
+-- Delay values for coalescing operations and UI updates
+-- ============================================================================
+
+--[[
+Constant: BETTERUI_BANK_MOVE_COALESCE_DELAY_MS
+Description: Delay (ms) after item move before refreshing list.
+             Allows multiple rapid moves to be coalesced into a single refresh.
+Used By: TransferActions.lua
+]]
+BETTERUI_BANK_MOVE_COALESCE_DELAY_MS = 100
+
+--[[
+Constant: BETTERUI_BANK_CATEGORY_CHANGE_DELAY_MS
+Description: Delay (ms) after category change before rebuilding list.
+             Prevents jarring updates during rapid category switching.
+Used By: HeaderManager.lua
+]]
+BETTERUI_BANK_CATEGORY_CHANGE_DELAY_MS = 100
