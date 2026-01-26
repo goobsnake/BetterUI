@@ -124,6 +124,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                 )
             end
             if isCallingFromActionDialog then
+                -- Delay required to allow previous dialog to fully close before opening new one
                 zo_callLater(promptForBindOnEquip, BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS)
             else
                 promptForBindOnEquip()
@@ -218,6 +219,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         end
 
         if isCallingFromActionDialog then
+            -- Delay required to allow previous dialog to fully close before opening new one
             zo_callLater(showEquipDialog, BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS)
         else
             showEquipDialog()

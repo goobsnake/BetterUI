@@ -112,11 +112,12 @@ local function OnLeaveHeader(self)
         self.textSearchHeaderFocus:Deactivate()
     end
 
+    -- Zero-delay to defer keybind activation to next frame, preventing race conditions
     zo_callLater(function()
         if self.scene and self.scene:IsShowing() then
-            pcall(function()
+            if self.EnsureHeaderKeybindsActive then
                 self:EnsureHeaderKeybindsActive()
-            end)
+            end
         end
     end, 0)
 end
@@ -137,24 +138,22 @@ end
 
 local function ExitSearchFocus(self)
     -- Remove search keybinds first
-    pcall(function()
-        if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-        end
-    end)
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
 
     -- Add back main keybinds
-    pcall(function()
-        if self.mainKeybindStripDescriptor then
-            BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-        end
-    end)
+    if self.mainKeybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
 
     -- Deactivate the search header focus
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
         if self.textSearchHeaderFocus:IsActive() then
-            pcall(function() self.textSearchHeaderFocus:Deactivate() end)
+            if self.textSearchHeaderFocus.Deactivate then
+                self.textSearchHeaderFocus:Deactivate()
+            end
         end
     end
 
@@ -167,7 +166,7 @@ local function ExitSearchFocus(self)
     local currentList = self:GetCurrentList()
     if currentList then
         if currentList.Activate and (not currentList.IsActive or not currentList:IsActive()) then
-            pcall(function() currentList:Activate() end)
+            currentList:Activate()
         end
     end
 end

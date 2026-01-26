@@ -74,7 +74,7 @@ function BETTERUI.Inventory.ToSavedPosition(self)
             if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
                 local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
                 local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList
-                .dataList
+                    .dataList
                 if dataList then
                     for i, entry in ipairs(dataList) do
                         if entry and entry.uniqueId == uid then
@@ -119,6 +119,7 @@ function BETTERUI.Inventory.ToSavedPosition(self)
         if self.callLaterLeftToolTip then
             EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
         end
+        -- Delay tooltip refresh to allow list scroll/setup to complete first
         local callLaterId = zo_callLater(function()
             -- Provide safe access to UpdateItemLeftTooltip for when it's still in the main file
             if self.UpdateItemLeftTooltip then
