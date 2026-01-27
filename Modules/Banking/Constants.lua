@@ -2,7 +2,7 @@
 File: Modules/Banking/Constants.lua
 Purpose: Constants for the Banking module.
          Includes search bar positioning and carousel overrides.
-Last Modified: 2026-01-23
+Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.Banking then BETTERUI.Banking = {} end
@@ -10,24 +10,35 @@ if not BETTERUI.Banking.CONST then BETTERUI.Banking.CONST = {} end
 
 -- ============================================================================
 -- CATEGORY CAROUSEL OVERRIDES
--- Banking-specific carousel overrides (nil means use default)
+-- Banking-specific carousel overrides (differs from CIM defaults)
 -- ============================================================================
 
 --[[
-Constant: BETTERUI_BANKING_CAROUSEL_START_OFFSET
-Description: Horizontal position for banking carousel.
-Direction: Positive (+) moves RIGHT.
-Used By: Banking.lua
+Table: BETTERUI.Banking.CONST.CAROUSEL
+Description: Banking-specific carousel positioning overrides.
+             These values differ from the CIM defaults to account for
+             the Banking header layout differences.
+Used By: Banking/UI/HeaderManager.lua
 ]]
-BETTERUI_BANKING_CAROUSEL_START_OFFSET = 705
+BETTERUI.Banking.CONST.CAROUSEL = {
+    --[[
+    Field: startOffset
+    Description: Horizontal position for banking carousel (slightly left of default).
+    Direction: Positive (+) moves RIGHT.
+    ]]
+    startOffset = 705,
 
---[[
-Constant: BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET
-Description: Vertical offset for banking carousel.
-Direction: Positive (+) moves DOWN, Negative (-) moves UP.
-Used By: Banking.lua
-]]
-BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = -1
+    --[[
+    Field: verticalOffset
+    Description: Vertical offset for banking carousel (higher than default).
+    Direction: Positive (+) moves DOWN, Negative (-) moves UP.
+    ]]
+    verticalOffset = -1,
+}
+
+-- Backwards Compatibility Aliases (for Lua code that still uses global names)
+BETTERUI_BANKING_CAROUSEL_START_OFFSET = BETTERUI.Banking.CONST.CAROUSEL.startOffset
+BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset
 
 -- ============================================================================
 -- SEARCH BAR POSITIONING

@@ -3,7 +3,7 @@ File: Modules/Inventory/State/PositionManager.lua
 Purpose: Manages the persistence of inventory list positions and selection states.
          Ensures users return to the same item when switching tabs or categories.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end
@@ -44,6 +44,9 @@ end
 --[[
 Function: ToSavedPosition
 Description: Restores the list position and selection from saved state.
+Mechanism: Retrieves the saved uniqueId for the target category FIRST,
+           then sets self.currentlySelectedData before calling RefreshItemList
+           so that batch processing will restore to the correct position.
 ]]
 function BETTERUI.Inventory.ToSavedPosition(self)
     -- Determine if we're on inventory or craft bag based on current category
@@ -52,6 +55,32 @@ function BETTERUI.Inventory.ToSavedPosition(self)
 
     local isCraftBag = catData.onClickDirection ~= nil
     local currentList = isCraftBag and self.craftBagList or self.itemList
+
+    -- Get category key for position lookup
+    local key = BETTERUI.Inventory.GetCategoryKey(catData)
+    local savedUniqueId = nil
+
+    -- Retrieve the saved uniqueId for this category BEFORE calling refresh
+    -- This ensures RefreshItemList's batch processing restores to the correct item
+    if isCraftBag then
+        if key and self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
+            savedUniqueId = self.savedCraftBagSelectedItemUniqueByKey[key]
+        end
+    else
+        if key and self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
+            savedUniqueId = self.savedInventorySelectedItemUniqueByKey[key]
+        end
+    end
+
+    -- Set currentlySelectedData to the saved uniqueId so RefreshItemList uses it
+    -- This prevents batch processing from restoring to the wrong item (the item
+    -- that was selected in the PREVIOUS category but also exists in the new one)
+    if savedUniqueId then
+        self.currentlySelectedData = { uniqueId = savedUniqueId }
+    else
+        -- No saved position for this category - clear to prevent wrong restoration
+        self.currentlySelectedData = nil
+    end
 
     -- Set current list and refresh for the current category
     if isCraftBag then
@@ -62,66 +91,17 @@ function BETTERUI.Inventory.ToSavedPosition(self)
         self:RefreshItemList()
     end
 
-    -- Get category key for position lookup
-    local key = BETTERUI.Inventory.GetCategoryKey(catData)
-    local lastPosition = 1
-
-    if isCraftBag then
-        -- Restore craft bag item position for this category ONLY if previously saved
-        if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
-            lastPosition = self.savedCraftBagPositionsByKey[key]
-            -- Prefer unique id restore if available
-            if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
-                local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
-                local dataList = self.craftBagList.list and self.craftBagList.list.dataList or self.craftBagList
-                    .dataList
-                if dataList then
-                    for i, entry in ipairs(dataList) do
-                        if entry and entry.uniqueId == uid then
-                            lastPosition = i
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    else
-        -- Restore inventory item position for this category ONLY if previously saved
-        if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
-            lastPosition = self.savedInventoryPositionsByKey[key]
-            -- Prefer unique id restore if available
-            if self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
-                local uid = self.savedInventorySelectedItemUniqueByKey[key]
-                local dataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
-                if dataList then
-                    for i, entry in ipairs(dataList) do
-                        if entry and entry.uniqueId == uid then
-                            lastPosition = i
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    -- Apply the position to the current list
+    -- For small lists that process synchronously, apply fallback position restoration
+    -- (Large lists with batch processing will restore in ProcessScrollListBatch)
     local dataList = currentList.list and currentList.list.dataList or currentList.dataList
-    if dataList and #dataList > 0 then
-        lastPosition = zo_clamp(lastPosition, 1, #dataList)
-        -- Use inner list for SetSelectedIndexWithoutAnimation if available (craftBagList wraps inner list)
-        local innerList = currentList.list or currentList
-        if innerList.SetSelectedIndexWithoutAnimation then
-            innerList:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
-        end
-
+    if dataList and #dataList > 0 and not self.pendingBatchData then
+        -- List was processed synchronously (small list) - position was already restored
+        -- by RefreshItemList via batch processing. Just update tooltip.
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         if self.callLaterLeftToolTip then
             EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
         end
-        -- Delay tooltip refresh to allow list scroll/setup to complete first
         local callLaterId = zo_callLater(function()
-            -- Provide safe access to UpdateItemLeftTooltip for when it's still in the main file
             if self.UpdateItemLeftTooltip then
                 self:UpdateItemLeftTooltip(currentList.selectedData)
             end

@@ -2,7 +2,7 @@
 File: Modules/CIM/Constants.lua
 Purpose: Constants for the Common Interface Module (CIM).
          Includes Currency Footer configuration, Header/Footer layout geometry, and Carousel settings.
-Last Modified: 2026-01-23
+Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -140,10 +140,39 @@ BETTERUI.CURRENCY_PRESETS = {
 -- Used for the rotating category icon bar in Inventory and Banking headers
 -- ============================================================================
 
--- Default carousel settings (used by Inventory)
-BETTERUI_CAROUSEL_START_OFFSET = 710   -- Horizontal position of first category icon (increase to move right)
-BETTERUI_CAROUSEL_ITEM_SPACING = 50    -- Space between each category icon
-BETTERUI_CAROUSEL_VERTICAL_OFFSET = 12 -- Vertical offset to align icons with LB/RB buttons (increase to move down)
+--[[
+Table: BETTERUI.CIM.CONST.CAROUSEL
+Description: Configuration for category carousel (tab bar) positioning.
+             Contains default values used by Inventory, with module-specific
+             overrides available (e.g., Banking.CONST.CAROUSEL).
+Used By: CIM/Lists/TabBarScrollList.lua, Banking/UI/HeaderManager.lua
+]]
+BETTERUI.CIM.CONST.CAROUSEL = {
+    --[[
+    Field: startOffset
+    Description: Horizontal position of first category icon.
+    Direction: Positive (+) moves RIGHT.
+    ]]
+    startOffset = 710,
+
+    --[[
+    Field: itemSpacing
+    Description: Space between each category icon.
+    ]]
+    itemSpacing = 50,
+
+    --[[
+    Field: verticalOffset
+    Description: Vertical offset to align icons with LB/RB buttons.
+    Direction: Positive (+) moves DOWN.
+    ]]
+    verticalOffset = 12,
+}
+
+-- Backwards Compatibility Aliases (for Lua code that still uses global names)
+BETTERUI_CAROUSEL_START_OFFSET = BETTERUI.CIM.CONST.CAROUSEL.startOffset
+BETTERUI_CAROUSEL_ITEM_SPACING = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing
+BETTERUI_CAROUSEL_VERTICAL_OFFSET = BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
 
 -- ============================================================================
 -- HEADER GEOMETRY (Used in GenericHeader.xml)
