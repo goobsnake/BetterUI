@@ -295,11 +295,24 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         self.itemList:Commit(true)
 
         -- Restore selection if we have a target
+        local restored = false
         if targetUniqueId then
-            self.itemList:SetSelectedDataByEval(function(data)
+            restored = self.itemList:SetSelectedDataByEval(function(data)
                 return data.uniqueId and Id64ToString(data.uniqueId) == targetUniqueId
             end)
         end
+
+        -- Fallback: if uniqueId restoration failed (item consumed/removed), use index position
+        if not restored and self.pendingContext.targetIndex then
+            local dataList = self.itemList.dataList or (self.itemList.list and self.itemList.list.dataList)
+            if dataList and #dataList > 0 then
+                -- Clamp to valid range (in case list shrank)
+                local targetIdx = math.min(self.pendingContext.targetIndex, #dataList)
+                targetIdx = math.max(1, targetIdx)
+                self.itemList:SetSelectedIndex(targetIdx)
+            end
+        end
+
         self.pendingBatchData = nil
         self.pendingContext = nil
     end
@@ -307,10 +320,15 @@ end
 
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
-    -- Capture current selection before clearing
+    -- Capture current selection before clearing (uniqueId primary, index fallback)
     local targetUniqueId = nil
+    local targetIndex = nil
     if self.currentlySelectedData and self.currentlySelectedData.uniqueId then
         targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
+    end
+    -- Capture index for fallback (used when item is consumed/removed)
+    if self.itemList.selectedIndex then
+        targetIndex = self.itemList.selectedIndex
     end
 
     self.itemList:Clear()
@@ -424,7 +442,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             filteredEquipSlot = filteredEquipSlot,
             isQuestItem = isQuestItem,
             currentBestCategoryName = nil,
-            targetUniqueId = targetUniqueId
+            targetUniqueId = targetUniqueId,
+            targetIndex = targetIndex
         }
         self.pendingBatchData = filteredDataTable
         self.pendingBatchIndex = 1
@@ -441,7 +460,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         filteredEquipSlot = filteredEquipSlot,
         isQuestItem = isQuestItem,
         currentBestCategoryName = nil,
-        targetUniqueId = targetUniqueId
+        targetUniqueId = targetUniqueId,
+        targetIndex = targetIndex
     }
     self.pendingBatchData = filteredDataTable
     self.pendingBatchIndex = 1

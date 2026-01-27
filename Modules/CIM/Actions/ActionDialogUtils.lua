@@ -86,9 +86,9 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
         local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
         local lower = type(icon) == "string" and icon:lower() or nil
 
-        -- Use fallback icon for empty slots
-        if not icon or icon == "" or (lower and string.find(lower, "quickslot_empty", 1, true)) then
-            icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds"
+        -- Empty slots show no icon (nil) - a fallback would show as white box
+        if icon == "" or (lower and string.find(lower, "quickslot_empty", 1, true)) then
+            icon = nil
         end
 
         local entryData = ZO_GamepadEntryData:New(BETTERUI.CIM.GetQuickslotLabel(slotIndex), icon)
