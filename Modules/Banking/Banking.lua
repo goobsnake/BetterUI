@@ -589,30 +589,12 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             -- Refresh item actions after discovery (matches Inventory pattern at ItemActionsDialog.lua line 273)
             self:RefreshItemActions()
 
+            -- Use shared CIM utility for action entry population
             local actions = self.itemActions:GetSlotActions()
-            local numActions = actions:GetNumSlotActions()
-
-            for i = 1, numActions do
-                local action = actions:GetSlotAction(i)
-                local actionName = actions:GetRawActionName(action)
-
-                -- Hide Destroy/Delete in deposit mode (banker and house bank)
-                local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY)) or
-                    (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
-                if not (self.currentMode == LIST_DEPOSIT and isDestroy) then
-                    local entryData = ZO_GamepadEntryData:New(actionName)
-                    entryData:SetIconTintOnSelection(true)
-                    entryData.action = action
-                    entryData.setup = ZO_SharedGamepadEntry_OnSetup
-
-                    local listItem =
-                    {
-                        template = "ZO_GamepadItemEntryTemplate",
-                        entryData = entryData,
-                    }
-                    table.insert(parametricList, listItem)
-                end
-            end
+            local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
+            BETTERUI.CIM.PopulateActionEntries(parametricList, actions, {
+                hideDestroy = hideDestroyInDeposit,
+            })
 
             dialog:setupFunc()
         end
@@ -637,16 +619,8 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             if not selectedAction then return end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
             if selectedName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
-                -- Link to chat
-                local targetData = self:GetList().selectedData
-                local itemLink
-                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-                if bag and slot then
-                    itemLink = GetItemLink(bag, slot)
-                end
-                if itemLink then
-                    ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
-                end
+                -- Use shared CIM utility for linking to chat
+                BETTERUI.CIM.HandleLinkToChat(self:GetList().selectedData)
             else
                 self.itemActions:DoSelectedAction()
             end
