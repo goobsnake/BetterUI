@@ -3,7 +3,7 @@ File: Modules/Banking/Keybinds/KeybindManager.lua
 Purpose: Manages keybind descriptors and registration for the Banking module.
          Extracted from Banking.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-01-27
 ]]
 
 local _
@@ -20,31 +20,13 @@ local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 --[[
 Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
 Description: Creates trigger keybinds for fast scrolling the list.
+Note: Delegates to shared CIM factory for consistency.
 param: list (table) - The list control.
 return: table, table - Left and Right trigger keybind descriptors.
 ]]
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
-    local leftTrigger = {
-        keybind = "UI_SHORTCUT_LEFT_TRIGGER",
-        ethereal = true,
-        callback = function()
-            local list = self.list
-            if not list:IsEmpty() then
-                list:SetSelectedIndex(list.selectedIndex - tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed))
-            end
-        end
-    }
-    local rightTrigger = {
-        keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
-        ethereal = true,
-        callback = function()
-            local list = self.list
-            if not list:IsEmpty() then
-                list:SetSelectedIndex(list.selectedIndex + tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed))
-            end
-        end,
-    }
-    return leftTrigger, rightTrigger
+    -- Use shared CIM factory to avoid code duplication
+    return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list)
 end
 
 --[[

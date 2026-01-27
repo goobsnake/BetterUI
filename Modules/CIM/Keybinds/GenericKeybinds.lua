@@ -3,7 +3,7 @@ File: Modules/CIM/Keybinds/GenericKeybinds.lua
 Purpose: Shared keybind descriptor factories for Inventory and Banking modules.
          Provides reusable keybind definitions to reduce duplication.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-01-27
 ]]
 
 local _
@@ -168,4 +168,36 @@ param: list (table) - The parametric scroll list.
 ]]
 function BETTERUI.CIM.Keybinds.AddTriggerKeybinds(keybindGroup, list)
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindGroup, list)
+end
+
+--[[
+Function: BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds
+Description: Creates LT/RT keybinds for fast scrolling with configurable speed.
+Rationale: Used by Banking/Inventory for trigger-based list navigation.
+Mechanism: Uses BETTERUI.Settings.Modules["CIM"].triggerSpeed for scroll amount.
+param: list (table) - The parametric scroll list to control.
+return: table, table - Left trigger and right trigger keybind descriptors.
+]]
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list)
+    local leftTrigger = {
+        keybind = "UI_SHORTCUT_LEFT_TRIGGER",
+        ethereal = true,
+        callback = function()
+            if list and not list:IsEmpty() then
+                local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                list:SetSelectedIndex(list.selectedIndex - speed)
+            end
+        end
+    }
+    local rightTrigger = {
+        keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
+        ethereal = true,
+        callback = function()
+            if list and not list:IsEmpty() then
+                local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                list:SetSelectedIndex(list.selectedIndex + speed)
+            end
+        end,
+    }
+    return leftTrigger, rightTrigger
 end
