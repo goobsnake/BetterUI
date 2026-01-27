@@ -195,11 +195,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 -- Ensure the main keybind descriptor becomes active after toggling junk
                 if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
                     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                    zo_callLater(function()
-                        if self.SetActiveKeybinds then
-                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                        end
-                    end, 40)
+                    -- NOTE: Removed duplicate zo_callLater call - causes flickering
                 end
             end
             -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
@@ -224,11 +220,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 -- Ensure the main keybind descriptor becomes active after toggling junk
                 if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
                     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                    zo_callLater(function()
-                        if self.SetActiveKeybinds then
-                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                        end
-                    end, 40)
+                    -- NOTE: Removed duplicate zo_callLater call - causes flickering
                 end
             end
 
@@ -349,25 +341,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                                         if origCallback then
                                             origCallback(...)
                                         end
-                                        -- Immediately refresh item list and actions to restore UI/keybind state
-                                        if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-                                            GAMEPAD_INVENTORY:RefreshItemList()
-                                        end
-                                        if self and self.RefreshItemActions then
-                                            self:RefreshItemActions()
-                                        end
-                                        if self and self.RefreshKeybinds then
-                                            self:RefreshKeybinds()
-                                        end
-                                        -- Ensure the main keybind descriptor becomes active after lock/unlock flows
-                                        if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
-                                            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                                            zo_callLater(function()
-                                                if self.SetActiveKeybinds then
-                                                    self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                                                end
-                                            end, 40)
-                                        end
+                                        -- NOTE: Removed redundant refresh calls here.
+                                        -- ActionDialogFinish (finishedCallback) handles:
+                                        --   SetActiveKeybinds, RefreshItemActions, RefreshKeybinds
+                                        -- Adding them here too caused duplicate updates → flicker
                                     end
                                     -- Only wrap the first matching entry
                                     break
@@ -446,16 +423,15 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     end
                     self:SetSelectedItemUniqueId(targetData)
                 end
+                -- Note: RefreshCategoryList moved here for category mode only
+                self:RefreshCategoryList()
             else
                 self:RefreshItemActions()
             end
             --refresh so keybinds react to newly selected item
             self:RefreshKeybinds()
-
-            self:OnUpdate()
-            if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
-                self:RefreshCategoryList()
-            end
+            -- NOTE: Removed OnUpdate() call - it triggers RefreshItemList + RefreshItemActions
+            -- which duplicates the refresh we just did, causing flickering.
         end
     end
 
@@ -604,29 +580,8 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         BETTERUI.Inventory.EnsureCompanionEquipPatched()
     end
 
-    -- Hook the native dialog to use our local implementation
-    ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG] = {
-        setup = ActionDialogSetup,
-        gamepadInfo = {
-            dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
-            allowRightStickPassThrough = true,
-        },
-        title = {
-            -- Dynamic title handling or static text (simplified to static consistent with base game)
-            text = function() return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND) end,
-        },
-        parametricList = {}, -- Populated by ActionDialogSetup
-        finishedCallback = ActionDialogFinish,
-        buttons = {
-            {
-                keybind = "DIALOG_NEGATIVE",
-                text = GetString(SI_DIALOG_CANCEL),
-            },
-            {
-                keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
-                callback = ActionDialogButtonConfirm,
-            },
-        },
-    }
+    -- NOTE: ESO_Dialogs registration removed - ActionDialogHooks.lua handles this registration
+    -- and includes proper scene detection for both Inventory and Banking.
+    -- The previous duplicate registration here overwrote ActionDialogHooks' version,
+    -- preventing Banking's Y-menu from working correctly.
 end

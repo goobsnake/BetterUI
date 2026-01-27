@@ -83,6 +83,21 @@ function BETTERUI.Inventory.HookActionDialog()
     ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, {
         blockDirectionalInput = true,
         canQueue = true,
+        --[[
+            Setup function for the shared Y-menu action dialog.
+            This is the SINGLE registration point for ZO_GAMEPAD_INVENTORY_ACTION_DIALOG
+            and handles BOTH Inventory and Banking scenes.
+
+            Flow:
+            1. First checks for quickslot assignment mode (special case)
+            2. Then checks scene to determine context:
+               - gamepad_inventory_root → fires BETTERUI_EVENT_ACTION_DIALOG_SETUP for Inventory
+               - gamepad_banking → fires BETTERUI_EVENT_ACTION_DIALOG_SETUP for Banking
+               - Other scenes → falls back to original ActionsDialogSetup
+
+            IMPORTANT: Do NOT register another ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG]
+            elsewhere as it will overwrite this registration and break scene detection.
+        ]]
         setup = function(dialog, data)
             -- Always handle our embedded quickslot mode here for robustness
             if data and data.quickslotAssign and data.target then
@@ -118,25 +133,23 @@ function BETTERUI.Inventory.HookActionDialog()
                 end
                 return
             end
-            -- Debug: if the selected action is Equip and the companion scene is active, check if patch is present
-
 
             -- Normal BetterUI override path when enabled/visible
-            -- Title provided via dialog's dynamic title function; avoid overriding here
-            if
-                (
-                    BETTERUI.Settings.Modules["Inventory"].m_enabled
-                    and SCENE_MANAGER.scenes["gamepad_inventory_root"]:IsShowing()
-                )
-                or (
-                    BETTERUI.Settings.Modules["Banking"].m_enabled
-                    and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
-                )
-            then
+            -- Check both Inventory and Banking scenes with proper nil guards
+            local invShowing = BETTERUI.Settings.Modules["Inventory"].m_enabled
+                and SCENE_MANAGER.scenes["gamepad_inventory_root"]
+                and SCENE_MANAGER.scenes["gamepad_inventory_root"]:IsShowing()
+            local bankScene = SCENE_MANAGER.scenes["gamepad_banking"]
+            local bankShowing = BETTERUI.Settings.Modules["Banking"].m_enabled
+                and bankScene
+                and bankScene:IsShowing()
+
+            if invShowing or bankShowing then
+                -- Fire callback for BetterUI modules to populate the dialog
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data)
                 return
             end
-            -- Original function
+            -- Original function for unsupported scenes
             ActionsDialogSetup(dialog, data)
         end,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },

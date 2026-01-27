@@ -295,6 +295,8 @@ end
 --[[
 Function: BETTERUI.Banking.Class:ShowActions
 Description: Shows the actions dialog for the selected item.
+    Triggers ActionDialogHooks which handles action discovery and dialog population
+    for both Inventory and Banking scenes.
 ]]
 function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
@@ -303,9 +305,11 @@ function BETTERUI.Banking.Class:ShowActions()
         self:AddKeybinds()
     end
 
+    local targetData = self:GetList().selectedData
+
     local dialogData =
     {
-        targetData = self:GetList().selectedData,
+        targetData = targetData,
         finishedCallback = OnActionsFinishedCallback,
         itemActions = self.itemActions,
     }

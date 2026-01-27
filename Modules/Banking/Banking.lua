@@ -109,6 +109,15 @@ param: scene_name (string) - Scene name.
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
 
+    -- Create banking scene (moved from InterfaceLibrary.lua as part of Phase 3 refactoring)
+    BETTERUI_BANKING_SCENE = ZO_InteractScene:New(
+        BETTERUI_BANKING_SCENE_NAME,
+        SCENE_MANAGER,
+        BETTERUI.Banking.BANKING_INTERACTION
+    )
+    self:InitializeFragment()
+    self:InitializeScene(BETTERUI_BANKING_SCENE)
+
     self:InitializeKeybind()
     self:InitializeList()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
@@ -287,6 +296,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local selectedControl = list:GetSelectedControl()
         if self.selectedDataCallback then
             self:selectedDataCallback(selectedControl, selectedData)
+        end
+        -- Refresh item actions so Y-menu shows correct actions for new selection
+        -- Fixes caching issue when scrolling from Withdraw Gold to actual items
+        if selectedData then
+            self:RefreshItemActions()
         end
         if selectedControl and selectedControl.bagId then
             SHARED_INVENTORY:ClearNewStatus(selectedControl.bagId, selectedControl.slotIndex)
@@ -545,6 +559,34 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
 
+            -- Get target data and set on itemActions before discovering actions
+            -- This ensures the slot actions controller knows what item to populate actions for
+            local targetData = self:GetList() and self:GetList().selectedData or nil
+
+            if targetData then
+                -- Ensure slotType is present for discovery (matches Inventory pattern)
+                if not targetData.slotType then
+                    if self.currentMode == LIST_WITHDRAW then
+                        targetData.slotType = SLOT_TYPE_BANK_ITEM
+                    else
+                        targetData.slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+                    end
+                end
+
+                -- Set the inventory slot on the outer controller
+                self.itemActions:SetInventorySlot(targetData)
+
+                -- Directly discover actions on the inner slotActions object (critical for action discovery)
+                -- This mirrors Inventory's ItemActionsDialog lines 262-270
+                if self.itemActions.slotActions then
+                    local innerSlotActions = self.itemActions.slotActions
+                    innerSlotActions:Clear()
+                    innerSlotActions:SetInventorySlot(targetData)
+                    ZO_InventorySlot_DiscoverSlotActionsFromActionList(targetData, innerSlotActions)
+                end
+            end
+
+            -- Refresh item actions after discovery (matches Inventory pattern at ItemActionsDialog.lua line 273)
             self:RefreshItemActions()
 
             local actions = self.itemActions:GetSlotActions()
