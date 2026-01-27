@@ -265,56 +265,20 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
             itemData.cached_isBook = true
         end
 
-        -- Create Entry
-        local itemName = itemData.name
-        local itemIcon = itemData.iconFile or itemData.icon
+        -- Create Entry using shared CIM factory
+        local data = BETTERUI.CIM.CreateItemEntryData(itemData, {
+            isQuestItem = isQuestItem,
+            visualDataInit = BETTERUI.Inventory.Class.InitializeInventoryVisualData
+        })
 
-        if itemName and itemIcon then
-            local data = ZO_GamepadEntryData:New(itemName, itemIcon)
-            data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
-            data:InitializeInventoryVisualData(itemData)
-
-            local remaining, duration
-            if isQuestItem then
-                if itemData.toolIndex then
-                    remaining, duration = GetQuestToolCooldownInfo(itemData.questIndex, itemData.toolIndex)
-                elseif itemData.stepIndex and itemData.conditionIndex then
-                    remaining, duration = GetQuestItemCooldownInfo(itemData.questIndex, itemData.stepIndex,
-                        itemData.conditionIndex)
-                end
-            else
-                remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
-            end
-
-            if remaining and duration and remaining > 0 and duration > 0 then
-                data:SetCooldown(remaining, duration)
-            end
-
-            data.bestItemCategoryName = itemData.bestItemCategoryName
-            data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
-            data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
-            data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
-            data.isJunk = itemData.isJunk
-            -- Explicitly copy slot metadata for action discovery (Y-menu)
-            -- Native engine functions bypass Lua metatable fallback, so these must be direct properties
-            -- Required by: ZO_InventorySlot_GetType, ZO_InventorySlot_GetStackCount, ZO_Inventory_GetBagAndIndex
-            data.slotType = itemData.slotType
-            data.stackCount = itemData.stackCount
-            data.bagId = itemData.bagId
-            data.slotIndex = itemData.slotIndex
-
+        if data then
             if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
-                if data.bestGamepadItemCategoryName ~= self.pendingContext.currentBestCategoryName then
-                    self.pendingContext.currentBestCategoryName = data.bestGamepadItemCategoryName
-                    data:SetHeader(self.pendingContext.currentBestCategoryName)
-                    if AutoCategory then
-                        self.itemList:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
-                    else
-                        self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-                    end
-                else
-                    self.itemList:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-                end
+                self.pendingContext.currentBestCategoryName = BETTERUI.CIM.AddItemEntryToList(
+                    self.itemList,
+                    data,
+                    self.pendingContext.currentBestCategoryName,
+                    AutoCategory ~= nil
+                )
             end
         end
     end

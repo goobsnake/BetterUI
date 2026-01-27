@@ -49,6 +49,7 @@ Modules\CIM\Core\WindowClass.lua
 Modules\CIM\InterfaceLibrary.lua
 Modules\CIM\Core\GenericWindow.lua
 Modules\CIM\Lists\GenericListManager.lua
+Modules\CIM\Lists\ItemDataProcessor.lua
 Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Keybinds\GenericKeybinds.lua
 Modules\CIM\Module.lua

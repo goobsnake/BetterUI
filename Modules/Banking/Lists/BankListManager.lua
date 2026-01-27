@@ -325,44 +325,24 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local currentBestCategoryName
 
-    local GetItemCooldownInfo = GetItemCooldownInfo
-    local ZO_GamepadEntryData = ZO_GamepadEntryData
+    -- Use AutoCategory headers if plugin is present and bags have items
+    local useHeaders = AutoCategory and
+    ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
+
     for i, itemData in ipairs(filteredDataTable) do
-        local data = ZO_GamepadEntryData:New(itemData.name, itemData.iconFile)
-        data.InitializeInventoryVisualData = BETTERUI.Inventory.Class.InitializeInventoryVisualData
-        data:InitializeInventoryVisualData(itemData)
+        -- Create Entry using shared CIM factory
+        local data = BETTERUI.CIM.CreateItemEntryData(itemData, {
+            visualDataInit = BETTERUI.Inventory.Class.InitializeInventoryVisualData
+        })
 
-        local remaining, duration
-        remaining, duration = GetItemCooldownInfo(itemData.bagId, itemData.slotIndex)
-
-        if remaining > 0 and duration > 0 then
-            data:SetCooldown(remaining, duration)
-        end
-
-        data.bestItemCategoryName = itemData.bestItemCategoryName
-        data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
-        data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
-        data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
-        data.isJunk = itemData.isJunk
-        -- Explicitly copy slot metadata for action discovery (Y-menu)
-        -- Native engine functions bypass Lua metatable fallback, so these must be direct properties
-        -- Required by: ZO_InventorySlot_GetType, ZO_InventorySlot_GetStackCount, ZO_Inventory_GetBagAndIndex
-        data.slotType = itemData.slotType
-        data.stackCount = itemData.stackCount
-        data.bagId = itemData.bagId
-        data.slotIndex = itemData.slotIndex
-
-        if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
-            if data.bestGamepadItemCategoryName ~= currentBestCategoryName then
-                currentBestCategoryName = data.bestGamepadItemCategoryName
-                data:SetHeader(currentBestCategoryName)
-                if ((AutoCategory) and ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))) then
-                    self.list:AddEntryWithHeader("BETTERUI_GamepadItemSubEntryTemplate", data)
-                else
-                    self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
-                end
-            else
-                self.list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", data)
+        if data then
+            if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
+                currentBestCategoryName = BETTERUI.CIM.AddItemEntryToList(
+                    self.list,
+                    data,
+                    currentBestCategoryName,
+                    useHeaders
+                )
             end
         end
     end
