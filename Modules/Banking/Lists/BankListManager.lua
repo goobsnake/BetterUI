@@ -327,7 +327,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     -- Use AutoCategory headers if plugin is present and bags have items
     local useHeaders = AutoCategory and
-    ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
+        ((GetNumBagUsedSlots(currentUsedBank) ~= 0) or (GetNumBagUsedSlots(BAG_BACKPACK) ~= 0))
 
     for i, itemData in ipairs(filteredDataTable) do
         -- Create Entry using shared CIM factory
@@ -384,10 +384,16 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if (currentUsedBank == BAG_BANK) then
         if (selectedData.label ~= nil and activeCategoryForHeader and activeCategoryForHeader.key == "all") then
-            -- Yes! We are, so add the "withdraw/deposit gold/telvar" keybinds here
+            -- Yes! We are on a currency row, so add the "withdraw/deposit gold/telvar" keybinds here
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
+
+            -- Hide BetterUI custom tooltip label (it may persist from the last item viewed)
+            local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
+            if container and container._betterUiStatus then
+                container._betterUiStatus:SetHidden(true)
+            end
 
             self:RefreshCurrencyTooltip()
         else
@@ -398,6 +404,14 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
 
             if selectedData.bagId and selectedData.slotIndex then
                 GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+                -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
+                local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+                if tooltip then
+                    tooltip._betterui_bagId = selectedData.bagId
+                    tooltip._betterui_slotIndex = selectedData.slotIndex
+                    tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
+                end
+                BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
             else
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
             end
@@ -408,6 +422,14 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
         if selectedData.bagId and selectedData.slotIndex then
             GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+            -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
+            local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+            if tooltip then
+                tooltip._betterui_bagId = selectedData.bagId
+                tooltip._betterui_slotIndex = selectedData.slotIndex
+                tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
+            end
+            BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
         else
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         end
