@@ -92,6 +92,172 @@ function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slot
 end
 
 -------------------------------------------------------------------------------------------------
+-- SORTING COMPARATORS (Static Functions)
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BETTERUI.CIM.SortByName
+Description: Alphabetical name comparator.
+Rationale: Sorts items A-Z by display name.
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortByName(left, right)
+    local leftName = left.name or left.bestItemTypeName or ""
+    local rightName = right.name or right.bestItemTypeName or ""
+    return leftName < rightName
+end
+
+--[[
+Function: BETTERUI.CIM.SortByQuality
+Description: Quality tier comparator (higher quality first).
+Rationale: Sorts by item quality (Legendary > Epic > Superior > etc.)
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortByQuality(left, right)
+    local leftQuality = left.displayQuality or left.quality or 0
+    local rightQuality = right.displayQuality or right.quality or 0
+    return leftQuality > rightQuality
+end
+
+--[[
+Function: BETTERUI.CIM.SortByLevel
+Description: Level/CP requirement comparator (higher level first).
+Rationale: Sorts by item level requirement.
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortByLevel(left, right)
+    local leftLevel = left.requiredLevel or 0
+    local rightLevel = right.requiredLevel or 0
+
+    -- Consider champion points for endgame gear
+    if leftLevel == rightLevel then
+        local leftCP = left.requiredChampionPoints or 0
+        local rightCP = right.requiredChampionPoints or 0
+        return leftCP > rightCP
+    end
+
+    return leftLevel > rightLevel
+end
+
+--[[
+Function: BETTERUI.CIM.SortByValue
+Description: Sell price comparator (higher value first).
+Rationale: Sorts by gold sell value.
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortByValue(left, right)
+    local leftValue = left.sellPrice or 0
+    local rightValue = right.sellPrice or 0
+    return leftValue > rightValue
+end
+
+--[[
+Function: BETTERUI.CIM.SortBySlotIndex
+Description: Bag slot order comparator.
+Rationale: Sorts by physical slot position (preserves bag order).
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortBySlotIndex(left, right)
+    local leftSlot = left.slotIndex or 0
+    local rightSlot = right.slotIndex or 0
+    return leftSlot < rightSlot
+end
+
+--[[
+Function: BETTERUI.CIM.SortByBagAndSlot
+Description: Sorts by bag ID first, then slot index.
+Rationale: Useful for bank views showing multiple bags.
+param: left (table) - First item data.
+param: right (table) - Second item data.
+return: boolean - True if left should come before right.
+]]
+function BETTERUI.CIM.SortByBagAndSlot(left, right)
+    local leftBag = left.bagId or 0
+    local rightBag = right.bagId or 0
+
+    if leftBag ~= rightBag then
+        return leftBag < rightBag
+    end
+
+    return BETTERUI.CIM.SortBySlotIndex(left, right)
+end
+
+-------------------------------------------------------------------------------------------------
+-- FILTERING UTILITIES (Instance Methods)
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BETTERUI.CIM.GenericListManager:ApplyTextFilter
+Description: Filters item list by name substring (case-insensitive).
+Rationale: Common search implementation for both Inventory and Banking.
+param: items (table) - Array of item data tables.
+param: searchQuery (string) - The search string to match.
+return: table - Filtered array of items matching the query.
+]]
+function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
+    if not searchQuery or searchQuery == "" then
+        return items
+    end
+
+    local query = searchQuery:lower()
+    local filtered = {}
+
+    for _, item in ipairs(items) do
+        local name = item.name or ""
+        if name:lower():find(query, 1, true) then
+            table.insert(filtered, item)
+        end
+    end
+
+    return filtered
+end
+
+--[[
+Function: BETTERUI.CIM.GenericListManager:BuildSortFunction
+Description: Creates a multi-key comparator from an array of sort functions.
+Rationale: Allows chaining sort criteria (e.g., quality then name).
+Mechanism: Returns a comparator that tries each sort function in order,
+           stopping at the first one that produces a difference.
+param: sortKeys (table) - Array of sort functions to chain.
+return: function - Combined comparator function.
+]]
+function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
+    if not sortKeys or #sortKeys == 0 then
+        return BETTERUI.CIM.SortBySlotIndex
+    end
+
+    if #sortKeys == 1 then
+        return sortKeys[1]
+    end
+
+    return function(left, right)
+        for _, sortFn in ipairs(sortKeys) do
+            local leftFirst = sortFn(left, right)
+            local rightFirst = sortFn(right, left)
+
+            -- If this sort function distinguishes the items, use its result
+            if leftFirst ~= rightFirst then
+                return leftFirst
+            end
+            -- Otherwise, continue to next sort key
+        end
+
+        -- All sort keys were equal; maintain original order
+        return false
+    end
+end
+
+-------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS (Static)
 -------------------------------------------------------------------------------------------------
 

@@ -20,9 +20,11 @@ local zo_strformat = zo_strformat
 local GetBestItemCategoryDescription = ZO_InventoryUtils_Gamepad_GetBestItemCategoryDescription
 local WouldEquipmentBeHidden = WouldEquipmentBeHidden
 local FindActionSlotMatchingItem = FindActionSlotMatchingItem
+local Id64ToString = Id64ToString
 
 local function MenuEntryTemplateEquality(left, right)
-    return left.uniqueId == right.uniqueId
+    -- Convert to string to ensure consistent comparison even if userdata instances differ
+    return Id64ToString(left.uniqueId) == Id64ToString(right.uniqueId)
 end
 
 local function SetupItemList(list)
@@ -206,6 +208,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
     local isQuestItem = self.pendingContext.isQuestItem
     local currentBestCategoryName = self.pendingContext.currentBestCategoryName
     local showRightTooltip = false -- Logic simplified for batch
+    local targetUniqueId = self.pendingContext.targetUniqueId
 
     -- Loop logic duplicated from RefreshItemList (extracted for batching)
     for i = startIndex, endIndex do
@@ -292,6 +295,13 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
             data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
             data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
             data.isJunk = itemData.isJunk
+            -- Explicitly copy slot metadata for action discovery (Y-menu)
+            -- Native engine functions bypass Lua metatable fallback, so these must be direct properties
+            -- Required by: ZO_InventorySlot_GetType, ZO_InventorySlot_GetStackCount, ZO_Inventory_GetBagAndIndex
+            data.slotType = itemData.slotType
+            data.stackCount = itemData.stackCount
+            data.bagId = itemData.bagId
+            data.slotIndex = itemData.slotIndex
 
             if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
                 if data.bestGamepadItemCategoryName ~= self.pendingContext.currentBestCategoryName then
@@ -309,7 +319,6 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         end
     end
 
-    self.itemList:Commit()
     self.pendingBatchIndex = endIndex + 1
 
     -- Schedule next batch
@@ -317,12 +326,29 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         -- Batch processing: yield to allow frame render, preventing UI freeze
         self.batchCallId = zo_callLater(function() self:ProcessScrollListBatch() end, 10)
     else
+        -- Final batch complete - commit once with proper selection restoration
+        -- Use dontReselect=true to prevent default reselection, then restore manually
+        self.itemList:Commit(true)
+
+        -- Restore selection if we have a target
+        if targetUniqueId then
+            self.itemList:SetSelectedDataByEval(function(data)
+                return data.uniqueId and Id64ToString(data.uniqueId) == targetUniqueId
+            end)
+        end
         self.pendingBatchData = nil
+        self.pendingContext = nil
     end
 end
 
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
+    -- Capture current selection before clearing
+    local targetUniqueId = nil
+    if self.currentlySelectedData and self.currentlySelectedData.uniqueId then
+        targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
+    end
+
     self.itemList:Clear()
     if self.categoryList:IsEmpty() then
         return
@@ -414,14 +440,15 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     -- BATCH PROCESSING START
-    -- Clear any existing pending batch
+    -- Cancel any existing pending batch to prevent overlapping operations
     if self.batchCallId then
-        EVENT_MANAGER:UnregisterForUpdate(self.batchCallId) -- Should be UnregisterForUpdate if using Update, but zo_callLater returns id?
-        -- zo_callLater returns id, but EVENT_MANAGER unregister needs name. zo_removeCallLater relies on custom wrapper?
-        -- Standard zo_callLater cannot be cancelled easily in pure API without wrapper.
-        -- Assuming Cancel all via overwriting data.
+        zo_removeCallLater(self.batchCallId)
         self.batchCallId = nil
     end
+    -- Clear pending batch state to ensure clean slate
+    self.pendingBatchData = nil
+    self.pendingBatchIndex = nil
+    self.pendingContext = nil
 
     local sortFunc = BETTERUI_Inventory_DefaultItemSortComparator or BETTERUI_GamepadInventory_DefaultItemSortComparator
 
@@ -432,7 +459,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             showJunkCategory = showJunkCategory,
             filteredEquipSlot = filteredEquipSlot,
             isQuestItem = isQuestItem,
-            currentBestCategoryName = nil
+            currentBestCategoryName = nil,
+            targetUniqueId = targetUniqueId
         }
         self.pendingBatchData = filteredDataTable
         self.pendingBatchIndex = 1
@@ -448,7 +476,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         showJunkCategory = showJunkCategory,
         filteredEquipSlot = filteredEquipSlot,
         isQuestItem = isQuestItem,
-        currentBestCategoryName = nil
+        currentBestCategoryName = nil,
+        targetUniqueId = targetUniqueId
     }
     self.pendingBatchData = filteredDataTable
     self.pendingBatchIndex = 1

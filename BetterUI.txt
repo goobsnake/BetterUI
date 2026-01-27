@@ -32,6 +32,7 @@ Modules\CIM\Templates\SharedTemplates.xml
 Modules\CIM\Templates\GenericHeader.xml
 Modules\CIM\GenericHeader.lua
 Modules\CIM\Templates\GenericFooter.xml
+Modules\CIM\UI\CurrencyManager.lua
 Modules\CIM\GenericFooter.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\ParametricScrollListTemplates.lua
@@ -41,10 +42,15 @@ Modules\CIM\Lists\TabBarScrollList.lua
 Modules\CIM\Lists\SubList.lua
 Modules\CIM\Lists\ParametricListScreen.lua
 Modules\CIM\Templates\InterfaceLibrary.xml
+Modules\CIM\Core\KeybindHelpers.lua
+Modules\CIM\Core\TooltipLayout.lua
+Modules\CIM\Core\SearchManager.lua
+Modules\CIM\Core\WindowClass.lua
 Modules\CIM\InterfaceLibrary.lua
 Modules\CIM\Core\GenericWindow.lua
 Modules\CIM\Lists\GenericListManager.lua
 Modules\CIM\Actions\GenericSlotActions.lua
+Modules\CIM\Keybinds\GenericKeybinds.lua
 Modules\CIM\Module.lua
 
 ; CIM Enhancements (Migrated)

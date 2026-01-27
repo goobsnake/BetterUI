@@ -112,3 +112,25 @@ Description: Delay (ms) after category change before rebuilding list.
 Used By: HeaderManager.lua
 ]]
 BETTERUI_BANK_CATEGORY_CHANGE_DELAY_MS = 100
+
+-- ============================================================================
+-- SCENE CONSTANTS
+-- Moved from InterfaceLibrary.lua as part of Phase 3 refactoring
+-- ============================================================================
+
+--[[
+Constant: BETTERUI_BANKING_SCENE_NAME
+Description: Scene name used for banking interface registration.
+Used By: Banking.lua, WindowClass.lua (ToggleScene)
+]]
+BETTERUI_BANKING_SCENE_NAME = "BETTERUI_BANKING"
+
+--[[
+Constant: BETTERUI.Banking.BANKING_INTERACTION
+Description: Interaction table for creating the banking scene.
+Used By: Banking.lua (Initialize)
+]]
+BETTERUI.Banking.BANKING_INTERACTION = {
+    type = "Banking",
+    interactTypes = { INTERACTION_BANK },
+}

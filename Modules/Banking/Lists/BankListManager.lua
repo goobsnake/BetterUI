@@ -392,6 +392,13 @@ function BETTERUI.Banking.Class:RefreshList()
         data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory
         data.isEquippedInAnotherCategory = itemData.isEquippedInAnotherCategory
         data.isJunk = itemData.isJunk
+        -- Explicitly copy slot metadata for action discovery (Y-menu)
+        -- Native engine functions bypass Lua metatable fallback, so these must be direct properties
+        -- Required by: ZO_InventorySlot_GetType, ZO_InventorySlot_GetStackCount, ZO_Inventory_GetBagAndIndex
+        data.slotType = itemData.slotType
+        data.stackCount = itemData.stackCount
+        data.bagId = itemData.bagId
+        data.slotIndex = itemData.slotIndex
 
         if (not data.isJunk and not showJunkCategory) or (data.isJunk and showJunkCategory) then
             if data.bestGamepadItemCategoryName ~= currentBestCategoryName then

@@ -28,11 +28,163 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:Initialize
 Description: Initialize the generic inventory window.
+Mechanism: Calls parent Initialize and sets up category position tracking.
 ]]
 function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name)
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
-    -- Additional common initialization can go here
+
+    -- Category position persistence
+    self.categoryPositions = {}
+    self.currentCategoryKey = nil
 end
+
+-------------------------------------------------------------------------------------------------
+-- CATEGORY MANAGEMENT
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey
+Description: Returns the current category identifier.
+return: string|nil - The current category key, or nil if none is set.
+]]
+function BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey()
+    return self.currentCategoryKey
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey
+Description: Sets the current category identifier.
+param: categoryKey (string) - The category key to set.
+]]
+function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
+    self.currentCategoryKey = categoryKey
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:SaveCategoryPosition
+Description: Saves the current list position for a category.
+Rationale: Allows returning to the same position when switching back to a category.
+param: categoryKey (string) - The category to save position for. Uses current if nil.
+param: position (number|nil) - The position to save. Uses current list selection if nil.
+]]
+function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
+    local key = categoryKey or self.currentCategoryKey
+    if not key then return end
+
+    local pos = position
+    if not pos and self.list then
+        pos = self.list:GetSelectedIndex() or 1
+    end
+
+    self.categoryPositions[key] = pos or 1
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:RestoreCategoryPosition
+Description: Restores a previously saved list position for a category.
+param: categoryKey (string) - The category to restore position for. Uses current if nil.
+return: number - The saved position, or 1 if not found.
+]]
+function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
+    local key = categoryKey or self.currentCategoryKey
+    if not key then return 1 end
+
+    return self.categoryPositions[key] or 1
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:ClearCategoryPositions
+Description: Clears all saved category positions.
+Rationale: Called when exiting the window to reset state for next visit.
+]]
+function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
+    self.categoryPositions = {}
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:SwitchToCategory
+Description: Switches to a specific category with position restoration.
+Rationale: Common pattern for category tab navigation in Inventory/Banking.
+Mechanism:
+  1. Saves current category position.
+  2. Updates current category key.
+  3. Refreshes the list.
+  4. Restores position for the new category.
+param: categoryKey (string) - The category to switch to.
+]]
+function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
+    if not categoryKey then return end
+
+    -- Save current position before switching
+    if self.currentCategoryKey then
+        self:SaveCategoryPosition(self.currentCategoryKey)
+    end
+
+    -- Update current category
+    self.currentCategoryKey = categoryKey
+
+    -- Refresh list for new category (subclasses should override RefreshList)
+    if self.RefreshList then
+        self:RefreshList()
+    end
+
+    -- Restore position for new category
+    local savedPosition = self:RestoreCategoryPosition(categoryKey)
+    if self.list and self.list.SetSelectedIndex then
+        self.list:SetSelectedIndex(savedPosition)
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- KEYBIND MANAGEMENT
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive
+Description: Ensures header tab bar keybinds are active.
+Rationale: Common pattern to restore header navigation after dialogs or spinners.
+Mechanism: Adds the tab bar keybinds if headerGeneric and tabBar exist.
+]]
+function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
+    if self.headerGeneric and self.headerGeneric.tabBar then
+        local tabBar = self.headerGeneric.tabBar
+        if tabBar.keybindStripDescriptor then
+            BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+        end
+    end
+
+    -- Also ensure text search keybinds are removed when not in search mode
+    if not self._searchModeActive and self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+
+    -- And ensure main keybinds are present
+    if self.mainKeybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.mainKeybindStripDescriptor)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds
+Description: Standard keybind refresh pattern.
+Rationale: Updates keybind button visibility/state based on current selection.
+]]
+function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
+    if not KEYBIND_STRIP then return end
+
+    if self.mainKeybindStripDescriptor then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
+
+    if self.coreKeybinds then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- PLACEHOLDER METHODS (Override in subclasses)
+-------------------------------------------------------------------------------------------------
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:UpdateHeaderTitle
