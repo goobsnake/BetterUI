@@ -162,7 +162,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             keybind = "UI_SHORTCUT_TERTIARY",
             order = 1000,
             visible = function()
-                return self.selectedItemUniqueId ~= nil or self:GetList().selectedData ~= nil
+                -- Hide Y-button for currency rows - they don't have valid inventory slots
+                -- and will crash when action discovery tries to call IsSlotLocked
+                local selectedData = self:GetList() and self:GetList().selectedData
+                if not selectedData then return false end
+                -- Currency rows have currencyType but no bagId - skip action menu for them
+                if ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
+                    return false
+                end
+                return self.selectedItemUniqueId ~= nil or selectedData ~= nil
             end,
 
             callback = function()
