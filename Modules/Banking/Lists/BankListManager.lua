@@ -58,62 +58,14 @@ local function DoesItemMatchBankCategory(itemData, category)
 end
 
 --[[
-Function: GetCategoryTypeFromWeaponType
-Description: Helper to map a weapon item to a gamepad store category.
-TODO: Move this to a shared CIM utility helper as it duplicates logic likely needed by Inventory.
+Shared Helper Functions
+Note: GetCategoryTypeFromWeaponType and GetBestItemCategoryDescription have been
+consolidated into CIM/CategoryDefinitions.lua to eliminate code duplication
+between Banking and Inventory modules.
 ]]
-local function GetCategoryTypeFromWeaponType(bagId, slotIndex)
-    local weaponType = GetItemWeaponType(bagId, slotIndex)
-    if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
-        return GAMEPAD_WEAPON_CATEGORY_ONE_HANDED_MELEE
-    elseif weaponType == WEAPONTYPE_TWO_HANDED_SWORD or weaponType == WEAPONTYPE_TWO_HANDED_AXE or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER then
-        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_MELEE
-    elseif weaponType == WEAPONTYPE_FIRE_STAFF or weaponType == WEAPONTYPE_FROST_STAFF or weaponType == WEAPONTYPE_LIGHTNING_STAFF then
-        return GAMEPAD_WEAPON_CATEGORY_DESTRUCTION_STAFF
-    elseif weaponType == WEAPONTYPE_HEALING_STAFF then
-        return GAMEPAD_WEAPON_CATEGORY_RESTORATION_STAFF
-    elseif weaponType == WEAPONTYPE_BOW then
-        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_BOW
-    elseif weaponType ~= WEAPONTYPE_NONE then
-        return GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED
-    end
-end
+local GetCategoryTypeFromWeaponType = BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType
+local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 
---[[
-Function: GetBestItemCategoryDescription
-Description: Computes the best category description string for an item.
-]]
-local function GetBestItemCategoryDescription(itemData)
-    local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
-
-    if isItemStolen then
-        return GetString(SI_BETTERUI_STOLEN)
-    end
-
-    if itemData.equipType == EQUIP_TYPE_INVALID then
-        return GetString("SI_ITEMTYPE", itemData.itemType)
-    end
-    local categoryType = GetCategoryTypeFromWeaponType(itemData.bagId, itemData.slotIndex)
-    if categoryType == GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
-        local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
-        return GetString("SI_WEAPONTYPE", weaponType)
-    elseif categoryType then
-        return GetString("SI_GAMEPADWEAPONCATEGORY", categoryType)
-    end
-    local armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
-    local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
-    if armorType ~= ARMORTYPE_NONE then
-        return GetString("SI_ARMORTYPE", armorType) .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
-    end
-    local fullDesc = GetString("SI_ITEMTYPE", itemData.itemType)
-
-    -- Stops types like "Poison" displaying "Poison" twice
-    if (fullDesc ~= GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))) then
-        fullDesc = fullDesc .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
-    end
-
-    return fullDesc
-end
 
 
 -------------------------------------------------------------------------------------------------

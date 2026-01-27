@@ -3,10 +3,10 @@ File: Modules/CIM/CategoryDefinitions.lua
 Purpose: Centralized configuration for inventory categories and craft bag filters.
          Used by Inventory module to populate category lists dynamically instead of
          hardcoding definitions in multiple places.
-         
+
          Also provides shared category definitions for Banking module to eliminate
          duplication between Banking.lua's BANK_CATEGORY_DEFS and Inventory categories.
-Last Modified: 2026-01-22
+Last Modified: 2026-01-27
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
@@ -20,7 +20,7 @@ BETTERUI.Inventory.Categories.CraftBag = {
     {
         nameStringId = SI_BETTERUI_CATEGORY_CRAFTING_BAG,
         iconFile = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_all.dds",
-        filterType = nil, -- All
+        filterType = nil,             -- All
         onClickDirection = "CRAFTBAG" -- Special flag for list switching logic
     },
     {
@@ -87,18 +87,18 @@ BETTERUI.Inventory.Categories.CraftBag = {
 -------------------------------------------------------------------------------------------------
 
 BETTERUI.Inventory.Categories.Bank = {
-    { key = "all",        nameStringId = SI_BETTERUI_INV_ITEM_ALL,        filterType = nil,                         iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
-    { key = "weapons",    nameStringId = SI_BETTERUI_INV_ITEM_WEAPONS,    filterType = ITEMFILTERTYPE_WEAPONS,      iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds" },
-    { key = "apparel",    nameStringId = SI_BETTERUI_INV_ITEM_APPAREL,    filterType = ITEMFILTERTYPE_ARMOR,        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds" },
-    { key = "jewelry",    nameStringId = SI_BETTERUI_INV_ITEM_JEWELRY,    filterType = ITEMFILTERTYPE_JEWELRY,      iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds" },
-    { key = "consumable", nameStringId = SI_BETTERUI_INV_ITEM_CONSUMABLE, filterType = ITEMFILTERTYPE_CONSUMABLE,   iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds" },
-    { key = "materials",  nameStringId = SI_BETTERUI_INV_ITEM_MATERIALS,  filterType = ITEMFILTERTYPE_CRAFTING,     iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds" },
-    { key = "furnishing", nameStringId = SI_BETTERUI_INV_ITEM_FURNISHING, filterType = ITEMFILTERTYPE_FURNISHING,   iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
-    { key = "misc",       nameStringId = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS,iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds" },
+    { key = "all",        nameStringId = SI_BETTERUI_INV_ITEM_ALL,        filterType = nil,                          iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
+    { key = "weapons",    nameStringId = SI_BETTERUI_INV_ITEM_WEAPONS,    filterType = ITEMFILTERTYPE_WEAPONS,       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds" },
+    { key = "apparel",    nameStringId = SI_BETTERUI_INV_ITEM_APPAREL,    filterType = ITEMFILTERTYPE_ARMOR,         iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds" },
+    { key = "jewelry",    nameStringId = SI_BETTERUI_INV_ITEM_JEWELRY,    filterType = ITEMFILTERTYPE_JEWELRY,       iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds" },
+    { key = "consumable", nameStringId = SI_BETTERUI_INV_ITEM_CONSUMABLE, filterType = ITEMFILTERTYPE_CONSUMABLE,    iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds" },
+    { key = "materials",  nameStringId = SI_BETTERUI_INV_ITEM_MATERIALS,  filterType = ITEMFILTERTYPE_CRAFTING,      iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds" },
+    { key = "furnishing", nameStringId = SI_BETTERUI_INV_ITEM_FURNISHING, filterType = ITEMFILTERTYPE_FURNISHING,    iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+    { key = "misc",       nameStringId = SI_BETTERUI_INV_ITEM_MISC,       filterType = ITEMFILTERTYPE_MISCELLANEOUS, iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds" },
     -- Companion items exist only on newer APIs; guard with presence check when building
-    { key = "companion",  nameStringId = SI_ITEMFILTERTYPE_COMPANION,     filterType = ITEMFILTERTYPE_COMPANION,    iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds", optional = true },
+    { key = "companion",  nameStringId = SI_ITEMFILTERTYPE_COMPANION,     filterType = ITEMFILTERTYPE_COMPANION,     iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_companionItems.dds", optional = true },
     -- Junk is not a filterType; handled specially in DoesItemMatchCategory
-    { key = "junk",       nameStringId = SI_BETTERUI_INV_ITEM_JUNK,       filterType = nil, special = "junk",       iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
+    { key = "junk",       nameStringId = SI_BETTERUI_INV_ITEM_JUNK,       filterType = nil,                          special = "junk",                                                              iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
 }
 
 -- Note: BankIcons table removal - icons are now embedded above in 'iconFile'
@@ -108,7 +108,7 @@ BETTERUI.Inventory.Categories.Bank = {
 BETTERUI.Inventory.Categories.Inventory = {
     {
         -- All Items
-        key = "All", 
+        key = "All",
         iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
         filterType = nil,
         isStatic = true -- Always show if category list is not empty
@@ -219,7 +219,7 @@ function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
     if category.special == "junk" or category.showJunk then
         return itemData.isJunk == true
     end
-    
+
     if category.special == "stolen" or category.showStolen then
         return itemData.stolen == true
     end
@@ -229,12 +229,12 @@ function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
     if not category or category.key == "all" or category.filterType == nil then
         return true
     end
-    
+
     -- Standard ESO filter type matching
     if category.filterType then
         return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, category.filterType)
     end
-    
+
     return true
 end
 
@@ -248,3 +248,76 @@ function BETTERUI.Inventory.Categories.GetCategoryIcon(categoryKey)
     return BETTERUI.Inventory.Categories.BankIcons[categoryKey]
 end
 
+-------------------------------------------------------------------------------------------------
+-- SHARED ITEM CATEGORIZATION HELPERS
+-------------------------------------------------------------------------------------------------
+-- These functions are shared between Inventory and Banking modules for consistent
+-- item categorization and description generation.
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType
+Description: Maps a weapon item to a gamepad weapon category type.
+Rationale: Centralizes weapon categorization logic used by both Inventory and Banking.
+Mechanism: Checks weapon type and returns appropriate GAMEPAD_WEAPON_CATEGORY_* constant.
+param: bagId (number) - The bag containing the item.
+param: slotIndex (number) - The slot index of the item.
+return: number|nil - The weapon category constant, or nil if not a weapon.
+]]
+function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slotIndex)
+    local weaponType = GetItemWeaponType(bagId, slotIndex)
+    if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
+        return GAMEPAD_WEAPON_CATEGORY_ONE_HANDED_MELEE
+    elseif weaponType == WEAPONTYPE_TWO_HANDED_SWORD or weaponType == WEAPONTYPE_TWO_HANDED_AXE or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER then
+        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_MELEE
+    elseif weaponType == WEAPONTYPE_FIRE_STAFF or weaponType == WEAPONTYPE_FROST_STAFF or weaponType == WEAPONTYPE_LIGHTNING_STAFF then
+        return GAMEPAD_WEAPON_CATEGORY_DESTRUCTION_STAFF
+    elseif weaponType == WEAPONTYPE_HEALING_STAFF then
+        return GAMEPAD_WEAPON_CATEGORY_RESTORATION_STAFF
+    elseif weaponType == WEAPONTYPE_BOW then
+        return GAMEPAD_WEAPON_CATEGORY_TWO_HANDED_BOW
+    elseif weaponType ~= WEAPONTYPE_NONE then
+        return GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED
+    end
+end
+
+--[[
+Function: BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+Description: Computes the best category description string for an item.
+Rationale: Centralizes description generation logic used by both Inventory and Banking.
+Mechanism: Checks for Stolen, InvalidEquip, Weapons, Armor, and builds combined type+equip string.
+param: itemData (table) - The item data object with bagId, slotIndex, equipType, itemType.
+return: string - The localized category description.
+]]
+function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
+    local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
+
+    if isItemStolen then
+        return GetString(SI_BETTERUI_STOLEN)
+    end
+
+    if itemData.equipType == EQUIP_TYPE_INVALID then
+        return GetString("SI_ITEMTYPE", itemData.itemType)
+    end
+    local categoryType = BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(itemData.bagId, itemData.slotIndex)
+    if categoryType == GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
+        local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
+        return GetString("SI_WEAPONTYPE", weaponType)
+    elseif categoryType then
+        return GetString("SI_GAMEPADWEAPONCATEGORY", categoryType)
+    end
+    local armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
+    local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
+    if armorType ~= ARMORTYPE_NONE then
+        return GetString("SI_ARMORTYPE", armorType) .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
+    end
+
+    local fullDesc = GetString("SI_ITEMTYPE", itemData.itemType)
+
+    -- Stops types like "Poison" displaying "Poison" twice
+    if (fullDesc ~= GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))) then
+        fullDesc = fullDesc .. " " .. GetString("SI_EQUIPTYPE", GetItemLinkEquipType(itemLink))
+    end
+
+    return fullDesc
+end
