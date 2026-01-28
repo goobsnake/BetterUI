@@ -158,27 +158,23 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
             end
         },
-        {
-            name = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND),
-            keybind = "UI_SHORTCUT_TERTIARY",
-            order = 1000,
-            visible = function()
+        -- Y-button Actions menu using CIM factory
+        BETTERUI.CIM.Keybinds.CreateActionsKeybind(
+            function()
+                self:SaveListPosition()
+                self:ShowActions()
+            end,
+            function()
                 -- Hide Y-button for currency rows - they don't have valid inventory slots
-                -- and will crash when action discovery tries to call IsSlotLocked
                 local selectedData = self:GetList() and self:GetList().selectedData
                 if not selectedData then return false end
-                -- Currency rows have currencyType but no bagId - skip action menu for them
                 if ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
                     return false
                 end
                 return self.selectedItemUniqueId ~= nil or selectedData ~= nil
-            end,
-
-            callback = function()
-                self:SaveListPosition()
-                self:ShowActions()
-            end,
-        },
+            end
+        ),
+        -- L-Stick Stack All using custom logic for dual-bank stacking
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = GetString(SI_ITEM_ACTION_STACK_ALL),
@@ -190,8 +186,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
             callback = function()
                 local currentUsedBank = BETTERUI.Banking.currentUsedBank
-                if (self.currentMode == LIST_WITHDRAW) then
-                    if (currentUsedBank == BAG_BANK) then
+                if self.currentMode == LIST_WITHDRAW then
+                    if currentUsedBank == BAG_BANK then
                         StackBag(BAG_BANK)
                         StackBag(BAG_SUBSCRIBER_BANK)
                     else
