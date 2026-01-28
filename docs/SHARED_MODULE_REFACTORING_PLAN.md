@@ -779,15 +779,21 @@ BETTERUI.CIM.CONST.TIMING = {
 
 ---
 
-### Phase 3.1: Banking Decomposition 🔲 REMAINING
+### Phase 3.1: Banking Decomposition ✅ COMPLETE
 
 **Objective**: Reduce `Banking.lua` from 726 lines by extracting focused modules.
 
-**Planned Extraction**:
-- `Banking/Lists/BankListRefresh.lua` - `RefreshList`, `ComputeVisibleBankCategories`
-- `Banking/UI/BankingSceneManager.lua` - Scene lifecycle and mode toggling
+**Status**: Verified complete (2026-01-28). Banking is now well-modularized with 8 submodules:
+- `Core/BankingClass.lua` - Class skeleton and module constants
+- `Lists/BankListManager.lua` - `RefreshList`, `ComputeVisibleBankCategories` ✓
+- `Keybinds/KeybindManager.lua` - Keybind descriptors and initialization ✓
+- `Search/SearchManager.lua` - Search mode and focus management ✓
+- `State/StateManager.lua` - Position persistence, `ToggleList` ✓
+- `UI/HeaderManager.lua` - Category header and tab bar ✓
+- `Actions/TransferActions.lua` - Item/currency transfer logic ✓
+- `Constants.lua` - Banking-specific constants ✓
 
-**Status**: Deferred to future iteration (large effort, lower priority).
+**Remaining in Banking.lua**: `Initialize()` containing scene handlers (`OnEffectivelyShown`/`OnEffectivelyHidden`) and `InitializeActionsDialog` - these are tightly coupled to main class initialization and do not benefit from further extraction.
 
 ---
 
@@ -804,6 +810,53 @@ BETTERUI.CIM.CONST.TIMING = {
 **Objective**: Add logging to CIM functions for debugging.
 
 **Status**: User marked as bloat - not needed unless debugging specific issues.
+
+---
+
+## Phase 4: Senior Code Review & Remediation ✅ COMPLETE
+
+> **Date**: 2026-01-28  
+> **Scope**: Critical bug fixes, NavigationState API adoption, and decomposition verification
+
+### Phase 4.1: Critical Bug Fixes ✅
+
+**Fixed**: `directionalFixDelayMs` scoping bug in `Banking.lua`.
+
+**Problem**: Variable declared at line 528 but used in a closure at line 474, resulting in `nil` capture.
+
+**Solution**: Moved declaration to top of `Initialize()` function before any closures that reference it.
+
+### Phase 4.2: HeaderManager NavigationState Migration ✅
+
+**Objective**: Replace 50 lines of inline token-based coalescing with `CIM.HeaderNavigation.CreateCoalescedHandler()`.
+
+**Files Modified**:
+- `Modules/Banking/UI/HeaderManager.lua`
+
+**Result**: `onSelectedChanged` callback reduced from ~50 lines to ~17 lines. Now uses:
+- `CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS` instead of hardcoded `100`
+- `NavigationState` for state management instead of inline flags
+
+### Phase 4.3: Inline Flag Cleanup ✅
+
+**Objective**: Replace scattered boolean flags (`_justToggledMode`, `_suppressHeaderCallback`) with NavigationState API.
+
+**Files Modified**:
+- `Modules/Banking/UI/HeaderManager.lua` - Reads from `state.justToggledMode`, `state.suppressHeaderCallback`
+- `Modules/Banking/State/StateManager.lua` - Sets/clears `state.justToggledMode` via NavigationState
+- `Modules/Banking/Banking.lua` - Sets/clears `state.suppressHeaderCallback` via NavigationState
+- `Modules/Banking/Actions/TransferActions.lua` - Sets/clears `state.suppressHeaderCallback` via NavigationState
+
+**Benefit**: Centralized state management through `CIM.HeaderNavigation.GetOrCreateState()` instead of 4 different inline flag systems.
+
+### Phase 4.4: Banking.lua Decomposition Verification ✅
+
+**Analysis**: Banking module was already well-decomposed prior to Phase 4. The TODO comment in Banking.lua was stale.
+
+**Updated**: Replaced outdated TODO comment with accurate decomposition status documenting 8 submodules.
+
+---
+
 
 ---
 
