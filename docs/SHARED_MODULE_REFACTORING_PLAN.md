@@ -722,6 +722,91 @@ end
 
 ---
 
+## Phase 3: Technical Debt Remediation (Sr. Architect Review)
+
+Following a comprehensive senior code review, Phase 3 addresses remaining technical debt and consolidation gaps.
+
+### Phase 3.4: Complete SlotActions Extraction ✅
+
+**Objective**: Extract remaining helper functions from `SlotActions.lua` to CIM for sharing.
+
+**Files Modified**:
+- `Modules/CIM/Actions/GenericSlotActions.lua` (+165 lines)
+- `Modules/Inventory/Actions/SlotActions.lua` (-106 lines)
+
+**Extracted Functions**:
+- `SetupSecureAction` - Wraps USE actions in `CallSecureProtected`
+- `HandleCraftBagActions` - Stow/Retrieve logic with USE as secondary
+- `SecureOpenSkills` - Wraps "Open Skills" callback for secure execution
+- `ResolveCraftBagState` - Context-aware primary action resolution
+- `DeduplicateActions` - Removes duplicate action entries
+- `IsSlotInCraftBag` - Checks if slot is in Craft Bag
+
+**Result**: `SlotActions.lua` reduced from 581 to ~475 lines.
+
+---
+
+### Phase 3.7: Magic Number Cleanup ✅
+
+**Objective**: Replace hardcoded timing values with centralized `CIM.CONST.TIMING` constants.
+
+**Files Modified**:
+- `Modules/CIM/UI/HeaderNavigation.lua` - Uses `CATEGORY_CHANGE_DELAY_MS`
+- `Modules/Banking/Actions/TransferActions.lua` - Uses `MOVE_COALESCE_DELAY_MS`
+- `Modules/Inventory/Core/InventoryClass.lua` - Uses `DEBOUNCE_MS`
+
+**Available Constants** (in `CIM/Constants.lua`):
+```lua
+BETTERUI.CIM.CONST.TIMING = {
+    DEBOUNCE_MS = 50,
+    CATEGORY_CHANGE_DELAY_MS = 100,
+    MOVE_COALESCE_DELAY_MS = 100,
+    TOOLTIP_REFRESH_DELAY_MS = 300,
+}
+```
+
+---
+
+### Phase 3.2: X-Button Keybind Factory ⏭️ SKIPPED
+
+**Reason**: Analysis revealed Inventory X-button (quickslot/compare/link) and Banking X-button (list toggle) serve fundamentally different purposes. Creating a shared factory would add complexity without benefit since the patterns are not parallel.
+
+---
+
+### Phase 3.3: Action Dialog Lifecycle Mixin ⏭️ SKIPPED
+
+**Reason**: `ActionDialogHooks.lua` already provides a shared dialog registration system consumed by both Inventory and Banking. A mixin would be redundant.
+
+---
+
+### Phase 3.1: Banking Decomposition 🔲 REMAINING
+
+**Objective**: Reduce `Banking.lua` from 726 lines by extracting focused modules.
+
+**Planned Extraction**:
+- `Banking/Lists/BankListRefresh.lua` - `RefreshList`, `ComputeVisibleBankCategories`
+- `Banking/UI/BankingSceneManager.lua` - Scene lifecycle and mode toggling
+
+**Status**: Deferred to future iteration (large effort, lower priority).
+
+---
+
+### Phase 3.5: Interface Contracts 🚫 DEFERRED
+
+**Objective**: Formalize CIM component usage with documented contracts.
+
+**Status**: Deferred by user request.
+
+---
+
+### Phase 3.6: Diagnostic Logging 🚫 DEFERRED
+
+**Objective**: Add logging to CIM functions for debugging.
+
+**Status**: User marked as bloat - not needed unless debugging specific issues.
+
+---
+
 ## Appendix: Current File Sizes
 
 For reference, here are the current file sizes indicating potential duplication:
@@ -734,7 +819,9 @@ For reference, here are the current file sizes indicating potential duplication:
 | `Banking/UI/HeaderManager.lua` | 9.0 KB |
 | `Inventory/Lists/ItemListManager.lua` | 25.1 KB |
 | `Banking/Lists/BankListManager.lua` | 21.4 KB |
-| `Inventory/Keybinds/InventoryKeybinds.lua` | 13.4 KB |
-| `Banking/Keybinds/KeybindManager.lua` | 13.5 KB |
+| `Inventory/Keybinds/InventoryKeybinds.lua` | 12.4 KB (reduced) |
+| `Banking/Keybinds/KeybindManager.lua` | 12.7 KB |
+| `Inventory/Actions/SlotActions.lua` | 20.0 KB (reduced from 24.7 KB) |
 
 **Total potential consolidation target**: ~35-40 KB could be reduced to ~20-25 KB of shared code.
+
