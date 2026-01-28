@@ -1,9 +1,9 @@
 --[[
 File: Modules/Banking/State/StateManager.lua
 Purpose: Manages persistence and state transitions for the banking module.
-         Extracted from Banking.lua.
+         Delegates position persistence to CIM.PositionManager.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-01-28
 ]]
 
 local _
@@ -14,7 +14,8 @@ local _
 local LIST_WITHDRAW                  = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                   = BETTERUI.Banking.LIST_DEPOSIT
 local GAMEPAD_HEADER_DEFAULT_PADDING = 0 -- Re-defined or imported if needed, but likely global API
--- Constants assumed global or available via zos
+-- Module identifier for CIM PositionManager
+local MODULE_NAME                    = "Banking"
 
 --[[
 Function: BETTERUI.Banking.Class:CurrentUsedBank
@@ -56,21 +57,22 @@ end
 --[[
 Function: BETTERUI.Banking.Class:SaveListPosition
 Description: Saves the current scroll position of the list.
-Rationale: Persists the selected index so it can be restored after a refresh or mode switch.
-Mechanism:
-  - Saves per-mode (Withdraw/Deposit) to `lastPositions`.
-  - Saves per-category to `lastPositionsByCategory` (shared across modes).
+Rationale: Delegates to CIM.PositionManager for shared position persistence.
+Mechanism: Uses category key from current category to store position.
 References: Called before RefreshList, ToggleList, or Mode Switches.
 ]]
 function BETTERUI.Banking.Class:SaveListPosition()
-    if not (self.list and self.lastPositions) then return end
-    -- Able to return to the current position again!
-    self.lastPositions[self.currentMode] = self.list.selectedIndex
-    -- Save per-category position for current category (shared across modes in session)
+    if not self.list then return end
+    -- Save per-mode position (for legacy compatibility)
+    if self.lastPositions then
+        self.lastPositions[self.currentMode] = self.list.selectedIndex
+    end
+    -- Save per-category position using CIM PositionManager
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
-        if cat then
-            self.lastPositionsByCategory[cat.key] = self.list.selectedIndex
+        if cat and cat.key then
+            local modeKey = self.currentMode == LIST_WITHDRAW and "Withdraw" or "Deposit"
+            BETTERUI.CIM.PositionManager.SavePosition(MODULE_NAME .. "_" .. modeKey, cat.key, self.list)
         end
     end
 end
@@ -78,12 +80,11 @@ end
 --[[
 Function: BETTERUI.Banking.Class:ReturnToSaved
 Description: Restores the saved list position.
-Rationale: Scrolls the list back to the previously saved index.
+Rationale: Uses CIM.PositionManager for position restoration with uniqueId lookup.
 Mechanism:
   1. Checks `_justToggledMode` flag to reset to top if needed.
-  2. Prioritizes per-category saved index (if available) over per-mode index.
-  3. Clamps index to valid range (1 to item count).
-  4. Handles mode switching if saved position implies a different context.
+  2. Uses CIM.PositionManager.RestorePosition for robust restoration.
+  3. Handles mode switching if saved position implies a different context.
 References: Called at the end of RefreshList.
 ]]
 function BETTERUI.Banking.Class:ReturnToSaved()
@@ -109,20 +110,20 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         return
     end
-    -- Default to first item if no per-category saved position exists
-    -- (Do NOT use lastPositions[currentMode] as fallback - that's a different category's position)
+    -- Use CIM.PositionManager for position restoration
     local lastPosition = 1
-    -- Override with per-category saved index when available (shared across modes in session)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
-        if cat then
-            if self.lastPositionsByCategory and self.lastPositionsByCategory[cat.key] then
-                lastPosition = self.lastPositionsByCategory[cat.key]
-            end
+        if cat and cat.key then
+            local modeKey = self.currentMode == LIST_WITHDRAW and "Withdraw" or "Deposit"
+            lastPosition = BETTERUI.CIM.PositionManager.RestorePosition(
+                MODULE_NAME .. "_" .. modeKey,
+                cat.key,
+                self.list,
+                self.list.dataList
+            )
         end
     end
-    -- Clamp to valid range to avoid OOB indices
-    lastPosition = zo_clamp(tonumber(lastPosition) or 1, 1, totalEntries)
 
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local lastUsedBank = BETTERUI.Banking.lastUsedBank

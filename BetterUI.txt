@@ -17,6 +17,7 @@ lang\$(language).lua
 ; Module: Common Interface Module
 Modules\CIM\Constants.lua
 Modules\CIM\Core\Utilities.lua
+Modules\CIM\Core\PositionManager.lua
 Modules\CIM\Core\FontDefinitions.lua
 Modules\CIM\Core\NumberFormatting.lua
 Modules\CIM\Core\HookFactory.lua

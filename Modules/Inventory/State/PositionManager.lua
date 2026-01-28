@@ -1,30 +1,23 @@
 --[[
 File: Modules/Inventory/State/PositionManager.lua
 Purpose: Manages the persistence of inventory list positions and selection states.
-         Ensures users return to the same item when switching tabs or categories.
+         Delegates core logic to BETTERUI.CIM.PositionManager for shared behavior.
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end
 
+-- Module identifier for CIM PositionManager
+local MODULE_NAME = "Inventory"
+
 --[[
 Function: GetCategoryKey
 Description: Generates a stable string key for a category entry.
-used for saving/restoring selection state per category.
+Rationale: Delegates to CIM.PositionManager for consistent key generation.
 ]]
 function BETTERUI.Inventory.GetCategoryKey(categoryData)
-    if not categoryData then return nil end
-    if categoryData.filterType ~= nil then
-        return "f:" .. tostring(categoryData.filterType)
-    end
-    if categoryData.onClickDirection then
-        return "dir:" .. tostring(categoryData.onClickDirection)
-    end
-    if categoryData.text then
-        return "t:" .. tostring(categoryData.text)
-    end
-    return "idx:" .. tostring(categoryData.index or "")
+    return BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
 end
 
 --[[
@@ -44,9 +37,9 @@ end
 --[[
 Function: ToSavedPosition
 Description: Restores the list position and selection from saved state.
-Mechanism: Retrieves the saved uniqueId for the target category FIRST,
-           then sets self.currentlySelectedData before calling RefreshItemList
-           so that batch processing will restore to the correct position.
+Mechanism: Uses CIM.PositionManager to retrieve saved uniqueId/index,
+           sets currentlySelectedData before RefreshItemList so batch
+           processing restores to the correct position.
 ]]
 function BETTERUI.Inventory.ToSavedPosition(self)
     -- Determine if we're on inventory or craft bag based on current category
@@ -55,40 +48,20 @@ function BETTERUI.Inventory.ToSavedPosition(self)
 
     local isCraftBag = catData.onClickDirection ~= nil
     local currentList = isCraftBag and self.craftBagList or self.itemList
+    local subModule = isCraftBag and "CraftBag" or "Items"
 
     -- Get category key for position lookup
-    local key = BETTERUI.Inventory.GetCategoryKey(catData)
-    local savedUniqueId = nil
-    local savedIndex = nil
+    local key = BETTERUI.CIM.PositionManager.GetCategoryKey(catData)
 
-    -- Retrieve the saved uniqueId AND index for this category BEFORE calling refresh
-    -- This ensures RefreshItemList's batch processing restores to the correct item
-    if isCraftBag then
-        if key and self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
-            savedUniqueId = self.savedCraftBagSelectedItemUniqueByKey[key]
-        end
-        if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
-            savedIndex = self.savedCraftBagPositionsByKey[key]
-        end
-    else
-        if key and self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
-            savedUniqueId = self.savedInventorySelectedItemUniqueByKey[key]
-        end
-        if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
-            savedIndex = self.savedInventoryPositionsByKey[key]
-        end
-    end
+    -- Retrieve saved position from CIM PositionManager
+    local saved = BETTERUI.CIM.PositionManager.GetSavedPosition(MODULE_NAME .. "_" .. subModule, key)
 
-    -- Set currentlySelectedData to the saved uniqueId AND index so RefreshItemList uses it
-    -- This prevents batch processing from restoring to the wrong item (the item
-    -- that was selected in the PREVIOUS category but also exists in the new one)
-    if savedUniqueId then
-        self.currentlySelectedData = { uniqueId = savedUniqueId, savedIndex = savedIndex }
-    elseif savedIndex then
-        -- Have index but no uniqueId (item was removed) - still use the index
-        self.currentlySelectedData = { savedIndex = savedIndex }
+    -- Set currentlySelectedData so RefreshItemList uses it
+    if saved and saved.uniqueId then
+        self.currentlySelectedData = { uniqueId = saved.uniqueId, savedIndex = saved.index }
+    elseif saved and saved.index then
+        self.currentlySelectedData = { savedIndex = saved.index }
     else
-        -- No saved position for this category - clear to prevent wrong restoration
         self.currentlySelectedData = nil
     end
 
@@ -102,11 +75,8 @@ function BETTERUI.Inventory.ToSavedPosition(self)
     end
 
     -- For small lists that process synchronously, apply fallback position restoration
-    -- (Large lists with batch processing will restore in ProcessScrollListBatch)
     local dataList = currentList.list and currentList.list.dataList or currentList.dataList
     if dataList and #dataList > 0 and not self.pendingBatchData then
-        -- List was processed synchronously (small list) - position was already restored
-        -- by RefreshItemList via batch processing. Just update tooltip.
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         if self.callLaterLeftToolTip then
             EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
@@ -123,45 +93,24 @@ end
 --[[
 Function: SaveListPosition
 Description: Saves the current list position and selection.
+Mechanism: Delegates to CIM.PositionManager for storage.
 ]]
 function BETTERUI.Inventory.SaveListPosition(self)
     -- Guard against nil state
     if not self.categoryList or not self.categoryList.selectedData then return end
 
     local catData = self.categoryList.selectedData
-    local key = BETTERUI.Inventory.GetCategoryKey(catData)
+    local key = BETTERUI.CIM.PositionManager.GetCategoryKey(catData)
     if not key then return end
 
     local isCraftBag = catData.onClickDirection ~= nil
+    local subModule = isCraftBag and "CraftBag" or "Items"
 
-    -- Get the correct list and its inner list (craftBagList wraps an inner list)
+    -- Get the correct list
     local currentList = isCraftBag and self.craftBagList or self.itemList
-    local innerList = currentList and (currentList.list or currentList)
 
-    if not innerList or not innerList.selectedIndex then return end
-
-    local itemIndex = innerList.selectedIndex or 1
-    local itemUniqueId = innerList.selectedData and innerList.selectedData.uniqueId
-
-    if isCraftBag then
-        -- Save craft bag state (completely independent from inventory)
-        self.savedCraftBagCategoryKey = key
-        self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
-        self.savedCraftBagPositionsByKey[key] = itemIndex
-        if itemUniqueId then
-            self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
-            self.savedCraftBagSelectedItemUniqueByKey[key] = itemUniqueId
-        end
-    else
-        -- Save inventory state (completely independent from craft bag)
-        self.savedInventoryCategoryKey = key
-        self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
-        self.savedInventoryPositionsByKey[key] = itemIndex
-        if itemUniqueId then
-            self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
-            self.savedInventorySelectedItemUniqueByKey[key] = itemUniqueId
-        end
-    end
+    -- Save position using CIM PositionManager
+    BETTERUI.CIM.PositionManager.SavePosition(MODULE_NAME .. "_" .. subModule, key, currentList)
 end
 
 -- Register mixins for Core to pick up
