@@ -136,7 +136,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             self:RebuildHeaderCategories()
             self._suppressHeaderCallback = false
             self:RefreshList()
-        end, delayMs or 100)
+        end, delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS)
     end
 
     if toBagEmptyIndex ~= nil then

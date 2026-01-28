@@ -242,7 +242,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         elseif self.mainKeybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
         end
-    end, 40)
+    end, BETTERUI.CIM.CONST.TIMING.DEBOUNCE_MS)
 end
 
 --------------------------------------------------------------------------------

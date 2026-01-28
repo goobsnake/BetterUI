@@ -106,7 +106,7 @@ param: options (table) - Configuration:
 return: function(list, selectedData) - Callback for onSelectedChanged.
 ]]
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
-    local delay = options.delay or 100
+    local delay = options.delay or BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 
     return function(instance, list, selectedData)
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
