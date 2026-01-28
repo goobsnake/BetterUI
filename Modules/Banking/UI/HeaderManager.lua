@@ -89,57 +89,26 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         verticalOffset = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset,
         itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
     }
+    -- Create coalesced handler using CIM NavigationState (Phase 4.2)
+    -- This replaces 50 lines of inline token-based coalescing with shared logic
+    local coalescedHandler = BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler({
+        delay = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS,
+        onSave = function(instance) instance:SaveListPosition() end,
+        onApply = function(instance, newIndex)
+            instance.currentCategoryIndex = newIndex
+            instance:UpdateHeaderTitle()
+            instance:RefreshList()
+        end,
+        sceneCheck = function()
+            return SCENE_MANAGER.scenes['gamepad_banking'] and
+                SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()
+        end,
+    })
+    -- Wrap to pass self as first argument (onSelectedChanged receives list, selectedData)
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)
-        -- Skip callback during mode toggle to prevent override
-        if self._justToggledMode then
-            return
-        end
-        -- Skip callback during rebuild to prevent override after category removal
-        if self._suppressHeaderCallback then
-            return
-        end
-        -- Save position for the CURRENT category BEFORE switching to the new one
-        -- BUT only if not called from CycleCategory (which already saved the position)
-        if not self._cyclingCategory then
-            self:SaveListPosition()
-        end
-        -- Capture the PENDING category index - don't update currentCategoryIndex yet!
-        -- This prevents rapid navigation (LB/RB spam) from corrupting saved positions.
-        -- If we update currentCategoryIndex immediately, the next CycleCategory call will
-        -- save the OLD list position with the NEW category key (wrong!).
-        local pendingCategoryIndex = list.selectedIndex or 1
-        self._categoryChangeToken = (self._categoryChangeToken or 0) + 1
-        local myToken = self._categoryChangeToken
-        -- Assert suppression tied to this token
-        self._suppressListUpdatesToken = myToken
-        self._suppressListUpdates = true
-        -- Wait a short moment; if more changes occur, older timers abort via token check
-        zo_callLater(function()
-            -- If the banking scene is no longer visible, drop this refresh to avoid
-            -- re-activating controls or keybinds while hidden
-            if not (SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()) then
-                -- clear suppression for safety
-                if self._suppressListUpdatesToken == myToken then
-                    self._suppressListUpdates = false
-                    self._suppressListUpdatesToken = nil
-                end
-                return
-            end
-            if myToken ~= self._categoryChangeToken then
-                -- A newer selection occurred; let the latest timer handle refresh/suppression
-                return
-            end
-            -- We're the latest change; NOW update currentCategoryIndex
-            self.currentCategoryIndex = pendingCategoryIndex
-            -- Clear suppression and refresh
-            if self._suppressListUpdates and self._suppressListUpdatesToken == myToken then
-                self._suppressListUpdates = false
-                self._suppressListUpdatesToken = nil
-            end
-            self:UpdateHeaderTitle()
-            self:RefreshList()
-        end, 100) -- ~6 frames; avoids loading intermediate categories during wrap
+        coalescedHandler(self, list, selectedData)
     end
+
 
     -- Ensure tabbar exists then clear and repopulate
     if not self.headerGeneric.tabBar then
@@ -159,16 +128,20 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- Select the current category in the header
     if self.headerGeneric.tabBar then
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
+        -- Use NavigationState to check mode toggle status (Phase 4.3)
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        local NavState = BETTERUI.CIM.NavigationState
         -- During mode toggle, use animation-free selection to avoid callback interference
-        if self._justToggledMode then
+        if state.justToggledMode then
             self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
         else
-            -- Suppress callback during rebuild to prevent it overriding our selection
-            self._suppressHeaderCallback = true
+            -- Set suppression flag during rebuild to prevent callback overriding our selection
+            state.suppressHeaderCallback = true
             self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
-            self._suppressHeaderCallback = false
+            state.suppressHeaderCallback = false
         end
     end
+
     -- Update title to match
     self:UpdateHeaderTitle()
     self:EnsureHeaderKeybindsActive()
