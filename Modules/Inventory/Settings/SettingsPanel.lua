@@ -92,9 +92,14 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				local v = BETTERUI.Inventory.GetSetting("showIconUnboundItem")
 				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconUnboundItem", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("showIconUnboundItem", value)
+				-- Refresh inventory list if visible to apply change immediately
+				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+				end
+			end,
 			width = "full",
-			requiresReload = true,
 		},
 		{
 			type = "checkbox",
@@ -104,9 +109,14 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				local v = BETTERUI.Inventory.GetSetting("showIconEnchantment")
 				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconEnchantment", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("showIconEnchantment", value)
+				-- Refresh inventory list if visible to apply change immediately
+				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+				end
+			end,
 			width = "full",
-			requiresReload = true,
 		},
 		{
 			type = "checkbox",
@@ -116,9 +126,14 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				local v = BETTERUI.Inventory.GetSetting("showIconSetGear")
 				return v == nil and true or v
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("showIconSetGear", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("showIconSetGear", value)
+				-- Refresh inventory list if visible to apply change immediately
+				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+				end
+			end,
 			width = "full",
-			requiresReload = true,
 		},
 		{
 			type = "checkbox",
