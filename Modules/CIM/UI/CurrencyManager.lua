@@ -1,7 +1,6 @@
 --[[
 File: Modules/CIM/UI/CurrencyManager.lua
 Purpose: Shared currency definitions, formatting, and layout logic.
-         Extracted from GenericFooter.lua as part of Phase 4 refactoring.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
@@ -341,7 +340,7 @@ function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
     local visibleCount = math.min(#visible, maxVisible)
     local numCols = math.ceil(visibleCount / numRows)
 
-    -- Phase 1: Measure Columns
+    -- Step 1: Measure Columns
     local columnWidths = {}
     local totalTextWidth = 0
     local columnData = {} -- Store data to avoid re-looping for ctrls
@@ -368,7 +367,7 @@ function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
         columnData[col] = items
     end
 
-    -- Phase 2: Calculate Spacing (Justify)
+    -- Step 2: Calculate Spacing (Justify)
     local colGap = 0
     if numCols > 1 then
         local freeSpace = availableWidth - totalTextWidth
@@ -377,7 +376,7 @@ function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
         colGap = freeSpace / (numCols - 1)
     end
 
-    -- Phase 3: Position Items
+    -- Step 3: Position Items
     local currentX = startX
     for col = 1, numCols do
         local items = columnData[col]

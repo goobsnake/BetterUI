@@ -24,24 +24,10 @@ KEY MECHANICS:
 5.  **Search**:
     *   Integrated text search filtering by name.
 
-DECOMPOSITION STATUS:
-    Phase 1 Complete: Core/BankingClass.lua contains class skeleton and module constants.
-    Remaining decomposition phases pending.
 
--- DECOMPOSITION STATUS (Phase 4.4 Review - 2026-01-28):
--- Banking is now well-modularized with 8 submodules:
---   - Core/BankingClass.lua: Class skeleton and module constants
---   - Lists/BankListManager.lua: RefreshList, ComputeVisibleBankCategories ✓
---   - Keybinds/KeybindManager.lua: Keybind descriptors and initialization ✓
---   - Search/SearchManager.lua: Search mode and focus management ✓
---   - State/StateManager.lua: Position persistence, ToggleList ✓
---   - UI/HeaderManager.lua: Category header and tab bar ✓
---   - Actions/TransferActions.lua: Item/currency transfer logic ✓
---   - Constants.lua: Banking-specific constants ✓
--- Remaining in this file: Initialize() containing scene handlers (OnEffectivelyShown/Hidden)
--- and InitializeActionsDialog - these are tightly coupled to the main class initialization.
+
+
 ]]
-
 
 local _
 
@@ -127,7 +113,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
 
-    -- Create banking scene (moved from InterfaceLibrary.lua as part of Phase 3 refactoring)
+    -- Create banking scene
     BETTERUI_BANKING_SCENE = ZO_InteractScene:New(
         BETTERUI_BANKING_SCENE_NAME,
         SCENE_MANAGER,
@@ -368,7 +354,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 self.currentCategoryIndex = 1
             end
         end
-        -- Suppress callback during rebuild when category has changed (Phase 4.3: Use NavigationState)
+        -- Suppress callback during rebuild when category has changed
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
         state.suppressHeaderCallback = true
         self:RebuildHeaderCategories()
@@ -533,7 +519,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug (Phase 4.1)
+    -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug
 
 
 

@@ -5,12 +5,11 @@ Purpose: Loader/namespace for CIM interface components.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Phase 3 Refactoring: This file has been reduced from a 765-line "God File"
-to a simple loader. The implementations have been extracted to:
-  - Core/KeybindHelpers.lua  - EnsureKeybindGroupAdded utility
-  - Core/TooltipLayout.lua   - SetTooltipWidth function
-  - Core/SearchManager.lua   - Search functionality + SearchMixin
-  - Core/WindowClass.lua     - BETTERUI.Interface.Window base class
+-- The implementations have been extracted to:
+--   - Core/KeybindHelpers.lua  - EnsureKeybindGroupAdded utility
+--   - Core/TooltipLayout.lua   - SetTooltipWidth function
+--   - Core/SearchManager.lua   - Search functionality + SearchMixin
+--   - Core/WindowClass.lua     - BETTERUI.Interface.Window base class
 
 This file now serves as:
   1. A namespace initializer (backwards compatibility)
@@ -30,16 +29,16 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 -- ============================================================================
 
 assert(BETTERUI.Interface.EnsureKeybindGroupAdded,
-    "BetterUI Load Error: KeybindHelpers.lua must be loaded before InterfaceLibrary.lua")
+  "BetterUI Load Error: KeybindHelpers.lua must be loaded before InterfaceLibrary.lua")
 
 assert(BETTERUI.CIM.SetTooltipWidth,
-    "BetterUI Load Error: TooltipLayout.lua must be loaded before InterfaceLibrary.lua")
+  "BetterUI Load Error: TooltipLayout.lua must be loaded before InterfaceLibrary.lua")
 
 assert(BETTERUI.Interface.CreateSearchKeybindDescriptor,
-    "BetterUI Load Error: SearchManager.lua must be loaded before InterfaceLibrary.lua")
+  "BetterUI Load Error: SearchManager.lua must be loaded before InterfaceLibrary.lua")
 
 assert(BETTERUI.Interface.Window,
-    "BetterUI Load Error: WindowClass.lua must be loaded before InterfaceLibrary.lua")
+  "BetterUI Load Error: WindowClass.lua must be loaded before InterfaceLibrary.lua")
 
 -- ============================================================================
 -- BACKWARDS COMPATIBILITY NOTES

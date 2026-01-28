@@ -4,7 +4,7 @@ Purpose: Base window class for gamepad inventory/banking screens.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Extracted from InterfaceLibrary.lua as part of Phase 3 refactoring.
+
 Provides core abstractions shared across BetterUI's gamepad screens,
 including window management, spinner utilities, and scene integration.
 
@@ -64,7 +64,7 @@ param: scene_name (string) - Reserved for future use (scene name identifier).
 ]]
 function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.windowName = tlw_name
-    self.sceneName = scene_name  -- Store for reference by subclasses
+    self.sceneName = scene_name -- Store for reference by subclasses
     self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, "BETTERUI_GenericInterface")
     self.header = self.control:GetNamedChild("ContainerHeader")
     self.footer = self.control:GetNamedChild("ContainerFooter")
@@ -199,7 +199,7 @@ param: listName (string|nil) - Optional list name (not used in default implement
 ]]
 function BETTERUI.Interface.Window:InitializeList(listName)
     self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild(
-    "List"))                                                                                                                 -- replace the itemList with my own generic one (with better gradient size, etc.)
+        "List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
 
     self:GetList():SetAlignToScreenCenter(true, 30)
 

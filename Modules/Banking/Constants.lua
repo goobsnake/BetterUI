@@ -41,6 +41,10 @@ BETTERUI.Banking.CONST.CAROUSEL = {
 -- Controls the position of the search input field in banking headers
 -- ============================================================================
 
+-- TODO(cleanup): Global constants (BETTERUI_BANK_SEARCH_*) should be moved to
+-- BETTERUI.Banking.CONST.SEARCH namespace for consistency with other modules.
+-- Same for BETTERUI_BANK_LIST_MAX_OFFSET, BETTERUI_BANK_HEADER_PADDING_SCALE, etc.
+
 --[[
 Constant: BETTERUI_BANK_SEARCH_X_OFFSET
 Description: Horizontal offset from left edge for search bar.
@@ -122,7 +126,7 @@ BETTERUI_BANK_CATEGORY_CHANGE_DELAY_MS = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHAN
 
 -- ============================================================================
 -- SCENE CONSTANTS
--- Moved from InterfaceLibrary.lua as part of Phase 3 refactoring
+-- Moved from InterfaceLibrary.lua
 -- ============================================================================
 
 --[[

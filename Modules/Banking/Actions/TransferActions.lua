@@ -131,7 +131,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                     self.currentCategoryIndex = 1
                 end
             end
-            -- Suppress callback during rebuild when category has changed (Phase 4.3: Use NavigationState)
+            -- Suppress callback during rebuild when category has changed
             local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
             state.suppressHeaderCallback = true
             self:RebuildHeaderCategories()

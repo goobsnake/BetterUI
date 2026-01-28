@@ -4,7 +4,7 @@ Purpose: Keybind utility functions shared across BetterUI modules.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Extracted from InterfaceLibrary.lua as part of Phase 3 refactoring.
+
 ]]
 
 local _

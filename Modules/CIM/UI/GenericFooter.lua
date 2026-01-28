@@ -1,15 +1,11 @@
 --[[
-File: Modules/CIM/GenericFooter.lua
+File: Modules/CIM/UI/GenericFooter.lua
 Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
          Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Phase 4 Refactoring: Currency definitions and formatting logic have been
-extracted to UI/CurrencyManager.lua. This file now focuses on:
-  - Footer initialization
-  - Capacity label updates
-  - Delegating currency updates to CurrencyManager
+-- TODO(localization): Hardcoded strings "BAG:", "BANK:" at lines 82-96 should use SI_ string IDs.
 ]]
 
 local _
@@ -19,7 +15,7 @@ local _
 -- Reference CurrencyManager functions for cleaner code
 -- ============================================================================
 
-local Currency = nil  -- Will be set after load order verification
+local Currency = nil -- Will be set after load order verification
 
 local function EnsureCurrencyManager()
     if not Currency then

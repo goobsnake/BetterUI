@@ -205,13 +205,15 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
     if itemLink and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
         local traitString
         if (CanItemLinkBeTraitResearched(itemLink)) then
+            -- TODO(cleanup): Extract hardcoded color codes (00FF00, FF9900) to BETTERUI.CONST.COLORS
+            -- for theme consistency and easier maintenance. Same for English strings - should use SI_ string IDs.
             -- Find owned items that can be researchable
             if (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Inventory|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Bank|r"
-            -- TODO(REFACTOR): Extract house bank iteration into a helper function like GetHouseBankTraitMatches(itemLink)
-            -- to reduce verbosity and make it easier to update if ZOS adds more house bank slots.
+                -- TODO(REFACTOR): Extract house bank iteration into a helper function like GetHouseBankTraitMatches(itemLink)
+                -- to reduce verbosity and make it easier to update if ZOS adds more house bank slots.
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
                     + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
                     + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)

@@ -89,8 +89,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         verticalOffset = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset,
         itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
     }
-    -- Create coalesced handler using CIM NavigationState (Phase 4.2)
-    -- This replaces 50 lines of inline token-based coalescing with shared logic
+    -- Create coalesced handler using CIM NavigationState
     local coalescedHandler = BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler({
         delay = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS,
         onSave = function(instance) instance:SaveListPosition() end,
@@ -128,7 +127,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- Select the current category in the header
     if self.headerGeneric.tabBar then
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
-        -- Use NavigationState to check mode toggle status (Phase 4.3)
+        -- Use NavigationState to check mode toggle status
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
         local NavState = BETTERUI.CIM.NavigationState
         -- During mode toggle, use animation-free selection to avoid callback interference

@@ -41,21 +41,24 @@ function BETTERUI.Inventory.Setup()
 
 	-- Configure tooltip appearance and behavior
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE
-    
-    -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
-    -- Only apply custom tooltip styles (font scaling) if enhancements are enabled
-    local cimSettings = BETTERUI.Settings.Modules["CIM"]
-    if cimSettings and cimSettings.enableTooltipEnhancements ~= false then
-	    BETTERUI.Inventory.ApplyTooltipStyles()
-    end
-    
+
+	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
+	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
+	local cimSettings = BETTERUI.Settings.Modules["CIM"]
+	if cimSettings and cimSettings.enableTooltipEnhancements ~= false then
+		BETTERUI.Inventory.ApplyTooltipStyles()
+	end
+
 	BETTERUI.Inventory.EnableTooltipMouseWheel()
 
 	-- Position tooltip container
 	local TOOLTIP_X_OFFSET = BETTERUI_TOOLTIP_X_OFFSET
 	local TOOLTIP_Y_OFFSET = BETTERUI_TOOLTIP_Y_OFFSET
-	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(3, ZO_GamepadTooltipTopLevelLeftTooltip, 3, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
+	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(3,
+		ZO_GamepadTooltipTopLevelLeftTooltip, 3, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
 
+	-- TODO(cleanup): The global 'inv' alias is an anti-pattern. External references should use
+	-- GAMEPAD_INVENTORY directly. Audit usage and remove this alias in a future cleanup pass.
 	-- Store reference for other modules (global 'inv' alias)
 	inv = GAMEPAD_INVENTORY
 

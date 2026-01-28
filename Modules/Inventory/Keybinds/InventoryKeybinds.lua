@@ -24,6 +24,11 @@ Rationale: Used by X-button keybind to show "Assign Quickslot" vs other actions.
 Mechanism: Checks filter types, hotbar validity, and existing assignments.
 param: sd (table) - Slot data of the item to check
 return: boolean - True if item can be quickslotted
+
+-- TODO(refactor): The X-button keybind logic (name/visible/callback) repeats the same
+-- IsQuickslottable check, isQuestItem check, and filter type retrieval 3+ times.
+-- Consider extracting to a helper like GetXButtonActionContext(self) that returns
+-- {actionType, itemData, isQuest, filterType} to avoid redundant API calls.
 ]]
 local function IsQuickslottable(sd)
     if not sd or not sd.bagId or not sd.slotIndex then

@@ -118,6 +118,8 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
         return not itemData.stolen
     end
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
+    -- TODO(optimization): This O(n*m) loop (items * categories) can be slow with large inventories.
+    -- Consider breaking early once all categories are marked visible, or caching visibility state.
     -- Mark visibility by scanning once
     for i = 1, #data do
         local itemData = data[i]
@@ -295,6 +297,8 @@ function BETTERUI.Banking.Class:RefreshList()
                     itemData.quality ~= ITEM_QUALITY_TRASH
             end
 
+            -- TODO(optimization): Replace table.insert() with indexed assignment
+            -- tempDataTable[#tempDataTable+1] = itemData for ~15% loop performance gain.
             table.insert(tempDataTable, itemData)
             ZO_InventorySlot_SetType(itemData, slotType)
         end
@@ -363,6 +367,12 @@ end
 --[[
 Function: OnItemSelectedChange
 Description: Callback when list selection changes.
+
+-- TODO(refactor): This function is 80+ lines with deeply nested conditionals.
+-- Consider breaking into smaller helpers:
+--   1. HandleCurrencyRowSelection(selectedData)
+--   2. HandleItemRowSelection(selectedData)
+--   3. UpdateKeybindsForSelection(isCurrencyRow)  <- This pattern repeats 4 times
 ]]
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     -- Check if we are on the "Deposit/withdraw" gold/telvar row

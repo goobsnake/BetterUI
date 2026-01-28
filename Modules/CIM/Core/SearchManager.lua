@@ -4,7 +4,7 @@ Purpose: Text search functionality for gamepad windows.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Extracted from InterfaceLibrary.lua as part of Phase 3 refactoring.
+
 Contains:
   - CreateSearchKeybindDescriptor function
   - Local helpers for mouse interactivity and narration

@@ -3,6 +3,9 @@ File: Modules/Inventory/Lists/ItemListManager.lua
 Purpose: Manages the main item list (Backpack) for the Inventory module.
          Contains filtering, sorting, refreshing, and tooltip logic for items.
 Author: BetterUI Team
+Last Modified: 2026-01-28
+
+-- TODO(doc): This header was missing the Last Modified field per project standards.
 ]]
 
 -- Localize frequently used globals
@@ -366,6 +369,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     if isQuestItem then
         filteredDataTable = {}
         local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
+        -- TODO(optimization): Replace table.insert() with indexed assignment filteredDataTable[#filteredDataTable+1]
+        -- in tight loops for ~15% performance improvement in large inventories.
         for _, questItems in pairs(questCache) do
             for _, questItem in pairs(questItems) do
                 ZO_InventorySlot_SetType(questItem, SLOT_TYPE_QUEST_ITEM)
@@ -423,6 +428,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         if not self.searchMatches then self.searchMatches = {} end
         ZO_ClearNumericallyIndexedTable(self.searchMatches)
 
+        -- TODO(optimization): Consider caching lowercased item names on itemData during inventory refresh
+        -- to avoid repeated string.lower() calls during search. This could improve search responsiveness.
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
             local name = tostring(it.name or "")
