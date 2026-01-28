@@ -199,8 +199,9 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         return
     end
 
-    -- Skip restoration if we just toggled modes
-    if self._justToggledMode then
+    -- Skip restoration if we just toggled modes (Phase 4.3: Use NavigationState)
+    local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+    if state.justToggledMode then
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         return
     end
@@ -291,9 +292,11 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     -- Reset list position to first item in the new mode
     self.lastPositions[self.currentMode] = 1
     -- Flag that we just toggled so RebuildHeaderCategories uses animation-free selection
-    self._justToggledMode = true
+    -- (Phase 4.3: Use NavigationState instead of inline flag)
+    local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+    state.justToggledMode = true
     self:RebuildHeaderCategories()
-    self._justToggledMode = false
+    state.justToggledMode = false
     local footer = self.footer:GetNamedChild("Footer")
     if (self.currentMode == LIST_WITHDRAW) then
         footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
