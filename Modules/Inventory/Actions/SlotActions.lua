@@ -84,125 +84,33 @@ local function TryUnequipItem(inventorySlot)
 end
 
 --- Attempts to use the item in the specified slot.
----
---- Purpose: Executes the "Use" command safely.
---- Mechanics:
---- - Checks if item is Quest Item (Tool/Condition).
---- - If Standard Item: Checks Usability.
---- - **CRITICAL**: Uses `CallSecureProtected` to avoid "Private Function" errors from tainted code.
----
+--- Rationale: Delegates to CIM.TryUseItem for shared implementation.
 --- @param inventorySlot table The inventory slot data.
 function TryUseItem(inventorySlot)
-    local slotType = ZO_InventorySlot_GetType(inventorySlot)
-    if slotType == SLOT_TYPE_QUEST_ITEM then
-        if inventorySlot then
-            if inventorySlot.toolIndex then
-                CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
-            elseif inventorySlot.conditionIndex then
-                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex,
-                    inventorySlot.conditionIndex)
-            end
-        end
-    else
-        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        local usable, onlyFromActionSlot = IsItemUsable(bag, index)
-        if usable and not onlyFromActionSlot then
-            CallSecureProtected("UseItem", bag, index)
-        end
-    end
+    BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
 --- Handles banking actions (Deposit/Withdraw) for an item.
----
---- Purpose: Moves items between Bags and Bank.
---- Mechanics:
---- - **Withdraw**: Checks Backpack space.
---- - **Deposit**: Checks Bank space (and Subscriber Bank if applicable).
---- - **Stolen**: Prevents depositing stolen items.
---- - Uses `PlaceInTransfer` securely.
----
+--- Rationale: Delegates to CIM.TryBankItem for shared implementation.
 --- @param inventorySlot table The inventory slot data.
 local function TryBankItem(inventorySlot)
-    if (PLAYER_INVENTORY:IsBanking()) then
-        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) then
-            --Withdraw
-            if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
-                CallSecureProtected("PickupInventoryItem", bag, index)
-                CallSecureProtected("PlaceInTransfer")
-            else
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
-            end
-        else
-            --Deposit
-            if IsItemStolen(bag, index) then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
-            else
-                local bankingBag = GetBankingBag()
-                local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
-                if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-                    CallSecureProtected("PickupInventoryItem", bag, index)
-                    CallSecureProtected("PlaceInTransfer")
-                else
-                    if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
-                        if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
-                            TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
-                        else
-                            TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
-                        end
-                    end
-                    ZO_AlertEvent(EVENT_BANK_IS_FULL)
-                end
-            end
-        end
-    end
+    BETTERUI.CIM.TryBankItem(inventorySlot)
 end
 
 --- Attempts to move an item between the Backpack and the Craft Bag.
----
---- Purpose: Stow (Inv->CraftBag) or Retrieve (CraftBag->Inv).
---- Mechanics:
---- - Checks for space.
---- - Handles stack splitting (moves full stack).
---- - Uses `PlaceInInventory` securely.
----
+--- Rationale: Delegates to CIM.TryMoveToCraftBag for shared implementation.
 --- @param inventorySlot table The inventory slot data.
 --- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
 local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
-    local stackSize
-    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-
-    if bag ~= nil then
-        stackSize, maxStackSize = GetSlotStackSize(bag, index)
-        if stackSize >= maxStackSize then
-            stackSize = maxStackSize
-        end
-    end
-
-    if targetBag ~= BAG_VIRTUAL then
-        if DoesBagHaveSpaceFor(targetBag, bag, index) then
-            local emptySlotIndex = FindFirstEmptySlotInBag(targetBag)
-            CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
-            CallSecureProtected("PlaceInInventory", targetBag, emptySlotIndex)
-        else
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
-        end
-    else
-        CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
-        CallSecureProtected("PlaceInInventory", targetBag, 0)
-    end
+    BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
 end
 
 --- Checks if an item can be moved to the Craft Bag.
----
---- Purpose: Eligibility check for "Stow".
---- Mechanics: Requires CraftBag Access (ESO+), Item must be Virtual-compatible, and NOT stolen.
----
+--- Rationale: Delegates to CIM.CanItemMoveToCraftBag for shared implementation.
 --- @param inventorySlot table The inventory slot data.
 --- @return boolean True if the item is eligible for the Craft Bag.
 local function CanItemMoveToCraftBag(inventorySlot)
-    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
+    return BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
 end
 
 --- Checks if the inventory slot represents an item currently inside the Craft Bag.

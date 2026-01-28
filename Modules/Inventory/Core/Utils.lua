@@ -26,46 +26,58 @@ end
 
 --- Callback for Right Bumper (Next) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
+--- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
 function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
-    if successful then
-        if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-            return
-        end
-        parent:SaveListPosition()
-
-        parent.categoryList.targetSelectedIndex =
-            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList
-                .dataList)
-        parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-        parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-        parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-        BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-        parent:ToSavedPosition()
+    if not successful then return end
+    if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+        return
     end
+
+    -- Use shared CIM HeaderNavigation for consistent cycling
+    BETTERUI.CIM.HeaderNavigation.CycleCategory(parent, 1, {
+        categories = parent.categoryList.dataList,
+        getCurrentIndex = function()
+            return parent.categoryList.targetSelectedIndex or parent.categoryList.selectedIndex or 1
+        end,
+        setCurrentIndex = function(idx)
+            parent.categoryList.targetSelectedIndex = idx
+            parent.categoryList.selectedIndex = idx
+            parent.categoryList.selectedData = parent.categoryList.dataList[idx]
+            parent.categoryList.defaultSelectedIndex = idx
+        end,
+        onRefresh = function()
+            BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+            parent:ToSavedPosition()
+        end,
+    })
 end
 
 --- Callback for Left Bumper (Previous) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
+--- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
 function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
-    if successful then
-        if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
-            return
-        end
-        parent:SaveListPosition()
-
-        parent.categoryList.targetSelectedIndex =
-            BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList
-                .dataList)
-        parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
-        parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
-        parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
-
-        BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
-
-        parent:ToSavedPosition()
+    if not successful then return end
+    if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
+        return
     end
+
+    -- Use shared CIM HeaderNavigation for consistent cycling
+    BETTERUI.CIM.HeaderNavigation.CycleCategory(parent, -1, {
+        categories = parent.categoryList.dataList,
+        getCurrentIndex = function()
+            return parent.categoryList.targetSelectedIndex or parent.categoryList.selectedIndex or 1
+        end,
+        setCurrentIndex = function(idx)
+            parent.categoryList.targetSelectedIndex = idx
+            parent.categoryList.selectedIndex = idx
+            parent.categoryList.selectedData = parent.categoryList.dataList[idx]
+            parent.categoryList.defaultSelectedIndex = idx
+        end,
+        onRefresh = function()
+            BETTERUI.GenericHeader.SetTitleText(parent.header, parent.categoryList.selectedData.text)
+            parent:ToSavedPosition()
+        end,
+    })
 end
 
 --[[

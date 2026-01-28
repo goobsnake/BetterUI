@@ -163,3 +163,123 @@ function BETTERUI.CIM.GenericSlotActions:BuildCommonActions(inventorySlot, optio
         end
     end
 end
+
+-- ============================================================================
+-- SHARED ITEM ACTION HELPERS
+-- ============================================================================
+-- These functions provide common item action implementations used by
+-- Inventory and Banking modules. They handle secure API calls.
+
+--[[
+Function: BETTERUI.CIM.TryUseItem
+Description: Attempts to use an item from the specified inventory slot.
+Rationale: Handles quest items vs standard items with secure calls.
+Used By: Inventory/Actions/SlotActions.lua
+param: inventorySlot (table) - The inventory slot data with bagId/slotIndex.
+]]
+function BETTERUI.CIM.TryUseItem(inventorySlot)
+    local slotType = ZO_InventorySlot_GetType(inventorySlot)
+    if slotType == SLOT_TYPE_QUEST_ITEM then
+        if inventorySlot then
+            if inventorySlot.toolIndex then
+                CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+            elseif inventorySlot.conditionIndex then
+                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex,
+                    inventorySlot.conditionIndex)
+            end
+        end
+    else
+        local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+        local usable, onlyFromActionSlot = IsItemUsable(bag, index)
+        if usable and not onlyFromActionSlot then
+            CallSecureProtected("UseItem", bag, index)
+        end
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.TryBankItem
+Description: Handles banking deposit/withdraw for an item.
+Rationale: Centralized banking logic with space checks and error handling.
+Used By: Inventory/Actions/SlotActions.lua, Banking/Actions/TransferActions.lua
+param: inventorySlot (table) - The inventory slot data.
+]]
+function BETTERUI.CIM.TryBankItem(inventorySlot)
+    if not PLAYER_INVENTORY:IsBanking() then return end
+
+    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) then
+        -- Withdraw
+        if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
+            CallSecureProtected("PickupInventoryItem", bag, index)
+            CallSecureProtected("PlaceInTransfer")
+        else
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+        end
+    else
+        -- Deposit
+        if IsItemStolen(bag, index) then
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+        else
+            local bankingBag = GetBankingBag()
+            local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
+            if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
+                CallSecureProtected("PickupInventoryItem", bag, index)
+                CallSecureProtected("PlaceInTransfer")
+            else
+                if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
+                    if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
+                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
+                    else
+                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
+                    end
+                end
+                ZO_AlertEvent(EVENT_BANK_IS_FULL)
+            end
+        end
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.TryMoveToCraftBag
+Description: Moves an item between Backpack and Craft Bag.
+Rationale: Handles stow/retrieve with proper stack handling.
+Used By: Inventory/Actions/SlotActions.lua
+param: inventorySlot (table) - The inventory slot data.
+param: targetBag (number) - BAG_BACKPACK or BAG_VIRTUAL.
+]]
+function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
+    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag then return end
+
+    local stackSize, maxStackSize = GetSlotStackSize(bag, index)
+    if stackSize >= maxStackSize then
+        stackSize = maxStackSize
+    end
+
+    if targetBag ~= BAG_VIRTUAL then
+        if DoesBagHaveSpaceFor(targetBag, bag, index) then
+            local emptySlotIndex = FindFirstEmptySlotInBag(targetBag)
+            CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
+            CallSecureProtected("PlaceInInventory", targetBag, emptySlotIndex)
+        else
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+        end
+    else
+        CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
+        CallSecureProtected("PlaceInInventory", targetBag, 0)
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.CanItemMoveToCraftBag
+Description: Checks if an item is eligible for Craft Bag.
+Rationale: Requires ESO+ access, item compatibility, and not stolen.
+Used By: Inventory/Actions/SlotActions.lua
+param: inventorySlot (table) - The inventory slot data.
+return: boolean - True if item can be stowed.
+]]
+function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
+    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
+end
