@@ -17,6 +17,7 @@ lang\$(language).lua
 ; Module: Common Interface Module
 Modules\CIM\Constants.lua
 Modules\CIM\Core\Utilities.lua
+Modules\CIM\Core\FontDefinitions.lua
 Modules\CIM\Core\NumberFormatting.lua
 Modules\CIM\Core\HookFactory.lua
 Modules\CIM\Core\ResearchCache.lua
@@ -130,6 +131,7 @@ Modules\Banking\State\StateManager.lua
 Modules\Banking\Images\nav_vert.dds
 Modules\Banking\Images\selectbg.dds
 Modules\Banking\Banking.lua
+Modules\Banking\Settings\SettingsPanel.lua
 Modules\Banking\Module.lua
 
 ; Module: Writ Unit
