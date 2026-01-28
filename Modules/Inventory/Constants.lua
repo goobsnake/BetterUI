@@ -11,7 +11,7 @@ if not BETTERUI.Inventory.CONST then BETTERUI.Inventory.CONST = {} end
 -- Global Inventory Constants (Migrated from BetterUI.CONST.lua)
 if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
 BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS = 300
-BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = 300
+BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.TOOLTIP_REFRESH_DELAY_MS
 
 -- Action Mode Constants (shared across InventoryClass.lua, Inventory.lua, etc.)
 -- These define what type of list interaction is currently active
@@ -19,14 +19,14 @@ BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE = 1
 BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE = 2
 BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE = 3
 
--- Timing & Batch Constants
+-- Timing & Batch Constants (delegate to CIM shared values)
 -- Debounce for heavy updates (e.g., full inventory refresh)
-BETTERUI.Inventory.CONST.DEBOUNCE_MS = 50
+BETTERUI.Inventory.CONST.DEBOUNCE_MS = BETTERUI.CIM.CONST.TIMING.DEBOUNCE_MS
 -- Delay for category refresh to allow for UI settlement
-BETTERUI.Inventory.CONST.CATEGORY_REFRESH_DELAY_MS = 80
+BETTERUI.Inventory.CONST.CATEGORY_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 -- Batch sizing for large list processing
-BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL = 50
-BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING = 200
+BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL = BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_INITIAL
+BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING = BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_REMAINING
 
 -- ============================================================================
 -- SEARCH BAR POSITIONING

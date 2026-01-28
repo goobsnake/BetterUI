@@ -10,6 +10,36 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.CONST then BETTERUI.CIM.CONST = {} end
 
 -- ============================================================================
+-- TIMING CONSTANTS
+-- Shared timing values for consistent behavior across modules
+-- ============================================================================
+
+--[[
+Table: BETTERUI.CIM.CONST.TIMING
+Description: Shared timing constants for UI debouncing and coalescing.
+             Used by Inventory and Banking to ensure consistent response times.
+Used By: PositionManager, HeaderNavigation, list refresh logic.
+]]
+BETTERUI.CIM.CONST.TIMING = {
+    -- Debounce for heavy UI updates (ms)
+    DEBOUNCE_MS = 50,
+
+    -- Category navigation coalescing delay (ms)
+    CATEGORY_CHANGE_DELAY_MS = 100,
+
+    -- Item move coalescing delay (ms)
+    MOVE_COALESCE_DELAY_MS = 100,
+
+    -- Tooltip refresh delay (ms)
+    TOOLTIP_REFRESH_DELAY_MS = 300,
+
+    -- Batch processing sizes
+    BATCH_SIZE_INITIAL = 50,
+    BATCH_SIZE_REMAINING = 200,
+}
+
+
+-- ============================================================================
 -- CURRENCY FOOTER CONFIGURATION
 -- ============================================================================
 
