@@ -582,6 +582,146 @@ A multi-perspective code review identified issues that were addressed:
 
 ---
 
+## Phase 2.x: Consumption and Cleanup Implementation (2026-01-28)
+
+This section documents the detailed implementation of Phase 2 sub-phases, which focused on consuming the CIM factories created in earlier phases and cleaning up unused code.
+
+### Phase 2.1: Inventory Keybind Migration ✅
+
+**Objective**: Migrate Inventory keybinds to use CIM factory functions.
+
+**Changes Made**:
+- `Modules/Inventory/Keybinds/InventoryKeybinds.lua`:
+  - Y-button (Actions) → `BETTERUI.CIM.Keybinds.CreateActionsKeybind()`
+  - L-Stick (Stack All) → `BETTERUI.CIM.Keybinds.CreateStackAllKeybind()`
+  - Quaternary (Clear Search) → `BETTERUI.CIM.Keybinds.CreateClearSearchKeybind()`
+
+**Lines Reduced**: ~30 lines of inline keybind definitions replaced with factory calls.
+
+---
+
+### Phase 2.2: Banking Keybind Completion ✅
+
+**Objective**: Complete Banking's migration to CIM keybind factories.
+
+**Changes Made**:
+- `Modules/Banking/Keybinds/KeybindManager.lua`:
+  - Quaternary (Clear Search) → `BETTERUI.CIM.Keybinds.CreateClearSearchKeybind()`
+  - L-Stick remains inline (multi-bag stacking requires custom logic)
+
+---
+
+### Phase 2.3: HeaderNavigation Full Migration ✅
+
+**Objective**: Migrate Inventory's OnTabNext/OnTabPrev to use CIM HeaderNavigation.
+
+**Changes Made**:
+- `Modules/Inventory/Core/Utils.lua`:
+  - `OnTabNext()` → delegates to `BETTERUI.CIM.HeaderNavigation.CycleCategory(parent, 1, options)`
+  - `OnTabPrev()` → delegates to `BETTERUI.CIM.HeaderNavigation.CycleCategory(parent, -1, options)`
+
+**Benefits**:
+- Shared navigation state management via `NavigationState.lua`
+- Consistent category cycling behavior with Banking
+- Position saving before switch handled by CIM
+
+---
+
+### Phase 2.4: Timing Constants Adoption ✅
+
+**Status**: Already Complete
+
+Verified that Inventory/Constants.lua already references `BETTERUI.CIM.CONST.TIMING` for batch sizes and debounce values.
+
+---
+
+### Phase 2.5: Batch Processing Extraction ✅
+
+**Objective**: Create reusable batch processor for incremental list population.
+
+**Files Created**:
+- `Modules/CIM/Lists/BatchProcessor.lua` (166 lines)
+
+**API**:
+```lua
+local processor = BETTERUI.CIM.BatchProcessor:New()
+processor:Start(dataList, {
+    batchSizeInitial = 50,
+    batchSizeRemaining = 200,
+    onProcessItem = function(item, index) end,
+    onBatchComplete = function(processed, total) end,
+    onAllComplete = function() end,
+})
+processor:Cancel()
+processor:IsActive()
+```
+
+**Rationale**: Extracted from Inventory's `ProcessScrollListBatch` pattern for reuse.
+
+---
+
+### Phase 2.6: Action Dialog Manager ✅
+
+**Status**: Analyzed - No Consolidation Needed
+
+**Analysis Results**:
+- **Inventory callbacks**: Handle scene-specific logic (`gamepad_inventory_root`)
+- **Banking callbacks**: Handle bank-cache refresh, specific to banking scene
+
+**Conclusion**: Callbacks are appropriately module-specific. No duplicate logic requires consolidation.
+
+---
+
+### Phase 2.7: Slot Actions Base Class ✅
+
+**Objective**: Add shared item action helpers to CIM.
+
+**Files Modified**:
+- `Modules/CIM/Actions/GenericSlotActions.lua` (+120 lines)
+- `Modules/Inventory/Actions/SlotActions.lua` (-100 lines)
+
+**New CIM Functions**:
+| Function | Purpose |
+|----------|---------|
+| `BETTERUI.CIM.TryUseItem(inventorySlot)` | Secure item/quest item usage |
+| `BETTERUI.CIM.TryBankItem(inventorySlot)` | Banking deposit/withdraw |
+| `BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)` | Stow/retrieve operations |
+| `BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)` | Eligibility check |
+
+**SlotActions.lua Changes**:
+```lua
+-- Before (inline implementation)
+local function TryBankItem(inventorySlot)
+    if (PLAYER_INVENTORY:IsBanking()) then
+        -- 45 lines of banking logic
+    end
+end
+
+-- After (delegation)
+local function TryBankItem(inventorySlot)
+    BETTERUI.CIM.TryBankItem(inventorySlot)
+end
+```
+
+---
+
+### Phase 2.8: Factory Cleanup ✅
+
+**Objective**: Remove unused keybind factories and improve documentation.
+
+**Files Modified**:
+- `Modules/CIM/Keybinds/GenericKeybinds.lua`
+
+**Removed Functions** (46 lines):
+- `CreateLinkToChatKeybind` - defined but never used
+- `CreateSwitchModeKeybind` - defined but never used
+
+**Added Documentation**:
+- "Used By" comments for all remaining factories
+- Updated file modification date
+
+---
+
 ## Appendix: Current File Sizes
 
 For reference, here are the current file sizes indicating potential duplication:
