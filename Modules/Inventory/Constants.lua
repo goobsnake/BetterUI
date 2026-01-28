@@ -109,10 +109,3 @@ function BETTERUI.Inventory.DefaultSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.Inventory.CONST.SORT_SCHEMA,
         ZO_SORT_ORDER_UP)
 end
-
--- Backward compatibility alias (deprecated)
-BETTERUI_GamepadInventory_DefaultItemSortComparator = BETTERUI.Inventory.DefaultSortComparator
-
--- Legacy namespace alias (for code still using BETTERUI.CONST.INVENTORY.SORT_SCHEMA)
-if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
-BETTERUI.CONST.INVENTORY.SORT_SCHEMA = BETTERUI.Inventory.CONST.SORT_SCHEMA

@@ -321,7 +321,7 @@ function BETTERUI.Banking.Class:RefreshList()
         filteredDataTable = matches
     end
 
-    table.sort(filteredDataTable, BETTERUI_GamepadInventory_DefaultItemSortComparator)
+    table.sort(filteredDataTable, BETTERUI.Inventory.DefaultSortComparator)
 
     local currentBestCategoryName
 

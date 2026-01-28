@@ -24,6 +24,7 @@ Modules\CIM\Core\ResearchCache.lua
 Modules\CIM\Core\MarketIntegration.lua
 Modules\CIM\Core\AutoCategoryIntegration.lua
 Modules\CIM\Core\SettingsFactory.lua
+Modules\CIM\Core\IconSettingsFactory.lua
 Modules\CIM\Core\ControlUtils.lua
 Modules\CIM\Core\SettingsAccessor.lua
 Modules\CIM\Core\RuntimeSetup.lua

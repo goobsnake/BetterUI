@@ -36,10 +36,6 @@ BETTERUI.Banking.CONST.CAROUSEL = {
     verticalOffset = -1,
 }
 
--- Backwards Compatibility Aliases (for Lua code that still uses global names)
-BETTERUI_BANKING_CAROUSEL_START_OFFSET = BETTERUI.Banking.CONST.CAROUSEL.startOffset
-BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset
-
 -- ============================================================================
 -- SEARCH BAR POSITIONING
 -- Controls the position of the search input field in banking headers
