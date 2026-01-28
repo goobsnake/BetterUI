@@ -43,6 +43,7 @@ Modules\CIM\UI\GenericHeader.lua
 Modules\CIM\Templates\GenericFooter.xml
 Modules\CIM\UI\CurrencyManager.lua
 Modules\CIM\UI\GenericFooter.lua
+Modules\CIM\UI\HeaderNavigation.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua

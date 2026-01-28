@@ -1,9 +1,9 @@
 --[[
 File: Modules/Banking/UI/HeaderManager.lua
 Purpose: Manages the banking header UI (categories, tabs, title).
-         Extracted from Banking.lua.
+         Uses CIM.HeaderNavigation for shared navigation logic.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-01-28
 ]]
 
 local _
@@ -17,25 +17,17 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 --[[
 Function: BETTERUI.Banking.Class:CycleCategory
 Description: Cycles the selected category via shoulder buttons (Left/Right).
+Rationale: Delegates to CIM.HeaderNavigation for shared navigation logic.
 param: delta (number) - Direction (+1 or -1).
 ]]
 function BETTERUI.Banking.Class:CycleCategory(delta)
-    if not (self.bankCategories and #self.bankCategories > 1) then return end
-    local count = #self.bankCategories
-    local idx = (self.currentCategoryIndex or 1) + delta
-    if idx < 1 then idx = count end
-    if idx > count then idx = 1 end
-    self:SaveListPosition()
-    -- Flag to prevent onSelectedChanged from calling SaveListPosition again (we already did it)
-    self._cyclingCategory = true
-    -- Drive selection via header tabbar; onSelectedChanged will handle refresh
-    if self.headerGeneric and self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
-    else
-        self.currentCategoryIndex = idx
-        self:RefreshList()
-    end
-    self._cyclingCategory = false
+    BETTERUI.CIM.HeaderNavigation.CycleCategory(self, delta, {
+        categories = self.bankCategories,
+        getCurrentIndex = function() return self.currentCategoryIndex or 1 end,
+        setCurrentIndex = function(idx) self.currentCategoryIndex = idx end,
+        tabBar = self.headerGeneric and self.headerGeneric.tabBar,
+        onRefresh = function() self:RefreshList() end,
+    })
 end
 
 --[[
