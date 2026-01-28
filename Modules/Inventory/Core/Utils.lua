@@ -1,5 +1,5 @@
 --[[
-File: Modules/Inventory/InventoryUtils.lua
+File: Modules/Inventory/Core/Utils.lua
 Purpose: Shared utility functions for the Inventory module.
 Author: BetterUI Team
 ]]
@@ -38,7 +38,7 @@ function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
 
         parent.categoryList.targetSelectedIndex =
             BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex + 1, #parent.categoryList
-            .dataList)
+                .dataList)
         parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
         parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
         parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
@@ -60,7 +60,7 @@ function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
 
         parent.categoryList.targetSelectedIndex =
             BETTERUI.Inventory.Utils.WrapValue(parent.categoryList.targetSelectedIndex - 1, #parent.categoryList
-            .dataList)
+                .dataList)
         parent.categoryList.selectedIndex = parent.categoryList.targetSelectedIndex
         parent.categoryList.selectedData = parent.categoryList.dataList[parent.categoryList.selectedIndex]
         parent.categoryList.defaultSelectedIndex = parent.categoryList.selectedIndex
