@@ -8,15 +8,21 @@
 ## OptionalDependsOn: LibDebugLogger
 ## SavedVariables: BetterUISavedVars
  
-Globals.lua
+; Core Initialization (Must load first)
+BetterUI.lua
 
 lang\en.lua
 lang\$(language).lua
 
-BetterUI.CONST.lua
-
 ; Module: Common Interface Module
 Modules\CIM\Constants.lua
+Modules\CIM\Core\Utilities.lua
+Modules\CIM\Core\NumberFormatting.lua
+Modules\CIM\Core\HookFactory.lua
+Modules\CIM\Core\ResearchCache.lua
+Modules\CIM\Core\MarketIntegration.lua
+Modules\CIM\Core\AutoCategoryIntegration.lua
+Modules\CIM\Core\SettingsFactory.lua
 Modules\CIM\ControlUtils.lua
 Modules\CIM\SettingsAccessor.lua
 Modules\CIM\RuntimeSetup.lua
@@ -69,15 +75,15 @@ Modules\ResourceOrbFrames\Constants.lua
 Modules\ResourceOrbFrames\Templates\SkillBarTemplates.xml
 Modules\ResourceOrbFrames\Templates\OrbTemplates.xml
 Modules\ResourceOrbFrames\Templates\LayoutTemplates.xml
-Modules\ResourceOrbFrames\OrbAnimations.lua
-Modules\ResourceOrbFrames\OrbVisuals.lua
-Modules\ResourceOrbFrames\OrbBars.lua
+Modules\ResourceOrbFrames\Core\OrbAnimations.lua
+Modules\ResourceOrbFrames\Core\OrbVisuals.lua
+Modules\ResourceOrbFrames\Core\OrbBars.lua
 Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
 Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
 Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua
 Modules\ResourceOrbFrames\SkillBar\FrontBarManager.lua
 Modules\ResourceOrbFrames\OrbSkillBar.lua
-Modules\ResourceOrbFrames\OrbEvents.lua
+Modules\ResourceOrbFrames\Core\OrbEvents.lua
 Modules\ResourceOrbFrames\ResourceOrbFrames.lua
 Modules\ResourceOrbFrames\Templates\ResourceOrbFrames.xml
 Modules\ResourceOrbFrames\Module.lua
@@ -129,7 +135,5 @@ Modules\Banking\Module.lua
 ; Module: Writ Unit
 Modules\WritUnit\Constants.lua
 Modules\WritUnit\Templates\WritsPanel.xml
-Modules\WritUnit\Writ.lua
+Modules\WritUnit\Core\Writ.lua
 Modules\WritUnit\Module.lua
-
-BetterUI.lua

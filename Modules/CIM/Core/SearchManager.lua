@@ -286,19 +286,15 @@ end
 Function: SearchMixin.GetActiveList
 Description: Gets the currently active list.
 Rationale: Helper to retrieve the list that should currently receive input.
-Mechanism: Tries to call `GetCurrentList` (polymorphic) if it exists, otherwise returns `self.list`.
+Mechanism: Checks if GetCurrentList method exists via type check, then calls it safely.
+           Falls back to self.list if method doesn't exist.
 return: table - The active list control.
 ]]
 function BETTERUI.Interface.SearchMixin.GetActiveList(self)
-    -- TODO(PCALL-AUDIT): This pcall around GetCurrentList may hide real errors.
-    -- If GetCurrentList doesn't exist, returning nil is fine, but swallowing
-    -- exceptions from a valid method call masks bugs. Consider:
-    --   if type(self.GetCurrentList) == "function" then return self:GetCurrentList() end
-    if self.GetCurrentList then
-        local ok, list = pcall(function() return self:GetCurrentList() end)
-        if ok then
-            return list
-        end
+    -- Use type check instead of pcall to avoid hiding real errors
+    -- If GetCurrentList exists and is callable, use it; otherwise fallback
+    if type(self.GetCurrentList) == "function" then
+        return self:GetCurrentList()
     end
     return self.list
 end

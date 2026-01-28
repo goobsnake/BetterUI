@@ -22,9 +22,44 @@ local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
+-- ============================================================================
+-- NAMESPACE INITIALIZATION (Required before module files load)
+-- ============================================================================
 
--- Shared font choices for Inventory (matches Nameplates for consistency)
+-- Core addon metadata
+BETTERUI.name = "BetterUI"
+BETTERUI.version = "2.93"
+
+-- Module namespace tables
 BETTERUI.Inventory = BETTERUI.Inventory or {}
+BETTERUI.Banking = BETTERUI.Banking or {}
+BETTERUI.Writs = BETTERUI.Writs or {}
+BETTERUI.CIM = BETTERUI.CIM or {}
+BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
+BETTERUI.Nameplates = BETTERUI.Nameplates or {}
+BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
+
+-- UI Component namespaces
+BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}
+BETTERUI.GenericFooter = BETTERUI.GenericFooter or {}
+BETTERUI.Interface = BETTERUI.Interface or {}
+
+-- Legacy namespace for backward compatibility
+BETTERUI.CONST = BETTERUI.CONST or {}
+
+-- Engine helper references
+BETTERUI.WindowManager = GetWindowManager()
+BETTERUI.EventManager = GetEventManager()
+
+-- Research traits cache (populated by CIM/Core/ResearchCache.lua)
+BETTERUI.ResearchTraits = BETTERUI.ResearchTraits or {}
+
+-- Default settings structure
+BETTERUI.DefaultSettings = {
+	firstInstall = true,
+	useAccountWide = false,
+	Modules = {}
+}
 
 
 --- Updates the Common Interface Module (CIM) state based on dependents.
@@ -36,8 +71,8 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 ---
 function BETTERUI.UpdateCIMState()
 	local shouldEnable = BETTERUI.GetModuleEnabled("GeneralInterface") or
-	                    BETTERUI.GetModuleEnabled("Inventory") or
-	                    BETTERUI.GetModuleEnabled("Banking")
+		BETTERUI.GetModuleEnabled("Inventory") or
+		BETTERUI.GetModuleEnabled("Banking")
 	if BETTERUI.Settings.Modules["CIM"] then
 		BETTERUI.Settings.Modules["CIM"].m_enabled = shouldEnable
 	end
@@ -110,7 +145,7 @@ function BETTERUI.InitModuleOptions()
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_ORBS),
 			tooltip = GetString(SI_BETTERUI_ENABLE_ORBS_TOOLTIP),
-			getFunc = function() 
+			getFunc = function()
 				return BETTERUI.GetModuleEnabled("ResourceOrbFrames")
 			end,
 			setFunc = function(value)
@@ -143,8 +178,8 @@ function BETTERUI.InitModuleOptions()
 		},
 	}
 
-	LAM:RegisterAddonPanel("BETTERUI_".."Modules", panelData)
-	LAM:RegisterOptionControls("BETTERUI_".."Modules", optionsTable)
+	LAM:RegisterAddonPanel("BETTERUI_" .. "Modules", panelData)
+	LAM:RegisterOptionControls("BETTERUI_" .. "Modules", optionsTable)
 end
 
 --- Calls a module's InitModule function to set up default options.
@@ -212,13 +247,13 @@ function BETTERUI.LoadModules()
 	end
 
 	-- Initialize Independent modules (Settings-aware)
-    -- Nameplates (Dependent on General Interface Master Setting)
+	-- Nameplates (Dependent on General Interface Master Setting)
 	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
 		BETTERUI.Nameplates.Setup()
 	end
 
 	-- Resource Orb Frames
-    -- Logic: If enabled, load it. If disabled, do NOT load it (so settings panel won't register).
+	-- Logic: If enabled, load it. If disabled, do NOT load it (so settings panel won't register).
 	if BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
 		BETTERUI.ResourceOrbFrames.Setup()
 	end
@@ -253,27 +288,27 @@ function BETTERUI.Initialize(event, addon)
 	end
 
 	-- Initialize or update module settings with defaults
-    -- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
-    local modules = {
-        {"CIM", BETTERUI.CIM},
-        {"Inventory", BETTERUI.Inventory},
-        {"Banking", BETTERUI.Banking},
-        {"Writs", BETTERUI.Writs},
-        {"GeneralInterface", BETTERUI.GeneralInterface},
-        {"Nameplates", BETTERUI.Nameplates},
-        {"ResourceOrbFrames", BETTERUI.ResourceOrbFrames}
-    }
+	-- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
+	local modules = {
+		{ "CIM",               BETTERUI.CIM },
+		{ "Inventory",         BETTERUI.Inventory },
+		{ "Banking",           BETTERUI.Banking },
+		{ "Writs",             BETTERUI.Writs },
+		{ "GeneralInterface",  BETTERUI.GeneralInterface },
+		{ "Nameplates",        BETTERUI.Nameplates },
+		{ "ResourceOrbFrames", BETTERUI.ResourceOrbFrames }
+	}
 
-    for _, moduleInfo in ipairs(modules) do
-        local moduleName, moduleNamespace = moduleInfo[1], moduleInfo[2]
-        if moduleNamespace then
-            -- Ensure the settings table exists before initializing
-            if BETTERUI.Settings.Modules[moduleName] == nil then
-                BETTERUI.Settings.Modules[moduleName] = {}
-            end
-            BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName])
-        end
-    end
+	for _, moduleInfo in ipairs(modules) do
+		local moduleName, moduleNamespace = moduleInfo[1], moduleInfo[2]
+		if moduleNamespace then
+			-- Ensure the settings table exists before initializing
+			if BETTERUI.Settings.Modules[moduleName] == nil then
+				BETTERUI.Settings.Modules[moduleName] = {}
+			end
+			BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName])
+		end
+	end
 
 	-- Mark first install as complete
 	if BETTERUI.Settings.firstInstall then
@@ -306,4 +341,5 @@ end
 
 -- Event handlers for initialization and gamepad mode changes
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED, function(...) BETTERUI.Initialize(...) end)
-BETTERUI.EventManager:RegisterForEvent(BETTERUI.name.."_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function(code, inGamepad) BETTERUI.LoadModules() end)
+BETTERUI.EventManager:RegisterForEvent(BETTERUI.name .. "_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
+	function(code, inGamepad) BETTERUI.LoadModules() end)

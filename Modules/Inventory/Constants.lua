@@ -1,8 +1,8 @@
 --[[
 File: Modules/Inventory/Constants.lua
 Purpose: Constants for the Inventory module.
-         Includes search bar positioning and list entry icon sizing.
-Last Modified: 2026-01-26
+         Includes search bar positioning, list entry icon sizing, and sort schema.
+Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
@@ -75,3 +75,44 @@ BETTERUI.Inventory.CONST.EQUIPPED_ICON_OFFSET_X = -2
 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL = 16
 BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM = 24
 BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34
+
+-- ============================================================================
+-- SORT SCHEMA (Migrated from Globals.lua)
+-- ============================================================================
+
+--[[
+Table: BETTERUI.Inventory.CONST.SORT_SCHEMA
+Description: Sort schema for inventory item ordering.
+Used By: DefaultSortComparator for gamepad inventory sorting.
+]]
+BETTERUI.Inventory.CONST.SORT_SCHEMA = {
+    sortPriorityName       = { tiebreaker = "bestItemTypeName" },
+    bestItemTypeName       = { tiebreaker = "name" },
+    name                   = { tiebreaker = "requiredLevel" },
+    requiredLevel          = { tiebreaker = "requiredChampionPoints", isNumeric = true },
+    requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
+    iconFile               = { tiebreaker = "uniqueId" },
+    uniqueId               = { isId64 = true },
+}
+
+--[[
+Function: BETTERUI.Inventory.DefaultSortComparator
+Description: Custom comparison function for sorting gamepad inventory items.
+Rationale: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
+Mechanism: Uses ZO_TableOrderingFunction with BETTERUI.Inventory.CONST.SORT_SCHEMA.
+References: Used by the gamepad inventory list (Sort Comparator).
+param: left (table) - The first item data.
+param: right (table) - The second item data.
+return: boolean - True if 'left' should appear before 'right'.
+]]
+function BETTERUI.Inventory.DefaultSortComparator(left, right)
+    return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.Inventory.CONST.SORT_SCHEMA,
+        ZO_SORT_ORDER_UP)
+end
+
+-- Backward compatibility alias (deprecated)
+BETTERUI_GamepadInventory_DefaultItemSortComparator = BETTERUI.Inventory.DefaultSortComparator
+
+-- Legacy namespace alias (for code still using BETTERUI.CONST.INVENTORY.SORT_SCHEMA)
+if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
+BETTERUI.CONST.INVENTORY.SORT_SCHEMA = BETTERUI.Inventory.CONST.SORT_SCHEMA
