@@ -28,12 +28,20 @@ DECOMPOSITION STATUS:
     Phase 1 Complete: Core/BankingClass.lua contains class skeleton and module constants.
     Remaining decomposition phases pending.
 
--- TODO(DECOMPOSITION): Continue breaking down this 700+ line file into focused modules:
---   1. Lists/BankListRefresh.lua - RefreshList, ComputeVisibleBankCategories
---   2. Keybinds/BankingKeybinds.lua - InitializeKeybind, keybind descriptors
---   3. UI/SearchHandlers.lua - Text search hooks and focus management
---   This would match the Inventory module's structure and improve maintainability.
+-- DECOMPOSITION STATUS (Phase 4.4 Review - 2026-01-28):
+-- Banking is now well-modularized with 8 submodules:
+--   - Core/BankingClass.lua: Class skeleton and module constants
+--   - Lists/BankListManager.lua: RefreshList, ComputeVisibleBankCategories ✓
+--   - Keybinds/KeybindManager.lua: Keybind descriptors and initialization ✓
+--   - Search/SearchManager.lua: Search mode and focus management ✓
+--   - State/StateManager.lua: Position persistence, ToggleList ✓
+--   - UI/HeaderManager.lua: Category header and tab bar ✓
+--   - Actions/TransferActions.lua: Item/currency transfer logic ✓
+--   - Constants.lua: Banking-specific constants ✓
+-- Remaining in this file: Initialize() containing scene handlers (OnEffectivelyShown/Hidden)
+-- and InitializeActionsDialog - these are tightly coupled to the main class initialization.
 ]]
+
 
 local _
 
@@ -113,6 +121,10 @@ param: tlw_name (string) - Top level window name.
 param: scene_name (string) - Scene name.
 ]]
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
+    -- Configuration for directional input fix timing (ms)
+    -- IMPORTANT: Must be declared at top of Initialize before any closures that reference it
+    local directionalFixDelayMs = 60
+
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
 
     -- Create banking scene (moved from InterfaceLibrary.lua as part of Phase 3 refactoring)
@@ -356,10 +368,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 self.currentCategoryIndex = 1
             end
         end
-        -- Suppress callback during rebuild when category has changed
-        self._suppressHeaderCallback = true
+        -- Suppress callback during rebuild when category has changed (Phase 4.3: Use NavigationState)
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        state.suppressHeaderCallback = true
         self:RebuildHeaderCategories()
-        self._suppressHeaderCallback = false
+        state.suppressHeaderCallback = false
         self:RefreshList()
         self:RefreshActiveKeybinds()
     end
@@ -520,12 +533,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- TODO(BUG): directionalFixDelayMs is defined here at line 524 but used earlier at line 474.
-    -- In Lua, the closure at line 467 captures the variable reference at declaration time,
-    -- but since it's declared after the closure, it will be nil when the closure runs.
-    -- FIX: Move this declaration to the top of the Initialize function before OnEffectivelyHidden.
-    -- Configuration for directional input fix timing (ms)
-    local directionalFixDelayMs = 60
+    -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug (Phase 4.1)
 
 
 
