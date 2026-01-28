@@ -69,3 +69,48 @@ function BETTERUI.SafeIcon(iconPath)
     if iconPath == nil then return "" end
     return iconPath
 end
+
+-- ============================================================================
+-- SHARED UTILITY FUNCTIONS (CIM.Utils namespace)
+-- ============================================================================
+
+BETTERUI.CIM = BETTERUI.CIM or {}
+BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+
+--[[
+Function: BETTERUI.CIM.Utils.SafeGetTargetData
+Description: Safe helper for GetTargetData calls (guards against lists without method).
+Rationale: Provides a consistent way to retrieve selected data across different list types.
+Mechanism: Checks for GetTargetData method, falls back to selectedData property.
+References: Used by Inventory, Banking for safe list selection access.
+param: list (table) - The list object to query.
+return: table|nil - The target data of the list.
+]]
+function BETTERUI.CIM.Utils.SafeGetTargetData(list)
+    if not list then return nil end
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+    -- Fallback for basic tables or parametric lists
+    return list.selectedData
+end
+
+--[[
+Function: BETTERUI.CIM.Utils.WrapValue
+Description: Wraps a value around min/max bounds for circular navigation.
+Rationale: Provides consistent wrap-around behavior for tab/category navigation.
+Mechanism: If below 1, returns maxValue; if above maxValue, returns 1.
+References: Used for category cycling in header navigation.
+param: newValue (number) - The value to wrap.
+param: maxValue (number) - The maximum value (1 is implicit minimum).
+return: number - The wrapped value.
+]]
+function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
+    if newValue < 1 then
+        return maxValue
+    end
+    if newValue > maxValue then
+        return 1
+    end
+    return newValue
+end

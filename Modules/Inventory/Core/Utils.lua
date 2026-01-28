@@ -1,24 +1,21 @@
 --[[
 File: Modules/Inventory/Core/Utils.lua
 Purpose: Shared utility functions for the Inventory module.
+         Delegates common functions to CIM.Utils for shared behavior.
 Author: BetterUI Team
+Last Modified: 2026-01-28
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Utils = {}
 
---- Wraps a value around min/max bounds for circular navigation.
---- @param newValue number The value to wrap
---- @param maxValue number The maximum value (1 is implicit minimum)
---- @return number The wrapped value
+--[[
+Function: BETTERUI.Inventory.Utils.WrapValue
+Description: Wraps a value around min/max bounds for circular navigation.
+Rationale: Delegates to CIM.Utils.WrapValue for shared implementation.
+]]
 function BETTERUI.Inventory.Utils.WrapValue(newValue, maxValue)
-    if newValue < 1 then
-        return maxValue
-    end
-    if newValue > maxValue then
-        return 1
-    end
-    return newValue
+    return BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
 end
 
 --- Checks if the player has unlocked weapon swap (requires level 15).
@@ -71,14 +68,11 @@ function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
     end
 end
 
---- Safe helper for GetTargetData calls (guards against lists without method)
---- @param list table The list object to query
---- @return table|nil The target data of the list
+--[[
+Function: BETTERUI.Inventory.Utils.SafeGetTargetData
+Description: Safe helper for GetTargetData calls (guards against lists without method).
+Rationale: Delegates to CIM.Utils.SafeGetTargetData for shared implementation.
+]]
 function BETTERUI.Inventory.Utils.SafeGetTargetData(list)
-    if not list then return nil end
-    if list.GetTargetData then
-        return list:GetTargetData()
-    end
-    -- Fallback for basic tables or parametric lists
-    return list.selectedData
+    return BETTERUI.CIM.Utils.SafeGetTargetData(list)
 end
