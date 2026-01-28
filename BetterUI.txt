@@ -23,10 +23,10 @@ Modules\CIM\Core\ResearchCache.lua
 Modules\CIM\Core\MarketIntegration.lua
 Modules\CIM\Core\AutoCategoryIntegration.lua
 Modules\CIM\Core\SettingsFactory.lua
-Modules\CIM\ControlUtils.lua
-Modules\CIM\SettingsAccessor.lua
-Modules\CIM\RuntimeSetup.lua
-Modules\CIM\CategoryDefinitions.lua
+Modules\CIM\Core\ControlUtils.lua
+Modules\CIM\Core\SettingsAccessor.lua
+Modules\CIM\Core\RuntimeSetup.lua
+Modules\CIM\Core\CategoryDefinitions.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
 Modules\CIM\Images\inv_equip_quickslot.dds
@@ -36,12 +36,12 @@ Modules\CIM\Images\inv_setitem.dds
 Modules\CIM\Images\select_tabbar.dds
 Modules\CIM\Templates\SharedTemplates.xml
 Modules\CIM\Templates\GenericHeader.xml
-Modules\CIM\GenericHeader.lua
+Modules\CIM\UI\GenericHeader.lua
 Modules\CIM\Templates\GenericFooter.xml
 Modules\CIM\UI\CurrencyManager.lua
-Modules\CIM\GenericFooter.lua
+Modules\CIM\UI\GenericFooter.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
-Modules\CIM\ParametricScrollListTemplates.lua
+Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua
 Modules\CIM\Lists\HorizontalScrollList.lua
 Modules\CIM\Lists\TabBarScrollList.lua
@@ -52,7 +52,7 @@ Modules\CIM\Core\KeybindHelpers.lua
 Modules\CIM\Core\TooltipLayout.lua
 Modules\CIM\Core\SearchManager.lua
 Modules\CIM\Core\WindowClass.lua
-Modules\CIM\InterfaceLibrary.lua
+Modules\CIM\Core\InterfaceLibrary.lua
 Modules\CIM\Core\GenericWindow.lua
 Modules\CIM\Lists\GenericListManager.lua
 Modules\CIM\Lists\ItemDataProcessor.lua
@@ -82,7 +82,7 @@ Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
 Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
 Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua
 Modules\ResourceOrbFrames\SkillBar\FrontBarManager.lua
-Modules\ResourceOrbFrames\OrbSkillBar.lua
+Modules\ResourceOrbFrames\SkillBar\Coordinator.lua
 Modules\ResourceOrbFrames\Core\OrbEvents.lua
 Modules\ResourceOrbFrames\ResourceOrbFrames.lua
 Modules\ResourceOrbFrames\Templates\ResourceOrbFrames.xml
@@ -109,7 +109,7 @@ Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\Lists\InventoryList.lua
 Modules\Inventory\Actions\SlotActions.lua
 Modules\Inventory\Lists\CraftList.lua
-Modules\Inventory\InventoryUtils.lua
+Modules\Inventory\Core\Utils.lua
 Modules\Inventory\UI\TooltipUtils.lua
 Modules\Inventory\Inventory.lua
 Modules\Inventory\Settings\FontSettings.lua
