@@ -10,6 +10,11 @@
 --
 -- Writ detection patterns are defined in Constants.lua for centralized maintenance.
 -- FUTURE: Add support for additional crafting types as ESO adds them
+
+-- TODO(REFACTOR): The hardcoded control names (BETTERUI_WritsPanelSlotContainerExtractionSlotWritName,
+-- BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc) should be stored as references
+-- during initialization rather than accessed by global name each time Show() is called.
+-- This would improve performance and make the code more maintainable.
 ---------------------------------------------------------------------------------------------------
 
 local _

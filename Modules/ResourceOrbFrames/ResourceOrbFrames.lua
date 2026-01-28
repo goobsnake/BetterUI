@@ -111,14 +111,17 @@ local function ApplyLayout(updateOrbs, updateSkills)
     local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
     local settings = GetModuleSettings()
     
+    -- TODO(CLEANUP): ApplyBarAnchor function below is defined but never called.
+    -- The implementation notes (comments) should be cleaned up or removed once anchoring logic is finalized.
+    -- Consider extracting bar anchoring to a dedicated BarLayout.lua helper.
     local function ApplyBarAnchor(bar, cfgPrefix, defaultParent, useOrnamentLogic)
         if not bar or not bar.control or not bgMiddle then return end
         bar.control:ClearAnchors()
-        
+
         local scale = _G[cfgPrefix .. "_SCALE"] or 1.0
         local offsetX = _G[cfgPrefix .. "_OFFSET_X"] or 0
         local offsetY = _G[cfgPrefix .. "_OFFSET_Y"] or 0
-        
+
         -- Special logic for hidden ornaments (XP and Mount bars)
         if useOrnamentLogic == "Left" and settings.hideLeftOrnament then
              local nx = _G[cfgPrefix .. "_NO_ORNAMENT_OFFSET_X"]
@@ -135,37 +138,41 @@ local function ApplyLayout(updateOrbs, updateSkills)
                  return
              end
         end
-        
+
+        -- TODO(CLEANUP): Remove these implementation notes once anchoring is finalized and working.
+        -- The comments below were working notes during development and should be replaced with
+        -- clear documentation of the final anchoring behavior.
+
         -- Default anchoring (Ornament visible or no special logic)
         -- XP/Mount bars are relative to respective ornaments if visible, OR relative to BgMiddle but with different offsets?
         -- Actually Constants comments say: "Below left ornament" (implied relative to ornament center?)
         -- But offsets are large (-99).
-        -- Let's check Constants again. 
+        -- Let's check Constants again.
         -- XP Bar: "Below left ornament... Y offset from BgMiddle bottom".
         -- Wait, Constants said: "Y offset from BgMiddle bottom (negative = up)"?
         -- Step 392 (Constants Check): "BETTERUI_XP_BAR_OFFSET_Y = -99 -- Y offset from BgMiddle bottom".
-        
+
         -- But Visuals.lua handles `OrnamentLeft` relative to `BgMiddle`.
         -- If ornaments are visible, maybe anchor to ornament?
         -- Constants say: `BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99 -- Y offset from ornament bottom`?
         -- This inconsistency suggests I should anchor to `BgMiddle` or `Ornament` depending on intention.
         -- Given "Cast Bar ... centered above top/back bar", I should anchor CastBar relative to BackBar or BgMiddle.
-        
+
         -- Let's stick to anchoring to `BgMiddle` (center) and applying the offsets, assuming offsets are relative to Center-Center or user specific logic.
         -- BUT the constants say "from BgMiddle bottom".
         -- I'll use `CENTER` to `CENTER` for simplicity if offsets are global coords, OR `BOTTOM` to `BOTTOM`?
         -- Let's look at `Visuals.UpdateOrbLayout`. It anchors Orbs to `CENTER` of `BgMiddle` or `Ornament`.
-        
+
         -- Let's try anchoring to `BgMiddle`, `CENTER`.
         -- If offsets are from `BgMiddle bottom`, then (0, -99) from Bottom is (0, X) from Center.
         -- Constants: "BETTERUI_XP_BAR_OFFSET_Y = -99 -- Y offset from BgMiddle bottom".
         -- In `UpdateOrbLayout`: `leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, ...)`
-        
+
         -- Re-reading Constants (Step 392):
         -- XP Bar: "Y offset from BgMiddle bottom".
         -- Cast Bar: "Y offset from back bar top".
         -- Mount: "Y offset from ornament bottom".
-        
+
         -- I will implement specific logic for each.
     end
     
@@ -257,7 +264,7 @@ local function SetupModule(control)
         local frontBarContainer = FindControl(control, 'FrontBarContainer')
         if frontBarContainer then
             local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
-            if qsBtn then qsBtn:SetParent(control) end
+            -- TODO(BUG): Duplicate SetParent call was removed - verify this doesn't break animation isolation
             if qsBtn then qsBtn:SetParent(control) end
             local compBtn = FindControl(frontBarContainer, 'CompanionButton')
             if compBtn then compBtn:SetParent(control) end

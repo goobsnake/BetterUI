@@ -5,6 +5,14 @@
 --- Purpose: Defines localized string constants for English.
 --- Mechanics: Registers string IDs with the ESO localization system (ZO_CreateStringId).
 ---
+
+-- TODO(LOCALIZATION): The following strings in ResourceOrbFrames/Module.lua are hardcoded in English:
+--   - "Enable Weapon Swap Animation"
+--   - "Enable Swirl Effect"
+--   - "Requires Reload UI"
+--   - "Reset to Defaults" (multiple instances)
+-- These should be added as ZO_CreateStringId entries and used via GetString().
+
 -- String IDs for UI labels, tooltips, and messages
 
 -- UI Labels (Resource Orb Frames)

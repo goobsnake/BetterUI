@@ -44,6 +44,12 @@ BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 --------------------------------------------------------------------------------
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
 
+-- TODO(MISSING): The EnsureCompanionEquipPatched function is referenced at line 85 but not defined
+-- in this file. It should either be:
+--   1. Defined locally in this file, or
+--   2. Imported from the file where it's defined (Actions/EquipAction.lua?)
+-- Currently this will cause a nil reference error.
+
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
 local COMPANION_EQUIP_PATCH_RETRY_MS = 400
@@ -126,6 +132,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 
 		self:ActivateHeader()
 
+		-- TODO(DRY): The wykkydsToolbar visibility toggle is repeated 3 times in this function.
+		-- Consider extracting to a shared utility: BETTERUI.Utils.SetExternalToolbarHidden(hidden)
+		-- See also: Banking.lua:UpdateExternalAddons() for a similar pattern.
 		if wykkydsToolbar then
 			wykkydsToolbar:SetHidden(true)
 		end

@@ -20,6 +20,8 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- List type identifiers for SwitchActiveList
 -- NOTE: These are identifiers for currentListType tracking, NOT the names passed to AddList()
 -- SwitchActiveList uses these to decide which mode we're in and accesses lists via self.itemList, self.craftBagList directly
+-- TODO(CLEANUP): These global constants duplicate the local definitions in Inventory.lua.
+-- Consider moving to BETTERUI.Inventory.CONST.LIST_TYPES to have a single source of truth.
 INVENTORY_CATEGORY_LIST = "categoryList"
 INVENTORY_ITEM_LIST = "itemList"
 INVENTORY_CRAFT_BAG_LIST = "craftBagList"

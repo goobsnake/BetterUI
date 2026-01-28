@@ -33,6 +33,9 @@ local function PatchMouseInteractivity(searchControl, focusHandler)
         end
     end)
 
+    -- TODO(REFACTOR): This hardcoded array of child names is fragile. Consider:
+    --   1. Moving to CIM.CONST.SEARCH_CHILD_NAMES for centralized maintenance
+    --   2. Using a more robust approach like iterating all children
     -- Try to enable mouse and click-to-focus on common child names (edit box or icon)
     local childCandidates = { "Edit", "TextField", "SearchEdit", "Input", "Entry", "EditBox", "SearchIcon", "Icon",
         "Texture", "InputContainer" }

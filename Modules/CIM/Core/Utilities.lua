@@ -35,6 +35,9 @@ References: Used during module initialization to check if module should load.
 param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
 return: boolean - True if the module is enabled.
 ]]
+-- TODO(CONSISTENCY): Standardize on a single 'enabled' key across all modules.
+-- The m_enabled vs enabled inconsistency creates confusion. After migration,
+-- remove the fallback logic below and use only one canonical key.
 function BETTERUI.GetModuleEnabled(moduleName)
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return false end
     local settings = BETTERUI.Settings.Modules[moduleName]

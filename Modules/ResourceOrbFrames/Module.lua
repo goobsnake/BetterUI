@@ -4,6 +4,15 @@ Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
 Author: BetterUI Team
 Last Modified: 2026-01-21
+
+-- TODO(REFACTOR): This file is 850+ lines. Consider splitting into:
+--   1. Settings/OptionsBuilder.lua - optionsTable construction
+--   2. Settings/Defaults.lua - InitModule defaults
+--   This would improve maintainability and reduce cognitive load.
+
+-- TODO(LOCALIZATION): Several UI strings are hardcoded in English instead of using
+-- localized string IDs. Search for strings like "Enable Weapon Swap Animation",
+-- "Enable Swirl Effect", "Requires Reload UI" and replace with ZO_CreateStringId entries.
 ]]
 
 local _

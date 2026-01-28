@@ -27,6 +27,12 @@ KEY MECHANICS:
 DECOMPOSITION STATUS:
     Phase 1 Complete: Core/BankingClass.lua contains class skeleton and module constants.
     Remaining decomposition phases pending.
+
+-- TODO(DECOMPOSITION): Continue breaking down this 700+ line file into focused modules:
+--   1. Lists/BankListRefresh.lua - RefreshList, ComputeVisibleBankCategories
+--   2. Keybinds/BankingKeybinds.lua - InitializeKeybind, keybind descriptors
+--   3. UI/SearchHandlers.lua - Text search hooks and focus management
+--   This would match the Inventory module's structure and improve maintainability.
 ]]
 
 local _
@@ -514,6 +520,10 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
+    -- TODO(BUG): directionalFixDelayMs is defined here at line 524 but used earlier at line 474.
+    -- In Lua, the closure at line 467 captures the variable reference at declaration time,
+    -- but since it's declared after the closure, it will be nil when the closure runs.
+    -- FIX: Move this declaration to the top of the Initialize function before OnEffectivelyHidden.
     -- Configuration for directional input fix timing (ms)
     local directionalFixDelayMs = 60
 
