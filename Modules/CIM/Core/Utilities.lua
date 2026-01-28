@@ -22,9 +22,6 @@ function BETTERUI.Debug(str)
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
 
--- Backward compatibility alias (deprecated - use BETTERUI.Debug instead)
-ddebug = BETTERUI.Debug
-
 -- ============================================================================
 -- MODULE STATUS
 -- ============================================================================

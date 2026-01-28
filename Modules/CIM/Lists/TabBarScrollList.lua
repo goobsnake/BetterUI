@@ -63,9 +63,9 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     -- In this mode, the selected item stays fixed (usually to the left), and the list contents
     -- rotate around it. Allows for seamless circular navigation through categories.
     list.carouselMode = true
-    list.carouselStartOffset = BETTERUI_CAROUSEL_START_OFFSET
-    list.carouselItemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING
-    list.carouselVerticalOffset = BETTERUI_CAROUSEL_VERTICAL_OFFSET
+    list.carouselStartOffset = BETTERUI.CIM.CONST.CAROUSEL.startOffset
+    list.carouselItemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing
+    list.carouselVerticalOffset = BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
 
     return list
 end
@@ -161,7 +161,7 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
     if (self.selectedData ~= oldSelectedData or initialUpdate) and not blockSelectionChangedCallback then
         -- Fire generic ZO callback
         self:FireCallbacks("SelectedDataChanged", self, self.selectedData, oldSelectedData, nil, self
-        .targetSelectedIndex)
+            .targetSelectedIndex)
         -- Fire our specific custom callback property
         if self.onSelectedDataChangedCallback then
             self.onSelectedDataChangedCallback(self, self.selectedData, oldSelectedData, reselectingDuringRebuild)

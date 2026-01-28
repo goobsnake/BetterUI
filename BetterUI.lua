@@ -208,7 +208,7 @@ end
 function BETTERUI.LoadModules()
 	if BETTERUI._initialized then return end
 
-	ddebug("Initializing BETTERUI...")
+	BETTERUI.Debug("Initializing BETTERUI...")
 
 	-- Apply runtime safety patches and settings migrations
 	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
@@ -258,7 +258,7 @@ function BETTERUI.LoadModules()
 		BETTERUI.ResourceOrbFrames.Setup()
 	end
 
-	ddebug("Finished! BETTERUI is loaded")
+	BETTERUI.Debug("Finished! BETTERUI is loaded")
 	BETTERUI._initialized = true
 end
 
@@ -312,7 +312,7 @@ function BETTERUI.Initialize(event, addon)
 
 	-- Mark first install as complete
 	if BETTERUI.Settings.firstInstall then
-		ddebug("First install detected - initialized module settings")
+		BETTERUI.Debug("First install detected - initialized module settings")
 		BETTERUI.Settings.firstInstall = false
 	end
 

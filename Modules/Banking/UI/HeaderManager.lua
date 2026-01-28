@@ -26,6 +26,8 @@ function BETTERUI.Banking.Class:CycleCategory(delta)
     if idx < 1 then idx = count end
     if idx > count then idx = 1 end
     self:SaveListPosition()
+    -- Flag to prevent onSelectedChanged from calling SaveListPosition again (we already did it)
+    self._cyclingCategory = true
     -- Drive selection via header tabbar; onSelectedChanged will handle refresh
     if self.headerGeneric and self.headerGeneric.tabBar then
         self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
@@ -33,6 +35,7 @@ function BETTERUI.Banking.Class:CycleCategory(delta)
         self.currentCategoryIndex = idx
         self:RefreshList()
     end
+    self._cyclingCategory = false
 end
 
 --[[
@@ -90,9 +93,9 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     local isCarousel = BETTERUI.Settings.Modules["Banking"].enableCarousel
     self.bankHeaderData.carouselConfig = {
         enabled = isCarousel,
-        startOffset = BETTERUI_BANKING_CAROUSEL_START_OFFSET,
-        verticalOffset = BETTERUI_BANKING_CAROUSEL_VERTICAL_OFFSET,
-        itemSpacing = BETTERUI_CAROUSEL_ITEM_SPACING,
+        startOffset = BETTERUI.Banking.CONST.CAROUSEL.startOffset,
+        verticalOffset = BETTERUI.Banking.CONST.CAROUSEL.verticalOffset,
+        itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
     }
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)
         -- Skip callback during mode toggle to prevent override
@@ -103,8 +106,16 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         if self._suppressHeaderCallback then
             return
         end
-        -- Coalesce rapid tab changes: only refresh once after navigation settles
-        self.currentCategoryIndex = list.selectedIndex or 1
+        -- Save position for the CURRENT category BEFORE switching to the new one
+        -- BUT only if not called from CycleCategory (which already saved the position)
+        if not self._cyclingCategory then
+            self:SaveListPosition()
+        end
+        -- Capture the PENDING category index - don't update currentCategoryIndex yet!
+        -- This prevents rapid navigation (LB/RB spam) from corrupting saved positions.
+        -- If we update currentCategoryIndex immediately, the next CycleCategory call will
+        -- save the OLD list position with the NEW category key (wrong!).
+        local pendingCategoryIndex = list.selectedIndex or 1
         self._categoryChangeToken = (self._categoryChangeToken or 0) + 1
         local myToken = self._categoryChangeToken
         -- Assert suppression tied to this token
@@ -126,7 +137,9 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
                 -- A newer selection occurred; let the latest timer handle refresh/suppression
                 return
             end
-            -- We're the latest change; clear suppression and refresh once
+            -- We're the latest change; NOW update currentCategoryIndex
+            self.currentCategoryIndex = pendingCategoryIndex
+            -- Clear suppression and refresh
             if self._suppressListUpdates and self._suppressListUpdatesToken == myToken then
                 self._suppressListUpdates = false
                 self._suppressListUpdatesToken = nil
