@@ -84,68 +84,30 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			width = "full",
 			requiresReload = true,
 		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ICON_UNBOUND),
-			tooltip = GetString(SI_BETTERUI_ICON_UNBOUND_TOOLTIP),
-			getFunc = function()
-				local v = BETTERUI.Inventory.GetSetting("showIconUnboundItem")
-				return v == nil and true or v
-			end,
-			setFunc = function(value)
-				BETTERUI.Inventory.SetSetting("showIconUnboundItem", value)
-				-- Refresh inventory list if visible to apply change immediately
-				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
-				end
-			end,
-			width = "full",
-		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ICON_ENCHANTMENT),
-			tooltip = GetString(SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP),
-			getFunc = function()
-				local v = BETTERUI.Inventory.GetSetting("showIconEnchantment")
-				return v == nil and true or v
-			end,
-			setFunc = function(value)
-				BETTERUI.Inventory.SetSetting("showIconEnchantment", value)
-				-- Refresh inventory list if visible to apply change immediately
-				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
-				end
-			end,
-			width = "full",
-		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ICON_SET_GEAR),
-			tooltip = GetString(SI_BETTERUI_ICON_SET_GEAR_TOOLTIP),
-			getFunc = function()
-				local v = BETTERUI.Inventory.GetSetting("showIconSetGear")
-				return v == nil and true or v
-			end,
-			setFunc = function(value)
-				BETTERUI.Inventory.SetSetting("showIconSetGear", value)
-				-- Refresh inventory list if visible to apply change immediately
-				if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-					pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
-				end
-			end,
-			width = "full",
-		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK),
-			tooltip = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP),
-			getFunc = function()
-				return BETTERUI.Inventory.GetSetting("enableCompanionJunk") == true
-			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCompanionJunk", value) end,
-			width = "full",
-		},
+		-- Icon Visibility (using shared CIM factory)
 	}
+
+	-- Insert icon toggle options from CIM factory
+	local iconOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions("Inventory", function()
+		if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+			BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
+		end
+	end)
+	for _, opt in ipairs(iconOptions) do
+		table.insert(optionsTable, opt)
+	end
+
+	-- Continue with remaining options
+	table.insert(optionsTable, {
+		type = "checkbox",
+		name = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK),
+		tooltip = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP),
+		getFunc = function()
+			return BETTERUI.Inventory.GetSetting("enableCompanionJunk") == true
+		end,
+		setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCompanionJunk", value) end,
+		width = "full",
+	})
 
 	-- Append Currency Settings (if available)
 	if BETTERUI.Inventory.Settings.GetCurrencyOptions then

@@ -55,11 +55,13 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFont = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
                     scrollable = true,
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.nameFont,
                 },
                 {
@@ -79,10 +81,12 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.nameFontSize,
                 },
                 {
@@ -97,10 +101,12 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontStyle = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.nameFontStyle,
                 },
                 {
@@ -113,6 +119,9 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.nameFont = d.nameFont
                         s.nameFontSize = d.nameFontSize
                         s.nameFontStyle = d.nameFontStyle
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "half",
@@ -135,11 +144,13 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFont = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
                     scrollable = true,
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.columnFont,
                 },
                 {
@@ -159,10 +170,12 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.columnFontSize,
                 },
                 {
@@ -177,10 +190,12 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontStyle = value
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
-                    requiresReload = true,
                     default = BETTERUI.Inventory.DEFAULTS.columnFontStyle,
                 },
                 {
@@ -193,6 +208,9 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.columnFont = d.columnFont
                         s.columnFontSize = d.columnFontSize
                         s.columnFontStyle = d.columnFontStyle
+                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                        end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "half",
