@@ -369,12 +369,10 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     if isQuestItem then
         filteredDataTable = {}
         local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-        -- TODO(optimization): Replace table.insert() with indexed assignment filteredDataTable[#filteredDataTable+1]
-        -- in tight loops for ~15% performance improvement in large inventories.
         for _, questItems in pairs(questCache) do
             for _, questItem in pairs(questItems) do
                 ZO_InventorySlot_SetType(questItem, SLOT_TYPE_QUEST_ITEM)
-                table.insert(filteredDataTable, questItem)
+                filteredDataTable[#filteredDataTable + 1] = questItem
             end
         end
     else
@@ -385,7 +383,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             filteredDataTable = {}
             for _, slotData in ipairs(worn) do
                 if comparator(slotData) then
-                    table.insert(filteredDataTable, slotData)
+                    filteredDataTable[#filteredDataTable + 1] = slotData
                 end
             end
         elseif showStolenCategory then
@@ -393,7 +391,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
             filteredDataTable = {}
             for _, slotData in ipairs(backpack) do
                 if IsStolenItem(slotData) then
-                    table.insert(filteredDataTable, slotData)
+                    filteredDataTable[#filteredDataTable + 1] = slotData
                 end
             end
         else
@@ -404,7 +402,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
                 local bags = self:GetCachedSlotData(BAG_BACKPACK, BAG_WORN)
                 filteredDataTable = {}
                 for i = 1, #bags do
-                    table.insert(filteredDataTable, bags[i])
+                    filteredDataTable[#filteredDataTable + 1] = bags[i]
                 end
             else
                 -- Specific Category (Weapons, Armor, etc.): Use Comparator
@@ -412,7 +410,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
                 filteredDataTable = {}
                 for _, slotData in ipairs(bags) do
                     if comparator(slotData) then
-                        table.insert(filteredDataTable, slotData)
+                        filteredDataTable[#filteredDataTable + 1] = slotData
                     end
                 end
             end
@@ -428,14 +426,16 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         if not self.searchMatches then self.searchMatches = {} end
         ZO_ClearNumericallyIndexedTable(self.searchMatches)
 
-        -- TODO(optimization): Consider caching lowercased item names on itemData during inventory refresh
-        -- to avoid repeated string.lower() calls during search. This could improve search responsiveness.
         for i = 1, #filteredDataTable do
             local it = filteredDataTable[i]
-            local name = tostring(it.name or "")
-            local lname = name:lower()
+            -- Use cached lowercase name if available, otherwise compute and cache it
+            local lname = it.cachedLowerName
+            if not lname then
+                lname = tostring(it.name or ""):lower()
+                it.cachedLowerName = lname
+            end
             if string.find(lname, q, 1, true) then
-                table.insert(self.searchMatches, it)
+                self.searchMatches[#self.searchMatches + 1] = it
             end
         end
         filteredDataTable = self.searchMatches

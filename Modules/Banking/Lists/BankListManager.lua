@@ -118,15 +118,19 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
         return not itemData.stolen
     end
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
-    -- TODO(optimization): This O(n*m) loop (items * categories) can be slow with large inventories.
-    -- Consider breaking early once all categories are marked visible, or caching visibility state.
-    -- Mark visibility by scanning once
+    -- Mark visibility by scanning once (with early exit optimization)
+    local numCategories = #allCategories
+    local numVisibleNonAll = 0
+    local targetVisibleCount = numCategories - 1 -- Exclude 'all' which is always visible
     for i = 1, #data do
+        -- Early exit: if all non-all categories are visible, stop scanning
+        if numVisibleNonAll >= targetVisibleCount then break end
         local itemData = data[i]
         for _, cat in ipairs(allCategories) do
-            if cat.key ~= "all" then
+            if cat.key ~= "all" and not visibility[cat.key] then
                 if DoesItemMatchBankCategory(itemData, cat) then
                     visibility[cat.key] = true
+                    numVisibleNonAll = numVisibleNonAll + 1
                 end
             end
         end
@@ -297,9 +301,7 @@ function BETTERUI.Banking.Class:RefreshList()
                     itemData.quality ~= ITEM_QUALITY_TRASH
             end
 
-            -- TODO(optimization): Replace table.insert() with indexed assignment
-            -- tempDataTable[#tempDataTable+1] = itemData for ~15% loop performance gain.
-            table.insert(tempDataTable, itemData)
+            tempDataTable[#tempDataTable + 1] = itemData
             ZO_InventorySlot_SetType(itemData, slotType)
         end
     end
@@ -314,10 +316,14 @@ function BETTERUI.Banking.Class:RefreshList()
             local it = filteredDataTable[i]
             -- If an active non-all category is selected, skip items that do not belong to it
             if not activeCategory or activeCategory.key == "all" or DoesItemMatchBankCategory(it, activeCategory) then
-                local name = tostring(it.name or "")
-                local lname = name:lower()
+                -- Use cached lowercase name if available, otherwise compute and cache it
+                local lname = it.cachedLowerName
+                if not lname then
+                    lname = tostring(it.name or ""):lower()
+                    it.cachedLowerName = lname
+                end
                 if string.find(lname, q, 1, true) then
-                    table.insert(matches, it)
+                    matches[#matches + 1] = it
                 end
             end
         end

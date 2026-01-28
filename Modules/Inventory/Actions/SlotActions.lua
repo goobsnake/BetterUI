@@ -1,16 +1,12 @@
+--[[
+File: Modules/Inventory/Actions/SlotActions.lua
+Purpose: Manages the "Action Controller" for inventory slots, determining
+         what happens when the user presses the Primary Action key (usually 'A').
+Author: BetterUI Team
+Last Modified: 2026-01-28
+]]
+
 --------------------------------------------------------------------------------
--- BetterUI Inventory Slot Actions
---
--- This file manages the "Action Controller" for inventory slots, determining
--- what happens when the user presses the Primary Action key (usually 'A').
---
--- TODO(doc): This file header is missing the standard format (File:, Purpose:, Author:, Last Modified:).
--- Update to match project documentation standards.
---
--- TODO(refactor): The Initialize function (lines 143-447) is 300+ lines.
--- Consider breaking into smaller functions: InitializeKeyBinds(), InitializeActionHandlers(),
--- SetupActionDiscovery() etc. to improve testability and readability.
---
 -- KEY RESPONSIBILITIES:
 --
 -- 1.  **Primary Action Resolution**:

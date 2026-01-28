@@ -43,12 +43,7 @@ BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
 -- COMPANION EQUIP PATCH
 --------------------------------------------------------------------------------
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
-
--- TODO(MISSING): The EnsureCompanionEquipPatched function is referenced at line 85 but not defined
--- in this file. It should either be:
---   1. Defined locally in this file, or
---   2. Imported from the file where it's defined (Actions/EquipAction.lua?)
--- Currently this will cause a nil reference error.
+-- NOTE: EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
 
 local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
@@ -86,9 +81,6 @@ end
 -- UpdateItemLeftTooltip, UpdateRightTooltip, InitializeItemList extracted to Lists/ItemListManager.lua
 -- InitializeCraftBagList extracted to Lists/CraftBagListManager.lua
 -- InitializeItemActions, InitializeActionsDialog extracted to Actions/ItemActionsDialog.lua
-
--- Expose the patch helper so other initialization flows can trigger it regardless
-BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 
 -- InitializeQuickslotAssignDialog, ShowQuickslotAssignDialog extracted to Actions/QuickslotAction.lua
 -- TryDestroyItem, HookDestroyItem, HookActionDialog extracted to Actions/ItemActionsDialog.lua

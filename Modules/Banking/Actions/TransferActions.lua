@@ -57,6 +57,7 @@ end
 Function: BETTERUI.Banking.Class:MoveItem
 Description: Moves an item (Withdraw or Deposit) between bags.
 ]]
+-- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil
     if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
@@ -152,24 +153,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         if toBag ~= nil then
             local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
                 SI_INVENTORY_ERROR_BANK_FULL
-            -- Get bag size
-            local bagSize = GetBagSize(toBag)
-            -- Iterate through BAG
-            for i = 0, bagSize - 1 do
-                local currentItemLink = GetItemLink(toBag, i)
-                -- Matches items from origin bag to destination bag
-                if currentItemLink == fromBagItemLink then
-                    toBagItemLink = currentItemLink
-                    isToBagItemStackable = IsItemLinkStackable(toBagItemLink)
-                    -- Confirms item matched is stackable
-                    if isToBagItemStackable then
-                        toBagStackCount, toBagStackCountMax = GetSlotStackSize(toBag, i)
-                        if toBagStackCount < toBagStackCountMax then
-                            toBagIndex = i
-                        end
-                    end
-                end
-            end
+            -- Use shared CIM helper to find stackable slot
+            toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, fromBagItemLink)
             if toBagIndex then
                 --good to move item that already has a non-full stack in the destination bag
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
@@ -184,27 +169,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 end
             end
         else
+            -- Try to find stackable slot in bank bags
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            for bankBags = 1, 2 do
-                local bank = banks[bankBags]
-                -- Get bag size
-                local bagSize = GetBagSize(bank)
-                -- Iterate through BAG
-                for i = 0, bagSize - 1 do
-                    local currentItemLink = GetItemLink(bank, i)
-                    -- Matches items from origin bag to destination bag
-                    if currentItemLink == fromBagItemLink then
-                        toBagItemLink = currentItemLink
-                        isToBagItemStackable = IsItemLinkStackable(toBagItemLink)
-                        -- Confirms item matched is stackable
-                        if isToBagItemStackable then
-                            toBagStackCount, toBagStackCountMax = GetSlotStackSize(bank, i)
-                            if toBagStackCount < toBagStackCountMax then
-                                toBagIndex = i
-                                toBag = bank
-                            end
-                        end
-                    end
+            for _, bank in ipairs(banks) do
+                toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(bank, fromBagItemLink)
+                if toBagIndex then
+                    toBag = bank
+                    break
                 end
             end
             if toBagIndex and toBag then

@@ -29,25 +29,24 @@ end
 --[[
 Function: BETTERUI.GetModuleEnabled
 Description: Checks if a specific BetterUI module is enabled.
-Rationale: Handles potential inconsistency between 'm_enabled' and 'enabled' setting keys.
+Rationale: Uses 'm_enabled' as the canonical key. Legacy 'enabled' key support retained for backward compatibility.
 Mechanism: Checks saved settings for the module's enabled state.
 References: Used during module initialization to check if module should load.
 param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
 return: boolean - True if the module is enabled.
 ]]
--- TODO(CONSISTENCY): Standardize on a single 'enabled' key across all modules.
--- The m_enabled vs enabled inconsistency creates confusion. After migration,
--- remove the fallback logic below and use only one canonical key.
+-- NOTE: As of v2.8, 'm_enabled' is the canonical key. The 'enabled' fallback is retained for
+-- backward compatibility with older saved variables but will be removed in v3.0.
 function BETTERUI.GetModuleEnabled(moduleName)
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return false end
     local settings = BETTERUI.Settings.Modules[moduleName]
     if not settings then return false end
 
-    -- Check standard key first
+    -- Canonical key (m_enabled)
     if settings.m_enabled ~= nil then
         return settings.m_enabled
     end
-    -- Fallback to legacy key
+    -- Legacy fallback (enabled) - DEPRECATED, will be removed in v3.0
     if settings.enabled ~= nil then
         return settings.enabled
     end
@@ -131,4 +130,28 @@ return: boolean - True if 'left' should appear before 'right'.
 function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.CIM.CONST.SORT_SCHEMA,
         ZO_SORT_ORDER_UP)
+end
+
+--[[
+Function: BETTERUI.CIM.Utils.FindStackableSlotInBag
+Description: Finds a slot with a stackable item matching the given item link that has room for more items.
+Rationale: Extracted from Banking/Actions/TransferActions.lua to eliminate DRY violation.
+Mechanism: Iterates through bag slots looking for matching stackable items with available stack space.
+References: Used by Banking TransferActions for item stacking during transfers.
+param: bagId (number) - The bag ID to search.
+param: itemLink (string) - The item link to match against.
+return: number|nil - The slot index of a stackable slot, or nil if none found.
+]]
+function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
+    local bagSize = GetBagSize(bagId)
+    for i = 0, bagSize - 1 do
+        local currentItemLink = GetItemLink(bagId, i)
+        if currentItemLink == itemLink and IsItemLinkStackable(currentItemLink) then
+            local stackCount, maxStack = GetSlotStackSize(bagId, i)
+            if stackCount < maxStack then
+                return i
+            end
+        end
+    end
+    return nil
 end
