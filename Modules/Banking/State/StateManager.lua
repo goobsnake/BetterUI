@@ -11,48 +11,64 @@ local _
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
 -------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW                  = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT                   = BETTERUI.Banking.LIST_DEPOSIT
-local GAMEPAD_HEADER_DEFAULT_PADDING = 0 -- Re-defined or imported if needed, but likely global API
--- Module identifier for CIM PositionManager
-local MODULE_NAME                    = "Banking"
+local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+-- Module identifier constants from CIM
+local MODULES       = BETTERUI.CIM.CONST.MODULES
+
+-------------------------------------------------------------------------------------------------
+-- HELPER FUNCTIONS (local)
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: GetCurrentBankBag (local)
+Description: Determines the current bank bag ID.
+Rationale: Extracts common bank-determination logic used by multiple functions.
+return: number - BAG_BANK or the specific house bank bag ID.
+]]
+local function GetCurrentBankBag()
+    if IsHouseBankBag(GetBankingBag()) then
+        return GetBankingBag()
+    end
+    return BAG_BANK
+end
+
+--[[
+Function: GetModeKey (local)
+Description: Returns the mode string key for CIM PositionManager namespacing.
+param: mode (number) - LIST_WITHDRAW or LIST_DEPOSIT.
+return: string - "Withdraw" or "Deposit".
+]]
+local function GetModeModuleKey(mode)
+    return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
+end
+
+-------------------------------------------------------------------------------------------------
+-- BANK STATE TRACKING
+-------------------------------------------------------------------------------------------------
 
 --[[
 Function: BETTERUI.Banking.Class:CurrentUsedBank
 Description: Updates the 'currentUsedBank' state.
 Rationale: Determines whether we are using the main bank (BAG_BANK) or a house bank.
-Mechanism: Checks IsHouseBankBag(GetBankingBag()). Updates namespace.
+Mechanism: Uses helper to determine bag, updates namespace.
 ]]
 function BETTERUI.Banking.Class:CurrentUsedBank()
-    local newValue
-    if (IsHouseBankBag(GetBankingBag()) == false) then
-        newValue = BAG_BANK
-    elseif (IsHouseBankBag(GetBankingBag()) == true) then
-        newValue = GetBankingBag()
-    else
-        newValue = BAG_BANK
-    end
-    -- Update namespace
-    BETTERUI.Banking.currentUsedBank = newValue
+    BETTERUI.Banking.currentUsedBank = GetCurrentBankBag()
 end
 
 --[[
 Function: BETTERUI.Banking.Class:LastUsedBank
 Description: Updates the 'lastUsedBank' state.
-Mechanism: Updates namespace.
+Mechanism: Uses helper to determine bag, updates namespace.
 ]]
 function BETTERUI.Banking.Class:LastUsedBank()
-    local newValue
-    if (IsHouseBankBag(GetBankingBag()) == false) then
-        newValue = BAG_BANK
-    elseif (IsHouseBankBag(GetBankingBag()) == true) then
-        newValue = GetBankingBag()
-    else
-        newValue = BAG_BANK
-    end
-    -- Update namespace
-    BETTERUI.Banking.lastUsedBank = newValue
+    BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
 end
+
+-------------------------------------------------------------------------------------------------
+-- POSITION PERSISTENCE
+-------------------------------------------------------------------------------------------------
 
 --[[
 Function: BETTERUI.Banking.Class:SaveListPosition
@@ -71,30 +87,28 @@ function BETTERUI.Banking.Class:SaveListPosition()
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
         if cat and cat.key then
-            local modeKey = self.currentMode == LIST_WITHDRAW and "Withdraw" or "Deposit"
-            BETTERUI.CIM.PositionManager.SavePosition(MODULE_NAME .. "_" .. modeKey, cat.key, self.list)
+            BETTERUI.CIM.PositionManager.SavePosition(
+                GetModeModuleKey(self.currentMode),
+                cat.key,
+                self.list
+            )
         end
     end
 end
 
 --[[
-Function: BETTERUI.Banking.Class:ReturnToSaved
-Description: Restores the saved list position.
-Rationale: Uses CIM.PositionManager for position restoration with uniqueId lookup.
-Mechanism:
-  1. Checks `_justToggledMode` flag to reset to top if needed.
-  2. Uses CIM.PositionManager.RestorePosition for robust restoration.
-  3. Handles mode switching if saved position implies a different context.
-References: Called at the end of RefreshList.
+Function: BETTERUI.Banking.Class:HandleEmptyList (helper)
+Description: Manages keybind and tooltip state when list is empty.
+Rationale: Extracted from ReturnToSaved to separate keybind management concern.
+return: boolean - True if list was empty and handled, false otherwise.
 ]]
-function BETTERUI.Banking.Class:ReturnToSaved()
-    self:CurrentUsedBank()
-    -- If there are no entries, avoid selecting index 1 (which would error)
+function BETTERUI.Banking.Class:HandleEmptyList()
     local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
     if totalEntries == 0 then
-        -- Default to item keybinds and clear tooltip
         if KEYBIND_STRIP then
-            if self.currencyKeybinds then KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds) end
+            if self.currencyKeybinds then
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+            end
             if self.withdrawDepositKeybinds then
                 KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
                 KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
@@ -103,55 +117,102 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         if GAMEPAD_TOOLTIPS then
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         end
+        return true
+    end
+    return false
+end
+
+--[[
+Function: BETTERUI.Banking.Class:GetRestoredPosition
+Description: Retrieves the saved position for the current category/mode.
+Rationale: Extracted from ReturnToSaved for cleaner position lookup.
+return: number - The position to restore (1 if none saved).
+]]
+function BETTERUI.Banking.Class:GetRestoredPosition()
+    if not self.bankCategories or #self.bankCategories == 0 then
+        return 1
+    end
+    local cat = self.bankCategories[self.currentCategoryIndex or 1]
+    if not cat or not cat.key then
+        return 1
+    end
+    return BETTERUI.CIM.PositionManager.RestorePosition(
+        GetModeModuleKey(self.currentMode),
+        cat.key,
+        self.list,
+        self.list.dataList
+    )
+end
+
+--[[
+Function: BETTERUI.Banking.Class:HandleBankSwitch
+Description: Handles the case where the player switched to a different bank.
+Rationale: Extracted from ReturnToSaved to isolate bank-switching logic.
+return: boolean - True if bank switch was handled, false if no switch occurred.
+]]
+function BETTERUI.Banking.Class:HandleBankSwitch()
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local lastUsedBank = BETTERUI.Banking.lastUsedBank
+
+    if lastUsedBank == currentUsedBank then
+        return false -- No switch, handled by caller
+    end
+
+    -- Bank changed - reset positions for both modes
+    self.list:SetSelectedIndexWithoutAnimation(1, true, false)
+    self:SaveListPosition()
+
+    if self.currentMode == LIST_WITHDRAW then
+        -- Also reset deposit mode
+        self.currentMode = LIST_DEPOSIT
+        self.list:SetSelectedIndexWithoutAnimation(1, true, false)
+        self:SaveListPosition()
+        self.currentMode = LIST_WITHDRAW
+        self:LastUsedBank()
+        self:RefreshList()
+    else
+        -- Switch to withdraw mode
+        self:LastUsedBank()
+        self.currentMode = LIST_WITHDRAW
+        self:ToggleList(true)
+    end
+    return true
+end
+
+--[[
+Function: BETTERUI.Banking.Class:ReturnToSaved
+Description: Restores the saved list position.
+Rationale: Uses CIM.PositionManager for position restoration with uniqueId lookup.
+Mechanism:
+  1. Updates current bank state.
+  2. Handles empty list case with keybind management.
+  3. Handles mode toggle case (skip to top).
+  4. Handles bank switch case.
+  5. Restores normal position from CIM.
+References: Called at the end of RefreshList.
+]]
+function BETTERUI.Banking.Class:ReturnToSaved()
+    self:CurrentUsedBank()
+
+    -- Handle empty list
+    if self:HandleEmptyList() then
         return
     end
-    -- Skip restoration logic if we just toggled modes - category is already set correctly
+
+    -- Skip restoration if we just toggled modes
     if self._justToggledMode then
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         return
     end
-    -- Use CIM.PositionManager for position restoration
-    local lastPosition = 1
-    if self.bankCategories and #self.bankCategories > 0 then
-        local cat = self.bankCategories[self.currentCategoryIndex or 1]
-        if cat and cat.key then
-            local modeKey = self.currentMode == LIST_WITHDRAW and "Withdraw" or "Deposit"
-            lastPosition = BETTERUI.CIM.PositionManager.RestorePosition(
-                MODULE_NAME .. "_" .. modeKey,
-                cat.key,
-                self.list,
-                self.list.dataList
-            )
-        end
+
+    -- Handle bank switch (player visited different bank)
+    if self:HandleBankSwitch() then
+        return
     end
 
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    local lastUsedBank = BETTERUI.Banking.lastUsedBank
-
-    if (self.currentMode == LIST_WITHDRAW) then
-        if (lastUsedBank ~= currentUsedBank) then
-            self.list:SetSelectedIndexWithoutAnimation(1, true, false)
-            self:SaveListPosition()
-            self.currentMode = LIST_DEPOSIT
-            self.list:SetSelectedIndexWithoutAnimation(1, true, false)
-            self:SaveListPosition()
-            self.currentMode = LIST_WITHDRAW
-            self:LastUsedBank()
-            self:RefreshList()
-        else
-            self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
-        end
-    else
-        if (lastUsedBank ~= currentUsedBank) then
-            self.list:SetSelectedIndexWithoutAnimation(1, true, false)
-            self:SaveListPosition()
-            self:LastUsedBank()
-            self.currentMode = LIST_WITHDRAW
-            self:ToggleList(self.currentMode == LIST_WITHDRAW)
-        else
-            self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
-        end
-    end
+    -- Normal restoration
+    local lastPosition = self:GetRestoredPosition()
+    self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
 end
 
 --[[

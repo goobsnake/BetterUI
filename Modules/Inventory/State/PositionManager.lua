@@ -8,8 +8,8 @@ Last Modified: 2026-01-28
 
 if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end
 
--- Module identifier for CIM PositionManager
-local MODULE_NAME = "Inventory"
+-- Module identifier constants from CIM
+local MODULES = BETTERUI.CIM.CONST.MODULES
 
 --[[
 Function: GetCategoryKey
@@ -48,13 +48,13 @@ function BETTERUI.Inventory.ToSavedPosition(self)
 
     local isCraftBag = catData.onClickDirection ~= nil
     local currentList = isCraftBag and self.craftBagList or self.itemList
-    local subModule = isCraftBag and "CraftBag" or "Items"
+    local subModuleKey = isCraftBag and MODULES.INVENTORY_CRAFTBAG or MODULES.INVENTORY_ITEMS
 
     -- Get category key for position lookup
     local key = BETTERUI.CIM.PositionManager.GetCategoryKey(catData)
 
     -- Retrieve saved position from CIM PositionManager
-    local saved = BETTERUI.CIM.PositionManager.GetSavedPosition(MODULE_NAME .. "_" .. subModule, key)
+    local saved = BETTERUI.CIM.PositionManager.GetSavedPosition(subModuleKey, key)
 
     -- Set currentlySelectedData so RefreshItemList uses it
     if saved and saved.uniqueId then
@@ -104,13 +104,13 @@ function BETTERUI.Inventory.SaveListPosition(self)
     if not key then return end
 
     local isCraftBag = catData.onClickDirection ~= nil
-    local subModule = isCraftBag and "CraftBag" or "Items"
+    local subModuleKey = isCraftBag and MODULES.INVENTORY_CRAFTBAG or MODULES.INVENTORY_ITEMS
 
     -- Get the correct list
     local currentList = isCraftBag and self.craftBagList or self.itemList
 
     -- Save position using CIM PositionManager
-    BETTERUI.CIM.PositionManager.SavePosition(MODULE_NAME .. "_" .. subModule, key, currentList)
+    BETTERUI.CIM.PositionManager.SavePosition(subModuleKey, key, currentList)
 end
 
 -- Register mixins for Core to pick up
