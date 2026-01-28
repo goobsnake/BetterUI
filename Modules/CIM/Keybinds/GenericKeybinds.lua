@@ -3,7 +3,7 @@ File: Modules/CIM/Keybinds/GenericKeybinds.lua
 Purpose: Shared keybind descriptor factories for Inventory and Banking modules.
          Provides reusable keybind definitions to reduce duplication.
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 local _
@@ -19,6 +19,7 @@ if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 Function: BETTERUI.CIM.Keybinds.CreateBackKeybind
 Description: Creates a standard back navigation keybind.
 Rationale: Common pattern for exiting a scene.
+Used By: Common utility, not currently in production use.
 param: callback (function|nil) - Custom callback. If nil, uses standard back navigation.
 return: table - Keybind descriptor for back navigation.
 ]]
@@ -38,6 +39,7 @@ end
 Function: BETTERUI.CIM.Keybinds.CreateStackAllKeybind
 Description: Creates a "Stack All" keybind for a specific bag.
 Rationale: L-Stick action to consolidate item stacks.
+Used By: Inventory/Keybinds/InventoryKeybinds.lua
 param: bagId (number) - The bag to stack items in.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for stack all action.
@@ -56,35 +58,10 @@ function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
 end
 
 --[[
-Function: BETTERUI.CIM.Keybinds.CreateLinkToChatKeybind
-Description: Creates a "Link to Chat" keybind.
-Rationale: Common action to insert item link into chat.
-param: getItemLinkFn (function) - Function that returns the item link to insert.
-param: visibleFn (function|nil) - Optional visibility function.
-return: table - Keybind descriptor for link to chat action.
-]]
-function BETTERUI.CIM.Keybinds.CreateLinkToChatKeybind(getItemLinkFn, visibleFn)
-    return {
-        alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        name = GetString(SI_ITEM_ACTION_LINK_TO_CHAT),
-        keybind = "UI_SHORTCUT_SECONDARY",
-        visible = visibleFn or function()
-            local itemLink = getItemLinkFn and getItemLinkFn()
-            return itemLink and itemLink ~= ""
-        end,
-        callback = function()
-            local itemLink = getItemLinkFn and getItemLinkFn()
-            if itemLink and itemLink ~= "" then
-                ZO_LinkHandler_InsertLink(zo_strformat("<<2>>", SI_TOOLTIP_ITEM_NAME, itemLink))
-            end
-        end,
-    }
-end
-
---[[
 Function: BETTERUI.CIM.Keybinds.CreateActionsKeybind
 Description: Creates an "Actions" keybind (Y-button menu).
 Rationale: Opens the context menu for the selected item.
+Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
 param: showActionsFn (function) - Function to call to show the actions menu.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for actions menu.
@@ -104,6 +81,7 @@ end
 Function: BETTERUI.CIM.Keybinds.CreateClearSearchKeybind
 Description: Creates a "Clear Search" keybind.
 Rationale: Quick way to reset search filter.
+Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
 param: clearSearchFn (function) - Function to call to clear the search.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for clear search action.
@@ -118,26 +96,6 @@ function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn
         disabledDuringSceneHiding = true,
         visible = visibleFn or function() return true end,
         callback = clearSearchFn,
-    }
-end
-
---[[
-Function: BETTERUI.CIM.Keybinds.CreateSwitchModeKeybind
-Description: Creates a mode switch keybind (e.g., Inventory <-> Craft Bag).
-Rationale: R-Stick action to toggle between different view modes.
-param: getNameFn (function) - Function returning the keybind display name.
-param: switchFn (function) - Function to call to perform the switch.
-param: visibleFn (function|nil) - Optional visibility function.
-return: table - Keybind descriptor for switch mode action.
-]]
-function BETTERUI.CIM.Keybinds.CreateSwitchModeKeybind(getNameFn, switchFn, visibleFn)
-    return {
-        alignment = KEYBIND_STRIP_ALIGN_RIGHT,
-        name = getNameFn,
-        keybind = "UI_SHORTCUT_RIGHT_STICK",
-        disabledDuringSceneHiding = true,
-        visible = visibleFn or function() return true end,
-        callback = switchFn,
     }
 end
 

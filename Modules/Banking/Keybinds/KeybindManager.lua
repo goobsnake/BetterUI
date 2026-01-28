@@ -3,7 +3,7 @@ File: Modules/Banking/Keybinds/KeybindManager.lua
 Purpose: Manages keybind descriptors and registration for the Banking module.
          Extracted from Banking.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 local _
@@ -99,24 +99,13 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             enabled = true,
         },
 
-        -- Support QUATERNARY as a quick Clear Search key when the header search control is visible.
-        {
-            name = function()
-                return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Clear"
-            end,
-            alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            keybind = "UI_SHORTCUT_QUATERNARY",
-            disabledDuringSceneHiding = true,
-            visible = function()
-                return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
-            end,
-            callback = function()
+        -- Quaternary for Clear Search (CIM Factory)
+        BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
+            function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
-                -- Use centralized helper to clear the search and restore keybinds
                 if self.ClearTextSearch then
                     self:ClearTextSearch()
                 end
-                -- After clearing search, restore the standard banking keybinds
                 if self.textSearchKeybindStripDescriptor then
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
                 end
@@ -125,10 +114,12 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
                     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
                 end
-                -- Restore keybinds based on current selection (handles currency rows properly)
                 self:RefreshActiveKeybinds()
             end,
-        },
+            function()
+                return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
+            end
+        ),
         {
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()

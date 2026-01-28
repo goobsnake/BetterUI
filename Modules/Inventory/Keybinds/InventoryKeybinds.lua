@@ -3,7 +3,7 @@ File: Modules/Inventory/Keybinds/InventoryKeybinds.lua
 Purpose: Defines the main keybind strip for the BetterUI inventory.
          Contains all controller button mappings (X, Y, Sticks, etc.)
 Author: BetterUI Team
-Last Modified: 2026-01-25
+Last Modified: 2026-01-28
 ]]
 
 --------------------------------------------------------------------------------
@@ -186,45 +186,32 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
             end,
         },
-        --Y Button for Actions
-        {
-            name = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND),
-            alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            keybind = "UI_SHORTCUT_TERTIARY",
-            -- (no hold callbacks here; tap behavior preserved)
-            order = 1000,
-            visible = function()
+        -- Y Button for Actions (CIM Factory)
+        BETTERUI.CIM.Keybinds.CreateActionsKeybind(
+            function()
+                self:SaveListPosition()
+                self:ShowActions()
+            end,
+            function()
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return self.selectedItemUniqueId ~= nil or
                         self.currentlySelectedData ~= nil or
                         BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
                 elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                    -- More robust check for craftbag: check multiple sources
                     return self.selectedItemUniqueId ~= nil or
                         self.currentlySelectedData ~= nil or
                         BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil
                 end
                 return false
-            end,
-
-            callback = function()
-                self:SaveListPosition()
-                self:ShowActions()
-            end,
-        },
-        --L Stick for Stacking Items
-        {
-            name = GetString(SI_ITEM_ACTION_STACK_ALL),
-            alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            keybind = "UI_SHORTCUT_LEFT_STICK",
-            disabledDuringSceneHiding = true,
-            visible = function()
+            end
+        ),
+        -- L-Stick for Stacking Items (CIM Factory)
+        BETTERUI.CIM.Keybinds.CreateStackAllKeybind(
+            BAG_BACKPACK,
+            function()
                 return self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
-            end,
-            callback = function()
-                StackBag(BAG_BACKPACK)
-            end,
-        },
+            end
+        ),
         --R Stick for Switching Bags
         {
             name = function()
@@ -244,22 +231,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 self:Switch()
             end,
         },
-        -- Support QUATERNARY as a quick Clear Search key when the header search control is visible.
-        {
-            name = function()
-                return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Clear"
-            end,
-            alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            keybind = "UI_SHORTCUT_QUATERNARY",
-            disabledDuringSceneHiding = true,
-            visible = function()
-                return self.textSearchHeaderControl ~= nil
-            end,
-            callback = function()
+        -- Quaternary for Clear Search (CIM Factory)
+        BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
+            function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then
                     return
                 end
-                -- Use centralized helper to clear the search and restore keybinds
                 if self.ClearTextSearch then
                     self:ClearTextSearch()
                 end
@@ -274,7 +251,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     end)
                 end
             end,
-        },
+            function()
+                return self.textSearchHeaderControl ~= nil
+            end
+        ),
     }
 
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
