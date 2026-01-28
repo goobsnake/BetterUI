@@ -546,10 +546,10 @@ Extend `CIM/Actions/GenericSlotActions.lua` to be the base for module-specific s
 4. **Phase 6**: Action Dialog Callbacks (reduces callback complexity) - ⏸️ **DEFERRED** (too module-specific)
 5. **Phase 3**: List Management (incremental improvements) - ✅ **COMPLETE**
 6. **Phase 9**: Timing Constants (quick consolidation) - ✅ **COMPLETE**
-7. **Phase 8**: Settings Defaults (uses existing factory pattern)
-8. **Phase 4**: Keybind Consolidation (incremental)
-9. **Phase 5**: Search Standardization (incremental)
-10. **Phase 10**: Slot Actions Pattern (complex, defer if needed)
+7. **Phase 8**: Settings Defaults (uses existing factory pattern) - ✅ **COMPLETE**
+8. **Phase 4**: Keybind Consolidation (incremental) - ✅ **COMPLETE**
+9. **Phase 5**: Search Standardization (incremental) - ✅ **COMPLETE**
+10. **Phase 10**: Slot Actions Pattern (complex, defer if needed) - ⏸️ **DEFERRED**
 
 ---
 
@@ -569,6 +569,28 @@ Additional consolidation opportunities identified during implementation:
 - **Scene State Change Handlers**: Common pattern for `RegisterCallback("StateChange", ...)` 
 - **Keybind Strip Management**: Add/Remove/Update guards to prevent overlap artifacts
 - **List Lifecycle Hooks**: Standardized "Refresh-Filter-Sort-Select" loop
+
+---
+
+## Remediation: Code Review Findings (2026-01-28)
+
+A multi-perspective code review identified issues that were addressed:
+
+### R1: Banking StateManager Decomposition
+- Extracted helper functions, simplified `ReturnToSaved()` from 65→22 lines
+
+### R2: Module Identifier Constants
+- Added `BETTERUI.CIM.CONST.MODULES` to eliminate magic strings
+
+### R3: Flag Consolidation
+- Created `NavigationState.lua` for structured state management
+- Refactored `HeaderNavigation.lua` to use NavState API
+
+### R4: Documentation Completeness
+- Verified 100% coverage in `GenericKeybinds.lua`
+
+### R5: Keybind Factory Integration
+- Banking now uses `CreateActionsKeybind()` factory
 
 ---
 
