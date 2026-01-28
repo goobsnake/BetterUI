@@ -109,8 +109,10 @@ function BETTERUI.Banking.Class:ReturnToSaved()
         self.list:SetSelectedIndexWithoutAnimation(1, true, false)
         return
     end
-    local lastPosition = self.lastPositions[self.currentMode]
-    -- Prefer per-category saved index when available (shared across modes in session)
+    -- Default to first item if no per-category saved position exists
+    -- (Do NOT use lastPositions[currentMode] as fallback - that's a different category's position)
+    local lastPosition = 1
+    -- Override with per-category saved index when available (shared across modes in session)
     if self.bankCategories and #self.bankCategories > 0 then
         local cat = self.bankCategories[self.currentCategoryIndex or 1]
         if cat then
@@ -119,7 +121,7 @@ function BETTERUI.Banking.Class:ReturnToSaved()
             end
         end
     end
-    -- Default and clamp to valid range to avoid nil or OOB indices
+    -- Clamp to valid range to avoid OOB indices
     lastPosition = zo_clamp(tonumber(lastPosition) or 1, 1, totalEntries)
 
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
