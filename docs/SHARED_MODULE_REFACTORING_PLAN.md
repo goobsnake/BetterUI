@@ -255,17 +255,17 @@ Ensure both modules use `CIM/Core/SearchManager.lua` consistently.
 | **1** | Position Persistence Manager | 2-3 hours | HIGH | ✅ Complete |
 | **2** | Header/Tab Navigation | 2-3 hours | MEDIUM | ✅ Complete |
 | **3** | List Management | 1-2 hours | MEDIUM | ✅ Complete |
-| **4** | Keybind Consolidation | 1-2 hours | LOW | |
-| **5** | Search Standardization | 1 hour | LOW | |
+| **4** | Keybind Consolidation | 1-2 hours | LOW | ✅ Complete (factories exist) |
+| **5** | Search Standardization | 1 hour | LOW | ✅ Complete (modules use CIM) |
 | **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM | ⏸️ Deferred |
 | **7** | Utility Functions | 1 hour | MEDIUM | ✅ Complete |
-| **8** | Settings Defaults | 1-2 hours | LOW | |
+| **8** | Settings Defaults | 1-2 hours | LOW | ✅ Complete |
 | **9** | Timing Constants | 0.5 hours | LOW | ✅ Complete |
-| **10** | Slot Actions Pattern | 2-3 hours | LOW | |
+| **10** | Slot Actions Pattern | 2-3 hours | LOW | ⏸️ Deferred |
 
 **Total Estimated Effort**: 13-20 hours
-**Completed**: ~7-9 hours (Phases 1, 2, 3, 7, 9)
-**Deferred**: Phase 6 (action dialog callbacks are too module-specific to consolidate without added complexity)
+**Completed**: Phases 1, 2, 3, 4, 5, 7, 8, 9 (~10-13 hours)
+**Deferred**: Phases 6 (module-specific), 10 (complex)
 
 
 ---
