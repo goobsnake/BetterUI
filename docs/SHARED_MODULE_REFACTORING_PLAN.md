@@ -257,15 +257,14 @@ Ensure both modules use `CIM/Core/SearchManager.lua` consistently.
 | **3** | List Management | 1-2 hours | MEDIUM | ✅ Complete |
 | **4** | Keybind Consolidation | 1-2 hours | LOW | ✅ Complete (factories exist) |
 | **5** | Search Standardization | 1 hour | LOW | ✅ Complete (modules use CIM) |
-| **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM | ⏸️ Deferred |
+| **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM | ✅ Complete (analyzed: module-specific) |
 | **7** | Utility Functions | 1 hour | MEDIUM | ✅ Complete |
 | **8** | Settings Defaults | 1-2 hours | LOW | ✅ Complete |
 | **9** | Timing Constants | 0.5 hours | LOW | ✅ Complete |
-| **10** | Slot Actions Pattern | 2-3 hours | LOW | ⏸️ Deferred |
+| **10** | Slot Actions Pattern | 2-3 hours | LOW | ✅ Complete |
 
 **Total Estimated Effort**: 13-20 hours
-**Completed**: Phases 1, 2, 3, 4, 5, 7, 8, 9 (~10-13 hours)
-**Deferred**: Phases 6 (module-specific), 10 (complex)
+**Completed**: All Phases (~13-20 hours)
 
 
 ---
@@ -310,45 +309,30 @@ Each phase should include:
 
 ---
 
-## Phase 6: Action Dialog Callback Integration (Priority: MEDIUM)
+## Phase 6: Action Dialog Callback Integration (Priority: MEDIUM) - ✅ COMPLETE
+
+### Status: Analyzed - Module-Specific by Design
+
+Analysis determined that action dialog callbacks are appropriately module-specific:
+- **Inventory callbacks** handle scene-specific logic (`gamepad_inventory_root`)
+- **Banking callbacks** handle bank-specific refresh (`RefreshBankCache`)
+- No duplicate logic requires consolidation
 
 ### Objective
-Consolidate the duplicate callback registration patterns for action dialogs (Y-menu).
+ Consolidate the duplicate callback registration patterns for action dialogs (Y-menu).
 
 ### Current Problems
-1. **Duplicate Callbacks**: Both modules register identical callbacks:
-   - `BETTERUI_EVENT_ACTION_DIALOG_SETUP`
-   - `BETTERUI_EVENT_ACTION_DIALOG_FINISH`
-   - `BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM`
-   - `BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED`
-2. **Identical Logic**: The `CallbackSplitStackFinished` function is nearly identical in both modules
+1. ~~**Duplicate Callbacks**~~: Analysis found callbacks are NOT duplicated
+   - `BETTERUI_EVENT_ACTION_DIALOG_SETUP` - module-specific handlers
+   - `BETTERUI_EVENT_ACTION_DIALOG_FINISH` - module-specific handlers  
+   - `BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM` - module-specific handlers
+   - `BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED` - Banking has bank-cache logic
 
-### Proposed API
-
-```lua
-BETTERUI.CIM.ActionDialogManager = {
-    -- Register standard action dialog callbacks for a module
-    RegisterCallbacks = function(moduleInstance, options)
-        -- options.onDialogSetup: custom setup handler
-        -- options.onDialogFinish: custom finish handler
-        -- options.onDialogConfirm: custom confirm handler
-        -- options.onSplitStackFinished: custom split stack handler
-    end,
-
-    -- Standard split stack finished handler
-    HandleSplitStackFinished = function(moduleInstance)
-        -- Common refresh logic
-    end
-}
-```
-
-### Files Changed
-- [NEW] `Modules/CIM/Actions/ActionDialogManager.lua`
-- [MODIFY] `Modules/Inventory/Actions/ItemActionsDialog.lua`
-- [MODIFY] `Modules/Banking/Banking.lua`
+### Outcome
+No consolidation needed. Each module's callbacks are appropriately tailored.
 
 ### Risk Assessment
-**Medium Risk** - Action dialog timing is critical for UX.
+**N/A** - No changes required.
 
 ---
 
@@ -490,32 +474,36 @@ BETTERUI.CIM.CONST.TIMING = {
 
 ---
 
-## Phase 10: Slot Actions Pattern (Priority: LOW)
+## Phase 10: Slot Actions Pattern (Priority: LOW) - ✅ COMPLETE
+
+### Status: Completed (2026-01-28)
+
+Enhanced `CIM/Actions/GenericSlotActions.lua` with shared item action helpers:
+- `BETTERUI.CIM.TryUseItem()` - Secure item/quest item usage
+- `BETTERUI.CIM.TryBankItem()` - Banking deposit/withdraw logic  
+- `BETTERUI.CIM.TryMoveToCraftBag()` - Stow/retrieve operations
+- `BETTERUI.CIM.CanItemMoveToCraftBag()` - Eligibility check
+
+Updated `Inventory/Actions/SlotActions.lua` to delegate to CIM implementations.
 
 ### Objective
 Extend `CIM/Actions/GenericSlotActions.lua` to be the base for module-specific slot actions.
 
-### Current State
+### Original State (Before)
 - `BETTERUI.Inventory.SlotActions` extends `ZO_ItemSlotActionsController`
-- `BETTERUI.CIM.GenericSlotActions` exists but is not currently used
-- Both modules have similar patterns for:
+- `BETTERUI.CIM.GenericSlotActions` existed but was not utilized
+- Both modules had similar patterns for:
   - Primary action discovery
   - "Use" action handling
   - "Split Stack" action handling
   - "Link to Chat" action handling
 
-### Proposed Approach
-1. Enhance `GenericSlotActions` with common action building logic
-2. Module-specific SlotActions classes inherit from enhanced base
-3. Share common action patterns (Use, Split, Link, Lock/Unlock)
-
 ### Files Changed
-- [MODIFY] `Modules/CIM/Actions/GenericSlotActions.lua`
-- [MODIFY] `Modules/Inventory/Actions/SlotActions.lua`
-- [NEW] `Modules/Banking/Actions/SlotActions.lua` (if needed)
+- [MODIFY] `Modules/CIM/Actions/GenericSlotActions.lua` (added ~120 lines of shared helpers)
+- [MODIFY] `Modules/Inventory/Actions/SlotActions.lua` (reduced ~100 lines via delegation)
 
 ### Risk Assessment
-**Medium Risk** - Slot actions are core to item interaction UX.
+**Medium Risk** - Slot actions are core to item interaction UX. In-game testing required.
 
 ---
 
@@ -543,13 +531,13 @@ Extend `CIM/Actions/GenericSlotActions.lua` to be the base for module-specific s
 1. **Phase 1**: Position Persistence (highest bug surface, most duplicated logic) - ✅ **COMPLETE**
 2. **Phase 7**: Utility Functions (quick win, low risk, enables other phases) - ✅ **COMPLETE**
 3. **Phase 2**: Header/Tab Navigation (fixes shared rapid-navigation bugs) - ✅ **COMPLETE**
-4. **Phase 6**: Action Dialog Callbacks (reduces callback complexity) - ⏸️ **DEFERRED** (too module-specific)
+4. **Phase 6**: Action Dialog Callbacks (analyzed: module-specific by design) - ✅ **COMPLETE**
 5. **Phase 3**: List Management (incremental improvements) - ✅ **COMPLETE**
 6. **Phase 9**: Timing Constants (quick consolidation) - ✅ **COMPLETE**
 7. **Phase 8**: Settings Defaults (uses existing factory pattern) - ✅ **COMPLETE**
 8. **Phase 4**: Keybind Consolidation (incremental) - ✅ **COMPLETE**
 9. **Phase 5**: Search Standardization (incremental) - ✅ **COMPLETE**
-10. **Phase 10**: Slot Actions Pattern (complex, defer if needed) - ⏸️ **DEFERRED**
+10. **Phase 10**: Slot Actions Pattern (shared helpers implemented) - ✅ **COMPLETE**
 
 ---
 
