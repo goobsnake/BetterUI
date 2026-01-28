@@ -59,24 +59,34 @@ function BETTERUI.Inventory.ToSavedPosition(self)
     -- Get category key for position lookup
     local key = BETTERUI.Inventory.GetCategoryKey(catData)
     local savedUniqueId = nil
+    local savedIndex = nil
 
-    -- Retrieve the saved uniqueId for this category BEFORE calling refresh
+    -- Retrieve the saved uniqueId AND index for this category BEFORE calling refresh
     -- This ensures RefreshItemList's batch processing restores to the correct item
     if isCraftBag then
         if key and self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
             savedUniqueId = self.savedCraftBagSelectedItemUniqueByKey[key]
         end
+        if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
+            savedIndex = self.savedCraftBagPositionsByKey[key]
+        end
     else
         if key and self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
             savedUniqueId = self.savedInventorySelectedItemUniqueByKey[key]
         end
+        if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
+            savedIndex = self.savedInventoryPositionsByKey[key]
+        end
     end
 
-    -- Set currentlySelectedData to the saved uniqueId so RefreshItemList uses it
+    -- Set currentlySelectedData to the saved uniqueId AND index so RefreshItemList uses it
     -- This prevents batch processing from restoring to the wrong item (the item
     -- that was selected in the PREVIOUS category but also exists in the new one)
     if savedUniqueId then
-        self.currentlySelectedData = { uniqueId = savedUniqueId }
+        self.currentlySelectedData = { uniqueId = savedUniqueId, savedIndex = savedIndex }
+    elseif savedIndex then
+        -- Have index but no uniqueId (item was removed) - still use the index
+        self.currentlySelectedData = { savedIndex = savedIndex }
     else
         -- No saved position for this category - clear to prevent wrong restoration
         self.currentlySelectedData = nil

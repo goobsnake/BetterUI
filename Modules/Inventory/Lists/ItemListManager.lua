@@ -70,7 +70,7 @@ end
 function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
 
-    self.itemList:SetSortFunction(BETTERUI_GamepadInventory_DefaultItemSortComparator)
+    self.itemList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
 
     self.itemList:SetOnSelectedDataChangedCallback(function(list, selectedData)
         if selectedData ~= nil and self.scene:IsShowing() then
@@ -323,12 +323,16 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     -- Capture current selection before clearing (uniqueId primary, index fallback)
     local targetUniqueId = nil
     local targetIndex = nil
-    if self.currentlySelectedData and self.currentlySelectedData.uniqueId then
-        targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
-    end
-    -- Capture index for fallback (used when item is consumed/removed)
-    if self.itemList.selectedIndex then
-        targetIndex = self.itemList.selectedIndex
+    if self.currentlySelectedData then
+        -- Use saved uniqueId if available
+        if self.currentlySelectedData.uniqueId then
+            targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
+        end
+        -- Use saved index from ToSavedPosition (per-category) if available
+        -- This is the correct per-category index, not the previous category's index
+        if self.currentlySelectedData.savedIndex then
+            targetIndex = self.currentlySelectedData.savedIndex
+        end
     end
 
     self.itemList:Clear()
@@ -432,7 +436,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     self.pendingBatchIndex = nil
     self.pendingContext = nil
 
-    local sortFunc = BETTERUI_Inventory_DefaultItemSortComparator or BETTERUI_GamepadInventory_DefaultItemSortComparator
+    local sortFunc = BETTERUI.Inventory.DefaultSortComparator
 
     -- If the list is small enough, process synchronously (prevents flickering on small lists)
     if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then
