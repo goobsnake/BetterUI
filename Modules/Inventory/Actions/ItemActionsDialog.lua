@@ -349,6 +349,17 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local function ActionDialogButtonConfirm(dialog)
         if not (self.scene and self.scene:IsShowing()) then return end
 
+        -- Preserve current selection before action executes
+        -- This ensures list position is maintained after equip/unequip/lock/enchant actions
+        local currentList = self:GetCurrentList()
+        if currentList and currentList.selectedIndex then
+            local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(currentList)
+            if targetData then
+                targetData.savedIndex = currentList.selectedIndex
+                self.currentlySelectedData = targetData
+            end
+        end
+
         -- Handle embedded quickslot assignment mode
         if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
             local target = dialog.data.target or dialog.quickslotTarget

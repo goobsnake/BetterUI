@@ -109,10 +109,16 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
 		-- We normally do not want to enter the gamepad inventory on the item list
 		-- the exception is if we are coming back to the inventory, like from looting a container
+		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
 		if
-			listToActivate == INVENTORY_ITEM_LIST and not SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
+			listToActivate == INVENTORY_ITEM_LIST and not wasOnStack
 		then
 			listToActivate = INVENTORY_CATEGORY_LIST
+		end
+
+		-- If returning from stacked scene (enchant dialog, etc.), restore position
+		if wasOnStack and self.ToSavedPosition then
+			self:ToSavedPosition()
 		end
 
 		-- switching the active list will handle activating/refreshing header, keybinds, etc.

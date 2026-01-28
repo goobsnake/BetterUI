@@ -294,12 +294,20 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         -- Use dontReselect=true to prevent default reselection, then restore manually
         self.itemList:Commit(true)
 
-        -- Restore selection if we have a target
+        -- Restore selection if we have a target uniqueId
         local restored = false
         if targetUniqueId then
-            restored = self.itemList:SetSelectedDataByEval(function(data)
-                return data.uniqueId and Id64ToString(data.uniqueId) == targetUniqueId
-            end)
+            -- Manual lookup to find index, then use SetSelectedIndexWithoutAnimation for instant focus
+            local dataList = self.itemList.dataList or (self.itemList.list and self.itemList.list.dataList)
+            if dataList then
+                for i, data in ipairs(dataList) do
+                    if data.uniqueId and Id64ToString(data.uniqueId) == targetUniqueId then
+                        self.itemList:SetSelectedIndexWithoutAnimation(i, true, false)
+                        restored = true
+                        break
+                    end
+                end
+            end
         end
 
         -- Fallback: if uniqueId restoration failed (item consumed/removed), use index position
@@ -309,7 +317,8 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
                 -- Clamp to valid range (in case list shrank)
                 local targetIdx = math.min(self.pendingContext.targetIndex, #dataList)
                 targetIdx = math.max(1, targetIdx)
-                self.itemList:SetSelectedIndex(targetIdx)
+                -- Use WithoutAnimation for instant focus (matches Banking behavior)
+                self.itemList:SetSelectedIndexWithoutAnimation(targetIdx, true, false)
             end
         end
 
