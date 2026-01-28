@@ -283,3 +283,168 @@ function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
 end
+
+-- ============================================================================
+-- SHARED ACTION SETUP HELPERS
+-- ============================================================================
+-- These functions provide shared action setup logic that was previously
+-- duplicated in Inventory/Actions/SlotActions.lua.
+
+--[[
+Function: BETTERUI.CIM.SetupSecureAction
+Description: Wraps an action in a secure call if necessary (primarily for USE actions).
+Rationale: Ensures protected actions don't fail due to addon taint.
+Used By: Inventory/Actions/SlotActions.lua
+param: slotActions (table) - The slot actions object.
+param: actionStringId (number) - The action string ID constant.
+param: callback (function) - The callback to execute.
+param: inventorySlot (table) - The inventory slot data.
+]]
+function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
+    local actionName = GetString(actionStringId)
+    if actionStringId == SI_ITEM_ACTION_USE then
+        -- Create a wrapper that calls the secure protected function
+        local secureCallback = function()
+            BETTERUI.CIM.TryUseItem(inventorySlot)
+        end
+        slotActions:AddSlotPrimaryAction(actionName, secureCallback, "primary", nil, { visibleWhenDead = false })
+    else
+        slotActions:AddSlotPrimaryAction(actionName, callback, "primary", nil, { visibleWhenDead = false })
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.HandleCraftBagActions
+Description: Configures actions related to the Craft Bag (Stow/Retrieve).
+Rationale: Handles complex logic for when to show "Stow" vs "Retrieve" vs "Stow & Use".
+Used By: Inventory/Actions/SlotActions.lua
+param: slotActions (table) - The slot actions object.
+param: inventorySlot (table) - The inventory slot data.
+param: canUseItem (boolean) - Whether the item is also usable (adds USE as secondary).
+]]
+function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+    local stowCallback = function()
+        BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
+    end
+
+    if canUseItem then
+        BETTERUI.CIM.SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG, stowCallback, inventorySlot)
+        -- USE as secondary action - also need to be secure
+        slotActions:AddSlotAction(SI_ITEM_ACTION_USE, function()
+            BETTERUI.CIM.TryUseItem(inventorySlot)
+        end, "secondary", nil, { visibleWhenDead = false })
+    else
+        BETTERUI.CIM.SetupSecureAction(slotActions, SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG, stowCallback, inventorySlot)
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.SecureOpenSkills
+Description: Wraps the "Open Skills" action callback in a secure call.
+Rationale: The engine's "Open Skills" callback may call UseItem directly,
+           which causes tainting errors. This wrapper ensures CallSecureProtected is used.
+Used By: Inventory/Actions/SlotActions.lua
+param: slotActions (table) - The slot actions object.
+param: inventorySlot (table) - The inventory slot data.
+]]
+function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
+    local INDEX_ACTION_CALLBACK = 2
+    for i, action in ipairs(slotActions.m_slotActions) do
+        local actionName = action[1]
+        if actionName == "Open Skills" then
+            local wrappedCallback = function()
+                if inventorySlot then
+                    local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                    CallSecureProtected("UseItem", bag, index)
+                end
+            end
+            action[INDEX_ACTION_CALLBACK] = wrappedCallback
+        end
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.DeduplicateActions
+Description: Removes duplicate entries from the slot actions list.
+Rationale: Multiple code paths may add the same action (e.g., "Stow"); this
+           ensures the Y-button actions menu doesn't show duplicates.
+Used By: Inventory/Actions/SlotActions.lua
+param: slotActions (table) - The slot actions object to deduplicate.
+]]
+function BETTERUI.CIM.DeduplicateActions(slotActions)
+    local seen = {}
+    for i = #slotActions.m_slotActions, 1, -1 do
+        local entry = slotActions.m_slotActions[i]
+        local name = entry and entry[1]
+        if name and seen[name] then
+            table.remove(slotActions.m_slotActions, i)
+        else
+            if name then
+                seen[name] = true
+            end
+        end
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.IsSlotInCraftBag
+Description: Checks if the inventory slot represents an item inside the Craft Bag.
+Used By: Inventory/Actions/SlotActions.lua, CIM.ResolveCraftBagState
+param: inventorySlot (table) - The inventory slot data.
+return: boolean - True if the item is in the Craft Bag.
+]]
+function BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
+    local slotType = ZO_InventorySlot_GetType(inventorySlot)
+    return slotType == SLOT_TYPE_CRAFT_BAG_ITEM
+end
+
+--[[
+Function: BETTERUI.CIM.ResolveCraftBagState
+Description: Determines the correct primary action based on Craft Bag context.
+Rationale: Items in Craft Bag should show "Retrieve"; items in Inventory should
+           show "Stow" if eligible.
+Used By: Inventory/Actions/SlotActions.lua
+param: slotActions (table) - The slot actions object.
+param: inventorySlot (table) - The inventory slot data.
+param: primaryAction (string) - The current primary action name.
+param: canUseItem (boolean) - Whether the item is also usable.
+return: string - The resolved action name for display.
+]]
+function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
+    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+    local retrieveActionName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+    local actionName = primaryAction or stowActionName
+    local isInCraftBag = BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
+
+    if isInCraftBag then
+        -- CRAFT BAG VIEW: Remove "Stow" from actions entirely, keep "Retrieve" as primary
+        for i = #slotActions.m_slotActions, 1, -1 do
+            if slotActions.m_slotActions[i][1] == stowActionName then
+                table.remove(slotActions.m_slotActions, i)
+            end
+        end
+        -- Ensure Retrieve is primary action
+        if primaryAction == retrieveActionName then
+            actionName = retrieveActionName
+        end
+    elseif BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot) then
+        -- INVENTORY VIEW: Force "Stow" as primary for eligible items
+        -- Remove any existing craft-bag entries to avoid duplicates
+        for i = #slotActions.m_slotActions, 1, -1 do
+            if slotActions.m_slotActions[i][1] == stowActionName then
+                table.remove(slotActions.m_slotActions, i)
+            end
+        end
+
+        -- Use the helper to add the primary craft-bag action
+        BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
+
+        -- We forced Stow to be primary; clear any prior split-stack override
+        slotActions._betterui_primaryOverride = nil
+
+        -- Ensure the displayed action name is "Stow"
+        actionName = stowActionName
+    end
+    return actionName
+end
