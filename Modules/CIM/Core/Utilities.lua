@@ -114,3 +114,18 @@ function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
     end
     return newValue
 end
+
+--[[
+Function: BETTERUI.CIM.Utils.DefaultSortComparator
+Description: Custom comparison function for sorting gamepad inventory-style lists.
+Rationale: Provides consistent sort order (Type -> Name -> Level -> CP -> Icon -> ID).
+Mechanism: Uses ZO_TableOrderingFunction with CIM.CONST.SORT_SCHEMA.
+References: Used by Inventory and Banking list sorting.
+param: left (table) - The first item data.
+param: right (table) - The second item data.
+return: boolean - True if 'left' should appear before 'right'.
+]]
+function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
+    return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.CIM.CONST.SORT_SCHEMA,
+        ZO_SORT_ORDER_UP)
+end

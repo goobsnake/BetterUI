@@ -448,6 +448,27 @@ BETTERUI.CIM.CONST.DEFAULTS = {
 }
 
 -- ============================================================================
+-- SORT SCHEMA
+-- Shared sort schema for gamepad inventory-style lists
+-- ============================================================================
+
+--[[
+Table: BETTERUI.CIM.CONST.SORT_SCHEMA
+Description: Sort schema for gamepad inventory item ordering.
+             Defines the sort priority chain: Type -> Name -> Level -> CP -> Icon -> ID.
+Used By: DefaultSortComparator for Inventory and Banking list sorting.
+]]
+BETTERUI.CIM.CONST.SORT_SCHEMA = {
+    sortPriorityName       = { tiebreaker = "bestItemTypeName" },
+    bestItemTypeName       = { tiebreaker = "name" },
+    name                   = { tiebreaker = "requiredLevel" },
+    requiredLevel          = { tiebreaker = "requiredChampionPoints", isNumeric = true },
+    requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
+    iconFile               = { tiebreaker = "uniqueId" },
+    uniqueId               = { isId64 = true },
+}
+
+-- ============================================================================
 -- HEADER LAYOUT (Migrated from BetterUI.CONST.lua)
 -- ============================================================================
 

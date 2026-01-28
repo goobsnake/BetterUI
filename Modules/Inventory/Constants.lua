@@ -77,35 +77,28 @@ BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM = 24
 BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34
 
 -- ============================================================================
--- SORT SCHEMA (Migrated from Globals.lua)
+-- SORT SCHEMA (delegating to CIM shared version)
 -- ============================================================================
 
 --[[
 Table: BETTERUI.Inventory.CONST.SORT_SCHEMA
 Description: Sort schema for inventory item ordering.
+             Delegates to CIM shared schema for consistency with Banking.
 Used By: DefaultSortComparator for gamepad inventory sorting.
 ]]
-BETTERUI.Inventory.CONST.SORT_SCHEMA = {
-    sortPriorityName       = { tiebreaker = "bestItemTypeName" },
-    bestItemTypeName       = { tiebreaker = "name" },
-    name                   = { tiebreaker = "requiredLevel" },
-    requiredLevel          = { tiebreaker = "requiredChampionPoints", isNumeric = true },
-    requiredChampionPoints = { tiebreaker = "iconFile", isNumeric = true },
-    iconFile               = { tiebreaker = "uniqueId" },
-    uniqueId               = { isId64 = true },
-}
+BETTERUI.Inventory.CONST.SORT_SCHEMA = BETTERUI.CIM.CONST.SORT_SCHEMA
 
 --[[
 Function: BETTERUI.Inventory.DefaultSortComparator
 Description: Custom comparison function for sorting gamepad inventory items.
+             Delegates to CIM shared comparator for consistency with Banking.
 Rationale: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
-Mechanism: Uses ZO_TableOrderingFunction with BETTERUI.Inventory.CONST.SORT_SCHEMA.
+Mechanism: Delegates to CIM.Utils.DefaultSortComparator.
 References: Used by the gamepad inventory list (Sort Comparator).
 param: left (table) - The first item data.
 param: right (table) - The second item data.
 return: boolean - True if 'left' should appear before 'right'.
 ]]
 function BETTERUI.Inventory.DefaultSortComparator(left, right)
-    return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.Inventory.CONST.SORT_SCHEMA,
-        ZO_SORT_ORDER_UP)
+    return BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
 end
