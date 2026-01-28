@@ -38,6 +38,30 @@ BETTERUI.CIM.CONST.TIMING = {
     BATCH_SIZE_REMAINING = 200,
 }
 
+-- ============================================================================
+-- MODULE IDENTIFIERS
+-- Centralized string constants for CIM PositionManager namespacing
+-- ============================================================================
+
+--[[
+Table: BETTERUI.CIM.CONST.MODULES
+Description: Module identifier strings for CIM shared services.
+             Used by PositionManager to namespace saved positions.
+             Eliminates magic string concatenation across modules.
+Used By: Inventory/State/PositionManager.lua, Banking/State/StateManager.lua
+]]
+BETTERUI.CIM.CONST.MODULES = {
+    -- Inventory module identifiers
+    INVENTORY = "Inventory",
+    INVENTORY_ITEMS = "Inventory_Items",
+    INVENTORY_CRAFTBAG = "Inventory_CraftBag",
+
+    -- Banking module identifiers
+    BANKING = "Banking",
+    BANKING_WITHDRAW = "Banking_Withdraw",
+    BANKING_DEPOSIT = "Banking_Deposit",
+}
+
 
 -- ============================================================================
 -- CURRENCY FOOTER CONFIGURATION
@@ -526,6 +550,11 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 -- ============================================================================
 -- BACKWARDS COMPATIBILITY ALIASES
 -- ============================================================================
+
+-- TODO(CLEANUP): These backward compatibility aliases should be audited and removed once all
+-- XML templates and external references have been updated to use the new namespaced constants.
+-- Track usage with: grep -r "BETTERUI_GAMEPAD_DEFAULT" across the codebase.
+-- Target: Remove by v3.0 release after migration period.
 
 -- Tooltip legacy aliases
 BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE = BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE
