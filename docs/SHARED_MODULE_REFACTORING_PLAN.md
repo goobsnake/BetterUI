@@ -257,8 +257,14 @@ Ensure both modules use `CIM/Core/SearchManager.lua` consistently.
 | **3** | List Management | 1-2 hours | MEDIUM |
 | **4** | Keybind Consolidation | 1-2 hours | LOW |
 | **5** | Search Standardization | 1 hour | LOW |
+| **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM |
+| **7** | Utility Functions | 1 hour | MEDIUM |
+| **8** | Settings Defaults | 1-2 hours | LOW |
+| **9** | Timing Constants | 0.5 hours | LOW |
+| **10** | Slot Actions Pattern | 2-3 hours | LOW |
 
-**Total Estimated Effort**: 7-11 hours
+**Total Estimated Effort**: 13-20 hours
+
 
 ---
 
@@ -282,6 +288,14 @@ Each phase should include:
 | List Management | Large lists load without freezing |
 | Keybinds | All buttons function as expected |
 | Search | Filter works, clear restores list |
+| Action Dialog | Y-menu opens with correct actions in both modules |
+| Action Dialog | Split Stack dialog works and list refreshes after |
+| Utility Functions | List selection returns correct data in all contexts |
+| Utility Functions | Sort order is consistent between Inventory and Banking |
+| Settings | Font changes apply correctly in both modules |
+| Settings | Icon toggles work with live refresh |
+| Timing | Rapid navigation doesn't cause UI glitches |
+| Slot Actions | Primary action (A button) works correctly |
 
 ---
 
@@ -291,6 +305,249 @@ Each phase should include:
 2. **Single Source of Truth**: Bug fixes apply to all modules automatically
 3. **Consistent Behavior**: Inventory and Banking behave identically for shared features
 4. **No Regressions**: All existing functionality works as before
+
+---
+
+## Phase 6: Action Dialog Callback Integration (Priority: MEDIUM)
+
+### Objective
+Consolidate the duplicate callback registration patterns for action dialogs (Y-menu).
+
+### Current Problems
+1. **Duplicate Callbacks**: Both modules register identical callbacks:
+   - `BETTERUI_EVENT_ACTION_DIALOG_SETUP`
+   - `BETTERUI_EVENT_ACTION_DIALOG_FINISH`
+   - `BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM`
+   - `BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED`
+2. **Identical Logic**: The `CallbackSplitStackFinished` function is nearly identical in both modules
+
+### Proposed API
+
+```lua
+BETTERUI.CIM.ActionDialogManager = {
+    -- Register standard action dialog callbacks for a module
+    RegisterCallbacks = function(moduleInstance, options)
+        -- options.onDialogSetup: custom setup handler
+        -- options.onDialogFinish: custom finish handler
+        -- options.onDialogConfirm: custom confirm handler
+        -- options.onSplitStackFinished: custom split stack handler
+    end,
+
+    -- Standard split stack finished handler
+    HandleSplitStackFinished = function(moduleInstance)
+        -- Common refresh logic
+    end
+}
+```
+
+### Files Changed
+- [NEW] `Modules/CIM/Actions/ActionDialogManager.lua`
+- [MODIFY] `Modules/Inventory/Actions/ItemActionsDialog.lua`
+- [MODIFY] `Modules/Banking/Banking.lua`
+
+### Risk Assessment
+**Medium Risk** - Action dialog timing is critical for UX.
+
+---
+
+## Phase 7: Utility Functions Consolidation (Priority: MEDIUM)
+
+### Objective
+Move shared utility functions from module-specific namespaces to CIM.
+
+### Identified Duplicates
+
+| Function | Current Location | Notes |
+|----------|-----------------|-------|
+| `SafeGetTargetData()` | `Inventory.Utils` | Used heavily in both modules for safe list selection |
+| `DefaultSortComparator()` | `Inventory.Constants` | Already used by Banking via cross-reference |
+
+### Proposed API
+
+```lua
+BETTERUI.CIM.Utils = {
+    -- Safe retrieval of selected list item data
+    SafeGetTargetData = function(list)
+        if list and list.GetSelectedData then
+            return list:GetSelectedData()
+        end
+        return nil
+    end,
+
+    -- Standard sort comparator for item lists
+    DefaultSortComparator = function(left, right)
+        return ZO_TableOrderingFunction(left, right, "sortPriorityName",
+            BETTERUI.CIM.CONST.SORT_SCHEMA, ZO_SORT_ORDER_UP)
+    end
+}
+
+-- Move sort schema to CIM
+BETTERUI.CIM.CONST.SORT_SCHEMA = { ... }
+```
+
+### Implementation Steps
+1. Create `BETTERUI.CIM.Utils` namespace in `Modules/CIM/Core/Utilities.lua`
+2. Move `SafeGetTargetData` to CIM
+3. Move `DefaultSortComparator` and `SORT_SCHEMA` to CIM
+4. Update references in both modules to use CIM versions
+5. Keep aliases in module namespaces for backwards compatibility
+
+### Files Changed
+- [MODIFY] `Modules/CIM/Core/Utilities.lua`
+- [MODIFY] `Modules/Inventory/Constants.lua`
+- [MODIFY] `Modules/Inventory/Core/Utils.lua`
+- [MODIFY] `Modules/Banking/Lists/BankListManager.lua`
+
+### Risk Assessment
+**Low Risk** - Pure utility functions with clear behavior.
+
+---
+
+## Phase 8: Settings Defaults Initialization (Priority: LOW)
+
+### Objective
+Standardize the settings initialization pattern across modules.
+
+### Current Problems
+1. **Duplicate Default Logic**: Both modules have similar `InitModule` patterns
+2. **Font Settings Duplication**: Banking manually defines font submenus that Inventory uses via factory
+3. **Icon Toggle Duplication**: Already partially addressed by `IconSettingsFactory.lua`
+
+### Consolidation Opportunities
+
+1. **Font Settings Factory Usage**: 
+   - Banking should use `BETTERUI.CIM.Settings.CreateFontSubmenuOptions()` like Inventory
+   - Currently Banking manually builds its font submenus
+
+2. **Defaults Initialization Pattern**:
+   ```lua
+   BETTERUI.CIM.Settings.InitializeDefaults = function(moduleName, defaults)
+       local m_options = BETTERUI.Settings.Modules[moduleName]
+       for key, defaultValue in pairs(defaults) do
+           if m_options[key] == nil then
+               m_options[key] = defaultValue
+           end
+       end
+       return m_options
+   end
+   ```
+
+### Files Changed
+- [MODIFY] `Modules/CIM/Core/SettingsFactory.lua`
+- [MODIFY] `Modules/Banking/Settings/SettingsPanel.lua`
+- [MODIFY] `Modules/Inventory/Settings/SettingsPanel.lua`
+
+### Risk Assessment
+**Low Risk** - Settings are non-critical and easily reversible.
+
+---
+
+## Phase 9: Timing & Delay Constants (Priority: LOW)
+
+### Objective
+Consolidate timing constants into CIM to ensure consistent behavior.
+
+### Current Duplicates
+
+| Constant | Inventory | Banking |
+|----------|-----------|---------|
+| Debounce delay | `DEBOUNCE_MS = 50` | `MOVE_COALESCE_DELAY_MS = 100` |
+| Category refresh delay | `CATEGORY_REFRESH_DELAY_MS = 80` | `CATEGORY_CHANGE_DELAY_MS = 100` |
+| Batch sizes | `BATCH_SIZE_INITIAL = 50` | (none) |
+| Tooltip refresh | `TOOLTIP_REFRESH_DELAY_MS = 300` | (none) |
+
+### Proposed Consolidation
+
+```lua
+BETTERUI.CIM.CONST.TIMING = {
+    -- Debounce for heavy UI updates
+    DEBOUNCE_MS = 50,
+    
+    -- Category navigation coalescing
+    CATEGORY_CHANGE_DELAY_MS = 100,
+    
+    -- Item move coalescing
+    MOVE_COALESCE_DELAY_MS = 100,
+    
+    -- Tooltip refresh delay
+    TOOLTIP_REFRESH_DELAY_MS = 300,
+    
+    -- Batch processing
+    BATCH_SIZE_INITIAL = 50,
+    BATCH_SIZE_REMAINING = 200,
+}
+```
+
+### Files Changed
+- [MODIFY] `Modules/CIM/Constants.lua`
+- [MODIFY] `Modules/Inventory/Constants.lua`
+- [MODIFY] `Modules/Banking/Constants.lua`
+
+### Risk Assessment
+**Low Risk** - Constants are easily changed and tested.
+
+---
+
+## Phase 10: Slot Actions Pattern (Priority: LOW)
+
+### Objective
+Extend `CIM/Actions/GenericSlotActions.lua` to be the base for module-specific slot actions.
+
+### Current State
+- `BETTERUI.Inventory.SlotActions` extends `ZO_ItemSlotActionsController`
+- `BETTERUI.CIM.GenericSlotActions` exists but is not currently used
+- Both modules have similar patterns for:
+  - Primary action discovery
+  - "Use" action handling
+  - "Split Stack" action handling
+  - "Link to Chat" action handling
+
+### Proposed Approach
+1. Enhance `GenericSlotActions` with common action building logic
+2. Module-specific SlotActions classes inherit from enhanced base
+3. Share common action patterns (Use, Split, Link, Lock/Unlock)
+
+### Files Changed
+- [MODIFY] `Modules/CIM/Actions/GenericSlotActions.lua`
+- [MODIFY] `Modules/Inventory/Actions/SlotActions.lua`
+- [NEW] `Modules/Banking/Actions/SlotActions.lua` (if needed)
+
+### Risk Assessment
+**Medium Risk** - Slot actions are core to item interaction UX.
+
+---
+
+## Consolidated Summary
+
+### All Identified Consolidation Targets
+
+| # | System | Priority | Est. Effort | Risk | Modules Affected |
+|---|--------|----------|-------------|------|------------------|
+| 1 | Position Persistence | HIGH | 2-3 hrs | Medium | Inventory, Banking |
+| 2 | Header/Tab Navigation | MEDIUM | 2-3 hrs | Medium | Inventory, Banking |
+| 3 | List Management | MEDIUM | 1-2 hrs | Low | Inventory, Banking |
+| 4 | Keybind Consolidation | LOW | 1-2 hrs | Low | Inventory, Banking |
+| 5 | Search Standardization | LOW | 1 hr | Low | Inventory, Banking |
+| 6 | Action Dialog Callbacks | MEDIUM | 1-2 hrs | Medium | Inventory, Banking |
+| 7 | Utility Functions | MEDIUM | 1 hr | Low | Inventory, Banking |
+| 8 | Settings Defaults | LOW | 1-2 hrs | Low | Inventory, Banking |
+| 9 | Timing Constants | LOW | 0.5 hrs | Low | Inventory, Banking |
+| 10 | Slot Actions Pattern | LOW | 2-3 hrs | Medium | Inventory, Banking |
+
+**Total Estimated Effort**: 13-20 hours
+
+### Recommended Implementation Order
+
+1. **Phase 1**: Position Persistence (highest bug surface, most duplicated logic)
+2. **Phase 7**: Utility Functions (quick win, low risk, enables other phases)
+3. **Phase 2**: Header/Tab Navigation (fixes shared rapid-navigation bugs)
+4. **Phase 6**: Action Dialog Callbacks (reduces callback complexity)
+5. **Phase 3**: List Management (incremental improvements)
+6. **Phase 9**: Timing Constants (quick consolidation)
+7. **Phase 8**: Settings Defaults (uses existing factory pattern)
+8. **Phase 4**: Keybind Consolidation (incremental)
+9. **Phase 5**: Search Standardization (incremental)
+10. **Phase 10**: Slot Actions Pattern (complex, defer if needed)
 
 ---
 
@@ -304,6 +561,12 @@ Once the pattern is established, other modules could adopt the shared systems:
 
 ### Settings Live Refresh
 The shared patterns could enable centralized live-refresh for settings changes that affect multiple modules.
+
+### Potential Phase 11+
+Additional consolidation opportunities identified during implementation:
+- **Scene State Change Handlers**: Common pattern for `RegisterCallback("StateChange", ...)` 
+- **Keybind Strip Management**: Add/Remove/Update guards to prevent overlap artifacts
+- **List Lifecycle Hooks**: Standardized "Refresh-Filter-Sort-Select" loop
 
 ---
 
