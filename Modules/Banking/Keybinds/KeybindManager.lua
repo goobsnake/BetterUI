@@ -121,6 +121,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
                 end
                 if self.coreKeybinds then
+                    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
                     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
                     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
                 end
@@ -304,6 +305,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         function()
             local list = self.list
             self:CancelWithdrawDeposit(list)
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
         end)
 end

@@ -288,6 +288,8 @@ function BETTERUI.Banking.Class:HideSelector()
     self.list:Activate()
 
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
 end
@@ -301,8 +303,17 @@ Description: Shows the actions dialog for the selected item.
 function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
 
+    -- Clean up enhanced tooltip to prevent border artifacts when action dialog shows
+    if BETTERUI.Inventory.CleanupEnhancedTooltip then
+        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    end
+
+    -- finishedCallback no longer needs to add keybinds since BETTERUI_EVENT_ACTION_DIALOG_FINISH
+    -- already calls ActionDialogFinish which handles keybind restoration. Setting nil prevents
+    -- the redundant call that was causing keybind strip duplication.
     local function OnActionsFinishedCallback()
-        self:AddKeybinds()
+        -- Keybinds are restored via ActionDialogFinish callback in Banking.lua
+        -- Do not add keybinds here to prevent duplicate keybind strip entries
     end
 
     local targetData = self:GetList().selectedData

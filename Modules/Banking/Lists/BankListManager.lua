@@ -374,9 +374,14 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     if not selectedData then
         -- No selection (empty list). Default to item keybinds and clear tooltip.
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        -- Refresh coreKeybinds to update Y button visibility for empty selection
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        -- Also hide enhanced tooltip elements
+        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         self:UpdateActions()
         return
     end
@@ -385,22 +390,25 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     if (currentUsedBank == BAG_BANK) then
         if (selectedData.label ~= nil and activeCategoryForHeader and activeCategoryForHeader.key == "all") then
             -- Yes! We are on a currency row, so add the "withdraw/deposit gold/telvar" keybinds here
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
+            -- Refresh coreKeybinds to hide Y button on currency rows
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 
-            -- Hide BetterUI custom tooltip label (it may persist from the last item viewed)
-            local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
-            if container and container._betterUiStatus then
-                container._betterUiStatus:SetHidden(true)
-            end
+            -- Hide BetterUI custom tooltip and divider (they may persist from the last item viewed)
+            BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
 
             self:RefreshCurrencyTooltip()
         else
-            -- We are not, add the "withdraw/deposit" keybinds here
+            -- We are not on currency row, add the "withdraw/deposit" keybinds here
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+            -- Refresh coreKeybinds to show Y button on item rows
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 
             if selectedData.bagId and selectedData.slotIndex then
                 GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
@@ -418,8 +426,11 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
         end
     else
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+        -- Refresh coreKeybinds to update Y button visibility
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
         if selectedData.bagId and selectedData.slotIndex then
             GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
             -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
