@@ -254,17 +254,18 @@ Ensure both modules use `CIM/Core/SearchManager.lua` consistently.
 |-------|-------------|------------------|----------|--------|
 | **1** | Position Persistence Manager | 2-3 hours | HIGH | ✅ Complete |
 | **2** | Header/Tab Navigation | 2-3 hours | MEDIUM | ✅ Complete |
-| **3** | List Management | 1-2 hours | MEDIUM | |
+| **3** | List Management | 1-2 hours | MEDIUM | ✅ Complete |
 | **4** | Keybind Consolidation | 1-2 hours | LOW | |
 | **5** | Search Standardization | 1 hour | LOW | |
-| **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM | |
+| **6** | Action Dialog Callbacks | 1-2 hours | MEDIUM | ⏸️ Deferred |
 | **7** | Utility Functions | 1 hour | MEDIUM | ✅ Complete |
 | **8** | Settings Defaults | 1-2 hours | LOW | |
-| **9** | Timing Constants | 0.5 hours | LOW | |
+| **9** | Timing Constants | 0.5 hours | LOW | ✅ Complete |
 | **10** | Slot Actions Pattern | 2-3 hours | LOW | |
 
 **Total Estimated Effort**: 13-20 hours
-**Completed**: ~5-6 hours (Phases 1, 7, 2)
+**Completed**: ~7-9 hours (Phases 1, 2, 3, 7, 9)
+**Deferred**: Phase 6 (action dialog callbacks are too module-specific to consolidate without added complexity)
 
 
 ---
@@ -542,9 +543,9 @@ Extend `CIM/Actions/GenericSlotActions.lua` to be the base for module-specific s
 1. **Phase 1**: Position Persistence (highest bug surface, most duplicated logic) - ✅ **COMPLETE**
 2. **Phase 7**: Utility Functions (quick win, low risk, enables other phases) - ✅ **COMPLETE**
 3. **Phase 2**: Header/Tab Navigation (fixes shared rapid-navigation bugs) - ✅ **COMPLETE**
-4. **Phase 6**: Action Dialog Callbacks (reduces callback complexity)
-5. **Phase 3**: List Management (incremental improvements)
-6. **Phase 9**: Timing Constants (quick consolidation)
+4. **Phase 6**: Action Dialog Callbacks (reduces callback complexity) - ⏸️ **DEFERRED** (too module-specific)
+5. **Phase 3**: List Management (incremental improvements) - ✅ **COMPLETE**
+6. **Phase 9**: Timing Constants (quick consolidation) - ✅ **COMPLETE**
 7. **Phase 8**: Settings Defaults (uses existing factory pattern)
 8. **Phase 4**: Keybind Consolidation (incremental)
 9. **Phase 5**: Search Standardization (incremental)
