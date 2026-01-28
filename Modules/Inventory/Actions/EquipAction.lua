@@ -2,6 +2,10 @@
 File: Modules/Inventory/Actions/EquipAction.lua
 Purpose: Handles item equipping logic, including "Bind on Equip" protection,
          equipment slot selection dialogs (e.g. Ring 1 vs Ring 2), and companion equipment patching.
+
+-- TODO(DRY): The performEquipAction logic (lines 138-195) and ReleaseDialog callback (lines 273-341)
+-- contain nearly identical CallSecureProtected patterns for each equipType. Extract into a shared
+-- helper function like DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary) to eliminate duplication.
 ]]
 
 --------------------------------------------------------------------------------

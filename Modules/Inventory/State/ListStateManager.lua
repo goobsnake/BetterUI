@@ -4,9 +4,7 @@ Purpose: Manages high-level transitions between item lists (Backpack, Craft Bag,
 Author: BetterUI Team
 ]]
 
--- Action mode constants (must match other files)
--- Action mode constants (must match other files)
--- Replaced by BETTERUI.Inventory.CONST equivalents
+-- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then

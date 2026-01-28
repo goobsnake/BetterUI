@@ -22,7 +22,8 @@ local _
 -- OPTIMIZATION: Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
 -- instead of clearing the entire cache. See OnInventorySlotUpdate handler at end of file.
 --
--- FUTURE: Add support for caching craft bag (BAG_VIRTUAL) traits
+-- TODO(FEATURE): Add support for caching craft bag (BAG_VIRTUAL) traits.
+-- This would improve tooltip performance when hovering over craft bag materials.
 -------------------------------------------------------------------------------------------------
 local ResearchableTraitCache = {}
 
@@ -209,6 +210,8 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Inventory|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = "|c00FF00Researchable|r - |cFF9900Found in Bank|r"
+            -- TODO(REFACTOR): Extract house bank iteration into a helper function like GetHouseBankTraitMatches(itemLink)
+            -- to reduce verbosity and make it easier to update if ZOS adds more house bank slots.
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_ONE)
                     + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_TWO)
                     + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_HOUSE_BANK_THREE)
