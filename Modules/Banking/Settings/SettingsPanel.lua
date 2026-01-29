@@ -71,7 +71,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     }
     local fontRefreshFn = function()
         if BETTERUI.Banking.Class and BETTERUI.Banking.Class.RefreshList then
-            pcall(function() BETTERUI.Banking.Class:RefreshList() end)
+            BETTERUI.Banking.Class:RefreshList()
         end
     end
     local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(

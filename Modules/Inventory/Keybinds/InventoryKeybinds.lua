@@ -282,12 +282,8 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self._searchModeActive then
                     self:ExitSearchFocus()
                 else
-                    pcall(function()
-                        self:RefreshActiveKeybinds()
-                    end)
-                    pcall(function()
-                        self:UpdateActions()
-                    end)
+                    self:RefreshActiveKeybinds()
+                    self:UpdateActions()
                 end
             end,
             function()

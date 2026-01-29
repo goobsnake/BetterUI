@@ -103,7 +103,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.nameFont = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -124,7 +124,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.nameFontSize = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -144,7 +144,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.nameFontStyle = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -161,7 +161,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                             s.nameFontSize = defaults.nameFontSize
                             s.nameFontStyle = defaults.nameFontStyle
                         end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "half",
@@ -187,7 +187,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.columnFont = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -208,7 +208,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.columnFontSize = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -228,7 +228,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     setFunc = function(value)
                         local s = getSettings()
                         if s then s.columnFontStyle = value end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "full",
@@ -245,7 +245,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                             s.columnFontSize = defaults.columnFontSize
                             s.columnFontStyle = defaults.columnFontStyle
                         end
-                        if refreshFn then pcall(refreshFn) end
+                        if refreshFn then refreshFn() end
                     end,
                     disabled = isCIMDisabled,
                     width = "half",

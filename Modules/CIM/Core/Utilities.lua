@@ -237,3 +237,38 @@ function BETTERUI.CIM.Utils.IsInventorySceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
     return scene and scene:IsShowing()
 end
+
+--[[
+Function: BETTERUI.CIM.Utils.SafeCall
+Description: Safely calls a method on an object if both exist.
+Rationale: For cases where nil is legitimately possible (e.g., optional controls,
+           scene state transitions). NOT for masking bugs - investigate and fix root causes.
+Mechanism: Checks obj and method existence before calling.
+References: Used for defensive coding in scene transitions and optional UI elements.
+param: obj (table|nil) - The object to call the method on.
+param: methodName (string) - The name of the method to call.
+param: ... (any) - Additional arguments to pass to the method.
+return: any|nil - The return value of the method, or nil if not called.
+
+Usage Guidelines:
+  ✅ Use for optional UI controls that may not exist in all contexts
+  ✅ Use during scene transitions where state is uncertain
+  ❌ Do NOT use to hide bugs - investigate and fix root causes instead
+
+Example:
+  -- Good: Optional control may not exist
+  BETTERUI.CIM.Utils.SafeCall(self.optionalButton, "SetHidden", true)
+
+  -- Bad: Hiding a nil error that should be fixed upstream
+  BETTERUI.CIM.Utils.SafeCall(self.requiredList, "RefreshList") -- Fix why list is nil!
+]]
+--- @param obj table|nil The object to call the method on
+--- @param methodName string The name of the method to call
+--- @param ... any Additional arguments to pass to the method
+--- @return any|nil result The method return value, or nil if not called
+function BETTERUI.CIM.Utils.SafeCall(obj, methodName, ...)
+    if obj and type(obj[methodName]) == "function" then
+        return obj[methodName](obj, ...)
+    end
+    return nil
+end

@@ -56,7 +56,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFont = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -82,7 +82,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -120,7 +120,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.nameFontSize = d.nameFontSize
                         s.nameFontStyle = d.nameFontStyle
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -145,7 +145,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFont = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -171,7 +171,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -191,7 +191,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontStyle = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
@@ -209,7 +209,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.columnFontSize = d.columnFontSize
                         s.columnFontStyle = d.columnFontStyle
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
+                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
                         end
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,

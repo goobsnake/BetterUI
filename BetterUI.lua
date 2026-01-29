@@ -198,10 +198,48 @@ function BETTERUI.ModuleOptions(m_namespace, m_options)
 	return m_namespace
 end
 
+--[[
+Function: BETTERUI.ValidateAndSetupModule
+Description: Validates a module before calling its Setup function.
+Rationale: Enforces interface contracts to catch configuration errors early.
+Mechanism: Uses CIM.Interfaces.ValidateModule if available, falls back to basic check.
+param: moduleName (string) - The name of the module for logging
+param: moduleNamespace (table) - The module's namespace table
+return: boolean - True if module was successfully set up
+]]
+local function ValidateAndSetupModule(moduleName, moduleNamespace)
+	if not moduleNamespace then
+		BETTERUI.Debug(string.format("[Validation] Module '%s' namespace is nil", moduleName))
+		return false
+	end
+
+	-- Validate using CIM interface validation if available
+	if BETTERUI.CIM and BETTERUI.CIM.Interfaces and BETTERUI.CIM.Interfaces.ValidateModule then
+		-- Temporarily add name for validation (modules don't store their own name)
+		local tempModule = { name = moduleName, Setup = moduleNamespace.Setup }
+		local valid, err = BETTERUI.CIM.Interfaces.ValidateModule(tempModule)
+		if not valid then
+			BETTERUI.Debug(string.format("[Validation] Module '%s' failed validation: %s", moduleName, tostring(err)))
+			return false
+		end
+	else
+		-- Fallback: basic Setup check
+		if type(moduleNamespace.Setup) ~= "function" then
+			BETTERUI.Debug(string.format("[Validation] Module '%s' has no Setup function", moduleName))
+			return false
+		end
+	end
+
+	-- Module is valid, call Setup
+	moduleNamespace.Setup()
+	return true
+end
+
 --- Loads and initializes all enabled modules.
 ---
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
 --- Mechanics: Calls RuntimeSetup.Apply() for API patches and settings migrations.
+---            Validates modules using CIM.Interfaces before calling Setup.
 ---            Initializes research data and module-specific setups (Inventory, Banking, Writs, etc.).
 --- References: Called on initialization and when switching to Gamepad mode.
 ---
@@ -221,41 +259,39 @@ function BETTERUI.LoadModules()
 
 	local settings = BETTERUI.Settings.Modules
 
-	-- Initialize CIM-dependent modules
-	-- Initialize CIM-dependent modules
+	-- Initialize CIM-dependent modules with validation
 	if BETTERUI.GetModuleEnabled("CIM") then
 		if BETTERUI.GetModuleEnabled("Inventory") and BETTERUI.Inventory then
+			-- Pre-Setup hooks (must run before Setup)
 			if BETTERUI.Inventory.HookDestroyItem then BETTERUI.Inventory.HookDestroyItem() end
 			if BETTERUI.Inventory.HookActionDialog then BETTERUI.Inventory.HookActionDialog() end
-			if BETTERUI.Inventory.Setup then BETTERUI.Inventory.Setup() end
+			-- Validated Setup
+			ValidateAndSetupModule("Inventory", BETTERUI.Inventory)
 		end
 
-		if BETTERUI.GetModuleEnabled("Banking") and BETTERUI.Banking and BETTERUI.Banking.Setup then
-			BETTERUI.Banking.Setup()
+		if BETTERUI.GetModuleEnabled("Banking") then
+			ValidateAndSetupModule("Banking", BETTERUI.Banking)
 		end
 	end
 
-	-- Initialize independent modules
-	if BETTERUI.GetModuleEnabled("Writs") and BETTERUI.Writs and BETTERUI.Writs.Setup then
-		BETTERUI.Writs.Setup()
+	-- Initialize independent modules with validation
+	if BETTERUI.GetModuleEnabled("Writs") then
+		ValidateAndSetupModule("Writs", BETTERUI.Writs)
 	end
 
 	-- Initialize General Interface (Settings & Tooltips)
-	-- We call this conditionally (based on Master Setting "Enable General Interface Improvements")
-	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.Setup then
-		BETTERUI.GeneralInterface.Setup()
+	if BETTERUI.GetModuleEnabled("GeneralInterface") then
+		ValidateAndSetupModule("GeneralInterface", BETTERUI.GeneralInterface)
 	end
 
-	-- Initialize Independent modules (Settings-aware)
-	-- Nameplates (Dependent on General Interface Master Setting)
-	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates and BETTERUI.Nameplates.Setup then
-		BETTERUI.Nameplates.Setup()
+	-- Nameplates (Dependent on General Interface)
+	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") then
+		ValidateAndSetupModule("Nameplates", BETTERUI.Nameplates)
 	end
 
 	-- Resource Orb Frames
-	-- Logic: If enabled, load it. If disabled, do NOT load it (so settings panel won't register).
-	if BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.Setup then
-		BETTERUI.ResourceOrbFrames.Setup()
+	if BETTERUI.GetModuleEnabled("ResourceOrbFrames") then
+		ValidateAndSetupModule("ResourceOrbFrames", BETTERUI.ResourceOrbFrames)
 	end
 
 	BETTERUI.Debug("Finished! BETTERUI is loaded")

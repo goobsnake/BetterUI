@@ -68,7 +68,7 @@ function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
                 end
                 -- Live refresh
                 if refreshFn then
-                    pcall(refreshFn)
+                    refreshFn()
                 end
             end,
             width = "full",

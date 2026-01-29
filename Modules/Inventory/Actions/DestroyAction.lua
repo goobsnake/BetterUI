@@ -29,9 +29,7 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
         DestroyItem(bagId, slotIndex)
         -- Proactively refresh inventory caches to reflect removal
         if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
-            pcall(function()
-                SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
-            end)
+            SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
         end
         -- UI refreshes (safe if scene present)
         zo_callLater(function()
