@@ -90,12 +90,14 @@ end
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
     GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
-    BETTERUI_Gamepad_ParametricList_Screen.Initialize(
+    -- Use UnifiedScreen initialization with CURRENCY footer mode
+    BETTERUI.CIM.UnifiedScreen.Initialize(
         self,
         control,
         ZO_GAMEPAD_HEADER_TABBAR_CREATE,
         false,
-        GAMEPAD_INVENTORY_ROOT_SCENE
+        GAMEPAD_INVENTORY_ROOT_SCENE,
+        BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 
     -- Initialize the actions object (using BetterUI custom subclass if available)
