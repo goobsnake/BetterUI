@@ -602,6 +602,27 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 hideDestroy = hideDestroyInDeposit,
             })
 
+            -- Add custom "Withdraw Max" / "Deposit Max" action for stacked items
+            if targetData and targetData.stackCount and targetData.stackCount > 1 then
+                local actionName = (self.currentMode == LIST_WITHDRAW)
+                    and GetString(SI_BETTERUI_BANK_WITHDRAW_MAX)
+                    or GetString(SI_BETTERUI_BANK_DEPOSIT_MAX)
+                local moveMaxAction = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    templateData = {
+                        text = actionName,
+                        setup = ZO_SharedGamepadEntry_OnSetup,
+                        callback = function()
+                            -- Move the full stack without dialog
+                            self:SaveListPosition()
+                            self:MoveItem(self.list)
+                            ZO_Dialogs_ReleaseDialog("BETTERUI_ACTIONS_DIALOG_QUICKSLOT")
+                        end,
+                    },
+                }
+                table.insert(parametricList, 1, moveMaxAction) -- Insert at top for easy access
+            end
+
             dialog:setupFunc()
         end
     end

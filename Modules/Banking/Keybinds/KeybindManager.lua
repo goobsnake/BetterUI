@@ -199,7 +199,18 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
                 self:SaveListPosition()
-                self:MoveItem(self.list)
+                local selectedData = self.list and self.list:GetSelectedData()
+                if selectedData then
+                    local stackCount = selectedData.stackCount or 1
+                    if stackCount > 1 then
+                        -- For stacked items, show quantity dialog
+                        local isDeposit = (self.currentMode == LIST_DEPOSIT)
+                        self:ShowQuantityDialog(isDeposit)
+                    else
+                        -- For single items, move directly
+                        self:MoveItem(self.list, 1)
+                    end
+                end
             end,
             visible = function()
                 return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and
