@@ -500,6 +500,10 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
         end
 
         if btn and not btn:IsHidden() then -- Only update if visible
+            -- Get cached children for this button
+            local cachedBtn = GetCachedButton(mapping.buttonName)
+            local children = cachedBtn and cachedBtn.children or {}
+
             local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, mapping.category)
             -- Use BackBar logic: stricter duration filter (1500) and ignore isGlobal
             local showCooldown = false
@@ -512,21 +516,22 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                 if effectRemaining and effectRemaining > 0 then
                     remainMs = effectRemaining
                     durationMs =
-                    remainMs               -- Effect timer doesn't have total duration usually accessible this way, just countdown
+                        remainMs -- Effect timer doesn't have total duration usually accessible this way, just countdown
                     showCooldown = true
                 end
             end
 
-            local cooldown = btn:GetNamedChild("Cooldown")
-            local cooldownEdge = btn:GetNamedChild("CooldownEdge")
-            local cooldownOverlay = btn:GetNamedChild("CooldownOverlay")
-            local iconControl = btn:GetNamedChild("Icon")
+            -- Use cached children (fall back to GetNamedChild only if cache miss)
+            local cooldown = children.Cooldown or btn:GetNamedChild("Cooldown")
+            local cooldownEdge = children.CooldownEdge or btn:GetNamedChild("CooldownEdge")
+            local cooldownOverlay = children.CooldownOverlay or btn:GetNamedChild("CooldownOverlay")
+            local iconControl = children.Icon or btn:GetNamedChild("Icon")
             -- Force use CooldownText if TimerText fails? BackBar uses CooldownText.
             -- FrontBar uses TimerText. Let's try CooldownText first as it might be better layered?
             -- But earlier I forced TimerText to DL_OVERLAY. I will stick with TimerText but apply fallback logic.
-            local timerText = btn:GetNamedChild("TimerText")
+            local timerText = children.TimerText or btn:GetNamedChild("TimerText")
             -- Also support CooldownText if TimerText is missing?
-            local altTimerText = btn:GetNamedChild("CooldownText")
+            local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
 
             if showCooldown then
                 if iconControl then iconControl:SetDesaturation(1) end
@@ -579,19 +584,19 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                             local iconWidth, iconHeight = iconControl:GetDimensions()
                             -- offsetY: At cooldown start (percent=0), slider at bottom (offsetY=iconHeight-3 to stay inside)
                             -- As cooldown progresses (percent->1), slider moves up (offsetY->0)
-                            local maxY = iconHeight - 3  -- Account for slider thickness to keep it inside icon
+                            local maxY = iconHeight - 3 -- Account for slider thickness to keep it inside icon
                             local offsetY = (1 - percentComplete) * maxY
 
                             cooldownEdge:ClearAnchors()
                             -- Use CENTER anchor for horizontal centering with reduced width
                             cooldownEdge:SetAnchor(TOP, iconControl, TOP, 0, offsetY)
-                            cooldownEdge:SetWidth(iconWidth - 6)  -- Reduce by 6px to fit inside visible border
+                            cooldownEdge:SetWidth(iconWidth - 6) -- Reduce by 6px to fit inside visible border
                             cooldownEdge:SetHidden(false)
                             cooldownEdge:SetDrawLayer(DL_OVERLAY)
 
                             -- GLASS FILL EFFECT: Resize CooldownOverlay to only cover area above slider
                             if cooldownOverlay then
-                                local overlayHeight = offsetY  -- Height from top to slider position
+                                local overlayHeight = offsetY -- Height from top to slider position
                                 cooldownOverlay:ClearAnchors()
                                 cooldownOverlay:SetAnchor(TOP, iconControl, TOP, 0, 0)
                                 cooldownOverlay:SetDimensions(iconWidth, overlayHeight)
@@ -621,7 +626,7 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                 if altTimerText then altTimerText:SetHidden(true) end
             end
 
-            local stackCountText = btn:GetNamedChild("StackCountText")
+            local stackCountText = children.StackCountText or btn:GetNamedChild("StackCountText")
             if stackCountText then
                 local stackCount = GetActionSlotEffectStackCount(mapping.slot, mapping.category)
                 if stackCount and stackCount > 0 then

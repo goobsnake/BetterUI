@@ -82,19 +82,3 @@ param: fn (function) - The replacement function.
 function BETTERUI.ReplaceHook(control, method, fn)
     createHookInternal(control, method, fn, "replace")
 end
-
---[[
-Function: BETTERUI.Hook (deprecated)
-Description: Legacy hook function - use PreHook/PostHook/ReplaceHook instead.
-param: control (table) - The UI control.
-param: method (string) - The method name.
-param: postHookFunction (function) - The new function.
-param: overwriteOriginal (boolean) - If true, the original method is NOT called.
-]]
-function BETTERUI.Hook(control, method, postHookFunction, overwriteOriginal)
-    if overwriteOriginal then
-        BETTERUI.ReplaceHook(control, method, postHookFunction)
-    else
-        BETTERUI.PostHook(control, method, postHookFunction)
-    end
-end

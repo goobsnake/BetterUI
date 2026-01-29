@@ -51,14 +51,6 @@ function BETTERUI.Inventory.Setup()
 
 	BETTERUI.Inventory.EnableTooltipMouseWheel()
 
-	-- Position tooltip container
-	local TOOLTIP_X_OFFSET = BETTERUI_TOOLTIP_X_OFFSET
-	local TOOLTIP_Y_OFFSET = BETTERUI_TOOLTIP_Y_OFFSET
-	local tooltipContainer = GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container
-	tooltipContainer:ClearAnchors()
-	tooltipContainer:SetAnchor(LEFT, ZO_GamepadTooltipTopLevelLeftTooltip, LEFT, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
-
-
 	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)
 	if not SaveEquip then
 		ZO_Dialogs_RegisterCustomDialog("CONFIRM_EQUIP_BOE", {

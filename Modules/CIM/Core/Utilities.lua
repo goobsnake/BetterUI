@@ -46,10 +46,6 @@ function BETTERUI.GetModuleEnabled(moduleName)
     if settings.m_enabled ~= nil then
         return settings.m_enabled
     end
-    -- Legacy fallback (enabled) - DEPRECATED, will be removed in v3.0
-    if settings.enabled ~= nil then
-        return settings.enabled
-    end
 
     return false
 end
