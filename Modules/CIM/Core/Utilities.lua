@@ -18,6 +18,8 @@ Mechanism: Prefixes the message with cyan [BETTERUI] tag and prints to chat.
 References: Used globally throughout the addon for debug logging.
 param: str (string) - The message string to display.
 ]]
+--- @param str string The message string to display
+--- @return any d() return value
 function BETTERUI.Debug(str)
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
@@ -37,6 +39,8 @@ return: boolean - True if the module is enabled.
 ]]
 -- NOTE: As of v2.8, 'm_enabled' is the canonical key. The 'enabled' fallback is retained for
 -- backward compatibility with older saved variables but will be removed in v3.0.
+--- @param moduleName string The key of the module in BETTERUI.Settings.Modules
+--- @return boolean enabled True if the module is enabled
 function BETTERUI.GetModuleEnabled(moduleName)
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return false end
     local settings = BETTERUI.Settings.Modules[moduleName]
@@ -63,6 +67,8 @@ References: Used by Inventory, Banking, and Writ lists to ensure icon validity.
 param: iconPath (string|nil) - The path to the icon texture.
 return: string - The icon path or an empty string.
 ]]
+--- @param iconPath string|nil The path to the icon texture
+--- @return string path The icon path or empty string
 function BETTERUI.SafeIcon(iconPath)
     if iconPath == nil then return "" end
     return iconPath
@@ -84,6 +90,8 @@ References: Used by Inventory, Banking for safe list selection access.
 param: list (table) - The list object to query.
 return: table|nil - The target data of the list.
 ]]
+--- @param list table|nil The list object to query
+--- @return table|nil targetData The target data of the list
 function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     if not list then return nil end
     if list.GetTargetData then
@@ -103,6 +111,9 @@ param: newValue (number) - The value to wrap.
 param: maxValue (number) - The maximum value (1 is implicit minimum).
 return: number - The wrapped value.
 ]]
+--- @param newValue number The value to wrap
+--- @param maxValue number The maximum value (1 is implicit minimum)
+--- @return number wrappedValue The wrapped value within [1, maxValue]
 function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
     if newValue < 1 then
         return maxValue
@@ -123,6 +134,9 @@ param: left (table) - The first item data.
 param: right (table) - The second item data.
 return: boolean - True if 'left' should appear before 'right'.
 ]]
+--- @param left table The first item data
+--- @param right table The second item data
+--- @return boolean result True if 'left' should appear before 'right'
 function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.CIM.CONST.SORT_SCHEMA,
         ZO_SORT_ORDER_UP)
@@ -138,6 +152,9 @@ param: bagId (number) - The bag ID to search.
 param: itemLink (string) - The item link to match against.
 return: number|nil - The slot index of a stackable slot, or nil if none found.
 ]]
+--- @param bagId number The bag ID to search
+--- @param itemLink string The item link to match against
+--- @return number|nil slotIndex The slot index of a stackable slot, or nil
 function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
     local bagSize = GetBagSize(bagId)
     for i = 0, bagSize - 1 do
@@ -160,6 +177,7 @@ Mechanism: Checks if wykkydsToolbar exists and sets its hidden state.
 References: Used by Inventory, Banking during scene state changes.
 param: hidden (boolean) - True to hide, false to show.
 ]]
+--- @param hidden boolean True to hide, false to show
 function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     if wykkydsToolbar then
         wykkydsToolbar:SetHidden(hidden)
@@ -175,6 +193,8 @@ References: Used by CIM/Tooltips/Tooltips.lua for research status display.
 param: itemLink (string) - The item link to check.
 return: number - Total count of matching researchable items across all house banks.
 ]]
+--- @param itemLink string The item link to check
+--- @return number total Total count of matching items across house banks
 function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     if not itemLink then return 0 end
     local houseBanks = {
@@ -198,6 +218,7 @@ Mechanism: Safely checks for scene existence before calling IsShowing().
 References: Used by Banking, Inventory for scene-guarded operations.
 return: boolean - True if the banking scene is showing.
 ]]
+--- @return boolean showing True if the banking scene is showing
 function BETTERUI.CIM.Utils.IsBankingSceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_banking']
     return scene and scene:IsShowing()
@@ -211,6 +232,7 @@ Mechanism: Safely checks for scene existence before calling IsShowing().
 References: Used by Inventory module for scene-guarded operations.
 return: boolean - True if the inventory scene is showing.
 ]]
+--- @return boolean showing True if the inventory scene is showing
 function BETTERUI.CIM.Utils.IsInventorySceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
     return scene and scene:IsShowing()
