@@ -178,6 +178,55 @@ function BETTERUI.InitModuleOptions()
 		},
 	}
 
+	-- Add Feature Flags submenu dynamically from FeatureFlags API
+	if BETTERUI.CIM and BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.GetAllFlags then
+		local flagControls = {
+			{
+				type = "header",
+				name = GetString(SI_BETTERUI_FEATURE_FLAGS_HEADER) or "Feature Flags",
+				width = "full",
+			},
+			{
+				type = "description",
+				text = GetString(SI_BETTERUI_FEATURE_FLAGS_DESC) or "Toggle experimental or optional features.",
+				width = "full",
+			},
+		}
+
+		local allFlags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
+		local FLAGS = BETTERUI.CIM.FeatureFlags.FLAGS
+
+		-- Sort flag names for consistent ordering
+		local sortedFlags = {}
+		for name in pairs(allFlags) do
+			table.insert(sortedFlags, name)
+		end
+		table.sort(sortedFlags)
+
+		for _, flagName in ipairs(sortedFlags) do
+			local flagData = allFlags[flagName]
+			local def = flagData.definition
+			table.insert(flagControls, {
+				type = "checkbox",
+				name = def.description or flagName,
+				tooltip = "Version " .. (def.version or "?") .. " | Key: " .. flagName,
+				getFunc = function()
+					return BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
+				end,
+				setFunc = function(value)
+					BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, value)
+				end,
+				width = "full",
+				requiresReload = (flagName == "ENHANCED_TOOLTIPS" or flagName == "BATCH_PROCESSING"),
+			})
+		end
+
+		-- Append flag controls to options table
+		for _, control in ipairs(flagControls) do
+			table.insert(optionsTable, control)
+		end
+	end
+
 	LAM:RegisterAddonPanel("BETTERUI_" .. "Modules", panelData)
 	LAM:RegisterOptionControls("BETTERUI_" .. "Modules", optionsTable)
 end

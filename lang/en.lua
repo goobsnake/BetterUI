@@ -151,6 +151,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Common Interface Module")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Enables added functionality to the completely redesigned \"Enhanced\" interfaces!")
 
+-- Feature Flags Settings
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
+    "Toggle experimental or optional features. Some changes may require a /reloadui.")
+
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "North")
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "Northwest")
 ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "West")
