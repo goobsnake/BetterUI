@@ -2,7 +2,7 @@
 File: Modules/Inventory/Constants.lua
 Purpose: Constants for the Inventory module.
          Includes search bar positioning, list entry icon sizing, and sort schema.
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
@@ -18,6 +18,28 @@ BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.TO
 BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE = 1
 BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE = 2
 BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE = 3
+
+-- ============================================================================
+-- LIST TYPE IDENTIFIERS
+-- Centralized string constants for SwitchActiveList and list mode tracking
+-- ============================================================================
+
+--[[
+Table: BETTERUI.Inventory.CONST.LIST_TYPES
+Description: List type identifiers for currentListType tracking in SwitchActiveList.
+             These are NOT the names passed to AddList(), but identifiers for mode switching.
+Used By: InventoryClass.lua, SwitchActiveList logic.
+]]
+BETTERUI.Inventory.CONST.LIST_TYPES = {
+    CATEGORY = "categoryList",
+    ITEM = "itemList",
+    CRAFT_BAG = "craftBagList",
+}
+
+-- Backward compatibility aliases (global constants for existing code)
+INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
+INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
+INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
 -- Timing & Batch Constants (delegate to CIM shared values)
 -- Debounce for heavy updates (e.g., full inventory refresh)

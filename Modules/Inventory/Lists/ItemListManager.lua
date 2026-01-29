@@ -4,8 +4,6 @@ Purpose: Manages the main item list (Backpack) for the Inventory module.
          Contains filtering, sorting, refreshing, and tooltip logic for items.
 Author: BetterUI Team
 Last Modified: 2026-01-28
-
--- TODO(doc): This header was missing the Last Modified field per project standards.
 ]]
 
 -- Localize frequently used globals

@@ -2,7 +2,7 @@
 File: Modules/Banking/Constants.lua
 Purpose: Constants for the Banking module.
          Includes search bar positioning and carousel overrides.
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Banking then BETTERUI.Banking = {} end
@@ -41,33 +41,38 @@ BETTERUI.Banking.CONST.CAROUSEL = {
 -- Controls the position of the search input field in banking headers
 -- ============================================================================
 
--- TODO(cleanup): Global constants (BETTERUI_BANK_SEARCH_*) should be moved to
--- BETTERUI.Banking.CONST.SEARCH namespace for consistency with other modules.
--- Same for BETTERUI_BANK_LIST_MAX_OFFSET, BETTERUI_BANK_HEADER_PADDING_SCALE, etc.
-
 --[[
-Constant: BETTERUI_BANK_SEARCH_X_OFFSET
-Description: Horizontal offset from left edge for search bar.
-Direction: Positive (+) moves RIGHT.
+Table: BETTERUI.Banking.CONST.SEARCH
+Description: Search bar positioning constants for Banking module.
 Used By: Banking.lua
 ]]
-BETTERUI_BANK_SEARCH_X_OFFSET = 58
+BETTERUI.Banking.CONST.SEARCH = {
+    --[[
+    Field: X_OFFSET
+    Description: Horizontal offset from left edge for search bar.
+    Direction: Positive (+) moves RIGHT.
+    ]]
+    X_OFFSET = 58,
 
---[[
-Constant: BETTERUI_BANK_SEARCH_Y_OFFSET
-Description: Vertical offset from header bottom for search bar.
-Direction: Positive (+) moves DOWN.
-Used By: Banking.lua
-]]
-BETTERUI_BANK_SEARCH_Y_OFFSET = 15
+    --[[
+    Field: Y_OFFSET
+    Description: Vertical offset from header bottom for search bar.
+    Direction: Positive (+) moves DOWN.
+    ]]
+    Y_OFFSET = 15,
 
---[[
-Constant: BETTERUI_BANK_SEARCH_RIGHT_INSET
-Description: Right edge inset for search bar width.
-Direction: Negative (-) moves LEFT (narrower).
-Used By: Banking.lua
-]]
-BETTERUI_BANK_SEARCH_RIGHT_INSET = -8
+    --[[
+    Field: RIGHT_INSET
+    Description: Right edge inset for search bar width.
+    Direction: Negative (-) moves LEFT (narrower).
+    ]]
+    RIGHT_INSET = -8,
+}
+
+-- Backward compatibility aliases (global constants for existing code)
+BETTERUI_BANK_SEARCH_X_OFFSET = BETTERUI.Banking.CONST.SEARCH.X_OFFSET
+BETTERUI_BANK_SEARCH_Y_OFFSET = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
+BETTERUI_BANK_SEARCH_RIGHT_INSET = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
 
 -- ============================================================================
 -- UI TWEAKS

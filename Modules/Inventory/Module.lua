@@ -2,7 +2,7 @@
 File: Modules/Inventory/Module.lua
 Purpose: Handles settings, font customization, currency configuration, and module initialization.
 Author: BetterUI Team
-Last Modified: 2026-01-23
+Last Modified: 2026-01-28
 ]]
 
 -- Shared font choices for Inventory (matches Nameplates for consistency)
@@ -57,9 +57,9 @@ function BETTERUI.Inventory.Setup()
 	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(3,
 		ZO_GamepadTooltipTopLevelLeftTooltip, 3, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
 
-	-- TODO(cleanup): The global 'inv' alias is an anti-pattern. External references should use
-	-- GAMEPAD_INVENTORY directly. Audit usage and remove this alias in a future cleanup pass.
-	-- Store reference for other modules (global 'inv' alias)
+	-- DEPRECATED (2026-01-28): The global 'inv' alias will be removed in v3.0.
+	-- External code should use GAMEPAD_INVENTORY directly.
+	-- Known consumers: Legacy BetterUI internal references, potential external addons.
 	inv = GAMEPAD_INVENTORY
 
 	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)

@@ -566,10 +566,20 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 -- BACKWARDS COMPATIBILITY ALIASES
 -- ============================================================================
 
--- TODO(CLEANUP): These backward compatibility aliases should be audited and removed once all
--- XML templates and external references have been updated to use the new namespaced constants.
--- Track usage with: grep -r "BETTERUI_GAMEPAD_DEFAULT" across the codebase.
--- Target: Remove by v3.0 release after migration period.
+-- AUDIT (2026-01-28): Backward compatibility aliases still in use by:
+--   XML Templates:
+--     - Modules/CIM/UI/GenericHeader.xml
+--     - Modules/CIM/UI/GenericFooter.xml
+--     - Modules/Banking/Templates/BankList.xml
+--     - Modules/Inventory/Templates/*.xml
+--   Lua Files:
+--     - Various legacy imports across Banking and Inventory modules
+--
+-- These aliases provide global constant names for XML attribute references which
+-- cannot use Lua namespace syntax (e.g., BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH).
+--
+-- TARGET: Audit and remove aliases after all XML templates are migrated to use
+-- virtual control offsets or Lua-based initialization. Planned for v3.0 release.
 
 -- Tooltip legacy aliases
 BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE = BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE

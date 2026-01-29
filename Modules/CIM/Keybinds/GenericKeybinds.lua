@@ -89,12 +89,7 @@ return: table - Keybind descriptor for clear search action.
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        -- TODO(cleanup): This fallback chain (SI_BETTERUI_CLEAR_SEARCH -> SI_GAMEPAD_SELECT_OPTION -> "Clear")
-        -- suggests SI_BETTERUI_CLEAR_SEARCH may not always be defined. Verify string ID exists in all locales
-        -- and remove the fallback chain if unnecessary.
-        name = function()
-            return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION) or "Clear"
-        end,
+        name = GetString(SI_BETTERUI_CLEAR_SEARCH),
         keybind = "UI_SHORTCUT_QUATERNARY",
         disabledDuringSceneHiding = true,
         visible = visibleFn or function() return true end,

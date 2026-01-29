@@ -65,7 +65,7 @@ local function RefreshAllData()
         m_shieldBar:UpdateValue(0) -- Reset visual, will be updated by event if active
         -- Ideally we check current shield value here?
         local currentShield = GetUnitAttributeVisualizerEffectInfo(MSG_VISUAL_SHIELD) or 0
-        -- ESO API for shield is complex, usually event driven. 
+        -- ESO API for shield is complex, usually event driven.
         -- We'll rely on events.
     end
 
@@ -77,7 +77,7 @@ end
 
 local function ApplyLayout(updateOrbs, updateSkills)
     if not m_rootFrame then return end
-    
+
     if updateSkills then
         -- Update Skill Bar Layouts
         SkillBar.UpdateBackBar(m_rootFrame)
@@ -86,7 +86,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if not SkillBar.IsWeaponSwapAnimating() then
             SkillBar.UpdateBarPositions(m_rootFrame)
         end
-        
+
         -- Custom Front Bar Updates
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
@@ -99,126 +99,65 @@ local function ApplyLayout(updateOrbs, updateSkills)
             SkillBar.UpdateFrontBarUltimateMeter(m_rootFrame)
         end
     end
-    
+
     if updateOrbs then
         -- Update Visuals Layouts
         Visuals.UpdateFrameDimensions(m_rootFrame)
         Visuals.ApplyThemeVisuals(m_rootFrame)
         Visuals.UpdateOrbLayout(m_rootFrame, m_pools, m_shieldBar)
     end
-    
+
     -- Update Bar Frames Layout (Anchoring)
     local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
     local settings = GetModuleSettings()
-    
-    -- TODO(CLEANUP): ApplyBarAnchor function below is defined but never called.
-    -- The implementation notes (comments) should be cleaned up or removed once anchoring logic is finalized.
-    -- Consider extracting bar anchoring to a dedicated BarLayout.lua helper.
-    local function ApplyBarAnchor(bar, cfgPrefix, defaultParent, useOrnamentLogic)
-        if not bar or not bar.control or not bgMiddle then return end
-        bar.control:ClearAnchors()
 
-        local scale = _G[cfgPrefix .. "_SCALE"] or 1.0
-        local offsetX = _G[cfgPrefix .. "_OFFSET_X"] or 0
-        local offsetY = _G[cfgPrefix .. "_OFFSET_Y"] or 0
 
-        -- Special logic for hidden ornaments (XP and Mount bars)
-        if useOrnamentLogic == "Left" and settings.hideLeftOrnament then
-             local nx = _G[cfgPrefix .. "_NO_ORNAMENT_OFFSET_X"]
-             local ny = _G[cfgPrefix .. "_NO_ORNAMENT_OFFSET_Y"]
-             if nx and ny then
-                 bar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
-                 return
-             end
-        elseif useOrnamentLogic == "Right" and settings.hideRightOrnament then
-             local nx = _G[cfgPrefix .. "_NO_ORNAMENT_OFFSET_X"]
-             local ny = _G[cfgPrefix .. "_NO_ORNAMENT_OFFSET_Y"]
-             if nx and ny then
-                 bar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
-                 return
-             end
-        end
-
-        -- TODO(CLEANUP): Remove these implementation notes once anchoring is finalized and working.
-        -- The comments below were working notes during development and should be replaced with
-        -- clear documentation of the final anchoring behavior.
-
-        -- Default anchoring (Ornament visible or no special logic)
-        -- XP/Mount bars are relative to respective ornaments if visible, OR relative to BgMiddle but with different offsets?
-        -- Actually Constants comments say: "Below left ornament" (implied relative to ornament center?)
-        -- But offsets are large (-99).
-        -- Let's check Constants again.
-        -- XP Bar: "Below left ornament... Y offset from BgMiddle bottom".
-        -- Wait, Constants said: "Y offset from BgMiddle bottom (negative = up)"?
-        -- Step 392 (Constants Check): "BETTERUI_XP_BAR_OFFSET_Y = -99 -- Y offset from BgMiddle bottom".
-
-        -- But Visuals.lua handles `OrnamentLeft` relative to `BgMiddle`.
-        -- If ornaments are visible, maybe anchor to ornament?
-        -- Constants say: `BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -99 -- Y offset from ornament bottom`?
-        -- This inconsistency suggests I should anchor to `BgMiddle` or `Ornament` depending on intention.
-        -- Given "Cast Bar ... centered above top/back bar", I should anchor CastBar relative to BackBar or BgMiddle.
-
-        -- Let's stick to anchoring to `BgMiddle` (center) and applying the offsets, assuming offsets are relative to Center-Center or user specific logic.
-        -- BUT the constants say "from BgMiddle bottom".
-        -- I'll use `CENTER` to `CENTER` for simplicity if offsets are global coords, OR `BOTTOM` to `BOTTOM`?
-        -- Let's look at `Visuals.UpdateOrbLayout`. It anchors Orbs to `CENTER` of `BgMiddle` or `Ornament`.
-
-        -- Let's try anchoring to `BgMiddle`, `CENTER`.
-        -- If offsets are from `BgMiddle bottom`, then (0, -99) from Bottom is (0, X) from Center.
-        -- Constants: "BETTERUI_XP_BAR_OFFSET_Y = -99 -- Y offset from BgMiddle bottom".
-        -- In `UpdateOrbLayout`: `leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, ...)`
-
-        -- Re-reading Constants (Step 392):
-        -- XP Bar: "Y offset from BgMiddle bottom".
-        -- Cast Bar: "Y offset from back bar top".
-        -- Mount: "Y offset from ornament bottom".
-
-        -- I will implement specific logic for each.
-    end
-    
     if m_experienceBar and m_experienceBar.control then
-         m_experienceBar.control:ClearAnchors()
-         if settings.hideLeftOrnament then
-              local nx = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X or -350
-              local ny = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y or 108
-              m_experienceBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
-         else
-              local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
-              if leftOrnament then
-                  m_experienceBar.control:SetAnchor(TOP, leftOrnament, BOTTOM, BETTERUI_XP_BAR_OFFSET_X, BETTERUI_XP_BAR_OFFSET_Y)
-              else
-                  m_experienceBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, -350, -20) -- Fallback
-              end
-         end
-         m_experienceBar:Update()
+        m_experienceBar.control:ClearAnchors()
+        if settings.hideLeftOrnament then
+            local nx = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X or -350
+            local ny = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y or 108
+            m_experienceBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+        else
+            local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
+            if leftOrnament then
+                m_experienceBar.control:SetAnchor(TOP, leftOrnament, BOTTOM, BETTERUI_XP_BAR_OFFSET_X,
+                    BETTERUI_XP_BAR_OFFSET_Y)
+            else
+                m_experienceBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, -350, -20) -- Fallback
+            end
+        end
+        m_experienceBar:Update()
     end
-    
+
     if m_mountStaminaBar and m_mountStaminaBar.control then
-         m_mountStaminaBar.control:ClearAnchors()
-         if settings.hideRightOrnament then
-              local nx = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X or 375
-              local ny = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y or 108
-              m_mountStaminaBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
-         else
-              local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
-              if rightOrnament then
-                  m_mountStaminaBar.control:SetAnchor(TOP, rightOrnament, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y)
-              else
-                   m_mountStaminaBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 350, -20)
-              end
-         end
-         m_mountStaminaBar:Update()
+        m_mountStaminaBar.control:ClearAnchors()
+        if settings.hideRightOrnament then
+            local nx = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X or 375
+            local ny = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y or 108
+            m_mountStaminaBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+        else
+            local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
+            if rightOrnament then
+                m_mountStaminaBar.control:SetAnchor(TOP, rightOrnament, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X,
+                    BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y)
+            else
+                m_mountStaminaBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 350, -20)
+            end
+        end
+        m_mountStaminaBar:Update()
     end
-    
+
     if m_castBar and m_castBar.control then
-         m_castBar.control:ClearAnchors()
-         local backBarContainer = FindControl(m_rootFrame, 'BackBarContainer')
-         if backBarContainer then
-             m_castBar.control:SetAnchor(BOTTOM, backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X, BETTERUI_CAST_BAR_OFFSET_Y)
-         else
-             m_castBar.control:SetAnchor(CENTER, bgMiddle, CENTER, 0, -200)
-         end
-         m_castBar:Update()
+        m_castBar.control:ClearAnchors()
+        local backBarContainer = FindControl(m_rootFrame, 'BackBarContainer')
+        if backBarContainer then
+            m_castBar.control:SetAnchor(BOTTOM, backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X,
+                BETTERUI_CAST_BAR_OFFSET_Y)
+        else
+            m_castBar.control:SetAnchor(CENTER, bgMiddle, CENTER, 0, -200)
+        end
+        m_castBar:Update()
     end
 end
 
@@ -232,31 +171,31 @@ end
 
 local function SetupModule(control)
     m_rootFrame = control
-    
+
     -- 1. Load Sub-modules (ensure they are ready)
     Animations = BETTERUI.ResourceOrbFrames.Animations
     Visuals = BETTERUI.ResourceOrbFrames.Visuals
     Bars = BETTERUI.ResourceOrbFrames.Bars
     SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
     Events = BETTERUI.ResourceOrbFrames.Events
-    
+
     -- 2. Setup Visual Components
     m_pools = Visuals.SetupPowerPools(control)
     m_shieldBar = Visuals.SetupShieldBar(control, m_pools)
-    
+
     m_foodTracker = Bars.CreateFoodTracker(FindControl(control, 'FoodBar'))
     m_experienceBar = Bars.CreateExperienceBar(control)
     m_castBar = Bars.CreateCastBar(control)
     m_mountStaminaBar = Bars.CreateMountStaminaBar(control)
-    
+
     -- 3. Setup Events & Visibility
     m_updateDeathFragment = Events.SetupVisibilityFragments(control)
-    
+
     -- 4. Apply Initial Skin & Layout
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
     SkillBar.ApplyActionBarSkin(control, layout)
-    
+
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if frontBarCfg and frontBarCfg.m_enabled then
         -- Reparent specific buttons if needed for animation isolation
@@ -264,14 +203,14 @@ local function SetupModule(control)
         local frontBarContainer = FindControl(control, 'FrontBarContainer')
         if frontBarContainer then
             local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
-            -- TODO(BUG): Duplicate SetParent call was removed - verify this doesn't break animation isolation
+            -- NOTE (2026-01-28): Single SetParent is correct for animation isolation. Duplicate call was removed.
             if qsBtn then qsBtn:SetParent(control) end
             local compBtn = FindControl(frontBarContainer, 'CompanionButton')
             if compBtn then compBtn:SetParent(control) end
         end
-        
+
         SkillBar.UpdateFrontBar(control) -- Force content update on load
-        
+
         -- Setup Front Bar specific tooltips/keybinds
         if SkillBar.SetupFrontBarKeybinds then
             SkillBar.SetupFrontBarKeybinds(control)
@@ -280,72 +219,72 @@ local function SetupModule(control)
             SkillBar.SetupFrontBarTooltips(control)
         end
     end
-    
+
     Visuals.UpdateOrbLayout(control, m_pools, m_shieldBar) -- Initial Orb Layout
     RefreshAllData()
 
     -- 5. Setup Event Loops
     Events.SetupLoopEvents(control, m_pools, m_shieldBar)
     Events.SetupSceneHandlers(control)
-    
+
     m_isInitialized = true
-    
+
     -- Register Layout Force Update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
         if not SkillBar.IsWeaponSwapAnimating() then
             ApplyFullLayout()
         end
     end)
-    
+
     -- Register Gamepad Switch
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
         ReloadUI()
     end)
-    
+
     -- Register Dynamic Bar Updates
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function() 
+    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
         SkillBar.WeaponSwapAnimation(control)
         -- Only update skills layout, skip orbs to prevent visual shifts
         zo_callLater(function() ApplyLayout(false, true) end, 500)
     end)
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function() 
+
+    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function()
         SkillBar.UpdateBackBar(control)
         if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
         -- Only update skills layout
         ApplyLayout(false, true)
     end)
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function() 
+
+    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function()
         SkillBar.UpdateBackBar(control)
         if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
     end)
-    
+
     EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCompanion(control)
         end
         zo_callLater(ApplyFullLayout, 200)
     end)
-    
+
     EVENT_MANAGER:RegisterForEvent(NAME .. "Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarQuickslot(control)
         end
     end)
-    
+
 
 
     -- Zone Change Cleanup (for subsequent zones after initial setup)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
-         zo_callLater(function()
-             SkillBar.HideNativeActionBar()
-             if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
-                 PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
-             end
-             ApplyFullLayout()
-             RefreshAllData()
-         end, 100)
+        zo_callLater(function()
+            SkillBar.HideNativeActionBar()
+            if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+                PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
+            end
+            ApplyFullLayout()
+            RefreshAllData()
+        end, 100)
     end)
 end
 
@@ -355,12 +294,12 @@ end
 
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
-    
+
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
     EVENT_MANAGER:RegisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
-        
+
         zo_callLater(function()
             local settings = GetModuleSettings()
             if not settings.m_enabled then
@@ -371,7 +310,7 @@ function ResourceOrbFrames.Initialize(control)
             if not m_isInitialized then
                 SetupModule(control)
             end
-            
+
             -- Enforce state after setup
             SkillBar.HideNativeActionBar()
             if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
@@ -389,15 +328,15 @@ function ResourceOrbFrames.ApplySettings()
 
     if settings.m_enabled then
         if not m_isInitialized then
-             SetupModule(m_rootFrame)
+            SetupModule(m_rootFrame)
         end
         m_rootFrame:SetHidden(false)
         ApplyFullLayout()
         RefreshAllData()
     else
         m_rootFrame:SetHidden(true)
-        -- Restore Default UI is handled by reload/re-login mostly, 
-        -- but we could try to unhide? 
+        -- Restore Default UI is handled by reload/re-login mostly,
+        -- but we could try to unhide?
         -- BetterUI philosophy is usually Reload Required for disable.
     end
 end

@@ -3,7 +3,7 @@ File: Modules/Inventory/Core/InventoryClass.lua
 Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization logic,
          header management, and high-level caching mechanisms.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-01-28
 ]]
 
 -- Subclass ZO_GamepadInventory
@@ -17,14 +17,8 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- Validated Globals for Core
 -- NOTE: GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
 
--- List type identifiers for SwitchActiveList
--- NOTE: These are identifiers for currentListType tracking, NOT the names passed to AddList()
--- SwitchActiveList uses these to decide which mode we're in and accesses lists via self.itemList, self.craftBagList directly
--- TODO(CLEANUP): These global constants duplicate the local definitions in Inventory.lua.
--- Consider moving to BETTERUI.Inventory.CONST.LIST_TYPES to have a single source of truth.
-INVENTORY_CATEGORY_LIST = "categoryList"
-INVENTORY_ITEM_LIST = "itemList"
-INVENTORY_CRAFT_BAG_LIST = "craftBagList"
+-- List type identifiers sourced from BETTERUI.Inventory.CONST.LIST_TYPES (see Inventory/Constants.lua)
+-- The global aliases (INVENTORY_CATEGORY_LIST, etc.) are created there for backward compatibility.
 
 -- Apply Mixins (populated by other modules like PositionManager)
 if BETTERUI.Inventory.ClassMixins then

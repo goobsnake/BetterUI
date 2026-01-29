@@ -10,14 +10,26 @@
 --
 -- Writ detection patterns are defined in Constants.lua for centralized maintenance.
 -- FUTURE: Add support for additional crafting types as ESO adds them
-
--- TODO(REFACTOR): The hardcoded control names (BETTERUI_WritsPanelSlotContainerExtractionSlotWritName,
--- BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc) should be stored as references
--- during initialization rather than accessed by global name each time Show() is called.
--- This would improve performance and make the code more maintainable.
+-- Last Modified: 2026-01-28
 ---------------------------------------------------------------------------------------------------
 
 local _
+
+-- Cached control references (populated by CacheControls during addon init)
+local m_writNameLabel = nil
+local m_writDescLabel = nil
+local m_writsPanel = nil
+
+--- Caches control references for performance.
+---
+--- Purpose: Avoids repeated global lookups in Show() each time panel is displayed.
+--- Mechanics: Stores references to UI controls at startup.
+--- References: Called during addon initialization.
+function BETTERUI.Writs.CacheControls()
+	m_writNameLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritName
+	m_writDescLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc
+	m_writsPanel = BETTERUI_WritsPanel
+end
 
 --- Gets formatted writ conditions for a specific quest.
 ---
@@ -33,8 +45,8 @@ local _
 function BETTERUI.Writs.Get(qId)
 	local writLines = {}
 	local writConcate = ''
-	for lineId = 1, GetJournalQuestNumConditions(qId,1) do
-		local writLine,current,maximum,_,complete = GetJournalQuestConditionInfo(qId,1,lineId)
+	for lineId = 1, GetJournalQuestNumConditions(qId, 1) do
+		local writLine, current, maximum, _, complete = GetJournalQuestConditionInfo(qId, 1, lineId)
 		local colour
 		if writLine ~= '' then
 			if current == maximum then
@@ -42,11 +54,11 @@ function BETTERUI.Writs.Get(qId)
 			else
 				colour = BETTERUI.Writs.CONST.COLORS.INCOMPLETE
 			end
-			writLines[lineId] = {line=zo_strformat("|c<<1>><<2>>|r",colour,writLine),cur=current,max=maximum}
+			writLines[lineId] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
 		end
 	end
-	for key,line in pairs(writLines) do
-		writConcate = zo_strformat("<<1>><<2>>\n",writConcate,line.line)
+	for key, line in pairs(writLines) do
+		writConcate = zo_strformat("<<1>><<2>>\n", writConcate, line.line)
 	end
 
 	return writConcate
@@ -62,15 +74,15 @@ end
 ---
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
-	for qId=1, MAX_JOURNAL_QUESTS do
+	for qId = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(qId) then
 			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
-				local qName,_,qDesc,_,_,qCompleted  = GetJournalQuestInfo(qId)
-				local currentWrit = -1
-				local q = string.lower(qName or "")
+				local qName, _, qDesc, _, _, qCompleted = GetJournalQuestInfo(qId)
+				local currentWrit                  = -1
+				local q                            = string.lower(qName or "")
 				-- Use patterns from Constants.lua for maintainability
 				-- Order matters: last match wins as in the original chain
-				local patterns = BETTERUI.Writs.CONST.PATTERNS
+				local patterns                     = BETTERUI.Writs.CONST.PATTERNS
 				for i = 1, #patterns do
 					local pat = patterns[i].pattern
 					local craft = patterns[i].craftType
@@ -93,17 +105,24 @@ end
 --- Mechanics:
 --- - Calls `Update` to refresh data.
 --- - LOOKUP: Checks `BETTERUI.Writs.List` for the given `writType` (station type).
---- - If found, updates `WritName` (Title) and `WritDesc` (Objectives).
+--- - If found, updates cached controls with quest name and objectives.
 --- - Sets Panel to Visible.
 ---
 --- @param writType number The crafting type ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
-		local qName,_,activeText,_,_,completed = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
-		BETTERUI_WritsPanelSlotContainerExtractionSlotWritName:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>",qName))
-		BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc:SetText(zo_strformat("<<1>>",BETTERUI.Writs.List[writType].writLines))
-		BETTERUI_WritsPanel:SetHidden(false)
+		local qName, _, activeText, _, _, completed = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
+		-- Use cached control references for performance
+		if m_writNameLabel then
+			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", qName))
+		end
+		if m_writDescLabel then
+			m_writDescLabel:SetText(zo_strformat("<<1>>", BETTERUI.Writs.List[writType].writLines))
+		end
+		if m_writsPanel then
+			m_writsPanel:SetHidden(false)
+		end
 	end
 end
 
@@ -111,5 +130,9 @@ end
 ---
 --- Purpose: Cleanly removes the UI overlay.
 function BETTERUI.Writs.Hide()
-	BETTERUI_WritsPanel:SetHidden(true)
+	if m_writsPanel then
+		m_writsPanel:SetHidden(true)
+	else
+		BETTERUI_WritsPanel:SetHidden(true)
+	end
 end

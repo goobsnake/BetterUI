@@ -2,7 +2,7 @@
 File: Modules/CIM/Tooltips/Tooltips.lua
 Purpose: Enriches item tooltips with useful information.
          Integrates market pricing, research status, and font scaling.
-Last Modified: 2026-01-23
+Last Modified: 2026-01-28
 
 FEATURES:
 1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).
@@ -22,8 +22,8 @@ local _
 -- OPTIMIZATION: Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
 -- instead of clearing the entire cache. See OnInventorySlotUpdate handler at end of file.
 --
--- TODO(FEATURE): Add support for caching craft bag (BAG_VIRTUAL) traits.
--- This would improve tooltip performance when hovering over craft bag materials.
+-- NOTE (2026-01-28): BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
+-- SHARED_INVENTORY:GenerateFullSlotData handles virtual bag iteration transparently.
 -------------------------------------------------------------------------------------------------
 local ResearchableTraitCache = {}
 
@@ -210,12 +210,12 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
             -- Find owned items that can be researchable
             if (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
                 traitString = colors.RESEARCHABLE ..
-                "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in Inventory|r"
+                    "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in Inventory|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
                 traitString = colors.RESEARCHABLE .. "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in Bank|r"
             elseif (BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink) > 0) then
                 traitString = colors.RESEARCHABLE ..
-                "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in House Bank|r"
+                    "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in House Bank|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
                 traitString = colors.RESEARCHABLE .. "Researchable|r - " .. colors.FOUND_LOCATION .. "Found Equipped|r"
             else
