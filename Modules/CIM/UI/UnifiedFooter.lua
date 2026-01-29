@@ -36,6 +36,8 @@ Description: Creates a new UnifiedFooterController instance.
 param: control (Control) - The XML control to manage.
 return: UnifiedFooterController
 ]]
+--- @param control Control The XML control to manage
+--- @return UnifiedFooterController
 function UnifiedFooterController:New(control)
     local obj = ZO_Object.New(self)
     obj:Initialize(control)
@@ -69,6 +71,7 @@ Function: UnifiedFooterController:SetMode
 Description: Sets the footer display mode and refreshes if needed.
 param: mode (number) - One of BETTERUI.CIM.UnifiedFooter.MODE values.
 ]]
+--- @param mode number One of BETTERUI.CIM.UnifiedFooter.MODE values
 function UnifiedFooterController:SetMode(mode)
     if self.mode ~= mode then
         self.mode = mode
@@ -81,6 +84,7 @@ Function: UnifiedFooterController:GetMode
 Description: Returns the current footer display mode.
 return: number - Current mode value.
 ]]
+--- @return number mode Current mode value
 function UnifiedFooterController:GetMode()
     return self.mode
 end
@@ -158,6 +162,8 @@ Description: Factory function to create a UnifiedFooterController.
 param: control (Control) - The XML control to manage.
 return: UnifiedFooterController
 ]]
+--- @param control Control The XML control to manage
+--- @return UnifiedFooterController
 function BETTERUI.CIM.UnifiedFooter.Create(control)
     return UnifiedFooterController:New(control)
 end
