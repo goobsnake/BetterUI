@@ -1,6 +1,21 @@
 # UI Layout Consolidation: Full Template Unification
 
-Complete unification of Inventory and Banking UI layouts including XML templates, class hierarchy, and constants.
+Complete unification of Inventory and Banking UI layouts including XML templates, class hierarchy, constants, and improved quantity selection dialogs.
+
+---
+
+## Executive Summary
+
+**Goals**:
+1. Achieve visual and structural consistency between Inventory and Banking modules
+2. Replace inline Banking spinner with proper modal dialog for quantity selection
+
+**Key Findings from ESO API Research**:
+- ESO native uses `GAMEPAD_DIALOGS.ITEM_SLIDER` for quantity selection (see `gamepadinventory.lua:546-605`)
+- BetterUI Inventory already uses this pattern correctly (`Inventory.lua:588`)
+- Banking uses inline spinner overlay on item list (inelegant, confusing UX)
+- Both ESO native modules inherit from `ZO_Gamepad_ParametricList_BagsSearch_Screen`
+- BetterUI Banking diverges by using custom `BETTERUI.Interface.Window`
 
 ---
 
@@ -8,60 +23,23 @@ Complete unification of Inventory and Banking UI layouts including XML templates
 
 ```mermaid
 graph TB
-    subgraph "Current: Inventory"
-        IC["BETTERUI.Inventory.Class"]
-        PLSC["BETTERUI_Gamepad_ParametricList_Screen"]
-        ZOPLSC["ZO_Gamepad_ParametricList_Screen"]
-        IC --> PLSC --> ZOPLSC
+    subgraph "BetterUI: Inventory ✓"
+        BIC["BETTERUI.Inventory.Class"]
+        BPLS["BETTERUI_Gamepad_ParametricList_Screen"]
+        BIC --> BPLS
     end
     
-    subgraph "Current: Banking"
-        BC["BETTERUI.Banking.Class"]
-        GW["BETTERUI.CIM.GenericWindow"]
-        IW["BETTERUI.Interface.Window"]
-        ZO["ZO_Object"]
-        BC --> GW --> IW --> ZO
+    subgraph "BetterUI: Banking ✗"
+        BBC["BETTERUI.Banking.Class"]
+        BGW["BETTERUI.CIM.GenericWindow"]
+        BIW["BETTERUI.Interface.Window"]
+        BBC --> BGW --> BIW
     end
     
-    subgraph "XML Templates"
-        XT1["BETTERUI_Gamepad_ParametricList_Screen (Inventory)"]
-        XT2["BETTERUI_GenericInterface (Banking)"]
-    end
-```
-
-### Template Comparison
-
-| Component | Inventory Template | Banking Template | Gap |
-|-----------|-------------------|------------------|-----|
-| **Root** | `BETTERUI_Gamepad_ParametricList_Screen` | `BETTERUI_GenericInterface` | Different structures |
-| **Header** | `BETTERUI_GamepadGenericScreenHeader` | `BETTERUI_GenericInterfaceHeader` | Similar but separate |
-| **Footer** | `BETTERUI_GamepadGenericScreenFooter` (currencies) | `BETTERUI_GenericInterfaceFooter` (Withdraw/Deposit) | Different content |
-| **List Container** | `BETTERUI_Gamepad_ParametricList_Screen_ListContainer` | Inline in parent | Different anchoring |
-
----
-
-## Target Architecture
-
-```mermaid
-graph TB
-    subgraph "Unified: Both Modules"
-        UBC["BETTERUI.CIM.UnifiedScreen"]
-        PLSC2["BETTERUI_Gamepad_ParametricList_Screen"]
-        ZOPLSC2["ZO_Gamepad_ParametricList_Screen"]
-        UBC --> PLSC2 --> ZOPLSC2
-    end
-    
-    subgraph "Modules"
-        IC2["BETTERUI.Inventory.Class"] --> UBC
-        BC2["BETTERUI.Banking.Class"] --> UBC
-    end
-    
-    subgraph "Unified XML"
-        UT["BETTERUI_UnifiedScreen"]
-        UH["BETTERUI_UnifiedHeader"]
-        UF["BETTERUI_UnifiedFooter (mode: CURRENCY | BANKING)"]
-        UT --> UH
-        UT --> UF
+    subgraph "Problem: Inline Spinner"
+        IS["Banking.lua:ActivateSpinner()"]
+        SP["Spinner overlays item list"]
+        IS --> SP
     end
 ```
 
@@ -71,188 +49,162 @@ graph TB
 
 ### Phase 1: Consolidate Layout Constants
 
-Migrate divergent constants to unified CIM values.
-
 #### [MODIFY] [CIM/Constants.lua](file:///x:/Git/BetterUI/Modules/CIM/Constants.lua)
 
-Add unified screen layout constants:
+Add `BETTERUI.CIM.CONST.SCREEN` with unified search, icon, and spinner dimensions.
 
-```lua
-BETTERUI.CIM.CONST.SCREEN = {
-    SEARCH = {
-        X_OFFSET = 56,
-        Y_OFFSET = 8,
-        RIGHT_INSET = -6,
-    },
-    LIST = {
-        HEADER_X_OFFSET = -50,
-        HEADER_Y_OFFSET = -25,
-        FOOTER_Y_OFFSET = 10,
-    },
-    ICON = {
-        SIZE_SMALL = 16,
-        SIZE_MEDIUM = 24,
-        SIZE_LARGE = 34,
-    },
-}
-```
-
-#### [MODIFY] [Inventory/Constants.lua](file:///x:/Git/BetterUI/Modules/Inventory/Constants.lua)
+#### [MODIFY] [Inventory/Constants.lua](file:///x:/Git/BetterUI/Modules/Inventory/Constants.lua) / [Banking/Constants.lua](file:///x:/Git/BetterUI/Modules/Banking/Constants.lua)
 
 Delegate to CIM shared values.
 
-#### [MODIFY] [Banking/Constants.lua](file:///x:/Git/BetterUI/Modules/Banking/Constants.lua)
-
-Delegate to CIM shared values, remove carousel overrides.
-
 ---
 
-### Phase 2: Create Unified Footer Template
+### Phase 2: Create Banking Quantity Dialog
 
-Create a single footer template that supports multiple content modes.
+> [!IMPORTANT]
+> **User Request**: Replace inline spinner with proper modal dialog for withdraw/deposit quantity selection.
 
-#### [NEW] [CIM/Templates/UnifiedFooter.xml](file:///x:/Git/BetterUI/Modules/CIM/Templates/UnifiedFooter.xml)
+#### [NEW] [Banking/Dialogs/QuantityDialog.lua](file:///x:/Git/BetterUI/Modules/Banking/Dialogs/QuantityDialog.lua)
 
-```xml
-<Control name="BETTERUI_UnifiedFooter" virtual="true">
-    <!-- Mode 1: Currency display (Inventory) -->
-    <Control name="$(parent)CurrencyContent" hidden="false">
-        <!-- Currency labels from GenericFooter.xml -->
-    </Control>
-    
-    <!-- Mode 2: Banking controls (Withdraw/Deposit) -->
-    <Control name="$(parent)BankingContent" hidden="true">
-        <!-- Withdraw/Deposit from GenericInterfaceFooter -->
-    </Control>
-</Control>
-```
-
-#### [NEW] [CIM/UI/UnifiedFooter.lua](file:///x:/Git/BetterUI/Modules/CIM/UI/UnifiedFooter.lua)
+Create `BETTERUI_BANK_QUANTITY_DIALOG` using ESO's `GAMEPAD_DIALOGS.ITEM_SLIDER` pattern:
 
 ```lua
-BETTERUI.CIM.CONST.FOOTER_MODE = {
-    CURRENCY = 1,
-    BANKING = 2,
-}
+BETTERUI_BANK_QUANTITY_DIALOG = "BETTERUI_BANK_QUANTITY_DIALOG"
 
-function BETTERUI.UnifiedFooter:SetMode(mode)
-    local currencyContent = self.footer:GetNamedChild("CurrencyContent")
-    local bankingContent = self.footer:GetNamedChild("BankingContent")
-    
-    if mode == BETTERUI.CIM.CONST.FOOTER_MODE.CURRENCY then
-        currencyContent:SetHidden(false)
-        bankingContent:SetHidden(true)
-    else
-        currencyContent:SetHidden(true)
-        bankingContent:SetHidden(false)
-    end
+function BETTERUI.Banking.InitializeQuantityDialog()
+    ZO_Dialogs_RegisterCustomDialog(BETTERUI_BANK_QUANTITY_DIALOG, {
+        canQueue = true,
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.ITEM_SLIDER,
+        },
+        title = {
+            text = function(dialog)
+                return dialog.data.isDeposit 
+                    and GetString(SI_BETTERUI_BANK_DEPOSIT_QUANTITY)
+                    or GetString(SI_BETTERUI_BANK_WITHDRAW_QUANTITY)
+            end,
+        },
+        mainText = {
+            text = SI_GAMEPAD_INVENTORY_SPLIT_STACK_PROMPT,
+        },
+        OnSliderValueChanged = function(dialog, sliderControl, value)
+            dialog.sliderValue1:SetText(dialog.data.stackSize - value)
+            dialog.sliderValue2:SetText(value)
+        end,
+        buttons = {
+            { keybind = "DIALOG_NEGATIVE", text = SI_DIALOG_CANCEL },
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = SI_GAMEPAD_SELECT_OPTION,
+                callback = function(dialog)
+                    local data = dialog.data
+                    local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
+                    BETTERUI.Banking.Window:MoveItem(data.list, quantity)
+                    CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED")
+                end,
+            },
+        },
+    })
 end
-```
-
----
-
-### Phase 3: Create Unified Screen Template
-
-Consolidate `BETTERUI_Gamepad_ParametricList_Screen` and `BETTERUI_GenericInterface` into one.
-
-#### [MODIFY] [CIM/Templates/ParametricScrollListTemplates.xml](file:///x:/Git/BetterUI/Modules/CIM/Templates/ParametricScrollListTemplates.xml)
-
-Update `BETTERUI_Gamepad_ParametricList_Screen` to use unified footer:
-
-```diff
- <Control name="BETTERUI_Gamepad_ParametricList_Screen" ...>
-     <Controls>
-         ...
-         <Control name="$(parent)FooterContainer"
--            inherits="BETTERUI_GamepadScreenFooterContainer ..."/>
-+            inherits="BETTERUI_UnifiedFooter ..."/>
-     </Controls>
- </Control>
-```
-
----
-
-### Phase 4: Create Unified Screen Base Class
-
-#### [NEW] [CIM/Core/UnifiedScreen.lua](file:///x:/Git/BetterUI/Modules/CIM/Core/UnifiedScreen.lua)
-
-```lua
-BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
-
-function BETTERUI.CIM.UnifiedScreen:Initialize(control, footerMode, ...)
-    BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, ...)
-    
-    -- Configure footer mode
-    self.footerMode = footerMode or BETTERUI.CIM.CONST.FOOTER_MODE.CURRENCY
-    self:SetFooterMode(self.footerMode)
-end
-
-function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
-    BETTERUI.UnifiedFooter.SetMode(self, mode)
-end
-```
-
----
-
-### Phase 5: Migrate Banking to Unified Template
-
-#### [NEW] [Banking/Templates/BankingScreen.xml](file:///x:/Git/BetterUI/Modules/Banking/Templates/BankingScreen.xml)
-
-Create Banking-specific instantiation of unified template:
-
-```xml
-<TopLevelControl name="BETTERUI_BankingTopLevel"
-    inherits="BETTERUI_Gamepad_ParametricList_Screen">
-    <!-- Banking-specific footer mode is set in Lua -->
-</TopLevelControl>
-```
-
-#### [MODIFY] [Banking/Core/BankingClass.lua](file:///x:/Git/BetterUI/Modules/Banking/Core/BankingClass.lua)
-
-```diff
--BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
-+BETTERUI.Banking.Class = BETTERUI.CIM.UnifiedScreen:Subclass()
-
- function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
--    BETTERUI.CIM.GenericWindow.Initialize(self, tlw_name, scene_name)
-+    BETTERUI.CIM.UnifiedScreen.Initialize(
-+        self,
-+        BETTERUI_BankingTopLevel,
-+        BETTERUI.CIM.CONST.FOOTER_MODE.BANKING
-+    )
-     ...
- end
 ```
 
 #### [MODIFY] [Banking/Banking.lua](file:///x:/Git/BetterUI/Modules/Banking/Banking.lua)
 
-Update initialization to use new template structure (significant refactoring of control lookups).
-
----
-
-### Phase 6: Migrate Inventory to Unified Base
-
-#### [MODIFY] [Inventory/Core/InventoryClass.lua](file:///x:/Git/BetterUI/Modules/Inventory/Core/InventoryClass.lua)
+Replace `ActivateSpinner`/`DeactivateSpinner` with dialog:
 
 ```diff
--function BETTERUI.Inventory.Class:Initialize(control)
-+function BETTERUI.Inventory.Class:Initialize(control)
-+    BETTERUI.CIM.UnifiedScreen.Initialize(
-+        self,
-+        control,
-+        BETTERUI.CIM.CONST.FOOTER_MODE.CURRENCY
-+    )
-     ...
+-function BETTERUI.Banking.Class:ActivateSpinner()
+-    self.spinner:SetHidden(false)
+-    self.spinner:Activate()
+-    ...
+-end
+
++function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
++    local targetData = self:GetList().selectedData
++    if not targetData then return end
++    
++    ZO_Dialogs_ShowGamepadDialog(BETTERUI_BANK_QUANTITY_DIALOG, {
++        bagId = targetData.bagId,
++        slotIndex = targetData.slotIndex,
++        stackSize = targetData.stackCount or 1,
++        isDeposit = isDeposit,
++        list = self:GetList(),
++    })
++end
 ```
+
+#### [NEW] Localization strings
+
+Add to `lang/en.lua`:
+- `SI_BETTERUI_BANK_DEPOSIT_QUANTITY = "Deposit How Many?"`
+- `SI_BETTERUI_BANK_WITHDRAW_QUANTITY = "Withdraw How Many?"`
 
 ---
 
-### Phase 7: Deprecate Legacy Templates
+### Phase 3: Extract Spinner Templates (Cleanup)
 
-#### [DELETE] Legacy files after migration verified
+#### [MODIFY] [InterfaceLibrary.xml](file:///x:/Git/BetterUI/Modules/CIM/Templates/InterfaceLibrary.xml)
 
-- `CIM/Templates/InterfaceLibrary.xml` → `BETTERUI_GenericInterface` section (keep other utilities)
-- `CIM/Core/WindowClass.lua` → Functionality merged into `UnifiedScreen.lua`
+Remove inline spinner from `BETTERUI_GenericInterface` footer (no longer needed for Banking).
+
+Keep currency selector templates for gold deposit/withdraw.
+
+---
+
+### Phase 4: Create Unified Footer Template
+
+#### [NEW] [UnifiedFooter.xml](file:///x:/Git/BetterUI/Modules/CIM/Templates/UnifiedFooter.xml) + [UnifiedFooter.lua](file:///x:/Git/BetterUI/Modules/CIM/UI/UnifiedFooter.lua)
+
+Single footer with mode switching: `CURRENCY` (Inventory) vs `BANKING` (Withdraw/Deposit buttons).
+
+---
+
+### Phase 5: Update Screen Template
+
+#### [MODIFY] [ParametricScrollListTemplates.xml](file:///x:/Git/BetterUI/Modules/CIM/Templates/ParametricScrollListTemplates.xml)
+
+Integrate unified footer.
+
+---
+
+### Phase 6: Create Unified Base Class
+
+#### [NEW] [UnifiedScreen.lua](file:///x:/Git/BetterUI/Modules/CIM/Core/UnifiedScreen.lua)
+
+Common parent for Inventory and Banking with footer mode configuration.
+
+---
+
+### Phase 7: Migrate Inventory (LOW RISK)
+
+#### [MODIFY] [InventoryClass.lua](file:///x:/Git/BetterUI/Modules/Inventory/Core/InventoryClass.lua)
+
+Inherit from `BETTERUI.CIM.UnifiedScreen`.
+
+---
+
+### Phase 8: Migrate Banking (HIGH RISK)
+
+> [!WARNING]
+> Significant refactoring required.
+
+#### [NEW] [BankingScreen.xml](file:///x:/Git/BetterUI/Modules/Banking/Templates/BankingScreen.xml)
+
+#### [MODIFY] [BankingClass.lua](file:///x:/Git/BetterUI/Modules/Banking/Core/BankingClass.lua)
+
+Inherit from `BETTERUI.CIM.UnifiedScreen`, remove spinner logic.
+
+---
+
+### Phase 9: Deprecate Legacy Templates
+
+Remove `BETTERUI_GenericInterface`, migrate `WindowClass.lua` utilities.
+
+---
+
+### Phase 10: Update Manifest
+
+Add new files to `BetterUI.txt` in correct load order.
 
 ---
 
@@ -260,66 +212,29 @@ Update initialization to use new template structure (significant refactoring of 
 
 | Phase | Action | File |
 |-------|--------|------|
-| 1 | MODIFY | `CIM/Constants.lua` |
-| 1 | MODIFY | `Inventory/Constants.lua` |
-| 1 | MODIFY | `Banking/Constants.lua` |
-| 2 | NEW | `CIM/Templates/UnifiedFooter.xml` |
-| 2 | NEW | `CIM/UI/UnifiedFooter.lua` |
-| 2 | MODIFY | `CIM/Templates/GenericFooter.xml` - Migrate content |
-| 3 | MODIFY | `CIM/Templates/ParametricScrollListTemplates.xml` |
-| 4 | NEW | `CIM/Core/UnifiedScreen.lua` |
-| 5 | NEW | `Banking/Templates/BankingScreen.xml` |
-| 5 | MODIFY | `Banking/Core/BankingClass.lua` |
-| 5 | MODIFY | `Banking/Banking.lua` |
-| 6 | MODIFY | `Inventory/Core/InventoryClass.lua` |
-| 7 | MODIFY | `CIM/Templates/InterfaceLibrary.xml` |
-| 7 | DELETE | Parts of `CIM/Core/WindowClass.lua` |
+| 1 | MODIFY | `CIM/Constants.lua`, `Inventory/Constants.lua`, `Banking/Constants.lua` |
+| 2 | NEW | `Banking/Dialogs/QuantityDialog.lua` |
+| 2 | MODIFY | `Banking/Banking.lua` (remove inline spinner) |
+| 2 | MODIFY | `lang/en.lua` (add strings) |
+| 3 | MODIFY | `CIM/Templates/InterfaceLibrary.xml` |
+| 4 | NEW | `CIM/Templates/UnifiedFooter.xml`, `CIM/UI/UnifiedFooter.lua` |
+| 5 | MODIFY | `CIM/Templates/ParametricScrollListTemplates.xml` |
+| 6 | NEW | `CIM/Core/UnifiedScreen.lua` |
+| 7 | MODIFY | `Inventory/Core/InventoryClass.lua` |
+| 8 | NEW | `Banking/Templates/BankingScreen.xml` |
+| 8 | MODIFY | `Banking/Core/BankingClass.lua`, `Banking/Banking.lua` |
+| 9 | MODIFY | `CIM/Templates/InterfaceLibrary.xml`, `CIM/Core/WindowClass.lua` |
+| 10 | MODIFY | `BetterUI.txt` |
 
 ---
 
 ## Verification Plan
 
-### Automated
-```powershell
-# Syntax check all modified Lua files
-Get-ChildItem -Path "x:\Git\BetterUI\Modules" -Recurse -Filter "*.lua" | 
-    ForEach-Object { luac -p $_.FullName }
-```
+### Per-Phase
+- **Phase 2**: Test quantity dialog for deposit/withdraw partial stacks
+- **Phases 7-8**: Full module functionality tests
 
-### Manual Testing
-
-**Test 1: Inventory Functionality**
-1. Open Inventory (Start button)
-2. Navigate categories with LB/RB
-3. Search with text filter
-4. Select items, verify tooltip
-5. Check currency footer displays correctly
-
-**Test 2: Banking Functionality**
-1. Visit bank NPC
-2. Verify Withdraw/Deposit mode toggle works
-3. Navigate categories
-4. Search items
-5. Deposit/withdraw operations
-6. Check footer buttons function correctly
-
-**Test 3: Visual Comparison**
-- Screenshot both screens
-- Verify: divider position, tab bar alignment, search box position, list start position, icon sizes
-
----
-
-## Risk Mitigation
-
-> [!WARNING]
-> **High-Risk Changes**: Banking class inheritance change requires careful testing of all Banking functionality.
-
-**Rollback Strategy:**
-1. Create Git branch `feature/ui-unification` before starting
-2. Implement in phases with commits between each
-3. Phase 5 (Banking migration) should be a separate PR
-
-**Incremental Testing:**
-- Test after each phase before proceeding
-- Phases 1-4 are low-risk (additive)
-- Phases 5-6 are high-risk (refactoring)
+### Final
+1. Screenshot comparison of both UIs
+2. All banking operations work correctly
+3. No inline spinner visible on item list

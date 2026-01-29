@@ -718,5 +718,8 @@ function BETTERUI.Banking.Init()
 
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
+    -- Initialize the quantity selection dialog (replaces inline spinner)
+    BETTERUI.Banking.InitializeQuantityDialog()
+
     esoSubscriber = IsESOPlusSubscriber()
 end

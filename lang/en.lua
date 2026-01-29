@@ -501,6 +501,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
 ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")
 
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")

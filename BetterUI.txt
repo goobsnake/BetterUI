@@ -141,6 +141,7 @@ Modules\Banking\Search\SearchManager.lua
 Modules\Banking\State\StateManager.lua
 Modules\Banking\Images\nav_vert.dds
 Modules\Banking\Images\selectbg.dds
+Modules\Banking\Dialogs\QuantityDialog.lua
 Modules\Banking\Banking.lua
 Modules\Banking\Settings\SettingsPanel.lua
 Modules\Banking\Module.lua
