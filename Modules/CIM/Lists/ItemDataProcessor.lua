@@ -26,6 +26,9 @@ param: options (table) - Optional configuration:
     - visualDataInit (function): Custom visual data initializer (defaults to BETTERUI.Inventory.Class.InitializeInventoryVisualData).
 return: ZO_GamepadEntryData - The entry data ready for list:AddEntry().
 ]]
+--- @param itemData table Raw item data from SHARED_INVENTORY or similar
+--- @param options table|nil Optional configuration
+--- @return ZO_GamepadEntryData|nil data The entry data ready for list:AddEntry()
 function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     options = options or {}
 
@@ -95,6 +98,11 @@ param: currentCategoryName (string|nil) - The current category name for header c
 param: useHeaders (boolean) - Whether to use AutoCategory-style headers.
 return: string - The new current category name (for tracking).
 ]]
+--- @param list table The scroll list to add to
+--- @param data ZO_GamepadEntryData The entry data
+--- @param currentCategoryName string|nil The current category name for header comparison
+--- @param useHeaders boolean Whether to use AutoCategory-style headers
+--- @return string currentCategoryName The new current category name
 function BETTERUI.CIM.AddItemEntryToList(list, data, currentCategoryName, useHeaders)
     local template = "BETTERUI_GamepadItemSubEntryTemplate"
 

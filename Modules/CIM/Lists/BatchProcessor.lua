@@ -41,6 +41,7 @@ param: options (table|nil) - Configuration:
   - remainingBatchSize (number): Items per subsequent batch (default: 200)
   - batchDelay (number): Delay between batches in ms (default: 10)
 ]]
+--- @param options table|nil Configuration options
 function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     options = options or {}
     self.initialBatchSize = options.initialBatchSize or BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_INITIAL
@@ -66,6 +67,8 @@ param: options (table) - Processing configuration:
   - onComplete (function): Called when all items processed: fn(context)
   - isActiveCheck (function): Returns true if processing should continue
 ]]
+--- @param data table Array of items to process
+--- @param options table Processing configuration
 function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
     -- Cancel any existing batch
     self:Cancel()
@@ -174,6 +177,7 @@ Function: IsActive
 Description: Returns true if batch processing is in progress.
 return: boolean
 ]]
+--- @return boolean active True if batch processing is in progress
 function BETTERUI.CIM.Lists.BatchProcessor:IsActive()
     return self.pendingData ~= nil
 end
