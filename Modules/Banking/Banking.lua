@@ -707,5 +707,8 @@ function BETTERUI.Banking.Init()
     -- Initialize the quantity selection dialog (replaces inline spinner)
     BETTERUI.Banking.InitializeQuantityDialog()
 
+    -- Configure unified footer for BANKING mode
+    BETTERUI.Banking.Window:SetupUnifiedFooter()
+
     esoSubscriber = IsESOPlusSubscriber()
 end

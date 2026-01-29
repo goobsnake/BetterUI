@@ -74,3 +74,35 @@ return: boolean - True if the banking scene is currently showing.
 function BETTERUI.Banking.Class:IsSceneShowing()
     return BETTERUI.CIM.Utils.IsBankingSceneShowing()
 end
+
+--[[
+Function: BETTERUI.Banking.Class:SetupUnifiedFooter
+Description: Configures the unified footer for BANKING mode.
+Rationale: Ensures consistent footer mode when Banking scene shows.
+Mechanism: Finds the UnifiedFooterController and sets BANKING mode.
+]]
+function BETTERUI.Banking.Class:SetupUnifiedFooter()
+    -- Look for the footer controller in our control hierarchy
+    local footerContainer = self.control and self.control.container and
+        self.control.container:GetNamedChild("FooterContainer")
+    if footerContainer and footerContainer.unifiedFooter then
+        self.unifiedFooterController = footerContainer.unifiedFooter
+        self.unifiedFooterController:SetMode(BETTERUI.CIM.UnifiedFooter.MODE.BANKING)
+    end
+end
+
+--[[
+Function: BETTERUI.Banking.Class:RefreshFooter
+Description: Refreshes the footer display.
+Rationale: Overrides GenericWindow placeholder to use UnifiedFooter.
+]]
+function BETTERUI.Banking.Class:RefreshFooter()
+    if self.unifiedFooterController then
+        self.unifiedFooterController:Refresh()
+    else
+        -- Fallback to legacy GenericFooter if unified footer not available
+        if BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh then
+            BETTERUI.GenericFooter:Refresh()
+        end
+    end
+end
