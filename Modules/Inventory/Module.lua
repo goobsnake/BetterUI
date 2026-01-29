@@ -54,13 +54,9 @@ function BETTERUI.Inventory.Setup()
 	-- Position tooltip container
 	local TOOLTIP_X_OFFSET = BETTERUI_TOOLTIP_X_OFFSET
 	local TOOLTIP_Y_OFFSET = BETTERUI_TOOLTIP_Y_OFFSET
-	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(3,
-		ZO_GamepadTooltipTopLevelLeftTooltip, 3, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
+	GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.fragment.control.container:SetAnchor(LEFT,
+		ZO_GamepadTooltipTopLevelLeftTooltip, LEFT, TOOLTIP_X_OFFSET, TOOLTIP_Y_OFFSET, 0)
 
-	-- DEPRECATED (2026-01-28): The global 'inv' alias will be removed in v3.0.
-	-- External code should use GAMEPAD_INVENTORY directly.
-	-- Known consumers: Legacy BetterUI internal references, potential external addons.
-	inv = GAMEPAD_INVENTORY
 
 	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)
 	if not SaveEquip then

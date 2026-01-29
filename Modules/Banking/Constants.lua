@@ -75,6 +75,23 @@ BETTERUI_BANK_SEARCH_Y_OFFSET = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
 BETTERUI_BANK_SEARCH_RIGHT_INSET = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
 
 -- ============================================================================
+-- CURRENCY TEXTURES
+-- Icons for currency type selectors in deposit/withdraw dialogs
+-- ============================================================================
+
+--[[
+Table: BETTERUI.Banking.CONST.CURRENCY_TEXTURES
+Description: Maps currency type constants to their gamepad icon paths.
+Used By: TransferActions.lua (DisplaySelector)
+]]
+BETTERUI.Banking.CONST.CURRENCY_TEXTURES = {
+    [CURT_MONEY] = "EsoUI/Art/currency/gamepad/gp_gold.dds",
+    [CURT_TELVAR_STONES] = "EsoUI/Art/currency/gamepad/gp_telvar.dds",
+    [CURT_ALLIANCE_POINTS] = "esoui/art/currency/gamepad/gp_alliancepoints.dds",
+    [CURT_WRIT_VOUCHERS] = "EsoUI/Art/currency/gamepad/gp_writvoucher.dds",
+}
+
+-- ============================================================================
 -- UI TWEAKS
 -- Magic numbers extracted from Banking.lua and StateManager.lua
 -- ============================================================================

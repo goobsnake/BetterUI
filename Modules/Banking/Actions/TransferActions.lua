@@ -228,15 +228,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
         self.selector:SetClampValues(0, currency_max)
         self.selector.control:GetParent():SetHidden(false)
 
-        local CURRENCY_TYPE_TO_TEXTURE =
-        {
-            [CURT_MONEY] = "EsoUI/Art/currency/gamepad/gp_gold.dds",
-            [CURT_TELVAR_STONES] = "EsoUI/Art/currency/gamepad/gp_telvar.dds",
-            [CURT_ALLIANCE_POINTS] = "esoui/art/currency/gamepad/gp_alliancepoints.dds",
-            [CURT_WRIT_VOUCHERS] = "EsoUI/Art/currency/gamepad/gp_writvoucher.dds",
-        }
-
-        self.selectorCurrency:SetTexture(CURRENCY_TYPE_TO_TEXTURE[currencyType])
+        self.selectorCurrency:SetTexture(BETTERUI.Banking.CONST.CURRENCY_TEXTURES[currencyType])
 
         self.selector:Activate()
         self.list:Deactivate()

@@ -1,7 +1,7 @@
 --[[
 File: Modules/ResourceOrbFrames/OrbEvents.lua
 Purpose: Manages periodic updates (ticks) and global event registrations (Visibility, Combat).
-Last Modified: 2026-01-23
+Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -19,7 +19,7 @@ end
 local function EnforceDefaultUIHidden()
     local settings = GetModuleSettings()
     if not settings.m_enabled then return end
-    
+
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
@@ -28,58 +28,71 @@ local function EnforceDefaultUIHidden()
     end
 end
 
+-- Debounced version of EnforceDefaultUIHidden to prevent overlapping calls.
+-- Multiple rapid events (death, reincarnate, scene change) will coalesce into one call.
+local m_hideCallLaterId = nil
+local function DeferredEnforceHide(delayMs)
+    if m_hideCallLaterId then
+        zo_removeCallLater(m_hideCallLaterId)
+    end
+    m_hideCallLaterId = zo_callLater(function()
+        m_hideCallLaterId = nil
+        EnforceDefaultUIHidden()
+    end, delayMs or 50)
+end
+
 function Events.SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
     HUD_SCENE:AddFragment(fragment)
     HUD_UI_SCENE:AddFragment(fragment)
-    
+
     local function UpdateDeathFragment()
         fragment:SetHiddenForReason("Dead", IsUnitDead("player"))
     end
-    
+
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
-    
+
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
-    
+
     EVENT_MANAGER:RegisterForEvent(NAME .. "_DeathEnforce", EVENT_PLAYER_DEAD, function()
-        zo_callLater(EnforceDefaultUIHidden, 100)
+        DeferredEnforceHide(100)
     end)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_AliveEnforce", EVENT_PLAYER_ALIVE, function()
-        zo_callLater(EnforceDefaultUIHidden, 100)
+        DeferredEnforceHide(100)
     end)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED, function()
-        zo_callLater(EnforceDefaultUIHidden, 100)
+        DeferredEnforceHide(100)
     end)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
-        zo_callLater(EnforceDefaultUIHidden, 100)
+        DeferredEnforceHide(100)
     end)
-    
+
     if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDScene then
         local originalRestoreHUDScene = SCENE_MANAGER.RestoreHUDScene
         SCENE_MANAGER.RestoreHUDScene = function(self, ...)
             local result = originalRestoreHUDScene(self, ...)
-            zo_callLater(EnforceDefaultUIHidden, 50)
+            DeferredEnforceHide(50)
             return result
         end
     end
-    
+
     if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDUIScene then
         local originalRestoreHUDUIScene = SCENE_MANAGER.RestoreHUDUIScene
         SCENE_MANAGER.RestoreHUDUIScene = function(self, ...)
             local result = originalRestoreHUDUIScene(self, ...)
-            zo_callLater(EnforceDefaultUIHidden, 50)
+            DeferredEnforceHide(50)
             return result
         end
     end
-    
+
     local lootScene = SCENE_MANAGER:GetScene("loot")
     if lootScene then
         lootScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-                zo_callLater(EnforceDefaultUIHidden, 50)
+                DeferredEnforceHide(50)
             end
         end)
     end
@@ -87,11 +100,11 @@ function Events.SetupVisibilityFragments(rootFrame)
     if lootGamepadScene then
         lootGamepadScene:RegisterCallback("StateChange", function(oldState, newState)
             if newState == SCENE_HIDING or newState == SCENE_HIDDEN then
-                zo_callLater(EnforceDefaultUIHidden, 50)
+                DeferredEnforceHide(50)
             end
         end)
     end
-    
+
     return UpdateDeathFragment
 end
 
@@ -108,17 +121,17 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
         end
     end
     EVENT_MANAGER:RegisterForUpdate(NAME .. "BackBarCooldown", 100, CooldownTick)
-    
+
     -- Animation Tick (33ms = 30fps)
     local lastAnimTime = GetGameTimeMilliseconds()
     local function AnimationTick()
         local settings = GetModuleSettings()
         if not settings.orbAnimFlow then return end
-        
+
         local now = GetGameTimeMilliseconds()
         local deltaMs = now - lastAnimTime
         lastAnimTime = now
-        
+
         if pools then
             for powerType, pool in pairs(pools) do
                 if pool and pool.UpdateAnimation then
@@ -134,38 +147,38 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
 end
 
 function Events.SetupSceneHandlers(rootFrame)
-   local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-   if frontBarCfg and frontBarCfg.m_enabled then
-        local hudScene = SCENE_MANAGER:GetScene("hud")
-        if hudScene then
-            hudScene:RegisterCallback("StateChange", function(oldState, newState)
-                if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
-                    zo_callLater(function()
-                        SkillBar.HideNativeActionBar()
-                        -- We need to re-apply layout here? 
-                        -- In original code it called ApplyFullLayout().
-                        -- ApplyFullLayout is local to core SetupModule.
-                        -- We can trigger an event or call global if exposed.
-                        -- For now, let's just ensure hiding. 
-                        -- The main layout should persist unless cleared.
-                        -- But weapon swap animation might have messed anchors if interrupted?
-                        -- Ideally we fire an event here that Core listens to.
-                        CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end, 50)
-                end
-            end)
+    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
+
+    -- Shared callback for HUD scene visibility changes.
+    -- Debounced to coalesce rapid scene transitions.
+    local m_sceneCallLaterId = nil
+    local function OnHUDSceneShowing()
+        if m_sceneCallLaterId then
+            zo_removeCallLater(m_sceneCallLaterId)
         end
-        
-        local hudUIScene = SCENE_MANAGER:GetScene("hudui")
-        if hudUIScene then
-            hudUIScene:RegisterCallback("StateChange", function(oldState, newState)
-                if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
-                    zo_callLater(function()
-                        SkillBar.HideNativeActionBar()
-                        CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end, 50)
-                end
-            end)
-        end
-   end
+        m_sceneCallLaterId = zo_callLater(function()
+            m_sceneCallLaterId = nil
+            SkillBar.HideNativeActionBar()
+            CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+        end, 50)
+    end
+
+    local hudScene = SCENE_MANAGER:GetScene("hud")
+    if hudScene then
+        hudScene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                OnHUDSceneShowing()
+            end
+        end)
+    end
+
+    local hudUIScene = SCENE_MANAGER:GetScene("hudui")
+    if hudUIScene then
+        hudUIScene:RegisterCallback("StateChange", function(oldState, newState)
+            if newState == SCENE_SHOWING or newState == SCENE_SHOWN then
+                OnHUDSceneShowing()
+            end
+        end)
+    end
 end
