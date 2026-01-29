@@ -58,6 +58,7 @@ Modules\CIM\Lists\HorizontalScrollList.lua
 Modules\CIM\Lists\TabBarScrollList.lua
 Modules\CIM\Lists\SubList.lua
 Modules\CIM\Lists\ParametricListScreen.lua
+Modules\CIM\Core\UnifiedScreen.lua
 Modules\CIM\Templates\InterfaceLibrary.xml
 Modules\CIM\Core\KeybindHelpers.lua
 Modules\CIM\Core\TooltipLayout.lua
