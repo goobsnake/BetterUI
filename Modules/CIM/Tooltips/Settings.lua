@@ -2,6 +2,7 @@
     BetterUI Tooltip Settings
     Description: Configuration options for BetterUI Tooltip enhancements.
     Part of the General Interface module.
+    Last Modified: 2026-01-28
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end

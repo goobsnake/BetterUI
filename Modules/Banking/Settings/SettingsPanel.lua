@@ -3,7 +3,7 @@ File: Modules/Banking/Settings/SettingsPanel.lua
 Purpose: Extracted LAM settings panel for Banking module.
          Matches Inventory's structure with dedicated Settings folder.
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-01-28
 ]]
 
 local LAM = LibAddonMenu2

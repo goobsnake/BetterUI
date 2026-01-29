@@ -2,6 +2,7 @@
 File: Modules/Inventory/Settings/SettingsPanel.lua
 Purpose: Handles the LAM settings panel construction for the Inventory module.
          Aggregates settings from FontSettings, CurrencySettings, and internal general settings.
+Last Modified: 2026-01-28
 ]]
 
 local LAM = LibAddonMenu2
