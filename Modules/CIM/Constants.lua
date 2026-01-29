@@ -424,6 +424,21 @@ BETTERUI.CIM.CONST.COLORS = {
     -- Tab bar icon colors for category navigation
     TAB_ICON_GOLD = { 1, 0.95, 0.5, 1 }, -- Gold tint for category icons
     TAB_ICON_FILTER = { 1, 1, 1, 1 },    -- White for filter type icons
+
+    -- Tooltip research status colors (hex strings for inline coloring)
+    RESEARCHABLE = "00FF00",   -- Green for "Researchable" text
+    FOUND_LOCATION = "FF9900", -- Orange for "Found in X" location text
+}
+
+--[[
+Table: BETTERUI.CIM.CONST.SEARCH_CHILD_NAMES
+Description: Child control names to check for mouse interactivity in search controls.
+Rationale: Centralizes fragile hardcoded array for easier maintenance.
+Used By: CIM/Core/SearchManager.lua PatchMouseInteractivity function.
+]]
+BETTERUI.CIM.CONST.SEARCH_CHILD_NAMES = {
+    "Edit", "TextField", "SearchEdit", "Input", "Entry",
+    "EditBox", "SearchIcon", "Icon", "Texture", "InputContainer"
 }
 
 -- ============================================================================

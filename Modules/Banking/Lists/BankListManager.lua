@@ -373,13 +373,73 @@ end
 --[[
 Function: OnItemSelectedChange
 Description: Callback when list selection changes.
-
--- TODO(refactor): This function is 80+ lines with deeply nested conditionals.
--- Consider breaking into smaller helpers:
---   1. HandleCurrencyRowSelection(selectedData)
---   2. HandleItemRowSelection(selectedData)
---   3. UpdateKeybindsForSelection(isCurrencyRow)  <- This pattern repeats 4 times
+Rationale: Manages keybind swapping and tooltip updates based on selection type.
+Mechanism: Delegates to helpers for currency rows, item rows, and keybind updates.
+References: Called by list selection change callback.
 ]]
+
+--------------------------------------------------------------------------------
+-- SELECTION CHANGE HELPERS
+--------------------------------------------------------------------------------
+
+--[[
+Function: UpdateKeybindsForSelection
+Description: Updates keybind button groups based on whether a currency or item row is selected.
+Rationale: Extracted from OnItemSelectedChange to eliminate 4x repetition of keybind update pattern.
+param: self (table) - The Banking class instance.
+param: isCurrencyRow (boolean) - True if currency row is selected.
+]]
+local function UpdateKeybindsForSelection(self, isCurrencyRow)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    if isCurrencyRow then
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
+    else
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
+    end
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+end
+
+--[[
+Function: HandleItemRowSelection
+Description: Handles tooltip layout for item rows.
+Rationale: Extracted from OnItemSelectedChange to improve readability.
+param: selectedData (table) - The selected item data.
+]]
+local function HandleItemRowSelection(selectedData)
+    if selectedData.bagId and selectedData.slotIndex then
+        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
+        -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
+        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if tooltip then
+            tooltip._betterui_bagId = selectedData.bagId
+            tooltip._betterui_slotIndex = selectedData.slotIndex
+            tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
+        end
+        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+    else
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+    end
+end
+
+--[[
+Function: HandleCurrencyRowSelection
+Description: Handles keybinds and tooltip for currency header rows.
+Rationale: Extracted from OnItemSelectedChange to reduce nesting.
+param: self (table) - The Banking class instance.
+]]
+local function HandleCurrencyRowSelection(self)
+    UpdateKeybindsForSelection(self, true)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    self:RefreshCurrencyTooltip()
+end
+
+--------------------------------------------------------------------------------
+-- MAIN SELECTION CHANGE HANDLER
+--------------------------------------------------------------------------------
+
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     -- Check if we are on the "Deposit/withdraw" gold/telvar row
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
@@ -387,81 +447,37 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     if not SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
         return
     end
+
+    -- Handle empty selection
     if not selectedData then
-        -- No selection (empty list). Default to item keybinds and clear tooltip.
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-        -- Refresh coreKeybinds to update Y button visibility for empty selection
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+        UpdateKeybindsForSelection(self, false)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        -- Also hide enhanced tooltip elements
         BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         self:UpdateActions()
         return
     end
+
     -- Only treat currency header rows when the active category is All Items
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
-    if (currentUsedBank == BAG_BANK) then
-        if (selectedData.label ~= nil and activeCategoryForHeader and activeCategoryForHeader.key == "all") then
-            -- Yes! We are on a currency row, so add the "withdraw/deposit gold/telvar" keybinds here
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.currencyKeybinds)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.currencyKeybinds)
-            -- Refresh coreKeybinds to hide Y button on currency rows
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 
-            -- Hide BetterUI custom tooltip and divider (they may persist from the last item viewed)
-            BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    if currentUsedBank == BAG_BANK then
+        local isCurrencyRow = selectedData.label ~= nil
+            and activeCategoryForHeader
+            and activeCategoryForHeader.key == "all"
 
-            self:RefreshCurrencyTooltip()
+        if isCurrencyRow then
+            HandleCurrencyRowSelection(self)
         else
-            -- We are not on currency row, add the "withdraw/deposit" keybinds here
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-            -- Refresh coreKeybinds to show Y button on item rows
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-
-            if selectedData.bagId and selectedData.slotIndex then
-                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
-                -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
-                local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-                if tooltip then
-                    tooltip._betterui_bagId = selectedData.bagId
-                    tooltip._betterui_slotIndex = selectedData.slotIndex
-                    tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-                end
-                BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
-            else
-                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-            end
+            UpdateKeybindsForSelection(self, false)
+            HandleItemRowSelection(selectedData)
         end
     else
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-        -- Refresh coreKeybinds to update Y button visibility
-        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-        if selectedData.bagId and selectedData.slotIndex then
-            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
-            -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
-            local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-            if tooltip then
-                tooltip._betterui_bagId = selectedData.bagId
-                tooltip._betterui_slotIndex = selectedData.slotIndex
-                tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-            end
-            BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
-        else
-            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-        end
+        -- Non-bank bags (guild bank, house bank, etc.)
+        UpdateKeybindsForSelection(self, false)
+        HandleItemRowSelection(selectedData)
         self:RefreshCurrencyTooltip()
     end
+
     self:UpdateActions()
 end
 

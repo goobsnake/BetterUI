@@ -24,11 +24,6 @@ Rationale: Used by X-button keybind to show "Assign Quickslot" vs other actions.
 Mechanism: Checks filter types, hotbar validity, and existing assignments.
 param: sd (table) - Slot data of the item to check
 return: boolean - True if item can be quickslotted
-
--- TODO(refactor): The X-button keybind logic (name/visible/callback) repeats the same
--- IsQuickslottable check, isQuestItem check, and filter type retrieval 3+ times.
--- Consider extracting to a helper like GetXButtonActionContext(self) that returns
--- {actionType, itemData, isQuest, filterType} to avoid redundant API calls.
 ]]
 local function IsQuickslottable(sd)
     if not sd or not sd.bagId or not sd.slotIndex then
@@ -58,6 +53,45 @@ local function IsQuickslottable(sd)
         return true
     end
     return false
+end
+
+--[[
+Function: GetXButtonActionContext
+Description: Computes the action context for the X-button keybind.
+Rationale: Eliminates redundant API calls by computing isQuickslottable, isQuestItem,
+           and filterType once and reusing across name/visible/callback.
+Mechanism: Retrieves target data and computes all relevant properties.
+param: self (table) - The Inventory class instance.
+return: table|nil - {target, isQuestItem, isQuickslottable, filterType, isEquipment, isUsableQuest}
+]]
+local function GetXButtonActionContext(self)
+    if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+        return nil
+    end
+    local target = self.itemList.selectedData
+    if not target then return nil end
+
+    local filterType = nil
+    if target.bagId and target.slotIndex then
+        filterType = GetItemFilterTypeInfo(target.bagId, target.slotIndex)
+    end
+
+    local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType
+        and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+        or false
+
+    local isEquipment = filterType == ITEMFILTERTYPE_WEAPONS
+        or filterType == ITEMFILTERTYPE_ARMOR
+        or filterType == ITEMFILTERTYPE_JEWELRY
+
+    return {
+        target = target,
+        isQuestItem = isQuestItem,
+        isQuickslottable = IsQuickslottable(target),
+        filterType = filterType,
+        isEquipment = isEquipment,
+        isUsableQuest = isQuestItem and target.meetsUsageRequirement or false,
+    }
 end
 
 --------------------------------------------------------------------------------

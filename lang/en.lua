@@ -32,6 +32,10 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_TOKENS", "Outfit Tokens")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS", "Seals")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS", "Tome Points")
 
+-- Footer Capacity Labels
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BAG:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANK:")
+
 
 
 -- Footer Currency Display Labels (short versions for footer display)

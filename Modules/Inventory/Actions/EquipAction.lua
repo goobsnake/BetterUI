@@ -2,11 +2,52 @@
 File: Modules/Inventory/Actions/EquipAction.lua
 Purpose: Handles item equipping logic, including "Bind on Equip" protection,
          equipment slot selection dialogs (e.g. Ring 1 vs Ring 2), and companion equipment patching.
-
--- TODO(DRY): The performEquipAction logic (lines 138-195) and ReleaseDialog callback (lines 273-341)
--- contain nearly identical CallSecureProtected patterns for each equipType. Extract into a shared
--- helper function like DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary) to eliminate duplication.
+Author: BetterUI Team
+Last Modified: 2026-01-28
 ]]
+
+--------------------------------------------------------------------------------
+-- SHARED EQUIP HELPER
+--------------------------------------------------------------------------------
+
+--[[
+Function: DoEquipMove
+Description: Performs the actual equip move via CallSecureProtected.
+Rationale: Centralizes the equip slot resolution logic to eliminate duplication
+           between performEquipAction and ReleaseDialog's equipItemCallback.
+Mechanism: Maps equipment type + slot preference to target equip slot, then calls RequestMoveItem.
+References: Used by TryEquipItem and InitializeEquipSlotDialog.
+param: bagId (number) - Source bag ID.
+param: slotIndex (number) - Source slot index.
+param: equipType (number) - Equipment type constant (EQUIP_TYPE_*).
+param: mainSlot (boolean) - For 1H/rings: true = main hand/ring 1, false = off hand/ring 2.
+param: isPrimary (boolean) - For weapons: true = front bar, false = back bar.
+]]
+local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
+    local targetPrimary = (isPrimary ~= false)
+
+    local targetSlot = nil
+
+    if equipType == EQUIP_TYPE_ONE_HAND then
+        if mainSlot then
+            targetSlot = targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN
+        else
+            targetSlot = targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF
+        end
+    elseif equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND then
+        targetSlot = targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN
+    elseif equipType == EQUIP_TYPE_OFF_HAND then
+        targetSlot = targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF
+    elseif equipType == EQUIP_TYPE_POISON then
+        targetSlot = targetPrimary and EQUIP_SLOT_POISON or EQUIP_SLOT_BACKUP_POISON
+    elseif equipType == EQUIP_TYPE_RING then
+        targetSlot = mainSlot and EQUIP_SLOT_RING1 or EQUIP_SLOT_RING2
+    end
+
+    if targetSlot then
+        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, targetSlot, 1)
+    end
+end
 
 --------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCHING
@@ -141,61 +182,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     -- Determine equip action based on item type
     local function performEquipAction(mainSlot, isPrimary)
         -- isPrimary indicates which weapon bar to target (true = primary/front bar, false = backup/back bar)
-        local targetPrimary = (isPrimary ~= false)
-        if equipType == EQUIP_TYPE_ONE_HAND then
-            if mainSlot then
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    bagId,
-                    slotIndex,
-                    BAG_WORN,
-                    targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN,
-                    1
-                )
-            else
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    bagId,
-                    slotIndex,
-                    BAG_WORN,
-                    targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF,
-                    1
-                )
-            end
-        elseif equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND then
-            CallSecureProtected(
-                "RequestMoveItem",
-                bagId,
-                slotIndex,
-                BAG_WORN,
-                targetPrimary and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN,
-                1
-            )
-        elseif equipType == EQUIP_TYPE_OFF_HAND then
-            CallSecureProtected(
-                "RequestMoveItem",
-                bagId,
-                slotIndex,
-                BAG_WORN,
-                targetPrimary and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF,
-                1
-            )
-        elseif equipType == EQUIP_TYPE_POISON then
-            CallSecureProtected(
-                "RequestMoveItem",
-                bagId,
-                slotIndex,
-                BAG_WORN,
-                targetPrimary and EQUIP_SLOT_POISON or EQUIP_SLOT_BACKUP_POISON,
-                1
-            )
-        elseif equipType == EQUIP_TYPE_RING then
-            if mainSlot then
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_RING1, 1)
-            else
-                CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_WORN, EQUIP_SLOT_RING2, 1)
-            end
-        end
+        DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     end
 
     -- Handle different equip types
@@ -275,74 +262,8 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         local bindType = GetItemLinkBindType(equipItemLink)
 
         local equipItemCallback = function()
-            if equipType == EQUIP_TYPE_ONE_HAND then
-                if mainSlot then
-                    CallSecureProtected(
-                        "RequestMoveItem",
-                        data[1].dataSource.bagId,
-                        data[1].dataSource.slotIndex,
-                        BAG_WORN,
-                        data[2] and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN,
-                        1
-                    )
-                else
-                    CallSecureProtected(
-                        "RequestMoveItem",
-                        data[1].dataSource.bagId,
-                        data[1].dataSource.slotIndex,
-                        BAG_WORN,
-                        data[2] and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF,
-                        1
-                    )
-                end
-            elseif equipType == EQUIP_TYPE_MAIN_HAND or equipType == EQUIP_TYPE_TWO_HAND then
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    data[1].dataSource.bagId,
-                    data[1].dataSource.slotIndex,
-                    BAG_WORN,
-                    data[2] and EQUIP_SLOT_MAIN_HAND or EQUIP_SLOT_BACKUP_MAIN,
-                    1
-                )
-            elseif equipType == EQUIP_TYPE_OFF_HAND then
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    data[1].dataSource.bagId,
-                    data[1].dataSource.slotIndex,
-                    BAG_WORN,
-                    data[2] and EQUIP_SLOT_OFF_HAND or EQUIP_SLOT_BACKUP_OFF,
-                    1
-                )
-            elseif equipType == EQUIP_TYPE_POISON then
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    data[1].dataSource.bagId,
-                    data[1].dataSource.slotIndex,
-                    BAG_WORN,
-                    data[2] and EQUIP_SLOT_POISON or EQUIP_SLOT_BACKUP_POISON,
-                    1
-                )
-            elseif equipType == EQUIP_TYPE_RING then
-                if mainSlot then
-                    CallSecureProtected(
-                        "RequestMoveItem",
-                        data[1].dataSource.bagId,
-                        data[1].dataSource.slotIndex,
-                        BAG_WORN,
-                        EQUIP_SLOT_RING1,
-                        1
-                    )
-                else
-                    CallSecureProtected(
-                        "RequestMoveItem",
-                        data[1].dataSource.bagId,
-                        data[1].dataSource.slotIndex,
-                        BAG_WORN,
-                        EQUIP_SLOT_RING2,
-                        1
-                    )
-                end
-            end
+            -- data[2] indicates primary bar selection (true = front bar, false = back bar)
+            DoEquipMove(data[1].dataSource.bagId, data[1].dataSource.slotIndex, equipType, mainSlot, data[2])
         end
 
         ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_EQUIP_SLOT_DIALOG)

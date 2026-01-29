@@ -155,3 +155,41 @@ function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
     end
     return nil
 end
+
+--[[
+Function: BETTERUI.CIM.Utils.SetExternalToolbarHidden
+Description: Toggles visibility of external addon toolbars (e.g., wykkydsToolbar).
+Rationale: Centralized helper to avoid duplicating toolbar visibility toggles across modules.
+Mechanism: Checks if wykkydsToolbar exists and sets its hidden state.
+References: Used by Inventory, Banking during scene state changes.
+param: hidden (boolean) - True to hide, false to show.
+]]
+function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
+    if wykkydsToolbar then
+        wykkydsToolbar:SetHidden(hidden)
+    end
+end
+
+--[[
+Function: BETTERUI.CIM.Utils.GetHouseBankTraitMatches
+Description: Returns the total count of researchable trait matches across all house banks.
+Rationale: Centralizes house bank iteration to avoid verbose 10-bank repetition in Tooltips.
+Mechanism: Iterates BAG_HOUSE_BANK_ONE through BAG_HOUSE_BANK_TEN and sums matches.
+References: Used by CIM/Tooltips/Tooltips.lua for research status display.
+param: itemLink (string) - The item link to check.
+return: number - Total count of matching researchable items across all house banks.
+]]
+function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
+    if not itemLink then return 0 end
+    local houseBanks = {
+        BAG_HOUSE_BANK_ONE, BAG_HOUSE_BANK_TWO, BAG_HOUSE_BANK_THREE,
+        BAG_HOUSE_BANK_FOUR, BAG_HOUSE_BANK_FIVE, BAG_HOUSE_BANK_SIX,
+        BAG_HOUSE_BANK_SEVEN, BAG_HOUSE_BANK_EIGHT, BAG_HOUSE_BANK_NINE,
+        BAG_HOUSE_BANK_TEN
+    }
+    local total = 0
+    for _, bagId in ipairs(houseBanks) do
+        total = total + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
+    end
+    return total
+end

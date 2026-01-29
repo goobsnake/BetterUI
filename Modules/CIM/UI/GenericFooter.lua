@@ -3,9 +3,7 @@ File: Modules/CIM/UI/GenericFooter.lua
 Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
          Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
 Author: BetterUI Team
-Last Modified: 2026-01-26
-
--- TODO(localization): Hardcoded strings "BAG:", "BANK:" at lines 82-96 should use SI_ string IDs.
+Last Modified: 2026-01-28
 ]]
 
 local _
@@ -79,7 +77,8 @@ function BETTERUI.GenericFooter:Refresh()
     local bankLabel = GetLabelControl(footer, "BankLabel")
 
     if cwLabel then
-        local bagText = zo_strformat("BAG: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+        local bagText = zo_strformat("<<1>> (<<2>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+            GetString(SI_BETTERUI_FOOTER_BAG_CAPACITY),
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
 
         if footer._stringCache.bag ~= bagText then
@@ -90,7 +89,8 @@ function BETTERUI.GenericFooter:Refresh()
     end
 
     if bankLabel then
-        local bankText = zo_strformat("BANK: (<<1>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+        local bankText = zo_strformat("<<1>> (<<2>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
+            GetString(SI_BETTERUI_FOOTER_BANK_CAPACITY),
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
                 GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK),
                 GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK)))

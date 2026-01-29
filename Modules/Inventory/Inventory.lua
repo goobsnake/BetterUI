@@ -124,12 +124,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 
 		self:ActivateHeader()
 
-		-- TODO(DRY): The wykkydsToolbar visibility toggle is repeated 3 times in this function.
-		-- Consider extracting to a shared utility: BETTERUI.Utils.SetExternalToolbarHidden(hidden)
-		-- See also: Banking.lua:UpdateExternalAddons() for a similar pattern.
-		if wykkydsToolbar then
-			wykkydsToolbar:SetHidden(true)
-		end
+		BETTERUI.CIM.Utils.SetExternalToolbarHidden(true)
 
 		ZO_InventorySlot_SetUpdateCallback(function()
 			self:RefreshItemActions()
@@ -140,9 +135,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self:Deactivate()
 		self:DeactivateHeader()
 
-		if wykkydsToolbar then
-			wykkydsToolbar:SetHidden(false)
-		end
+		BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
 
 		if self.callLaterLeftToolTip ~= nil then
 			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
@@ -161,9 +154,7 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self:ClearActiveKeybinds()
 		ZO_SavePlayerConsoleProfile()
 
-		if wykkydsToolbar then
-			wykkydsToolbar:SetHidden(false)
-		end
+		BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
 
 		if self.callLaterLeftToolTip ~= nil then
 			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
