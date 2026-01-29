@@ -378,113 +378,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         self:RefreshCurrencyTooltip()
     end
 
-    -- Event handler when the Banking scene is shown.
-    -- Purpose: Initializes the UI state for banking.
-    -- Mechanics:
-    -- 1. Updates current bank type (Bank vs Sub Bank).
-    -- 2. Defaults to "All Items" category.
-    -- 3. Activates the list and adds keybinds.
-    -- 4. Registers for inventory update events.
-    local function OnEffectivelyShown()
-        self:CurrentUsedBank()
-        -- Rebuild categories on show in case bank type changed
-        self.bankCategories = self:ComputeVisibleBankCategories()
-        -- Always default to "All Items" and first row on first open of the scene
-        self.currentCategoryIndex = 1
-        self.lastPositions[self.currentMode] = 1
-        self:RebuildHeaderCategories()
-        -- Force header to All Items (index 1) on scene open without animation
-        -- Suppress callback to avoid double refresh since we call RefreshList below
-        if self.headerGeneric and self.headerGeneric.tabBar then
-            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
-        end
-        if self.isDirty then
-            self:RefreshList()
-        else
-            self:RefreshActiveKeybinds()
-        end
-        self.list:Activate()
-        -- Ensure our keybind groups and header tab bar are active on first show
-        self:AddKeybinds()
+    -- Scene showing handler moved to OnSceneShowing method.
+    -- SceneLifecycleManager in base Window class calls OnSceneShowing hook.
 
-        self:UpdateExternalAddons(true)
-
-        self.control:RegisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, UpdateSingle_Handler)
-        self:RefreshList()
-        -- OnEffectivelyShown: initialize list and keybinds; no debug logging.
-    end
-
-    -- Event handler when the Banking scene is hidden.
-    -- Purpose: Cleans up UI state and unregisters events.
-    -- Mechanics:
-    -- 1. Deactivates Lists and Selectors.
-    -- 2. Removes Keybinds and Tooltips.
-    -- 3. Unregisters inventory update events.
-    -- 4. Exits Search Mode (restoring normal input).
-    -- 5. Performs aggressive cleanup of Directional Input to prevent focus lock issues.
-    local function OnEffectivelyHidden()
-        self:LastUsedBank()
-        self:CancelWithdrawDeposit(self.list)
-        self.list:Deactivate()
-        self.selector:Deactivate()
-        self.confirmationMode = false
-        -- Release focus from header tab bar and clear any update suppression flags
-        if self.headerGeneric and self.headerGeneric.tabBar then
-            self.headerGeneric.tabBar:Deactivate()
-        end
-        self._suppressListUpdates = false
-        self._suppressListUpdatesToken = nil
-
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
-
-        self:UpdateExternalAddons(false)
-
-        self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
-        self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
-
-        -- Ensure we exit any active search mode so keybinds/focus are restored
-        -- Ensure we exit any active search mode so keybinds/focus are restored
-        if self.LeaveSearchMode then
-            self:LeaveSearchMode()
-        elseif self.ExitSearchFocus then
-            -- fallback
-            self:ExitSearchFocus()
-        end
-
-        -- Check KEYBIND_STRIP groups (no debug output)
-        if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-        end
-
-        local list = self:GetList()
-        if list and list.SetDirectionalInputEnabled then
-            list:SetDirectionalInputEnabled(true)
-        elseif self.list and self.list.SetDirectionalInputEnabled then
-            self.list:SetDirectionalInputEnabled(true)
-        end
-
-        -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
-        -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
-        BETTERUI.Banking.Tasks:Schedule("directionalInputFix", BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS,
-            function()
-                local listDelayed = self:GetList()
-                if listDelayed and listDelayed.SetDirectionalInputEnabled then
-                    listDelayed:SetDirectionalInputEnabled(true)
-                elseif self.list and self.list.SetDirectionalInputEnabled then
-                    self.list:SetDirectionalInputEnabled(true)
-                end
-            end)
-
-        -- Clear search text when exiting the banking scene
-        self.searchQuery = ""
-        if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
-            self.textSearchHeaderFocus:GetEditBox():SetText("")
-        end
-
-        -- Reset category positions when leaving the bank so next visit starts fresh
-        self.lastPositionsByCategory = {}
-    end
+    -- Scene hidden handler moved to OnSceneHidden method.
+    -- SceneLifecycleManager in base Window class calls OnSceneHidden hook.
 
     local selectorContainer = self.control:GetNamedChild("Container"):GetNamedChild("InputContainer")
     self.selector = ZO_CurrencySelector_Gamepad:New(selectorContainer:GetNamedChild("Selector"))
@@ -526,13 +424,116 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug
 
 
-
-    self.control:SetHandler("OnEffectivelyShown", OnEffectivelyShown)
-    self.control:SetHandler("OnEffectivelyHidden", OnEffectivelyHidden)
-
     -- Always-running event listeners, these don't add much overhead
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
+end
+
+--[[
+Function: BETTERUI.Banking.Class:OnSceneShowing
+Description: Scene showing handler called by SceneLifecycleManager.
+Rationale: Migrated from OnEffectivelyShown to use unified scene lifecycle.
+param: wasPushed (boolean) - Whether scene was pushed (not resumed).
+]]
+function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
+    self:CurrentUsedBank()
+    -- Rebuild categories on show in case bank type changed
+    self.bankCategories = self:ComputeVisibleBankCategories()
+    -- Always default to "All Items" and first row on first open of the scene
+    self.currentCategoryIndex = 1
+    self.lastPositions[self.currentMode] = 1
+    self:RebuildHeaderCategories()
+    -- Force header to All Items (index 1) on scene open without animation
+    -- Suppress callback to avoid double refresh since we call RefreshList below
+    if self.headerGeneric and self.headerGeneric.tabBar then
+        self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
+    end
+    if self.isDirty then
+        self:RefreshList()
+    else
+        self:RefreshActiveKeybinds()
+    end
+    self.list:Activate()
+    -- Ensure our keybind groups and header tab bar are active on first show
+    self:AddKeybinds()
+
+    self:UpdateExternalAddons(true)
+
+    -- Register for inventory updates while scene is showing
+    local function UpdateSingle_Handler(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
+        BETTERUI.Banking.Tasks:Schedule("singleSlotUpdate", 100, function()
+            self.isDirty = true
+            self:RefreshList()
+        end)
+    end
+    self.control:RegisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, UpdateSingle_Handler)
+    self:RefreshList()
+end
+
+--[[
+Function: BETTERUI.Banking.Class:OnSceneHidden
+Description: Scene hidden handler called by SceneLifecycleManager.
+Rationale: Migrated from OnEffectivelyHidden to use unified scene lifecycle.
+]]
+function BETTERUI.Banking.Class:OnSceneHidden()
+    self:LastUsedBank()
+    self:CancelWithdrawDeposit(self.list)
+    self.list:Deactivate()
+    self.selector:Deactivate()
+    self.confirmationMode = false
+    -- Release focus from header tab bar and clear any update suppression flags
+    if self.headerGeneric and self.headerGeneric.tabBar then
+        self.headerGeneric.tabBar:Deactivate()
+    end
+    self._suppressListUpdates = false
+    self._suppressListUpdatesToken = nil
+
+    KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+
+    self:UpdateExternalAddons(false)
+
+    self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
+    self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+
+    -- Ensure we exit any active search mode so keybinds/focus are restored
+    if self.LeaveSearchMode then
+        self:LeaveSearchMode()
+    end
+
+    -- Check KEYBIND_STRIP groups
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+
+    local list = self:GetList()
+    if list and list.SetDirectionalInputEnabled then
+        list:SetDirectionalInputEnabled(true)
+    elseif self.list and self.list.SetDirectionalInputEnabled then
+        self.list:SetDirectionalInputEnabled(true)
+    end
+
+    -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
+    -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
+    BETTERUI.Banking.Tasks:Schedule("directionalInputFix", BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS,
+        function()
+            local listDelayed = self:GetList()
+            if listDelayed and listDelayed.SetDirectionalInputEnabled then
+                listDelayed:SetDirectionalInputEnabled(true)
+            elseif self.list and self.list.SetDirectionalInputEnabled then
+                self.list:SetDirectionalInputEnabled(true)
+            end
+        end)
+
+    -- Clear search text when exiting the banking scene
+    self.searchQuery = ""
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
+        self.textSearchHeaderFocus:GetEditBox():SetText("")
+    end
+
+    -- Reset category positions when leaving the bank so next visit starts fresh
+    self.lastPositionsByCategory = {}
 end
 
 --[[
