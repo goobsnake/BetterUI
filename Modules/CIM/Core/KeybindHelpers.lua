@@ -16,6 +16,7 @@ Rationale: Prevent errors when adding same keybind descriptor multiple times.
 Mechanism: Iterates existing groups; if found, updates it. If not, adds it.
 param: descriptor (table) - The keybind descriptor to add.
 ]]
+--- @param descriptor table The keybind descriptor to add
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor or not KEYBIND_STRIP then return end
     local groups = KEYBIND_STRIP.keybindButtonGroups or {}

@@ -45,6 +45,7 @@ Function: BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey
 Description: Returns the current category identifier.
 return: string|nil - The current category key, or nil if none is set.
 ]]
+--- @return string|nil categoryKey The current category key
 function BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey()
     return self.currentCategoryKey
 end
@@ -54,6 +55,7 @@ Function: BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey
 Description: Sets the current category identifier.
 param: categoryKey (string) - The category key to set.
 ]]
+--- @param categoryKey string The category key to set
 function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
     self.currentCategoryKey = categoryKey
 end
@@ -65,6 +67,8 @@ Rationale: Allows returning to the same position when switching back to a catego
 param: categoryKey (string) - The category to save position for. Uses current if nil.
 param: position (number|nil) - The position to save. Uses current list selection if nil.
 ]]
+--- @param categoryKey string|nil The category to save position for
+--- @param position number|nil The position to save
 function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     local key = categoryKey or self.currentCategoryKey
     if not key then return end
@@ -83,6 +87,8 @@ Description: Restores a previously saved list position for a category.
 param: categoryKey (string) - The category to restore position for. Uses current if nil.
 return: number - The saved position, or 1 if not found.
 ]]
+--- @param categoryKey string|nil The category to restore position for
+--- @return number position The saved position, or 1 if not found
 function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
     if not key then return 1 end
@@ -110,6 +116,7 @@ Mechanism:
   4. Restores position for the new category.
 param: categoryKey (string) - The category to switch to.
 ]]
+--- @param categoryKey string The category to switch to
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
     if not categoryKey then return end
 

@@ -17,6 +17,7 @@ Mechanism: Resizes GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT and anchors the to
 param: width (number) - The new width of the background fragment.
 References: Called during scene state changes (SceneStateChange) in WindowClass.
 ]]
+--- @param width number The new width of the background fragment
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width
     local tooltipControl = GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control
