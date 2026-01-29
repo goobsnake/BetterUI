@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<GuiXml>
+    <!--
+    File: Modules/CIM/Templates/UnifiedFooter.xml
+    Purpose: Unified footer template with mode switching support.
+             Inherits from GenericFooter and adds mode-aware initialization.
+    Author: BetterUI Team
+    Last Modified: 2026-01-28
+    -->
+    <Controls>
+
+        <!--
+            Template: BETTERUI_UnifiedFooterContainer
+            Description: A footer container that supports mode switching.
+            Usage: Inherit this template in screen controls that need footer functionality.
+            Mechanism:
+              1. Inherits GenericFooter layout and labels.
+              2. Initializes UnifiedFooterController on creation.
+              3. Provides SetMode API for switching between CURRENCY and BANKING modes.
+        -->
+        <Control name="BETTERUI_UnifiedFooterContainer" virtual="true">
+            <Dimensions y="40" />
+
+            <OnInitialized>
+                -- Create the unified footer controller
+                if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.UnifiedFooter then
+                local controller = BETTERUI.CIM.UnifiedFooter.Create(self)
+                self.unifiedFooter = controller
+                end
+            </OnInitialized>
+
+            <Controls>
+                <!-- Inherit the full GenericFooter structure -->
+                <Control name="$(parent)Footer" inherits="BETTERUI_GamepadGenericScreenFooter">
+                    <OnInitialized>
+                        -- Link footer to parent and controller
+                        local parent = self:GetParent()
+                        parent.footer = self
+
+                        -- Setup the unified footer controller if present
+                        if parent.unifiedFooter then
+                        parent.unifiedFooter:SetupFooter(self)
+                        end
+                    </OnInitialized>
+                </Control>
+            </Controls>
+        </Control>
+
+    </Controls>
+</GuiXml>
