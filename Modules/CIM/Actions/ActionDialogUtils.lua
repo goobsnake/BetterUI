@@ -49,6 +49,9 @@ param: dialog (table) - The dialog object containing the parametricList.
 param: target (table) - The target item data (bagId, slotIndex).
 return: table - { hasUnassign = boolean, assignedIndex = number|nil, orderedSlots = table }
 ]]
+--- @param dialog table The dialog object containing the parametricList
+--- @param target table The target item data (bagId, slotIndex)
+--- @return table result Information about the populated entries
 function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     local parametricList = dialog.info.parametricList
     ZO_ClearNumericallyIndexedTable(parametricList)
@@ -151,6 +154,9 @@ param: options (table|nil) - Configuration options:
   - hideDestroy (boolean): Hide Destroy/Delete actions.
   - filterCallback (function): Optional function(actionName) returning true to include action.
 ]]
+--- @param parametricList table The dialog's parametric list to populate
+--- @param slotActions table The slot actions object with GetNumSlotActions/GetSlotAction
+--- @param options table|nil Configuration options
 function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options)
     options = options or {}
     local hideDestroy = options.hideDestroy

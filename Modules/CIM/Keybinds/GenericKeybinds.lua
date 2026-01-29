@@ -21,6 +21,8 @@ Used By: Common utility, not currently in production use.
 param: callback (function|nil) - Custom callback. If nil, uses standard back navigation.
 return: table - Keybind descriptor for back navigation.
 ]]
+--- @param callback function|nil Custom callback for the back action
+--- @return table keybind Keybind descriptor for back navigation
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -42,6 +44,9 @@ param: bagId (number) - The bag to stack items in.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for stack all action.
 ]]
+--- @param bagId number The bag to stack items in
+--- @param visibleFn function|nil Optional visibility function
+--- @return table keybind Keybind descriptor for stack all action
 function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -64,6 +69,9 @@ param: showActionsFn (function) - Function to call to show the actions menu.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for actions menu.
 ]]
+--- @param showActionsFn function Function to call to show the actions menu
+--- @param visibleFn function|nil Optional visibility function
+--- @return table keybind Keybind descriptor for actions menu
 function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -84,6 +92,9 @@ param: clearSearchFn (function) - Function to call to clear the search.
 param: visibleFn (function|nil) - Optional visibility function.
 return: table - Keybind descriptor for clear search action.
 ]]
+--- @param clearSearchFn function Function to call to clear the search
+--- @param visibleFn function|nil Optional visibility function
+--- @return table keybind Keybind descriptor for clear search action
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -106,6 +117,8 @@ Rationale: Wrapper around ZO_Gamepad_AddBackNavigationKeybindDescriptors for con
 param: keybindGroup (table) - The keybind group to add to.
 param: navigationType (number|nil) - Navigation type. Defaults to GAME_NAVIGATION_TYPE_BUTTON.
 ]]
+--- @param keybindGroup table The keybind group to add to
+--- @param navigationType number|nil Navigation type constant
 function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(
         keybindGroup,
@@ -132,6 +145,9 @@ Mechanism: Uses BETTERUI.Settings.Modules["CIM"].triggerSpeed for scroll amount.
 param: list (table) - The parametric scroll list to control.
 return: table, table - Left trigger and right trigger keybind descriptors.
 ]]
+--- @param list table The parametric scroll list to control
+--- @return table leftTrigger Left trigger keybind descriptor
+--- @return table rightTrigger Right trigger keybind descriptor
 function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list)
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",

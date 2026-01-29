@@ -34,6 +34,8 @@ return: table - Action context with fields:
         - meetsUsage: Whether it meets usage requirements
         - actionMode: Current action mode constant
 ]]
+--- @param self table The inventory/banking class instance
+--- @return table context The action context with fields for keybind decisions
 function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     local currentFrame = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 
@@ -114,6 +116,8 @@ Description: Returns the X-button label based on cached action context.
 param: self (table) - The inventory class instance.
 return: string - The localized button label.
 ]]
+--- @param self table The inventory class instance
+--- @return string label The localized button label
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
@@ -140,6 +144,8 @@ Description: Returns X-button visibility based on cached action context.
 param: self (table) - The inventory class instance.
 return: boolean - Whether the X-button should be visible.
 ]]
+--- @param self table The inventory class instance
+--- @return boolean visible Whether the X-button should be visible
 function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 

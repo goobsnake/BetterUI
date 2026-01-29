@@ -41,6 +41,9 @@ param: name (string) - The display name of the action.
 param: callback (function) - The function to execute when the action is triggered.
 param: options (table|nil) - Optional configuration (visible, order, etc.).
 ]]
+--- @param name string The display name of the action
+--- @param callback function The function to execute when triggered
+--- @param options table|nil Optional configuration
 function BETTERUI.CIM.GenericSlotActions:AddAction(name, callback, options)
     local action = {
         name = name,
@@ -202,6 +205,7 @@ Rationale: Centralized banking logic with space checks and error handling.
 Used By: Inventory/Actions/SlotActions.lua, Banking/Actions/TransferActions.lua
 param: inventorySlot (table) - The inventory slot data.
 ]]
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.CIM.TryBankItem(inventorySlot)
     if not PLAYER_INVENTORY:IsBanking() then return end
 
@@ -277,6 +281,8 @@ Used By: Inventory/Actions/SlotActions.lua
 param: inventorySlot (table) - The inventory slot data.
 return: boolean - True if item can be stowed.
 ]]
+--- @param inventorySlot table The inventory slot data
+--- @return boolean canMove True if item can be stowed
 function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
