@@ -92,6 +92,7 @@ Modules\ResourceOrbFrames\SkillBar\Coordinator.lua
 Modules\ResourceOrbFrames\Core\OrbEvents.lua
 Modules\ResourceOrbFrames\ResourceOrbFrames.lua
 Modules\ResourceOrbFrames\Templates\ResourceOrbFrames.xml
+Modules\ResourceOrbFrames\Settings\Defaults.lua
 Modules\ResourceOrbFrames\Module.lua
 
 ; Module: Inventory Enhanced
