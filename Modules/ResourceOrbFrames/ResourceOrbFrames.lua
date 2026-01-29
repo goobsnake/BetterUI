@@ -272,7 +272,7 @@ local function SetupModule(control)
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCompanion(control)
         end
-        zo_callLater(ApplyFullLayout, 200)
+        zo_callLater(ApplyFullLayout, BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS)
     end)
 
     EVENT_MANAGER:RegisterForEvent(NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
@@ -292,7 +292,7 @@ local function SetupModule(control)
             end
             ApplyFullLayout()
             RefreshAllData()
-        end, 100)
+        end, BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS)
     end)
 end
 
@@ -326,7 +326,7 @@ function ResourceOrbFrames.Initialize(control)
             end
             ApplyFullLayout()
             RefreshAllData()
-        end, 100)
+        end, BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS)
     end)
 end
 

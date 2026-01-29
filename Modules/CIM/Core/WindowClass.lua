@@ -347,10 +347,17 @@ end
 --[[
 Function: BETTERUI.Interface.Window:ToggleScene
 Description: Toggles the window's scene visibility.
-Note: Uses BETTERUI_BANKING_SCENE_NAME which must be defined by the Banking module.
+Note: Subclasses must set self.sceneName during initialization for this to work.
 ]]
 function BETTERUI.Interface.Window:ToggleScene()
-    SCENE_MANAGER:Toggle(BETTERUI_BANKING_SCENE_NAME)
+    if self.sceneName then
+        SCENE_MANAGER:Toggle(self.sceneName)
+    elseif self.scene then
+        -- Fallback: use scene object's name if available
+        SCENE_MANAGER:Toggle(self.scene:GetName())
+    else
+        BETTERUI.Debug("[Window] ToggleScene called but no sceneName or scene is set")
+    end
 end
 
 --[[

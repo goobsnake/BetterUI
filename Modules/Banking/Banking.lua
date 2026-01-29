@@ -107,9 +107,8 @@ param: tlw_name (string) - Top level window name.
 param: scene_name (string) - Scene name.
 ]]
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
-    -- Configuration for directional input fix timing (ms)
-    -- IMPORTANT: Must be declared at top of Initialize before any closures that reference it
-    local directionalFixDelayMs = 60
+    -- Configuration for directional input fix timing uses centralized constant
+    -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
 
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
 
@@ -472,7 +471,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             elseif self.list and self.list.SetDirectionalInputEnabled then
                 self.list:SetDirectionalInputEnabled(true)
             end
-        end, directionalFixDelayMs)
+        end, BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS)
 
         -- Clear search text when exiting the banking scene
         self.searchQuery = ""

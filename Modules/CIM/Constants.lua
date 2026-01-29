@@ -21,6 +21,10 @@ Description: Shared timing constants for UI debouncing and coalescing.
 Used By: PositionManager, HeaderNavigation, list refresh logic.
 ]]
 BETTERUI.CIM.CONST.TIMING = {
+    -- ========================================================================
+    -- DEBOUNCING & COALESCING
+    -- ========================================================================
+
     -- Debounce for heavy UI updates (ms)
     DEBOUNCE_MS = 50,
 
@@ -33,13 +37,66 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Tooltip refresh delay (ms)
     TOOLTIP_REFRESH_DELAY_MS = 300,
 
-    -- Weapon swap animation delay for layout updates (ms)
-    -- Used by ResourceOrbFrames to delay skill bar layout after weapon swap
-    WEAPON_SWAP_LAYOUT_DELAY_MS = 500,
+    -- ========================================================================
+    -- KEYBIND TIMING
+    -- Used to ensure keybinds are properly registered after scene transitions
+    -- ========================================================================
+
+    -- Post-init keybind update delay (ms)
+    -- Used after scene showing to ensure keybind strip is ready
+    KEYBIND_REFRESH_DELAY_MS = 60,
+
+    -- Secondary/tertiary keybind activation delay (ms)
+    -- Shorter delay for additional keybind group registration
+    KEYBIND_ACTIVATION_DELAY_MS = 40,
+
+    -- ========================================================================
+    -- LIST & CATEGORY REFRESH
+    -- ========================================================================
+
+    -- Category list refresh coalescing (ms)
+    -- Prevents multiple rapid refreshes when switching categories
+    CATEGORY_REFRESH_COALESCE_MS = 80,
+
+    -- Batch processing interval (ms)
+    -- Time between batch chunks for large list processing
+    BATCH_PROCESS_INTERVAL_MS = 10,
 
     -- Batch processing sizes
     BATCH_SIZE_INITIAL = 50,
     BATCH_SIZE_REMAINING = 200,
+
+    -- ========================================================================
+    -- DIALOG & QUEUE TIMING
+    -- ========================================================================
+
+    -- Dialog queue processing timeout (ms)
+    -- Used when queuing dialogs (equip, destroy, bind-on-equip)
+    DIALOG_QUEUE_TIMEOUT_MS = 120,
+
+    -- List destruction/rebuild delay (ms)
+    -- Delay before refreshing list after item operations
+    LIST_DESTRUCTION_DELAY_MS = 120,
+
+    -- ========================================================================
+    -- SCENE & LAYOUT TIMING
+    -- ========================================================================
+
+    -- Weapon swap animation delay for layout updates (ms)
+    -- Used by ResourceOrbFrames to delay skill bar layout after weapon swap
+    WEAPON_SWAP_LAYOUT_DELAY_MS = 500,
+
+    -- Scene handler delay (ms)
+    -- Used by ResourceOrbFrames for post-scene-change updates
+    SCENE_HANDLER_DELAY_MS = 200,
+
+    -- Player activated initialization delay (ms)
+    -- Delay after EVENT_PLAYER_ACTIVATED before full init
+    PLAYER_ACTIVATED_INIT_MS = 100,
+
+    -- Banking directional input fix delay (ms)
+    -- Fixes directional input after banking scene transition
+    DIRECTIONAL_FIX_DELAY_MS = 60,
 }
 
 -- ============================================================================

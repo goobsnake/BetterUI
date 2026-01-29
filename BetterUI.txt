@@ -18,6 +18,8 @@ lang\$(language).lua
 Modules\CIM\Constants.lua
 Modules\CIM\Core\DefaultsRegistry.lua
 Modules\CIM\Core\Utilities.lua
+Modules\CIM\Core\DeferredTask.lua
+Modules\CIM\Core\EventRegistry.lua
 Modules\CIM\Core\PositionManager.lua
 Modules\CIM\Core\NavigationState.lua
 Modules\CIM\Core\FontDefinitions.lua

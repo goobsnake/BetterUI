@@ -89,7 +89,7 @@ end
 --- Attempts to use the item in the specified slot.
 --- Rationale: Delegates to CIM.TryUseItem for shared implementation.
 --- @param inventorySlot table The inventory slot data.
-function TryUseItem(inventorySlot)
+local function TryUseItem(inventorySlot)
     BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 

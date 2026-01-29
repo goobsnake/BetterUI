@@ -366,7 +366,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 						if self.scene:IsShowing() then
 							self:RefreshCategoryList()
 						end
-					end, 80)
+					end, BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS)
 				end
 			end
 		end
@@ -395,9 +395,9 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				if self.SetActiveKeybinds then
 					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 				end
-			end, 40)
+			end, BETTERUI.CIM.CONST.TIMING.KEYBIND_ACTIVATION_DELAY_MS)
 		end
-	end, 60)
+	end, BETTERUI.CIM.CONST.TIMING.KEYBIND_REFRESH_DELAY_MS)
 
 	-- Set the active list to ItemList by default
 	self:SwitchActiveList(INVENTORY_ITEM_LIST)
@@ -677,7 +677,7 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 								if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
 									GAMEPAD_INVENTORY:RefreshItemList()
 								end
-							end, 120)
+							end, BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS)
 						end
 					end
 					ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")
