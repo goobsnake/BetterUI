@@ -658,44 +658,9 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
 end
 
---[[
-Function: BETTERUI.Banking.Class:ActivateSpinner
-Description: Activates the quantity spinner.
-Rationale: Shows the spinner for partial stack moves (withdraw/deposit X amount).
-]]
-function BETTERUI.Banking.Class:ActivateSpinner()
-    self.spinner:SetHidden(false)
-    self.spinner:Activate()
-    if (self:GetList() ~= nil) then
-        self:GetList():Deactivate()
-        -- Only manipulate keybinds if our banking scene is visible
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-            KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
-        end
-    end
-end
-
---[[
-Function: BETTERUI.Banking.Class:DeactivateSpinner
-Description: Deactivates the quantity spinner and restores list focus.
-Rationale: Called when spinner is canceled or confirmed.
-]]
-function BETTERUI.Banking.Class:DeactivateSpinner()
-    self.spinner:SetValue(1)
-    self.spinner:SetHidden(true)
-    self.spinner:Deactivate()
-    if (self:GetList() ~= nil) then
-        self:GetList():Activate()
-        -- Only restore keybinds/header when the banking scene is visible
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-            KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-            self:EnsureHeaderKeybindsActive()
-        end
-    end
-end
+-- NOTE: ActivateSpinner and DeactivateSpinner have been removed.
+-- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG (see Dialogs/QuantityDialog.lua)
+-- which provides a consistent modal dialog experience matching ESO's native ITEM_SLIDER pattern.
 
 --[[
 Function: BETTERUI.Banking.Class:UpdateExternalAddons

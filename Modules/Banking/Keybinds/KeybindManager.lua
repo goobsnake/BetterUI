@@ -280,30 +280,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
 
-
-    self.spinnerKeybindStripDescriptor = {
-        alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        {
-            name = GetString(SI_BETTERUI_CONFIRM),
-            keybind = "UI_SHORTCUT_PRIMARY",
-            callback = function()
-                self:SaveListPosition()
-                self:MoveItem(self.list, self.spinner:GetValue())
-            end,
-            visible = function()
-                return true
-            end,
-            enabled = true,
-        },
-    }
-    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.spinnerKeybindStripDescriptor,
-        GAME_NAVIGATION_TYPE_BUTTON,
-        function()
-            local list = self.list
-            self:CancelWithdrawDeposit(list)
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
-        end)
+    -- NOTE: spinnerKeybindStripDescriptor has been removed.
+    -- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG modal dialog.
 end
 
 --[[
