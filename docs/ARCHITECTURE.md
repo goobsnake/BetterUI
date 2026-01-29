@@ -328,6 +328,27 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 -- - UltimateManager.lua (ultimate tracking)
 ```
 
+### 7.8 SceneLifecycleManager Pattern
+Provides unified scene lifecycle management for all modules:
+
+```lua
+-- Core/SceneLifecycleManager.lua usage:
+BETTERUI.CIM.SceneLifecycle.Register(screen, {
+    keybinds = { self.myKeybindGroup },
+    taskManager = BETTERUI.CIM.Tasks,
+    eventRegistryModule = "MyModule",
+    onShowing = function(screen, wasPushed) --[[ setup ]] end,
+    onHiding = function(screen) --[[ teardown ]] end,
+    onHidden = function(screen) --[[ final cleanup ]] end,
+})
+
+-- For fragment-based modules (e.g., ResourceOrbFrames):
+BETTERUI.CIM.SceneLifecycle.RegisterFragment(fragment, {
+    onShow = function() --[[ show logic ]] end,
+    onHide = function() --[[ hide logic ]] end,
+})
+```
+
 ---
 
 ## 8. Feature Flags System
