@@ -300,6 +300,7 @@ end
 -- PUBLIC INTERFACE
 -- =========================================================================
 
+--- @param control Control The root control
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
 
