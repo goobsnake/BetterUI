@@ -20,6 +20,12 @@ local m_rootFrame = nil
 local m_isInitialized = false
 local m_updateDeathFragment = nil
 
+-- Cached Control References (avoid repeated FindControl lookups in hot paths)
+local m_bgMiddle = nil
+local m_backBarContainer = nil
+local m_leftOrnament = nil
+local m_rightOrnament = nil
+
 -- State Containers
 local m_pools = {}
 local m_shieldBar = nil
@@ -107,8 +113,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
         Visuals.UpdateOrbLayout(m_rootFrame, m_pools, m_shieldBar)
     end
 
-    -- Update Bar Frames Layout (Anchoring)
-    local bgMiddle = FindControl(m_rootFrame, 'BgMiddle')
+    -- Update Bar Frames Layout (Anchoring) - use cached control references
     local settings = GetModuleSettings()
 
 
@@ -117,14 +122,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if settings.hideLeftOrnament then
             local nx = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X or -350
             local ny = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y or 108
-            m_experienceBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+            m_experienceBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
-            local leftOrnament = FindControl(m_rootFrame, 'OrnamentLeft')
-            if leftOrnament then
-                m_experienceBar.control:SetAnchor(TOP, leftOrnament, BOTTOM, BETTERUI_XP_BAR_OFFSET_X,
+            if m_leftOrnament then
+                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BETTERUI_XP_BAR_OFFSET_X,
                     BETTERUI_XP_BAR_OFFSET_Y)
             else
-                m_experienceBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, -350, -20) -- Fallback
+                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, -350, -20) -- Fallback
             end
         end
         m_experienceBar:Update()
@@ -135,14 +139,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if settings.hideRightOrnament then
             local nx = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X or 375
             local ny = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y or 108
-            m_mountStaminaBar.control:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+            m_mountStaminaBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
-            local rightOrnament = FindControl(m_rootFrame, 'OrnamentRight')
-            if rightOrnament then
-                m_mountStaminaBar.control:SetAnchor(TOP, rightOrnament, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X,
+            if m_rightOrnament then
+                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X,
                     BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y)
             else
-                m_mountStaminaBar.control:SetAnchor(BOTTOM, bgMiddle, BOTTOM, 350, -20)
+                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, 350, -20)
             end
         end
         m_mountStaminaBar:Update()
@@ -150,12 +153,11 @@ local function ApplyLayout(updateOrbs, updateSkills)
 
     if m_castBar and m_castBar.control then
         m_castBar.control:ClearAnchors()
-        local backBarContainer = FindControl(m_rootFrame, 'BackBarContainer')
-        if backBarContainer then
-            m_castBar.control:SetAnchor(BOTTOM, backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X,
+        if m_backBarContainer then
+            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X,
                 BETTERUI_CAST_BAR_OFFSET_Y)
         else
-            m_castBar.control:SetAnchor(CENTER, bgMiddle, CENTER, 0, -200)
+            m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, 0, -200)
         end
         m_castBar:Update()
     end
@@ -179,7 +181,13 @@ local function SetupModule(control)
     SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
     Events = BETTERUI.ResourceOrbFrames.Events
 
-    -- 2. Setup Visual Components
+    -- 2. Cache Control References (avoid repeated FindControl lookups in ApplyLayout)
+    m_bgMiddle = FindControl(control, 'BgMiddle')
+    m_backBarContainer = FindControl(control, 'BackBarContainer')
+    m_leftOrnament = FindControl(control, 'OrnamentLeft')
+    m_rightOrnament = FindControl(control, 'OrnamentRight')
+
+    -- 3. Setup Visual Components
     m_pools = Visuals.SetupPowerPools(control)
     m_shieldBar = Visuals.SetupShieldBar(control, m_pools)
 
@@ -188,7 +196,7 @@ local function SetupModule(control)
     m_castBar = Bars.CreateCastBar(control)
     m_mountStaminaBar = Bars.CreateMountStaminaBar(control)
 
-    -- 3. Setup Events & Visibility
+    -- 4. Setup Events & Visibility
     m_updateDeathFragment = Events.SetupVisibilityFragments(control)
 
     -- 4. Apply Initial Skin & Layout
@@ -242,32 +250,32 @@ local function SetupModule(control)
     end)
 
     -- Register Dynamic Bar Updates
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
         SkillBar.WeaponSwapAnimation(control)
         -- Only update skills layout, skip orbs to prevent visual shifts
-        zo_callLater(function() ApplyLayout(false, true) end, 500)
+        zo_callLater(function() ApplyLayout(false, true) end, BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS)
     end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function()
         SkillBar.UpdateBackBar(control)
         if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
         -- Only update skills layout
         ApplyLayout(false, true)
     end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function()
         SkillBar.UpdateBackBar(control)
         if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
     end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCompanion(control)
         end
         zo_callLater(ApplyFullLayout, 200)
     end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
+    EVENT_MANAGER:RegisterForEvent(NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarQuickslot(control)
         end

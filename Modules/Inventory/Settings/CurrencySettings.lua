@@ -261,7 +261,6 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             end,
             width = "full",
             scrollable = true,
-            requiresReload = true,
         },
         {
             type = "divider",
@@ -281,7 +280,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     if not BETTERUI.Settings.Modules["Inventory"] then
                         return data.id ~= "seals" and
                             data.id ~= "tomepoints"
-                    end                             -- defaults logic
+                    end -- defaults logic
                     -- Default behavior if nil is usually true, except for newer currencies maybe?
                     -- In original code, 'getFunc' returned 'inv[k] ~= false' which implies default true.
                     -- Except 'Seals' and 'TomePoints' returned '== true' which implies default false.
@@ -298,7 +297,6 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     SafeRefresh(true)
                 end,
                 width = "half",
-                requiresReload = true,
             })
 
             -- Order Dropdown
@@ -326,7 +324,6 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     SafeRefresh(true)
                 end,
                 width = "half",
-                requiresReload = true,
             })
         end
     end

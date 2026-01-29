@@ -68,10 +68,9 @@ end
 --[[
 Function: BETTERUI.Banking.Class:IsSceneShowing
 Description: Checks if the banking scene is currently showing.
-Rationale: Centralizes the scene visibility check to eliminate duplicate code.
+Rationale: Delegates to CIM utility for consistent scene checks across all modules.
 return: boolean - True if the banking scene is currently showing.
 ]]
 function BETTERUI.Banking.Class:IsSceneShowing()
-    local scene = SCENE_MANAGER.scenes['gamepad_banking']
-    return scene and scene:IsShowing()
+    return BETTERUI.CIM.Utils.IsBankingSceneShowing()
 end

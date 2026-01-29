@@ -32,7 +32,6 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             end,
             setFunc = function(value) BETTERUI.Banking.SetSetting("enableCarousel", value) end,
             width = "full",
-            requiresReload = true,
         },
         -- Icon Visibility (using shared CIM factory)
     }

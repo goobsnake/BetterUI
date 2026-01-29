@@ -87,9 +87,10 @@ Description: Updates the tooltip for currency rows.
 Rationale: Shows currency balances in the tooltip when a currency row is selected.
 ]]
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
-    if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() and self:GetList().selectedData.label ~= nil then
-        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
-    end
+    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
+    local list = self:GetList()
+    if not list or not list.selectedData or not list.selectedData.label then return end
+    GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
 end
 
 --[[
@@ -138,7 +139,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function CallbackSplitStackFinished()
         --refresh list
-        if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             SHARED_INVENTORY:PerformFullUpdateOnBagCache(BETTERUI.Banking.currentUsedBank)
             self:RefreshList()
             self:ReturnToSaved()
@@ -365,7 +366,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function UpdateCurrency_Handler()
         -- Only update UI/keybinds when the banking scene is actually visible
-        if not (SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()) then
+        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             return
         end
         self:RefreshFooter()
@@ -555,7 +556,7 @@ References: Called during Initialize.
 ]]
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogSetup(dialog)
-        if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
                 self.itemActions:SetSelectedAction(selectedData and selectedData.action)
             end)
@@ -605,7 +606,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     end
 
     local function ActionDialogFinish()
-        if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             -- make sure to wipe out the keybinds added by actions
             self:AddKeybinds()
             --restore the selected inventory item
@@ -618,7 +619,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
         end
     end
     local function ActionDialogButtonConfirm(dialog)
-        if SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
             if not selectedAction then return end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
@@ -646,7 +647,7 @@ function BETTERUI.Banking.Class:ActivateSpinner()
     if (self:GetList() ~= nil) then
         self:GetList():Deactivate()
         -- Only manipulate keybinds if our banking scene is visible
-        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             KEYBIND_STRIP:RemoveAllKeyButtonGroups()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
         end
@@ -665,7 +666,7 @@ function BETTERUI.Banking.Class:DeactivateSpinner()
     if (self:GetList() ~= nil) then
         self:GetList():Activate()
         -- Only restore keybinds/header when the banking scene is visible
-        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             KEYBIND_STRIP:RemoveAllKeyButtonGroups()
             KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
             KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)

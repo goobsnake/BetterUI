@@ -274,10 +274,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 local actionName = actions:GetRawActionName(action)
 
                 -- In banking scenes (standard or house), hide Destroy/Delete entirely
-                local hideDestroy = SCENE_MANAGER
-                    and SCENE_MANAGER.scenes
-                    and SCENE_MANAGER.scenes["gamepad_banking"]
-                    and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
+                local hideDestroy = BETTERUI.CIM.Utils.IsBankingSceneShowing()
                 local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
                     or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
                 -- Hide Mark as Junk for locked items

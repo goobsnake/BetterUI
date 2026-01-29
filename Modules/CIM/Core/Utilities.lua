@@ -193,3 +193,29 @@ function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     end
     return total
 end
+
+--[[
+Function: BETTERUI.CIM.Utils.IsBankingSceneShowing
+Description: Checks if the gamepad banking scene is currently visible.
+Rationale: Centralizes fragile scene check pattern used 24+ times across Banking and Inventory modules.
+Mechanism: Safely checks for scene existence before calling IsShowing().
+References: Used by Banking, Inventory for scene-guarded operations.
+return: boolean - True if the banking scene is showing.
+]]
+function BETTERUI.CIM.Utils.IsBankingSceneShowing()
+    local scene = SCENE_MANAGER.scenes['gamepad_banking']
+    return scene and scene:IsShowing()
+end
+
+--[[
+Function: BETTERUI.CIM.Utils.IsInventorySceneShowing
+Description: Checks if the gamepad inventory root scene is currently visible.
+Rationale: Provides consistent scene checking for inventory operations.
+Mechanism: Safely checks for scene existence before calling IsShowing().
+References: Used by Inventory module for scene-guarded operations.
+return: boolean - True if the inventory scene is showing.
+]]
+function BETTERUI.CIM.Utils.IsInventorySceneShowing()
+    local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
+    return scene and scene:IsShowing()
+end

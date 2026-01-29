@@ -70,7 +70,7 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine which scene is active and use appropriate font settings
         local font
-        if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             font = BETTERUI.Banking.GetNameFontDescriptor()
         else
             font = BETTERUI.Inventory.GetNameFontDescriptor()
@@ -349,7 +349,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Determine which scene is active and use appropriate column font settings
     local columnFont
-    if SCENE_MANAGER.scenes['gamepad_banking'] and SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+    if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
         columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
     else
         columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
@@ -409,7 +409,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Handle market price display
     if BETTERUI.Settings.Modules["Inventory"].showMarketPrice and
-        (SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() or SCENE_MANAGER.scenes['gamepad_inventory_root']:IsShowing()) then
+        (BETTERUI.CIM.Utils.IsBankingSceneShowing() or BETTERUI.CIM.Utils.IsInventorySceneShowing()) then
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)

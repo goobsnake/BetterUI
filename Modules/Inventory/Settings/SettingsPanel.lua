@@ -40,7 +40,6 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("quickDestroy", value) end,
 			width = "full",
-			requiresReload = true,
 		},
 		{
 			type = "checkbox",
@@ -51,7 +50,6 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCarousel", value) end,
 			width = "full",
-			requiresReload = true,
 		},
 		{
 			type = "checkbox",
@@ -82,7 +80,6 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("bindOnEquipProtection", value) end,
 			width = "full",
-			requiresReload = true,
 		},
 		-- Icon Visibility (using shared CIM factory)
 	}

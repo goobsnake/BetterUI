@@ -50,10 +50,7 @@ function BETTERUI.Inventory.HookActionDialog()
             -- Intercept Destroy/Delete to route through BetterUI confirm dialog
             local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
                 or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
-            local inBankScene = SCENE_MANAGER
-                and SCENE_MANAGER.scenes
-                and SCENE_MANAGER.scenes["gamepad_banking"]
-                and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
+            local inBankScene = BETTERUI.CIM.Utils.IsBankingSceneShowing()
             if not (isDestroy and inBankScene) then
                 -- When in the companion equipment scene, hide the 'Link to Chat' action to avoid insecure SendChatMessage calls
                 if actionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
@@ -137,12 +134,9 @@ function BETTERUI.Inventory.HookActionDialog()
             -- Normal BetterUI override path when enabled/visible
             -- Check both Inventory and Banking scenes with proper nil guards
             local invShowing = BETTERUI.Settings.Modules["Inventory"].m_enabled
-                and SCENE_MANAGER.scenes["gamepad_inventory_root"]
-                and SCENE_MANAGER.scenes["gamepad_inventory_root"]:IsShowing()
-            local bankScene = SCENE_MANAGER.scenes["gamepad_banking"]
+                and BETTERUI.CIM.Utils.IsInventorySceneShowing()
             local bankShowing = BETTERUI.Settings.Modules["Banking"].m_enabled
-                and bankScene
-                and bankScene:IsShowing()
+                and BETTERUI.CIM.Utils.IsBankingSceneShowing()
 
             if invShowing or bankShowing then
                 -- Fire callback for BetterUI modules to populate the dialog
@@ -166,11 +160,11 @@ function BETTERUI.Inventory.HookActionDialog()
             if
                 (
                     BETTERUI.Settings.Modules["Inventory"].m_enabled
-                    and SCENE_MANAGER.scenes["gamepad_inventory_root"]:IsShowing()
+                    and BETTERUI.CIM.Utils.IsInventorySceneShowing()
                 )
                 or (
                     BETTERUI.Settings.Modules["Banking"].m_enabled
-                    and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
+                    and BETTERUI.CIM.Utils.IsBankingSceneShowing()
                 )
             then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
@@ -233,11 +227,11 @@ function BETTERUI.Inventory.HookActionDialog()
                     if
                         (
                             BETTERUI.Settings.Modules["Inventory"].m_enabled
-                            and SCENE_MANAGER.scenes["gamepad_inventory_root"]:IsShowing()
+                            and BETTERUI.CIM.Utils.IsInventorySceneShowing()
                         )
                         or (
                             BETTERUI.Settings.Modules["Banking"].m_enabled
-                            and SCENE_MANAGER.scenes["gamepad_banking"]:IsShowing()
+                            and BETTERUI.CIM.Utils.IsBankingSceneShowing()
                         )
                     then
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)

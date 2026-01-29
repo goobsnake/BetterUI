@@ -53,6 +53,11 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS_LABEL", "SEALS:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS_LABEL", "TOMES:")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
 
+-- Destroy Confirmation Messages
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
+    "Are you sure you want to destroy this item? This cannot be undone.")
+
 
 -- Currency limit alert
 

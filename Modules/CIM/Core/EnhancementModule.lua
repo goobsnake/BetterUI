@@ -91,11 +91,17 @@ function BETTERUI.GeneralInterface.Setup()
 		end
 	end
 
-	if BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog then
-		BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
-			self.mainKeybindDescriptor[3]["callback"] = function() self:Delete() end
-		end)
-	end
+	-- Always hook mail delete, but check setting at runtime for live-refresh support
+	BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
+		local origCallback = self.mainKeybindDescriptor[3]["callback"]
+		self.mainKeybindDescriptor[3]["callback"] = function()
+			if BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog then
+				self:Delete() -- Skip confirmation
+			else
+				origCallback() -- Original behavior with confirmation
+			end
+		end
+	end)
 
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink,
 		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
@@ -106,20 +112,22 @@ function BETTERUI.GeneralInterface.Setup()
 
 
 
-	-- Move guild store error suppression to scene lifecycle to avoid frequent toggling during tooltip draws
-	if BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress then
-		local scene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_trading_house']
-		if scene then
-			scene:RegisterCallback("StateChange", function(oldState, newState)
-				if newState == SCENE_SHOWING then
-					EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-					gsErrorSuppress = 1
-				elseif newState == SCENE_HIDDEN then
-					EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-					gsErrorSuppress = 0
-				end
-			end)
-		end
+	-- Always register scene callback, check setting at runtime for live-refresh support
+	local scene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_trading_house']
+	if scene then
+		scene:RegisterCallback("StateChange", function(oldState, newState)
+			-- Check setting at runtime to support live toggle
+			if not BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress then
+				return -- Setting disabled, no-op
+			end
+			if newState == SCENE_SHOWING then
+				EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
+				gsErrorSuppress = 1
+			elseif newState == SCENE_HIDDEN then
+				EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
+				gsErrorSuppress = 0
+			end
+		end)
 	end
 
 	-- Invalidate researchable trait cache on inventory changes
@@ -134,6 +142,8 @@ function BETTERUI.GeneralInterface.Setup()
 	BETTERUI.EventManager:RegisterForEvent("BETTERUI_Tooltips_InvFull", EVENT_INVENTORY_FULL_UPDATE,
 		invalidateCacheOnUpdate)
 
-	if (ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings
-		.Modules["GeneralInterface"].chatHistory) end
+	if (ZO_ChatWindowTemplate1Buffer ~= nil) then
+		ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings
+			.Modules["GeneralInterface"].chatHistory)
+	end
 end

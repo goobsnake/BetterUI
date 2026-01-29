@@ -637,9 +637,9 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 			text = function(dialog)
 				local link = dialog and dialog.data and dialog.data.itemLink
 				if link and link ~= "" then
-					return zo_strformat("Are you sure you want to destroy <<1>>? This cannot be undone.", link)
+					return zo_strformat(GetString(SI_BETTERUI_DESTROY_CONFIRM_FORMAT), link)
 				end
-				return "Are you sure you want to destroy this item? This cannot be undone."
+				return GetString(SI_BETTERUI_DESTROY_CONFIRM_GENERIC)
 			end,
 		},
 		buttons = {

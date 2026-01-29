@@ -444,7 +444,7 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     -- Check if we are on the "Deposit/withdraw" gold/telvar row
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
 
-    if not SCENE_MANAGER.scenes['gamepad_banking']:IsShowing() then
+    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
         return
     end
 

@@ -99,8 +99,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
             instance:RefreshList()
         end,
         sceneCheck = function()
-            return SCENE_MANAGER.scenes['gamepad_banking'] and
-                SCENE_MANAGER.scenes['gamepad_banking']:IsShowing()
+            return BETTERUI.CIM.Utils.IsBankingSceneShowing()
         end,
     })
     -- Wrap to pass self as first argument (onSelectedChanged receives list, selectedData)

@@ -33,6 +33,10 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Tooltip refresh delay (ms)
     TOOLTIP_REFRESH_DELAY_MS = 300,
 
+    -- Weapon swap animation delay for layout updates (ms)
+    -- Used by ResourceOrbFrames to delay skill bar layout after weapon swap
+    WEAPON_SWAP_LAYOUT_DELAY_MS = 500,
+
     -- Batch processing sizes
     BATCH_SIZE_INITIAL = 50,
     BATCH_SIZE_REMAINING = 200,

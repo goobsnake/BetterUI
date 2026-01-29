@@ -16,51 +16,51 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             type = "checkbox",
             name = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS),
             tooltip = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP),
-            getFunc = function() 
+            getFunc = function()
                 if not BETTERUI.Settings.Modules["GeneralInterface"] then return false end
-                return BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress 
+                return BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress
             end,
-            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress = value
-                    end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress = value
+            end,
             disabled = function() return ArkadiusTradeTools == nil and MasterMerchant == nil end,
             width = "full",
-            requiresReload = true,
         },
         {
             type = "checkbox",
             name = GetString(SI_BETTERUI_ATT_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_ATT_INTEGRATION_TOOLTIP),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].attIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].attIntegration = value
-                    end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["GeneralInterface"].attIntegration = value
+            end,
             disabled = function() return ArkadiusTradeTools == nil end,
             width = "full",
-            requiresReload = true,
         },
         {
             type = "checkbox",
             name = GetString(SI_BETTERUI_MM_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_MM_INTEGRATION_TOOLTIP),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].mmIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].mmIntegration = value
-                    end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["GeneralInterface"].mmIntegration = value
+            end,
             disabled = function() return MasterMerchant == nil end,
             width = "full",
-            requiresReload = true,
         },
         {
             type = "checkbox",
             name = GetString(SI_BETTERUI_TTC_INTEGRATION),
             tooltip = GetString(SI_BETTERUI_TTC_INTEGRATION_TOOLTIP),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration end,
-            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration = value
-                    end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration = value
+            end,
             disabled = function() return TamrielTradeCentre == nil end,
             width = "full",
-            requiresReload = true,
         },
         {
-        type = "checkbox",
+            type = "checkbox",
             name = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT),
             tooltip = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait end,
@@ -71,13 +71,18 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             type = "editbox",
             name = GetString(SI_BETTERUI_CHAT_HISTORY),
             tooltip = GetString(SI_BETTERUI_CHAT_HISTORY_TOOLTIP),
-            getFunc = function() 
+            getFunc = function()
                 if not BETTERUI.Settings.Modules["GeneralInterface"] then return 200 end
                 return BETTERUI.Settings.Modules["GeneralInterface"].chatHistory or 200
             end,
-            setFunc = function(value) BETTERUI.Settings.Modules["GeneralInterface"].chatHistory = tonumber(value)
-                                        if(ZO_ChatWindowTemplate1Buffer ~= nil) then ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI.Settings.Modules["GeneralInterface"].chatHistory) end end,
-            default=200,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["GeneralInterface"].chatHistory = tonumber(value)
+                if (ZO_ChatWindowTemplate1Buffer ~= nil) then
+                    ZO_ChatWindowTemplate1Buffer:SetMaxHistoryLines(BETTERUI
+                        .Settings.Modules["GeneralInterface"].chatHistory)
+                end
+            end,
+            default = 200,
             width = "full",
         },
         {
@@ -85,23 +90,22 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             name = GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog end,
             setFunc = function(value)
-                        BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog = value
-                    end,
+                BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog = value
+            end,
             width = "full",
-            requiresReload = true,
         },
 
         {
             type = "editbox",
             name = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED),
             tooltip = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP),
-            getFunc = function() 
+            getFunc = function()
                 if not BETTERUI.Settings.Modules["CIM"] then return 50 end
                 return tostring(BETTERUI.Settings.Modules["CIM"].rhScrollSpeed)
             end,
-            setFunc = function(value) 
+            setFunc = function(value)
                 if BETTERUI.Settings.Modules["CIM"] then
-                    BETTERUI.Settings.Modules["CIM"].rhScrollSpeed = tonumber(value) or 50 
+                    BETTERUI.Settings.Modules["CIM"].rhScrollSpeed = tonumber(value) or 50
                 end
             end,
             disabled = function() return not (BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].m_enabled) end,
@@ -111,13 +115,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             type = "editbox",
             name = GetString(SI_BETTERUI_TRIGGER_SKIP),
             tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
-            getFunc = function() 
+            getFunc = function()
                 if not BETTERUI.Settings.Modules["CIM"] then return 10 end
-                return tostring(BETTERUI.Settings.Modules["CIM"].triggerSpeed) 
+                return tostring(BETTERUI.Settings.Modules["CIM"].triggerSpeed)
             end,
-            setFunc = function(value) 
+            setFunc = function(value)
                 if BETTERUI.Settings.Modules["CIM"] then
-                    BETTERUI.Settings.Modules["CIM"].triggerSpeed = tonumber(value) or 10 
+                    BETTERUI.Settings.Modules["CIM"].triggerSpeed = tonumber(value) or 10
                 end
             end,
             disabled = function() return not (BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].m_enabled) end,
@@ -126,18 +130,18 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         {
             type = "checkbox",
             name = "Enable BetterUI Tooltip Enhancements",
-            tooltip = "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.\n\nNOTE: Tooltip Font Scaling requires this to be ENABLED.",
-            getFunc = function() 
+            tooltip =
+            "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.\n\nNOTE: Tooltip Font Scaling requires this to be ENABLED.",
+            getFunc = function()
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 if not settings then return false end
                 if settings.enableTooltipEnhancements == nil then return true end
                 return settings.enableTooltipEnhancements
             end,
-            setFunc = function(value) 
-                BETTERUI.Settings.Modules["CIM"].enableTooltipEnhancements = value 
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["CIM"].enableTooltipEnhancements = value
             end,
             width = "full",
-            requiresReload = true,
             default = true,
         },
         {
@@ -147,7 +151,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             min = 12,
             max = 48,
             step = 1,
-            getFunc = function() 
+            getFunc = function()
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 local val = 24
                 if settings then
@@ -157,14 +161,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 return val
             end,
             setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
-            disabled = function() 
+            disabled = function()
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 if not settings then return true end
                 -- Disabled unless tooltip enhancements are enabled
-                return settings.enableTooltipEnhancements ~= true 
+                return settings.enableTooltipEnhancements ~= true
             end,
             width = "full",
-            requiresReload = true,
             default = 24,
         },
     }
