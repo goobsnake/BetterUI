@@ -28,6 +28,7 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TELVAR", "Tel Var")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_AP", "AP")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_WRITS", "Writs")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS", "Trade Bars")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets") -- Legacy: pre-Update 49 name for Trade Bars
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_TOKENS", "Outfit Tokens")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS", "Seals")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS", "Tome Points")
@@ -92,6 +93,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP", "Off Hand")
 
 ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT", "Switch Weapons")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN", "Assign Quickslot")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")
 
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP", "Backup")
 ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW", "WITHDRAW")
