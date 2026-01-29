@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-01-27
+> **Last Updated**: 2026-01-28
 
 ---
 
@@ -34,12 +34,12 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Common Interface Module (CIM)  [Modules/CIM/]                          │
 │  ├── Constants.lua + Module.lua (Root - minimal entry points)           │
-│  ├── Core/       (18 files: RuntimeSetup, WindowClass, Utilities, etc.) │
+│  ├── Core/       (25 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
 │  ├── UI/         (GenericHeader, GenericFooter)                         │
-│  ├── Lists/      (Enhanced parametric scroll list templates)            │
+│  ├── Lists/      (9 files: BatchProcessor, GenericListManager, etc.)    │
 │  ├── Tooltips/   (Enhanced item tooltip rendering)                      │
 │  ├── Nameplates/ (Font customization)                                   │
-│  ├── Actions/    (Shared action dialog system)                          │
+│  ├── Actions/    (GenericSlotActions, ActionDialogUtils)                │
 │  ├── Keybinds/   (Keybind helpers)                                      │
 │  └── Templates/  (Shared XML templates)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
@@ -82,14 +82,24 @@ All other files are organized into subfolders by responsibility:
 **CIM Module** (`Modules/CIM/`):
 ```
 CIM/
-├── Constants.lua          # CIM-specific constants
+├── Constants.lua          # CIM-specific constants (TIMING, MODULES, SCREEN)
 ├── Module.lua             # Entry point
-├── Core/                  # 18 files: RuntimeSetup, WindowClass, Utilities, etc.
+├── Core/                  # 25 files (see Core Reference below)
+│   ├── FeatureFlags.lua   # Runtime feature flag system
+│   ├── ControlCache.lua   # Cached control references
+│   ├── Interfaces.lua     # EmmyLua interface contracts
+│   ├── NavigationState.lua# Category/position state tracking
+│   ├── PositionManager.lua# List position persistence
+│   ├── SearchManager.lua  # Unified search logic
+│   ├── RuntimeSetup.lua   # API patches, migrations
+│   ├── WindowClass.lua    # Base Window implementation
+│   ├── Utilities.lua      # General helpers (SafeIcon, Debug)
+│   └── ...                # HookFactory, SettingsFactory, etc.
 ├── UI/                    # GenericHeader.lua, GenericFooter.lua
-├── Lists/                 # ParametricScrollListTemplates.lua
+├── Lists/                 # 9 files: BatchProcessor, GenericListManager, etc.
 ├── Tooltips/              # Tooltip enhancement logic
 ├── Nameplates/            # Font customization
-├── Actions/               # Shared action dialog system
+├── Actions/               # GenericSlotActions.lua, ActionDialogUtils.lua
 ├── Keybinds/              # Keybind helpers
 ├── Templates/             # Shared XML templates
 └── Images/                # UI assets
@@ -102,28 +112,29 @@ Inventory/
 ├── Module.lua             # Entry point
 ├── Inventory.lua          # Main inventory class
 ├── Loader.lua             # Module initialization
-├── Core/                  # Utils.lua, Categories.lua
+├── Core/                  # Utils.lua, Categories.lua (4 files)
 ├── UI/                    # TooltipUtils.lua
-├── Lists/                 # ItemListManager.lua
-├── Actions/               # ActionDialogHooks.lua
+├── Lists/                 # ItemListManager.lua (5 files)
+├── Actions/               # SlotActions.lua, ActionDialogHooks.lua (6 files)
 ├── Keybinds/              # InventoryKeybinds.lua
-├── State/                 # ModeManager.lua
-├── Settings/              # CurrencySettings.lua
+├── State/                 # ModeManager.lua (2 files)
+├── Settings/              # CurrencySettings.lua, SortSettings.lua (3 files)
 └── Templates/             # XML templates
 ```
 
 **Banking Module** (`Modules/Banking/`):
 ```
 Banking/
-├── Constants.lua          # Banking constants
+├── Constants.lua          # Banking constants (delegates to CIM.CONST.SCREEN)
 ├── Module.lua             # Entry point
 ├── Banking.lua            # Main banking class
 ├── Core/                  # Core utilities
-├── UI/                    # HeaderManager.lua, FooterManager.lua
+├── UI/                    # HeaderManager.lua, FooterManager.lua (2 files)
 ├── Lists/                 # BankListManager.lua
 ├── Actions/               # TransferActions.lua
 ├── Keybinds/              # KeybindManager.lua
 ├── State/                 # StateManager.lua
+├── Settings/              # CurrencySettings.lua
 ├── Search/                # SearchManager.lua
 └── Images/                # UI assets
 ```
@@ -218,10 +229,10 @@ BETTERUI = {
 
 | Module | Root Files | Key Subfolders | Dependencies | Purpose |
 |--------|------------|----------------|--------------|---------|
-| **CIM** | Constants, Module | Core (18), UI, Lists, Tooltips, Actions | None | Shared UI, runtime patches, tooltips |
-| **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, State, Settings | CIM | Enhanced inventory with categories |
-| **Banking** | Constants, Module, Banking | Core, UI, Lists, Actions, State, Keybinds | CIM | Bank/House Bank interface |
-| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Templates, Textures | CIM | Custom resource orbs + skill bar |
+| **CIM** | Constants, Module | Core (25), UI, Lists (9), Tooltips, Actions | None | Shared UI, runtime patches, tooltips, feature flags |
+| **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions (6), State, Settings | CIM | Enhanced inventory with categories |
+| **Banking** | Constants, Module, Banking | Core, UI, Lists, Actions, State, Settings, Search | CIM | Bank/House Bank interface |
+| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | CIM | Custom resource orbs + skill bar |
 | **WritUnit** | Constants, Module | Core, Templates | CIM | Writ quest tracker |
 
 ---
@@ -319,7 +330,43 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 8. External Dependencies
+## 8. Feature Flags System
+
+BetterUI includes a centralized **Feature Flag System** (`Modules/CIM/Core/FeatureFlags.lua`) for safer feature rollouts and runtime configuration.
+
+### Core API
+
+| Method | Purpose |
+|--------|---------|
+| `IsEnabled(flagName)` | Check if a feature is enabled (overrides → saved → defaults) |
+| `SetEnabled(flagName, enabled)` | Persistently update a flag (saved to `BetterUISavedVars`) |
+| `SetOverride(flagName, enabled)` | Temporary runtime override (lost on `/reloadui`) |
+
+### Defined Flags
+
+| Flag | Default | Purpose |
+|------|---------|---------|
+| `ENHANCED_TOOLTIPS` | `true` | Enhanced display with trait/research info |
+| `POSITION_PERSISTENCE` | `true` | Maintain scroll position in lists |
+| `BATCH_PROCESSING` | `true` | Use chunked list loading for performance |
+| `DEBUG_LOGGING` | `false` | Verbose development logging |
+| `PERFORMANCE_METRICS` | `false` | Real-time performance tracking (dev only) |
+
+### Usage Example
+
+```lua
+local BATCH_FLAG = BETTERUI.CIM.FeatureFlags.FLAGS.BATCH_PROCESSING
+
+if BETTERUI.CIM.FeatureFlags.IsEnabled(BATCH_FLAG) then
+    self.batchProcessor:Process(data)
+else
+    self:LoadAllAtOnce(data)
+end
+```
+
+---
+
+## 9. External Dependencies
 
 | Dependency | Required | Purpose | Reference |
 |------------|----------|---------|-----------|
@@ -332,7 +379,7 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 9. Glossary of Terms
+## 10. Glossary of Terms
 
 | Term | Definition |
 |------|------------|
@@ -350,7 +397,7 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 10. Data Flow Example: Opening Inventory
+## 11. Data Flow Example: Opening Inventory
 
 ```
 1. Player presses Menu button
@@ -368,7 +415,7 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 11. Data Flow Example: Banking Keybind Transitions
+## 12. Data Flow Example: Banking Keybind Transitions
 
 ```
 1. Player opens bank → Banking scene shows
@@ -387,7 +434,7 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 12. Key Files Reference
+## 13. Key Files Reference
 
 | File | Location | Purpose |
 |------|----------|---------|
@@ -395,8 +442,10 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 | `Globals.lua` | Root | Namespace, utilities |
 | `BetterUI.CONST.lua` | Root | Constants, currency config |
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
+| `FeatureFlags.lua` | CIM/Core/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |
+| `GenericSlotActions.lua` | CIM/Actions/ | Shared item slot action utilities |
 | `GenericHeader.lua` | CIM/UI/ | Tab bar header with LB/RB navigation |
 | `GenericFooter.lua` | CIM/UI/ | Currency display footer |
 | `Coordinator.lua` | ResourceOrbFrames/SkillBar/ | Skill bar orchestration |
@@ -405,7 +454,7 @@ Complex sub-systems use a Coordinator that delegates to specialized managers:
 
 ---
 
-## 13. Diagrams
+## 14. Diagrams
 
 ### Module Dependency Graph
 
@@ -482,7 +531,7 @@ sequenceDiagram
 
 ---
 
-## 14. Development Guidelines
+## 15. Development Guidelines
 
 ### Adding a New Module
 
