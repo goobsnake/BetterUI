@@ -16,6 +16,7 @@ lang\$(language).lua
 
 ; Module: Common Interface Module
 Modules\CIM\Constants.lua
+Modules\CIM\Core\DefaultsRegistry.lua
 Modules\CIM\Core\Utilities.lua
 Modules\CIM\Core\PositionManager.lua
 Modules\CIM\Core\NavigationState.lua

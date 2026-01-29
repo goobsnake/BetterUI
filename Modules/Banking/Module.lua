@@ -82,11 +82,16 @@ param: m_options (table) - The raw settings table for this module.
 return: table - The initialized and migrated settings table.
 ]]
 function BETTERUI.Banking.InitModule(m_options)
-	-- Core settings (preserve existing user values)
-	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
-	if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
-	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
-	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
+	-- Apply centralized defaults from DefaultsRegistry
+	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
+		m_options = BETTERUI.Defaults.ApplyModuleDefaults("Banking", m_options)
+	else
+		-- Fallback if DefaultsRegistry not loaded yet
+		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
+		if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
+		if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
+		if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
+	end
 
 	-- Font customization - Name column settings
 	local defaults = BETTERUI.Banking.DEFAULTS

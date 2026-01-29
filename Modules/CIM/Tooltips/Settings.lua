@@ -88,7 +88,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
+            name = "⚠️ " .. GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
+            warning = GetString(SI_BETTERUI_REMOVE_DELETE_WARNING),
             getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog end,
             setFunc = function(value)
                 BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog = value
@@ -130,9 +131,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = "Enable BetterUI Tooltip Enhancements",
-            tooltip =
-            "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.\n\nNOTE: Tooltip Font Scaling requires this to be ENABLED.",
+            name = GetString(SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS),
+            tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP),
             getFunc = function()
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 if not settings then return false end
@@ -147,7 +147,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "slider",
-            name = "BetterUI Tooltip Font Size",
+            name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
             tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
             min = 12,
             max = 48,

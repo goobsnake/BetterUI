@@ -389,8 +389,19 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change how quickly the me
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip Font Size")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Allows you to see more or less item info at once in tooltips")
 
+-- Tooltip Enhancements
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Enable Tooltip Enhancements")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
+    "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.")
 
--- Resource Orb Frames
+-- Destructive Settings Warnings
+ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
+    "WARNING: This setting can result in data loss. Enable with caution.")
+ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
+    "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
+    "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")
+
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
 
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")

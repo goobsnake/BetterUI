@@ -34,8 +34,9 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		-- Quick Destroy
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_QUICK_DESTROY),
+			name = "⚠️ " .. GetString(SI_BETTERUI_QUICK_DESTROY),
 			tooltip = GetString(SI_BETTERUI_QUICK_DESTROY_TOOLTIP),
+			warning = GetString(SI_BETTERUI_QUICK_DESTROY_WARNING),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("quickDestroy")
 			end,
@@ -131,15 +132,21 @@ end
 
 --- Initialize inventory module settings with default values
 function BETTERUI.Inventory.InitModule(m_options)
-	if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = false end
-	if m_options["useTriggersForSkip"] == nil then m_options["useTriggersForSkip"] = false end
-	if m_options["bindOnEquipProtection"] == nil then m_options["bindOnEquipProtection"] = true end
-	if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
-	if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
-	if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
-	if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
-	if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = false end
-	if m_options["enableCompanionJunk"] == nil then m_options["enableCompanionJunk"] = false end
+	-- Apply centralized defaults from DefaultsRegistry
+	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
+		m_options = BETTERUI.Defaults.ApplyModuleDefaults("Inventory", m_options)
+	else
+		-- Fallback if DefaultsRegistry not loaded yet
+		if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end
+		if m_options["useTriggersForSkip"] == nil then m_options["useTriggersForSkip"] = false end
+		if m_options["bindOnEquipProtection"] == nil then m_options["bindOnEquipProtection"] = true end
+		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
+		if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
+		if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
+		if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
+		if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
+		if m_options["enableCompanionJunk"] == nil then m_options["enableCompanionJunk"] = false end
+	end
 
 	-- Defaults from FontSettings (accessed globally if available, otherwise local defaults)
 	local funcDefaults = BETTERUI.Inventory.DEFAULTS or {

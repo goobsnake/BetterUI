@@ -164,18 +164,8 @@ function BETTERUI.InitModuleOptions()
 			width = "full",
 			requiresReload = true,
 		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_CIM),
-			tooltip = GetString(SI_BETTERUI_ENABLE_CIM_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["CIM"].m_enabled end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["CIM"].m_enabled = value
-				BETTERUI.UpdateCIMState()
-			end,
-			disabled = true,
-			width = "full",
-		},
+		-- NOTE: CIM toggle removed in v2.93 - CIM is now auto-managed internally
+		-- based on dependent modules (Inventory, Banking, GeneralInterface)
 	}
 
 	-- Add Feature Flags submenu dynamically from FeatureFlags API
@@ -196,10 +186,20 @@ function BETTERUI.InitModuleOptions()
 		local allFlags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
 		local FLAGS = BETTERUI.CIM.FeatureFlags.FLAGS
 
+		-- Technical flags to hide from normal users (internal implementation details)
+		local HIDDEN_FLAGS = {
+			BATCH_PROCESSING = true,
+			POSITION_PERSISTENCE = true,
+			PERFORMANCE_METRICS = true,
+		}
+
 		-- Sort flag names for consistent ordering
 		local sortedFlags = {}
 		for name in pairs(allFlags) do
-			table.insert(sortedFlags, name)
+			-- Only include user-visible flags
+			if not HIDDEN_FLAGS[name] then
+				table.insert(sortedFlags, name)
+			end
 		end
 		table.sort(sortedFlags)
 
@@ -217,7 +217,7 @@ function BETTERUI.InitModuleOptions()
 					BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, value)
 				end,
 				width = "full",
-				requiresReload = (flagName == "ENHANCED_TOOLTIPS" or flagName == "BATCH_PROCESSING"),
+				requiresReload = (flagName == "ENHANCED_TOOLTIPS"),
 			})
 		end
 
@@ -242,7 +242,13 @@ end
 --- @return table The initialized module namespace.
 function BETTERUI.ModuleOptions(m_namespace, m_options)
 	if m_namespace and m_namespace.InitModule then
-		m_options = m_namespace.InitModule(m_options)
+		-- Wrap in pcall to prevent one module's error from breaking the entire addon
+		local success, result = pcall(m_namespace.InitModule, m_options)
+		if success then
+			m_options = result
+		else
+			BETTERUI.Debug("[Error] InitModule failed: " .. tostring(result))
+		end
 	end
 	return m_namespace
 end
@@ -395,9 +401,13 @@ function BETTERUI.Initialize(event, addon)
 		end
 	end
 
-	-- Mark first install as complete
+	-- Apply first-install defaults and mark as complete
 	if BETTERUI.Settings.firstInstall then
-		BETTERUI.Debug("First install detected - initialized module settings")
+		-- Apply module enable defaults from centralized registry
+		if BETTERUI.Defaults and BETTERUI.Defaults.ApplyFirstInstallDefaults then
+			BETTERUI.Defaults.ApplyFirstInstallDefaults(BETTERUI.Settings)
+		end
+		BETTERUI.Debug("First install detected - applied default module states")
 		BETTERUI.Settings.firstInstall = false
 	end
 
