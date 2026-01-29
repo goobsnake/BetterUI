@@ -523,8 +523,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Select the amount to deposit")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Select the amount to withdraw")
-ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw All")
-ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit All")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw Stack")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit Stack")
 
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
