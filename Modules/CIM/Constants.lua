@@ -342,6 +342,16 @@ Used By: Inventory and Banking list templates.
 BETTERUI.CIM.CONST.LAYOUT.LIST = {
     SCREEN_X_OFFSET = 90,
     ICON_WIDTH = 50,
+    --[[
+    Constant: CONTAINER
+    Description: Offsets for list container anchoring relative to header/footer.
+    Direction: Negative (-) X moves LEFT from anchor, Positive (+) Y moves DOWN.
+    Used By: Banking.lua, WindowClass.lua
+    ]]
+    CONTAINER = {
+        HEADER_X_OFFSET = -35, -- Indent left from header
+        FOOTER_Y_OFFSET = 10,  -- Padding above footer
+    },
 }
 
 --[[

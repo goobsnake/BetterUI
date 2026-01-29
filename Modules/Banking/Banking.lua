@@ -128,12 +128,14 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.itemActions:SetUseKeybindStrip(false)
     self:InitializeActionsDialog()
 
-    -- Re-anchor the list to match Inventory's offset (-50) to align columns with header
+    -- Re-anchor the list to match Inventory's offset using shared CIM constants
     local listContainer = self.control:GetNamedChild("Container"):GetNamedChild("List")
     if listContainer then
+        local LIST_OFFSETS = BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER
         listContainer:ClearAnchors()
-        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT, -35, 0)
-        listContainer:SetAnchor(BOTTOMRIGHT, self.footer:GetNamedChild("Footer"), TOPRIGHT, 0, 10)
+        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT, LIST_OFFSETS.HEADER_X_OFFSET, 0)
+        listContainer:SetAnchor(BOTTOMRIGHT, self.footer:GetNamedChild("Footer"), TOPRIGHT, 0,
+            LIST_OFFSETS.FOOTER_Y_OFFSET)
     end
 
     local function CallbackSplitStackFinished()
@@ -704,12 +706,13 @@ function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
 
-    -- Set the column headings up, maybe put them into a table?
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_NAME), 87)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TYPE), 637)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TRAIT), 897)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_STAT), 1067)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_VALUE), 1187)
+    -- Set the column headings up using shared CIM constants
+    local COLS = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
+    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_NAME), COLS.NAME)
+    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TYPE), COLS.TYPE)
+    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TRAIT), COLS.TRAIT)
+    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_STAT), COLS.STAT)
+    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_VALUE), COLS.VALUE)
 
     BETTERUI.Banking.Window:RefreshList()
 

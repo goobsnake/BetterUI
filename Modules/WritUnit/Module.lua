@@ -1,18 +1,14 @@
----------------------------------------------------------------------------------------------------
--- BetterUI - Writ Module
---
--- File: Modules/WritUnit/Module.lua
--- Purpose: Entry point for the Writ tracking module.
---
--- This module displays daily writ progress when the user interacts with a crafting station.
--- It listens for crafting events and updates a custom UI panel with the current writ requirements.
---
--- KEY RESPONSIBILITIES:
--- 1.  **Lifecycle Management**: Registers event listeners for crafting station interactions.
--- 2.  **Event Handling**: Responses to interaction start/end and craft completion to toggle UI.
---
+--[[
+File: Modules/WritUnit/Module.lua
+Purpose: Entry point for the Writ tracking module.
+         Displays daily writ progress when the user interacts with a crafting station.
+Author: BetterUI Team
+Last Modified: 2026-01-28
 
----------------------------------------------------------------------------------------------------
+Key Responsibilities:
+  1. Lifecycle Management: Registers event listeners for crafting station interactions.
+  2. Event Handling: Responds to interaction start/end and craft completion to toggle UI.
+]]
 
 
 --- Initializes the Writs module settings.
