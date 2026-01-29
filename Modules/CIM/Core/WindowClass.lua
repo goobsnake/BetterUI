@@ -317,6 +317,7 @@ end
 Function: BETTERUI.Interface.Window:InitializeScene
 Description: Initializes the ESO scene object and registers callbacks.
 Rationale: Integrates the window into the ESO scene manager provided scene.
+            Uses SceneLifecycleManager for unified lifecycle handling.
 param: scene (object) - The scene object to initialize with.
 ]]
 function BETTERUI.Interface.Window:InitializeScene(scene)
@@ -330,18 +331,31 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(self.footerFragment)
 
-    local function SceneStateChange(oldState, newState)
-        if (newState == SCENE_SHOWING) then
-            KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    -- Use SceneLifecycleManager for unified lifecycle handling
+    BETTERUI.CIM.SceneLifecycle.Register(self, {
+        keybinds = { self.coreKeybinds },
+        taskManager = BETTERUI.CIM.Tasks,
+        onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
-        elseif (newState == SCENE_HIDING) then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+            -- Allow subclasses to extend via OnSceneShowing
+            if screen.OnSceneShowing then
+                screen:OnSceneShowing(wasPushed)
+            end
+        end,
+        onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
-        elseif (newState == SCENE_HIDDEN) then
-
-        end
-    end
-    scene:RegisterCallback("StateChange", SceneStateChange)
+            -- Allow subclasses to extend via OnSceneHiding
+            if screen.OnSceneHiding then
+                screen:OnSceneHiding()
+            end
+        end,
+        onHidden = function(screen)
+            -- Allow subclasses to extend via OnSceneHidden
+            if screen.OnSceneHidden then
+                screen:OnSceneHidden()
+            end
+        end,
+    })
 end
 
 --[[
