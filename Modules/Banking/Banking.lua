@@ -106,6 +106,8 @@ References: Called by BETTERUI.Banking.Init().
 param: tlw_name (string) - Top level window name.
 param: scene_name (string) - Scene name.
 ]]
+--- @param tlw_name string Top level window name
+--- @param scene_name string Scene name
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS

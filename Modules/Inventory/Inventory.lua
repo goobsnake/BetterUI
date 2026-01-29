@@ -94,6 +94,8 @@ end
 --- - **HIDDEN**: Clears Active Keybinds. Clears Text Search. Saves Console Profile.
 --- References: Registered as Scene State Change callback.
 ---
+--- @param oldState integer The previous scene state
+--- @param newState integer The new scene state
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()

@@ -27,6 +27,8 @@ function BETTERUI.Inventory.SetSetting(key, value)
 end
 
 --- Initializes the settings panel for the Inventory module.
+--- @param mId string The module ID
+--- @param moduleName string The display name of the module
 function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
@@ -131,6 +133,8 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 end
 
 --- Initialize inventory module settings with default values
+--- @param m_options table The module options table
+--- @return table m_options The initialized options table
 function BETTERUI.Inventory.InitModule(m_options)
 	-- Apply centralized defaults from DefaultsRegistry
 	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
