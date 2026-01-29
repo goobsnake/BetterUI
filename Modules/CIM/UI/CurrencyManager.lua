@@ -198,6 +198,9 @@ param: footer (table) - The footer control object
 param: labelName (string) - Name of the label to retrieve
 return: control|nil - The label control or nil if not found
 ]]
+--- @param footer table The footer control object
+--- @param labelName string Name of the label to retrieve
+--- @return Control|nil label The label control or nil
 function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     if not footer._controlCache then footer._controlCache = {} end
     if not footer._controlCache[labelName] then
@@ -218,6 +221,9 @@ param: footer (table) - The footer control object
 param: invSettings (table) - Inventory settings containing currency visibility flags
 return: boolean - True if any labels changed
 ]]
+--- @param footer table The footer control object
+--- @param invSettings table Inventory settings containing currency visibility flags
+--- @return boolean changed True if any labels changed
 function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     if not footer._valueCache then footer._valueCache = {} end
     local cache = footer._valueCache
@@ -310,6 +316,8 @@ Mechanism:
 param: footer (table) - The footer control object
 param: invSettings (table) - Inventory settings containing currency visibility flags
 ]]
+--- @param footer table The footer control object
+--- @param invSettings table Inventory settings containing currency visibility flags
 function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
     local visible = BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local GetLabelControl = BETTERUI.CIM.Currency.GetLabelControl

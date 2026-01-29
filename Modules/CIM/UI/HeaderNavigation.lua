@@ -27,6 +27,8 @@ Rationale: Ensures consistent state object across all navigation operations.
 param: instance (table) - The module instance.
 return: table - The navigation state object.
 ]]
+--- @param instance table The module instance
+--- @return table state The navigation state object
 function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     if not instance._navState then
         instance._navState = NavState.Create()
@@ -56,6 +58,9 @@ param: options (table) - Configuration:
   - tabBar: optional tabBar to drive selection
   - onRefresh: function() → called to refresh after change
 ]]
+--- @param instance table The module instance
+--- @param delta number Direction: +1 for next, -1 for prev
+--- @param options table Configuration options
 function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     if not options.categories or #options.categories < 2 then return end
 
@@ -105,6 +110,8 @@ param: options (table) - Configuration:
   - sceneCheck: function() → returns true if scene still visible
 return: function(list, selectedData) - Callback for onSelectedChanged.
 ]]
+--- @param options table Configuration options
+--- @return function callback The debounced callback function
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
     local delay = options.delay or BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 

@@ -35,6 +35,8 @@ Description: Saves the current list position for later restoration.
 param: categoryKey (string) - The category to save position for.
 param: position (number) - The scroll position to save.
 ]]
+--- @param categoryKey string The category to save position for
+--- @param position number The position to save
 function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     if categoryKey then
         self.savedPositions[categoryKey] = position
@@ -47,6 +49,8 @@ Description: Restores a previously saved list position.
 param: categoryKey (string) - The category to restore position for.
 return: number|nil - The saved position, or nil if not found.
 ]]
+--- @param categoryKey string The category to restore position for
+--- @return number|nil position The saved position or nil if not found
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
     return self.savedPositions[categoryKey]
 end
@@ -101,6 +105,9 @@ param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
 ]]
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByName(left, right)
     local leftName = left.name or left.bestItemTypeName or ""
     local rightName = right.name or right.bestItemTypeName or ""
@@ -151,6 +158,9 @@ param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
 ]]
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByValue(left, right)
     local leftValue = left.sellPrice or 0
     local rightValue = right.sellPrice or 0
@@ -229,6 +239,8 @@ Mechanism: Returns a comparator that tries each sort function in order,
 param: sortKeys (table) - Array of sort functions to chain.
 return: function - Combined comparator function.
 ]]
+--- @param sortKeys table Array of sort functions to chain
+--- @return function comparator Combined comparator function
 function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
     if not sortKeys or #sortKeys == 0 then
         return BETTERUI.CIM.SortBySlotIndex
