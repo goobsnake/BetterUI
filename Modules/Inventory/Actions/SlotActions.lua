@@ -80,47 +80,53 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
 end
 
 --- Attempts to unequip an item from the specified inventory slot.
---- @param inventorySlot table The inventory slot data.
+--- @param inventorySlot table|nil The inventory slot data.
 local function TryUnequipItem(inventorySlot)
+    if not inventorySlot then return end
     local equipSlot = ZO_Inventory_GetSlotIndex(inventorySlot)
-    UnequipItem(equipSlot)
+    if equipSlot then UnequipItem(equipSlot) end
 end
 
 --- Attempts to use the item in the specified slot.
 --- Rationale: Delegates to CIM.TryUseItem for shared implementation.
---- @param inventorySlot table The inventory slot data.
+--- @param inventorySlot table|nil The inventory slot data.
 local function TryUseItem(inventorySlot)
+    if not inventorySlot then return end
     BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
 --- Handles banking actions (Deposit/Withdraw) for an item.
 --- Rationale: Delegates to CIM.TryBankItem for shared implementation.
---- @param inventorySlot table The inventory slot data.
+--- @param inventorySlot table|nil The inventory slot data.
 local function TryBankItem(inventorySlot)
+    if not inventorySlot then return end
     BETTERUI.CIM.TryBankItem(inventorySlot)
 end
 
 --- Attempts to move an item between the Backpack and the Craft Bag.
 --- Rationale: Delegates to CIM.TryMoveToCraftBag for shared implementation.
---- @param inventorySlot table The inventory slot data.
+--- @param inventorySlot table|nil The inventory slot data.
 --- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
 local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
+    if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
 end
 
 --- Checks if an item can be moved to the Craft Bag.
 --- Rationale: Delegates to CIM.CanItemMoveToCraftBag for shared implementation.
---- @param inventorySlot table The inventory slot data.
---- @return boolean True if the item is eligible for the Craft Bag.
+--- @param inventorySlot table|nil The inventory slot data.
+--- @return boolean canMove True if the item is eligible for the Craft Bag.
 local function CanItemMoveToCraftBag(inventorySlot)
+    if not inventorySlot then return false end
     return BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
 end
 
 --- Checks if the inventory slot represents an item currently inside the Craft Bag.
 --- Rationale: Delegates to CIM.IsSlotInCraftBag for shared implementation.
---- @param inventorySlot table The inventory slot data.
---- @return boolean True if the item is in the Craft Bag.
+--- @param inventorySlot table|nil The inventory slot data.
+--- @return boolean isInCraftBag True if the item is in the Craft Bag.
 local function IsSlotInCraftBag(inventorySlot)
+    if not inventorySlot then return false end
     return BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
 end
 

@@ -52,7 +52,10 @@ Description: Returns numeric quality value for sorting (higher = better).
 param: itemData (table) - Item data with quality info.
 return: number - Quality value (0-5).
 ]]
+--- @param itemData table|nil Item data with quality info
+--- @return number quality Quality value (0-5)
 local function GetItemQualityValue(itemData)
+    if not itemData then return 0 end
     if itemData.quality then
         return itemData.quality
     end
@@ -71,7 +74,10 @@ Description: Returns vendor sell value for sorting.
 param: itemData (table) - Item data.
 return: number - Vendor value.
 ]]
+--- @param itemData table|nil Item data
+--- @return number value Vendor value
 local function GetItemValue(itemData)
+    if not itemData then return 0 end
     if itemData.sellPrice then
         return itemData.sellPrice
     end
@@ -88,7 +94,10 @@ Description: Returns required/actual level for sorting.
 param: itemData (table) - Item data.
 return: number - Item level.
 ]]
+--- @param itemData table|nil Item data
+--- @return number level Item level
 local function GetItemLevel(itemData)
+    if not itemData then return 0 end
     if itemData.requiredLevel then
         return itemData.requiredLevel
     end
@@ -115,6 +124,11 @@ function BETTERUI.CIM.SortManager.CreateComparator(sortType, sortOrder)
     local descending = (sortOrder == SORT_ORDER.DESCENDING)
 
     return function(a, b)
+        -- Guard: Return stable order if either input is nil
+        if not a and not b then return false end
+        if not a then return false end
+        if not b then return true end
+
         local valA, valB
 
         if sortType == SORT_TYPES.NAME then
