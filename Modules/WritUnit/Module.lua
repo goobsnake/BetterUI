@@ -33,7 +33,8 @@ end
 --- @param sameStation boolean Whether interacting with same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
     if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
-        BETTERUI.Writs.Show(tonumber(craftId))
+        local id = craftId and tonumber(craftId)
+        if id then BETTERUI.Writs.Show(id) end
     end
 end
 
@@ -57,7 +58,8 @@ end
 --- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
     if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
-        BETTERUI.Writs.Show(tonumber(craftId))
+        local id = craftId and tonumber(craftId)
+        if id then BETTERUI.Writs.Show(id) end
     end
 end
 

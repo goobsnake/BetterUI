@@ -128,6 +128,19 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		ZO_InventorySlot_SetUpdateCallback(function()
 			self:RefreshItemActions()
 		end)
+
+		-- Register for item preview refresh callbacks (native ESO feature)
+		if ITEM_PREVIEW_GAMEPAD then
+			if not self.onItemPreviewRefreshActionsCallback then
+				self.onItemPreviewRefreshActionsCallback = function()
+					self:RefreshItemActions()
+				end
+			end
+			ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
+		end
+
+		self.currentPreviewBagId = nil
+		self.currentPreviewSlotIndex = nil
 		-- search is handled via hold callbacks on X/Y; no separate A-based keybind group required
 	elseif newState == SCENE_HIDING then
 		ZO_InventorySlot_SetUpdateCallback(nil)
@@ -151,6 +164,12 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self:TryClearNewStatusOnHidden()
 
 		self:ClearActiveKeybinds()
+
+		-- Unregister item preview callbacks
+		if ITEM_PREVIEW_GAMEPAD and self.onItemPreviewRefreshActionsCallback then
+			ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
+		end
+
 		ZO_SavePlayerConsoleProfile()
 
 		BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
@@ -262,6 +281,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self:InitializeKeybindStrip()
 
 	self:InitializeConfirmDestroyDialog()
+	self:InitializeConfirmDestroyArmoryItemDialog()
 	self:InitializeEquipSlotDialog()
 
 	self:InitializeItemActions()
@@ -664,5 +684,59 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 				end,
 			},
 		},
+	})
+end
+
+--- Initializes the confirmation dialog for armory item destruction.
+---
+--- Purpose: Safety prompt before destroying armory-related items with 2-second cooldown.
+--- Mechanics:
+--- - Registers `ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG`.
+--- - Uses native `RespondToDestroyRequest()` API.
+--- - Includes 2-second cooldown on confirm button for safety.
+---
+function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
+	local function ReleaseDialog(destroyItem)
+		RespondToDestroyRequest(destroyItem == true)
+		ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG)
+	end
+
+	ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG, {
+		blockDialogReleaseOnPress = true,
+		canQueue = true,
+		gamepadInfo = {
+			dialogType = GAMEPAD_DIALOGS.BASIC,
+			allowRightStickPassThrough = true,
+		},
+		setup = function(dialog)
+			self.destroyConfirmText = nil
+			dialog:setupFunc()
+		end,
+		noChoiceCallback = function(dialog)
+			RespondToDestroyRequest(false)
+		end,
+		title = {
+			text = SI_DIALOG_DESTROY_ARMORY_ITEM_TITLE,
+		},
+		mainText = {
+			text = SI_GAMEPAD_ARMORY_CONFIRM_DESTROY_ITEM_BODY,
+		},
+		buttons = {
+			{
+				onShowCooldown = 2000,
+				keybind = "DIALOG_PRIMARY",
+				text = GetString(SI_YES),
+				callback = function()
+					ReleaseDialog(true)
+				end,
+			},
+			{
+				keybind = "DIALOG_NEGATIVE",
+				text = GetString(SI_NO),
+				callback = function()
+					ReleaseDialog()
+				end,
+			},
+		}
 	})
 end
