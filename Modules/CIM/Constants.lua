@@ -97,7 +97,16 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Banking directional input fix delay (ms)
     -- Fixes directional input after banking scene transition
     DIRECTIONAL_FIX_DELAY_MS = 60,
+
+    -- Scene show threshold (seconds)
+    -- Used for scene ready detection in callbacks
+    SCENE_SHOW_THRESHOLD_SEC = 0.2,
+
+    -- Update debounce (seconds, alternative unit)
+    -- Equivalent to DEBOUNCE_MS but in seconds for APIs that expect float
+    UPDATE_DEBOUNCE_SEC = 0.05,
 }
+
 
 -- ============================================================================
 -- MODULE IDENTIFIERS

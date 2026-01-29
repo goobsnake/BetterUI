@@ -690,7 +690,8 @@ References: Called by BETTERUI.Banking.Setup().
 ]]
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
-    BETTERUI.Banking.Window:SetTitle("|c0066FFAdvanced Banking|r")
+    BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r")
+
     -- Initialize header with categories & selection immediately
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
