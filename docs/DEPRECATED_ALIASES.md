@@ -73,9 +73,20 @@ These aliases exist to support XML template files. Migration requires updating X
 
 ---
 
+## Deprecation Timeline
+
+| Version | Action |
+|---------|--------|
+| v2.94   | Aliases emit deprecation warning to chat |
+| v2.95   | Aliases marked `@deprecated` in EmmyLua |
+| v3.0    | Aliases removed, XML templates migrated |
+
+---
+
 ## Migration Strategy
 
 1. **XML Templates**: Migrate to use Lua-defined constants via virtual anchors
 2. **Lua Code**: Replace all global alias usage with CIM namespace paths
 3. **SavedVariables**: Add migration code for legacy key names
 4. **Testing**: Verify all XML templates render correctly after migration
+
