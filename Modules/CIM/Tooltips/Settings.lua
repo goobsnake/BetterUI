@@ -11,6 +11,7 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 local LAM = LibAddonMenu2
 
 --- Returns the table of LAM settings options for General Interface.
+--- @return table options The list of settings control definitions
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     return {
         {
@@ -175,6 +176,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 end
 
 --- Initializes General Interface default settings.
+--- @param m_options table The raw settings table
+--- @return table m_options The initialized settings table
 function BETTERUI.GeneralInterface.InitModule(m_options)
     if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
     if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end

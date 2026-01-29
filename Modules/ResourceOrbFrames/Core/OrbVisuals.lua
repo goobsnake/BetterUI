@@ -14,10 +14,10 @@ local NAME = "ResourceOrbFrames"
 
 -- Constants
 local ORB_CONFIG = {
-    [POWERTYPE_HEALTH] = {0, 1, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds'},
-    [POWERTYPE_MAGICKA] = {0, 0.5, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restoremagicka.dds'},
-    [POWERTYPE_STAMINA] = {0.5, 0, 75, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorestamina.dds'},
-    [ATTRIBUTE_VISUAL_POWER_SHIELDING] = {1, 0, 0, nil},
+    [POWERTYPE_HEALTH] = { 0, 1, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds' },
+    [POWERTYPE_MAGICKA] = { 0, 0.5, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restoremagicka.dds' },
+    [POWERTYPE_STAMINA] = { 0.5, 0, 75, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorestamina.dds' },
+    [ATTRIBUTE_VISUAL_POWER_SHIELDING] = { 1, 0, 0, nil },
 }
 
 -- Local helpers
@@ -61,16 +61,16 @@ function BetterUIOrbBar:Initialize(control, powerType)
     self.currentValue = 0
     self.minValue = 0
     self.maxValue = 0
-    
+
     local baseCoordLeft, baseCoordRight, baseAnchorX = unpack(ORB_CONFIG[powerType])
     self.baseCoordLeft = baseCoordLeft
     self.baseCoordRight = baseCoordRight
     self.baseAnchorX = baseAnchorX
-    
+
     -- Animation state for flow effects (horizontal oscillation)
     self.animState = {
-        time = 0,             -- Accumulated time for animation cycle
-        rotationAngle = 0,    -- Current rotation angle (health orb)
+        time = 0,          -- Accumulated time for animation cycle
+        rotationAngle = 0, -- Current rotation angle (health orb)
     }
 end
 
@@ -110,9 +110,9 @@ function BetterUIOrbBar:RefreshLabel()
         if self.currentValue >= 1000000 then
             self.label:SetText(string.format("%.1fM", self.currentValue / 1000000))
         elseif self.currentValue >= 1000 then
-           self.label:SetText(string.format("%.0fk", self.currentValue / 1000))
+            self.label:SetText(string.format("%.0fk", self.currentValue / 1000))
         else
-           self.label:SetText(string.format("%d", self.currentValue))
+            self.label:SetText(string.format("%d", self.currentValue))
         end
     end
 end
@@ -132,34 +132,34 @@ function BetterUIOrbBar:RefreshVisuals()
 
     local visibleHeight = (fullHeight * percent) / 100
     local coordTop = 1 - (percent / 100)
-    
+
     local fillOffsetX = self.fillOffsetX or 0
     local fillOffsetY = self.fillOffsetY or 0
-    
+
     local isHalfTexture = math.abs(math.abs(self.baseCoordRight - self.baseCoordLeft) - 0.5) < 0.001
-    
+
     local halfOffsetX = 0
     if isHalfTexture then
         local isLeft = (self.baseCoordLeft < self.baseCoordRight)
         halfOffsetX = isLeft and (-fullWidth / 4) or (fullWidth / 4)
     end
-    
+
     local verticalOffset = (fullHeight - visibleHeight) / 2
 
     if self.fog then
         self.fog:SetDimensions(fullWidth, visibleHeight)
-        
+
         local left = self.baseCoordLeft
         local right = self.baseCoordRight
         if self.animState and self.animState.currentLeft and self.animState.currentRight then
             left = self.animState.currentLeft
             right = self.animState.currentRight
         end
-        
+
         self.fog:SetTextureCoords(left, right, coordTop, 1)
         self.fog:ClearAnchors()
-        self.fog:SetAnchor(CENTER, self.control, CENTER, 
-            self.baseAnchorX + halfOffsetX + fillOffsetX, 
+        self.fog:SetAnchor(CENTER, self.control, CENTER,
+            self.baseAnchorX + halfOffsetX + fillOffsetX,
             verticalOffset + fillOffsetY)
     end
 
@@ -167,15 +167,17 @@ function BetterUIOrbBar:RefreshVisuals()
         self.fog2:SetDimensions(fullWidth, fullHeight)
         self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, 0, 1)
         self.fog2:ClearAnchors()
-        self.fog2:SetAnchor(CENTER, self.control, CENTER, 
-            self.baseAnchorX + halfOffsetX + fillOffsetX, 
+        self.fog2:SetAnchor(CENTER, self.control, CENTER,
+            self.baseAnchorX + halfOffsetX + fillOffsetX,
             fillOffsetY)
     end
 end
 
+--- @param deltaMs number Time since last update in milliseconds
+--- @param settings table The module settings
 function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     if not self.fog or not self.animState then return end
-    
+
     if not settings.orbAnimFlow then
         -- Reset any animation state when flow is disabled
         if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
@@ -186,16 +188,16 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
         self.animState.currentRight = nil
         return
     end
-    
+
     -- Animation parameters (unified for all orbs)
-    local flowRange = 0.0225  -- Horizontal oscillation range
-    local flowSpeed = 6500    -- Speed of oscillation cycle in ms
-    
+    local flowRange = 0.0225 -- Horizontal oscillation range
+    local flowSpeed = 6500   -- Speed of oscillation cycle in ms
+
     self.animState.time = self.animState.time + deltaMs
-    
+
     -- Calculate oscillation offset (gentle horizontal shift)
     local oscillation = math.sin(self.animState.time / flowSpeed * math.pi * 2) * flowRange
-    
+
     -- Calculate current fill percent
     local percent = 0
     if self.currentValue >= self.maxValue then
@@ -205,16 +207,16 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     end
     percent = zo_max(0, percent - 3) -- Visual adjustment
     local coordTop = 1 - (percent / 100)
-    
+
     -- Apply oscillation to texture coordinates
     local scrolledLeft = self.baseCoordLeft + oscillation
     local scrolledRight = self.baseCoordRight + oscillation
     self.fog:SetTextureCoords(scrolledLeft, scrolledRight, coordTop, 1)
-    
+
     -- Cache current flow state for RefreshVisuals
     self.animState.currentLeft = scrolledLeft
     self.animState.currentRight = scrolledRight
-    
+
     -- Ensure no rotation is applied (only use horizontal flow)
     if self.animState.rotationAngle and self.animState.rotationAngle ~= 0 then
         self.fog:SetTextureRotation(0)
@@ -246,13 +248,13 @@ function BetterUIShieldBar:RefreshVisuals()
     local fullHeight = self.fillHeight or 150
     local fillOffsetX = self.fillOffsetX or 0
     local fillOffsetY = self.fillOffsetY or 0
-    
+
     self.fog:SetDimensions(fullWidth, fullHeight)
-    self.fog:SetTextureCoords(0, 1, 0, 1) 
-    
+    self.fog:SetTextureCoords(0, 1, 0, 1)
+
     self.fog:ClearAnchors()
-    self.fog:SetAnchor(CENTER, self.control, CENTER, 
-        self.baseAnchorX + fillOffsetX, 
+    self.fog:SetAnchor(CENTER, self.control, CENTER,
+        self.baseAnchorX + fillOffsetX,
         fillOffsetY)
 end
 
@@ -260,40 +262,42 @@ end
 -- Visual Management Functions
 -------------------------------------------------------------------------------------------------
 
+--- @param rootFrame Control The root control frame
 function Visuals.UpdateFrameDimensions(rootFrame)
     if not rootFrame then return end
     local settings = GetModuleSettings()
     local scale = settings.scale or 1
     local offsetY = settings.offsetY or 0
-    
+
     -- Check against cached state in Animations to decide if we should animate
     local lastScale = Animations.GetLastScale and Animations.GetLastScale()
     local lastOffsetY = Animations.GetLastOffsetY and Animations.GetLastOffsetY()
-    
+
     -- Only animate if we have cached state (i.e., after first run) and values changed
     local hasState = lastScale ~= nil and lastOffsetY ~= nil
     local changed = hasState and ((math.abs(lastScale - scale) > 0.001) or (math.abs(lastOffsetY - offsetY) > 0.001))
-    
+
     if changed then
-         Animations.AnimateDimensions(rootFrame, scale, offsetY)
+        Animations.AnimateDimensions(rootFrame, scale, offsetY)
     else
-         -- Instant set (initial load or no change)
-         rootFrame:SetScale(scale)
-         rootFrame:ClearAnchors()
-         rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
-         Animations.SetState(scale, offsetY)
+        -- Instant set (initial load or no change)
+        rootFrame:SetScale(scale)
+        rootFrame:ClearAnchors()
+        rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
+        Animations.SetState(scale, offsetY)
     end
-    
+
     local cfg = BETTERUI_ORB_FRAMES
     local isGamepad = IsInGamepadPreferredMode()
     local frameCfg = isGamepad and cfg.frame.gamepad or cfg.frame.keyboard
     rootFrame:SetDimensions(frameCfg.width, frameCfg.height)
 end
 
+--- @param rootFrame Control The root control frame
 function Visuals.ApplyThemeVisuals(rootFrame)
     if not rootFrame then return end
     local settings = GetModuleSettings()
-    
+
     local elements = {
         OrnamentLeft = 'OrnamentLeft.dds',
         OrnamentRight = 'OrnamentRight.dds'
@@ -310,8 +314,10 @@ function Visuals.ApplyThemeVisuals(rootFrame)
         local parent = FindControl(rootFrame, parentName)
         if not parent then return end
         local textures = {
-            Fog = 'OrbFill.dds', Fog2 = 'OrbFill.dds',
-            Border = 'OrbBorder.dds', Divide = 'OrbSplitter.dds'
+            Fog = 'OrbFill.dds',
+            Fog2 = 'OrbFill.dds',
+            Border = 'OrbBorder.dds',
+            Divide = 'OrbSplitter.dds'
         }
         for childName, textureFile in pairs(textures) do
             local child = FindControl(parent, childName)
@@ -324,20 +330,20 @@ function Visuals.ApplyThemeVisuals(rootFrame)
     ApplyOrbTextures('OrbHealth')
     ApplyOrbTextures('OrbMagicka')
     ApplyOrbTextures('OrbStamina')
-    
+
     local function UpdateOverlay(parentName, textureFile, showOverlay)
         local parent = FindControl(rootFrame, parentName)
         if not parent then return end
-        
+
         local overlayName = parent:GetName() .. "CustomOverlay"
         local overlay = _G[overlayName]
-        
+
         if showOverlay then
             if not overlay then
                 overlay = WINDOW_MANAGER:CreateControl(overlayName, parent, CT_TEXTURE)
                 overlay:SetAnchor(CENTER, parent, CENTER, 0, 0)
-                overlay:SetDimensions(256, 256) 
-                overlay:SetDrawLayer(DL_CONTROLS) 
+                overlay:SetDimensions(256, 256)
+                overlay:SetDrawLayer(DL_CONTROLS)
                 overlay:SetDrawLevel(15)
             end
             overlay:SetTexture(ResolveTexturePath(textureFile))
@@ -349,7 +355,7 @@ function Visuals.ApplyThemeVisuals(rootFrame)
 
     UpdateOverlay('OrbHealth', 'Health.dds', settings.hideLeftOrnament)
     UpdateOverlay('OrbResource', 'MagStam.dds', settings.hideRightOrnament)
-    
+
     local shieldOrb = FindControl(rootFrame, 'OrbShield')
     if shieldOrb then
         local fog = FindControl(shieldOrb, 'Fog')
@@ -384,13 +390,13 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
 
     local cfg = BETTERUI_ORB_FRAMES
     local settings = GetModuleSettings()
-    
+
     local leftBorderSize, rightBorderSize = CalculateBorderSizes(cfg, settings)
     local fillParams = CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
-    
+
     local leftOrnament = FindControl(rootFrame, 'OrnamentLeft')
     local rightOrnament = FindControl(rootFrame, 'OrnamentRight')
-    
+
     if leftOrnament then
         local size = cfg.ornaments.left.size * cfg.ornaments.left.scale
         leftOrnament:SetDimensions(size, size)
@@ -398,71 +404,75 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         leftOrnament:SetHidden(settings.hideLeftOrnament)
     end
     if rightOrnament then
-         local size = cfg.ornaments.right.size * cfg.ornaments.right.scale
-         rightOrnament:SetDimensions(size, size)
-         rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x, cfg.ornaments.right.y)
-         rightOrnament:SetHidden(settings.hideRightOrnament)
+        local size = cfg.ornaments.right.size * cfg.ornaments.right.scale
+        rightOrnament:SetDimensions(size, size)
+        rightOrnament:SetAnchor(CENTER, bgMiddle, CENTER, cfg.ornaments.right.x, cfg.ornaments.right.y)
+        rightOrnament:SetHidden(settings.hideRightOrnament)
     end
-    
+
     local leftOrb = FindControl(rootFrame, 'OrbHealth')
     if leftOrb then
         leftOrb:ClearAnchors()
         if settings.hideLeftOrnament then
-             local nx = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or (cfg.ornaments.left.x + cfg.orbs.left.x)
-             local ny = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or (cfg.ornaments.left.y + cfg.orbs.left.y)
-             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+            local nx = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or
+            (cfg.ornaments.left.x + cfg.orbs.left.x)
+            local ny = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or
+            (cfg.ornaments.left.y + cfg.orbs.left.y)
+            leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
-             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
+            leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
         end
         leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
         local border = FindControl(leftOrb, 'Border')
         if border then border:SetDimensions(leftBorderSize, leftBorderSize) end
     end
-    
+
     local rightOrb = FindControl(rootFrame, 'OrbResource')
     if rightOrb then
         rightOrb:ClearAnchors()
         if settings.hideRightOrnament then
-             local nx = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or (cfg.ornaments.right.x + cfg.orbs.right.x)
-             local ny = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or (cfg.ornaments.right.y + cfg.orbs.right.y)
-             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
+            local nx = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or
+            (cfg.ornaments.right.x + cfg.orbs.right.x)
+            local ny = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or
+            (cfg.ornaments.right.y + cfg.orbs.right.y)
+            rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
-             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
+            rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
         end
         rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
-        
-        for _, name in ipairs({'OrbMagicka', 'OrbStamina'}) do
-             local cont = FindControl(rightOrb, name)
-             if cont then 
-                 cont:SetDimensions(rightBorderSize, rightBorderSize)
-                 cont:ClearAnchors()
-                 cont:SetAnchor(CENTER, rightOrb, CENTER, 0, 0)
-                 local b = FindControl(cont, 'Border')
-                 if b then b:SetDimensions(rightBorderSize, rightBorderSize) end
-                 local div = FindControl(cont, 'Divide')
-                 if div then
-                     div:SetDimensions(cfg.splitter.width, rightBorderSize * cfg.splitter.heightScale)
-                     div:SetAnchor(CENTER, cont, CENTER, cfg.splitter.x, cfg.splitter.y)
-                 end
-             end
+
+        for _, name in ipairs({ 'OrbMagicka', 'OrbStamina' }) do
+            local cont = FindControl(rightOrb, name)
+            if cont then
+                cont:SetDimensions(rightBorderSize, rightBorderSize)
+                cont:ClearAnchors()
+                cont:SetAnchor(CENTER, rightOrb, CENTER, 0, 0)
+                local b = FindControl(cont, 'Border')
+                if b then b:SetDimensions(rightBorderSize, rightBorderSize) end
+                local div = FindControl(cont, 'Divide')
+                if div then
+                    div:SetDimensions(cfg.splitter.width, rightBorderSize * cfg.splitter.heightScale)
+                    div:SetAnchor(CENTER, cont, CENTER, cfg.splitter.x, cfg.splitter.y)
+                end
+            end
         end
     end
-    
-    local function UpdateOverlaySize(parent, cfgName, baseSize) 
+
+    local function UpdateOverlaySize(parent, cfgName, baseSize)
         if not parent then return end
         local overlayName = parent:GetName() .. "CustomOverlay"
         local overlay = _G[overlayName]
         if overlay and not overlay:IsHidden() then
-             local overlayCfg = cfg.overlays and cfg.overlays[cfgName]
-             local scale = overlayCfg and overlayCfg.scale or 1.0
-             local size = baseSize * scale
-             overlay:SetDimensions(size, size)
-             overlay:SetAnchor(CENTER, parent, CENTER, overlayCfg and overlayCfg.x or 0, overlayCfg and overlayCfg.y or 0)
+            local overlayCfg = cfg.overlays and cfg.overlays[cfgName]
+            local scale = overlayCfg and overlayCfg.scale or 1.0
+            local size = baseSize * scale
+            overlay:SetDimensions(size, size)
+            overlay:SetAnchor(CENTER, parent, CENTER, overlayCfg and overlayCfg.x or 0, overlayCfg and overlayCfg.y or 0)
         end
     end
     UpdateOverlaySize(leftOrb, 'health', leftBorderSize)
     UpdateOverlaySize(rightOrb, 'magStam', rightBorderSize)
-    
+
     if pools then
         if pools[POWERTYPE_HEALTH] then
             pools[POWERTYPE_HEALTH].fillWidth = fillParams.health.width
@@ -470,8 +480,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_HEALTH].fillOffsetX = fillParams.health.x
             pools[POWERTYPE_HEALTH].fillOffsetY = fillParams.health.y
             if pools[POWERTYPE_HEALTH].label then
-                 pools[POWERTYPE_HEALTH].label:ClearAnchors()
-                 pools[POWERTYPE_HEALTH].label:SetAnchor(CENTER, pools[POWERTYPE_HEALTH].control, CENTER, cfg.labels.health.x, cfg.labels.health.y)
+                pools[POWERTYPE_HEALTH].label:ClearAnchors()
+                pools[POWERTYPE_HEALTH].label:SetAnchor(CENTER, pools[POWERTYPE_HEALTH].control, CENTER,
+                    cfg.labels.health.x, cfg.labels.health.y)
             end
         end
         if pools[POWERTYPE_MAGICKA] then
@@ -480,8 +491,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_MAGICKA].fillOffsetX = fillParams.magicka.x
             pools[POWERTYPE_MAGICKA].fillOffsetY = fillParams.magicka.y
             if pools[POWERTYPE_MAGICKA].label then
-                 pools[POWERTYPE_MAGICKA].label:ClearAnchors()
-                 pools[POWERTYPE_MAGICKA].label:SetAnchor(CENTER, pools[POWERTYPE_MAGICKA].control, CENTER, cfg.labels.magicka.x, cfg.labels.magicka.y)
+                pools[POWERTYPE_MAGICKA].label:ClearAnchors()
+                pools[POWERTYPE_MAGICKA].label:SetAnchor(CENTER, pools[POWERTYPE_MAGICKA].control, CENTER,
+                    cfg.labels.magicka.x, cfg.labels.magicka.y)
             end
         end
         if pools[POWERTYPE_STAMINA] then
@@ -490,12 +502,13 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_STAMINA].fillOffsetX = fillParams.stamina.x
             pools[POWERTYPE_STAMINA].fillOffsetY = fillParams.stamina.y
             if pools[POWERTYPE_STAMINA].label then
-                 pools[POWERTYPE_STAMINA].label:ClearAnchors()
-                 pools[POWERTYPE_STAMINA].label:SetAnchor(CENTER, pools[POWERTYPE_STAMINA].control, CENTER, cfg.labels.stamina.x, cfg.labels.stamina.y)
+                pools[POWERTYPE_STAMINA].label:ClearAnchors()
+                pools[POWERTYPE_STAMINA].label:SetAnchor(CENTER, pools[POWERTYPE_STAMINA].control, CENTER,
+                    cfg.labels.stamina.x, cfg.labels.stamina.y)
             end
         end
     end
-    
+
     if shieldBar then
         local sOrb = FindControl(rootFrame, 'OrbShield')
         if sOrb then
@@ -505,7 +518,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             local lbl = FindControl(sOrb, 'Label')
             if lbl then lbl:SetAnchor(CENTER, leftOrb, CENTER, cfg.labels.shield.x, cfg.labels.shield.y) end
         end
-    
+
         shieldBar.fillWidth = fillParams.shield.width
         shieldBar.fillHeight = fillParams.shield.height
         shieldBar.fillOffsetX = fillParams.shield.x
@@ -518,14 +531,14 @@ end
 -------------------------------------------------------------------------------------------------
 function Visuals.SetupPowerPools(rootFrame)
     local cfg = BETTERUI_ORB_FRAMES
-    
+
     local pools = {
         [POWERTYPE_HEALTH] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH),
         [POWERTYPE_MAGICKA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbMagicka'), POWERTYPE_MAGICKA),
         [POWERTYPE_STAMINA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbStamina'), POWERTYPE_STAMINA),
     }
 
-    local function AddOrbTooltip(control, powerType) 
+    local function AddOrbTooltip(control, powerType)
         if not control then return end
         control:SetMouseEnabled(true)
         control:SetHandler("OnMouseEnter", function(self)
@@ -535,30 +548,30 @@ function Visuals.SetupPowerPools(rootFrame)
         end)
         control:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
     end
-    
+
     AddOrbTooltip(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH)
-    
+
     local magickaOrb = FindControl(rootFrame, 'OrbMagicka')
     local staminaOrb = FindControl(rootFrame, 'OrbStamina')
-    
+
     if magickaOrb and staminaOrb then
         local magickaHitBox = WINDOW_MANAGER:CreateControl("BetterUIEndsOrbMagickaHitBox", magickaOrb, CT_CONTROL)
         magickaHitBox:ClearAnchors()
         magickaHitBox:SetAnchor(TOPLEFT, magickaOrb, TOPLEFT, 0, 0)
         magickaHitBox:SetAnchor(BOTTOMRIGHT, magickaOrb, BOTTOM, 0, 0)
-        
+
         local staminaHitBox = WINDOW_MANAGER:CreateControl("BetterUIEndsOrbStaminaHitBox", staminaOrb, CT_CONTROL)
         staminaHitBox:ClearAnchors()
         staminaHitBox:SetAnchor(TOPLEFT, staminaOrb, TOP, 0, 0)
         staminaHitBox:SetAnchor(BOTTOMRIGHT, staminaOrb, BOTTOMRIGHT, 0, 0)
-        
+
         AddOrbTooltip(magickaHitBox, POWERTYPE_MAGICKA)
         AddOrbTooltip(staminaHitBox, POWERTYPE_STAMINA)
 
         magickaOrb:SetMouseEnabled(false)
         staminaOrb:SetMouseEnabled(false)
     end
-    
+
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax)
         local pool = pools[powerType]
         if pool ~= nil then
@@ -572,7 +585,7 @@ end
 
 function Visuals.SetupShieldBar(rootFrame, pools)
     local shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
-    
+
     local debugShield = BETTERUI_SHIELD_DEBUG or false
     if debugShield then
         if shieldBar.control then shieldBar.control:SetHidden(false) end
@@ -582,14 +595,14 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         if shieldBar.control then shieldBar.control:SetHidden(true) end
         shieldBar.label:GetParent():SetHidden(true)
     end
-    
+
     if shieldBar.label then
         local settings = GetModuleSettings()
         local shieldTextSize = settings.shieldTextSize or 20
-        local shieldTextColor = settings.shieldTextColor or {0, 1, 1, 1}
+        local shieldTextColor = settings.shieldTextColor or { 0, 1, 1, 1 }
         shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
         shieldBar.label:SetColor(unpack(shieldTextColor))
-        
+
         local shieldIcon = FindControl(shieldBar.control, 'ShieldIcon')
         if shieldIcon then
             local iconSize = math.floor(shieldTextSize * 1.25)
@@ -597,20 +610,22 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         end
     end
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, function(_, _, unitAttributeVisual, _, _, _, value)
-        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-            if shieldBar.fog then shieldBar.fog:SetHidden(false) end
-            shieldBar.label:GetParent():SetHidden(false)
-            ZO_StatusBar_SmoothTransition(shieldBar, value, pools[POWERTYPE_HEALTH]:GetMax())
-        end
-    end)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED,
+        function(_, _, unitAttributeVisual, _, _, _, value)
+            if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+                if shieldBar.fog then shieldBar.fog:SetHidden(false) end
+                shieldBar.label:GetParent():SetHidden(false)
+                ZO_StatusBar_SmoothTransition(shieldBar, value, pools[POWERTYPE_HEALTH]:GetMax())
+            end
+        end)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, "player")
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, function(_, _, unitAttributeVisual, _, _, _, _, newValue)
-        if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
-            ZO_StatusBar_SmoothTransition(shieldBar, newValue, pools[POWERTYPE_HEALTH]:GetMax())
-        end
-    end)
+    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED,
+        function(_, _, unitAttributeVisual, _, _, _, _, newValue)
+            if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
+                ZO_StatusBar_SmoothTransition(shieldBar, newValue, pools[POWERTYPE_HEALTH]:GetMax())
+            end
+        end)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
 
     EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
@@ -621,6 +636,6 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         end
     end)
     EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
-    
+
     return shieldBar
 end
