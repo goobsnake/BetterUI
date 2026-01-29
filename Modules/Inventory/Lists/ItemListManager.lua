@@ -84,11 +84,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
                 EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
             end
 
-            local callLaterId = zo_callLater(function()
+            BETTERUI.Inventory.Tasks:Schedule("tooltipUpdate", 50, function()
                 self:UpdateItemLeftTooltip(selectedData)
                 self.callLaterLeftToolTip = nil
-            end, 50) -- 50ms delay for responsiveness
-            self.callLaterLeftToolTip = "CallLaterFunction" .. callLaterId
+            end)
+            self.callLaterLeftToolTip = "InventoryTooltipUpdate"
 
             self:PrepareNextClearNewStatus(selectedData)
 
@@ -96,11 +96,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
             if self.keybindCallLaterId ~= nil then
                 EVENT_MANAGER:UnregisterForUpdate(self.keybindCallLaterId)
             end
-            local kbId = zo_callLater(function()
+            BETTERUI.Inventory.Tasks:Schedule("keybindUpdate", 50, function()
                 self:RefreshKeybinds()
                 self.keybindCallLaterId = nil
-            end, 50)
-            self.keybindCallLaterId = "CallLaterFunction" .. kbId
+            end)
+            self.keybindCallLaterId = "InventoryKeybindUpdate"
         end
     end)
 
@@ -289,7 +289,8 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
     -- Schedule next batch
     if self.pendingBatchIndex <= totalItems then
         -- Batch processing: yield to allow frame render, preventing UI freeze
-        self.batchCallId = zo_callLater(function() self:ProcessScrollListBatch() end, 10)
+        self.batchCallId = BETTERUI.Inventory.Tasks:Schedule("batchProcess", 10,
+            function() self:ProcessScrollListBatch() end)
     else
         -- Final batch complete - commit once with proper selection restoration
         -- Use dontReselect=true to prevent default reselection, then restore manually

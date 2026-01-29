@@ -466,14 +466,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
         -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
-        zo_callLater(function()
-            local listDelayed = self:GetList()
-            if listDelayed and listDelayed.SetDirectionalInputEnabled then
-                listDelayed:SetDirectionalInputEnabled(true)
-            elseif self.list and self.list.SetDirectionalInputEnabled then
-                self.list:SetDirectionalInputEnabled(true)
-            end
-        end, BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS)
+        BETTERUI.Banking.Tasks:Schedule("directionalInputFix", BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS,
+            function()
+                local listDelayed = self:GetList()
+                if listDelayed and listDelayed.SetDirectionalInputEnabled then
+                    listDelayed:SetDirectionalInputEnabled(true)
+                elseif self.list and self.list.SetDirectionalInputEnabled then
+                    self.list:SetDirectionalInputEnabled(true)
+                end
+            end)
 
         -- Clear search text when exiting the banking scene
         self.searchQuery = ""

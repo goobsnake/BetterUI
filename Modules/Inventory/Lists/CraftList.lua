@@ -233,7 +233,7 @@ function BETTERUI.Inventory.CraftList:ProcessBatch()
     self.pendingBatchIndex = endIndex + 1
 
     if self.pendingBatchIndex <= totalItems then
-        self.batchCallId = zo_callLater(function() self:ProcessBatch() end, 10)
+        self.batchCallId = BETTERUI.Inventory.Tasks:Schedule("craftBatchProcess", 10, function() self:ProcessBatch() end)
     else
         self.pendingBatchData = nil
     end

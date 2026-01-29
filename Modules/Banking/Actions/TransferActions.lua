@@ -113,32 +113,33 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 prevCategoryKey = prevCat.key
             end
         end
-        zo_callLater(function()
-            if myToken ~= self._moveCoalesceToken then return end
-            self._suppressListUpdates = false
-            -- Recompute categories and refresh once
-            self.bankCategories = self:ComputeVisibleBankCategories()
-            -- Check if the captured category key still exists in the new list
-            if prevCategoryKey then
-                local categoryStillExists = false
-                for i, cat in ipairs(self.bankCategories) do
-                    if cat.key == prevCategoryKey then
-                        categoryStillExists = true
-                        break
+        BETTERUI.Banking.Tasks:Schedule("moveCoalesce", delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS,
+            function()
+                if myToken ~= self._moveCoalesceToken then return end
+                self._suppressListUpdates = false
+                -- Recompute categories and refresh once
+                self.bankCategories = self:ComputeVisibleBankCategories()
+                -- Check if the captured category key still exists in the new list
+                if prevCategoryKey then
+                    local categoryStillExists = false
+                    for i, cat in ipairs(self.bankCategories) do
+                        if cat.key == prevCategoryKey then
+                            categoryStillExists = true
+                            break
+                        end
+                    end
+                    if not categoryStillExists then
+                        -- Category became empty, force to All Items
+                        self.currentCategoryIndex = 1
                     end
                 end
-                if not categoryStillExists then
-                    -- Category became empty, force to All Items
-                    self.currentCategoryIndex = 1
-                end
-            end
-            -- Suppress callback during rebuild when category has changed
-            local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-            state.suppressHeaderCallback = true
-            self:RebuildHeaderCategories()
-            state.suppressHeaderCallback = false
-            self:RefreshList()
-        end, delayMs or BETTERUI.CIM.CONST.TIMING.MOVE_COALESCE_DELAY_MS)
+                -- Suppress callback during rebuild when category has changed
+                local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+                state.suppressHeaderCallback = true
+                self:RebuildHeaderCategories()
+                state.suppressHeaderCallback = false
+                self:RefreshList()
+            end)
     end
 
     if toBagEmptyIndex ~= nil then

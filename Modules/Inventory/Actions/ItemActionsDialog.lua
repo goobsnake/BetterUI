@@ -380,11 +380,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     end
                 end
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                zo_callLater(function()
+                BETTERUI.Inventory.Tasks:Schedule("quickslotAssignRefresh", 150, function()
                     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
                         GAMEPAD_INVENTORY:RefreshItemList()
                     end
-                end, 150)
+                end)
             end
             return
         end

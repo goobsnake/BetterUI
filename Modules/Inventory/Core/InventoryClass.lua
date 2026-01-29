@@ -27,6 +27,10 @@ if BETTERUI.Inventory.ClassMixins then
     end
 end
 
+-- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
+-- Using module-specific instance prevents ID collisions with other modules
+BETTERUI.Inventory.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+
 
 --------------------------------------------------------------------------------
 -- CACHING & DATA MANAGEMENT
@@ -233,13 +237,13 @@ function BETTERUI.Inventory.Class:Initialize(control)
     end
 
     -- Force a short delayed refresh of the main keybind group
-    zo_callLater(function()
+    BETTERUI.Inventory.Tasks:Schedule("keybindRefresh", BETTERUI.CIM.CONST.TIMING.DEBOUNCE_MS, function()
         if self.RefreshKeybinds then
             self:RefreshKeybinds()
         elseif self.mainKeybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
         end
-    end, BETTERUI.CIM.CONST.TIMING.DEBOUNCE_MS)
+    end)
 end
 
 --------------------------------------------------------------------------------

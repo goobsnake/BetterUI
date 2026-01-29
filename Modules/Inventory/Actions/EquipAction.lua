@@ -109,18 +109,21 @@ local function EnsureCompanionEquipPatched()
     if EVENT_MANAGER and EVENT_MANAGER.RegisterForEvent and not companionEquipPatchQueued then
         companionEquipPatchQueued = true
 
-        EVENT_MANAGER:RegisterForEvent(COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED, function()
-            companionEquipPatchQueued = false
-            EnsureCompanionEquipPatched()
-        end)
+        BETTERUI.CIM.EventRegistry.Register("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME, EVENT_PLAYER_ACTIVATED,
+            function()
+                BETTERUI.CIM.EventRegistry.Unregister("Inventory", COMPANION_EQUIP_PATCH_EVENT_NAME,
+                    EVENT_PLAYER_ACTIVATED)
+                companionEquipPatchQueued = false
+                EnsureCompanionEquipPatched()
+            end)
     end
-    if not companionEquipPatchRetryPending and zo_callLater then
+    if not companionEquipPatchRetryPending and BETTERUI.Inventory.Tasks then
         companionEquipPatchRetryPending = true
 
-        zo_callLater(function()
+        BETTERUI.Inventory.Tasks:Schedule("companionEquipPatchRetry", COMPANION_EQUIP_PATCH_RETRY_MS, function()
             companionEquipPatchRetryPending = false
             EnsureCompanionEquipPatched()
-        end, COMPANION_EQUIP_PATCH_RETRY_MS)
+        end)
     end
     return false
 end
@@ -170,7 +173,8 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
             end
             if isCallingFromActionDialog then
                 -- Delay required to allow previous dialog to fully close before opening new one
-                zo_callLater(promptForBindOnEquip, BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS)
+                BETTERUI.Inventory.Tasks:Schedule("equipBindOnEquipDialog",
+                    BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS, promptForBindOnEquip)
             else
                 promptForBindOnEquip()
             end
@@ -211,7 +215,8 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 
         if isCallingFromActionDialog then
             -- Delay required to allow previous dialog to fully close before opening new one
-            zo_callLater(showEquipDialog, BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS)
+            BETTERUI.Inventory.Tasks:Schedule("equipSlotDialog", BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS,
+                showEquipDialog)
         else
             showEquipDialog()
         end
@@ -275,13 +280,13 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         then
             -- Use global DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION if defined, or safe default
             local delay = DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION or 300
-            zo_callLater(function()
+            BETTERUI.Inventory.Tasks:Schedule("equipBOEConfirmDialog", delay, function()
                 ZO_Dialogs_ShowPlatformDialog(
                     "CONFIRM_EQUIP_BOE",
                     { callback = equipItemCallback },
                     { mainTextParams = { equipItemLink } }
                 )
-            end, delay)
+            end)
         else
             equipItemCallback()
         end

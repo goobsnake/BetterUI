@@ -216,11 +216,11 @@ function BETTERUI.Inventory.HookActionDialog()
                                 end
                             end
                             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                            zo_callLater(function()
+                            BETTERUI.Inventory.Tasks:Schedule("quickslotHookRefresh", 150, function()
                                 if GAMEPAD_INVENTORY then
                                     GAMEPAD_INVENTORY:RefreshItemList()
                                 end
-                            end, 150)
+                            end)
                         end
                         return
                     end

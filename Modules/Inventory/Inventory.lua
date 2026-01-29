@@ -363,12 +363,13 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
 					self._pendingCategoryListRefresh = true
 					-- Coalesce category refresh to prevent spam during rapid updates
-					zo_callLater(function()
+					BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+						BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, function()
 						self._pendingCategoryListRefresh = false
 						if self.scene:IsShowing() then
 							self:RefreshCategoryList()
 						end
-					end, BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS)
+					end)
 				end
 			end
 		end
@@ -383,23 +384,25 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	-- deferred initialization finishes. Some UI elements become visible only
 	-- after a short delay; refreshing keybinds here prevents the Clear Search
 	-- button from not appearing until the player scrolls the list.
-	zo_callLater(function()
-		if self.RefreshKeybinds then
-			self:RefreshKeybinds()
-		elseif self.mainKeybindStripDescriptor then
-			KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-			-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
-			if self.SetActiveKeybinds then
-				self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-			end
-			-- Additional delay to ensure main group activation sticks
-			zo_callLater(function()
+	BETTERUI.Inventory.Tasks:Schedule("keybindRefreshDeferred", BETTERUI.CIM.CONST.TIMING.KEYBIND_REFRESH_DELAY_MS,
+		function()
+			if self.RefreshKeybinds then
+				self:RefreshKeybinds()
+			elseif self.mainKeybindStripDescriptor then
+				KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+				-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
 				if self.SetActiveKeybinds then
 					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
 				end
-			end, BETTERUI.CIM.CONST.TIMING.KEYBIND_ACTIVATION_DELAY_MS)
-		end
-	end, BETTERUI.CIM.CONST.TIMING.KEYBIND_REFRESH_DELAY_MS)
+				-- Additional delay to ensure main group activation sticks
+				BETTERUI.Inventory.Tasks:Schedule("keybindActivationStick",
+					BETTERUI.CIM.CONST.TIMING.KEYBIND_ACTIVATION_DELAY_MS, function()
+					if self.SetActiveKeybinds then
+						self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+					end
+				end)
+			end
+		end)
 
 	-- Set the active list to ItemList by default
 	self:SwitchActiveList(INVENTORY_ITEM_LIST)
@@ -675,11 +678,12 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 						local destroyed = BETTERUI.Inventory.TryDestroyItem(d.bagId, d.slotIndex, true)
 						-- Refresh lists shortly after to reflect removal
 						if destroyed then
-							zo_callLater(function()
+							BETTERUI.Inventory.Tasks:Schedule("destroyRefresh",
+								BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS, function()
 								if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
 									GAMEPAD_INVENTORY:RefreshItemList()
 								end
-							end, BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS)
+							end)
 						end
 					end
 					ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")

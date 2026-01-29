@@ -113,13 +113,13 @@ local function OnLeaveHeader(self)
     end
 
     -- Zero-delay to defer keybind activation to next frame, preventing race conditions
-    zo_callLater(function()
+    BETTERUI.Inventory.Tasks:Schedule("headerLeaveKeybinds", 0, function()
         if self.scene and self.scene:IsShowing() then
             if self.EnsureHeaderKeybindsActive then
                 self:EnsureHeaderKeybindsActive()
             end
         end
-    end, 0)
+    end)
 end
 
 local function EnsureHeaderKeybindsActive(self)

@@ -28,6 +28,10 @@ BETTERUI.Banking.lastUsedBank                  = 0
 BETTERUI.Banking.currentUsedBank               = 0
 BETTERUI.Banking.esoSubscriber                 = nil
 
+-- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
+-- Using module-specific instance prevents ID collisions with other modules
+BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manager:New()
+
 -------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY REFERENCES
 -------------------------------------------------------------------------------------------------

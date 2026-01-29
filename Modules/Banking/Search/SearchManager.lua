@@ -179,7 +179,7 @@ function BETTERUI.Banking.Class:OnEnterHeader()
         -- Ensure only the Clear keybind group remains visible shortly after entering header.
         -- DELAY RATIONALE: Native ESO logic may restore keybinds on the next frame after focus change.
         -- We wait 20ms to ensure our cleanup runs AFTER native restoration.
-        zo_callLater(function()
+        BETTERUI.Banking.Tasks:Schedule("searchKeybindCleanup", 20, function()
             if not self._searchModeActive then return end
             if not KEYBIND_STRIP then return end
 
@@ -198,7 +198,7 @@ function BETTERUI.Banking.Class:OnEnterHeader()
             if self.textSearchKeybindStripDescriptor then
                 EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
-        end, 20)
+        end)
     else
         -- Fallback to base behavior if no text search available
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then

@@ -32,7 +32,7 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
             SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
         end
         -- UI refreshes (safe if scene present)
-        zo_callLater(function()
+        BETTERUI.Inventory.Tasks:Schedule("destroyItemRefresh", 80, function()
             if GAMEPAD_INVENTORY then
                 if GAMEPAD_INVENTORY.RefreshItemList then
                     GAMEPAD_INVENTORY:RefreshItemList()
@@ -44,7 +44,7 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
                     GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                 end
             end
-        end, 80)
+        end)
         return true
     end
     return false

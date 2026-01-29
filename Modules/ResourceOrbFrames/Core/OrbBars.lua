@@ -44,7 +44,7 @@ end
 function BetterUIBarFrame:Initialize(name, parent)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
-    
+
     local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
     fill:SetTexture(BETTERUI_BAR_FILL_TEXTURE or "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds")
     fill:SetAnchor(LEFT, control, LEFT, 0, 0)
@@ -54,7 +54,7 @@ function BetterUIBarFrame:Initialize(name, parent)
     backdrop:SetTexture(ResolveTexturePath("Bar.dds"))
     backdrop:SetAnchor(CENTER, control, CENTER, 0, 0)
     self.backdrop = backdrop
-    
+
     local label = WINDOW_MANAGER:CreateControl(name .. "Label", control, CT_LABEL)
     label:SetAnchor(CENTER, control, CENTER, 0, 4)
     label:SetFont("$(BOLD_FONT)|18|thick-outline")
@@ -62,7 +62,7 @@ function BetterUIBarFrame:Initialize(name, parent)
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_CENTER)
     self.label = label
-    
+
     return control
 end
 
@@ -72,16 +72,16 @@ end
 
 function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
     if not self.control or self.control:IsHidden() then return end
-    
+
     if self.backdrop then
         self.backdrop:SetDimensions(barWidth, barHeight)
     end
-    
+
     if self.fill and max > 0 then
         local percent = math.min(1, math.max(0, current / max))
         local fillMaxWidth = barWidth - (2 * insetX)
         local fillHeight = barHeight - (2 * insetY)
-        
+
         self.fill:SetDimensions(fillMaxWidth * percent, fillHeight)
         self.fill:ClearAnchors()
         self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
@@ -107,25 +107,30 @@ function CastBar:Initialize(parent)
     self.startTime = 0
     self:SetColor(1, 1, 0.4, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStart", EVENT_SPELL_CASTING_START, function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
-        return self:OnCastStart(unitTag, effectName, duration, isChanneled)
-    end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "CastStop", EVENT_SPELL_CASTING_STOP, function(_, unitTag, _, _, _, wasInterrupted) 
-        return self:OnCastStop(unitTag, wasInterrupted) 
-    end)
-    
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "CastStart", EVENT_SPELL_CASTING_START,
+        function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
+            return self:OnCastStart(unitTag, effectName, duration, isChanneled)
+        end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "CastStop", EVENT_SPELL_CASTING_STOP,
+        function(_, unitTag, _, _, _, wasInterrupted)
+            return self:OnCastStop(unitTag, wasInterrupted)
+        end)
+
     local function HideDefaultCastBar()
         if ZO_CastingBar then ZO_CastingBar:SetHidden(true) end
         if ZO_PlayerCastingBar then ZO_PlayerCastingBar:SetHidden(true) end
         if ZO_PlayerProgressBar then ZO_PlayerProgressBar:SetHidden(true) end
         if ZO_GamepadPlayerProgressBar then ZO_GamepadPlayerProgressBar:SetHidden(true) end
-        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason("BetterUICastBar", true) end
+        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason(
+            "BetterUICastBar", true) end
     end
     HideDefaultCastBar()
-    EVENT_MANAGER:RegisterForEvent(NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED, HideDefaultCastBar)
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
+        HideDefaultCastBar)
+
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
+        EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
         local hotbar = GetActiveHotbarCategory()
         local abilityId = GetSlotBoundId(slotIndex, hotbar)
         if not abilityId or abilityId == 0 then return end
@@ -135,8 +140,7 @@ function CastBar:Initialize(parent)
         if duration <= 0 then return end
         local name = GetAbilityName(abilityId)
         self:OnCastStart("player", name, duration, isChanneled)
-    end)
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "SlotAbilityUsed", EVENT_ACTION_SLOT_ABILITY_USED, REGISTER_FILTER_UNIT_TAG, "player")
+    end, REGISTER_FILTER_UNIT_TAG, "player")
 
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
@@ -153,7 +157,7 @@ end
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
-    self:Update() 
+    self:Update()
 end
 
 function CastBar:Update()
@@ -162,12 +166,12 @@ function CastBar:Update()
         self.control:SetHidden(true)
         return
     end
-    
+
     local w = BETTERUI_CAST_BAR_WIDTH or 250
     local h = BETTERUI_CAST_BAR_HEIGHT or 150
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_CAST_BAR_SCALE or 1.0)
-    
+
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
         self.backdrop:ClearAnchors()
@@ -179,7 +183,7 @@ function CastBar:Update()
     local current, max = 0, 1
 
     local castTextSize = settings.castBarTextSize or 16
-    local castTextColor = settings.castBarTextColor or {1, 1, 1, 1}
+    local castTextColor = settings.castBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", castTextSize))
     self.label:SetColor(unpack(castTextColor))
 
@@ -189,20 +193,20 @@ function CastBar:Update()
     if self.isCasting then
         self.control:SetHidden(false)
         if self.fill then self.fill:SetHidden(false) end
-        
+
         local now = GetFrameTimeSeconds()
         local elapsed = now - self.startTime
         local remaining = math.max(0, self.duration - elapsed)
-        
+
         current = remaining
         max = self.duration
-        
+
         if current < 0 then current = 0 end
         if current > max then current = max end
         self.label:SetText(string.format("%s (%.1fs)", self.abilityName or "Casting", remaining))
-        
+
         if elapsed > self.duration + 0.5 then
-             self:OnCastStop("player", false)
+            self:OnCastStop("player", false)
         end
         self:UpdateVisuals(current, max, insetX, insetY, w, h)
     else
@@ -235,13 +239,13 @@ end
 function ExperienceBar:Update()
     if not self.control then return end
     local settings = GetModuleSettings()
-    
+
     if not settings.xpBarEnabled then
         self.control:SetHidden(true)
         return
     end
     self.control:SetHidden(false)
-    
+
     local isChampion = IsUnitChampion("player")
     local current, max, effectiveMax = 0, 0, 0
     local labelText = ""
@@ -261,21 +265,21 @@ function ExperienceBar:Update()
         labelText = string.format("XP: %d / %d", current, max)
         effectiveMax = max
     end
-    
+
     local size = settings.xpBarTextSize or 16
-    local color = settings.xpBarTextColor or {1, 1, 1, 1}
+    local color = settings.xpBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))
     self.label:SetText(labelText)
-    
+
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)
-    
+
     local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
     local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
     local w = BETTERUI_XP_BAR_WIDTH or 250
     local h = BETTERUI_XP_BAR_HEIGHT or 150
-    
+
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
@@ -294,27 +298,28 @@ end
 
 function MountStaminaBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent)
-    self:SetColor(0, 0.8, 0.2, 1) 
+    self:SetColor(0, 0.8, 0.2, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
-    
+
     if IsMounted() then
         local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
         self.currentValue = current
         self.maxValue = max
     end
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED, function(_, isMounted)
-        self:OnMountedStateChanged(isMounted)
-    end)
-    
-    EVENT_MANAGER:RegisterForEvent(NAME .. "MountStaminaPower", EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
-        if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA then
-            self.currentValue = powerValue
-            self.maxValue = powerMax
-        end
-    end)
-    EVENT_MANAGER:AddFilterForEvent(NAME .. "MountStaminaPower", EVENT_POWER_UPDATE, REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
-    
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "MountStaminaMount", EVENT_MOUNTED_STATE_CHANGED,
+        function(_, isMounted)
+            self:OnMountedStateChanged(isMounted)
+        end)
+
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "MountStaminaPower", EVENT_POWER_UPDATE,
+        function(_, unitTag, powerPoolIndex, powerType, powerValue, powerMax)
+            if unitTag == "player" and powerType == COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA then
+                self.currentValue = powerValue
+                self.maxValue = powerMax
+            end
+        end, REGISTER_FILTER_POWER_TYPE, COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
+
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
@@ -332,26 +337,26 @@ function MountStaminaBar:Update()
         self.control:SetHidden(true)
         return
     end
-    
+
     local w = BETTERUI_MOUNT_STAMINA_BAR_WIDTH or 250
     local h = BETTERUI_MOUNT_STAMINA_BAR_HEIGHT or 150
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_MOUNT_STAMINA_BAR_SCALE or 1.0)
     self.control:SetHidden(false)
-    
+
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
         self.backdrop:ClearAnchors()
         self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
     end
-    
+
     local size = settings.mountStaminaBarTextSize or 16
-    local color = settings.mountStaminaBarTextColor or {1, 1, 1, 1}
+    local color = settings.mountStaminaBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
-    
+
     if IsMounted() then
         local current = self.currentValue or 0
         local max = self.maxValue or 1
@@ -359,7 +364,8 @@ function MountStaminaBar:Update()
         local percent = math.floor((current / max) * 100)
         self.label:SetText(string.format("Mount: %d%%", percent))
         if self.fill then self.fill:SetHidden(false) end
-        self:UpdateVisuals(current, max, BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X or 35, BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y or 55, w, h)
+        self:UpdateVisuals(current, max, BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X or 35,
+            BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y or 55, w, h)
     else
         self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
         if self.fill then self.fill:SetHidden(true) end
@@ -376,13 +382,17 @@ function FoodBuffTracker:New(control)
     obj.control = control
     return obj
 end
-function FoodBuffTracker:Update() 
+
+function FoodBuffTracker:Update()
     -- Logic available in repo if needed, minimal placeholder here to prevent errors if referenced
     if self.control and self.control.SetValue then self.control:SetValue(0) end
 end
 
 -- Export Factory Functions
 function Bars.CreateCastBar(parent) return CastBar:New(parent) end
+
 function Bars.CreateExperienceBar(parent) return ExperienceBar:New(parent) end
+
 function Bars.CreateMountStaminaBar(parent) return MountStaminaBar:New(parent) end
+
 function Bars.CreateFoodTracker(control) return FoodBuffTracker:New(control) end

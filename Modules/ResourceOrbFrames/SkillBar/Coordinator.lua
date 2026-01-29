@@ -61,7 +61,7 @@ end
 function SkillBar.UpdateMainBarLayout(rootFrame)
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and { abilitySlotWidth = 67, abilitySlotOffsetX = 10 } or
-    { abilitySlotWidth = 50, abilitySlotOffsetX = 2 }
+        { abilitySlotWidth = 50, abilitySlotOffsetX = 2 }
 
     local width = layout.abilitySlotWidth
     local offset = layout.abilitySlotOffsetX
@@ -83,14 +83,14 @@ function SkillBar.ApplyActionBarSkin(rootFrame, layout)
     ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
 
     if not isGamePad then
-        zo_callLater(function()
+        BETTERUI.ResourceOrbFrames.Tasks:Schedule("hideButtonText", 150, function()
             for i = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1 do
                 local btn = ZO_ActionBar_GetButton(i)
                 if btn and btn.buttonText then btn.buttonText:SetHidden(true) end
             end
             local qs = ZO_ActionBar_GetButton(1, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
             if qs and qs.buttonText then qs.buttonText:SetHidden(true) end
-        end, 150)
+        end)
     end
 
     ZO_HUDEquipmentStatus:ClearAnchors()

@@ -233,11 +233,11 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
                         end
                         ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_QUICKSLOT_ASSIGN_DIALOG")
                         -- Delay to ensure focus transition completes
-                        zo_callLater(function()
+                        BETTERUI.Inventory.Tasks:Schedule("quickslotDialogRefresh", 150, function()
                             if GAMEPAD_INVENTORY then
                                 GAMEPAD_INVENTORY:RefreshItemList()
                             end
-                        end, 150)
+                        end)
                     end
                 end,
             },
@@ -268,13 +268,13 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
     -- Robust fallback: If the dialog didn't show (possibly due to engine state),
     -- attempt once more in the next frame. If both fail, use the standalone dialog.
     -- Delay dialog init to prevent conflict with source dialog
-    zo_callLater(function()
+    BETTERUI.Inventory.Tasks:Schedule("quickslotDialogFallback1", 10, function()
         if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
             ZO_Dialogs_ShowDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, data, nil, true, true)
 
             -- Final fallback to standalone if the unified dialog is unavailable/denied
             -- Nested delay to ensure clean state transition
-            zo_callLater(function()
+            BETTERUI.Inventory.Tasks:Schedule("quickslotDialogFallback2", 50, function()
                 if not ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                     ZO_Dialogs_ShowDialog(
                         "BETTERUI_QUICKSLOT_ASSIGN_DIALOG",
@@ -284,7 +284,7 @@ function BETTERUI.Inventory.Class:ShowQuickslotAssignDialog(bagId, slotIndex)
                         true
                     )
                 end
-            end, 50)
+            end)
         end
-    end, 10)
+    end)
 end

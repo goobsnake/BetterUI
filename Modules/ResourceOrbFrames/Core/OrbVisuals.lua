@@ -415,9 +415,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         leftOrb:ClearAnchors()
         if settings.hideLeftOrnament then
             local nx = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.x or
-            (cfg.ornaments.left.x + cfg.orbs.left.x)
+                (cfg.ornaments.left.x + cfg.orbs.left.x)
             local ny = cfg.orbs.left.noOrnament and cfg.orbs.left.noOrnament.y or
-            (cfg.ornaments.left.y + cfg.orbs.left.y)
+                (cfg.ornaments.left.y + cfg.orbs.left.y)
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
@@ -432,9 +432,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         rightOrb:ClearAnchors()
         if settings.hideRightOrnament then
             local nx = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.x or
-            (cfg.ornaments.right.x + cfg.orbs.right.x)
+                (cfg.ornaments.right.x + cfg.orbs.right.x)
             local ny = cfg.orbs.right.noOrnament and cfg.orbs.right.noOrnament.y or
-            (cfg.ornaments.right.y + cfg.orbs.right.y)
+                (cfg.ornaments.right.y + cfg.orbs.right.y)
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
@@ -572,13 +572,13 @@ function Visuals.SetupPowerPools(rootFrame)
         staminaOrb:SetMouseEnabled(false)
     end
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_POWER_UPDATE, function(_, _, _, powerType, powerValue, powerMax)
-        local pool = pools[powerType]
-        if pool ~= nil then
-            ZO_StatusBar_SmoothTransition(pool, powerValue, powerMax)
-        end
-    end)
-    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_POWER_UPDATE, REGISTER_FILTER_UNIT_TAG, "player")
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_PowerUpdate", EVENT_POWER_UPDATE,
+        function(_, _, _, powerType, powerValue, powerMax)
+            local pool = pools[powerType]
+            if pool ~= nil then
+                ZO_StatusBar_SmoothTransition(pool, powerValue, powerMax)
+            end
+        end, REGISTER_FILTER_UNIT_TAG, "player")
 
     return pools
 end
@@ -610,32 +610,32 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         end
     end
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED,
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldAdded",
+        EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED,
         function(_, _, unitAttributeVisual, _, _, _, value)
             if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
                 if shieldBar.fog then shieldBar.fog:SetHidden(false) end
                 shieldBar.label:GetParent():SetHidden(false)
                 ZO_StatusBar_SmoothTransition(shieldBar, value, pools[POWERTYPE_HEALTH]:GetMax())
             end
-        end)
-    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_ADDED, REGISTER_FILTER_UNIT_TAG, "player")
+        end, REGISTER_FILTER_UNIT_TAG, "player")
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED,
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldUpdated",
+        EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED,
         function(_, _, unitAttributeVisual, _, _, _, _, newValue)
             if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING then
                 ZO_StatusBar_SmoothTransition(shieldBar, newValue, pools[POWERTYPE_HEALTH]:GetMax())
             end
-        end)
-    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_UPDATED, REGISTER_FILTER_UNIT_TAG, "player")
+        end, REGISTER_FILTER_UNIT_TAG, "player")
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldRemoved",
+        EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, function(_, _, unitAttributeVisual)
         if unitAttributeVisual == ATTRIBUTE_VISUAL_POWER_SHIELDING and not debugShield then
             ZO_StatusBar_SmoothTransition(shieldBar, 0, pools[POWERTYPE_HEALTH]:GetMax())
             shieldBar.label:GetParent():SetHidden(true)
             if shieldBar.fog then shieldBar.fog:SetHidden(true) end
         end
-    end)
-    EVENT_MANAGER:AddFilterForEvent(NAME, EVENT_UNIT_ATTRIBUTE_VISUAL_REMOVED, REGISTER_FILTER_UNIT_TAG, "player")
+    end, REGISTER_FILTER_UNIT_TAG, "player")
 
     return shieldBar
 end

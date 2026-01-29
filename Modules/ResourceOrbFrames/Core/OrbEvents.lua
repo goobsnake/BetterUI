@@ -56,19 +56,20 @@ function Events.SetupVisibilityFragments(rootFrame)
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
 
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_PLAYER_DEAD, UpdateDeathFragment)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_PLAYER_ALIVE, UpdateDeathFragment)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_DeathEnforce", EVENT_PLAYER_DEAD, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_DeathEnforce", EVENT_PLAYER_DEAD, function()
         DeferredEnforceHide(100)
     end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_AliveEnforce", EVENT_PLAYER_ALIVE, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_AliveEnforce", EVENT_PLAYER_ALIVE, function()
         DeferredEnforceHide(100)
     end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED, function()
-        DeferredEnforceHide(100)
-    end)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Reincarnated", EVENT_PLAYER_REINCARNATED,
+        function()
+            DeferredEnforceHide(100)
+        end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_EndSiege", EVENT_END_SIEGE_CONTROL, function()
         DeferredEnforceHide(100)
     end)
 

@@ -34,6 +34,10 @@ local m_castBar = nil
 local m_mountStaminaBar = nil
 local m_foodTracker = nil
 
+-- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
+-- Using module-specific instance prevents ID collisions with other modules
+local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
+
 -- Defaults
 local DEFAULTS = {
     m_enabled = true,
@@ -245,55 +249,62 @@ local function SetupModule(control)
     end)
 
     -- Register Gamepad Switch
-    EVENT_MANAGER:RegisterForEvent(NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
         ReloadUI()
     end)
 
     -- Register Dynamic Bar Updates
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED, function()
-        SkillBar.WeaponSwapAnimation(control)
-        -- Only update skills layout, skip orbs to prevent visual shifts
-        zo_callLater(function() ApplyLayout(false, true) end, BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS)
-    end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
+        function()
+            SkillBar.WeaponSwapAnimation(control)
+            -- Only update skills layout, skip orbs to prevent visual shifts
+            ROFTasks:Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
+                function() ApplyLayout(false, true) end)
+        end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE, function()
-        SkillBar.UpdateBackBar(control)
-        if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
-        -- Only update skills layout
-        ApplyLayout(false, true)
-    end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
+        function()
+            SkillBar.UpdateBackBar(control)
+            if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+            -- Only update skills layout
+            ApplyLayout(false, true)
+        end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED, function()
-        SkillBar.UpdateBackBar(control)
-        if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
-    end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
+        function()
+            SkillBar.UpdateBackBar(control)
+            if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+        end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_CompanionState", EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
+        EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
         if frontBarCfg and frontBarCfg.m_enabled then
             SkillBar.UpdateFrontBarCompanion(control)
         end
-        zo_callLater(ApplyFullLayout, BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS)
+        ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
     end)
 
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED, function()
-        if frontBarCfg and frontBarCfg.m_enabled then
-            SkillBar.UpdateFrontBarQuickslot(control)
-        end
-    end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
+        function()
+            if frontBarCfg and frontBarCfg.m_enabled then
+                SkillBar.UpdateFrontBarQuickslot(control)
+            end
+        end)
 
 
 
     -- Zone Change Cleanup (for subsequent zones after initial setup)
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED, function()
-        zo_callLater(function()
-            SkillBar.HideNativeActionBar()
-            if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
-                PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
-            end
-            ApplyFullLayout()
-            RefreshAllData()
-        end, BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS)
-    end)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
+        function()
+            ROFTasks:Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
+                SkillBar.HideNativeActionBar()
+                if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+                    PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
+                end
+                ApplyFullLayout()
+                RefreshAllData()
+            end)
+        end)
 end
 
 -- =========================================================================
@@ -309,7 +320,7 @@ function ResourceOrbFrames.Initialize(control)
     EVENT_MANAGER:RegisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
-        zo_callLater(function()
+        ROFTasks:Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
             local settings = GetModuleSettings()
             if not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
@@ -327,7 +338,7 @@ function ResourceOrbFrames.Initialize(control)
             end
             ApplyFullLayout()
             RefreshAllData()
-        end, BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS)
+        end)
     end)
 end
 
