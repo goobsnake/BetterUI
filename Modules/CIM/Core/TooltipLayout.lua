@@ -7,8 +7,6 @@ Last Modified: 2026-01-26
 
 ]]
 
-local _
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 
 --[[

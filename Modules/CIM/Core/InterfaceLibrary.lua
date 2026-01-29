@@ -16,8 +16,6 @@ This file now serves as:
   2. A load-order verification point
 ]]
 
-local _
-
 -- Ensure namespaces exist (may already be set in Globals.lua or earlier files)
 BETTERUI.Interface = BETTERUI.Interface or {}
 BETTERUI.CIM = BETTERUI.CIM or {}

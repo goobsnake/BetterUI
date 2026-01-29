@@ -11,7 +11,6 @@ FEATURES:
 ]]
 
 _G.gsErrorSuppress = 0 -- Global flag for guild store error suppression
-local _
 
 -------------------------------------------------------------------------------------------------
 -- RESEARCH TRAIT CACHING

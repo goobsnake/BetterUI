@@ -10,7 +10,6 @@ if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 -- Dependencies (ensure these globals are available)
-local _
 local LAM = LibAddonMenu2 -- Unused here but good for consistency if needed
 
 --[[

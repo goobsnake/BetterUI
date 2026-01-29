@@ -6,7 +6,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-28
 ]]
 
-local _
 local LAM = LibAddonMenu2
 
 --- Initializes the settings panel for Resource Orb Frames.

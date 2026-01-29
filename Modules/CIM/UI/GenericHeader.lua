@@ -8,14 +8,13 @@ Author: BetterUI Team
 Last Modified: 2026-01-19
 ]]
 
-local _
 
 -- Control alias constants for readability and performance
-local TABBAR            = ZO_GAMEPAD_HEADER_CONTROLS.TABBAR
-local TITLE             = ZO_GAMEPAD_HEADER_CONTROLS.TITLE
-local TITLE_BASELINE    = ZO_GAMEPAD_HEADER_CONTROLS.TITLE_BASELINE
-local DIVIDER_SIMPLE    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_SIMPLE
-local DIVIDER_PIPPED    = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
+local TABBAR         = ZO_GAMEPAD_HEADER_CONTROLS.TABBAR
+local TITLE          = ZO_GAMEPAD_HEADER_CONTROLS.TITLE
+local TITLE_BASELINE = ZO_GAMEPAD_HEADER_CONTROLS.TITLE_BASELINE
+local DIVIDER_SIMPLE = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_SIMPLE
+local DIVIDER_PIPPED = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 
 -- Height of the info label area (historical reference, unused)
 
@@ -38,13 +37,13 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     -- The text label is redundant or doesn't fit the visual style of the carousel.
     label:SetHidden(true) -- Icons only for this tab bar style
     local icon = control:GetNamedChild("Icon")
-    
+
     -- Resolve text if function (though ignored by SetHidden(true) above, might be used for accessiblity later)
     local text = data.text
     if type(text) == "function" then
         text = text()
     end
-    
+
     local iconPath = data.iconsNormal[1]
     icon:SetTexture(iconPath)
 
@@ -56,14 +55,14 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     if data.canSelect == nil then
         data.canSelect = true
     end
-    
+
     -- BetterUI Fix: Explicitly enable mouse and attach click handler
     -- XML template handlers may not be inherited by pooled controls
     control:SetMouseEnabled(true)
     control:SetHandler("OnMouseUp", function(self)
         BETTERUI_TabBar_OnCategoryIconClicked(self)
     end)
-    
+
     ZO_GamepadMenuHeaderTemplate_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
 end
 
@@ -79,18 +78,18 @@ References: Called by Inventory and Banking initialization.
 ]]
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
     control.controls =
-        {
-            [TABBAR]            = control:GetNamedChild("TabBar"),
-            [TITLE]             = control:GetNamedChild("TitleContainer"):GetNamedChild("Title"),
-            [TITLE_BASELINE]    = control:GetNamedChild("TitleContainer"),
-            [DIVIDER_SIMPLE]    = control:GetNamedChild("DividerSimple"),
-            [DIVIDER_PIPPED]    = control:GetNamedChild("DividerPipped"),
-        }
+    {
+        [TABBAR]         = control:GetNamedChild("TabBar"),
+        [TITLE]          = control:GetNamedChild("TitleContainer"):GetNamedChild("Title"),
+        [TITLE_BASELINE] = control:GetNamedChild("TitleContainer"),
+        [DIVIDER_SIMPLE] = control:GetNamedChild("DividerSimple"),
+        [DIVIDER_PIPPED] = control:GetNamedChild("DividerPipped"),
+    }
 
-        if createTabBar == ZO_GAMEPAD_HEADER_TABBAR_CREATE then
-            local tabBarControl = control.controls[TABBAR]
-            tabBarControl:SetHidden(false)
-        end
+    if createTabBar == ZO_GAMEPAD_HEADER_TABBAR_CREATE then
+        local tabBarControl = control.controls[TABBAR]
+        tabBarControl:SetHidden(false)
+    end
 end
 
 local TEXT_ALIGN_RIGHT = 2
@@ -189,7 +188,6 @@ function BETTERUI.GenericHeader.SetTitleText(control, titleText)
     titleTextControl:SetText(titleText)
 end
 
-
 --[[
 Function: UpdateEquippedIcons
 Description: Updates equipment icons for main or backup bar.
@@ -213,8 +211,8 @@ local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
 
     local defaultIcon = BETTERUI.CONST.ICONS.DEFAULT_SLOT
     local mapping = {
-        { name = iconNames.main, texture = iconsData.main },
-        { name = iconNames.off, texture = iconsData.off },
+        { name = iconNames.main,   texture = iconsData.main },
+        { name = iconNames.off,    texture = iconsData.off },
         { name = iconNames.poison, texture = iconsData.poison },
     }
 
@@ -239,7 +237,7 @@ param: equipOff (string) - Texture path for off hand icon.
 param: equipPoison (string) - Texture path for poison icon.
 ]]
 function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
-    UpdateEquippedIcons(control, 
+    UpdateEquippedIcons(control,
         { main = "MainHandIcon", off = "OffHandIcon", poison = "PoisonIcon" },
         { main = equipMain, off = equipOff, poison = equipPoison },
         false)
@@ -272,22 +270,25 @@ end
 --- @param data table Header data (title, carousel config, callbacks).
 --- @param blockTabBarCallbacks boolean If true, supresses OnSelectedChanged during initialization.
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
-	control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
+    control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 
     local tabBarControl = control.controls[TABBAR]
     tabBarControl:SetHidden(false)
 
     -- Initialize Tab Bar Scroll List if missing
     if not control.tabBar then
-        local tabBarData = { attachedTo=control, parent=data.tabBarData.parent, onNext=data.tabBarData.onNext, onPrev = data.tabBarData.onPrev }
+        local tabBarData = { attachedTo = control, parent = data.tabBarData.parent, onNext = data.tabBarData.onNext, onPrev =
+        data.tabBarData.onPrev }
         -- Create the Parametric Scroll List for the Tab Bar
-        control.tabBar = BETTERUI_TabBarScrollList:New(tabBarControl, tabBarControl:GetNamedChild("LeftIcon"), tabBarControl:GetNamedChild("RightIcon"), tabBarData)
+        control.tabBar = BETTERUI_TabBarScrollList:New(tabBarControl, tabBarControl:GetNamedChild("LeftIcon"),
+            tabBarControl:GetNamedChild("RightIcon"), tabBarData)
         control.tabBar:Activate()
         control.tabBar.hideUnselectedControls = false
 
-        control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup, ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
+        control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup,
+            ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
     end
-    
+
     -- Always ensure scrollList alias is set on the UI control so XML OnClicked handlers work
     -- This must be outside the creation block in case the control was recreated or refreshed
     tabBarControl.scrollList = control.tabBar
@@ -307,13 +308,13 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
             control.tabBar.carouselMode = data.carouselConfig.enabled
         end
     end
-    
+
     -- BetterUI Fix: Ensure callback from data is applied to the tab bar
     -- This allows context switching (Inventory <-> Craft Bag) to update the listener
     if control.tabBar and data.callback then
         control.tabBar:SetOnSelectedDataChangedCallback(data.callback)
     end
-    
+
     -- If tab bar exists, commit the list to show items
     if control.tabBar then
         control.tabBar:Commit(blockTabBarCallbacks)
@@ -332,7 +333,7 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         end
 
         if onChange then
-            if(blockTabBarCallbacks) then
+            if (blockTabBarCallbacks) then
                 control.tabBar:RemoveOnSelectedDataChangedCallback(onChange)
             else
                 control.tabBar:SetOnSelectedDataChangedCallback(onChange)
@@ -346,9 +347,9 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         end
 
         control.tabBar:Commit()
-        
+
         -- Restore callback after commit if it was blocked
-        if(blockTabBarCallbacks) then
+        if (blockTabBarCallbacks) then
             control.tabBar:SetOnSelectedDataChangedCallback(onChange)
         end
     end

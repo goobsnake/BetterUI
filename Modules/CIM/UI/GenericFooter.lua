@@ -6,7 +6,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-28
 ]]
 
-local _
 
 -- ============================================================================
 -- LOCAL ALIASES

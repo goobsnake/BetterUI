@@ -8,8 +8,6 @@ Last Modified: 2026-01-28
 Used By: Inventory/Lists/ItemListManager.lua, Banking (future)
 ]]
 
-local _
-
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 

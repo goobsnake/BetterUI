@@ -20,7 +20,6 @@ KEY RESPONSIBILITIES:
     *   `GetColumnFontDescriptor`: Returns a valid font string for other columns (Trait, Value, etc.).
 ]]
 
-local _
 
 -- Module initialization
 BETTERUI.Banking = BETTERUI.Banking or {}

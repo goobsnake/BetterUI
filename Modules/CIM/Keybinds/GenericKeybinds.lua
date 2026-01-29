@@ -6,8 +6,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-28
 ]]
 
-local _
-
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 

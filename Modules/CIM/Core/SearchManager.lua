@@ -11,8 +11,6 @@ Contains:
   - SearchMixin table applied to Window class by WindowClass.lua
 ]]
 
-local _
-
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 -------------------------------------------------------------------------------------------------

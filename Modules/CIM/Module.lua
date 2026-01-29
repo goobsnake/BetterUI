@@ -7,7 +7,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-19
 ]]
 
-local _
 local LAM = LibAddonMenu2
 
 --[[

@@ -10,8 +10,6 @@ This module provides:
   - Layout/positioning logic for currency labels in footers
 ]]
 
-local _
-
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Currency = BETTERUI.CIM.Currency or {}
 

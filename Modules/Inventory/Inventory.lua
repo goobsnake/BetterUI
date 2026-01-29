@@ -18,7 +18,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-25
 ]]
 
-local _
 
 --------------------------------------------------------------------------------
 -- CONSTANTS & GLOBALS

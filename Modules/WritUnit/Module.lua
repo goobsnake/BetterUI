@@ -14,7 +14,6 @@
 
 ---------------------------------------------------------------------------------------------------
 
-local _
 
 --- Initializes the Writs module settings.
 ---
@@ -49,7 +48,7 @@ end
 ---
 --- @param eventCode number The event code.
 local function OnCloseCraftStation(eventCode)
-	BETTERUI.Writs.Hide()
+    BETTERUI.Writs.Hide()
 end
 
 --- Event handler for crafting completion.
@@ -78,12 +77,12 @@ end
 --- References: Called from `BetterUI.lua` during addon initialization.
 ---
 function BETTERUI.Writs.Setup()
-	local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_TLW")
-	local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel",tlw,"BETTERUI_WritsPanel")
+    local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_TLW")
+    local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")
 
-	EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
-	EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
-	EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFT_COMPLETED, OnCraftItem)
+    EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
+    EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
+    EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFT_COMPLETED, OnCraftItem)
 
-	BETTERUI_WP:SetHidden(true)
+    BETTERUI_WP:SetHidden(true)
 end

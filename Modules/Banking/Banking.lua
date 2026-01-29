@@ -29,7 +29,6 @@ KEY MECHANICS:
 
 ]]
 
-local _
 
 -------------------------------------------------------------------------------------------------
 -- LOCAL REFERENCES TO NAMESPACE CONSTANTS

@@ -17,7 +17,6 @@
 --
 ---------------------------------------------------------------------------------------------------
 
-local _
 local LAM = LibAddonMenu2
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end

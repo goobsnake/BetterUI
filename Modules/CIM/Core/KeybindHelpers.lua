@@ -7,8 +7,6 @@ Last Modified: 2026-01-26
 
 ]]
 
-local _
-
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 --[[

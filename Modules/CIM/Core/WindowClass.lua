@@ -12,8 +12,6 @@ Note: Scene creation is NOT done here - each module (Banking, etc.) should
 create its own scene and call InitializeFragment/InitializeScene.
 ]]
 
-local _
-
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 -------------------------------------------------------------------------------------------------

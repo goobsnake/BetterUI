@@ -13,7 +13,6 @@
 -- Last Modified: 2026-01-28
 ---------------------------------------------------------------------------------------------------
 
-local _
 
 -- Cached control references (populated by CacheControls during addon init)
 local m_writNameLabel = nil
@@ -78,11 +77,11 @@ function BETTERUI.Writs.Update()
 		if IsValidQuestIndex(qId) then
 			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
 				local qName, _, qDesc, _, _, qCompleted = GetJournalQuestInfo(qId)
-				local currentWrit                  = -1
-				local q                            = string.lower(qName or "")
+				local currentWrit                       = -1
+				local q                                 = string.lower(qName or "")
 				-- Use patterns from Constants.lua for maintainability
 				-- Order matters: last match wins as in the original chain
-				local patterns                     = BETTERUI.Writs.CONST.PATTERNS
+				local patterns                          = BETTERUI.Writs.CONST.PATTERNS
 				for i = 1, #patterns do
 					local pat = patterns[i].pattern
 					local craft = patterns[i].craftType

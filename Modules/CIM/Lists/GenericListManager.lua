@@ -6,8 +6,6 @@ Author: BetterUI Team
 Last Modified: 2026-01-26
 ]]
 
-local _
-
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --[[

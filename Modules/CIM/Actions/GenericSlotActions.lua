@@ -10,8 +10,6 @@ BETTERUI.Inventory.SlotActions which inherits ZO_ItemSlotActionsController).
 These implementations provide a foundation for future refactoring.
 ]]
 
-local _
-
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --[[
