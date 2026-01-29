@@ -3,7 +3,7 @@ File: Modules/ResourceOrbFrames/SkillBar/Coordinator.lua
 Purpose: Coordinator for the Skill Bar system. Manages overall layout orchestration and animations,
          delegating specific bar logic to sub-modules (FrontBarManager, BackBarManager, etc.).
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -30,7 +30,7 @@ end
 -- MAIN BAR & LAYOUT ORCHESTRATION
 -- ============================================================================
 
-function SkillBar.UpdateBarPositions(rootFrame)
+local function UpdateBarPositions(rootFrame)
     local actionBarContainer = FindControl(rootFrame, 'ActionBarContainer')
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
@@ -58,7 +58,7 @@ function SkillBar.UpdateBarPositions(rootFrame)
     backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX, m_backBarBaseY)
 end
 
-function SkillBar.UpdateMainBarLayout(rootFrame)
+local function UpdateMainBarLayout(rootFrame)
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and { abilitySlotWidth = 67, abilitySlotOffsetX = 10 } or
         { abilitySlotWidth = 50, abilitySlotOffsetX = 2 }
@@ -74,7 +74,7 @@ function SkillBar.UpdateMainBarLayout(rootFrame)
     end
 end
 
-function SkillBar.ApplyActionBarSkin(rootFrame, layout)
+local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     local template = isGamePad and 'ResourceOrbFrames_Double_Gamepad' or 'ResourceOrbFrames_Double_Keyboard'
 
@@ -106,7 +106,7 @@ function SkillBar.ApplyActionBarSkin(rootFrame, layout)
     if indicator then indicator:SetHidden(true) end
 end
 
-function SkillBar.WeaponSwapAnimation(rootFrame)
+local function WeaponSwapAnimation(rootFrame)
     local settings = GetModuleSettings()
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -189,6 +189,15 @@ function SkillBar.WeaponSwapAnimation(rootFrame)
     m_swapTimeline:PlayFromStart()
 end
 
-function SkillBar.IsWeaponSwapAnimating()
+local function IsWeaponSwapAnimating()
     return m_swapTimeline and m_swapTimeline:IsPlaying()
 end
+
+-------------------------------------------------------------------------------------------------
+-- MODULE EXPORTS
+-------------------------------------------------------------------------------------------------
+SkillBar.UpdateBarPositions = UpdateBarPositions
+SkillBar.UpdateMainBarLayout = UpdateMainBarLayout
+SkillBar.ApplyActionBarSkin = ApplyActionBarSkin
+SkillBar.WeaponSwapAnimation = WeaponSwapAnimation
+SkillBar.IsWeaponSwapAnimating = IsWeaponSwapAnimating

@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua
 Purpose: Manages the Back Bar layout, updates, and cooldown tracking.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
@@ -25,14 +25,14 @@ local m_backBarButtonCache = {}
 local m_backBarContainer = nil
 
 --[[
-Function: SkillBar.CacheBackBarControls
+Function: CacheBackBarControls
 Description: Caches all back bar control references for performance.
 Rationale: Avoids repeated GetNamedChild/FindControl lookups in hot paths.
 Mechanism: Uses CIM.ControlCache.CacheButtonChildren for each button.
 References: Called during addon initialization after controls are created.
 param: rootFrame (control) - The root ResourceOrbFrames control
 ]]
-function SkillBar.CacheBackBarControls(rootFrame)
+local function CacheBackBarControls(rootFrame)
     if not rootFrame then return end
 
     m_backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -55,9 +55,7 @@ local function GetCachedBackBarButton(index)
     return m_backBarButtonCache[index]
 end
 
-
-
-function SkillBar.UpdateBackBar(rootFrame)
+local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
@@ -102,7 +100,7 @@ function SkillBar.UpdateBackBar(rootFrame)
     backBarContainer:SetHidden(false)
 end
 
-function SkillBar.UpdateBackBarLayout(rootFrame)
+local function UpdateBackBarLayout(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
@@ -189,7 +187,7 @@ function SkillBar.UpdateBackBarLayout(rootFrame)
     end
 end
 
-function SkillBar.SetupBackBarTooltips(rootFrame)
+local function SetupBackBarTooltips(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
@@ -203,7 +201,7 @@ function SkillBar.SetupBackBarTooltips(rootFrame)
     end
 end
 
-function SkillBar.UpdateBackBarCooldowns(rootFrame)
+local function UpdateBackBarCooldowns(rootFrame)
     local activePair = GetActiveWeaponPairInfo()
     local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -257,3 +255,12 @@ function SkillBar.UpdateBackBarCooldowns(rootFrame)
         end
     end
 end
+
+-------------------------------------------------------------------------------------------------
+-- MODULE EXPORTS
+-------------------------------------------------------------------------------------------------
+SkillBar.CacheBackBarControls = CacheBackBarControls
+SkillBar.UpdateBackBar = UpdateBackBar
+SkillBar.UpdateBackBarLayout = UpdateBackBarLayout
+SkillBar.SetupBackBarTooltips = SetupBackBarTooltips
+SkillBar.UpdateBackBarCooldowns = UpdateBackBarCooldowns

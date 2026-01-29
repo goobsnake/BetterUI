@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua
 Purpose: Manages the Front Bar layout, updates, keybinds, and usability.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
@@ -24,14 +24,14 @@ local m_companionBtn = nil      -- Cached reference to companion button
 local m_bgMiddle = nil          -- Cached reference to BgMiddle control
 
 --[[
-Function: SkillBar.CacheFrontBarControls
+Function: CacheFrontBarControls
 Description: Caches all front bar control references for performance.
 Rationale: Avoids repeated GetNamedChild/FindControl lookups in hot paths (frame updates, cooldowns).
 Mechanism: Uses CIM.ControlCache.CacheButtonChildren for each button.
 References: Called during addon initialization after controls are created.
 param: rootFrame (control) - The root ResourceOrbFrames control
 ]]
-function SkillBar.CacheFrontBarControls(rootFrame)
+local function CacheFrontBarControls(rootFrame)
     if not rootFrame then return end
 
     m_frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -74,9 +74,7 @@ local function GetCachedButton(buttonName)
     return m_buttonCache[buttonName]
 end
 
-
-
-function SkillBar.HideNativeActionBar()
+local function HideNativeActionBar()
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
         ZO_ActionBar1:SetHidden(true)
         if ZO_ActionBar1.SetAlpha then ZO_ActionBar1:SetAlpha(0) end
@@ -86,7 +84,7 @@ function SkillBar.HideNativeActionBar()
     end
 end
 
-function SkillBar.UpdateFrontBar(rootFrame)
+local function UpdateFrontBar(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
 
@@ -134,7 +132,7 @@ function SkillBar.UpdateFrontBar(rootFrame)
     frontBarContainer:SetHidden(false)
 end
 
-function SkillBar.UpdateFrontBarUsability(rootFrame, isCasting)
+local function UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     if isCasting then return end
@@ -174,7 +172,7 @@ function SkillBar.UpdateFrontBarUsability(rootFrame, isCasting)
     end
 end
 
-function SkillBar.SetupFrontBarTooltips(rootFrame)
+local function SetupFrontBarTooltips(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -197,7 +195,7 @@ function SkillBar.SetupFrontBarTooltips(rootFrame)
     end
 end
 
-function SkillBar.SetupFrontBarKeybinds(rootFrame)
+local function SetupFrontBarKeybinds(rootFrame)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
 
@@ -279,7 +277,7 @@ function SkillBar.SetupFrontBarKeybinds(rootFrame)
     end
 end
 
-function SkillBar.UpdateFrontBarLayout(rootFrame)
+local function UpdateFrontBarLayout(rootFrame)
     -- Check if feature is m_enabled (from settings), but get LAYOUT from constants
     local settingsCfg = GetModuleSettings().customFrontBar
     if not settingsCfg or not settingsCfg.m_enabled then return end
@@ -389,7 +387,7 @@ function SkillBar.UpdateFrontBarLayout(rootFrame)
     end
 end
 
-function SkillBar.UpdateFrontBarQuickslot(rootFrame)
+local function UpdateFrontBarQuickslot(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
@@ -432,7 +430,7 @@ function SkillBar.UpdateFrontBarQuickslot(rootFrame)
     end
 end
 
-function SkillBar.UpdateFrontBarCompanion(rootFrame)
+local function UpdateFrontBarCompanion(rootFrame)
     local compBtn = FindControl(rootFrame, 'CompanionButton')
     if not compBtn then
         local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -466,7 +464,7 @@ function SkillBar.UpdateFrontBarCompanion(rootFrame)
     end
 end
 
-function SkillBar.UpdateFrontBarCooldowns(rootFrame)
+local function UpdateFrontBarCooldowns(rootFrame)
     local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
@@ -491,7 +489,7 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
 
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
-        -- Quickslot and Companion might be direct children of rootFrame in some layouts? Check SetupFrontBarKeybinds logic.
+        -- Quickslot and Companion might be direct children of rootFrame in some layouts
         if not btn and mapping.buttonName == "QuickslotButton" then
             btn = FindControl(rootFrame, 'QuickslotButton')
         end
@@ -516,7 +514,7 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                 if effectRemaining and effectRemaining > 0 then
                     remainMs = effectRemaining
                     durationMs =
-                        remainMs -- Effect timer doesn't have total duration usually accessible this way, just countdown
+                    remainMs              -- Effect timer doesn't have total duration usually accessible this way, just countdown
                     showCooldown = true
                 end
             end
@@ -526,11 +524,7 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
             local cooldownEdge = children.CooldownEdge or btn:GetNamedChild("CooldownEdge")
             local cooldownOverlay = children.CooldownOverlay or btn:GetNamedChild("CooldownOverlay")
             local iconControl = children.Icon or btn:GetNamedChild("Icon")
-            -- Force use CooldownText if TimerText fails? BackBar uses CooldownText.
-            -- FrontBar uses TimerText. Let's try CooldownText first as it might be better layered?
-            -- But earlier I forced TimerText to DL_OVERLAY. I will stick with TimerText but apply fallback logic.
             local timerText = children.TimerText or btn:GetNamedChild("TimerText")
-            -- Also support CooldownText if TimerText is missing?
             local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
 
             if showCooldown then
@@ -541,18 +535,16 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
                     if cooldown then cooldown:SetHidden(true) end
                     if cooldownEdge and iconControl and durationMs and durationMs > 0 then
                         local percentComplete = 1 - (remainMs / durationMs)
-                        -- Clamp
                         if percentComplete < 0 then percentComplete = 0 end
                         if percentComplete > 1 then percentComplete = 1 end
 
                         local _, iconHeight = iconControl:GetDimensions()
                         local offsetY = (1 - percentComplete) * iconHeight
                         cooldownEdge:ClearAnchors()
-                        -- Ensure cooldownEdge is visible
                         cooldownEdge:SetAnchor(TOPLEFT, iconControl, TOPLEFT, 0, offsetY)
                         cooldownEdge:SetWidth(iconControl:GetWidth())
                         cooldownEdge:SetHidden(false)
-                        cooldownEdge:SetDrawLayer(DL_OVERLAY) -- Force on top just in case
+                        cooldownEdge:SetDrawLayer(DL_OVERLAY)
                     end
                 else
                     if cooldownEdge then cooldownEdge:SetHidden(true) end
@@ -571,39 +563,32 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
 
                     -- Special handling for QuickslotButton per user requirements
                     if mapping.buttonName == "QuickslotButton" then
-                        -- Text at BOTTOM like other skill slots
                         timerText:ClearAnchors()
                         timerText:SetAnchor(BOTTOM, btn, BOTTOM, 0, -4)
 
-                        -- CooldownEdge: Full width, bottom-to-top animation
                         if cooldownEdge and iconControl and durationMs and durationMs > 0 then
                             local percentComplete = 1 - (remainMs / durationMs)
                             if percentComplete < 0 then percentComplete = 0 end
                             if percentComplete > 1 then percentComplete = 1 end
 
                             local iconWidth, iconHeight = iconControl:GetDimensions()
-                            -- offsetY: At cooldown start (percent=0), slider at bottom (offsetY=iconHeight-3 to stay inside)
-                            -- As cooldown progresses (percent->1), slider moves up (offsetY->0)
-                            local maxY = iconHeight - 3 -- Account for slider thickness to keep it inside icon
+                            local maxY = iconHeight - 3
                             local offsetY = (1 - percentComplete) * maxY
 
                             cooldownEdge:ClearAnchors()
-                            -- Use CENTER anchor for horizontal centering with reduced width
                             cooldownEdge:SetAnchor(TOP, iconControl, TOP, 0, offsetY)
-                            cooldownEdge:SetWidth(iconWidth - 6) -- Reduce by 6px to fit inside visible border
+                            cooldownEdge:SetWidth(iconWidth - 6)
                             cooldownEdge:SetHidden(false)
                             cooldownEdge:SetDrawLayer(DL_OVERLAY)
 
-                            -- GLASS FILL EFFECT: Resize CooldownOverlay to only cover area above slider
                             if cooldownOverlay then
-                                local overlayHeight = offsetY -- Height from top to slider position
+                                local overlayHeight = offsetY
                                 cooldownOverlay:ClearAnchors()
                                 cooldownOverlay:SetAnchor(TOP, iconControl, TOP, 0, 0)
                                 cooldownOverlay:SetDimensions(iconWidth, overlayHeight)
                                 cooldownOverlay:SetHidden(false)
                             end
 
-                            -- Progressively undim the icon as cooldown completes
                             if iconControl then
                                 iconControl:SetDesaturation(1 - percentComplete)
                             end
@@ -640,3 +625,17 @@ function SkillBar.UpdateFrontBarCooldowns(rootFrame)
         end
     end
 end
+
+-------------------------------------------------------------------------------------------------
+-- MODULE EXPORTS
+-------------------------------------------------------------------------------------------------
+SkillBar.CacheFrontBarControls = CacheFrontBarControls
+SkillBar.HideNativeActionBar = HideNativeActionBar
+SkillBar.UpdateFrontBar = UpdateFrontBar
+SkillBar.UpdateFrontBarUsability = UpdateFrontBarUsability
+SkillBar.SetupFrontBarTooltips = SetupFrontBarTooltips
+SkillBar.SetupFrontBarKeybinds = SetupFrontBarKeybinds
+SkillBar.UpdateFrontBarLayout = UpdateFrontBarLayout
+SkillBar.UpdateFrontBarQuickslot = UpdateFrontBarQuickslot
+SkillBar.UpdateFrontBarCompanion = UpdateFrontBarCompanion
+SkillBar.UpdateFrontBarCooldowns = UpdateFrontBarCooldowns
