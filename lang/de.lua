@@ -57,45 +57,47 @@ ZO_CreateStringId("SI_BETTERUI_BROWSE_TIME_LEFT", "Restzeit")
 ZO_CreateStringId("SI_BETTERUI_BROWSE_PROFIT", "Gewinn")
 ZO_CreateStringId("SI_BETTERUI_BROWSE_PRICE", "Preis")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","Alle Gegenstände")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","Materialien")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","Waffen")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL","Rüstung")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY","Schmuck")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_CONSUMABLE","Verbrauchsgüter")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MISC","Verschiedenes")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JUNK","Plunder")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_EQUIPPED","Ausgerüstet")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_STOLEN","Gestohlen")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_FURNISHING","Einrichtung")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL", "Alle Gegenstände")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS", "Materialien")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS", "Waffen")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL", "Rüstung")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY", "Schmuck")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_CONSUMABLE", "Verbrauchsgüter")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MISC", "Verschiedenes")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JUNK", "Plunder")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_EQUIPPED", "Ausgerüstet")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_STOLEN", "Gestohlen")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_FURNISHING", "Einrichtung")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_TITLE","Gegenstand ausrüsten...")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN","Haupt")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_TITLE", "Gegenstand ausrüsten...")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN", "Haupt")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_MAIN","Haupthand")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP","Nebenhand")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_MAIN", "Haupthand")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP", "Nebenhand")
 
-ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT","Waffen wechseln")
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN","Schnellzugriff zuweisen")
+ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT", "Waffen wechseln")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN", "Schnellzugriff zuweisen")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP","Ersatz")
-ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW","ABHEBEN")
-ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT","EINZAHLEN")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP", "Ersatz")
+ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW", "ABHEBEN")
+ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT", "EINZAHLEN")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_TO_TEMPLATE","Gehe zu <<1>>")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_TO_TEMPLATE", "Gehe zu <<1>>")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_CB","Handwerkstasche")
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV","Alle Gegenstände")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_CB", "Handwerkstasche")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV", "Alle Gegenstände")
 
-ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Info wechseln") 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "Ausrüsten")
+ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "Info wechseln")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Ausrüsten")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "Erster Platz")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "Zweiter Platz")
 ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "Gegenstand ausrüsten")
 ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Das Ausrüsten von <<t:1>> bindet es an dich. Fortfahren?")
 ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_EQUIP", "Ausrüsten")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON", "Möchtest du <<t:1>>\nin Haupthand oder Nebenhand der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON",
+    "Möchtest du <<t:1>>\nin Haupthand oder Nebenhand der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON",
+    "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Möchtest du <<t:1>> im ersten oder zweiten Ringplatz ausrüsten?")
 ZO_CreateStringId("SI_BETTERUI_BANKING_TOGGLE_LIST", "Liste umschalten")
 ZO_CreateStringId("SI_BETTERUI_CONFIRM_AMOUNT", "BETRAG BESTÄTIGEN")
@@ -109,24 +111,29 @@ ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_TYPE", "Typ")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_TRAIT", "Eigenschaft")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_STAT", "Attribut")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_VALUE", "Wert")
-ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "Plundermarkierung entfernen") 
+ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "Plundermarkierung entfernen")
 ZO_CreateStringId("SI_BETTERUI_ACTION_MARK_AS_JUNK", "Als Plunder markieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK", "Aktionen für Gefährten-Plunder")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP", "Ermöglicht 'Als Plunder markieren' für Gefährten-Gegenstände. Erfordert ein kompatibles Addon (z. B. FCO Companion), damit die Funktion arbeitet.")  
+ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP",
+    "Ermöglicht 'Als Plunder markieren' für Gefährten-Gegenstände. Erfordert ein kompatibles Addon (z. B. FCO Companion), damit die Funktion arbeitet.")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_HEADER", "Haupteinstellungen")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "Addon-Haupteinstellungen")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "Globale Einstellungen verwenden")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP", "Wenn aktiviert, werden Einstellungen kontoweit statt pro Charakter gespeichert.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
+    "Wenn aktiviert, werden Einstellungen kontoweit statt pro Charakter gespeichert.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "|c0066FFAllgemeine Interface-Verbesserungen|r aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Umfangreiche Verbesserungen für Tooltips und Benutzeroberfläche")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP",
+    "Umfangreiche Verbesserungen für Tooltips und Benutzeroberfläche")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "|c0066FFVerbessertes Inventar|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Gestaltet die Gamepad-Inventaroberfläche komplett neu")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "|c0066FFVerbessertes Banking|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Gestaltet die Gamepad-Bankoberfläche komplett neu")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FFTägliche Schriebe|r aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Zeigt die täglichen Schriebe und Fortschritt an jeder Handwerksstation")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
+    "Zeigt die täglichen Schriebe und Fortschritt an jeder Handwerksstation")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Gemeinsames Interface-Modul")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "Aktiviert zusätzliche Funktionen für die komplett neu gestalteten \"Verbesserten\" Oberflächen!")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
+    "Aktiviert zusätzliche Funktionen für die komplett neu gestalteten \"Verbesserten\" Oberflächen!")
 
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "Norden")
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "Nordwesten")
@@ -141,7 +148,7 @@ ZO_CreateStringId("SI_BETTERUI_STOLEN", "Gestohlen")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Stilmaterial")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "Verzauberung")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Suche löschen")
-ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "BEKANNT") 
+ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "BEKANNT")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "UNBEKANNT")
 
 
@@ -157,16 +164,19 @@ ZO_CreateStringId("SI_BETTERUI_CATEGORY_TRAIT_GEMS", "Eigenschaftssteine")
 
 -- Currency Visibility Settings
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SUBMENU", "Währungssichtbarkeit & Reihenfolge")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_DESC", "Konfiguriere, welche Währungen angezeigt werden und ihre Reihenfolge. Verwende Vorlagen für schnelle Einrichtung oder passe individuell an.")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_DESC",
+    "Konfiguriere, welche Währungen angezeigt werden und ihre Reihenfolge. Verwende Vorlagen für schnelle Einrichtung oder passe individuell an.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET", "Schnellvorlage")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_TOOLTIP", "Wende eine Vorlagenkonfiguration für die Währungsanzeige an. Benutzerdefinierte Einstellungen werden überschrieben.")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_TOOLTIP",
+    "Wende eine Vorlagenkonfiguration für die Währungsanzeige an. Benutzerdefinierte Einstellungen werden überschrieben.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_DEFAULT", "Standard (Alle sichtbar)")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "PvP-Fokus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "Handwerker-Fokus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "Event-Fokus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "Benutzerdefiniert")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP", "Alle Währungssichtbarkeits- und Reihenfolgeeinstellungen auf Standardwerte zurücksetzen.")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP",
+    "Alle Währungssichtbarkeits- und Reihenfolgeeinstellungen auf Standardwerte zurücksetzen.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "1.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "2.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_3", "3.")
@@ -209,21 +219,27 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event-Tickets Pos
 
 -- Enhanced Nameplates
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "Verbesserte Namensschilder")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Passe Schriftarten, Stile und Größen für Spieler- und NPC-Namensschilder an.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC",
+    "Passe Schriftarten, Stile und Größen für Spieler- und NPC-Namensschilder an.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Verbesserte Namensschilder aktivieren")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "Schaltet die verbesserten Namensschilder um. Bei Aktivierung werden benutzerdefinierte Schrifteinstellungen auf alle Namensschilder angewendet.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP",
+    "Schaltet die verbesserten Namensschilder um. Bei Aktivierung werden benutzerdefinierte Schrifteinstellungen auf alle Namensschilder angewendet.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Namensschild-Schriftart")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Wähle die Schriftart für Namensschilder aus ESOs integrierten Schriftarten.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
+    "Wähle die Schriftart für Namensschilder aus ESOs integrierten Schriftarten.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Schriftstil")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "Wähle den Stileffekt für Namensschildtext (Umriss, Schatten, etc).")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP",
+    "Wähle den Stileffekt für Namensschildtext (Umriss, Schatten, etc).")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Schriftgröße")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Passe die Größe des Namensschildtextes an. Standard ist 16.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Alle Namensschildeinstellungen auf Standardwerte zurücksetzen.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
+    "Alle Namensschildeinstellungen auf Standardwerte zurücksetzen.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Schriftanpassung")
-ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC", "Passe Schriftarten für die Inventarliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC",
+    "Passe Schriftarten für die Inventarliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
 
 
 -- Inventory Name Column Font Settings
@@ -238,7 +254,8 @@ ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "Wähle den Schrift
 -- Inventory Column Font Settings (Type, Trait, Stat, Value)
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SUBMENU", "Andere Spalten Schrift (Typ, Eigenschaft, Attribut, Wert)")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "Schriftart")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
+    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "Größe")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Wähle die Schriftgröße für Spaltendaten.")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Stil")
@@ -246,7 +263,8 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schri
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Schriftanpassung")
-ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC", "Passe Schriftarten für die Bankliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_BANK_FONT_DESC",
+    "Passe Schriftarten für die Bankliste an. Setze verschiedene Schriften für die Namensspalte und andere Spalten (Typ, Eigenschaft, Attribut, Wert).")
 
 
 -- Banking Name Column Font Settings
@@ -261,7 +279,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "Wähle den Schrif
 -- Banking Column Font Settings (Type, Trait, Stat, Value)
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SUBMENU", "Andere Spalten Schrift (Typ, Eigenschaft, Attribut, Wert)")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "Schriftart")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
+    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "Größe")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Wähle die Schriftgröße für Spaltendaten.")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Stil")
@@ -297,21 +316,28 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Ressourcen-Kugel-Ra
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Skalierung")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröße des Rahmens.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz (Auf/Ab)")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
+    "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Benutzerdefinierte Texturen verwenden")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "Aktivieren, um Texturen aus 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' zu verwenden. Sie müssen Ihre eigenen Texturen dort mit den korrekten Dateinamen platzieren.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
+    "Aktivieren, um Texturen aus 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' zu verwenden. Sie müssen Ihre eigenen Texturen dort mit den korrekten Dateinamen platzieren.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Auf Standard zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
+    "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "Linkes Ornament ausblenden")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Blendet das dekorative Ornament um die linke (Gesundheit) Kugel aus")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
+    "Blendet das dekorative Ornament um die linke (Gesundheit) Kugel aus")
 ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE", "Größe der linken Kugel")
-ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP", "Größe der linken Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP",
+    "Größe der linken Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
 ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT", "Rechtes Ornament ausblenden")
-ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP", "Blendet das dekorative Ornament um die rechte (Magie/Ausdauer) Kugel aus")
+ZO_CreateStringId("SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP",
+    "Blendet das dekorative Ornament um die rechte (Magie/Ausdauer) Kugel aus")
 ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE", "Größe der rechten Kugel")
-ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP", "Größe der rechten Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
+ZO_CreateStringId("SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP",
+    "Größe der rechten Kugel anpassen, wenn das Ornament ausgeblendet ist. 1.0 = 100%, 1.1 = 110%, 1.2 = 120%")
 
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SUBMENU", "Kugeleinstellungen")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_SUBMENU", "Erfahrungsleiste")
@@ -319,7 +345,8 @@ ZO_CreateStringId("SI_BETTERUI_CAST_BAR_SUBMENU", "Zauberleiste")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU", "Reittier-Ausdauerleiste")
 
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "Karussell-Navigation aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "Verwende die moderne Karussell-Navigation anstelle der klassischen Tab-Leiste.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
+    "Verwende die moderne Karussell-Navigation anstelle der klassischen Tab-Leiste.")
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Schriftskalierung")
@@ -327,7 +354,8 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Schriftfarbe")
 
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Gildenladen-Fehler unterdrücken")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
+ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
+    "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION_TOOLTIP", "Fügt ATT-Preisinformationen in die Gegenstandstooltips ein")
 ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION", "Master Merchant Integration")
@@ -335,16 +363,20 @@ ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP", "Fügt Master Merchant i
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION", "Tamriel Trade Centre Integration")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Fügt TTC-Preisinformationen in die Gegenstandstooltips ein")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Anzeige von Stil- und Eigenschaftswissen")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "Zeigt auf Gegenständen den Stil des Gegenstands und ob die Eigenschaft erforscht werden kann")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
+    "Zeigt auf Gegenständen den Stil des Gegenstands und ob die Eigenschaft erforscht werden kann")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chatfenster-Verlauf Größe")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Ändert, wie viele Zeilen im Chatpuffer gespeichert werden, Standard=200")
+ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
+    "Ändert, wie viele Zeilen im Chatpuffer gespeichert werden, Standard=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Bestätigungsbildschirm beim Löschen von Post entfernen")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Maus-Scrollgeschwindigkeit im linken Tooltip")
-ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "Ändert, wie schnell das Menü beim Drücken der Trigger springt.")
+ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP",
+    "Ändert, wie schnell das Menü beim Drücken der Trigger springt.")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Anzahl der zu überspringenden Zeilen bei Trigger")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Ändert, wie schnell das Menü beim Drücken der Trigger springt.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip-Schriftgröße")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Ermöglicht die Anzeige von mehr oder weniger Gegenstandsinformationen auf einmal in Tooltips")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
+    "Ermöglicht die Anzeige von mehr oder weniger Gegenstandsinformationen auf einmal in Tooltips")
 
 -- Skill Bars Settings (ResourceOrbFrames)
 ZO_CreateStringId("SI_BETTERUI_SKILL_BARS_SUBMENU", "Fähigkeitsleisten")
@@ -356,12 +388,14 @@ ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP", "Schriftgröße der Sch
 ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP", "Farbe der Schnellzugriffsanzahl anpassen")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Aussehen der Back Bar")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Back Bar Deckkraft")
-ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP", "Passen Sie an, wie gedimmt die Back Bar-Symbole erscheinen. Niedrigere Werte machen die Back Bar weniger auffällig.")
+ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
+    "Passen Sie an, wie gedimmt die Back Bar-Symbole erscheinen. Niedrigere Werte machen die Back Bar weniger auffällig.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Fähigkeitsleisten-Einstellungen zurücksetzen")
 
 -- XP Bar Settings
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "Erfahrungsleiste aktivieren")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP", "Zeigt eine Erfahrungs-/Championpunkte-Leiste über der oberen Fähigkeitsleiste an")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP",
+    "Zeigt eine Erfahrungs-/Championpunkte-Leiste über der oberen Fähigkeitsleiste an")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE", "XP Textgröße")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP", "Schriftgröße des Erfahrungstextes anpassen")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR", "XP Textfarbe")
@@ -371,7 +405,8 @@ ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP", "Farbe des Erfahrungs
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED", "Zauberleiste aktivieren")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Zeigt eine Zauberleiste über der Erfahrungsleiste an")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW", "Zauberleiste immer anzeigen")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP", "Wenn aktiviert, ist der Zauberleistenrahmen immer sichtbar. Wenn deaktiviert, erscheint die Zauberleiste nur beim Zaubern.")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP",
+    "Wenn aktiviert, ist der Zauberleistenrahmen immer sichtbar. Wenn deaktiviert, erscheint die Zauberleiste nur beim Zaubern.")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE", "Zaubertext Größe")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP", "Schriftgröße des Zaubertimers anpassen")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR", "Zaubertext Farbe")
@@ -379,7 +414,8 @@ ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP", "Farbe des Zauberti
 
 -- Mount Stamina Bar Settings
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED", "Reittier-Ausdauerleiste aktivieren")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP", "Zeigt eine Reittier-Ausdauerleiste unter dem rechten Ornament an, wenn man reitet")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
+    "Zeigt eine Reittier-Ausdauerleiste unter dem rechten Ornament an, wenn man reitet")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE", "Reittier-Ausdauer Textgröße")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP", "Schriftgröße des Reittier-Ausdauertextes anpassen")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_COLOR", "Reittier-Ausdauer Textfarbe")
@@ -395,13 +431,17 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "Zeige ein Symbol nach Se
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Schnellzerstörungsfunktion aktivieren")
-ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**VORSICHTIG VERWENDEN** Zerstört Gegenstände schnell ohne Bestätigungsdialog!")
+ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
+    "**VORSICHTIG VERWENDEN** Zerstört Gegenstände schnell ohne Bestätigungsdialog!")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger verwenden, um zum nächsten Gegenstandstyp zu springen")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu überspringen (Standardverhalten), springt dies zum nächsten Elementtyp")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
+    "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu überspringen (Standardverhalten), springt dies zum nächsten Elementtyp")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "\"Wert\" durch Marktpreis ersetzen")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Ersetzt den \"Wert\" des Gegenstands durch den Durchschnittspreis von MM, ATT oder TTC")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
+    "Ersetzt den \"Wert\" des Gegenstands durch den Durchschnittspreis von MM, ATT oder TTC")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bindung-beim-Ausrüsten Schutz")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Zeige einen Dialog vor dem Ausrüsten von Bindung-beim-Ausrüsten Gegenständen")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
+    "Zeige einen Dialog vor dem Ausrüsten von Bindung-beim-Ausrüsten Gegenständen")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
@@ -411,12 +451,14 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb F
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP", "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
+    "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
 
 -- Ultimate Number Display Settings
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
 ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
-ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP", "Display your current ultimate value on the ultimate button.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP",
+    "Display your current ultimate value on the ultimate button.")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
@@ -425,7 +467,8 @@ ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ulti
 -- Combat Indicators Settings
 ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP", "Display a pulsing red/orange glow around the skill bar when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
+    "Display a pulsing red/orange glow around the skill bar when in combat.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
@@ -444,4 +487,39 @@ ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
-
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BAG:")                                                                                                                                                                  -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANK:")                                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")                                                                                                     -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
+    "Are you sure you want to destroy this item? This cannot be undone.")                                                                                                                                                     -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")                                                                                                                                          -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Equip")                                                                                                                                                                           -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")                                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
+    "Toggle experimental or optional features. Some changes may require a /reloadui.")                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Enable Tooltip Enhancements")                                                                                                                                   -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
+    "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.")                                                                  -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
+    "WARNING: This setting can result in data loss. Enable with caution.")                                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
+    "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")                                                                                                                         -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
+    "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
+    "Plays a slide animation when switching between main and backup weapon bars.")                                                                                                                                            -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Enable Swirl Effect")                                                                                                                                                      -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
+    "Slowly rotates the orb fill texture, creating a gentle swirling effect.")                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")                                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Show Quickslot Quantity")                                                                                                                                           -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
+    "Displays the item count for the current quickslot item.")                                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")                                                                                                                                                   -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")                                                                                                                                                 -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw All")                                                                                                                                                            -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit All")                                                                                                                                                              -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Wähle die Menge zum Einzahlen")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Wähle die Menge zum Abheben")

@@ -55,38 +55,38 @@ ZO_CreateStringId("SI_BETTERUI_BROWSE_TIME_LEFT", "剩余时间")
 ZO_CreateStringId("SI_BETTERUI_BROWSE_PROFIT", "利润")
 ZO_CreateStringId("SI_BETTERUI_BROWSE_PRICE", "价格")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL","全部物品")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS","材料")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS","武器")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL","护甲")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY","首饰")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_CONSUMABLE","消耗品")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MISC","杂项")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JUNK","垃圾")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_EQUIPPED","已装备")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_STOLEN","被盗")
-ZO_CreateStringId("SI_BETTERUI_INV_ITEM_FURNISHING","家具")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_ALL", "全部物品")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MATERIALS", "材料")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_WEAPONS", "武器")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_APPAREL", "护甲")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JEWELRY", "首饰")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_CONSUMABLE", "消耗品")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_MISC", "杂项")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_JUNK", "垃圾")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_EQUIPPED", "已装备")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_STOLEN", "被盗")
+ZO_CreateStringId("SI_BETTERUI_INV_ITEM_FURNISHING", "家具")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_TITLE","正在装备...")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN","主手")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_TITLE", "正在装备...")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_MAIN", "主手")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_MAIN","主手")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP","副手")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_MAIN", "主手")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP", "副手")
 
-ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT","切换武器")
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN","设定快捷栏")
+ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT", "切换武器")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN", "设定快捷栏")
 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP","备用")
-ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW","提取")
-ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT","存入")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP", "备用")
+ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW", "提取")
+ZO_CreateStringId("SI_BETTERUI_BANKING_DEPOSIT", "存入")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_TO_TEMPLATE","前往 <<1>>")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_TO_TEMPLATE", "前往 <<1>>")
 
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_CB","材料包")
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV","全部物品")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_CB", "材料包")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_INV", "全部物品")
 
-ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "切换信息") 
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP" , "装备")
+ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_INFO", "切换信息")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "装备")
 ZO_CreateStringId("SI_BETTERUI_INV_FIRST_SLOT", "第一个槽")
 ZO_CreateStringId("SI_BETTERUI_INV_SECOND_SLOT", "第二个槽")
 ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_TITLE", "装备物品")
@@ -107,10 +107,10 @@ ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_TYPE", "类型")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_TRAIT", "特性")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_STAT", "属性")
 ZO_CreateStringId("SI_BETTERUI_BANKING_COLUMN_VALUE", "价值")
-ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "去掉垃圾标记") 
+ZO_CreateStringId("SI_BETTERUI_ACTION_UNMARK_AS_JUNK", "去掉垃圾标记")
 ZO_CreateStringId("SI_BETTERUI_ACTION_MARK_AS_JUNK", "标记为垃圾")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK", "启用同伴垃圾操作")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP", "启用同伴物品的“标记为垃圾”功能。需要兼容的插件（例如 FCO Companion）才能正常工作。") 
+ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP", "启用同伴物品的“标记为垃圾”功能。需要兼容的插件（例如 FCO Companion）才能正常工作。")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_HEADER", "主设置")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "插件主设置")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "使用全局设置")
@@ -138,7 +138,7 @@ ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "东北")
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "偶窃")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "风格材料")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "附魔")
-ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "已学会") 
+ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "已学会")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "未学会")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "清除搜索")
 
@@ -294,7 +294,8 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "框架的整
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "垂直偏移 (上/下)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP", "向上/向下移动框架。正值向上移动；负值向下移动。")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "使用自定义纹理")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP", "启用此选项以使用 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' 中的纹理。您必须将自己的纹理放置在那里，并使用正确的文件名。")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
+    "启用此选项以使用 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' 中的纹理。您必须将自己的纹理放置在那里，并使用正确的文件名。")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "恢复默认")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "将此部分的设置恢复为默认值。")
@@ -412,12 +413,14 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb F
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP", "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
+    "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
 
 -- Ultimate Number Display Settings
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
 ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
-ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP", "Display your current ultimate value on the ultimate button.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP",
+    "Display your current ultimate value on the ultimate button.")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
@@ -426,7 +429,8 @@ ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ulti
 -- Combat Indicators Settings
 ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP", "Display a pulsing red/orange glow around the skill bar when in combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
+    "Display a pulsing red/orange glow around the skill bar when in combat.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
@@ -445,4 +449,39 @@ ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
-
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BAG:")                                                                                                                                                                  -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANK:")                                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")                                                                                                     -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
+    "Are you sure you want to destroy this item? This cannot be undone.")                                                                                                                                                     -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")                                                                                                                                          -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Equip")                                                                                                                                                                           -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")                                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
+    "Toggle experimental or optional features. Some changes may require a /reloadui.")                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Enable Tooltip Enhancements")                                                                                                                                   -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
+    "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.")                                                                  -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
+    "WARNING: This setting can result in data loss. Enable with caution.")                                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
+    "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")                                                                                                                         -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
+    "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")                                                                                                                                        -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
+    "Plays a slide animation when switching between main and backup weapon bars.")                                                                                                                                            -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Enable Swirl Effect")                                                                                                                                                      -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
+    "Slowly rotates the orb fill texture, creating a gentle swirling effect.")                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")                                                                                                                                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Show Quickslot Quantity")                                                                                                                                           -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
+    "Displays the item count for the current quickslot item.")                                                                                                                                                                -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")                                                                                                                                                   -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")                                                                                                                                                 -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw All")                                                                                                                                                            -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit All")                                                                                                                                                              -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "选择存入数量")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "选择提取数量")
