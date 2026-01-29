@@ -56,7 +56,8 @@ end
 
 --[[
 Function: RegisterNarrationHandler (Local Helper)
-Description: Registers narration logic for the search header.
+Description: Registers narration logic for the search header and list items.
+             Enhanced to provide accessibility for item selection and actions.
 ]]
 local function RegisterNarrationHandler(window, focusHandler)
     if SCREEN_NARRATION_MANAGER and focusHandler then
@@ -77,6 +78,50 @@ local function RegisterNarrationHandler(window, focusHandler)
                         noItemText = currentList:GetNoItemText()
                     end
                     ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(noItemText))
+                end
+                return narrations
+            end,
+            -- Enhanced: Add selected item narration for list items
+            selectedItemNarrationFunction = function()
+                local narrations = {}
+                local currentList = window:GetList()
+                if currentList and currentList.selectedData then
+                    local data = currentList.selectedData
+
+                    -- Narrate item name
+                    if data.name then
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.name))
+                    end
+
+                    -- Narrate quality if available
+                    if data.quality and GetString then
+                        local qualityString = GetString("SI_ITEMQUALITY", data.quality)
+                        if qualityString and qualityString ~= "" then
+                            ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(qualityString))
+                        end
+                    end
+
+                    -- Narrate stack count for stacked items
+                    if data.stackCount and data.stackCount > 1 then
+                        local stackText = zo_strformat("Stack of <<1>>", data.stackCount)
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject(stackText))
+                    end
+
+                    -- Narrate category
+                    if data.bestItemCategoryName then
+                        ZO_AppendNarration(narrations,
+                            SCREEN_NARRATION_MANAGER:CreateNarratableObject(data.bestItemCategoryName))
+                    end
+
+                    -- Narrate equipped status
+                    if data.isEquippedInCurrentCategory then
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Equipped"))
+                    end
+
+                    -- Narrate junk status
+                    if data.isJunk then
+                        ZO_AppendNarration(narrations, SCREEN_NARRATION_MANAGER:CreateNarratableObject("Marked as junk"))
+                    end
                 end
                 return narrations
             end,
