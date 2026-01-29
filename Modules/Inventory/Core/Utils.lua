@@ -14,6 +14,9 @@ Function: BETTERUI.Inventory.Utils.WrapValue
 Description: Wraps a value around min/max bounds for circular navigation.
 Rationale: Delegates to CIM.Utils.WrapValue for shared implementation.
 ]]
+--- @param newValue number The value to wrap
+--- @param maxValue number The maximum value
+--- @return number wrappedValue The wrapped value
 function BETTERUI.Inventory.Utils.WrapValue(newValue, maxValue)
     return BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
 end
@@ -27,6 +30,8 @@ end
 --- Callback for Right Bumper (Next) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
+--- @param parent table The parent class instance
+--- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
     if not successful then return end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -55,6 +60,8 @@ end
 --- Callback for Left Bumper (Previous) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
+--- @param parent table The parent class instance
+--- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
     if not successful then return end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -85,6 +92,8 @@ Function: BETTERUI.Inventory.Utils.SafeGetTargetData
 Description: Safe helper for GetTargetData calls (guards against lists without method).
 Rationale: Delegates to CIM.Utils.SafeGetTargetData for shared implementation.
 ]]
+--- @param list table The list to get target data from
+--- @return table|nil targetData The target data
 function BETTERUI.Inventory.Utils.SafeGetTargetData(list)
     return BETTERUI.CIM.Utils.SafeGetTargetData(list)
 end

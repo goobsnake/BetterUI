@@ -87,6 +87,7 @@ end
 --- Initializes the Inventory object.
 --- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
 --- References: Called by Module.lua.
+--- @param control Control The root control for the inventory
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
     GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)

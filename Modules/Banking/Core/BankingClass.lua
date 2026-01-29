@@ -61,6 +61,8 @@ Mechanism: Inherits from BETTERUI.CIM.GenericWindow.
 param: ... (any) - Arguments passed to the parent constructor.
 return: table - The new Banking Class instance.
 ]]
+--- @param ... any Arguments passed to the parent constructor
+--- @return table instance The new Banking Class instance
 function BETTERUI.Banking.Class:New(...)
     return BETTERUI.CIM.GenericWindow.New(self, ...)
 end
@@ -71,6 +73,7 @@ Description: Checks if the banking scene is currently showing.
 Rationale: Delegates to CIM utility for consistent scene checks across all modules.
 return: boolean - True if the banking scene is currently showing.
 ]]
+--- @return boolean showing True if the banking scene is showing
 function BETTERUI.Banking.Class:IsSceneShowing()
     return BETTERUI.CIM.Utils.IsBankingSceneShowing()
 end
