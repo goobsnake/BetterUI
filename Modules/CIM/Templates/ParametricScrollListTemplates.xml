@@ -140,8 +140,9 @@
                                 <!-- Header and Footer inherit CIM generic styles -->
                                 <Control name="$(parent)HeaderContainer"
                                     inherits="BETTERUI_GamepadScreenHeaderContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
+                                <!-- Use UnifiedFooter for mode switching (CURRENCY vs BANKING) -->
                                 <Control name="$(parent)FooterContainer"
-                                    inherits="BETTERUI_GamepadScreenFooterContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
+                                    inherits="BETTERUI_UnifiedFooterContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
                             </Controls>
 
                         </Control>
