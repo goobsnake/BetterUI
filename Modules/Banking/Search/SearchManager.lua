@@ -211,6 +211,7 @@ end
 Function: BETTERUI.Banking.Class:OnSearchTextChanged
 Description: Callback when search text changes.
 ]]
+--- @param editBox EditBox The edit box control
 function BETTERUI.Banking.Class:OnSearchTextChanged(editBox)
     if not (editBox and editBox.GetText) then return end
     local text = editBox:GetText()

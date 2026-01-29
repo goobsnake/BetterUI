@@ -41,6 +41,8 @@ local function DeferredEnforceHide(delayMs)
     end, delayMs or 50)
 end
 
+--- @param rootFrame Control The root control frame
+--- @return function UpdateDeathFragment The death fragment update callback
 function Events.SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
     HUD_SCENE:AddFragment(fragment)
@@ -108,6 +110,9 @@ function Events.SetupVisibilityFragments(rootFrame)
     return UpdateDeathFragment
 end
 
+--- @param rootFrame Control The root control frame
+--- @param pools table<number, OrbPool> The power type pools
+--- @param shieldBar table|nil The shield bar control
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
     -- Back Bar Cooldown Tick (100ms)
     local function CooldownTick()
@@ -146,6 +151,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
     EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", 33, AnimationTick)
 end
 
+--- @param rootFrame Control The root control frame
 function Events.SetupSceneHandlers(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
