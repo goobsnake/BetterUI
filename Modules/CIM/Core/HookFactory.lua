@@ -53,6 +53,9 @@ param: control (table) - The UI control or object.
 param: method (string) - The name of the method to hook.
 param: fn (function) - The function to execute before the original.
 ]]
+--- @param control table|nil The UI control or object
+--- @param method string The name of the method to hook
+--- @param fn function The function to execute before the original (return true to abort)
 function BETTERUI.PreHook(control, method, fn)
     createHookInternal(control, method, fn, "before")
 end
@@ -66,6 +69,9 @@ param: control (table) - The UI control or object.
 param: method (string) - The name of the method to hook.
 param: fn (function) - The function to execute after the original.
 ]]
+--- @param control table|nil The UI control or object
+--- @param method string The name of the method to hook
+--- @param fn function The function to execute after the original
 function BETTERUI.PostHook(control, method, fn)
     createHookInternal(control, method, fn, "after")
 end
@@ -79,6 +85,9 @@ param: control (table) - The UI control.
 param: method (string) - The method name.
 param: fn (function) - The replacement function.
 ]]
+--- @param control table|nil The UI control
+--- @param method string The method name
+--- @param fn function The replacement function
 function BETTERUI.ReplaceHook(control, method, fn)
     createHookInternal(control, method, fn, "replace")
 end

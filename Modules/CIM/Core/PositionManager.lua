@@ -29,6 +29,8 @@ Mechanism: Uses filterType, onClickDirection, text, or index as fallback identif
 param: categoryData (table) - The category data table.
 return: string|nil - The generated key or nil if no categoryData.
 ]]
+--- @param categoryData table|nil The category data table
+--- @return string|nil key The generated key or nil if no categoryData
 function BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
     if not categoryData then return nil end
 
@@ -69,6 +71,9 @@ param: moduleName (string) - The module identifier (e.g., "Inventory", "Banking"
 param: categoryKey (string) - The category key from GetCategoryKey().
 param: list (table) - The list object with selectedIndex and selectedData.
 ]]
+--- @param moduleName string The module identifier (e.g., "Inventory", "Banking")
+--- @param categoryKey string The category key from GetCategoryKey()
+--- @param list table The list object with selectedIndex and selectedData
 function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list)
     if not moduleName or not categoryKey or not list then return end
 
@@ -97,6 +102,9 @@ param: moduleName (string) - The module identifier.
 param: categoryKey (string) - The category key.
 return: table|nil - { index = N, uniqueId = "..." } or nil if not saved.
 ]]
+--- @param moduleName string The module identifier
+--- @param categoryKey string The category key
+--- @return {index: number, uniqueId: string|nil}|nil position Saved position or nil
 function BETTERUI.CIM.PositionManager.GetSavedPosition(moduleName, categoryKey)
     if not moduleName or not categoryKey then return nil end
     if not _storage[moduleName] then return nil end
@@ -118,6 +126,11 @@ param: list (table) - The list object.
 param: dataList (table) - The list's data array.
 return: number - The restored index (1 if no saved position).
 ]]
+--- @param moduleName string The module identifier
+--- @param categoryKey string The category key
+--- @param list table The list object
+--- @param dataList table[] The list's data array
+--- @return number targetIndex The restored index (1 if no saved position)
 function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, list, dataList)
     if not moduleName or not categoryKey then return 1 end
     if not dataList or #dataList == 0 then return 1 end
@@ -155,6 +168,7 @@ Description: Clears all saved positions for a module.
 Rationale: Used when exiting a scene to prevent stale data.
 param: moduleName (string) - The module identifier.
 ]]
+--- @param moduleName string The module identifier
 function BETTERUI.CIM.PositionManager.ClearModule(moduleName)
     if not moduleName then return end
     _storage[moduleName] = nil
@@ -166,6 +180,8 @@ Description: Clears the saved position for a specific category.
 param: moduleName (string) - The module identifier.
 param: categoryKey (string) - The category key.
 ]]
+--- @param moduleName string The module identifier
+--- @param categoryKey string The category key
 function BETTERUI.CIM.PositionManager.ClearCategory(moduleName, categoryKey)
     if not moduleName or not categoryKey then return end
     if _storage[moduleName] then

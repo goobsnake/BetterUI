@@ -24,6 +24,7 @@ Mechanism: Iterates through all crafting types, research lines, and traits.
 References: Called on initialization and when research completes.
 param: forceRefresh (boolean) - If true, ignores existing cache and rebuilds data.
 ]]
+--- @param forceRefresh boolean|nil If true, ignores existing cache and rebuilds data
 function BETTERUI.GetResearch(forceRefresh)
     if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then
         return -- Use cached data

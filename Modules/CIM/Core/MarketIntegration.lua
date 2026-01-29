@@ -22,6 +22,9 @@ param: itemLink (string) - The item link.
 param: stackCount (number) - The stack size (defaults to 1).
 return: number - The calculated total price, or 0 if unavailable.
 ]]
+--- @param itemLink string The item link
+--- @param stackCount number|nil The stack size (defaults to 1)
+--- @return number totalPrice The calculated total price, or 0 if unavailable
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then

@@ -47,6 +47,9 @@ param: moduleName (string) - The module name key in BETTERUI.Settings.Modules (e
 param: refreshFn (function) - Function to call after setting change for live refresh
 return: table - Array of LAM checkbox options
 ]]
+--- @param moduleName string The module name key in BETTERUI.Settings.Modules
+--- @param refreshFn function Function to call after setting change for live refresh
+--- @return table[] options Array of LAM checkbox options
 function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
     local options = {}
 

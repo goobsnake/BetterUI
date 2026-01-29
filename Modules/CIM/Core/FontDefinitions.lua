@@ -104,6 +104,8 @@ Mechanism: Returns the number if already numeric, otherwise returns default 24.
 param: sizeValue (string|number) - The size setting value.
 return: number - The font size in pixels.
 ]]
+--- @param sizeValue string|number The size setting value
+--- @return number fontSize The font size in pixels
 function BETTERUI.CIM.Font.GetSizeValue(sizeValue)
     if type(sizeValue) == "number" then
         return sizeValue
@@ -120,6 +122,10 @@ param: fontSize (number) - The font size in pixels.
 param: fontStyle (string|nil) - The font style suffix (optional).
 return: string - ESO font descriptor (path|size|style).
 ]]
+--- @param fontPath string The font file path
+--- @param fontSize number The font size in pixels
+--- @param fontStyle string|nil The font style suffix (optional)
+--- @return string descriptor ESO font descriptor (path|size|style)
 function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     if fontStyle and fontStyle ~= "" then
         return string.format("%s|%d|%s", fontPath, fontSize, fontStyle)
@@ -136,6 +142,9 @@ param: moduleName (string) - The module key in BETTERUI.Settings.Modules (e.g., 
 param: fontType (string) - "name" or "column" to specify which font setting to retrieve.
 return: string - ESO font descriptor (path|size|style).
 ]]
+--- @param moduleName string The module key in BETTERUI.Settings.Modules
+--- @param fontType "name"|"column" Which font setting to retrieve
+--- @return string descriptor ESO font descriptor (path|size|style)
 function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
     local settings = BETTERUI.Settings.Modules[moduleName]
     local defaults = BETTERUI.CIM.Font.DEFAULTS
