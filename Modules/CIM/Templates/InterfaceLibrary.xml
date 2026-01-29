@@ -514,6 +514,10 @@
             Purpose: The master layout for standard list windows (Banking, Vendor, etc).
             Structure: Quadrant 1 (Left) layout with Header, Footer, and List containers.
             References: Used as the base for BETTERUI_Banking_Window.
+            
+            DEPRECATED: Consider using BETTERUI_Gamepad_ParametricList_Screen with
+            BETTERUI.CIM.UnifiedScreen for new implementations. This template is
+            maintained for backward compatibility with existing Banking implementation.
         -->
         <TopLevelControl name="BETTERUI_GenericInterface" hidden="true" virtual="true">
             <Controls>
@@ -579,7 +583,8 @@
                                     <Anchor point="BOTTOMRIGHT"
                                         offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
                                 </Label>
-                                <!-- SpinnerContainer removed - quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG -->
+                                <!-- SpinnerContainer removed - quantity selection now uses
+                                BETTERUI_BANK_QUANTITY_DIALOG -->
                             </Controls>
                         </Control>
 
