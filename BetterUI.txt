@@ -28,6 +28,7 @@ Modules\CIM\Core\AutoCategoryIntegration.lua
 Modules\CIM\Core\SettingsFactory.lua
 Modules\CIM\Core\IconSettingsFactory.lua
 Modules\CIM\Core\ControlUtils.lua
+Modules\CIM\Core\ControlCache.lua
 Modules\CIM\Core\SettingsAccessor.lua
 Modules\CIM\Core\RuntimeSetup.lua
 Modules\CIM\Core\CategoryDefinitions.lua
@@ -84,6 +85,7 @@ Modules\ResourceOrbFrames\Templates\LayoutTemplates.xml
 Modules\ResourceOrbFrames\Core\OrbAnimations.lua
 Modules\ResourceOrbFrames\Core\OrbVisuals.lua
 Modules\ResourceOrbFrames\Core\OrbBars.lua
+Modules\ResourceOrbFrames\SkillBar\Constants.lua
 Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
 Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
 Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua

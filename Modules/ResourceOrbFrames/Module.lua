@@ -4,10 +4,6 @@ Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
 Author: BetterUI Team
 Last Modified: 2026-01-28
-
--- REFACTORING NOTE: This file is 850+ lines. A future refactor could split into:
---   1. Settings/OptionsBuilder.lua - optionsTable construction (~640 lines)
---   Assessed 2026-01-28: Deferred due to complexity. Defaults extracted to Settings/Defaults.lua.
 ]]
 
 local _
@@ -49,17 +45,17 @@ local function Init(mId, moduleName)
     local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", 0.5)
     local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", false)
 
-    local getShowUlt, setShowUlt = GetSetNoUpdate("showUltimateNumber", false)
+    local getShowUlt, setShowUlt = GetSet("showUltimateNumber", false)
     local getUltSize, setUltSize = GetSet("ultimateTextSize", 27)
     local getUltColor, setUltColor = GetColorSet("ultimateTextColor", { 1, 1, 1, 1 })
 
-    local getShowQuickCool, setShowQuickCool = GetSetNoUpdate("showQuickslotCooldown", false)
-    local getShowQuickCount, setShowQuickCount = GetSetNoUpdate("showQuickslotCount", true)
+    local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", false)
+    local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", true)
 
-    local getShowGlow, setShowGlow = GetSetNoUpdate("showCombatGlow", false)
+    local getShowGlow, setShowGlow = GetSet("showCombatGlow", false)
     local getGlowColor, setGlowColor = GetColorSet("combatGlowColor", { 1, 0.3, 0.1, 0.8 })
-    local getShowCombatIcon, setShowCombatIcon = GetSetNoUpdate("showCombatIcon", false)
-    local getPlayAudio, setPlayAudio = GetSetNoUpdate("playCombatAudio", false)
+    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", false)
+    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", false)
 
     local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", false)
     local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", false)
@@ -193,8 +189,6 @@ local function Init(mId, moduleName)
                     getFunc = getShowQuickCool,
                     setFunc = setShowQuickCool,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "checkbox",
@@ -203,8 +197,6 @@ local function Init(mId, moduleName)
                     getFunc = getShowQuickCount,
                     setFunc = setShowQuickCount,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "slider",
@@ -263,8 +255,6 @@ local function Init(mId, moduleName)
                     getFunc = getShowUlt,
                     setFunc = setShowUlt,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "slider",
@@ -308,8 +298,6 @@ local function Init(mId, moduleName)
                     getFunc = getShowGlow,
                     setFunc = setShowGlow,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "colorpicker",
@@ -330,8 +318,6 @@ local function Init(mId, moduleName)
                     getFunc = getShowCombatIcon,
                     setFunc = setShowCombatIcon,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "checkbox",
@@ -340,8 +326,6 @@ local function Init(mId, moduleName)
                     getFunc = getPlayAudio,
                     setFunc = setPlayAudio,
                     width = "full",
-                    warning = "Requires Reload UI",
-                    requiresReload = true,
                 },
                 {
                     type = "button",
