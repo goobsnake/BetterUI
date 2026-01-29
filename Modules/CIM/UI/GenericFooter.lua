@@ -47,6 +47,7 @@ Mechanism: Finds the 'FooterContainer' child within the main control and caches 
 param: control (table) - The parent control containing the footer.
 return: nil
 ]]
+--- @param control table The parent control containing the footer
 function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 

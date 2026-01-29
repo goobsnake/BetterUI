@@ -150,12 +150,13 @@ local function SetupEvents(enabled)
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
         end)
-        EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
-            local settings = GetSettings()
-            if settings.m_enabled then
-                ApplyNameplateFont(settings.font, settings.style, settings.size)
-            end
-        end)
+        EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
+            function()
+                local settings = GetSettings()
+                if settings.m_enabled then
+                    ApplyNameplateFont(settings.font, settings.style, settings.size)
+                end
+            end)
     else
         EVENT_MANAGER:UnregisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED)
         EVENT_MANAGER:UnregisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED)
@@ -207,6 +208,7 @@ function BETTERUI.Nameplates.OnEnabledChanged(m_enabled)
 end
 
 -- Returns whether Enhanced Nameplates is m_enabled
+--- @return boolean enabled True if nameplates are enabled
 function BETTERUI.Nameplates.IsEnabled()
     return GetSettings().m_enabled
 end

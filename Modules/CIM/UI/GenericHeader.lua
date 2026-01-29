@@ -126,6 +126,8 @@ Rationale: Helper to add entries using the standardized BETTERUI tab template.
 param: control (table) - The header control.
 param: data (table) - The entry data.
 ]]
+--- @param control table The header control
+--- @param data table The entry data
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
@@ -277,8 +279,13 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
 
     -- Initialize Tab Bar Scroll List if missing
     if not control.tabBar then
-        local tabBarData = { attachedTo = control, parent = data.tabBarData.parent, onNext = data.tabBarData.onNext, onPrev =
-        data.tabBarData.onPrev }
+        local tabBarData = {
+            attachedTo = control,
+            parent = data.tabBarData.parent,
+            onNext = data.tabBarData.onNext,
+            onPrev =
+                data.tabBarData.onPrev
+        }
         -- Create the Parametric Scroll List for the Tab Bar
         control.tabBar = BETTERUI_TabBarScrollList:New(tabBarControl, tabBarControl:GetNamedChild("LeftIcon"),
             tabBarControl:GetNamedChild("RightIcon"), tabBarData)
