@@ -108,22 +108,18 @@ function CastBar:Initialize(parent)
     self:SetColor(1, 1, 0.4, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
 
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "CastStart", EVENT_SPELL_CASTING_START,
-        function(_, unitTag, effectName, _, _, _, duration, startTime, endTime, isChanneled)
-            return self:OnCastStart(unitTag, effectName, duration, isChanneled)
-        end)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "CastStop", EVENT_SPELL_CASTING_STOP,
-        function(_, unitTag, _, _, _, wasInterrupted)
-            return self:OnCastStop(unitTag, wasInterrupted)
-        end)
+    -- Note: EVENT_SPELL_CASTING_START/STOP don't exist in ESO API.
+    -- Casting is tracked via EVENT_ACTION_SLOT_ABILITY_USED below which uses GetAbilityCastInfo().
 
     local function HideDefaultCastBar()
         if ZO_CastingBar then ZO_CastingBar:SetHidden(true) end
         if ZO_PlayerCastingBar then ZO_PlayerCastingBar:SetHidden(true) end
         if ZO_PlayerProgressBar then ZO_PlayerProgressBar:SetHidden(true) end
         if ZO_GamepadPlayerProgressBar then ZO_GamepadPlayerProgressBar:SetHidden(true) end
-        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason(
-            "BetterUICastBar", true) end
+        if GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT then
+            GAMEPAD_PLAYER_PROGRESS_BAR_FRAGMENT:SetHiddenForReason(
+                "BetterUICastBar", true)
+        end
     end
     HideDefaultCastBar()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
@@ -131,16 +127,16 @@ function CastBar:Initialize(parent)
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
-        local hotbar = GetActiveHotbarCategory()
-        local abilityId = GetSlotBoundId(slotIndex, hotbar)
-        if not abilityId or abilityId == 0 then return end
-        if IsSlotToggled(slotIndex) then return end
-        local isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
-        local duration = math.max(castTime or 0, channelTime or 0)
-        if duration <= 0 then return end
-        local name = GetAbilityName(abilityId)
-        self:OnCastStart("player", name, duration, isChanneled)
-    end, REGISTER_FILTER_UNIT_TAG, "player")
+            local hotbar = GetActiveHotbarCategory()
+            local abilityId = GetSlotBoundId(slotIndex, hotbar)
+            if not abilityId or abilityId == 0 then return end
+            if IsSlotToggled(slotIndex) then return end
+            local isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
+            local duration = math.max(castTime or 0, channelTime or 0)
+            if duration <= 0 then return end
+            local name = GetAbilityName(abilityId)
+            self:OnCastStart("player", name, duration, isChanneled)
+        end, REGISTER_FILTER_UNIT_TAG, "player")
 
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
