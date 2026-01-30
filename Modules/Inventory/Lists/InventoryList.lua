@@ -528,6 +528,12 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.triggerKeybinds = {}
     ZO_Gamepad_AddListTriggerKeybindDescriptors(self.triggerKeybinds, self.list)
 
+    -- Initialize scroll indicator on the list's internal control
+    local listScrollControl = self.list and self.list.control
+    if listScrollControl then
+        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl)
+    end
+
     local function SelectionChangedCallback(list, selectedData)
         if self.selectedDataCallback then
             self.selectedDataCallback(list, selectedData)
@@ -535,6 +541,14 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
         if selectedData then
             GAMEPAD_INVENTORY:PrepareNextClearNewStatus(selectedData)
             self:GetParametricList():RefreshVisible()
+            -- Update scroll indicator position
+            local listCtrl = self.list and self.list.control
+            if listCtrl then
+                local currentIndex = list:GetSelectedIndex() or 1
+                local totalItems = list:GetNumEntries() or 0
+                local visibleItems = 15 -- Approximate visible items in inventory list
+                BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+            end
         end
     end
 
@@ -650,4 +664,13 @@ function BETTERUI.Inventory.List:RefreshList()
     end
 
     self.list:Commit()
+
+    -- Update scroll indicator after list refresh
+    local listCtrl = self.list and self.list.control
+    if listCtrl then
+        local currentIndex = self.list:GetSelectedIndex() or 1
+        local totalItems = self.list:GetNumEntries() or 0
+        local visibleItems = 15 -- Approximate visible items in inventory list
+        BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+    end
 end

@@ -101,6 +101,15 @@ function BETTERUI.Inventory.Class:InitializeItemList()
                 self.keybindCallLaterId = nil
             end)
             self.keybindCallLaterId = "InventoryKeybindUpdate"
+
+            -- Update scroll indicator position
+            local listCtrl = self.itemList and self.itemList.control
+            if listCtrl and BETTERUI.CIM.ScrollIndicator then
+                local currentIndex = list:GetSelectedIndex() or 1
+                local totalItems = (list.GetNumItems and list:GetNumItems()) or (list.dataList and #list.dataList) or 0
+                local visibleItems = 12 -- Approximate visible items
+                BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
+            end
         end
     end)
 
@@ -120,6 +129,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
         end
     end
     self.itemList:SetNoItemText(emptyText)
+
+    -- Initialize scroll indicator for main item list
+    if listControl and BETTERUI.CIM.ScrollIndicator then
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl)
+    end
 end
 
 --- Checks if the item list would be empty for the current filter.
