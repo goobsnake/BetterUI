@@ -149,9 +149,30 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 --- @param inventorySlot table The data of the item to equip.
 --- @param isCallingFromActionDialog boolean True if called from the actions dialog (delays dialogs slightly).
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
+    -- Y-MENU FIX: The engine's gamepad_equip handler calls TryEquipItem(inventorySlot) without the
+    -- isCallingFromActionDialog parameter, so we check if action dialog IS showing instead.
+    -- When Y-menu is open, retrieve fresh data from current selection to avoid stale closure data.
+    if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) and self.itemList then
+        local freshTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+        if freshTarget and freshTarget.dataSource then
+            -- Use fresh data if available
+            inventorySlot = freshTarget
+        end
+    end
+
     local equipType = inventorySlot.dataSource.equipType
     local bagId = inventorySlot.dataSource.bagId
     local slotIndex = inventorySlot.dataSource.slotIndex
+
+    -- POSITION PRESERVATION: Save uniqueId at action START, before inventory callbacks corrupt data
+    -- This ensures we stay focused on THIS item after equip (it moves to BAG_WORN)
+    local uid = inventorySlot.dataSource.uniqueId or GetItemUniqueId(bagId, slotIndex)
+    if uid then
+        self._preserveUniqueId = uid
+    end
+    if self.itemList and self.itemList.selectedIndex then
+        self._preserveIndex = self.itemList.selectedIndex
+    end
 
     -- Check if item is bound and handle bind-on-equip protection
     local bound = IsItemBound(bagId, slotIndex)
@@ -222,33 +243,18 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         end
     else
         -- Items that equip directly (armor, necklaces, etc.)
-        local armorType = GetItemArmorType(bagId, slotIndex)
-        if armorType ~= ARMORTYPE_NONE or equipType == EQUIP_TYPE_NECK then
-            showBindOnEquipDialog(function()
-                CallSecureProtected(
-                    "RequestMoveItem",
-                    bagId,
-                    slotIndex,
-                    BAG_WORN,
-                    self:GetEquipSlotForEquipType(equipType),
-                    1
-                )
-            end)
-        else
-            -- Fallback: use native RequestEquipItem to let the game auto-select the slot
-            -- This handles edge cases like soul-shriven starter gear and other unusual items
-            showBindOnEquipDialog(function()
-                local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
-                if equipSucceeds then
-                    local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or
-                        BAG_COMPANION_WORN
-                    RequestEquipItem(bagId, slotIndex, wornBag)
-                else
-                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
-                        possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
-                end
-            end)
-        end
+        -- Use RequestEquipItem which handles swapping automatically (unlike RequestMoveItem)
+        showBindOnEquipDialog(function()
+            local equipSucceeds, possibleError = IsEquipable(bagId, slotIndex)
+            if equipSucceeds then
+                local wornBag = GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_PLAYER and BAG_WORN or
+                    BAG_COMPANION_WORN
+                RequestEquipItem(bagId, slotIndex, wornBag)
+            else
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                    possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
+            end
+        end)
     end
 end
 

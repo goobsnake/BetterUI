@@ -83,6 +83,19 @@ end
 --- @param inventorySlot table|nil The inventory slot data.
 local function TryUnequipItem(inventorySlot)
     if not inventorySlot then return end
+
+    -- POSITION PRESERVATION: Save uniqueId/index at action START before callbacks corrupt data
+    if GAMEPAD_INVENTORY then
+        local slotData = inventorySlot.dataSource or inventorySlot
+        local uid = slotData.uniqueId
+        if uid then
+            GAMEPAD_INVENTORY._preserveUniqueId = uid
+        end
+        if GAMEPAD_INVENTORY.itemList and GAMEPAD_INVENTORY.itemList.selectedIndex then
+            GAMEPAD_INVENTORY._preserveIndex = GAMEPAD_INVENTORY.itemList.selectedIndex
+        end
+    end
+
     local equipSlot = ZO_Inventory_GetSlotIndex(inventorySlot)
     if equipSlot then UnequipItem(equipSlot) end
 end
@@ -92,6 +105,19 @@ end
 --- @param inventorySlot table|nil The inventory slot data.
 local function TryUseItem(inventorySlot)
     if not inventorySlot then return end
+
+    -- POSITION PRESERVATION: Save uniqueId/index at action START before callbacks corrupt data
+    if GAMEPAD_INVENTORY then
+        local slotData = inventorySlot.dataSource or inventorySlot
+        local uid = slotData.uniqueId
+        if uid then
+            GAMEPAD_INVENTORY._preserveUniqueId = uid
+        end
+        if GAMEPAD_INVENTORY.itemList and GAMEPAD_INVENTORY.itemList.selectedIndex then
+            GAMEPAD_INVENTORY._preserveIndex = GAMEPAD_INVENTORY.itemList.selectedIndex
+        end
+    end
+
     BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
@@ -268,14 +294,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
                 function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
-        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SPLIT_STACK) then
-            -- Wire Split Stack as a primary action so A can open the split dialog while
-            -- leaving the action present in the Y actions list.
-            slotActions:AddSlotPrimaryAction(GetActionString(SI_ITEM_ACTION_SPLIT_STACK), function()
-                if ZO_InventorySlot_TrySplitStack then
-                    ZO_InventorySlot_TrySplitStack(inventorySlot)
-                end
-            end, "primary", nil, { visibleWhenDead = false })
+            -- NOTE: Split Stack is NOT added here because it's handled by _betterui_primaryOverride
+            -- in PrimaryCommandActivate. Adding it here would cause double invocation.
         end
 
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
@@ -390,7 +410,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             return
         end
 
-        -- Split Stack Override logic
+        -- Split Stack Override - simply calls split stack, debounce is handled by hook in Module.lua
         if primaryAction and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
             slotActions._betterui_primaryOverride = function()
                 if ZO_InventorySlot_TrySplitStack then
@@ -414,13 +434,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
-
-            if IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
-                local isStowAction = self.actionName == GetActionString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
-                if not isStowAction then
-                    SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
-                end
-            end
+            -- NOTE: Split Stack is NOT handled here - _betterui_primaryOverride above already sets it up
         end
 
         -- 4. Deduplicate Action List

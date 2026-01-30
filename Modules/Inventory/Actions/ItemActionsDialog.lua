@@ -486,6 +486,26 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
+        -- Y-MENU EQUIP FIX: Intercept Equip action and call TryEquipItem with fresh target data.
+        -- The engine's action callback captures a stale inventorySlot reference from discovery time.
+        if selectedActionName == GetString(SI_ITEM_ACTION_EQUIP) then
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
+            end
+            if targetData and targetData.dataSource then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                -- Call TryEquipItem with fresh data, passing true for isCallingFromActionDialog
+                self:TryEquipItem(targetData, true)
+            end
+            return
+        end
+
         -- Fallback to original action on the action controller (dialog or self)
         if actionController and actionController.DoSelectedAction then
             actionController:DoSelectedAction()

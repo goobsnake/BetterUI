@@ -119,13 +119,10 @@ function BETTERUI.Inventory.Class:Initialize(control)
 
     self:InitializeSplitStackDialog()
 
-    local function CallbackSplitStackFinished()
-        --refresh list
-        if self.scene:IsShowing() then
-            self:ToSavedPosition()
-        end
-    end
-    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
+    -- Note: We no longer call ToSavedPosition here after split stack.
+    -- The inventory update events (SingleSlotInventoryUpdate) will trigger refreshes naturally,
+    -- and the existing position restoration in RefreshItemList handles keeping the selection.
+    -- Calling ToSavedPosition here was causing redundant refreshes and flickering.
 
     -- Guard update loop so we only process while the inventory scene is visible.
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
