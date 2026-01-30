@@ -16,11 +16,10 @@ BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subcla
 Function: BETTERUI_Gamepad_ParametricList_Screen:New
 Description: Creates a new Gamepad Parametric List Screen.
 return: table - The new screen instance.
+Note: We pass ... to the parent's New, which handles Initialize automatically.
 ]]
 function BETTERUI_Gamepad_ParametricList_Screen:New(...)
-    local object = ZO_Gamepad_ParametricList_Screen.New(self)
-    object:Initialize(...)
-    return object
+    return ZO_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
 --[[

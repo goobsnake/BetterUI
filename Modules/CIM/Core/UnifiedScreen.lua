@@ -23,11 +23,10 @@ local MODE = BETTERUI.CIM.UnifiedFooter.MODE
 Function: BETTERUI.CIM.UnifiedScreen:New
 Description: Creates a new UnifiedScreen instance.
 return: UnifiedScreen
+Note: We pass ... to the parent's New, which handles Initialize automatically.
 ]]
 function BETTERUI.CIM.UnifiedScreen:New(...)
-    local object = BETTERUI_Gamepad_ParametricList_Screen.New(self)
-    object:Initialize(...)
-    return object
+    return BETTERUI_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
 --[[
@@ -48,8 +47,11 @@ function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOn
     -- Cache footer controller reference
     self.unifiedFooterController = nil
 
-    -- Setup footer after initialization
-    self:SetupUnifiedFooter()
+    -- Setup footer after initialization (only if this is a true UnifiedScreen subclass)
+    -- When used as mixin on ZO_GamepadInventory subclasses, this method may not exist on self
+    if self.SetupUnifiedFooter then
+        self:SetupUnifiedFooter()
+    end
 end
 
 --[[
