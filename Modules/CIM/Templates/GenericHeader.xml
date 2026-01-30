@@ -273,7 +273,7 @@
                             inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
                             text="SI_BETTERUI_BANKING_COLUMN_TYPE">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
-                                relativePoint="BOTTOMLEFT" offsetX="637" />
+                                relativePoint="BOTTOMLEFT" offsetX="647" />
                             <!-- Matches BETTERUI.CONST.HEADER_LAYOUT.COLUMNS.TYPE -->
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0"
@@ -283,7 +283,7 @@
                             inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
                             text="SI_BETTERUI_BANKING_COLUMN_TRAIT">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
-                                relativePoint="BOTTOMLEFT" offsetX="897" />
+                                relativePoint="BOTTOMLEFT" offsetX="907" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0"
                                 offsetY="BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET" />
@@ -292,7 +292,7 @@
                             inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
                             text="SI_BETTERUI_BANKING_COLUMN_STAT">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
-                                relativePoint="BOTTOMLEFT" offsetX="1087" />
+                                relativePoint="BOTTOMLEFT" offsetX="1097" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0"
                                 offsetY="BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET" />
@@ -301,7 +301,7 @@
                             inherits="BETTERUI_GamepadScreenColumnBarTextTemplate"
                             text="SI_BETTERUI_BANKING_COLUMN_VALUE">
                             <Anchor point="LEFT" relativeTo="$(parent)TabBar"
-                                relativePoint="BOTTOMLEFT" offsetX="1237" />
+                                relativePoint="BOTTOMLEFT" offsetX="1247" />
                             <Anchor point="RIGHT" relativeTo="$(parent)TabBar"
                                 relativePoint="BOTTOMRIGHT" offsetX="0"
                                 offsetY="BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET" />

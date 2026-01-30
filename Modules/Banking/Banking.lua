@@ -134,7 +134,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     if listContainer then
         local LIST_OFFSETS = BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER
         listContainer:ClearAnchors()
-        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT, LIST_OFFSETS.HEADER_X_OFFSET, 0)
+        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT,
+            LIST_OFFSETS.HEADER_X_OFFSET, LIST_OFFSETS.HEADER_Y_OFFSET)
         listContainer:SetAnchor(BOTTOMRIGHT, self.footer:GetNamedChild("Footer"), TOPRIGHT, 0,
             LIST_OFFSETS.FOOTER_Y_OFFSET)
     end
@@ -459,15 +460,44 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     self:UpdateExternalAddons(true)
 
-    -- Register for inventory updates while scene is showing
-    local function UpdateSingle_Handler(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason)
+    -- Register for SHARED_INVENTORY callbacks (not raw events)
+    -- These fire AFTER the cache is updated, ensuring RefreshList() gets fresh data
+    local function OnInventoryUpdated(bagId, slotIndex)
         if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-        BETTERUI.Banking.Tasks:Schedule("singleSlotUpdate", 100, function()
-            self.isDirty = true
-            self:RefreshList()
+        -- Only refresh if the bag is one we're displaying
+        local currentUsedBank = BETTERUI.Banking.currentUsedBank
+        local relevantBags = {}
+        if self.currentMode == LIST_WITHDRAW then
+            if currentUsedBank == BAG_BANK then
+                relevantBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+            else
+                relevantBags = { currentUsedBank }
+            end
+        else
+            relevantBags = { BAG_BACKPACK }
+        end
+        -- Check if this update is for a bag we care about
+        local isRelevant = (bagId == nil) -- FullInventoryUpdate has nil bagId
+        for _, bag in ipairs(relevantBags) do
+            if bagId == bag then
+                isRelevant = true
+                break
+            end
+        end
+        if not isRelevant then return end
+
+        BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", 100, function()
+            if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                self.isDirty = true
+                self:RefreshList()
+            end
         end)
     end
-    self.control:RegisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE, UpdateSingle_Handler)
+    -- Store callbacks so we can unregister when scene hides
+    self._inventoryFullUpdateCallback = OnInventoryUpdated
+    self._inventorySingleSlotCallback = OnInventoryUpdated
+    SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
+    SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
     self:RefreshList()
 end
 
@@ -494,8 +524,15 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     self:UpdateExternalAddons(false)
 
-    self.control:UnregisterForEvent(EVENT_INVENTORY_FULL_UPDATE)
-    self.control:UnregisterForEvent(EVENT_INVENTORY_SINGLE_SLOT_UPDATE)
+    -- Unregister SHARED_INVENTORY callbacks
+    if self._inventoryFullUpdateCallback then
+        SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
+        self._inventoryFullUpdateCallback = nil
+    end
+    if self._inventorySingleSlotCallback then
+        SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
+        self._inventorySingleSlotCallback = nil
+    end
 
     -- Ensure we exit any active search mode so keybinds/focus are restored
     if self.LeaveSearchMode then
@@ -605,23 +642,25 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 hideDestroy = hideDestroyInDeposit,
             })
 
-            -- Add custom "Withdraw Max" / "Deposit Max" action for stacked items
+            -- Add custom "Withdraw Stack" / "Deposit Stack" action for stacked items
+            -- This moves the ENTIRE stack without prompting for quantity
             if targetData and targetData.stackCount and targetData.stackCount > 1 then
                 local actionName = (self.currentMode == LIST_WITHDRAW)
                     and GetString(SI_BETTERUI_BANK_WITHDRAW_MAX)
                     or GetString(SI_BETTERUI_BANK_DEPOSIT_MAX)
+                local stackCount = targetData.stackCount
+
+                -- Create proper ZO_GamepadEntryData like PopulateActionEntries does
+                local entryData = ZO_GamepadEntryData:New(actionName)
+                entryData:SetIconTintOnSelection(true)
+                entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                -- Mark as custom BetterUI action so confirm callback knows to handle it
+                entryData.isBetterUIStackTransfer = true
+                entryData.stackCount = stackCount
+
                 local moveMaxAction = {
                     template = "ZO_GamepadItemEntryTemplate",
-                    templateData = {
-                        text = actionName,
-                        setup = ZO_SharedGamepadEntry_OnSetup,
-                        callback = function()
-                            -- Move the full stack without dialog
-                            self:SaveListPosition()
-                            self:MoveItem(self.list)
-                            ZO_Dialogs_ReleaseDialog("BETTERUI_ACTIONS_DIALOG_QUICKSLOT")
-                        end,
-                    },
+                    entryData = entryData,
                 }
                 table.insert(parametricList, 1, moveMaxAction) -- Insert at top for easy access
             end
@@ -645,12 +684,43 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     end
     local function ActionDialogButtonConfirm(dialog)
         if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+            -- Check if the selected entry is our custom stack transfer action
+            local selectedEntry = dialog.entryList and dialog.entryList:GetTargetData()
+            if selectedEntry and selectedEntry.isBetterUIStackTransfer then
+                -- Handle custom stack transfer action
+                local stackCount = selectedEntry.stackCount or 1
+                self:SaveListPosition()
+                self:MoveItem(self.list, stackCount)
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                return
+            end
+
             local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
             if not selectedAction then return end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
             if selectedName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
                 -- Use shared CIM utility for linking to chat
                 BETTERUI.CIM.HandleLinkToChat(self:GetList().selectedData)
+            elseif selectedName == GetString(SI_ITEM_ACTION_BANK_WITHDRAW) or
+                selectedName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT) then
+                -- Intercept Withdraw/Deposit to show quantity dialog for stacked items
+                -- This matches the A button behavior
+                local selectedData = self.list and self.list:GetSelectedData()
+                if selectedData then
+                    local stackCount = selectedData.stackCount or 1
+                    if stackCount > 1 then
+                        -- Show quantity dialog for stacked items
+                        local isDeposit = (selectedName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT))
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                        self:SaveListPosition()
+                        self:ShowQuantityDialog(isDeposit)
+                    else
+                        -- Single item - move directly
+                        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                        self:SaveListPosition()
+                        self:MoveItem(self.list, 1)
+                    end
+                end
             else
                 self.itemActions:DoSelectedAction()
             end

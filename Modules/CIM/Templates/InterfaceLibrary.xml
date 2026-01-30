@@ -274,7 +274,7 @@
         </Control>
 
         <Label name="BETTERUI_GenericColumn_Label"
-            inherits="BETTERUI_GenericColumn_TextTemplate BETTERUI_HeaderTitleAnchors" text="..."
+            inherits="BETTERUI_GenericColumn_TextTemplate BETTERUI_HeaderTitleAnchors" text=""
             virtual="true">
             <Anchor point="LEFT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMLEFT"
                 offsetX="28" />

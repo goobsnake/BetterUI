@@ -67,14 +67,21 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
     self.header = self.control:GetNamedChild("ContainerHeader")
     self.footer = self.control:GetNamedChild("ContainerFooter")
 
-    self.spinner = self.control:GetNamedChild("ContainerList"):GetNamedChild("SpinnerContainer")
-    self.spinner:InitializeSpinner()
+    -- Safely get spinner control from the hierarchy
+    local containerList = self.control:GetNamedChild("ContainerList")
+    self.spinner = containerList and containerList:GetNamedChild("SpinnerContainer")
 
-    -- Wrap the spinner's max and min values
-    self.spinner.spinner.constrainRangeFunc = WrapInt
+    if self.spinner and self.spinner.InitializeSpinner then
+        self.spinner:InitializeSpinner()
 
-    -- Stop the spinner inheriting the scrollList's alpha, allowing the list to be deactivated correctly
-    self.spinner:SetInheritAlpha(false)
+        -- Wrap the spinner's max and min values
+        if self.spinner.spinner then
+            self.spinner.spinner.constrainRangeFunc = WrapInt
+        end
+
+        -- Stop the spinner inheriting the scrollList's alpha, allowing the list to be deactivated correctly
+        self.spinner:SetInheritAlpha(false)
+    end
 
     self:DeactivateSpinner()
 
@@ -99,6 +106,7 @@ param: max (number) - The maximum allowed value (min is always 1).
 param: value (number) - The current value to set.
 ]]
 function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
+    if not self.spinner then return end
     self.spinner:SetMinMax(1, max)
     self.spinner:SetValue(value)
 end
@@ -109,6 +117,7 @@ Description: Shows and activates the spinner, deactivating the main list.
 Rationale: Shifts focus to the quantity selector (e.g., for splitting stacks).
 ]]
 function BETTERUI.Interface.Window:ActivateSpinner()
+    if not self.spinner then return end
     self.spinner:SetHidden(false)
     self.spinner:Activate()
     if (self:GetList() ~= nil) then self:GetList():Deactivate() end
@@ -120,9 +129,11 @@ Description: Hides and deactivates the spinner, reactivating the main list.
 Rationale: returns focus to the main item list after spinner interaction.
 ]]
 function BETTERUI.Interface.Window:DeactivateSpinner()
-    self.spinner:SetValue(1)
-    self.spinner:SetHidden(true)
-    self.spinner:Deactivate()
+    if self.spinner then
+        self.spinner:SetValue(1)
+        self.spinner:SetHidden(true)
+        self.spinner:Deactivate()
+    end
     if (self:GetList() ~= nil) then self:GetList():Activate() end
 end
 
@@ -264,8 +275,11 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     self.header.columns[colNumber] = CreateControlFromVirtual("Column" .. colNumber,
         self.header:GetNamedChild("HeaderColumnBar"), "BETTERUI_GenericColumn_Label")
+    -- Use fixed column header offset (decoupled from list container position)
+    local adjustedXOffset = xOffset + BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER.COLUMN_HEADER_X_ADJUST
     -- Nudge column headers further downward for better alignment with divider bars
-    self.header.columns[colNumber]:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT, xOffset, 109)
+    self.header.columns[colNumber]:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
+        adjustedXOffset, 109)
     self.header.columns[colNumber]:SetText(columnName)
 end
 

@@ -415,8 +415,12 @@ BETTERUI.CIM.CONST.LAYOUT.LIST = {
     Used By: Banking.lua, WindowClass.lua
     ]]
     CONTAINER = {
-        HEADER_X_OFFSET = -35, -- Indent left from header
-        FOOTER_Y_OFFSET = 10,  -- Padding above footer
+        HEADER_X_OFFSET = 0,  -- Indent left from header (shift row data left/right)
+        HEADER_Y_OFFSET = 17, -- Push list below header column bar/dividers
+        FOOTER_Y_OFFSET = 10, -- Padding above footer
+        -- Fixed offset for column headers (decoupled from list position)
+        -- Calculation: entry_padding(36) + fine_tune(-35) = +1
+        COLUMN_HEADER_X_ADJUST = 1,
     },
 }
 
@@ -428,10 +432,10 @@ Used By: Inventory list templates.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.COLUMNS = {
     SUBMENU = { OFFSET_X = 87, WIDTH = 540 },
-    TYPE    = { OFFSET_X = 550, WIDTH = 250 },
-    TRAIT   = { OFFSET_X = 810, WIDTH = 180 },
-    STAT    = { OFFSET_X = 1000, WIDTH = 130 },
-    VALUE   = { OFFSET_X = 1150, WIDTH = 100 },
+    TYPE    = { OFFSET_X = 560, WIDTH = 250 },  -- +10 from 550
+    TRAIT   = { OFFSET_X = 820, WIDTH = 180 },  -- +10 from 810
+    STAT    = { OFFSET_X = 1010, WIDTH = 130 }, -- +10 from 1000
+    VALUE   = { OFFSET_X = 1160, WIDTH = 100 }, -- +10 from 1150
 }
 
 --[[
@@ -615,10 +619,10 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
     ]]
     COLUMNS = {
         NAME = 87,
-        TYPE = 637,
-        TRAIT = 897,
-        STAT = 1087,
-        VALUE = 1237,
+        TYPE = 647,   -- +10 from 637
+        TRAIT = 907,  -- +10 from 897
+        STAT = 1097,  -- +10 from 1087
+        VALUE = 1247, -- +10 from 1237
     },
     EQUIP_SLOT = {
         --[[
