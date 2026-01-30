@@ -159,6 +159,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     BETTERUI.Banking.Class.SetupItemList(self.list)
     self:AddTemplate("BETTERUI_HeaderRow_Template", BETTERUI.Banking.Class.SetupLabelListing)
 
+    -- Initialize scroll indicator for banking list
+    -- offsetX: 9 (rightward), offsetTopY: -8 (upward), offsetBottomY: -8 (up from footer)
+    local listControl = self.list and self.list.control
+    if listControl and BETTERUI.CIM.ScrollIndicator then
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 9, -8, -8)
+    end
+
     self.currentMode = LIST_WITHDRAW
     self.lastPositions = { [LIST_WITHDRAW] = 1, [LIST_DEPOSIT] = 1 }
     -- Per-category selection persistence (shared across modes in a session)
@@ -305,6 +312,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if self.selectedDataCallback then
             self:selectedDataCallback(selectedControl, selectedData)
         end
+
+        -- Update scroll indicator position
+        if list and list.control and BETTERUI.CIM.ScrollIndicator then
+            local totalItems = list:GetNumItems() or 0
+            local currentIndex = list:GetSelectedIndex() or 1
+            local visibleItems = 10 -- approximate visible items in banking list
+            BETTERUI.CIM.ScrollIndicator.Update(list.control, currentIndex, totalItems, visibleItems)
+        end
+
         -- Refresh item actions so Y-menu shows correct actions for new selection
         -- Fixes caching issue when scrolling from Withdraw Gold to actual items
         if selectedData then

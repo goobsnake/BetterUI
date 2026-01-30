@@ -3,7 +3,7 @@ File: Modules/CIM/UI/ScrollIndicator.lua
 Purpose: Provides a visual scroll indicator for parametric lists (inventory, banking).
          Shows current scroll position with a track, thumb, and up/down arrows.
 Author: BetterUI Team
-Last Modified: 2026-01-29
+Last Modified: 2026-01-30
 ]]
 
 -- Ensure namespace exists
@@ -23,18 +23,18 @@ Direction: offsetX positive = RIGHT, offsetY positive = DOWN
 ]]
 local SCROLL_INDICATOR = {
     TRACK = {
-        WIDTH = 28,                                        -- Match thumb width
+        WIDTH = 14,                                        -- Reduced by 1/5
         COLOR = { r = 0.15, g = 0.15, b = 0.15, a = 0.5 }, -- Subtle dark background
-        OFFSET_X = -5,                                     -- Very close to right edge
+        OFFSET_X = -5,                                     -- Original position
     },
     THUMB = {
-        WIDTH = 28,                                        -- Width for visibility
-        MIN_HEIGHT = 240,                                  -- Doubled height for noticeable movement
-        COLOR = { r = 0.85, g = 0.72, b = 0.35, a = 1.0 }, -- Brighter gold matching side divider
+        WIDTH = 14,                                         -- Match track width
+        MIN_HEIGHT = 120,                                   -- Halved for cleaner look
+        COLOR = { r = 0.77, g = 0.65, b = 0.30, a = 0.45 }, -- Match SelectionBar exactly (#C4A64D @ 45%)
     },
     ARROW = {
-        SIZE = 32,   -- Larger arrows
-        PADDING = 6, -- More padding from dividers
+        SIZE = 32,     -- Larger arrows
+        PADDING = 0.5, -- Almost touching dividers
     },
 }
 
@@ -56,16 +56,18 @@ Mechanism: Creates textures for track, thumb, and arrows positioned relative to 
 param: listControl (table) - The parametric list control to attach to.
 return: table - Table containing references to created controls.
 ]]
-local function CreateIndicatorControls(listControl)
+local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetBottomY)
     local controlName = listControl:GetName() .. "ScrollIndicator"
-
+    local actualOffsetX = offsetX or SCROLL_INDICATOR.TRACK.OFFSET_X
+    local actualOffsetTopY = offsetTopY or 0
+    local actualOffsetBottomY = offsetBottomY or 0
 
     -- Main container for scroll indicator
     local container = WINDOW_MANAGER:CreateControl(controlName, listControl, CT_CONTROL)
-    container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, SCROLL_INDICATOR.TRACK.OFFSET_X, 0)
-    container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, SCROLL_INDICATOR.TRACK.OFFSET_X, 0)
+    container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
+    container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
     container:SetWidth(SCROLL_INDICATOR.ARROW.SIZE)
-    container:SetHidden(false) -- Make sure container is visible
+    container:SetHidden(false)
 
 
     -- Up Arrow
@@ -82,12 +84,14 @@ local function CreateIndicatorControls(listControl)
     downArrow:SetAnchor(BOTTOM, container, BOTTOM, 0, -SCROLL_INDICATOR.ARROW.PADDING)
     downArrow:SetHidden(false) -- Show for testing
 
-    -- Track (background)
+    -- Track (background) - centered horizontally with arrows
     local track = WINDOW_MANAGER:CreateControl(controlName .. "Track", container, CT_TEXTURE)
     track:SetTexture("EsoUI/Art/Miscellaneous/inset_bg.dds")
     track:SetWidth(SCROLL_INDICATOR.TRACK.WIDTH)
-    track:SetAnchor(TOP, upArrow, BOTTOM, 0, SCROLL_INDICATOR.ARROW.PADDING)
-    track:SetAnchor(BOTTOM, downArrow, TOP, 0, -SCROLL_INDICATOR.ARROW.PADDING)
+    -- Use explicit horizontal centering
+    local arrowCenterOffset = (SCROLL_INDICATOR.ARROW.SIZE - SCROLL_INDICATOR.TRACK.WIDTH) / 2
+    track:SetAnchor(TOPLEFT, upArrow, BOTTOMLEFT, arrowCenterOffset, SCROLL_INDICATOR.ARROW.PADDING)
+    track:SetAnchor(BOTTOMRIGHT, downArrow, TOPRIGHT, -arrowCenterOffset, -SCROLL_INDICATOR.ARROW.PADDING)
     track:SetColor(
         SCROLL_INDICATOR.TRACK.COLOR.r,
         SCROLL_INDICATOR.TRACK.COLOR.g,
@@ -96,9 +100,9 @@ local function CreateIndicatorControls(listControl)
     )
     track:SetHidden(false) -- Show for testing
 
-    -- Thumb (position indicator)
+    -- Thumb (position indicator) - solid color without texture file
     local thumb = WINDOW_MANAGER:CreateControl(controlName .. "Thumb", container, CT_TEXTURE)
-    thumb:SetTexture("EsoUI/Art/Windows/Gamepad/gp_nav1_horDividerFlat.dds")
+    -- Don't set texture file - just use SetColor for solid fill
     thumb:SetWidth(SCROLL_INDICATOR.THUMB.WIDTH)
     thumb:SetHeight(SCROLL_INDICATOR.THUMB.MIN_HEIGHT)
     thumb:SetColor(
@@ -108,7 +112,7 @@ local function CreateIndicatorControls(listControl)
         SCROLL_INDICATOR.THUMB.COLOR.a
     )
     thumb:SetAnchor(TOP, track, TOP, 0, 0) -- Anchor initially
-    thumb:SetHidden(false)                 -- Show for testing
+    thumb:SetHidden(false)
 
 
     return {
@@ -129,9 +133,12 @@ Function: ScrollIndicator.Initialize
 Description: Initializes the scroll indicator for a parametric list.
 Mechanism: Creates the indicator controls and stores an instance reference.
 param: listControl (table) - The parametric list control.
+param: offsetX (number?) - Optional X offset override for positioning.
+param: offsetTopY (number?) - Optional top Y offset for arrow adjustment.
+param: offsetBottomY (number?) - Optional bottom Y offset for arrow adjustment.
 return: table - The indicator instance.
 ]]
-function ScrollIndicator.Initialize(listControl)
+function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY)
     if not listControl then return nil end
 
     local controlName = listControl:GetName()
@@ -142,7 +149,7 @@ function ScrollIndicator.Initialize(listControl)
     end
 
     -- Create new indicator
-    local controls = CreateIndicatorControls(listControl)
+    local controls = CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetBottomY)
 
     local instance = {
         listControl = listControl,
