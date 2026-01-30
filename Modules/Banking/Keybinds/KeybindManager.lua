@@ -185,6 +185,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 else
                     StackBag(BAG_BACKPACK)
                 end
+                -- No manual refresh needed - SHARED_INVENTORY callbacks will
+                -- automatically refresh the list when the cache is updated
             end,
         },
     }

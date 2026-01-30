@@ -58,6 +58,8 @@ Modules\CIM\UI\GenericFooter.lua
 Modules\CIM\Templates\UnifiedFooter.xml
 Modules\CIM\UI\UnifiedFooter.lua
 Modules\CIM\UI\HeaderNavigation.lua
+Modules\CIM\UI\SelectionHighlight.lua
+Modules\CIM\UI\ScrollIndicator.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua
