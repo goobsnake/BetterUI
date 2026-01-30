@@ -1,11 +1,49 @@
-Current Release - 2.93 Changes:
+Current Release - v3.00 Changes:
 
-[INDENT]1. Added: Support for new currencies: Endless Archive Fortunes (Tome Points) and Seals of Endeavor (Seals).
-2. Added: Enhanced currency ordering up to 12 positions (display limit of 10 remains).
-3. Changed: Renamed "Event Tickets" to "Trade Bars" to align with game terminology.
-4. Changed: Updated all localization files (en, de, fr, es, jp, ru, zh) with new currency strings and positions.
-5. Improved: Inventory and Banking footers now support up to 12 currency items in the layout logic while maintaining a 10-item visibility cap.
-6. Fixed: Currency settings now enforce a hard limit of 10 enabled currencies to ensure UI stability.
+*** This is a major update with a complete visual overhaul and dozens of quality-of-life improvements. ***
+
+[INDENT]NEW UI FEATURES:
+1. Added: Visual Scroll Indicator Bar - Inventory and Banking lists now show a scroll bar with track, thumb, and arrows
+2. Added: Gradient Selection Highlight - Selected items display a sleek gold gradient bar across the full row
+3. Added: Unified Footer System - Inventory and Banking share a consistent footer that shows mode-specific info
+
+RESOURCE ORB FRAMES:
+4. Added: Orb Fill Animation - Health, Magicka, and Stamina orbs now animate smoothly when resources change
+5. Added: Vertical Weapon Swap Animation - A stylish animation plays on the skill bar when swapping weapons
+6. Added: Ultimate Number Display - Your ultimate ability now shows a numerical percentage on the skill bar
+7. Added: Quickslot Cooldown Display - Quickslot items show visual cooldown indicators
+8. Added: Combat Indicators - New visual indicators show when you are in combat
+9. Added: Ultimate Ready Effects - Visual flash effects when your ultimate is fully charged
+10. Added: Quickslot Hover Tooltips - Hovering over quickslot items shows informative tooltips
+
+INVENTORY & BANKING:
+11. Improved: Smart Position Persistence - Lists remember your scroll position per-category and return there after actions
+12. Improved: Instant Focus Restoration - After equipping or junking items, the list instantly selects the right item
+13. Improved: Column Header Alignment - Banking and Inventory headers (Type, Trait, Stat, Value) are aligned with row data
+14. Improved: Justified Footer Layout - Currencies in the footer are now evenly spaced for a cleaner look
+15. Improved: Equipped Status Indicators - Bank items correctly display equipped status when applicable
+
+TOOLTIPS:
+16. Improved: Redesigned Equipped Tooltip Header - Cleaner Gold/White layout with scaled icons (32x32)
+17. Added: "Bind for Collection" Status - Tooltips now intelligently show bind-for-collection status with icon
+18. Added: Junk Icon Display - Items marked as junk display a 40x40 junk icon in the tooltip
+19. Changed: Scaled Market Price Icons - MM/TTC price icons are now 0.8x size for better visual balance
+20. Fixed: Tooltip Text Overlap - Resolved overlapping text issues with improved anchor offsets
+
+CURRENCY SYSTEM (PTS v11.3.0):
+21. Changed: Renamed "Event Tickets" to "Trade Bars" to match official ESO terminology
+22. Added: Seals of Endeavor currency support
+23. Added: Tome Points (Endless Archive) currency support
+24. Improved: Footer now supports up to 12 currency positions (display limit of 10 remains)
+25. Improved: ZO_Alert notification when you try to enable more than 10 currencies
+
+BUG FIXES:
+26. Fixed: "Junk" category in Banking no longer appears when empty
+27. Fixed: Tooltip style settings no longer bleed into other UI elements
+28. Fixed: Inventory list no longer loses focus after actions (equip, lock, junk)
+29. Fixed: Various native tooltip layout glitches resolved
+30. Fixed: Health orb visual artifacts in Resource Orb Frames
+31. Fixed: Research trait lookups now use event-based cache for better accuracy
 [/INDENT]
 
 
