@@ -426,12 +426,13 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Setup remaining UI elements
     BETTERUI_SharedGamepadEntryIconSetup(control.icon, control.stackCountLabel, data, selected)
 
+    -- Hide original highlight - we use our custom gradient selection bar instead
     if control.highlight then
-        if selected and data.highlight then
-            control.highlight:SetTexture(data.highlight)
-        end
-        control.highlight:SetHidden(not selected or not data.highlight)
+        control.highlight:SetHidden(true)
     end
+
+    -- Apply gradient selection bar
+    BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)

@@ -131,6 +131,29 @@
             <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
             <Controls>
+                <!-- 
+                    Selection Bar (Native XML Gradient)
+                    Purpose: Gradient highlight for selected rows (transparent left → gold right).
+                    Structure: Single texture with FadeGradient element to define gradient at
+                               control creation time. Avoids Lua timing issues.
+                               Gold color (#C4A64D ≈ 196,166,77) applied via color attribute.
+                               FadeGradient creates left→right alpha fade effect.
+                               Initially hidden, shown by SelectionHighlight.lua.
+                -->
+                <Texture name="$(parent)SelectionBar" tier="LOW" level="1" hidden="true"
+                    color="C4A64D" alpha="0.45"
+                    excludeFromResizeToFitExtents="true">
+                    <!-- Explicit anchors with vertical offsets to make bar taller (captures more of
+                    icon) -->
+                    <!-- Negative top offset = extends above row; positive bottom offset = extends
+                    below -->
+                    <Anchor point="TOPLEFT" offsetY="-4" />
+                    <Anchor point="BOTTOMRIGHT" offsetY="4" />
+                    <!-- FadeGradient: x1=1 means fade from left edge, size1=fade width in pixels -->
+                    <FadeGradient x1="1" y1="0" size1="1400" x2="-1" y2="0" size2="0" />
+                </Texture>
+
+
                 <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate"
                     font="ZoFontGamepad42" wrapMode="ELLIPSIS">
                     <Anchor point="TOPLEFT" offsetX="BETTERUI_SUBMENU_LABEL_OFFSET_X" />
