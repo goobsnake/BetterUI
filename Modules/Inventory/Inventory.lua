@@ -333,6 +333,24 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
 	local function OnInventoryUpdated(bagId, slotIndex)
+		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
+		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
+		-- When item leaves list (equip to BAG_WORN, consume), uniqueId fails so index is fallback
+		if not self._preserveUniqueId then
+			local currentData = self.currentlySelectedData
+			if currentData then
+				-- Extract uniqueId from wrapped data or direct property
+				local uid = (currentData.dataSource and currentData.dataSource.uniqueId) or currentData.uniqueId
+				if uid then
+					self._preserveUniqueId = uid
+				end
+			end
+			-- Also save current index for fallback when item is removed from list
+			if self.itemList and self.itemList.selectedIndex then
+				self._preserveIndex = self.itemList.selectedIndex
+			end
+		end
+
 		self:InvalidateSlotDataCache()
 		if self.InvalidateItemMeta then
 			self:InvalidateItemMeta(bagId, slotIndex)
@@ -365,11 +383,11 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 					-- Coalesce category refresh to prevent spam during rapid updates
 					BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
 						BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, function()
-						self._pendingCategoryListRefresh = false
-						if self.scene:IsShowing() then
-							self:RefreshCategoryList()
-						end
-					end)
+							self._pendingCategoryListRefresh = false
+							if self.scene:IsShowing() then
+								self:RefreshCategoryList()
+							end
+						end)
 				end
 			end
 		end
@@ -397,10 +415,10 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				-- Additional delay to ensure main group activation sticks
 				BETTERUI.Inventory.Tasks:Schedule("keybindActivationStick",
 					BETTERUI.CIM.CONST.TIMING.KEYBIND_ACTIVATION_DELAY_MS, function()
-					if self.SetActiveKeybinds then
-						self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-					end
-				end)
+						if self.SetActiveKeybinds then
+							self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+						end
+					end)
 			end
 		end)
 
@@ -591,8 +609,6 @@ end
 ---
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
-		blockDirectionalInput = true,
-
 		canQueue = true,
 
 		gamepadInfo = {
@@ -611,9 +627,31 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 			text = SI_GAMEPAD_INVENTORY_SPLIT_STACK_PROMPT,
 		},
 
+		-- ESO passes: sliderMin=1, sliderMax=stackSize-1, sliderStartValue=stackSize/2, stackSize
+		-- The slider value represents how many to move to the NEW stack
+		-- Display: left shows remaining (stackSize - value), right shows moving (value)
 		OnSliderValueChanged = function(dialog, sliderControl, value)
-			dialog.sliderValue1:SetText(dialog.data.stackSize - value)
-			dialog.sliderValue2:SetText(value)
+			if dialog and dialog.data and value then
+				local stackSize = dialog.data.stackSize or 0
+				dialog.sliderValue1:SetText(stackSize - value)
+				dialog.sliderValue2:SetText(value)
+			end
+		end,
+
+		narrationText = function(dialog, itemName)
+			if not dialog or not dialog.slider then return nil end
+			local stack2 = dialog.slider:GetValue()
+			local stack1 = (dialog.data.stackSize or 0) - stack2
+			return SCREEN_NARRATION_MANAGER:CreateNarratableObject(
+				zo_strformat(SI_GAMEPAD_INVENTORY_SPLIT_STACK_NARRATION_FORMATTER, itemName, stack1, stack2)
+			)
+		end,
+
+		additionalInputNarrationFunction = function()
+			return ZO_GetHorizontalDirectionalInputNarrationData(
+				GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION),
+				GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION)
+			)
 		end,
 
 		buttons = {
@@ -627,12 +665,24 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 				callback = function(dialog)
 					local dialogData = dialog.data
 					local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
+
+					-- Save the uniqueId BEFORE split so inventory refresh restores position
+					-- Store in dedicated field to survive list selection callback overwriting currentlySelectedData
+					local uniqueId = GetItemUniqueId(dialogData.bagId, dialogData.slotIndex)
+					if uniqueId and GAMEPAD_INVENTORY then
+						GAMEPAD_INVENTORY._splitStackUniqueId = uniqueId
+					end
+
 					CallSecureProtected("PickupInventoryItem", dialogData.bagId, dialogData.slotIndex, quantity)
 					BETTERUI_TryPlaceInventoryItemInEmptySlot(dialogData.bagId)
-					CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED")
 				end,
 			},
 		},
+		-- OnHiddenCallback clears the lock set by the hooked ZO_StackSplit_SplitItem
+		-- This must fire BEFORE keybinds are restored to prevent re-triggering
+		OnHiddenCallback = function(dialog)
+			BETTERUI.Inventory._splitStackLock = nil
+		end,
 	})
 end
 
@@ -680,10 +730,10 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 						if destroyed then
 							BETTERUI.Inventory.Tasks:Schedule("destroyRefresh",
 								BETTERUI.CIM.CONST.TIMING.LIST_DESTRUCTION_DELAY_MS, function()
-								if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-									GAMEPAD_INVENTORY:RefreshItemList()
-								end
-							end)
+									if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
+										GAMEPAD_INVENTORY:RefreshItemList()
+									end
+								end)
 						end
 					end
 					ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_CONFIRM_DESTROY_DIALOG")

@@ -300,10 +300,12 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
         local restored = false
         if targetUniqueId then
             -- Manual lookup to find index, then use SetSelectedIndexWithoutAnimation for instant focus
+            -- Note: uniqueId may be on data.dataSource (wrapper) or data directly
             local dataList = self.itemList.dataList or (self.itemList.list and self.itemList.list.dataList)
             if dataList then
                 for i, data in ipairs(dataList) do
-                    if data.uniqueId and Id64ToString(data.uniqueId) == targetUniqueId then
+                    local itemUniqueId = (data.dataSource and data.dataSource.uniqueId) or data.uniqueId
+                    if itemUniqueId and Id64ToString(itemUniqueId) == targetUniqueId then
                         self.itemList:SetSelectedIndexWithoutAnimation(i, true, false)
                         restored = true
                         break
@@ -331,20 +333,35 @@ end
 
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
-    -- Capture current selection before clearing (uniqueId primary, index fallback)
+    -- Capture current selection before clearing
+    -- Priority: _splitStackUniqueId > _preserveUniqueId > uniqueId > savedIndex
     local targetUniqueId = nil
     local targetIndex = nil
-    if self.currentlySelectedData then
-        -- Use saved uniqueId if available
+
+    -- Priority 1: Split stack specific (set in dialog callback)
+    if self._splitStackUniqueId then
+        targetUniqueId = Id64ToString(self._splitStackUniqueId)
+        self._splitStackUniqueId = nil
+        -- Priority 2: Global preserve uniqueId (set in OnInventoryUpdated before callbacks fire)
+    elseif self._preserveUniqueId then
+        targetUniqueId = Id64ToString(self._preserveUniqueId)
+        self._preserveUniqueId = nil
+    elseif self.currentlySelectedData then
+        -- Priority 3: Use saved uniqueId from currentlySelectedData if available
         if self.currentlySelectedData.uniqueId then
             targetUniqueId = Id64ToString(self.currentlySelectedData.uniqueId)
         end
-        -- Use saved index from ToSavedPosition (per-category) if available
-        -- This is the correct per-category index, not the previous category's index
+        -- Priority 4: Use saved index from ToSavedPosition (per-category)
         if self.currentlySelectedData.savedIndex then
             targetIndex = self.currentlySelectedData.savedIndex
         end
     end
+
+    -- Priority fallback: Global preserve index (when item leaves list after equip/consume)
+    if not targetIndex and self._preserveIndex then
+        targetIndex = self._preserveIndex
+    end
+    self._preserveIndex = nil -- Clear after capturing
 
     self.itemList:Clear()
     if self.categoryList:IsEmpty() then

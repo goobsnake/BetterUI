@@ -39,6 +39,30 @@ function BETTERUI.Inventory.Setup()
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
 
+	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag
+	-- This is the ONLY guard needed - it blocks at the source
+	local originalSplitItem = ZO_StackSplit_SplitItem
+	ZO_StackSplit_SplitItem = function(inventorySlotControl)
+		-- Guard: If we're in the middle of a split stack operation, block
+		if BETTERUI.Inventory._splitStackLock then
+			return false
+		end
+
+		-- Set lock BEFORE showing dialog
+		BETTERUI.Inventory._splitStackLock = true
+
+		-- Call original - dialog will show
+		local result = originalSplitItem(inventorySlotControl)
+
+		-- If dialog didn't show (e.g., item not splittable), clear lock immediately
+		if not result then
+			BETTERUI.Inventory._splitStackLock = nil
+		end
+		-- Otherwise, lock will be cleared by OnHiddenCallback in Inventory.lua
+
+		return result
+	end
+
 	-- Configure tooltip appearance and behavior
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE
 
