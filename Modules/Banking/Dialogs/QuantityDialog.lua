@@ -27,7 +27,7 @@ Function: BETTERUI.Banking.InitializeQuantityDialog
 Description: Registers the quantity selection dialog for banking operations.
 Rationale: Creates a reusable dialog for both withdraw and deposit partial stacks.
 Mechanism:
-  - dialog.data contains: bagId, slotIndex, stackSize, isDeposit, itemLink
+  - dialog.data contains: bagId, slotIndex, sliderMin, sliderMax, sliderStartValue, isDeposit, itemLink
   - OnSliderValueChanged updates the split preview labels
   - Primary button callback calls MoveItem with selected quantity
 ]]
@@ -55,12 +55,19 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         },
 
         mainText = {
-            text = SI_GAMEPAD_INVENTORY_SPLIT_STACK_PROMPT,
+            text = function(dialog)
+                if dialog and dialog.data and dialog.data.isDeposit then
+                    return GetString(SI_BETTERUI_BANK_DEPOSIT_PROMPT) or "Select the amount to deposit"
+                else
+                    return GetString(SI_BETTERUI_BANK_WITHDRAW_PROMPT) or "Select the amount to withdraw"
+                end
+            end,
         },
 
         OnSliderValueChanged = function(dialog, sliderControl, value)
-            if dialog and dialog.data then
-                local remaining = dialog.data.stackSize - value
+            if dialog and dialog.data and value then
+                local sliderMax = dialog.data.sliderMax or 0
+                local remaining = sliderMax - value
                 if dialog.sliderValue1 then
                     dialog.sliderValue1:SetText(tostring(remaining))
                 end
@@ -73,7 +80,7 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         narrationText = function(dialog, itemName)
             if not dialog or not dialog.slider then return nil end
             local stack2 = dialog.slider:GetValue()
-            local stack1 = dialog.data.stackSize - stack2
+            local stack1 = (dialog.data.sliderMax or 0) - stack2
             return SCREEN_NARRATION_MANAGER:CreateNarratableObject(
                 zo_strformat(SI_GAMEPAD_INVENTORY_SPLIT_STACK_NARRATION_FORMATTER, itemName, stack1, stack2)
             )
@@ -140,10 +147,13 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
 
     local itemLink = GetItemLink(targetData.bagId, targetData.slotIndex)
 
+    -- ESO's ITEM_SLIDER dialog expects: sliderMin, sliderMax, sliderStartValue, bagId, slotIndex
     ZO_Dialogs_ShowGamepadDialog(BETTERUI_BANK_QUANTITY_DIALOG, {
         bagId = targetData.bagId,
         slotIndex = targetData.slotIndex,
-        stackSize = stackCount,
+        sliderMin = 1,
+        sliderMax = stackCount,
+        sliderStartValue = 1, -- Start with 1 selected to move
         isDeposit = isDeposit,
         itemLink = itemLink,
         itemName = GetItemName(targetData.bagId, targetData.slotIndex),
