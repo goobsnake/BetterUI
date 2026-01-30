@@ -42,6 +42,7 @@ Modules\CIM\Core\SortManager.lua
 Modules\CIM\Core\SafeExecute.lua
 Modules\CIM\Core\SceneLifecycleManager.lua
 Modules\CIM\Core\CategoryDefinitions.lua
+Modules\CIM\Core\MultiSelectManager.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
 Modules\CIM\Images\inv_equip_quickslot.dds
@@ -60,6 +61,9 @@ Modules\CIM\UI\UnifiedFooter.lua
 Modules\CIM\UI\HeaderNavigation.lua
 Modules\CIM\UI\SelectionHighlight.lua
 Modules\CIM\UI\ScrollIndicator.lua
+Modules\CIM\UI\HeaderSortController.lua
+Modules\CIM\UI\HeaderSortIntegration.lua
+Modules\CIM\UI\ItemFlashAnimation.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua

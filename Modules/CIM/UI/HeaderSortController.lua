@@ -1,0 +1,441 @@
+--[[
+File: Modules/CIM/UI/HeaderSortController.lua
+Purpose: Manages column header navigation and sorting for parametric lists.
+         Enables gamepad users to navigate to column headers and toggle sort direction.
+Author: BetterUI Team
+Last Modified: 2026-01-30
+
+KEY RESPONSIBILITIES:
+    * Manages header navigation mode state
+    * Tracks current column selection and sort direction per column
+    * Provides visual feedback through arrow indicators (▲/▼)
+    * Handles D-pad navigation within header row
+]]
+
+if not BETTERUI.CIM then BETTERUI.CIM = {} end
+if not BETTERUI.CIM.UI then BETTERUI.CIM.UI = {} end
+
+-------------------------------------------------------------------------------------------------
+-- CONSTANTS
+-------------------------------------------------------------------------------------------------
+
+local SORT_DIRECTION = {
+    NONE = 0,
+    ASCENDING = 1,
+    DESCENDING = 2,
+}
+
+local SORT_ARROW = {
+    [SORT_DIRECTION.NONE] = "",
+    [SORT_DIRECTION.ASCENDING] = " ▲",
+    [SORT_DIRECTION.DESCENDING] = " ▼",
+}
+
+-------------------------------------------------------------------------------------------------
+-- CLASS DEFINITION
+-------------------------------------------------------------------------------------------------
+
+---@class HeaderSortController
+---@field columns table[] Array of column definitions {name, key, sortFn, labelControl}
+---@field currentColumnIndex number Currently selected column (1-indexed)
+---@field sortDirections table<number, number> Sort direction per column index
+---@field isHeaderModeActive boolean True when user is navigating header row
+---@field listControl table Reference to the parametric list control
+---@field onSortChangedCallback function Callback when sort changes
+BETTERUI.CIM.UI.HeaderSortController = ZO_Object:Subclass()
+
+--[[
+Function: HeaderSortController:New
+Description: Creates a new HeaderSortController instance.
+param: listControl (table) - The parametric scroll list control.
+param: columns (table[]) - Array of column definitions: {name="NAME", key="name", sortFn=BETTERUI.CIM.SortByName}
+param: onSortChangedCallback (function) - Called when sort changes: function(columnKey, direction)
+return: HeaderSortController - New instance.
+]]
+--- @param listControl table The parametric scroll list control
+--- @param columns table[] Array of column definitions
+--- @param onSortChangedCallback function Callback when sort changes
+--- @return table instance New HeaderSortController instance
+function BETTERUI.CIM.UI.HeaderSortController:New(listControl, columns, onSortChangedCallback)
+    local obj = ZO_Object.New(self)
+    obj:Initialize(listControl, columns, onSortChangedCallback)
+    return obj
+end
+
+--[[
+Function: HeaderSortController:Initialize
+Description: Initializes the controller state.
+]]
+function BETTERUI.CIM.UI.HeaderSortController:Initialize(listControl, columns, onSortChangedCallback)
+    self.listControl = listControl
+    self.columns = columns or {}
+    self.onSortChangedCallback = onSortChangedCallback
+    self.currentColumnIndex = 1
+    self.isHeaderModeActive = false
+
+    -- Initialize sort directions for each column (default: NONE)
+    self.sortDirections = {}
+    for i = 1, #self.columns do
+        self.sortDirections[i] = SORT_DIRECTION.NONE
+    end
+
+    -- Track which column is the primary sort (only one can be active)
+    self.activeSortColumnIndex = nil
+end
+
+-------------------------------------------------------------------------------------------------
+-- STATE MANAGEMENT
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:EnterHeaderMode
+Description: Enters header navigation mode.
+return: boolean - True if successfully entered header mode.
+]]
+--- @return boolean success True if successfully entered header mode
+function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
+    if #self.columns == 0 then
+        return false
+    end
+
+    self.isHeaderModeActive = true
+    self.currentColumnIndex = self.activeSortColumnIndex or 1
+    self:UpdateVisuals()
+    return true
+end
+
+--[[
+Function: HeaderSortController:ExitHeaderMode
+Description: Exits header navigation mode.
+]]
+function BETTERUI.CIM.UI.HeaderSortController:ExitHeaderMode()
+    self.isHeaderModeActive = false
+    self:UpdateVisuals()
+end
+
+--[[
+Function: HeaderSortController:IsActive
+Description: Returns whether header mode is currently active.
+return: boolean - True if in header navigation mode.
+]]
+--- @return boolean isActive True if in header navigation mode
+function BETTERUI.CIM.UI.HeaderSortController:IsActive()
+    return self.isHeaderModeActive
+end
+
+-------------------------------------------------------------------------------------------------
+-- NAVIGATION
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:NavigateLeft
+Description: Moves selection to the previous column.
+return: boolean - True if navigation occurred.
+]]
+--- @return boolean moved True if navigation occurred
+function BETTERUI.CIM.UI.HeaderSortController:NavigateLeft()
+    if not self.isHeaderModeActive or #self.columns == 0 then
+        return false
+    end
+
+    if self.currentColumnIndex > 1 then
+        self.currentColumnIndex = self.currentColumnIndex - 1
+        self:UpdateVisuals()
+        return true
+    end
+    return false
+end
+
+--[[
+Function: HeaderSortController:NavigateRight
+Description: Moves selection to the next column.
+return: boolean - True if navigation occurred.
+]]
+--- @return boolean moved True if navigation occurred
+function BETTERUI.CIM.UI.HeaderSortController:NavigateRight()
+    if not self.isHeaderModeActive or #self.columns == 0 then
+        return false
+    end
+
+    if self.currentColumnIndex < #self.columns then
+        self.currentColumnIndex = self.currentColumnIndex + 1
+        self:UpdateVisuals()
+        return true
+    end
+    return false
+end
+
+--[[
+Function: HeaderSortController:GetCurrentColumnIndex
+Description: Returns the currently selected column index.
+return: number - Current column index (1-indexed).
+]]
+--- @return number index Current column index (1-indexed)
+function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumnIndex()
+    return self.currentColumnIndex
+end
+
+--[[
+Function: HeaderSortController:GetCurrentColumn
+Description: Returns the currently selected column definition.
+return: table|nil - Column definition or nil if none selected.
+]]
+--- @return table|nil column Current column definition or nil
+function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumn()
+    return self.columns[self.currentColumnIndex]
+end
+
+-------------------------------------------------------------------------------------------------
+-- SORTING
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:ToggleSort
+Description: Toggles sort direction for the current column.
+             Cycles: NONE → ASCENDING → DESCENDING → NONE
+             Clears sort on other columns when a new column is sorted.
+return: boolean - True if sort was toggled.
+]]
+--- @return boolean toggled True if sort was toggled
+function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
+    if not self.isHeaderModeActive or #self.columns == 0 then
+        return false
+    end
+
+    local columnIndex = self.currentColumnIndex
+    local currentDirection = self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
+
+    -- Cycle through directions
+    local newDirection
+    if currentDirection == SORT_DIRECTION.NONE then
+        newDirection = SORT_DIRECTION.ASCENDING
+    elseif currentDirection == SORT_DIRECTION.ASCENDING then
+        newDirection = SORT_DIRECTION.DESCENDING
+    else
+        newDirection = SORT_DIRECTION.NONE
+    end
+
+    -- Clear other columns if we're setting a direction
+    if newDirection ~= SORT_DIRECTION.NONE then
+        for i = 1, #self.columns do
+            if i ~= columnIndex then
+                self.sortDirections[i] = SORT_DIRECTION.NONE
+            end
+        end
+        self.activeSortColumnIndex = columnIndex
+    else
+        self.activeSortColumnIndex = nil
+    end
+
+    self.sortDirections[columnIndex] = newDirection
+    self:UpdateVisuals()
+
+    -- Notify callback
+    if self.onSortChangedCallback then
+        local column = self.columns[columnIndex]
+        self.onSortChangedCallback(column.key, newDirection, column.sortFn)
+    end
+
+    return true
+end
+
+--[[
+Function: HeaderSortController:GetSortDirection
+Description: Returns the sort direction for a column.
+param: columnIndex (number) - Column index (1-indexed). If nil, uses current column.
+return: number - Sort direction constant (NONE, ASCENDING, DESCENDING).
+]]
+--- @param columnIndex number|nil Column index (1-indexed), nil for current
+--- @return number direction Sort direction constant
+function BETTERUI.CIM.UI.HeaderSortController:GetSortDirection(columnIndex)
+    columnIndex = columnIndex or self.currentColumnIndex
+    return self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
+end
+
+--[[
+Function: HeaderSortController:GetActiveSortColumn
+Description: Returns the currently active sort column and direction.
+return: table|nil, number - Column definition and direction, or nil if no sort active.
+]]
+--- @return table|nil column Active sort column definition
+--- @return number direction Sort direction
+function BETTERUI.CIM.UI.HeaderSortController:GetActiveSortColumn()
+    if not self.activeSortColumnIndex then
+        return nil, SORT_DIRECTION.NONE
+    end
+    return self.columns[self.activeSortColumnIndex], self.sortDirections[self.activeSortColumnIndex]
+end
+
+-------------------------------------------------------------------------------------------------
+-- VISUAL UPDATES
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:UpdateVisuals
+Description: Updates column header visual indicators (highlights and arrows).
+             Call this after any state change.
+]]
+function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
+    for i, column in ipairs(self.columns) do
+        if column.labelControl then
+            local baseName = column.name
+            local arrow = SORT_ARROW[self.sortDirections[i]] or ""
+            local isSelected = self.isHeaderModeActive and (i == self.currentColumnIndex)
+
+            -- Build display text with arrow
+            local displayText = baseName .. arrow
+
+            -- Add bracket highlight for selected column in header mode
+            if isSelected then
+                displayText = "[" .. displayText .. "]"
+            end
+
+            column.labelControl:SetText(displayText)
+
+            -- Optional: Change color for selected column
+            if isSelected then
+                column.labelControl:SetColor(0.77, 0.65, 0.30, 1) -- Gold
+            else
+                column.labelControl:SetColor(1, 1, 1, 1)          -- White
+            end
+        end
+    end
+end
+
+--[[
+Function: HeaderSortController:SetColumnLabel
+Description: Associates a label control with a column.
+param: columnIndex (number) - Column index (1-indexed).
+param: labelControl (table) - The label control to update.
+]]
+--- @param columnIndex number Column index (1-indexed)
+--- @param labelControl table The label control to update
+function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelControl)
+    if self.columns[columnIndex] then
+        self.columns[columnIndex].labelControl = labelControl
+    end
+end
+
+--[[
+Function: HeaderSortController:RefreshColumnLabels
+Description: Finds and caches column label controls from a header container.
+param: headerContainer (table) - The header control containing column labels.
+param: columnNamePattern (string) - Pattern to find column labels, e.g., "Column%dLabel".
+]]
+--- @param headerContainer table The header control containing column labels
+--- @param columnNamePattern string Pattern to find column labels
+function BETTERUI.CIM.UI.HeaderSortController:RefreshColumnLabels(headerContainer, columnNamePattern)
+    if not headerContainer then return end
+
+    for i, column in ipairs(self.columns) do
+        local labelName = string.format(columnNamePattern, i)
+        local labelControl = headerContainer:GetNamedChild(labelName)
+        if labelControl then
+            self.columns[i].labelControl = labelControl
+            -- Set initial text
+            labelControl:SetText(column.name .. (SORT_ARROW[self.sortDirections[i]] or ""))
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- SORT FUNCTION HELPERS
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:GetSortComparator
+Description: Returns a comparator function for the active sort column.
+             Respects ascending/descending direction.
+return: function|nil - Comparator function or nil if no sort active.
+]]
+--- @return function|nil comparator Sort comparator function or nil
+function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
+    local column, direction = self:GetActiveSortColumn()
+    if not column or direction == SORT_DIRECTION.NONE then
+        return nil
+    end
+
+    local baseSortFn = column.sortFn
+    if not baseSortFn then
+        return nil
+    end
+
+    -- For descending, invert the comparator
+    if direction == SORT_DIRECTION.DESCENDING then
+        return function(left, right)
+            return baseSortFn(right, left)
+        end
+    end
+
+    return baseSortFn
+end
+
+-------------------------------------------------------------------------------------------------
+-- KEYBIND FACTORY
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: HeaderSortController:CreateKeybindDescriptor
+Description: Creates a keybind descriptor for header sort mode.
+             Includes A to toggle sort, B to exit, and hidden L/R/Down for navigation.
+             Centralizes keybind creation to avoid duplication in Inventory/Banking.
+param: exitCallback (function) - Called when user presses B or Down to exit header mode.
+return: table - Keybind descriptor for KEYBIND_STRIP:AddKeybindButtonGroup
+]]
+--- @param exitCallback function Called when exiting header mode
+--- @return table keybindDescriptor
+function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback)
+    local controller = self
+
+    return {
+        alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        -- A button: Toggle sort direction
+        {
+            name = GetString(SI_BETTERUI_HEADER_SORT),
+            keybind = "UI_SHORTCUT_PRIMARY",
+            callback = function()
+                controller:ToggleSort()
+                PlaySound(SOUNDS.DEFAULT_CLICK)
+            end,
+        },
+        -- B button: Exit header mode
+        {
+            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            keybind = "UI_SHORTCUT_NEGATIVE",
+            callback = exitCallback,
+        },
+        -- D-pad navigation keybinds (ethereal = hidden from UI)
+        -- Note: Uses keybinds instead of DIRECTIONAL_INPUT to avoid
+        -- protected function errors with IsKeyDown
+        {
+            keybind = "UI_SHORTCUT_LEFT_STICK_LEFT",
+            ethereal = true,
+            callback = function()
+                if controller:NavigateLeft() then
+                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                end
+            end,
+        },
+        {
+            keybind = "UI_SHORTCUT_LEFT_STICK_RIGHT",
+            ethereal = true,
+            callback = function()
+                if controller:NavigateRight() then
+                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                end
+            end,
+        },
+        {
+            keybind = "UI_SHORTCUT_LEFT_STICK_DOWN",
+            ethereal = true,
+            callback = exitCallback,
+        },
+    }
+end
+
+-------------------------------------------------------------------------------------------------
+-- EXPORTS
+-------------------------------------------------------------------------------------------------
+
+-- Export sort direction constants for external use
+BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION = SORT_DIRECTION
