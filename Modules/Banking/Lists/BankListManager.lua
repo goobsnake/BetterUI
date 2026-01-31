@@ -365,7 +365,9 @@ function BETTERUI.Banking.Class:RefreshList()
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if entryCount == 0 then
         self.list:Deactivate()
-    else
+    elseif BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        -- IMPORTANT: Only activate when scene is showing to prevent premature
+        -- DIRECTIONAL_INPUT registration during addon load (fixes joystick lock-up)
         self.list:Activate()
     end
     self:ReturnToSaved()
