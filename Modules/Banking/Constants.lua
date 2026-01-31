@@ -37,42 +37,30 @@ BETTERUI.Banking.CONST.CAROUSEL = {
 }
 
 -- ============================================================================
--- SEARCH BAR POSITIONING
+-- SEARCH BAR POSITIONING (delegate to CIM shared constants)
 -- Controls the position of the search input field in banking headers
 -- ============================================================================
+
+-- Use centralized CIM search bar constants (eliminates duplication with Inventory)
+local searchConst = BETTERUI.CIM.GetSearchBarConstants("BANKING")
 
 --[[
 Table: BETTERUI.Banking.CONST.SEARCH
 Description: Search bar positioning constants for Banking module.
+             Delegates to CIM shared constants for single source of truth.
 Used By: Banking.lua
 ]]
 BETTERUI.Banking.CONST.SEARCH = {
-    --[[
-    Field: X_OFFSET
-    Description: Horizontal offset from left edge for search bar.
-    Direction: Positive (+) moves RIGHT.
-    ]]
-    X_OFFSET = 58,
-
-    --[[
-    Field: Y_OFFSET
-    Description: Vertical offset from header bottom for search bar.
-    Direction: Positive (+) moves DOWN.
-    ]]
-    Y_OFFSET = 15,
-
-    --[[
-    Field: RIGHT_INSET
-    Description: Right edge inset for search bar width.
-    Direction: Negative (-) moves LEFT (narrower).
-    ]]
-    RIGHT_INSET = -8,
+    X_OFFSET = searchConst.X_OFFSET,
+    Y_OFFSET = searchConst.Y_OFFSET,
+    RIGHT_INSET = searchConst.RIGHT_INSET,
 }
 
+-- DEPRECATED(v3.1): Use BETTERUI.Banking.CONST.SEARCH.* instead
 -- Backward compatibility aliases (global constants for existing code)
-BETTERUI_BANK_SEARCH_X_OFFSET = BETTERUI.Banking.CONST.SEARCH.X_OFFSET
-BETTERUI_BANK_SEARCH_Y_OFFSET = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
-BETTERUI_BANK_SEARCH_RIGHT_INSET = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
+BETTERUI_BANK_SEARCH_X_OFFSET = searchConst.X_OFFSET
+BETTERUI_BANK_SEARCH_Y_OFFSET = searchConst.Y_OFFSET
+BETTERUI_BANK_SEARCH_RIGHT_INSET = searchConst.RIGHT_INSET
 
 -- ============================================================================
 -- CURRENCY TEXTURES

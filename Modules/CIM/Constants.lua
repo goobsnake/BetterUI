@@ -134,6 +134,60 @@ BETTERUI.CIM.CONST.MODULES = {
 
 
 -- ============================================================================
+-- SEARCH BAR POSITIONING
+-- Centralized search bar constants to eliminate duplication across modules
+-- ============================================================================
+
+--[[
+Table: BETTERUI.CIM.CONST.SEARCH_BAR
+Description: Search bar positioning constants for list-based screens.
+             Contains base values (used by Inventory) and module-specific overrides.
+Used By: Inventory/Constants.lua, Banking/Constants.lua, SearchManager.lua
+]]
+BETTERUI.CIM.CONST.SEARCH_BAR = {
+    -- Base values (default, used by Inventory)
+    BASE = {
+        --[[
+        Field: X_OFFSET
+        Description: Horizontal offset from left edge for search bar.
+        Direction: Positive (+) moves RIGHT.
+        ]]
+        X_OFFSET = 55,
+        --[[
+        Field: Y_OFFSET
+        Description: Vertical offset from header bottom for search bar.
+        Direction: Positive (+) moves DOWN.
+        ]]
+        Y_OFFSET = 1,
+        --[[
+        Field: RIGHT_INSET
+        Description: Right edge inset for search bar width.
+        Direction: Negative (-) moves LEFT (narrower).
+        ]]
+        RIGHT_INSET = -4,
+    },
+    -- Banking-specific overrides (different header layout)
+    BANKING = {
+        X_OFFSET = 58,
+        Y_OFFSET = 15,
+        RIGHT_INSET = -8,
+    },
+}
+
+--[[
+Function: BETTERUI.CIM.GetSearchBarConstants
+Description: Returns search bar positioning constants for a specific module.
+param: module (string) - "INVENTORY" or "BANKING" (defaults to INVENTORY)
+return: table - The search bar constants { X_OFFSET, Y_OFFSET, RIGHT_INSET }
+]]
+function BETTERUI.CIM.GetSearchBarConstants(module)
+    if module == "BANKING" then
+        return BETTERUI.CIM.CONST.SEARCH_BAR.BANKING
+    end
+    return BETTERUI.CIM.CONST.SEARCH_BAR.BASE
+end
+
+-- ============================================================================
 -- CURRENCY FOOTER CONFIGURATION
 -- ============================================================================
 
