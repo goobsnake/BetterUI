@@ -351,11 +351,10 @@ function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
         self.textSearchHeaderFocus:Activate()
-        pcall(function()
-            if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then
-                self.textSearchHeaderControl:BringWindowToFront()
-            end
-        end)
+        -- Call BringWindowToFront if available (optional method, use guard clause)
+        if self.textSearchHeaderControl and self.textSearchHeaderControl.BringWindowToFront then
+            self.textSearchHeaderControl:BringWindowToFront()
+        end
     end
 end
 
