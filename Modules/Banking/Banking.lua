@@ -232,6 +232,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
+            -- Guard: Only process if banking scene is actually showing
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
             if self.RequestEnterHeader then
                 self:RequestEnterHeader()
             else
@@ -241,11 +243,15 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
         editBox:SetHandler("OnFocusLost", function(eb)
             if origOnFocusLost then origOnFocusLost(eb) end
+            -- Guard: Only process if banking scene is actually showing
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
             self:ExitSearchFocus()
         end)
 
         editBox:SetHandler("OnTextChanged", function(eb)
             if origOnTextChanged then origOnTextChanged(eb) end
+            -- Guard: Only process if banking scene is actually showing
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
             local txt = ""
             local t = eb:GetText()
             if t then txt = t end
@@ -261,6 +267,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                     return handled
                 end
             end
+            -- Guard: Only process if banking scene is actually showing
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
             if command == "UI_SHORTCUT_DOWN" then
                 self:ExitSearchFocus()
                 return true
@@ -275,6 +283,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                     return handled
                 end
             end
+            -- Guard: Only process if banking scene is actually showing
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
             if shortcut == "UI_SHORTCUT_DOWN" then
                 self:ExitSearchFocus()
                 return true
@@ -525,9 +535,27 @@ Rationale: Migrated from OnEffectivelyHidden to use unified scene lifecycle.
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
+
+    -- IMPORTANT: Cleanup search focus BEFORE deactivating the list
+    -- This ensures the search header releases DIRECTIONAL_INPUT properly
+    self._searchModeActive = false
+    if self.textSearchHeaderFocus then
+        -- Deactivate the focus handler regardless of whether search mode was "active"
+        -- This ensures DIRECTIONAL_INPUT is released
+        if self.textSearchHeaderFocus.Deactivate then
+            self.textSearchHeaderFocus:Deactivate()
+        end
+        -- Also clear any lingering focus state
+        if self.textSearchHeaderFocus.SetFocused then
+            self.textSearchHeaderFocus:SetFocused(false)
+        end
+    end
+
+    -- Now deactivate the list - this unregisters from DIRECTIONAL_INPUT
     self.list:Deactivate()
     self.selector:Deactivate()
     self.confirmationMode = false
+
     -- Release focus from header tab bar and clear any update suppression flags
     if self.headerGeneric and self.headerGeneric.tabBar then
         self.headerGeneric.tabBar:Deactivate()
@@ -551,6 +579,7 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     end
 
     -- Ensure we exit any active search mode so keybinds/focus are restored
+    -- (LeaveSearchMode has early return if _searchModeActive is false, but we cleared it above)
     if self.LeaveSearchMode then
         self:LeaveSearchMode()
     end
@@ -560,24 +589,8 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
 
-    local list = self:GetList()
-    if list and list.SetDirectionalInputEnabled then
-        list:SetDirectionalInputEnabled(true)
-    elseif self.list and self.list.SetDirectionalInputEnabled then
-        self.list:SetDirectionalInputEnabled(true)
-    end
-
-    -- Fallback: sometimes input ownership changes slightly after hide due to queued operations.
-    -- Schedule a short delayed re-enable of directional input and keybind restoration to handle races.
-    BETTERUI.Banking.Tasks:Schedule("directionalInputFix", BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS,
-        function()
-            local listDelayed = self:GetList()
-            if listDelayed and listDelayed.SetDirectionalInputEnabled then
-                listDelayed:SetDirectionalInputEnabled(true)
-            elseif self.list and self.list.SetDirectionalInputEnabled then
-                self.list:SetDirectionalInputEnabled(true)
-            end
-        end)
+    -- Clear the _searchHeaderActive flag from the SearchMixin as well
+    self._searchHeaderActive = false
 
     -- Clear search text when exiting the banking scene
     self.searchQuery = ""
