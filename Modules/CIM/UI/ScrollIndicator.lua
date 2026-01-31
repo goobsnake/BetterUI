@@ -2,6 +2,7 @@
 File: Modules/CIM/UI/ScrollIndicator.lua
 Purpose: Provides a visual scroll indicator for parametric lists (inventory, banking).
          Shows current scroll position with a track, thumb, and up/down arrows.
+         Supports mouse interaction: arrow clicks and thumb dragging.
 Author: BetterUI Team
 Last Modified: 2026-01-30
 ]]
@@ -29,8 +30,8 @@ local SCROLL_INDICATOR = {
     },
     THUMB = {
         WIDTH = 14,                                         -- Match track width
-        MIN_HEIGHT = 120,                                   -- Halved for cleaner look
-        COLOR = { r = 0.77, g = 0.65, b = 0.30, a = 0.45 }, -- Match SelectionBar exactly (#C4A64D @ 45%)
+        MIN_HEIGHT = 120,                                   -- Visual sizing for cleaner look
+        COLOR = { r = 0.77, g = 0.65, b = 0.30, a = 0.65 }, -- Match SelectionBar gold (#C4A64D @ 65% for visibility)
     },
     ARROW = {
         SIZE = 32,     -- Larger arrows
@@ -44,6 +45,219 @@ local SCROLL_INDICATOR = {
 
 -- Cache for scroll indicator instances by list control
 local indicatorInstances = {}
+
+-- ============================================================================
+-- MOUSE INTERACTION CONSTANTS
+-- ============================================================================
+
+--[[
+Constant: MOUSE_INTERACTION
+Description: Configuration for mouse click and drag behavior.
+]]
+local MOUSE_INTERACTION = {
+    ARROW_REPEAT_DELAY_MS = 400,    -- Initial delay before repeat starts
+    ARROW_REPEAT_INTERVAL_MS = 150, -- Interval between repeated scrolls
+}
+
+-- ============================================================================
+-- INTERNAL HELPER FUNCTIONS - MOUSE INTERACTION
+-- ============================================================================
+
+--[[
+Function: StartArrowRepeat
+Description: Starts repeating scroll in the given direction while arrow is held.
+param: instance (table) - The scroll indicator instance.
+param: direction (number) - -1 for up (MovePrevious), +1 for down (MoveNext).
+]]
+local function StartArrowRepeat(instance, direction)
+    if not instance or not instance.listObject then return end
+
+    -- Store the direction for the repeat handler
+    instance.arrowRepeatDirection = direction
+    instance.arrowRepeatActive = true
+
+    -- Use a unique update name per instance to avoid collisions
+    local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
+
+    -- Initial delay before repeat starts
+    zo_callLater(function()
+        if not instance.arrowRepeatActive then return end
+
+        -- Start the repeat interval
+        EVENT_MANAGER:RegisterForUpdate(updateName, MOUSE_INTERACTION.ARROW_REPEAT_INTERVAL_MS, function()
+            if not instance.arrowRepeatActive or not instance.listObject then
+                EVENT_MANAGER:UnregisterForUpdate(updateName)
+                return
+            end
+
+            if instance.arrowRepeatDirection == -1 then
+                instance.listObject:MovePrevious()
+            elseif instance.arrowRepeatDirection == 1 then
+                instance.listObject:MoveNext()
+            end
+        end)
+    end, MOUSE_INTERACTION.ARROW_REPEAT_DELAY_MS)
+end
+
+--[[
+Function: StopArrowRepeat
+Description: Stops the arrow repeat scrolling.
+param: instance (table) - The scroll indicator instance.
+]]
+local function StopArrowRepeat(instance)
+    if not instance then return end
+
+    instance.arrowRepeatActive = false
+    instance.arrowRepeatDirection = nil
+
+    local updateName = "BetterUI_ScrollIndicatorArrowRepeat_" .. tostring(instance.listControl:GetName())
+    EVENT_MANAGER:UnregisterForUpdate(updateName)
+end
+
+--[[
+Function: SetupArrowMouseHandlers
+Description: Sets up mouse click handlers for the up and down arrows.
+param: instance (table) - The scroll indicator instance.
+]]
+local function SetupArrowMouseHandlers(instance)
+    if not instance or not instance.controls then return end
+
+    local upArrow = instance.controls.upArrow
+    local downArrow = instance.controls.downArrow
+
+    -- Enable mouse interaction on arrows
+    upArrow:SetMouseEnabled(true)
+    downArrow:SetMouseEnabled(true)
+
+    -- Up Arrow handlers
+    upArrow:SetHandler("OnMouseDown", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT and instance.listObject then
+            instance.listObject:MovePrevious()
+            PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+            StartArrowRepeat(instance, -1)
+        end
+    end)
+
+    upArrow:SetHandler("OnMouseUp", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            StopArrowRepeat(instance)
+        end
+    end)
+
+    upArrow:SetHandler("OnMouseExit", function()
+        StopArrowRepeat(instance)
+    end)
+
+    -- Down Arrow handlers
+    downArrow:SetHandler("OnMouseDown", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT and instance.listObject then
+            instance.listObject:MoveNext()
+            PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+            StartArrowRepeat(instance, 1)
+        end
+    end)
+
+    downArrow:SetHandler("OnMouseUp", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            StopArrowRepeat(instance)
+        end
+    end)
+
+    downArrow:SetHandler("OnMouseExit", function()
+        StopArrowRepeat(instance)
+    end)
+end
+
+--[[
+Function: SetupThumbDragHandlers
+Description: Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
+param: instance (table) - The scroll indicator instance.
+]]
+local function SetupThumbDragHandlers(instance)
+    if not instance or not instance.controls then return end
+
+    local thumb = instance.controls.thumb
+    local track = instance.controls.track
+
+    -- Enable mouse interaction on thumb
+    thumb:SetMouseEnabled(true)
+
+    -- Track drag state
+    instance.isDragging = false
+    instance.dragStartY = nil
+
+    thumb:SetHandler("OnMouseDown", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT and instance.listObject then
+            instance.isDragging = true
+            instance.dragStartY = select(2, GetUIMousePosition())
+            instance.dragStartIndex = instance.currentIndex or 1
+        end
+    end)
+
+    thumb:SetHandler("OnMouseUp", function(control, button)
+        if button == MOUSE_BUTTON_INDEX_LEFT then
+            instance.isDragging = false
+            instance.dragStartY = nil
+            instance.dragStartIndex = nil
+        end
+    end)
+
+    -- Also stop dragging if mouse exits the control area
+    thumb:SetHandler("OnMouseExit", function()
+        -- Don't immediately stop - allow dragging outside thumb if still holding
+    end)
+
+    -- Use OnUpdate on the container to track drag position
+    local updateName = "BetterUI_ScrollIndicatorThumbDrag_" .. tostring(instance.listControl:GetName())
+
+    instance.controls.container:SetHandler("OnUpdate", function()
+        if not instance.isDragging or not instance.listObject then return end
+
+        local currentY = select(2, GetUIMousePosition())
+        local trackTop = track:GetTop()
+        local trackHeight = track:GetHeight()
+        local thumbHeight = thumb:GetHeight()
+
+        if trackHeight <= thumbHeight then return end
+
+        -- Calculate position within the track (0-1)
+        local availableSpace = trackHeight - thumbHeight
+        local relativeY = currentY - trackTop - (thumbHeight / 2)
+        local scrollPercent = zo_clamp(relativeY / availableSpace, 0, 1)
+
+        -- Calculate target index based on scroll percent
+        -- Map directly to item index: 0% = item 1, 100% = item totalItems
+        local totalItems = instance.totalItems or 0
+        local visibleItems = instance.visibleItems or 10
+
+        if totalItems <= 1 then return end
+
+        -- Direct mapping: scrollPercent 0 = item 1, scrollPercent 1 = item totalItems
+        local targetIndex = math.floor(1 + (scrollPercent * (totalItems - 1)) + 0.5)
+        targetIndex = zo_clamp(targetIndex, 1, totalItems)
+
+        -- Only update if index changed
+        if targetIndex ~= instance.currentIndex then
+            instance.listObject:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
+        end
+    end)
+
+    -- Global mouse up handler to catch releases outside the thumb
+    local function OnGlobalMouseUp(eventCode, button, ctrl, alt, shift, command)
+        if button == MOUSE_BUTTON_INDEX_LEFT and instance.isDragging then
+            instance.isDragging = false
+            instance.dragStartY = nil
+            instance.dragStartIndex = nil
+        end
+    end
+
+    -- Register for global mouse up to handle release outside thumb
+    EVENT_MANAGER:RegisterForEvent(updateName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
+
+    -- Store for cleanup
+    instance.globalMouseUpHandler = OnGlobalMouseUp
+    instance.globalMouseUpEventName = updateName
+end
 
 -- ============================================================================
 -- HELPER FUNCTIONS
@@ -68,6 +282,11 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
     container:SetWidth(SCROLL_INDICATOR.ARROW.SIZE)
     container:SetHidden(false)
+    -- Set high draw tier to ensure mouse events reach us above list controls
+    container:SetDrawTier(DT_HIGH)
+    container:SetDrawLayer(DL_OVERLAY)
+    container:SetDrawLevel(100) -- Above other content
+    -- Note: Don't add empty mouse handlers here - they would block events from reaching children
 
 
     -- Up Arrow
@@ -75,34 +294,39 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     upArrow:SetTexture("EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds")
     upArrow:SetDimensions(SCROLL_INDICATOR.ARROW.SIZE, SCROLL_INDICATOR.ARROW.SIZE)
     upArrow:SetAnchor(TOP, container, TOP, 0, SCROLL_INDICATOR.ARROW.PADDING)
-    upArrow:SetHidden(false) -- Show for testing
+    upArrow:SetHidden(false)
+    upArrow:SetDrawLevel(101) -- Above container
 
     -- Down Arrow
     local downArrow = WINDOW_MANAGER:CreateControl(controlName .. "DownArrow", container, CT_TEXTURE)
     downArrow:SetTexture("EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds")
     downArrow:SetDimensions(SCROLL_INDICATOR.ARROW.SIZE, SCROLL_INDICATOR.ARROW.SIZE)
     downArrow:SetAnchor(BOTTOM, container, BOTTOM, 0, -SCROLL_INDICATOR.ARROW.PADDING)
-    downArrow:SetHidden(false) -- Show for testing
+    downArrow:SetHidden(false)
+    downArrow:SetDrawLevel(101) -- Above container
 
     -- Track (background) - centered horizontally with arrows
     local track = WINDOW_MANAGER:CreateControl(controlName .. "Track", container, CT_TEXTURE)
     track:SetTexture("EsoUI/Art/Miscellaneous/inset_bg.dds")
     track:SetWidth(SCROLL_INDICATOR.TRACK.WIDTH)
-    -- Use explicit horizontal centering
+    -- Use explicit horizontal centering, zero vertical padding for full travel
     local arrowCenterOffset = (SCROLL_INDICATOR.ARROW.SIZE - SCROLL_INDICATOR.TRACK.WIDTH) / 2
-    track:SetAnchor(TOPLEFT, upArrow, BOTTOMLEFT, arrowCenterOffset, SCROLL_INDICATOR.ARROW.PADDING)
-    track:SetAnchor(BOTTOMRIGHT, downArrow, TOPRIGHT, -arrowCenterOffset, -SCROLL_INDICATOR.ARROW.PADDING)
+    track:SetAnchor(TOPLEFT, upArrow, BOTTOMLEFT, arrowCenterOffset, 0)
+    track:SetAnchor(BOTTOMRIGHT, downArrow, TOPRIGHT, -arrowCenterOffset, 0)
     track:SetColor(
         SCROLL_INDICATOR.TRACK.COLOR.r,
         SCROLL_INDICATOR.TRACK.COLOR.g,
         SCROLL_INDICATOR.TRACK.COLOR.b,
         SCROLL_INDICATOR.TRACK.COLOR.a
     )
-    track:SetHidden(false) -- Show for testing
+    track:SetHidden(false)
+    track:SetDrawLevel(100) -- Background behind thumb
 
-    -- Thumb (position indicator) - solid color without texture file
+    -- Thumb (position indicator)
+    -- IMPORTANT: Must have a texture file for mouse hit detection to work
     local thumb = WINDOW_MANAGER:CreateControl(controlName .. "Thumb", container, CT_TEXTURE)
-    -- Don't set texture file - just use SetColor for solid fill
+    -- Use a solid white texture that can be tinted with SetColor
+    thumb:SetTexture("EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds")
     thumb:SetWidth(SCROLL_INDICATOR.THUMB.WIDTH)
     thumb:SetHeight(SCROLL_INDICATOR.THUMB.MIN_HEIGHT)
     thumb:SetColor(
@@ -113,6 +337,7 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     )
     thumb:SetAnchor(TOP, track, TOP, 0, 0) -- Anchor initially
     thumb:SetHidden(false)
+    thumb:SetDrawLevel(102)                -- Above track, highest priority for mouse
 
 
     return {
@@ -132,19 +357,31 @@ end
 Function: ScrollIndicator.Initialize
 Description: Initializes the scroll indicator for a parametric list.
 Mechanism: Creates the indicator controls and stores an instance reference.
+           Optionally sets up mouse interaction if listObject is provided.
 param: listControl (table) - The parametric list control.
 param: offsetX (number?) - Optional X offset override for positioning.
 param: offsetTopY (number?) - Optional top Y offset for arrow adjustment.
 param: offsetBottomY (number?) - Optional bottom Y offset for arrow adjustment.
+param: listObject (table?) - Optional parametric list object for mouse interaction callbacks.
 return: table - The indicator instance.
 ]]
-function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY)
+function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY, listObject)
     if not listControl then return nil end
 
     local controlName = listControl:GetName()
 
     -- Return existing instance if already initialized
     if indicatorInstances[controlName] then
+        -- Update listObject if provided (allows late binding)
+        if listObject then
+            indicatorInstances[controlName].listObject = listObject
+            -- Setup handlers if not already done
+            if not indicatorInstances[controlName].mouseHandlersSetup then
+                SetupArrowMouseHandlers(indicatorInstances[controlName])
+                SetupThumbDragHandlers(indicatorInstances[controlName])
+                indicatorInstances[controlName].mouseHandlersSetup = true
+            end
+        end
         return indicatorInstances[controlName]
     end
 
@@ -157,9 +394,19 @@ function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBott
         totalItems = 0,
         visibleItems = 0,
         currentIndex = 1,
+        listObject = listObject,
+        mouseHandlersSetup = false,
     }
 
     indicatorInstances[controlName] = instance
+
+    -- Setup mouse interaction if listObject is provided
+    if listObject then
+        SetupArrowMouseHandlers(instance)
+        SetupThumbDragHandlers(instance)
+        instance.mouseHandlersSetup = true
+    end
+
     return instance
 end
 
@@ -193,41 +440,51 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
 
     local controls = instance.controls
 
-    -- Determine if scrolling is possible
-    local canScroll = totalItems > visibleItems
-
-    -- Show/hide based on scrollability
-    controls.track:SetHidden(not canScroll)
-    controls.thumb:SetHidden(not canScroll)
-
-    if not canScroll then
-        controls.upArrow:SetHidden(true)
-        controls.downArrow:SetHidden(true)
-        return
-    end
-
-    -- Calculate scroll position (0-1 range)
-    local maxScrollIndex = totalItems - visibleItems + 1
-    local scrollPosition = (currentIndex - 1) / math.max(1, maxScrollIndex - 1)
-    scrollPosition = zo_clamp(scrollPosition, 0, 1)
-
-    -- Calculate thumb height (proportional to visible items)
-    local trackHeight = controls.track:GetHeight()
-    local thumbHeightRatio = visibleItems / totalItems
-    local thumbHeight = math.max(SCROLL_INDICATOR.THUMB.MIN_HEIGHT, trackHeight * thumbHeightRatio)
-    controls.thumb:SetHeight(thumbHeight)
-
-    -- Calculate thumb position
-    local availableTrackSpace = trackHeight - thumbHeight
-    local thumbOffset = availableTrackSpace * scrollPosition
-
-    -- Position thumb relative to track top
-    controls.thumb:ClearAnchors()
-    controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
-
-    -- Arrows are always visible (no longer hidden based on position)
+    -- Always show arrows, track, and thumb
+    controls.track:SetHidden(false)
+    controls.thumb:SetHidden(false)
     controls.upArrow:SetHidden(false)
     controls.downArrow:SetHidden(false)
+
+    -- Calculate scroll position (0-1 range)
+    -- currentIndex is the selected item (1 to totalItems)
+    -- Map it directly: item 1 = top (0), item totalItems = bottom (1)
+    local scrollPosition = 0
+    if totalItems > 1 then
+        scrollPosition = (currentIndex - 1) / (totalItems - 1)
+    end
+    scrollPosition = zo_clamp(scrollPosition, 0, 1)
+
+    -- Get track dimensions
+    local trackHeight = controls.track:GetHeight()
+
+    -- KEY FIX: Calculate the EFFECTIVE track height based on content
+    -- The track visually matches the list area, but when there are fewer
+    -- items than can fit, we scale the effective height proportionally
+    local effectiveTrackHeight
+    if totalItems >= visibleItems then
+        -- Full scrolling: use entire track
+        effectiveTrackHeight = trackHeight
+    else
+        -- Partial content: scale track proportionally to item count
+        -- This ensures thumb fills the relevant portion of the track
+        effectiveTrackHeight = trackHeight * (totalItems / visibleItems)
+    end
+
+    -- Calculate thumb height (proportional to visible items relative to total)
+    local thumbHeightRatio = visibleItems / math.max(totalItems, 1)
+    local thumbHeight = math.max(SCROLL_INDICATOR.THUMB.MIN_HEIGHT, effectiveTrackHeight * math.min(thumbHeightRatio, 1))
+
+    -- Calculate available travel distance within the effective track
+    local availableTravel = effectiveTrackHeight - thumbHeight
+
+    -- Calculate thumb offset from track top
+    local thumbOffset = availableTravel * scrollPosition
+
+    -- Position thumb using single TOP anchor with SetHeight
+    controls.thumb:ClearAnchors()
+    controls.thumb:SetHeight(thumbHeight)
+    controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
 end
 
 --[[
@@ -295,5 +552,30 @@ function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAn
         container:SetAnchor(BOTTOM, bottomAnchorControl, TOP, 0, bottomOffset or 0)
     else
         container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, SCROLL_INDICATOR.TRACK.OFFSET_X, 0)
+    end
+end
+
+--[[
+Function: ScrollIndicator.SetListObject
+Description: Sets or updates the list object reference for mouse interaction.
+Rationale: Allows late-binding of the list object after initialization.
+param: listControl (table) - The parametric list control.
+param: listObject (table) - The parametric list object.
+]]
+function ScrollIndicator.SetListObject(listControl, listObject)
+    if not listControl then return end
+
+    local controlName = listControl:GetName()
+    local instance = indicatorInstances[controlName]
+
+    if not instance then return end
+
+    instance.listObject = listObject
+
+    -- Setup handlers if not already done
+    if listObject and not instance.mouseHandlersSetup then
+        SetupArrowMouseHandlers(instance)
+        SetupThumbDragHandlers(instance)
+        instance.mouseHandlersSetup = true
     end
 end

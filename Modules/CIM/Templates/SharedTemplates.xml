@@ -178,6 +178,15 @@
                 <Texture name="$(parent)PlayerLockedIcon"
                     inherits="ZO_GamepadMenuEntryPlayerLockedTemplate" />
 
+                <!-- Selection indicator for multi-select mode -->
+                <Texture name="$(parent)SelectionIndicator"
+                    textureFile="EsoUI/Art/Buttons/Gamepad/gp_check.dds"
+                    hidden="true" pixelRoundingEnabled="false" excludeFromResizeToFitExtents="true">
+                    <Dimensions x="32" y="32" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Value" relativePoint="RIGHT"
+                        offsetX="24" />
+                </Texture>
+
                 <!-- 
                     Column Data Labels
                     These offsets are defined in BetterUI.CONST.lua
