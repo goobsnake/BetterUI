@@ -235,19 +235,28 @@ end
 ---
 --- Purpose: Standardizes the initialization of module-specific settings.
 --- Mechanics: Checks if the module has an InitModule function and calls it with provided options.
+---   On failure, disables the module to prevent cascading errors.
 --- References: Called by BETTERUI.Initialize for each registered module (Inventory, Banking, etc.).
 ---
 --- @param m_namespace table The module's namespace table.
 --- @param m_options table The options table for the module.
---- @return table The initialized module namespace.
-function BETTERUI.ModuleOptions(m_namespace, m_options)
+--- @param moduleName string|nil Optional module name for error reporting.
+--- @return table|nil The initialized module namespace, or nil on failure.
+function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	if m_namespace and m_namespace.InitModule then
 		-- Wrap in pcall to prevent one module's error from breaking the entire addon
 		local success, result = pcall(m_namespace.InitModule, m_options)
 		if success then
 			m_options = result
 		else
-			BETTERUI.Debug("[Error] InitModule failed: " .. tostring(result))
+			local name = moduleName or "unknown"
+			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
+			-- Disable the broken module to prevent cascading failures
+			if moduleName and BETTERUI.Settings and BETTERUI.Settings.Modules[moduleName] then
+				BETTERUI.Settings.Modules[moduleName].m_enabled = false
+				BETTERUI.Debug("[Recovery] Auto-disabled module: " .. name)
+			end
+			return nil -- Signal to caller that init failed
 		end
 	end
 	return m_namespace
@@ -397,7 +406,10 @@ function BETTERUI.Initialize(event, addon)
 			if BETTERUI.Settings.Modules[moduleName] == nil then
 				BETTERUI.Settings.Modules[moduleName] = {}
 			end
-			BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName])
+			local result = BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName], moduleName)
+			if not result then
+				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
+			end
 		end
 	end
 
