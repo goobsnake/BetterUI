@@ -125,6 +125,16 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 
 		self:ActivateHeader()
 
+		-- CRITICAL: Explicitly activate the current list to ensure DIRECTIONAL_INPUT is claimed.
+		-- Banking does this explicitly (self.list:Activate()) while Inventory relied on implicit
+		-- activation through SwitchActiveList. The implicit path has conditions that may not fire
+		-- (e.g., if IsHeaderActive() returns true from stale state after reloadui).
+		-- This explicit activation ensures the joystick works properly on initial load.
+		local currentList = self:GetCurrentList()
+		if currentList and currentList.Activate then
+			currentList:Activate()
+		end
+
 		BETTERUI.CIM.Utils.SetExternalToolbarHidden(true)
 
 		ZO_InventorySlot_SetUpdateCallback(function()
