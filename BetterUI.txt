@@ -88,6 +88,8 @@ Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Actions\ActionDialogUtils.lua
 Modules\CIM\Keybinds\GenericKeybinds.lua
 Modules\CIM\Keybinds\ActionContext.lua
+Modules\CIM\Dialogs\DialogRegistry.lua
+Modules\CIM\Lists\ListRefreshManager.lua
 Modules\CIM\Module.lua
 
 ; CIM Enhancements (Migrated)
@@ -151,6 +153,7 @@ Modules\Inventory\Module.lua
 ; Module: Banking
 Modules\Banking\Constants.lua
 Modules\Banking\Core\BankingClass.lua
+Modules\Banking\Core\RefreshIntegration.lua
 Modules\Banking\Lists\BankListManager.lua
 Modules\Banking\Actions\TransferActions.lua
 Modules\Banking\Keybinds\KeybindManager.lua

@@ -32,7 +32,7 @@ Mechanism:
   - Primary button callback calls MoveItem with selected quantity
 ]]
 function BETTERUI.Banking.InitializeQuantityDialog()
-    ZO_Dialogs_RegisterCustomDialog(BETTERUI_BANK_QUANTITY_DIALOG, {
+    BETTERUI.CIM.Dialogs.Register(BETTERUI_BANK_QUANTITY_DIALOG, {
         blockDirectionalInput = true,
         canQueue = true,
 

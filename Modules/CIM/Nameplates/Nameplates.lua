@@ -144,13 +144,14 @@ end
 --- @param enabled boolean Whether to register (true) or unregister (false) events
 local function SetupEvents(enabled)
     if enabled then
-        EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
+        BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
             local settings = GetSettings()
             if settings.m_enabled then
                 ApplyNameplateFont(settings.font, settings.style, settings.size)
             end
         end)
-        EVENT_MANAGER:RegisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
+        BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates_GamepadChange",
+            EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
             function()
                 local settings = GetSettings()
                 if settings.m_enabled then
@@ -158,8 +159,7 @@ local function SetupEvents(enabled)
                 end
             end)
     else
-        EVENT_MANAGER:UnregisterForEvent("BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED)
-        EVENT_MANAGER:UnregisterForEvent("BetterUI_Nameplates_GamepadChange", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED)
+        BETTERUI.CIM.EventRegistry.UnregisterAll("Nameplates")
     end
 end
 

@@ -337,4 +337,5 @@ local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, ite
     end
 end
 
-EVENT_MANAGER:RegisterForEvent("BetterUI_TooltipCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE, OnInventorySlotUpdate)
+BETTERUI.CIM.EventRegistry.Register("Tooltips", "BetterUI_TooltipCache", EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+    OnInventorySlotUpdate)

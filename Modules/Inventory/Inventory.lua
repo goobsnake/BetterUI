@@ -151,6 +151,16 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
 		end
 
+		-- Register SHARED_INVENTORY callbacks for scene lifecycle (prevent memory leaks)
+		-- Callbacks are unregistered in SCENE_HIDDEN and re-registered here on subsequent shows
+		-- Skip on first show (already registered in PerformDeferredInitialize)
+		if self._inventoryUpdateCallback and self._inventoryCallbacksUnregistered then
+			SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+			SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+			SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+			self._inventoryCallbacksUnregistered = false
+		end
+
 		self.currentPreviewBagId = nil
 		self.currentPreviewSlotIndex = nil
 		-- search is handled via hold callbacks on X/Y; no separate A-based keybind group required
@@ -187,6 +197,14 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- Unregister item preview callbacks
 		if ITEM_PREVIEW_GAMEPAD and self.onItemPreviewRefreshActionsCallback then
 			ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", self.onItemPreviewRefreshActionsCallback)
+		end
+
+		-- Unregister SHARED_INVENTORY callbacks to prevent memory leaks
+		if self._inventoryUpdateCallback then
+			SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+			SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+			SHARED_INVENTORY:UnregisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
+			self._inventoryCallbacksUnregistered = true
 		end
 
 		ZO_SavePlayerConsoleProfile()
@@ -407,10 +425,13 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		end
 	end
 
-	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", OnInventoryUpdated)
-	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", OnInventoryUpdated)
-
-	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", OnInventoryUpdated)
+	-- Store callback reference for scene-based registration/unregistration
+	-- Actual registration happens in OnStateChanged SCENE_SHOWING
+	self._inventoryUpdateCallback = OnInventoryUpdated
+	-- Initial registration (will be unregistered on SCENE_HIDDEN and re-registered on SCENE_SHOWING)
+	SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryUpdateCallback)
+	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
+	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
 
 	-- Ensure keybinds (including the Clear Search prompt) are updated once
 	-- deferred initialization finishes. Some UI elements become visible only

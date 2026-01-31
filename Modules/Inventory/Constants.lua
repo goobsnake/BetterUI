@@ -37,6 +37,26 @@ BETTERUI.Inventory.CONST.LIST_TYPES = {
 }
 
 -- Backward compatibility aliases (global constants for existing code)
+-- Register deprecations so external addons get migration guidance
+BETTERUI.CIM.DeprecationRegistry.Register(
+    "INVENTORY_CATEGORY_LIST",
+    "BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY",
+    "v3.1"
+)
+BETTERUI.CIM.DeprecationRegistry.Register(
+    "INVENTORY_ITEM_LIST",
+    "BETTERUI.Inventory.CONST.LIST_TYPES.ITEM",
+    "v3.1"
+)
+BETTERUI.CIM.DeprecationRegistry.Register(
+    "INVENTORY_CRAFT_BAG_LIST",
+    "BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG",
+    "v3.1"
+)
+
+-- Note: We keep the direct assignments (not shims) because these are simple
+-- string constants accessed frequently in hot paths. The deprecation warning
+-- is available via /script BETTERUI.CIM.DeprecationRegistry.GetAll()
 INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
 INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG

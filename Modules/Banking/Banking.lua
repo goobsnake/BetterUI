@@ -770,6 +770,11 @@ function BETTERUI.Banking.Init()
 
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
+    -- Initialize the refresh manager for unified list refresh handling
+    if BETTERUI.Banking.InitializeRefreshManager then
+        BETTERUI.Banking.InitializeRefreshManager()
+    end
+
     -- Initialize the quantity selection dialog (replaces inline spinner)
     BETTERUI.Banking.InitializeQuantityDialog()
 

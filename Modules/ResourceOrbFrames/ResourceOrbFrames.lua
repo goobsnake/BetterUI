@@ -278,11 +278,11 @@ local function SetupModule(control)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
         EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
-        if frontBarCfg and frontBarCfg.m_enabled then
-            SkillBar.UpdateFrontBarCompanion(control)
-        end
-        ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
-    end)
+            if frontBarCfg and frontBarCfg.m_enabled then
+                SkillBar.UpdateFrontBarCompanion(control)
+            end
+            ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
+        end)
 
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
         function()
@@ -317,7 +317,7 @@ function ResourceOrbFrames.Initialize(control)
 
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
-    EVENT_MANAGER:RegisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
         ROFTasks:Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
