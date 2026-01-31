@@ -536,6 +536,31 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
 
+    -- CRITICAL: Exit header sort mode if active BEFORE any other cleanup
+    -- Header sort mode deactivates the list and swaps keybinds - must exit cleanly
+    if self.isInHeaderSortMode then
+        if self.ExitHeaderSortMode then
+            self:ExitHeaderSortMode()
+        else
+            self.isInHeaderSortMode = false
+            if self.headerSortController and self.headerSortController.ExitHeaderMode then
+                self.headerSortController:ExitHeaderMode()
+            end
+        end
+    end
+
+    -- CRITICAL: Exit selection mode if active
+    if self.isInSelectionMode then
+        if self.ExitSelectionMode then
+            self:ExitSelectionMode()
+        else
+            self.isInSelectionMode = false
+            if self.multiSelectManager and self.multiSelectManager.ExitSelectionMode then
+                self.multiSelectManager:ExitSelectionMode()
+            end
+        end
+    end
+
     -- IMPORTANT: Cleanup search focus BEFORE deactivating the list
     -- This ensures the search header releases DIRECTIONAL_INPUT properly
     self._searchModeActive = false

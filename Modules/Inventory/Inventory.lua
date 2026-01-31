@@ -159,6 +159,31 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- Save the current list position so it can be restored when the scene is shown again
 		self:SaveListPosition()
 	elseif newState == SCENE_HIDDEN then
+		-- CRITICAL: Exit header sort mode if active BEFORE any other cleanup
+		-- Header sort mode deactivates the list and swaps keybinds - must exit cleanly
+		if self.isInHeaderSortMode then
+			if self.ExitHeaderSortMode then
+				self:ExitHeaderSortMode()
+			else
+				self.isInHeaderSortMode = false
+				if self.headerSortController and self.headerSortController.ExitHeaderMode then
+					self.headerSortController:ExitHeaderMode()
+				end
+			end
+		end
+
+		-- CRITICAL: Exit selection mode if active
+		if self.isInSelectionMode then
+			if self.ExitSelectionMode then
+				self:ExitSelectionMode()
+			else
+				self.isInSelectionMode = false
+				if self.multiSelectManager and self.multiSelectManager.ExitSelectionMode then
+					self.multiSelectManager:ExitSelectionMode()
+				end
+			end
+		end
+
 		self:SwitchActiveList(nil)
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
 
