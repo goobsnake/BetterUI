@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-01-28
+> **Last Updated**: 2026-01-31
 
 ---
 
@@ -34,9 +34,9 @@
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Common Interface Module (CIM)  [Modules/CIM/]                          │
 │  ├── Constants.lua + Module.lua (Root - minimal entry points)           │
-│  ├── Core/       (25 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
+│  ├── Core/       (39 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
 │  ├── UI/         (GenericHeader, GenericFooter)                         │
-│  ├── Lists/      (9 files: BatchProcessor, GenericListManager, etc.)    │
+│  ├── Lists/      (10 files: BatchProcessor, GenericListManager, etc.)   │
 │  ├── Tooltips/   (Enhanced item tooltip rendering)                      │
 │  ├── Nameplates/ (Font customization)                                   │
 │  ├── Actions/    (GenericSlotActions, ActionDialogUtils)                │
@@ -84,7 +84,7 @@ All other files are organized into subfolders by responsibility:
 CIM/
 ├── Constants.lua          # CIM-specific constants (TIMING, MODULES, SCREEN)
 ├── Module.lua             # Entry point
-├── Core/                  # 25 files (see Core Reference below)
+├── Core/                  # 39 files (see Core Reference below)
 │   ├── FeatureFlags.lua   # Runtime feature flag system
 │   ├── ControlCache.lua   # Cached control references
 │   ├── Interfaces.lua     # EmmyLua interface contracts
@@ -229,7 +229,7 @@ BETTERUI = {
 
 | Module | Root Files | Key Subfolders | Dependencies | Purpose |
 |--------|------------|----------------|--------------|---------|
-| **CIM** | Constants, Module | Core (25), UI, Lists (9), Tooltips, Actions | None | Shared UI, runtime patches, tooltips, feature flags |
+| **CIM** | Constants, Module | Core (39), UI (10), Lists (10), Tooltips, Actions | None | Shared UI, runtime patches, tooltips, feature flags |
 | **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions (6), State, Settings | CIM | Enhanced inventory with categories |
 | **Banking** | Constants, Module, Banking | Core, UI, Lists, Actions, State, Settings, Search | CIM | Bank/House Bank interface |
 | **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | CIM | Custom resource orbs + skill bar |
