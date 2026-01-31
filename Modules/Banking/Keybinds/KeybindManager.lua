@@ -98,6 +98,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         },
 
         -- Quaternary for Clear Search (CIM Factory)
+        -- Only visible when search has text
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
             function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
@@ -116,6 +117,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
             function()
                 return self.textSearchHeaderControl ~= nil and not self.textSearchHeaderControl:IsHidden()
+            end,
+            function()
+                -- Only show Clear Search when there is actually text to clear
+                return self.searchQuery and self.searchQuery ~= ""
             end
         ),
         {

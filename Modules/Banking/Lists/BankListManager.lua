@@ -93,7 +93,11 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     local allCategories = BuildAllBankCategories(isFurnitureVault)
     -- Always include 'all' explicitly so currency rows can appear even if no items
     local visibility = {}
-    for _, c in ipairs(allCategories) do visibility[c.key] = false end
+    local itemCounts = {} -- Track item count per category for badge display
+    for _, c in ipairs(allCategories) do
+        visibility[c.key] = false
+        itemCounts[c.key] = 0
+    end
     visibility["all"] = true
 
     -- Determine which bags to scan based on mode
@@ -116,28 +120,29 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
         return not itemData.stolen
     end
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
-    -- Mark visibility by scanning once (with early exit optimization)
-    local numCategories = #allCategories
-    local numVisibleNonAll = 0
-    local targetVisibleCount = numCategories - 1 -- Exclude 'all' which is always visible
+
+    -- Count items per category (full scan for accurate counts)
+    local totalItems = 0
     for i = 1, #data do
-        -- Early exit: if all non-all categories are visible, stop scanning
-        if numVisibleNonAll >= targetVisibleCount then break end
         local itemData = data[i]
+        totalItems = totalItems + 1
         for _, cat in ipairs(allCategories) do
-            if cat.key ~= "all" and not visibility[cat.key] then
+            if cat.key ~= "all" then
                 if DoesItemMatchBankCategory(itemData, cat) then
                     visibility[cat.key] = true
-                    numVisibleNonAll = numVisibleNonAll + 1
+                    itemCounts[cat.key] = itemCounts[cat.key] + 1
                 end
             end
         end
     end
+    -- "All" category shows total item count
+    itemCounts["all"] = totalItems
 
     -- Build the final ordered list with only visible categories
     local out = {}
     for _, cat in ipairs(allCategories) do
         if visibility[cat.key] then
+            cat.itemCount = itemCounts[cat.key] -- Attach count for header display
             out[#out + 1] = cat
         end
     end

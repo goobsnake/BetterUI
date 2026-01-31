@@ -117,6 +117,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         local cat = self.bankCategories[i]
         local entryData = ZO_GamepadEntryData:New(cat.name, cat.iconFile)
         entryData.filterType = cat.filterType -- influences icon tint like inventory
+        entryData.itemCount = cat.itemCount   -- For category badge display
         entryData:SetIconTintOnSelection(true)
         BETTERUI.GenericHeader.AddToList(self.headerGeneric, entryData)
     end

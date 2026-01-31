@@ -144,6 +144,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 
     if toBagEmptyIndex ~= nil then
         --good to move
+        -- Register item for flash animation when it appears in the destination list
+        if selectedData.uniqueId and BETTERUI.CIM.UI.ItemFlashAnimation then
+            BETTERUI.CIM.UI.ItemFlashAnimation.RegisterMovedItem(selectedData.uniqueId)
+        end
         CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
         beginCoalescedRefresh(100)
         if inSpinner then
@@ -158,6 +162,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, fromBagItemLink)
             if toBagIndex then
                 --good to move item that already has a non-full stack in the destination bag
+                -- Register item for flash animation
+                if selectedData.uniqueId and BETTERUI.CIM.UI.ItemFlashAnimation then
+                    BETTERUI.CIM.UI.ItemFlashAnimation.RegisterMovedItem(selectedData.uniqueId)
+                end
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
                 beginCoalescedRefresh(100)
                 if inSpinner then
@@ -180,6 +188,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 end
             end
             if toBagIndex and toBag then
+                -- Register item for flash animation
+                if selectedData.uniqueId and BETTERUI.CIM.UI.ItemFlashAnimation then
+                    BETTERUI.CIM.UI.ItemFlashAnimation.RegisterMovedItem(selectedData.uniqueId)
+                end
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
                 beginCoalescedRefresh(100)
                 if inSpinner then
