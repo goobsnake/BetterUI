@@ -169,47 +169,12 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- Save the current list position so it can be restored when the scene is shown again
 		self:SaveListPosition()
 	elseif newState == SCENE_HIDDEN then
-		-- CRITICAL: Exit header sort mode if active BEFORE any other cleanup
-		-- Header sort mode deactivates the list and swaps keybinds - must exit cleanly
-		if self.isInHeaderSortMode then
-			if self.ExitHeaderSortMode then
-				self:ExitHeaderSortMode()
-			else
-				self.isInHeaderSortMode = false
-				if self.headerSortController and self.headerSortController.ExitHeaderMode then
-					self.headerSortController:ExitHeaderMode()
-				end
-			end
-		end
+		-- Use shared CIM cleanup for input state (header sort, selection mode, search focus, tab bar)
+		BETTERUI.CIM.SceneCleanup.CleanupInputState(self)
 
-		-- CRITICAL: Exit selection mode if active
-		if self.isInSelectionMode then
-			if self.ExitSelectionMode then
-				self:ExitSelectionMode()
-			else
-				self.isInSelectionMode = false
-				if self.multiSelectManager and self.multiSelectManager.ExitSelectionMode then
-					self.multiSelectManager:ExitSelectionMode()
-				end
-			end
-		end
-
-		-- Cleanup search focus to ensure DIRECTIONAL_INPUT is released
-		self._searchModeActive = false
-		self._searchHeaderActive = false
-		if self.textSearchHeaderFocus then
-			if self.textSearchHeaderFocus.Deactivate then
-				self.textSearchHeaderFocus:Deactivate()
-			end
-			if self.textSearchHeaderFocus.SetFocused then
-				self.textSearchHeaderFocus:SetFocused(false)
-			end
-		end
-
-		-- Deactivate the header tab bar to release DIRECTIONAL_INPUT
-		if self.header and self.header.tabBar and self.header.tabBar.Deactivate then
-			self.header.tabBar:Deactivate()
-		end
+		-- Deactivate all lists to release DIRECTIONAL_INPUT
+		-- Note: Inventory has multiple lists (itemList, craftBagList, categoryList)
+		BETTERUI.CIM.SceneCleanup.DeactivateLists(self, self.itemList, self.craftBagList, self.categoryList)
 
 		self:SwitchActiveList(nil)
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
@@ -232,32 +197,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
 			self.callLaterLeftToolTip = nil
 		end
-		-- Clear persistent search when leaving the inventory scene so it does
-		-- not persist when the player backs out and later re-enters the scene.
-		-- Use centralized helper to clear persistent search state when leaving scene
-		if self.ClearTextSearch then
-			self:ClearTextSearch()
-		end
 
-		-- IMPORTANT: Ensure we exit any active search mode so keybinds/focus are restored
-		-- This matches Banking's cleanup pattern
-		if self.LeaveSearchMode then
-			self:LeaveSearchMode()
-		end
-
-		-- Remove search keybind group if present (matches Banking cleanup)
-		if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-			KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-		end
-
-		-- Clear search text to prevent stale state on re-entry
-		self.searchQuery = ""
-		if self.textSearchHeaderFocus and self.textSearchHeaderFocus.GetEditBox then
-			local editBox = self.textSearchHeaderFocus:GetEditBox()
-			if editBox then
-				editBox:SetText("")
-			end
-		end
+		-- Clear search state using shared helper
+		BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
 
 		-- Save the current list position so it can be restored when the scene is shown again
 		self:SaveListPosition()

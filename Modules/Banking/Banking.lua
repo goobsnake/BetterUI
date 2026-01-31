@@ -530,63 +530,18 @@ end
 --[[
 Function: BETTERUI.Banking.Class:OnSceneHidden
 Description: Scene hidden handler called by SceneLifecycleManager.
-Rationale: Migrated from OnEffectivelyHidden to use unified scene lifecycle.
+Rationale: Uses shared CIM.SceneCleanup helpers for consistent cleanup.
 ]]
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
 
-    -- CRITICAL: Exit header sort mode if active BEFORE any other cleanup
-    -- Header sort mode deactivates the list and swaps keybinds - must exit cleanly
-    if self.isInHeaderSortMode then
-        if self.ExitHeaderSortMode then
-            self:ExitHeaderSortMode()
-        else
-            self.isInHeaderSortMode = false
-            if self.headerSortController and self.headerSortController.ExitHeaderMode then
-                self.headerSortController:ExitHeaderMode()
-            end
-        end
-    end
+    -- Use shared CIM cleanup for input state (header sort, selection mode, search focus, tab bar)
+    BETTERUI.CIM.SceneCleanup.CleanupInputState(self)
 
-    -- CRITICAL: Exit selection mode if active
-    if self.isInSelectionMode then
-        if self.ExitSelectionMode then
-            self:ExitSelectionMode()
-        else
-            self.isInSelectionMode = false
-            if self.multiSelectManager and self.multiSelectManager.ExitSelectionMode then
-                self.multiSelectManager:ExitSelectionMode()
-            end
-        end
-    end
-
-    -- IMPORTANT: Cleanup search focus BEFORE deactivating the list
-    -- This ensures the search header releases DIRECTIONAL_INPUT properly
-    self._searchModeActive = false
-    if self.textSearchHeaderFocus then
-        -- Deactivate the focus handler regardless of whether search mode was "active"
-        -- This ensures DIRECTIONAL_INPUT is released
-        if self.textSearchHeaderFocus.Deactivate then
-            self.textSearchHeaderFocus:Deactivate()
-        end
-        -- Also clear any lingering focus state
-        if self.textSearchHeaderFocus.SetFocused then
-            self.textSearchHeaderFocus:SetFocused(false)
-        end
-    end
-
-    -- Now deactivate the list - this unregisters from DIRECTIONAL_INPUT
-    self.list:Deactivate()
-    self.selector:Deactivate()
+    -- Deactivate lists to release DIRECTIONAL_INPUT
+    BETTERUI.CIM.SceneCleanup.DeactivateLists(self)
     self.confirmationMode = false
-
-    -- Release focus from header tab bar and clear any update suppression flags
-    if self.headerGeneric and self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:Deactivate()
-    end
-    self._suppressListUpdates = false
-    self._suppressListUpdatesToken = nil
 
     KEYBIND_STRIP:RemoveAllKeyButtonGroups()
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -603,25 +558,8 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         self._inventorySingleSlotCallback = nil
     end
 
-    -- Ensure we exit any active search mode so keybinds/focus are restored
-    -- (LeaveSearchMode has early return if _searchModeActive is false, but we cleared it above)
-    if self.LeaveSearchMode then
-        self:LeaveSearchMode()
-    end
-
-    -- Check KEYBIND_STRIP groups
-    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-    end
-
-    -- Clear the _searchHeaderActive flag from the SearchMixin as well
-    self._searchHeaderActive = false
-
-    -- Clear search text when exiting the banking scene
-    self.searchQuery = ""
-    if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
-        self.textSearchHeaderFocus:GetEditBox():SetText("")
-    end
+    -- Clear search state using shared helper
+    BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
 
     -- Reset category positions when leaving the bank so next visit starts fresh
     self.lastPositionsByCategory = {}
