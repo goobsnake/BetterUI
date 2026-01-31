@@ -190,16 +190,22 @@ function BETTERUI.Inventory.Class:Initialize(control)
 
             editBox:SetHandler("OnFocusGained", function(eb)
                 if origOnFocusGained then origOnFocusGained(eb) end
+                -- Guard: Only process if inventory scene is actually showing
+                if not (self.scene and self.scene:IsShowing()) then return end
                 if not self:IsHeaderActive() then self:RequestEnterHeader() end
             end)
 
             editBox:SetHandler("OnFocusLost", function(eb)
                 if origOnFocusLost then origOnFocusLost(eb) end
+                -- Guard: Only process if inventory scene is actually showing
+                if not (self.scene and self.scene:IsShowing()) then return end
                 self:ExitSearchFocus()
             end)
 
             editBox:SetHandler("OnTextChanged", function(eb)
                 if origOnTextChanged then origOnTextChanged(eb) end
+                -- Guard: Only process if inventory scene is actually showing
+                if not (self.scene and self.scene:IsShowing()) then return end
 
                 local txt = ""
                 local t = eb:GetText()
@@ -224,6 +230,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
                     local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
                     if handled then return handled end
                 end
+                -- Guard: Only process if inventory scene is actually showing
+                if not (self.scene and self.scene:IsShowing()) then return end
 
                 if command == "UI_SHORTCUT_DOWN" then
                     self:ExitSearchFocus()

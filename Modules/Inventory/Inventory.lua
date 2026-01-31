@@ -184,6 +184,23 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			end
 		end
 
+		-- Cleanup search focus to ensure DIRECTIONAL_INPUT is released
+		self._searchModeActive = false
+		self._searchHeaderActive = false
+		if self.textSearchHeaderFocus then
+			if self.textSearchHeaderFocus.Deactivate then
+				self.textSearchHeaderFocus:Deactivate()
+			end
+			if self.textSearchHeaderFocus.SetFocused then
+				self.textSearchHeaderFocus:SetFocused(false)
+			end
+		end
+
+		-- Deactivate the header tab bar to release DIRECTIONAL_INPUT
+		if self.header and self.header.tabBar and self.header.tabBar.Deactivate then
+			self.header.tabBar:Deactivate()
+		end
+
 		self:SwitchActiveList(nil)
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
 
