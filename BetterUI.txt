@@ -35,6 +35,7 @@ Modules\CIM\Core\ControlUtils.lua
 Modules\CIM\Core\ControlCache.lua
 Modules\CIM\Core\Interfaces.lua
 Modules\CIM\Core\FeatureFlags.lua
+Modules\CIM\Core\DeveloperDebug.lua
 Modules\CIM\Core\PerformanceProfiler.lua
 Modules\CIM\Core\SettingsAccessor.lua
 Modules\CIM\Core\RuntimeSetup.lua
