@@ -113,3 +113,217 @@ function BETTERUI.Banking.Class:RefreshFooter()
         end
     end
 end
+
+--------------------------------------------------------------------------------
+-- HEADER SORT MODE
+--------------------------------------------------------------------------------
+
+-- Column definitions for header sort navigation (matches Inventory)
+-- Each column has a name (for display), key (internal), and sort key for item data
+local BANKING_SORT_COLUMNS = {
+    { name = "NAME",  key = "name",  sortKey = "name" },
+    { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
+    { name = "TRAIT", key = "trait", sortKey = "traitType" },
+    { name = "STAT",  key = "stat",  sortKey = "statValue" },
+    { name = "VALUE", key = "value", sortKey = "stackSellPrice" },
+}
+
+--- Creates sort comparator for a column with the specified direction
+--- @param sortKey string The key to sort by
+--- @param ascending boolean True for ascending, false for descending
+local function CreateColumnSortComparator(sortKey, ascending)
+    return function(left, right)
+        local leftVal = left[sortKey]
+        local rightVal = right[sortKey]
+
+        -- Handle nil values
+        if leftVal == nil and rightVal == nil then return false end
+        if leftVal == nil then return not ascending end
+        if rightVal == nil then return ascending end
+
+        -- String comparison for text columns
+        if type(leftVal) == "string" and type(rightVal) == "string" then
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+
+        -- Numeric comparison
+        if ascending then
+            return leftVal < rightVal
+        else
+            return leftVal > rightVal
+        end
+    end
+end
+
+--- Initializes the header sort controller for this banking instance
+function BETTERUI.Banking.Class:InitializeHeaderSortController()
+    if self.headerSortController then return end
+
+    local controllerClass = BETTERUI.CIM.UI.HeaderSortController
+    if not controllerClass then return end
+
+    -- Create controller with column definitions and sort callback
+    self.headerSortController = controllerClass:New(
+        self.list,
+        BANKING_SORT_COLUMNS,
+        function(columnKey, direction, sortFn)
+            self:OnHeaderSortChanged(columnKey, direction)
+        end
+    )
+
+    -- Initialize horizontal movement controller for L/R navigation
+    self.horizontalMovementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
+
+    -- Apply CIM mixin to inject EnterHeaderSortMode and ExitHeaderSortMode methods
+    local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
+    if HeaderSortIntegration and HeaderSortIntegration.ApplyMixin then
+        HeaderSortIntegration.ApplyMixin(self, {
+            list = self.list,
+            keybindDescriptor = self.coreKeybinds,
+            headerControllerFn = function() return self.headerSortController end,
+            initControllerFn = function() self:InitializeHeaderSortController() end,
+        })
+    end
+end
+
+--- Called when sort direction changes on a column
+--- @param columnKey string The column key that changed
+--- @param direction number Sort direction constant
+function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
+    local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
+
+    -- Find the column definition
+    local column = nil
+    for _, col in ipairs(BANKING_SORT_COLUMNS) do
+        if col.key == columnKey then
+            column = col
+            break
+        end
+    end
+
+    if not column then return end
+
+    -- Update the list sort function
+    if direction == SORT_DIRECTION.NONE then
+        -- Reset to default sort (use Inventory default for consistency)
+        self.list:SetSortFunction(BETTERUI.Banking.DefaultSortComparator or BETTERUI_Inventory_DefaultItemSortComparator)
+    else
+        local ascending = (direction == SORT_DIRECTION.ASCENDING)
+        self.list:SetSortFunction(CreateColumnSortComparator(column.sortKey, ascending))
+    end
+
+    -- Refresh the list to apply new sort
+    self:RefreshList()
+end
+
+--- Enters header sort navigation mode.
+--- Called when user presses D-pad Up at the first item in the list.
+-- NOTE: EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
+-- See InitializeHeaderSortController where ApplyMixin is called.
+
+
+--------------------------------------------------------------------------------
+-- MULTI-SELECT MODE (Mirrors Inventory implementation)
+--------------------------------------------------------------------------------
+
+--- Initializes the multi-select manager.
+function BETTERUI.Banking.Class:InitializeMultiSelectManager()
+    if self.multiSelectManager then return end
+
+    self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
+        self.list,
+        function(selectedCount)
+            self:OnSelectionCountChanged(selectedCount)
+        end
+    )
+end
+
+--- Enters multi-selection mode.
+function BETTERUI.Banking.Class:EnterSelectionMode()
+    if self.isInSelectionMode then return end
+
+    -- Initialize manager if needed
+    self:InitializeMultiSelectManager()
+    if not self.multiSelectManager then return end
+
+    self.isInSelectionMode = true
+    self.multiSelectManager:EnterSelectionMode()
+
+    -- Select the current item automatically
+    local target = self.list and self.list.selectedData
+    if target then
+        self.multiSelectManager:ToggleSelection(target)
+    end
+
+    -- Update keybinds for selection mode
+    if self.RefreshKeybinds then
+        self:RefreshKeybinds()
+    end
+
+    -- Refresh list to show selection visuals
+    if self.RefreshList then
+        self:RefreshList()
+    end
+end
+
+--- Exits multi-selection mode.
+function BETTERUI.Banking.Class:ExitSelectionMode()
+    if not self.isInSelectionMode then return end
+
+    self.isInSelectionMode = false
+    if self.multiSelectManager then
+        self.multiSelectManager:ExitSelectionMode()
+    end
+
+    -- Update keybinds to normal mode
+    if self.RefreshKeybinds then
+        self:RefreshKeybinds()
+    end
+
+    -- Refresh list to remove selection visuals
+    if self.RefreshList then
+        self:RefreshList()
+    end
+end
+
+--- Called when the selection count changes.
+--- @param selectedCount number The number of currently selected items
+function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
+    if self.isInSelectionMode and selectedCount > 0 then
+        self.selectedCount = selectedCount
+    else
+        self.selectedCount = 0
+    end
+
+    -- Refresh keybinds to update Y-button batch actions visibility
+    if self.RefreshKeybinds then
+        self:RefreshKeybinds()
+    end
+end
+
+--- Gets whether selection mode is currently active.
+--- @return boolean isActive
+function BETTERUI.Banking.Class:IsInSelectionMode()
+    return self.isInSelectionMode or false
+end
+
+--- Performs batch withdraw on all selected items.
+function BETTERUI.Banking.Class:BatchWithdraw()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            -- Request transfer to backpack
+            CallSecureProtected("RequestMoveItem", itemData.bagId, itemData.slotIndex, BAG_BACKPACK, nil,
+                itemData.stackCount or 1)
+        end
+    end
+
+    -- Exit selection mode after batch action
+    self:ExitSelectionMode()
+end

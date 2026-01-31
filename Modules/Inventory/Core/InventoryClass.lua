@@ -380,3 +380,341 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
     end
     self.textSearchHeaderControl:SetHidden(false)
 end
+
+--------------------------------------------------------------------------------
+-- HEADER SORT MODE
+--------------------------------------------------------------------------------
+
+-- Column definitions for header sort navigation
+-- Each column has a name (for display), key (internal), and sort function
+local INVENTORY_SORT_COLUMNS = {
+    { name = "NAME",  key = "name",  sortKey = "name" },
+    { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
+    { name = "TRAIT", key = "trait", sortKey = "traitType" },
+    { name = "STAT",  key = "stat",  sortKey = "statValue" },
+    { name = "VALUE", key = "value", sortKey = "stackSellPrice" },
+}
+
+--- Creates sort comparator for a column with the specified direction
+--- @param sortKey string The key to sort by
+--- @param ascending boolean True for ascending, false for descending
+local function CreateColumnSortComparator(sortKey, ascending)
+    return function(left, right)
+        local leftVal = left[sortKey]
+        local rightVal = right[sortKey]
+
+        -- Handle nil values
+        if leftVal == nil and rightVal == nil then return false end
+        if leftVal == nil then return not ascending end
+        if rightVal == nil then return ascending end
+
+        -- String comparison for text columns
+        if type(leftVal) == "string" and type(rightVal) == "string" then
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+
+        -- Numeric comparison
+        if ascending then
+            return leftVal < rightVal
+        else
+            return leftVal > rightVal
+        end
+    end
+end
+
+--- Initializes the header sort controller for this inventory instance
+function BETTERUI.Inventory.Class:InitializeHeaderSortController()
+    if self.headerSortController then return end
+
+    local controllerClass = BETTERUI.CIM.UI.HeaderSortController
+    if not controllerClass then return end
+
+    -- Create controller with column definitions and sort callback
+    self.headerSortController = controllerClass:New(
+        self.itemList,
+        INVENTORY_SORT_COLUMNS,
+        function(columnKey, direction, sortFn)
+            self:OnHeaderSortChanged(columnKey, direction)
+        end
+    )
+
+    -- Initialize horizontal movement controller for L/R navigation
+    self.horizontalMovementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
+
+    -- Apply CIM mixin to inject EnterHeaderSortMode and ExitHeaderSortMode methods
+    local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
+    if HeaderSortIntegration and HeaderSortIntegration.ApplyMixin then
+        HeaderSortIntegration.ApplyMixin(self, {
+            list = self.itemList,
+            keybindDescriptor = self.mainKeybindStripDescriptor,
+            headerControllerFn = function() return self.headerSortController end,
+            initControllerFn = function() self:InitializeHeaderSortController() end,
+        })
+    end
+end
+
+--- Called when sort direction changes on a column
+--- @param columnKey string The column key that changed
+--- @param direction number Sort direction constant
+function BETTERUI.Inventory.Class:OnHeaderSortChanged(columnKey, direction)
+    local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
+
+    -- Find the column definition
+    local column = nil
+    for _, col in ipairs(INVENTORY_SORT_COLUMNS) do
+        if col.key == columnKey then
+            column = col
+            break
+        end
+    end
+
+    if not column then return end
+
+    -- Update the list sort function
+    if direction == SORT_DIRECTION.NONE then
+        -- Reset to default sort
+        self.itemList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
+    else
+        local ascending = (direction == SORT_DIRECTION.ASCENDING)
+        self.itemList:SetSortFunction(CreateColumnSortComparator(column.sortKey, ascending))
+    end
+
+    -- Refresh the list to apply new sort
+    self:RefreshItemList()
+end
+
+--- Enters header sort navigation mode.
+--- Called when user presses D-pad Up at the first item in the list.
+--- Deactivates the item list and switches input to header column navigation.
+-- NOTE: EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
+-- See InitializeHeaderSortController where ApplyMixin is called.
+
+
+--------------------------------------------------------------------------------
+-- MULTI-SELECT MODE
+--------------------------------------------------------------------------------
+
+--- Enters multi-selection mode.
+--- Called when user holds the A button for 0.5s.
+function BETTERUI.Inventory.Class:EnterSelectionMode()
+    if self.isInSelectionMode then return end
+    if not self.multiSelectManager then return end
+
+    self.isInSelectionMode = true
+    self.multiSelectManager:EnterSelectionMode()
+
+    -- Select the current item automatically
+    local target = self.itemList.selectedData
+    if target then
+        self.multiSelectManager:ToggleSelection(target)
+    end
+
+    -- Update keybinds for selection mode
+    self:RefreshKeybinds()
+
+    -- Refresh list to show selection visuals
+    self:RefreshItemList()
+end
+
+--- Exits multi-selection mode.
+--- Called when user presses B or completes a batch action.
+function BETTERUI.Inventory.Class:ExitSelectionMode()
+    if not self.isInSelectionMode then return end
+
+    self.isInSelectionMode = false
+    if self.multiSelectManager then
+        self.multiSelectManager:ExitSelectionMode()
+    end
+
+    -- Update keybinds to normal mode
+    self:RefreshKeybinds()
+
+    -- Refresh list to remove selection visuals
+    self:RefreshItemList()
+end
+
+--- Called when the selection count changes.
+--- Used to update the title bar or any selection count display.
+--- @param selectedCount number The number of currently selected items
+function BETTERUI.Inventory.Class:OnSelectionCountChanged(selectedCount)
+    -- Update title to show selection count if in selection mode
+    if self.isInSelectionMode and selectedCount > 0 then
+        local countText = zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), selectedCount)
+        -- Could update header title here if needed
+        self.selectedCount = selectedCount
+    else
+        self.selectedCount = 0
+    end
+
+    -- Refresh keybinds to update Y-button batch actions visibility
+    self:RefreshKeybinds()
+end
+
+--- Gets whether selection mode is currently active.
+--- @return boolean isActive
+function BETTERUI.Inventory.Class:IsInSelectionMode()
+    return self.isInSelectionMode or false
+end
+
+--- Shows the batch actions menu for multi-selected items.
+--- Displays context-appropriate batch operations.
+function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
+    if not self.multiSelectManager or not self.multiSelectManager:IsActive() then
+        return
+    end
+
+    local selectedItems = self.multiSelectManager:GetSelectedItems()
+    local selectedCount = #selectedItems
+
+    if selectedCount == 0 then
+        return
+    end
+
+    -- Build batch actions dialog
+    local dialogName = "BETTERUI_BATCH_ACTIONS_DIALOG"
+
+    -- Create dialog if it doesn't exist
+    if not ESO_Dialogs[dialogName] then
+        ESO_Dialogs[dialogName] = {
+            gamepadInfo = {
+                dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+            },
+            title = {
+                text = function()
+                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), selectedCount)
+                end,
+            },
+            setup = function(dialog)
+                dialog:setupFunc()
+            end,
+            parametricList = {},
+            buttons = {
+                {
+                    keybind = "DIALOG_PRIMARY",
+                    text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                    callback = function(dialog)
+                        local selected = dialog.entryList and
+                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+                        if selected and selected.callback then
+                            selected.callback()
+                        end
+                    end,
+                },
+                {
+                    keybind = "DIALOG_NEGATIVE",
+                    text = GetString(SI_GAMEPAD_BACK_OPTION),
+                },
+            },
+        }
+    end
+
+    -- Build the parametric list with batch actions
+    local parametricList = {}
+
+    -- Check if we're in inventory with bank access
+    local isBankingAvailable = BETTERUI.CIM.Utils.IsBankingSceneShowing and BETTERUI.CIM.Utils.IsBankingSceneShowing()
+
+    if isBankingAvailable then
+        -- Add Deposit Selected
+        local depositEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_DEPOSIT_SELECTED))
+        depositEntry:SetIconTintOnSelection(true)
+        depositEntry.setup = ZO_SharedGamepadEntry_OnSetup
+        depositEntry.callback = function()
+            self:BatchDeposit()
+        end
+        table.insert(parametricList, {
+            template = "ZO_GamepadItemEntryTemplate",
+            entryData = depositEntry,
+        })
+    end
+
+    -- Add Lock/Unlock Selected
+    local lockEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_LOCK_SELECTED))
+    lockEntry:SetIconTintOnSelection(true)
+    lockEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    lockEntry.callback = function()
+        self:BatchLock()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = lockEntry,
+    })
+
+    local unlockEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_UNLOCK_SELECTED))
+    unlockEntry:SetIconTintOnSelection(true)
+    unlockEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    unlockEntry.callback = function()
+        self:BatchUnlock()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = unlockEntry,
+    })
+
+    -- Add Deselect All
+    local deselectEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_DESELECT_ALL))
+    deselectEntry:SetIconTintOnSelection(true)
+    deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    deselectEntry.callback = function()
+        self:ExitSelectionMode()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = deselectEntry,
+    })
+
+    ESO_Dialogs[dialogName].parametricList = parametricList
+
+    ZO_Dialogs_ShowGamepadDialog(dialogName)
+end
+
+--- Performs batch deposit on all selected items.
+function BETTERUI.Inventory.Class:BatchDeposit()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            -- Request bank transfer
+            CallSecureProtected("RequestMoveItem", itemData.bagId, itemData.slotIndex, BAG_BANK, nil,
+                itemData.stackCount or 1)
+        end
+    end
+
+    -- Exit selection mode after batch action
+    self:ExitSelectionMode()
+end
+
+--- Performs batch lock on all selected items.
+function BETTERUI.Inventory.Class:BatchLock()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            SetItemIsPlayerLocked(itemData.bagId, itemData.slotIndex, true)
+        end
+    end
+
+    self:ExitSelectionMode()
+    self:RefreshItemList()
+end
+
+--- Performs batch unlock on all selected items.
+function BETTERUI.Inventory.Class:BatchUnlock()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            SetItemIsPlayerLocked(itemData.bagId, itemData.slotIndex, false)
+        end
+    end
+
+    self:ExitSelectionMode()
+    self:RefreshItemList()
+end
