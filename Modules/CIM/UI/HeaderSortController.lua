@@ -25,10 +25,12 @@ local SORT_DIRECTION = {
     DESCENDING = 2,
 }
 
+-- Sort arrow indicators using ESO inline texture markup
+-- Format: |tWidth:Height:TexturePath|t
 local SORT_ARROW = {
     [SORT_DIRECTION.NONE] = "",
-    [SORT_DIRECTION.ASCENDING] = " ▲",
-    [SORT_DIRECTION.DESCENDING] = " ▼",
+    [SORT_DIRECTION.ASCENDING] = "|t20:20:EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds|t ",
+    [SORT_DIRECTION.DESCENDING] = "|t20:20:EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds|t ",
 }
 
 -------------------------------------------------------------------------------------------------
@@ -198,11 +200,30 @@ return: boolean - True if sort was toggled.
 ]]
 --- @return boolean toggled True if sort was toggled
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
-    if not self.isHeaderModeActive or #self.columns == 0 then
+    if #self.columns == 0 then
         return false
     end
 
-    local columnIndex = self.currentColumnIndex
+    return self:ToggleSortForColumn(self.currentColumnIndex)
+end
+
+--[[
+Function: HeaderSortController:ToggleSortForColumn
+Description: Toggles sort direction for a specific column (used by mouse clicks).
+             Cycles: NONE → ASCENDING → DESCENDING → NONE
+param: columnIndex (number) - The column to toggle.
+return: boolean - True if sort was toggled.
+]]
+--- @param columnIndex number Column index to toggle
+--- @return boolean toggled True if sort was toggled
+function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
+    if not columnIndex or columnIndex < 1 or columnIndex > #self.columns then
+        return false
+    end
+
+    -- Update current column index for focus tracking (even when not in header mode)
+    self.currentColumnIndex = columnIndex
+
     local currentDirection = self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
 
     -- Cycle through directions
@@ -279,11 +300,11 @@ function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     for i, column in ipairs(self.columns) do
         if column.labelControl then
             local baseName = column.name
-            local arrow = SORT_ARROW[self.sortDirections[i]] or ""
+            local direction = self.sortDirections[i]
             local isSelected = self.isHeaderModeActive and (i == self.currentColumnIndex)
 
-            -- Build display text with arrow
-            local displayText = baseName .. arrow
+            -- Build display text (no arrow in text - arrows are separate textures)
+            local displayText = baseName
 
             -- Add bracket highlight for selected column in header mode
             if isSelected then
@@ -291,6 +312,19 @@ function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
             end
 
             column.labelControl:SetText(displayText)
+
+            -- Update arrow texture visibility and image
+            if column.arrowTexture then
+                if direction == SORT_DIRECTION.ASCENDING then
+                    column.arrowTexture:SetTexture("EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds")
+                    column.arrowTexture:SetHidden(false)
+                elseif direction == SORT_DIRECTION.DESCENDING then
+                    column.arrowTexture:SetTexture("EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds")
+                    column.arrowTexture:SetHidden(false)
+                else
+                    column.arrowTexture:SetHidden(true)
+                end
+            end
 
             -- Optional: Change color for selected column
             if isSelected then
@@ -304,7 +338,7 @@ end
 
 --[[
 Function: HeaderSortController:SetColumnLabel
-Description: Associates a label control with a column.
+Description: Associates a label control with a column and creates an arrow texture.
 param: columnIndex (number) - Column index (1-indexed).
 param: labelControl (table) - The label control to update.
 ]]
@@ -313,6 +347,18 @@ param: labelControl (table) - The label control to update.
 function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelControl)
     if self.columns[columnIndex] then
         self.columns[columnIndex].labelControl = labelControl
+
+        -- Create arrow texture control if it doesn't exist
+        if not self.columns[columnIndex].arrowTexture then
+            local arrowName = labelControl:GetName() .. "Arrow"
+            -- Parent to the label itself so it moves with the column
+            local arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
+            arrow:SetDimensions(24, 24)
+            -- Position arrow to the LEFT of the label text, vertically centered
+            arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
+            arrow:SetHidden(true)
+            self.columns[columnIndex].arrowTexture = arrow
+        end
     end
 end
 
@@ -377,14 +423,16 @@ end
 --[[
 Function: HeaderSortController:CreateKeybindDescriptor
 Description: Creates a keybind descriptor for header sort mode.
-             Includes A to toggle sort, B to exit, and hidden L/R/Down for navigation.
+             Includes A to toggle sort, B to exit, and hidden L/R/Down/Up for navigation.
              Centralizes keybind creation to avoid duplication in Inventory/Banking.
 param: exitCallback (function) - Called when user presses B or Down to exit header mode.
+param: navigateUpCallback (function, optional) - Called when user presses Up to navigate to search.
 return: table - Keybind descriptor for KEYBIND_STRIP:AddKeybindButtonGroup
 ]]
 --- @param exitCallback function Called when exiting header mode
+--- @param navigateUpCallback function|nil Called when navigating up to search box
 --- @return table keybindDescriptor
-function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback)
+function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback, navigateUpCallback)
     local controller = self
 
     return {
@@ -429,6 +477,16 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             keybind = "UI_SHORTCUT_LEFT_STICK_DOWN",
             ethereal = true,
             callback = exitCallback,
+        },
+        -- D-pad UP: Navigate to search box (if callback provided)
+        {
+            keybind = "UI_SHORTCUT_LEFT_STICK_UP",
+            ethereal = true,
+            callback = function()
+                if navigateUpCallback then
+                    navigateUpCallback()
+                end
+            end,
         },
     }
 end

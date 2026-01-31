@@ -86,22 +86,36 @@ end
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateClearSearchKeybind
 Description: Creates a "Clear Search" keybind.
-Rationale: Quick way to reset search filter.
+             Only visible when search box contains text (via hasTextFn).
+Rationale: Quick way to reset search filter. Hidden when empty to reduce keybind clutter.
 Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
 param: clearSearchFn (function) - Function to call to clear the search.
-param: visibleFn (function|nil) - Optional visibility function.
+param: visibleFn (function|nil) - Optional base visibility function.
+param: hasTextFn (function|nil) - Optional function returning true if search has text. If nil, always shows.
 return: table - Keybind descriptor for clear search action.
 ]]
 --- @param clearSearchFn function Function to call to clear the search
---- @param visibleFn function|nil Optional visibility function
+--- @param visibleFn function|nil Optional base visibility function
+--- @param hasTextFn function|nil Optional function returning true if search has text
 --- @return table keybind Keybind descriptor for clear search action
-function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn)
+function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn, hasTextFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         name = GetString(SI_BETTERUI_CLEAR_SEARCH),
         keybind = "UI_SHORTCUT_QUATERNARY",
         disabledDuringSceneHiding = true,
-        visible = visibleFn or function() return true end,
+        visible = function()
+            -- Base visibility check
+            local baseVisible = true
+            if visibleFn then
+                baseVisible = visibleFn()
+            end
+            -- Additional check: only show if search has text
+            if hasTextFn then
+                return baseVisible and hasTextFn()
+            end
+            return baseVisible
+        end,
         callback = clearSearchFn,
     }
 end

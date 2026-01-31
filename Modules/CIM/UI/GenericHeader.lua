@@ -33,9 +33,6 @@ References: Used as the setup callback for BETTERUI_TabBarScrollList.
 ]]
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
     local label = control:GetNamedChild("Label")
-    -- Why: In this specific header design, we only want to show the large icon.
-    -- The text label is redundant or doesn't fit the visual style of the carousel.
-    label:SetHidden(true) -- Icons only for this tab bar style
     local icon = control:GetNamedChild("Icon")
 
     -- Resolve text if function (though ignored by SetHidden(true) above, might be used for accessiblity later)
@@ -51,6 +48,16 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     local colors = BETTERUI.CONST.COLORS
     local color = data.filterType and colors.TAB_ICON_FILTER or colors.TAB_ICON_GOLD
     icon:SetColor(color[1], color[2], color[3], icon:GetControlAlpha())
+
+    -- Display item count badge for selected tab only
+    -- Count is populated by module's RefreshList via data.itemCount
+    if selected and data.itemCount and data.itemCount > 0 then
+        label:SetText(tostring(data.itemCount))
+        label:SetHidden(false)
+        label:SetColor(1, 1, 1, 1) -- White text for count
+    else
+        label:SetHidden(true)
+    end
 
     if data.canSelect == nil then
         data.canSelect = true
