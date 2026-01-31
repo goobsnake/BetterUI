@@ -296,7 +296,10 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         -- Create the Parametric Scroll List for the Tab Bar
         control.tabBar = BETTERUI_TabBarScrollList:New(tabBarControl, tabBarControl:GetNamedChild("LeftIcon"),
             tabBarControl:GetNamedChild("RightIcon"), tabBarData)
-        control.tabBar:Activate()
+        -- NOTE: Do NOT activate here - tabBar should only be activated when scene shows.
+        -- Activation during module setup causes DIRECTIONAL_INPUT registration before
+        -- scene is visible, leading to joystick lock-up on startup.
+        -- The tabBar will be activated by scene handlers (OnSceneShowing/ActivateHeader).
         control.tabBar.hideUnselectedControls = false
 
         control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup,
