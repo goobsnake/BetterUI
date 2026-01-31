@@ -312,6 +312,21 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end
             end
 
+            -- Add "Select Multiple..." entry for multi-select mode (only in item list mode)
+            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                and not (self.isInSelectionMode or self:IsInSelectionMode()) then
+                local selectMultipleEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_SELECT_MULTIPLE))
+                selectMultipleEntry:SetIconTintOnSelection(true)
+                selectMultipleEntry.isSelectMultiple = true
+                selectMultipleEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                local listItem = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = selectMultipleEntry,
+                }
+                table.insert(parametricList, listItem)
+            end
+
             dialog:setupFunc()
         end
     end
@@ -389,8 +404,17 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
-        -- Handle BetterUI synthetic Destroy entry
+        -- Handle "Select Multiple..." entry to enter multi-select mode
         local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+        if selectedRow and selectedRow.isSelectMultiple then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            if self.EnterSelectionMode then
+                self:EnterSelectionMode()
+            end
+            return
+        end
+
+        -- Handle BetterUI synthetic Destroy entry
         if selectedRow and selectedRow.isBetterUIDestroy then
             local targetData
             if dialog and dialog.data and dialog.data.target then

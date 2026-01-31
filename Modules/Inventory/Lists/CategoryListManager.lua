@@ -89,6 +89,7 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
         local hasAnyNewItems = self:AreAnyItemsNew(FilterFunct, filterType, BAG_BACKPACK)
         local data = ZO_GamepadEntryData:New(name, iconFile, nil, nil, hasAnyNewItems)
         data.filterType = filterType
+        data.itemCount = self:GetCategoryItemCount(filterType) -- For category badge display
         data:SetIconTintOnSelection(true)
         self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
         BETTERUI.GenericHeader.AddToList(self.header, data)

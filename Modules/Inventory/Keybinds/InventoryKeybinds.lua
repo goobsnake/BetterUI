@@ -107,7 +107,78 @@ Mechanism: Creates keybind descriptors for X (quick action), Y (actions menu),
 References: Called by OnDeferredInitialize
 ]]
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
+    -- Initialize multi-select manager if not already done
+    if not self.multiSelectManager then
+        self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
+            self.itemList,
+            function(selectedCount)
+                self:OnSelectionCountChanged(selectedCount)
+            end
+        )
+    end
+
     self.mainKeybindStripDescriptor = {
+        -- Primary (A) for Equip/Use with Hold for Multi-Select
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = function()
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                    return ""
+                end
+                local target = self.itemList.selectedData
+                if not target then return "" end
+
+                -- If in selection mode, show "Select"
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    return GetString(SI_BETTERUI_SELECT_ITEM)
+                end
+
+                -- Normal mode - show equip/use
+                if target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
+                    return GetString(SI_ITEM_ACTION_EQUIP)
+                end
+                return GetString(SI_ITEM_ACTION_USE)
+            end,
+            keybind = "UI_SHORTCUT_PRIMARY",
+            visible = function()
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                    return false
+                end
+                return self.itemList.selectedData ~= nil
+            end,
+            callback = function()
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    -- In selection mode - toggle selection
+                    local target = self.itemList.selectedData
+                    if target then
+                        self.multiSelectManager:ToggleSelection(target)
+                        self:RefreshItemList()
+                    end
+                else
+                    -- Normal equip/use action
+                    local target = self.itemList.selectedData
+                    if target and target.bagId and target.slotIndex then
+                        if IsEquipable(target.bagId, target.slotIndex) then
+                            self:EquipItem(target)
+                        else
+                            -- Use item
+                            CallSecureProtected("UseItem", target.bagId, target.slotIndex)
+                        end
+                    end
+                end
+            end,
+            -- Hold A for 0.5s to enter selection mode
+            hold = function()
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                    return
+                end
+                if not self.multiSelectManager then return end
+
+                if not self.multiSelectManager:IsActive() then
+                    self:EnterSelectionMode()
+                end
+            end,
+        },
         -- Primary (A) reserved for item primary actions (equip/use/etc.).
         --X Button for Quick Action
         {
@@ -225,13 +296,21 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
             end,
         },
-        -- Y Button for Actions (CIM Factory)
-        BETTERUI.CIM.Keybinds.CreateActionsKeybind(
-            function()
-                self:SaveListPosition()
-                self:ShowActions()
+        -- Y Button for Actions or Batch Actions in selection mode
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = function()
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local count = self.multiSelectManager:GetSelectedCount()
+                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
+                end
+                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
-            function()
+            keybind = "UI_SHORTCUT_TERTIARY",
+            visible = function()
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    return self.multiSelectManager:HasSelections()
+                end
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return self.selectedItemUniqueId ~= nil or
                         self.currentlySelectedData ~= nil or
@@ -242,8 +321,18 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil
                 end
                 return false
-            end
-        ),
+            end,
+            callback = function()
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    -- Show batch actions dialog
+                    self:ShowBatchActionsMenu()
+                else
+                    -- Normal Y menu
+                    self:SaveListPosition()
+                    self:ShowActions()
+                end
+            end,
+        },
         -- L-Stick for Stacking Items (CIM Factory)
         BETTERUI.CIM.Keybinds.CreateStackAllKeybind(
             BAG_BACKPACK,
@@ -271,6 +360,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
         },
         -- Quaternary for Clear Search (CIM Factory)
+        -- Only visible when search has text
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
             function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then
@@ -288,6 +378,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             function()
                 return self.textSearchHeaderControl ~= nil
+            end,
+            function()
+                -- Only show Clear Search when there is actually text to clear
+                return self.searchQuery and self.searchQuery ~= ""
             end
         ),
     }

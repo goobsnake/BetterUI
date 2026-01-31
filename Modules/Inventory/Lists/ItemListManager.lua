@@ -117,6 +117,14 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
     self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
 
+    -- Hook beginning of list to enter header sort navigation mode
+    -- When user presses D-pad Up at the first item, this fires the callback
+    self.itemList:SetOnHitBeginningOfListCallback(function()
+        if self.EnterHeaderSortMode then
+            self:EnterHeaderSortMode()
+        end
+    end)
+
     local emptyText = GetString(SI_BETTERUI_EMPTY_LIST)
     local listControl = self.itemList and self.itemList.control
     if listControl and listControl.GetNamedChild then
@@ -133,7 +141,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- Initialize scroll indicator for main item list
     -- offsetX: nil (default), offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, nil, -8, 6)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, nil, -8, 6, self.itemList)
     end
 end
 
@@ -158,6 +166,36 @@ function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipabl
     end
 
     return true
+end
+
+--- Counts items matching a filter type for category badge display.
+--- @param nonEquipableFilterType number|nil The item filter type (nil = All)
+--- @return number count The number of matching items
+function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
+    local baseComparator = GetItemDataFilterComparator(nil, nonEquipableFilterType)
+    local count = 0
+
+    -- Count worn items
+    local worn = self:GetCachedSlotData(BAG_WORN)
+    if worn then
+        for _, itemData in ipairs(worn) do
+            if baseComparator(itemData) and not itemData.isJunk then
+                count = count + 1
+            end
+        end
+    end
+
+    -- Count backpack items
+    local backpack = self:GetCachedSlotData(BAG_BACKPACK)
+    if backpack then
+        for _, itemData in ipairs(backpack) do
+            if baseComparator(itemData) and not itemData.isJunk then
+                count = count + 1
+            end
+        end
+    end
+
+    return count
 end
 
 --- Checks for any junk items in the backpack.

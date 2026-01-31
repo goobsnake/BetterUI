@@ -81,7 +81,17 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             label:SetModifyTextType(data.modifyTextType)
         end
 
+        -- Early return for non-item entries (currency rows, headers)
+        -- These don't have dataSource and would cause nil errors
         local dS = data.dataSource
+        if not dS then
+            -- Simple setup for currency/label entries
+            label:SetText(data.text or data.label or "")
+            local labelColor = data.labelColor or ZO_GAMEPAD_UNSELECTED_COLOR
+            label:SetColor(labelColor:UnpackRGBA())
+            return
+        end
+
         local bagId = dS.bagId
         local slotIndex = dS.slotIndex
         local isLocked = dS.isPlayerLocked
@@ -434,6 +444,30 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Apply gradient selection bar
     BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
+    -- Apply flash animation for recently moved items (Banking transfers)
+    if BETTERUI.CIM.UI.ItemFlashAnimation then
+        BETTERUI.CIM.UI.ItemFlashAnimation.ApplyFlashToRow(control, data)
+    end
+
+    -- Show selection indicator for multi-selected items
+    local selectionIndicator = control:GetNamedChild("SelectionIndicator")
+    if selectionIndicator then
+        local isSelected = false
+        -- Check with MultiSelectManager if available
+        local multiSelectManager = BETTERUI.CIM.MultiSelectManager
+        if multiSelectManager and multiSelectManager.GetActiveInstance then
+            local manager = multiSelectManager.GetActiveInstance()
+            if manager and manager:IsActive() then
+                isSelected = manager:IsSelected(data)
+            end
+        end
+        selectionIndicator:SetHidden(not isSelected)
+        if isSelected then
+            -- Color the checkmark green for visibility
+            selectionIndicator:SetColor(0.2, 0.9, 0.2, 1)
+        end
+    end
+
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
@@ -532,7 +566,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     -- offsetX: nil (default), offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, nil, -8, 6)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, nil, -8, 6, self.list)
     end
 
     local function SelectionChangedCallback(list, selectedData)
