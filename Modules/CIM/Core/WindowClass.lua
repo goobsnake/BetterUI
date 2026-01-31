@@ -271,16 +271,42 @@ Description: Adds a column header to the window.
 param: columnName (string) - The text to display.
 param: xOffset (number) - The horizontal position (left-aligned anchor).
 ]]
+-- Column widths for hit regions (calculated from column positions)
+local COLUMN_WIDTHS = { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
+
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
-    self.header.columns[colNumber] = CreateControlFromVirtual("Column" .. colNumber,
+    local label = CreateControlFromVirtual("Column" .. colNumber,
         self.header:GetNamedChild("HeaderColumnBar"), "BETTERUI_GenericColumn_Label")
+    self.header.columns[colNumber] = label
+
     -- Use fixed column header offset (decoupled from list container position)
     local adjustedXOffset = xOffset + BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER.COLUMN_HEADER_X_ADJUST
     -- Nudge column headers further downward for better alignment with divider bars
-    self.header.columns[colNumber]:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
+    label:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
         adjustedXOffset, 109)
-    self.header.columns[colNumber]:SetText(columnName)
+    label:SetText(columnName)
+
+    -- Set explicit dimensions for proper mouse hit region
+    local columnWidth = COLUMN_WIDTHS[colNumber] or 100
+    label:SetDimensions(columnWidth, 30)
+
+    -- Enable mouse interaction for keyboard/mouse users
+    label:SetMouseEnabled(true)
+    label.columnIndex = colNumber
+    label.owner = self
+
+    -- Mouse click handler to toggle sort on this column
+    label:SetHandler("OnMouseUp", function(control, button, upInside)
+        if upInside and button == MOUSE_BUTTON_INDEX_LEFT then
+            local owner = control.owner
+            if owner and owner.headerSortController then
+                -- Toggle sort for this specific column (UpdateVisuals called internally)
+                owner.headerSortController:ToggleSortForColumn(control.columnIndex)
+                PlaySound(SOUNDS.DEFAULT_CLICK)
+            end
+        end
+    end)
 end
 
 --[[

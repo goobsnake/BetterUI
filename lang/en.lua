@@ -135,6 +135,20 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "KNOWN")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "UNKNOWN")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Clear Search")
+ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")
+
+-- Multi-Select Mode
+ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")
+ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode")
+ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")
+ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")
+ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")
+ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")
+ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected")
+ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected")
+ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Multiple...")
 
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_HEADER", "Master Settings")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "Master Addon Settings")
