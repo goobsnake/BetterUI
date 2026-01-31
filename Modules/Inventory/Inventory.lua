@@ -228,7 +228,27 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		if self.ClearTextSearch then
 			self:ClearTextSearch()
 		end
-		-- nothing to remove for search hold behavior here
+
+		-- IMPORTANT: Ensure we exit any active search mode so keybinds/focus are restored
+		-- This matches Banking's cleanup pattern
+		if self.LeaveSearchMode then
+			self:LeaveSearchMode()
+		end
+
+		-- Remove search keybind group if present (matches Banking cleanup)
+		if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+			KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+		end
+
+		-- Clear search text to prevent stale state on re-entry
+		self.searchQuery = ""
+		if self.textSearchHeaderFocus and self.textSearchHeaderFocus.GetEditBox then
+			local editBox = self.textSearchHeaderFocus:GetEditBox()
+			if editBox then
+				editBox:SetText("")
+			end
+		end
+
 		-- Save the current list position so it can be restored when the scene is shown again
 		self:SaveListPosition()
 	end
