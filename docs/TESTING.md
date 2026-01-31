@@ -1,8 +1,53 @@
-# BetterUI Manual Testing Procedures
+# BetterUI Testing Procedures
 
 ## Overview
 
-ESO addons cannot use automated test frameworks. This document provides manual verification procedures for each BetterUI module.
+While ESO addons cannot use in-game automated test frameworks, BetterUI uses **standalone Lua unit tests** for core utility functions. These tests run outside the game using a standard Lua interpreter.
+
+---
+
+## Automated Tests (Standalone)
+
+Located in `tools/tests/`, these test files can be run without ESO:
+
+### Test Files
+
+| File | Module | Tests |
+|------|--------|-------|
+| `test_number_formatting.lua` | NumberFormatting | Comma delimiting, suffixes (K/M/B), percentages |
+| `test_event_registry.lua` | EventRegistry | Registration tracking, bulk unregister |
+| `test_deferred_task.lua` | DeferredTask | Scheduling, cancellation, debounce |
+| `test_deprecation_registry.lua` | DeprecationRegistry | Warnings, shims, one-time logging |
+| `test_dependency_resolver.lua` | DependencyResolver | Circular deps, topological sort |
+| `test_feature_flags.lua` | FeatureFlags | Defaults, overrides, persistence |
+| `test_safe_execute.lua` | SafeExecute | Error boundaries, nil handling |
+| `test_utilities.lua` | Utilities | WrapValue, SafeCall, SafeIcon |
+| `test_sort_comparators.lua` | Sort helpers | Multi-key sorting, nil handling |
+
+### Running Tests
+
+```bash
+# Run all tests
+lua tools/tests/run_all_tests.lua
+
+# Run individual test
+lua tools/tests/test_dependency_resolver.lua
+
+# Syntax validation
+luac -p tools/tests/*.lua
+```
+
+### Creating New Tests
+
+1. Create `test_<module_name>.lua` in `tools/tests/`
+2. Add minimal ESO stubs for required globals
+3. Inline or import the module logic under test
+4. Use the test harness pattern with `assert_equal`/`assert_true`
+5. Return exit code 1 on failure for CI integration
+
+---
+
+## Manual Testing (In-Game)
 
 ---
 

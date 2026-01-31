@@ -25,6 +25,7 @@ BETTERUI.CIM.Debug.FLAGS = {
     DIRECTIONAL_INPUT = false, -- Verbose DIRECTIONAL_INPUT logging
     SCENE_TRANSITIONS = false, -- Log scene state changes
     LIST_OPERATIONS = false,   -- Log list activation/deactivation
+    CALLBACK_TRACING = false,  -- Log SafeExecuteCallback lifecycle
 }
 
 -- ============================================================================
@@ -271,6 +272,67 @@ local function InspectEvents()
 end
 
 --[[
+Function: InspectMemory
+Description: Shows memory and cache diagnostics.
+Rationale: Helps identify memory leaks and cache bloat.
+]]
+local function InspectMemory()
+    d("|c00ccff[BetterUI Debug]|r Memory & Cache Diagnostics:")
+
+    -- Event registration counts
+    d("|cffcc00[Event Registry]|r")
+    if BETTERUI.CIM and BETTERUI.CIM.EventRegistry and BETTERUI.CIM.EventRegistry.GetRegisteredEvents then
+        local events = BETTERUI.CIM.EventRegistry.GetRegisteredEvents()
+        if events then
+            local totalEvents = 0
+            for moduleName, moduleEvents in pairs(events) do
+                local count = #moduleEvents
+                totalEvents = totalEvents + count
+                d(string.format("  %s: %d events", moduleName, count))
+            end
+            d(string.format("  |c888888Total:|r %d", totalEvents))
+        else
+            d("  No registrations tracked")
+        end
+    else
+        d("  EventRegistry not available")
+    end
+
+    -- Deferred task counts
+    d("|cffcc00[Deferred Tasks]|r")
+    if BETTERUI.CIM and BETTERUI.CIM.Tasks then
+        local pending = 0
+        if BETTERUI.CIM.Tasks._scheduled then
+            for _ in pairs(BETTERUI.CIM.Tasks._scheduled) do
+                pending = pending + 1
+            end
+        end
+        d(string.format("  Pending tasks: %d", pending))
+    else
+        d("  DeferredTask not available")
+    end
+
+    -- Profiler stats if enabled
+    d("|cffcc00[Performance Profiler]|r")
+    if BETTERUI.CIM.Profiler and BETTERUI.CIM.Profiler.IsEnabled and BETTERUI.CIM.Profiler.IsEnabled() then
+        local timings = BETTERUI.CIM.Profiler.GetTimings and BETTERUI.CIM.Profiler.GetTimings() or {}
+        local counters = BETTERUI.CIM.Profiler.GetCounters and BETTERUI.CIM.Profiler.GetCounters() or {}
+        local timingCount, counterCount = 0, 0
+        for _ in pairs(timings) do timingCount = timingCount + 1 end
+        for _ in pairs(counters) do counterCount = counterCount + 1 end
+        d(string.format("  Tracked operations: %d", timingCount))
+        d(string.format("  Tracked counters: %d", counterCount))
+    else
+        d("  Profiler disabled")
+    end
+
+    -- Lua memory usage (approximate)
+    local memKB = collectgarbage("count")
+    d("|cffcc00[Lua Memory]|r")
+    d(string.format("  Approximate usage: %.1f KB", memKB))
+end
+
+--[[
 Function: DumpSettings
 Description: Outputs current module settings.
 Rationale: Useful for support and bug reports.
@@ -352,7 +414,7 @@ function BETTERUI.CIM.Debug.RegisterCommands()
     SLASH_COMMANDS["/buidebug"] = function(args)
         if not BETTERUI.CIM.Debug.IsEnabled() then
             d(
-            "|cff6600[BetterUI]|r Debug mode is disabled. Enable 'Debug Logging' in BetterUI settings or set BETTERUI_DEBUG = true")
+                "|cff6600[BetterUI]|r Debug mode is disabled. Enable 'Debug Logging' in BetterUI settings or set BETTERUI_DEBUG = true")
             return
         end
         InspectDirectionalInput()
@@ -477,6 +539,15 @@ function BETTERUI.CIM.Debug.RegisterCommands()
         end
     end
 
+    -- Memory/cache inspector
+    SLASH_COMMANDS["/buimemory"] = function(args)
+        if not BETTERUI.CIM.Debug.IsEnabled() then
+            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+            return
+        end
+        InspectMemory()
+    end
+
     -- Help command
     SLASH_COMMANDS["/buihelp"] = function(args)
         d("|c00ccff[BetterUI Debug Commands]|r")
@@ -486,6 +557,7 @@ function BETTERUI.CIM.Debug.RegisterCommands()
         d("  /builist - Inspect list states")
         d("  /buievents - List registered events")
         d("  /buisettings - Dump current settings")
+        d("  /buimemory - Memory and cache diagnostics")
         d("  /buicontrol <name> - Inspect a control")
         d("  /buiprofile [start|stop|report|reset] - Performance profiler")
         d("  /buiflag [flag] [on|off] - Toggle debug flags")
