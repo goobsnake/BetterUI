@@ -23,7 +23,8 @@ $excludeItems = @(
     '.venv',
     'Source',
     'LICENSE.md',
-    'docs'
+    'docs',
+    '.agent'
 )
 
 # Copy items while excluding specified files/directories
