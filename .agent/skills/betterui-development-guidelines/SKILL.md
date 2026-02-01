@@ -7,6 +7,8 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 
 ## Overview
 
+**Announce at start:** "I'm using the betterui-development-guidelines skill for this BetterUI work."
+
 This skill defines the required standards for the BetterUI codebase. Adhering to these guidelines allows us to maintain consistency, readability, and high quality across the project.
 
 **Core Principle**: Code is read much more often than it is written. Optimize for readability and maintainability through standardized documentation and clean structure.

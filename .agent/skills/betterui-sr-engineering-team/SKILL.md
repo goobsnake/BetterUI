@@ -7,6 +7,8 @@ description: Use for implementation planning, code reviews, phase verification, 
 
 ## Overview
 
+**Announce at start:** "I'm using the betterui-sr-engineering-team skill for this review."
+
 The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review work at critical checkpoints. Their mandate is to ensure code quality, architectural integrity, and project standards compliance.
 
 **Core Principle**: CRITICAL and FAIR. No rubber-stamping. Every review provides actionable feedback.
