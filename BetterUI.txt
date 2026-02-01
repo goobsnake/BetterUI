@@ -66,7 +66,6 @@ Modules\CIM\UI\SelectionHighlight.lua
 Modules\CIM\UI\ScrollIndicator.lua
 Modules\CIM\UI\HeaderSortController.lua
 Modules\CIM\UI\HeaderSortIntegration.lua
-Modules\CIM\UI\ItemFlashAnimation.lua
 Modules\CIM\Templates\ParametricScrollListTemplates.xml
 Modules\CIM\Lists\ParametricScrollListTemplates.lua
 Modules\CIM\Lists\VerticalScrollList.lua
