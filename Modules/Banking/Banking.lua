@@ -29,6 +29,7 @@ KEY MECHANICS:
 
 ]]
 
+zo_callLater(function() d("[BetterUI Banking] Banking.lua FILE LOADED") end, 2000)
 
 -------------------------------------------------------------------------------------------------
 -- LOCAL REFERENCES TO NAMESPACE CONSTANTS
@@ -109,6 +110,7 @@ param: scene_name (string) - Scene name.
 --- @param tlw_name string Top level window name
 --- @param scene_name string Scene name
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
+    d("[BetterUI Banking] >>> Initialize STARTING <<<")
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
 
@@ -183,6 +185,32 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.headerGeneric = self.header:GetNamedChild("Header") or self.header
     BETTERUI.GenericHeader.Initialize(self.headerGeneric, ZO_GAMEPAD_HEADER_TABBAR_CREATE)
     self:RebuildHeaderCategories()
+
+    -- Initialize Header Sort Controller for column-based sorting
+    -- Must be called after headerGeneric is set (needs self.headerGeneric for column labels)
+    local hasFunc = self.InitializeHeaderSortController ~= nil
+    zo_callLater(function()
+        d("[BetterUI Banking] Initialize - InitializeHeaderSortController exists: " .. tostring(hasFunc))
+    end, 4000)
+
+    if self.InitializeHeaderSortController then
+        self:InitializeHeaderSortController()
+        zo_callLater(function()
+            d("[BetterUI Banking] InitializeHeaderSortController completed")
+            d("[BetterUI Banking] headerSortController: " .. tostring(self.headerSortController ~= nil))
+            -- Check if column labels were linked
+            if self.headerSortController and self.headerSortController.columnLabels then
+                local count = 0
+                for _ in pairs(self.headerSortController.columnLabels) do count = count + 1 end
+                d("[BetterUI Banking] columnLabels count: " .. count)
+            else
+                d("[BetterUI Banking] WARNING: No columnLabels table!")
+            end
+            -- Check headerGeneric
+            d("[BetterUI Banking] headerGeneric: " ..
+                tostring(self.headerGeneric and self.headerGeneric:GetName() or "nil"))
+        end, 4500)
+    end
 
     -- Add gamepad text search support; callback updates searchQuery and refreshes the list
     -- Uses the AddSearch helper added to BETTERUI.Interface.Window
@@ -419,28 +447,18 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.list:SetOnSelectedDataChangedCallback(SelectionChangedCallback)
 
     -- Monkeypatch MovePrevious to allow moving "up" from the top of the list into the header.
-    -- Some list implementations return false when there is no previous entry; intercept
-    -- that case and programmatically enter the header (focus the search control).
+    -- When there is no previous entry, go to search bar (like Inventory) instead of header sort mode.
     if self.list and self.list.MovePrevious then
         local _origMovePrevious = self.list.MovePrevious
         self.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
-            local ok = false
-            -- call original implementation
             local ok = _origMovePrevious(list, allowWrapping, suppressFailSound)
 
             if not ok then
-                -- No previous entry; attempt to focus header/search like Inventory does
-                -- No previous entry; attempt to focus header/search like Inventory does
-                if self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden() then
-                    if self.OnEnterHeader then
-                        self:OnEnterHeader()
-                    elseif BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.SetTextSearchFocused then
-                        BETTERUI.Interface.Window.SetTextSearchFocused(self, true)
-                    else
-                        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.Activate then
-                            self.headerGeneric.tabBar:Activate()
-                        end
-                    end
+                -- No previous entry; go to header/search bar (matching Inventory behavior)
+                if self.OnEnterHeader then
+                    self:OnEnterHeader()
+                elseif self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.Activate then
+                    self.headerGeneric.tabBar:Activate()
                 end
                 return true
             end
@@ -765,6 +783,11 @@ function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TRAIT), COLS.TRAIT)
     BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_STAT), COLS.STAT)
     BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_VALUE), COLS.VALUE)
+
+    -- Link column labels to sort controller AFTER columns are created
+    if BETTERUI.Banking.Window.LinkColumnLabels then
+        BETTERUI.Banking.Window:LinkColumnLabels()
+    end
 
     BETTERUI.Banking.Window:RefreshList()
 

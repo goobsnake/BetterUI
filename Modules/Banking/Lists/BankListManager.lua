@@ -334,7 +334,10 @@ function BETTERUI.Banking.Class:RefreshList()
         filteredDataTable = matches
     end
 
-    table.sort(filteredDataTable, BETTERUI.Inventory.DefaultSortComparator)
+    -- Use itemSortComparator if set (for column header sorting), otherwise use default
+    -- This only applies to items, NOT currency rows which are added before this loop
+    local sortFn = self.itemSortComparator or BETTERUI.Inventory.DefaultSortComparator
+    table.sort(filteredDataTable, sortFn)
 
     local currentBestCategoryName
 

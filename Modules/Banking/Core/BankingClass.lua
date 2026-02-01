@@ -188,6 +188,23 @@ function BETTERUI.Banking.Class:InitializeHeaderSortController()
             initControllerFn = function() self:InitializeHeaderSortController() end,
         })
     end
+
+    -- Note: Column labels are linked separately via LinkColumnLabels() after AddColumn() calls
+end
+
+--- Links column header labels to the sort controller for visual feedback
+--- Must be called AFTER AddColumn() populates self.header.columns
+function BETTERUI.Banking.Class:LinkColumnLabels()
+    if not self.headerSortController then return end
+    if not self.header or not self.header.columns then return end
+    if not self.headerSortController.SetColumnLabel then return end
+
+    -- header.columns is populated by AddColumn() with the actual label controls
+    for i, labelControl in ipairs(self.header.columns) do
+        if labelControl then
+            self.headerSortController:SetColumnLabel(i, labelControl)
+        end
+    end
 end
 
 --- Called when sort direction changes on a column
@@ -207,17 +224,33 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
 
     if not column then return end
 
-    -- Update the list sort function
+    -- Store sort comparator in instance variable (NOT on list)
+    -- This ensures currency rows at the top are not affected by sorting
     if direction == SORT_DIRECTION.NONE then
-        -- Reset to default sort (use Inventory default for consistency)
-        self.list:SetSortFunction(BETTERUI.Banking.DefaultSortComparator or BETTERUI_Inventory_DefaultItemSortComparator)
+        -- Reset to default sort
+        self.itemSortComparator = nil
     else
         local ascending = (direction == SORT_DIRECTION.ASCENDING)
-        self.list:SetSortFunction(CreateColumnSortComparator(column.sortKey, ascending))
+        self.itemSortComparator = CreateColumnSortComparator(column.sortKey, ascending)
     end
+
+    -- Save current selection before refreshing
+    local selectedData = self.list:GetSelectedData()
+    local savedUniqueId = selectedData and selectedData.uniqueId
 
     -- Refresh the list to apply new sort
     self:RefreshList()
+
+    -- Restore selection by finding the item with the same uniqueId
+    if savedUniqueId then
+        local dataList = self.list.dataList
+        for i, entry in ipairs(dataList or {}) do
+            if entry.uniqueId == savedUniqueId then
+                self.list:SetSelectedIndexWithoutAnimation(i)
+                break
+            end
+        end
+    end
 end
 
 --- Enters header sort navigation mode.
