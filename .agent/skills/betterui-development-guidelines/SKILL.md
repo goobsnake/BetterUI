@@ -276,5 +276,28 @@ When a workflow or major task concludes, use the `betterui-sr-engineering-team` 
 
 1. **`task.md`** - Granular checklist of executed actions (all items checked off)
 2. **`verification_plan.md`** - How to verify the changes in-game
+3. **`walkthrough.md`** - Must include:
+   - **Skills Used**: Table of all skills invoked during the work
+   - **Sr. Engineering Review Summary**: High-level outcomes from each review checkpoint (Plan Review, Phase Reviews, Final Review)
 
 The Sr. Engineering Team review covers code quality, standards compliance, and identifies any issues before completion.
+
+### Walkthrough Template
+
+```markdown
+## Skills Used
+| Skill | Purpose |
+|-------|---------|
+| `skill-name` | Brief description of how it was used |
+
+## Sr. Engineering Review Summary
+
+### Plan Review - [Date]
+**Outcome:** PASS/BLOCKED
+- [Key findings]
+
+### Final Review - [Date]  
+**Outcome:** PASS
+- [Confirmation of standards compliance]
+```
+
