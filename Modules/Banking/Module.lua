@@ -142,7 +142,26 @@ Mechanism: Calls Init to register settings menu, then calls BETTERUI.Banking.Ini
 References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 function BETTERUI.Banking.Setup()
-	BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
+	d("[BetterUI] Banking.Setup() ENTER")
 
-	BETTERUI.Banking.Init()
+	d("[BetterUI] Checking Settings.RegisterPanel: " ..
+	tostring(BETTERUI.Banking.Settings ~= nil and BETTERUI.Banking.Settings.RegisterPanel ~= nil))
+	local ok1, err1 = pcall(function()
+		BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
+	end)
+	if not ok1 then
+		d("[BetterUI] ERROR in Settings.RegisterPanel: " .. tostring(err1))
+	else
+		d("[BetterUI] Settings.RegisterPanel done")
+	end
+
+	d("[BetterUI] Checking Banking.Init: " .. tostring(BETTERUI.Banking.Init ~= nil))
+	local ok2, err2 = pcall(BETTERUI.Banking.Init)
+	if not ok2 then
+		d("[BetterUI] ERROR in Banking.Init: " .. tostring(err2))
+	else
+		d("[BetterUI] Banking.Init completed")
+	end
+
+	d("[BetterUI] Banking.Setup() EXIT")
 end
