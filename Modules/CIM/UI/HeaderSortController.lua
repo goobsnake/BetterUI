@@ -299,7 +299,8 @@ Description: Updates column header visual indicators (highlights and arrows).
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     for i, column in ipairs(self.columns) do
         if column.labelControl then
-            local baseName = column.name
+            -- Use cached originalText (localized) if available, otherwise fall back to column.name
+            local baseName = column.originalText or column.name
             local direction = self.sortDirections[i]
             local isSelected = self.isHeaderModeActive and (i == self.currentColumnIndex)
 
@@ -338,7 +339,8 @@ end
 
 --[[
 Function: HeaderSortController:SetColumnLabel
-Description: Associates a label control with a column and creates an arrow texture.
+Description: Associates a label control with a column, creates an arrow texture,
+             and registers mouse click handler for interactive sorting.
 param: columnIndex (number) - Column index (1-indexed).
 param: labelControl (table) - The label control to update.
 ]]
@@ -348,9 +350,24 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
     if self.columns[columnIndex] then
         self.columns[columnIndex].labelControl = labelControl
 
+        -- Cache the original localized text from the label for proper display
+        -- The column.name field is just an identifier like "NAME", not the localized text
+        local originalText = labelControl:GetText()
+        if originalText and originalText ~= "" then
+            self.columns[columnIndex].originalText = originalText
+        end
+
         -- Create arrow texture control if it doesn't exist
         if not self.columns[columnIndex].arrowTexture then
-            local arrowName = labelControl:GetName() .. "Arrow"
+            -- Safety check: labelControl might not have a name if created dynamically
+            local baseName = labelControl:GetName()
+            local arrowName
+            if baseName and baseName ~= "" then
+                arrowName = baseName .. "Arrow"
+            else
+                -- Generate unique name based on column index
+                arrowName = "BETTERUI_HeaderSortArrow_" .. columnIndex
+            end
             -- Parent to the label itself so it moves with the column
             local arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
             arrow:SetDimensions(24, 24)
@@ -359,6 +376,21 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
             arrow:SetHidden(true)
             self.columns[columnIndex].arrowTexture = arrow
         end
+
+        -- Register mouse click handler for interactive sorting
+        local controller = self
+        labelControl:SetMouseEnabled(true)
+        labelControl:SetHandler("OnMouseUp", function(control, button)
+            if button == MOUSE_BUTTON_INDEX_LEFT then
+                -- Enter header mode if not active, select this column, and toggle sort
+                if not controller.isHeaderModeActive then
+                    controller:EnterHeaderMode()
+                end
+                controller.currentColumnIndex = columnIndex
+                controller:ToggleSortForColumn(columnIndex)
+                PlaySound(SOUNDS.MENU_BAR_CLICK)
+            end
+        end)
     end
 end
 
