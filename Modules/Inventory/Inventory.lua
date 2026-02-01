@@ -312,6 +312,12 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
 	self:InitializeItemList()
 
+	-- Initialize Header Sort Controller for column-based sorting
+	-- Must be called after InitializeItemList (needs self.itemList) and InitializeHeader (needs self.header)
+	if self.InitializeHeaderSortController then
+		self:InitializeHeaderSortController()
+	end
+
 	self:InitializeKeybindStrip()
 
 	self:InitializeConfirmDestroyDialog()

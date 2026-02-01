@@ -463,6 +463,53 @@ function BETTERUI.Inventory.Class:InitializeHeaderSortController()
             initControllerFn = function() self:InitializeHeaderSortController() end,
         })
     end
+
+    -- Link column labels now (Inventory uses different header than Banking)
+    self:LinkColumnLabels()
+end
+
+--- Links column header labels to the sort controller for visual feedback
+--- Inventory uses GetNamedChild since it doesn't call AddColumn like Banking does
+function BETTERUI.Inventory.Class:LinkColumnLabels()
+    if not self.headerSortController then return end
+    if not self.headerSortController.SetColumnLabel then return end
+
+    -- Column labels are defined in GenericHeader.xml: Column1Label...Column6Label
+    -- Map column index (1-5) to the XML label names
+    local COLUMN_LABEL_NAMES = {
+        "Column1Label", -- NAME (index 1)
+        "Column2Label", -- TYPE (index 2)
+        "Column4Label", -- TRAIT (index 3)
+        "Column6Label", -- STAT (index 4)
+        "Column5Label", -- VALUE (index 5)
+    }
+
+    -- Try using header.columns first (if AddColumn was called, like in Banking)
+    if self.header and self.header.columns and #self.header.columns > 0 then
+        for i, labelControl in ipairs(self.header.columns) do
+            if labelControl then
+                self.headerSortController:SetColumnLabel(i, labelControl)
+            end
+        end
+        return
+    end
+
+    -- Fallback: Find labels using GetNamedChild from header or ColumnBar
+    -- This is needed because Inventory doesn't use WindowClass:AddColumn
+    if self.header then
+        local columnBar = self.header:GetNamedChild("ColumnBar")
+        for i, labelName in ipairs(COLUMN_LABEL_NAMES) do
+            -- Try header first (where $(parent) resolves to)
+            local labelControl = self.header:GetNamedChild(labelName)
+            -- Fallback to columnBar if not found on header
+            if not labelControl and columnBar then
+                labelControl = columnBar:GetNamedChild(labelName)
+            end
+            if labelControl then
+                self.headerSortController:SetColumnLabel(i, labelControl)
+            end
+        end
+    end
 end
 
 --- Called when sort direction changes on a column
@@ -623,24 +670,7 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     -- Build the parametric list with batch actions
     local parametricList = {}
 
-    -- Check if we're in inventory with bank access
-    local isBankingAvailable = BETTERUI.CIM.Utils.IsBankingSceneShowing and BETTERUI.CIM.Utils.IsBankingSceneShowing()
-
-    if isBankingAvailable then
-        -- Add Deposit Selected
-        local depositEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_DEPOSIT_SELECTED))
-        depositEntry:SetIconTintOnSelection(true)
-        depositEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        depositEntry.callback = function()
-            self:BatchDeposit()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = depositEntry,
-        })
-    end
-
-    -- Add Lock/Unlock Selected
+    -- Add Lock Selected
     local lockEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_LOCK_SELECTED))
     lockEntry:SetIconTintOnSelection(true)
     lockEntry.setup = ZO_SharedGamepadEntry_OnSetup
@@ -652,6 +682,7 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
         entryData = lockEntry,
     })
 
+    -- Add Unlock Selected
     local unlockEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_UNLOCK_SELECTED))
     unlockEntry:SetIconTintOnSelection(true)
     unlockEntry.setup = ZO_SharedGamepadEntry_OnSetup
@@ -661,6 +692,42 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     table.insert(parametricList, {
         template = "ZO_GamepadItemEntryTemplate",
         entryData = unlockEntry,
+    })
+
+    -- Add Mark as Junk
+    local junkEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_MARK_JUNK_SELECTED))
+    junkEntry:SetIconTintOnSelection(true)
+    junkEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    junkEntry.callback = function()
+        self:BatchMarkAsJunk()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = junkEntry,
+    })
+
+    -- Add Unmark as Junk
+    local unjunkEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_UNMARK_JUNK_SELECTED))
+    unjunkEntry:SetIconTintOnSelection(true)
+    unjunkEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    unjunkEntry.callback = function()
+        self:BatchUnmarkAsJunk()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = unjunkEntry,
+    })
+
+    -- Add Destroy Selected
+    local destroyEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_DESTROY_SELECTED))
+    destroyEntry:SetIconTintOnSelection(true)
+    destroyEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    destroyEntry.callback = function()
+        self:BatchDestroy()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = destroyEntry,
     })
 
     -- Add Deselect All
@@ -725,4 +792,64 @@ function BETTERUI.Inventory.Class:BatchUnlock()
 
     self:ExitSelectionMode()
     self:RefreshItemList()
+end
+
+--- Performs batch mark-as-junk on all selected items.
+function BETTERUI.Inventory.Class:BatchMarkAsJunk()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            -- Check if item can be marked as junk (not locked, not equipped, not bound)
+            if CanItemBeMarkedAsJunk(itemData.bagId, itemData.slotIndex) then
+                SetItemIsJunk(itemData.bagId, itemData.slotIndex, true)
+            end
+        end
+    end
+
+    self:ExitSelectionMode()
+    self:RefreshItemList()
+end
+
+--- Performs batch unmark-as-junk on all selected items.
+function BETTERUI.Inventory.Class:BatchUnmarkAsJunk()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    for _, itemData in ipairs(items) do
+        if itemData.bagId and itemData.slotIndex then
+            SetItemIsJunk(itemData.bagId, itemData.slotIndex, false)
+        end
+    end
+
+    self:ExitSelectionMode()
+    self:RefreshItemList()
+end
+
+--- Performs batch destroy on all selected items (with confirmation).
+function BETTERUI.Inventory.Class:BatchDestroy()
+    if not self.multiSelectManager then return end
+
+    local items = self.multiSelectManager:GetSelectedItems()
+    local itemCount = #items
+
+    if itemCount == 0 then return end
+
+    -- Show confirmation dialog before destroying
+    local confirmText = zo_strformat("Are you sure you want to destroy <<1>> selected items? This cannot be undone.",
+        itemCount)
+
+    ZO_Dialogs_ShowPlatformDialog("DESTROY_ITEM_PROMPT", {
+        confirmCallback = function()
+            for _, itemData in ipairs(items) do
+                if itemData.bagId and itemData.slotIndex then
+                    -- Use DestroyItem for actual destruction
+                    DestroyItem(itemData.bagId, itemData.slotIndex)
+                end
+            end
+            self:ExitSelectionMode()
+            self:RefreshItemList()
+        end
+    }, { mainTextParams = { confirmText } })
 end
