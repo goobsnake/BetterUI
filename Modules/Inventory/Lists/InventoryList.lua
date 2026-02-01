@@ -191,6 +191,13 @@ end
 --- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
 --- @param data table The data for the entry.
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
+    -- Guard against non-item entries (currency rows, headers)
+    if not data or not data.dataSource then
+        if statusIndicator then statusIndicator:ClearIcons() end
+        if equippedIcon then equippedIcon:SetHidden(true) end
+        return
+    end
+
     statusIndicator:ClearIcons()
 
     local isItemNew
@@ -236,6 +243,12 @@ end
 --- @param selected boolean True if the entry is selected.
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
+        -- Guard against non-item entries (currency rows, headers) that don't have item methods
+        if not data.GetNumIcons then
+            icon:ClearIcons()
+            return
+        end
+
         if data.iconUpdateFn then
             data.iconUpdateFn()
         end
@@ -354,6 +367,12 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local bagId = data.bagId or (data.dataSource and data.dataSource.bagId)
     local slotIndex = data.slotIndex or (data.dataSource and data.dataSource.slotIndex)
 
+    -- Early return for non-item entries (currency rows, headers)
+    -- These have .label but no bagId/slotIndex for item data
+    if not bagId and not slotIndex then
+        return
+    end
+
     local itemLink = data.cached_itemLink or (bagId and slotIndex and GetItemLink(bagId, slotIndex))
     local itemType = data.cached_itemType or (itemLink and GetItemLinkItemType(itemLink))
 
@@ -444,28 +463,34 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     -- Apply gradient selection bar
     BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
-    -- Apply flash animation for recently moved items (Banking transfers)
-    if BETTERUI.CIM.UI.ItemFlashAnimation then
-        BETTERUI.CIM.UI.ItemFlashAnimation.ApplyFlashToRow(control, data)
-    end
 
     -- Show selection indicator for multi-selected items
     local selectionIndicator = control:GetNamedChild("SelectionIndicator")
-    if selectionIndicator then
-        local isSelected = false
-        -- Check with MultiSelectManager if available
-        local multiSelectManager = BETTERUI.CIM.MultiSelectManager
-        if multiSelectManager and multiSelectManager.GetActiveInstance then
-            local manager = multiSelectManager.GetActiveInstance()
-            if manager and manager:IsActive() then
-                isSelected = manager:IsSelected(data)
-            end
+    local selectionBar = control:GetNamedChild("SelectionBar")
+    local isMultiSelected = false
+
+    -- Check with MultiSelectManager if available
+    local multiSelectManager = BETTERUI.CIM.MultiSelectManager
+    if multiSelectManager and multiSelectManager.GetActiveInstance then
+        local manager = multiSelectManager.GetActiveInstance()
+        if manager and manager:IsActive() then
+            isMultiSelected = manager:IsSelected(data)
         end
-        selectionIndicator:SetHidden(not isSelected)
-        if isSelected then
+    end
+
+    -- Handle selection indicator (checkmark)
+    if selectionIndicator then
+        selectionIndicator:SetHidden(not isMultiSelected)
+        if isMultiSelected then
             -- Color the checkmark green for visibility
             selectionIndicator:SetColor(0.2, 0.9, 0.2, 1)
         end
+    end
+
+    -- Apply green tint to SelectionBar for multi-selected items that aren't focused
+    if selectionBar and isMultiSelected and not selected then
+        selectionBar:SetHidden(false)
+        selectionBar:SetColor(0.2, 0.8, 0.3, 0.6) -- Green tint for multi-selected
     end
 
     BETTERUI_CooldownSetup(control, data)
