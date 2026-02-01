@@ -312,26 +312,6 @@ function BETTERUI.LoadModules()
 
 	BETTERUI.Debug("Initializing BETTERUI...")
 
-	-- Register module dependencies for validation
-	-- CIM is the foundation that all UI modules depend on
-	if BETTERUI.CIM.DependencyResolver then
-		BETTERUI.CIM.DependencyResolver.Register("CIM", {}, 0)
-		BETTERUI.CIM.DependencyResolver.Register("Inventory", { "CIM" }, 10)
-		BETTERUI.CIM.DependencyResolver.Register("Banking", { "CIM" }, 10)
-		BETTERUI.CIM.DependencyResolver.Register("GeneralInterface", { "CIM" }, 20)
-		BETTERUI.CIM.DependencyResolver.Register("Nameplates", { "CIM", "GeneralInterface" }, 30)
-		BETTERUI.CIM.DependencyResolver.Register("ResourceOrbFrames", { "CIM" }, 20)
-		BETTERUI.CIM.DependencyResolver.Register("Writs", { "CIM" }, 40)
-
-		-- Validate dependencies (circular dependency check)
-		local valid, err = BETTERUI.CIM.DependencyResolver.Validate()
-		if not valid then
-			BETTERUI.Debug("[Dependency Error] " .. (err or "Unknown error"))
-		else
-			BETTERUI.Debug("[Dependencies] Module graph validated successfully")
-		end
-	end
-
 	-- Apply runtime safety patches and settings migrations
 	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
 	if BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup and BETTERUI.CIM.RuntimeSetup.Apply then
