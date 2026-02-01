@@ -2,10 +2,19 @@
 File: Modules/CIM/Dialogs/DialogRegistry.lua
 Purpose: Centralized dialog registration and management.
 Author: BetterUI Team
-Last Modified: 2026-01-31
+Last Modified: 2026-02-01
 
 Used By: Inventory, Banking dialog initialization
 Dependencies: ZO_Dialogs_RegisterCustomDialog
+
+TODO(architecture): Migrate 7 raw ZO_Dialogs_RegisterCustomDialog calls to use this registry:
+  - Inventory/Module.lua: CONFIRM_EQUIP_BOE
+  - Inventory/Inventory.lua: ZO_GAMEPAD_SPLIT_STACK_DIALOG, BETTERUI_CONFIRM_DESTROY_DIALOG,
+    ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG
+  - Inventory/Actions/QuickslotAction.lua: BETTERUI_QUICKSLOT_ASSIGN_DIALOG
+  - Inventory/Actions/EquipAction.lua: BETTERUI_EQUIP_SLOT_DIALOG
+  - Inventory/Actions/ActionDialogHooks.lua: ZO_GAMEPAD_INVENTORY_ACTION_DIALOG
+Benefits: Prevents duplicate registration, enables centralized cleanup on module disable.
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
