@@ -65,16 +65,24 @@ cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml
 
 ---
 
-## Step 4: Syntax Check Modified Files
+## Step 4: Lua Syntax Check (Required if Lua Modified)
 
-For each modified Lua file (from `git status`), validate syntax:
+> [!IMPORTANT]
+> This step is **REQUIRED** if any Lua files were modified. Do not skip.
+
+Check if Lua files were modified:
+
+```powershell
+cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.lua" }
+```
+
+If any Lua files appear, validate their syntax:
 
 ```powershell
 cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.lua" } | ForEach-Object { Write-Host "Checking $_"; luac5.1 -p $_ }
 ```
 
-> [!NOTE]
-> If `luac5.1` is not available, skip this step. The test suite (Step 1) implicitly validates syntax.
+**Expected**: No syntax errors. If validation fails, fix the Lua before proceeding.
 
 ---
 
