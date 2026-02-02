@@ -29,8 +29,15 @@ KEY MECHANICS:
 
 ]]
 
--- TODO(cleanup): CRITICAL - Remove this debug statement. Use FeatureFlags.DEBUG_LOGGING instead.
--- See: sr_engineering_team_review.md Code Quality Lead verdict
+-- ===========================================================================
+-- TODO(cleanup): CRITICAL - Remove ALL debug statements from this file:
+-- - Line 34: zo_callLater with d() on file load (runs EVERY addon load!)
+-- - Line 115: d() in Initialize() entry
+-- - Lines 194-214: zo_callLater debug blocks for HeaderSortController
+-- This is blocking the Sr. Engineering Team review. See: sr_engineering_team_review.md
+-- Either remove entirely OR gate through FeatureFlags.DEBUG_LOGGING
+-- Estimated effort: 15 minutes
+-- ===========================================================================
 zo_callLater(function() d("[BetterUI Banking] Banking.lua FILE LOADED") end, 2000)
 
 -------------------------------------------------------------------------------------------------
@@ -743,8 +750,11 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
-    -- TODO(fix): Add matching CALLBACK_MANAGER:UnregisterCallback calls in OnSceneHidden cleanup
-    -- Potential for callback accumulation if scenes are rapidly shown/hidden
+    -- TODO(fix): P1 - Add matching CALLBACK_MANAGER:UnregisterCallback calls in OnSceneHidden cleanup
+    -- Risk: Callback accumulation if scenes are rapidly shown/hidden
+    -- Location to unregister: BETTERUI.Banking.Class:OnSceneHidden()
+    -- Callbacks to unregister: BETTERUI_EVENT_ACTION_DIALOG_SETUP, _FINISH, _BUTTON_CONFIRM
+    -- Estimated effort: 30 minutes
 end
 
 -- NOTE: ActivateSpinner and DeactivateSpinner have been removed.

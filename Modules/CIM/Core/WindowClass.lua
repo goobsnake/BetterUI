@@ -272,8 +272,11 @@ param: columnName (string) - The text to display.
 param: xOffset (number) - The horizontal position (left-aligned anchor).
 ]]
 -- Column widths for hit regions (calculated from column positions)
--- TODO(refactor): Extract COLUMN_WIDTHS to BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
--- Magic numbers should be centralized with directional documentation
+-- TODO(refactor): P2 - Extract COLUMN_WIDTHS to BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
+-- Current values: { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
+-- Also extract COLUMN_HEADER_Y_OFFSET (109) from AddColumn method (see line 291)
+-- Centralize in CIM/Constants.lua with directional documentation
+-- Estimated effort: 1 hour
 local COLUMN_WIDTHS = { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
 
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)

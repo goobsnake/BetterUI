@@ -704,7 +704,11 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 -- BACKWARDS COMPATIBILITY ALIASES
 -- ============================================================================
 
--- AUDIT (2026-01-28): Backward compatibility aliases still in use by:\r\n-- TODO(cleanup): OVERDUE - These aliases were planned for v3.0 removal (current version).\r\n-- Complete XML template migration and remove these backward compatibility aliases.
+-- AUDIT (2026-01-28): Backward compatibility aliases still in use by:
+-- TODO(cleanup): P1 OVERDUE - These aliases were planned for v3.0 removal (current version).
+-- Complete XML template migration and remove these backward compatibility aliases.
+-- See: sr_engineering_team_review.md for priority assignment
+-- Estimated effort: 2 hours
 --   XML Templates:
 --     - Modules/CIM/UI/GenericHeader.xml
 --     - Modules/CIM/UI/GenericFooter.xml

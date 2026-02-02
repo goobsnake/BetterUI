@@ -80,8 +80,12 @@ end
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
--- TODO(doc): Add EmmyLua type annotations to all functions in BETTERUI.CIM.Utils namespace
+-- TODO(doc): P3 - Add EmmyLua type annotations to all functions in BETTERUI.CIM.Utils namespace
+-- Functions to annotate: IsEnabled, SafeIcon, SafeGetTargetData, SortComparator,
+-- FindStackableSlotInBag, CountResearchableInHouseBanks, IsBankingSceneShowing,
+-- IsInventorySceneShowing, SafeCall
 -- See SafeExecute.lua for the annotation pattern to follow
+-- Estimated effort: 2 hours
 
 --[[
 Function: BETTERUI.CIM.Utils.SafeGetTargetData

@@ -6,8 +6,12 @@ Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
--- TODO(doc): Add TRIBAL_KNOWLEDGE entry explaining when to use SafeExecute vs guard clauses
--- Currently used inconsistently across modules. Standardize the pattern.
+-- TODO(doc): P3 - Add TRIBAL_KNOWLEDGE entry explaining when to use SafeExecute vs guard clauses
+-- Key points to document:
+-- - SafeExecute: Use for optional/external code that may fail (addon interop, ESO API edge cases)
+-- - Guard clauses: Use for known nil-check patterns within BetterUI code
+-- - Never use SafeExecute to mask bugs - investigate root causes instead
+-- Estimated effort: 30 minutes
 
 --[[
 Function: BETTERUI.CIM.SafeExecute
