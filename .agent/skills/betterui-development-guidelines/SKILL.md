@@ -38,13 +38,15 @@ This skill defines the required standards for the BetterUI codebase. Adhering to
 
 > [!IMPORTANT]
 > At session start, read `/docs/TRIBAL_KNOWLEDGE.md` for project history and lessons learned.
-> Before completing major work, add any new discoveries to that file.
+> Before completing major work, run `/update-tribal-knowledge` to capture any new discoveries.
 
 **What to record**:
 - Solutions that worked (with rationale)
 - Mistakes made and how to avoid them
 - ESO API quirks discovered
 - Module-specific gotchas
+
+**Workflow**: Use `/update-tribal-knowledge` at the end of each development session to systematically capture learnings.
 
 ## Quick Reference
 
@@ -207,9 +209,21 @@ Use actionable, structured TODOs. **Remove them once the described task is succe
 
 ## Verification
 
-**REQUIRED**: Before claiming any task is complete, use the `verification-before-completion` skill to ensure all checks pass. Key verification areas:
+**REQUIRED**: Before claiming any task is complete:
+1. Run `/verify-integrity` to execute automated checks
+2. Use the `verification-before-completion` skill for manual verification
 
-- **Syntax**: `luac -p <file>` for Lua; XML parsing validation.
+### Automated Checks (`/verify-integrity`)
+
+| Check | What It Does |
+|-------|--------------|
+| Unit Tests | Runs `lua tools/tests/run_all_tests.lua` |
+| Debug Scan | Finds leftover `d("...")` statements |
+| XML Validation | **Required if XML files were modified** |
+| Syntax Check | Validates modified Lua files |
+
+### Manual Verification
+
 - **In-Game**: Addon loads without errors; feature works; no regressions.
 - **Documentation**: File headers up-to-date; function docs complete.
 - **Git Hygiene**: `git diff` shows only intended changes; no debug code.
@@ -272,13 +286,25 @@ When creating implementation plans:
 
 ## Completion Requirements
 
-When a workflow or major task concludes, use the `betterui-sr-engineering-team` skill for final review, then generate:
+When a workflow or major task concludes:
+
+### Step 1: Run Verification Workflow
+Execute `/verify-integrity` to ensure all automated checks pass.
+
+### Step 2: Capture Tribal Knowledge
+Run `/update-tribal-knowledge` to document any API quirks, gotchas, or lessons learned during the session.
+
+### Step 3: Sr. Engineering Team Review
+Use the `betterui-sr-engineering-team` skill for final review.
+
+### Step 4: Generate Completion Artifacts
 
 1. **`task.md`** - Granular checklist of executed actions (all items checked off)
 2. **`verification_plan.md`** - How to verify the changes in-game
 3. **`walkthrough.md`** - Must include:
    - **Skills Used**: Table of all skills invoked during the work
-   - **Sr. Engineering Review Summary**: High-level outcomes from each review checkpoint (Plan Review, Phase Reviews, Final Review)
+   - **Workflows Used**: Table of workflows invoked (e.g., `/verify-integrity`, `/update-tribal-knowledge`)
+   - **Sr. Engineering Review Summary**: High-level outcomes from each review checkpoint
 
 The Sr. Engineering Team review covers code quality, standards compliance, and identifies any issues before completion.
 

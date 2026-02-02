@@ -44,15 +44,24 @@ cd x:\Git\BetterUI && grep -rn --include="*.lua" "d(\"" Modules/ | grep -v "-- D
 
 ---
 
-## Step 3: (Optional) XML Validation
+## Step 3: XML Validation (Required if XML Modified)
 
-If XML files were modified, validate them:
+> [!IMPORTANT]
+> This step is **REQUIRED** if any XML files were modified. Do not skip.
+
+Check if XML files were modified:
 
 ```powershell
-cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.xml" Modules/ | ForEach-Object { [xml](Get-Content $_.FullName) } 2>&1 | Select-String -Pattern "Exception"
+cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml" }
 ```
 
-**Expected**: No parsing exceptions.
+If any XML files appear, validate them:
+
+```powershell
+cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml" } | ForEach-Object { Write-Host "Validating $_"; [xml](Get-Content $_) } 2>&1 | Select-String -Pattern "Exception"
+```
+
+**Expected**: No parsing exceptions. If validation fails, fix the XML before proceeding.
 
 ---
 
