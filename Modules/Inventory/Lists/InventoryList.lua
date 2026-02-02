@@ -131,6 +131,8 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
         if data.stolen then
+            -- TODO(refactor): Move asset paths to BETTERUI.CIM.CONST.ASSETS
+            -- Centralizes paths for easier maintenance when assets move
             labelTxt = labelTxt ..
                 " |t" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
@@ -508,6 +510,8 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local iconSize = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) +
         0.5)
+    -- TODO(refactor): Extract 28 and 24 to BETTERUI.Inventory.CONST.EQUIP_ICON dimensions
+    -- These are base width/height values used for scaling calculations
     local equipIconWidth = math.floor(28 * (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local equipIconHeight = math.floor(24 * (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local iconOffset = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET +

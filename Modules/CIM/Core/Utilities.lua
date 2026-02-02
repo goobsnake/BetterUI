@@ -80,6 +80,8 @@ end
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+-- TODO(doc): Add EmmyLua type annotations to all functions in BETTERUI.CIM.Utils namespace
+-- See SafeExecute.lua for the annotation pattern to follow
 
 --[[
 Function: BETTERUI.CIM.Utils.SafeGetTargetData

@@ -120,3 +120,8 @@
 1. Use XML `<FadeGradient>` instead of Lua `SetGradientColors` for initial load
 2. Explicit anchoring with offsets may return 0 on first frame
 3. Use parent container anchoring instead of calculated offsets
+
+<!-- TODO(doc): Add section for "Edge Cases and Known Gotchas"
+     Include: callback cleanup patterns, ZOS global override risks,
+     and scene lifecycle timing issues discovered in sr_engineering_team_review.md -->
+

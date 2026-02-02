@@ -7,11 +7,15 @@ Last Modified: 2026-01-28
 ]]
 
 -- Subclass ZO_GamepadInventory
+-- TODO(architecture): Document why Inventory subclasses ZO_GamepadInventory directly
+-- while Banking uses BETTERUI.Interface.Window (ZO_Object). Inconsistent patterns.
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
 local BLOCK_TABBAR_CALLBACK = true
 -- Override the scene name global so engine references find our scene
+-- TODO(fix): Document rationale for overriding ZO_GAMEPAD_INVENTORY_SCENE_NAME
+-- Modifying ZOS globals is fragile. Consider alternatives or document necessity.
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
 -- Validated Globals for Core
@@ -21,6 +25,8 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- The global aliases (INVENTORY_CATEGORY_LIST, etc.) are created there for backward compatibility.
 
 -- Apply Mixins (populated by other modules like PositionManager)
+-- TODO(refactor): Create standardized BETTERUI.CIM.ApplyMixin() helper function
+-- Manual iteration pattern is repeated in multiple places
 if BETTERUI.Inventory.ClassMixins then
     for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
         BETTERUI.Inventory.Class[name] = func
@@ -188,6 +194,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
             local origOnTextChanged = editBox:GetHandler("OnTextChanged")
             local origOnKeyDown = editBox:GetHandler("OnKeyDown")
 
+            -- TODO(refactor): Extract search focus handlers to CIM/Core/SearchManager.lua SearchFocusMixin
+            -- This code duplicates Banking.lua L261-320 (~50 lines nearly identical)
             editBox:SetHandler("OnFocusGained", function(eb)
                 if origOnFocusGained then origOnFocusGained(eb) end
                 -- Guard: Only process if inventory scene is actually showing

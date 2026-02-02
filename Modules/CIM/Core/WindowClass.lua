@@ -272,6 +272,8 @@ param: columnName (string) - The text to display.
 param: xOffset (number) - The horizontal position (left-aligned anchor).
 ]]
 -- Column widths for hit regions (calculated from column positions)
+-- TODO(refactor): Extract COLUMN_WIDTHS to BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
+-- Magic numbers should be centralized with directional documentation
 local COLUMN_WIDTHS = { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
 
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
@@ -283,6 +285,8 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     -- Use fixed column header offset (decoupled from list container position)
     local adjustedXOffset = xOffset + BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER.COLUMN_HEADER_X_ADJUST
     -- Nudge column headers further downward for better alignment with divider bars
+    -- TODO(refactor): Extract 109 to BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET
+    -- Direction: Positive (+) moves DOWN. Document in Constants.lua
     label:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
         adjustedXOffset, 109)
     label:SetText(columnName)

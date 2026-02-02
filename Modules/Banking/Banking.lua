@@ -29,6 +29,8 @@ KEY MECHANICS:
 
 ]]
 
+-- TODO(cleanup): CRITICAL - Remove this debug statement. Use FeatureFlags.DEBUG_LOGGING instead.
+-- See: sr_engineering_team_review.md Code Quality Lead verdict
 zo_callLater(function() d("[BetterUI Banking] Banking.lua FILE LOADED") end, 2000)
 
 -------------------------------------------------------------------------------------------------
@@ -258,6 +260,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         local origOnTextChanged = editBox:GetHandler("OnTextChanged")
         local origOnKeyDown = editBox:GetHandler("OnKeyDown")
 
+        -- TODO(refactor): Extract search focus handlers to CIM/Core/SearchManager.lua SearchFocusMixin
+        -- This code duplicates InventoryClass.lua L191-240 (~50 lines nearly identical)
         editBox:SetHandler("OnFocusGained", function(eb)
             if origOnFocusGained then origOnFocusGained(eb) end
             -- Guard: Only process if banking scene is actually showing
@@ -739,6 +743,8 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
+    -- TODO(fix): Add matching CALLBACK_MANAGER:UnregisterCallback calls in OnSceneHidden cleanup
+    -- Potential for callback accumulation if scenes are rapidly shown/hidden
 end
 
 -- NOTE: ActivateSpinner and DeactivateSpinner have been removed.
