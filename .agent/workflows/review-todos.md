@@ -12,15 +12,23 @@ Analyze all TODO comments in the BetterUI codebase and prioritize the most impac
   - Usage: `/review-todos 5` or `/review-todos 20`
   - If no number specified, defaults to 10
 
+- **--plan**: Create an implementation plan for the top TODOs
+  - Usage: `/review-todos --plan` or `/review-todos 5 --plan`
+  - When specified, proceed to Step 4 after generating the prioritized list
+  - Without this flag, stop after Step 3
+
 ---
 
 ## Step 1: Gather All TODOs
 
-Search the codebase for TODO, FIXME, HACK, and XXX comments:
+Search the codebase for TODO, FIXME, HACK, and XXX comments.
+
+> [!NOTE]
+> `rg` (ripgrep) is NOT installed on this system. Use `grep` instead.
 
 // turbo
 ```powershell
-cd x:\Git\BetterUI && rg -n "TODO|FIXME|HACK|XXX" --type lua --type xml -g "!.agent/*" -g "!tools/*"
+cd x:\Git\BetterUI && grep -rn --include="*.lua" --include="*.xml" -E "TODO|FIXME|HACK|XXX" . | grep -v "^./.agent/" | grep -v "^./tools/"
 ```
 
 ---
@@ -57,11 +65,18 @@ Output the top **{COUNT}** TODOs ranked by benefit-to-effort ratio:
 
 ---
 
-## Step 4: Optional - Create Implementation Plan
+## Step 4: Create Implementation Plan (requires `--plan` flag)
 
-For any TODO the user wants to address:
-1. Use `/writing-plans` skill to create implementation plan
-2. Execute via standard development workflow
+**Skip this step unless the `--plan` parameter was provided.**
+
+For the top TODOs from Step 3:
+
+1. Use the `writing-plans` skill to create an implementation plan for the prioritized TODO(s)
+2. Group related TODOs together where it makes sense
+3. Execute via standard development workflow
+
+> [!IMPORTANT]
+> **Remove TODOs after implementation**: When a TODO from an implementation plan is completed, the corresponding TODO comment in the source code MUST be removed. Do not leave resolved TODOs in the codebase - they create confusion and clutter future audits.
 
 ---
 

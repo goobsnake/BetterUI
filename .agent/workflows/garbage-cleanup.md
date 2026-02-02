@@ -1,0 +1,327 @@
+---
+description: Find and remove dead code, orphaned files, deprecated aliases, and unused references from the codebase
+---
+
+# Garbage Cleanup Workflow
+
+Comprehensive dead code detection and cleanup workflow. Identifies unused files, orphaned code, deprecated aliases, and unreferenced functions.
+
+// turbo-all
+
+## Prerequisites
+- Read `betterui-development-guidelines` skill
+- Read `betterui-sr-engineering-team` skill
+- Have access to `docs/DEPRECATED_ALIASES.md`
+
+---
+
+## Scope Configuration
+
+| Scope | Files Analyzed | Use When |
+|-------|----------------|----------|
+| `--core` | CIM module only (~50 files) | Focused cleanup of shared infrastructure |
+| `--all` | All modules (~156 files) | Full codebase garbage collection |
+
+**Default**: `--core` (safer, faster)
+
+---
+
+## Output Mode
+
+| Mode | Action | Use When |
+|------|--------|----------|
+| (none) | Report only | Discovery, understanding scope |
+| `--plan` | Create implementation plan | Ready to proceed with cleanup |
+
+---
+
+## Step 1: Discover Deprecated Aliases
+
+Check `docs/DEPRECATED_ALIASES.md` for known deprecated items:
+
+```powershell
+type x:\Git\BetterUI\docs\DEPRECATED_ALIASES.md
+```
+
+For each deprecated alias listed, verify if it's still used in the codebase.
+
+---
+
+## Step 2: Scan for Dead Files
+
+### 2.1 Find Unreferenced Lua Files
+
+Identify Lua files not referenced in the manifest (`BetterUI.txt`):
+
+```powershell
+cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.lua" Modules/ | ForEach-Object { $file = $_.Name; if (-not (Select-String -Path "BetterUI.txt" -Pattern $file -Quiet)) { $_.FullName } }
+```
+
+### 2.2 Find Orphaned XML Templates
+
+Identify XML templates not referenced by any Lua file:
+
+```powershell
+cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.xml" Modules/ | ForEach-Object { $template = $_.BaseName; if (-not (Get-ChildItem -Recurse -Filter "*.lua" Modules/ | Select-String -Pattern $template -Quiet)) { $_.FullName } }
+```
+
+### 2.3 Find Unused Image Assets
+
+Identify .dds files not referenced anywhere:
+
+```powershell
+cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.dds" Modules/ | ForEach-Object { $img = $_.BaseName; if (-not (Get-ChildItem -Recurse -Include "*.lua","*.xml" Modules/ | Select-String -Pattern $img -Quiet)) { $_.FullName } }
+```
+
+---
+
+## Step 3: Scan for Dead Code
+
+### 3.1 Unused Local Functions
+
+Use `grep` to find local functions and verify they're called:
+
+```powershell
+cd x:\Git\BetterUI && grep -rn --include="*.lua" "^local function" Modules/CIM/
+```
+
+For each local function found, verify it's referenced elsewhere in the same file.
+
+### 3.2 Unused Global Functions
+
+Find functions in the BETTERUI namespace that aren't called:
+
+```powershell
+cd x:\Git\BetterUI && grep -rn --include="*.lua" "^function BETTERUI\." Modules/
+```
+
+Cross-reference with usage across the codebase.
+
+### 3.3 Deprecated API Usage
+
+Search for usage of deprecated APIs from DEPRECATED_ALIASES.md:
+
+```powershell
+cd x:\Git\BetterUI && grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
+```
+
+> [!NOTE]
+> Replace `DEPRECATED_PATTERN` with actual patterns from DEPRECATED_ALIASES.md
+
+---
+
+## Step 4: Scan for Orphaned References
+
+### 4.1 String Keys in Localization
+
+Check for unused localization strings:
+
+```powershell
+cd x:\Git\BetterUI && pwsh -File tools/LocalizationAudit.ps1
+```
+
+Review the audit report for unused strings.
+
+### 4.2 Constants Never Used
+
+Find constants defined but never referenced:
+
+```powershell
+cd x:\Git\BetterUI && grep -rn --include="*.lua" "^CONST\." Modules/CIM/Constants.lua
+```
+
+For each constant, verify it's used elsewhere.
+
+---
+
+## Step 5: Generate Findings Report
+
+Create a structured report of all findings:
+
+```markdown
+# Garbage Cleanup Findings
+
+**Date**: {YYYY-MM-DD}
+**Scope**: [core / all]
+**Files Analyzed**: {count}
+
+## Summary
+
+| Category | Items Found | Severity |
+|----------|-------------|----------|
+| Dead Files | X | HIGH |
+| Dead Code | X | MEDIUM |
+| Deprecated Usage | X | HIGH |
+| Orphaned Strings | X | LOW |
+| Unused Constants | X | LOW |
+
+## Dead Files (Not in Manifest)
+
+| File | Last Modified | Recommendation |
+|------|---------------|----------------|
+| `path/to/file.lua` | {date} | DELETE / MIGRATE |
+
+## Dead Code (Unreferenced Functions)
+
+| File | Function | Lines | Recommendation |
+|------|----------|-------|----------------|
+| `path/to/file.lua` | `functionName` | L100-150 | DELETE / REFACTOR |
+
+## Deprecated API Usage
+
+| Location | Deprecated API | Replacement |
+|----------|----------------|-------------|
+| `file.lua:L50` | `BETTERUI.OldAPI` | `BETTERUI.NewAPI` |
+
+## Orphaned Resources
+
+| Resource Type | Path | Recommendation |
+|---------------|------|----------------|
+| XML Template | `path/to/template.xml` | DELETE |
+| Image Asset | `path/to/image.dds` | DELETE |
+| Lang String | `SI_BETTERUI_OLD` | REMOVE |
+
+## Risk Assessment
+
+| Change | Risk Level | Mitigation |
+|--------|------------|------------|
+| Delete file X | LOW | Not referenced |
+| Remove function Y | MEDIUM | Verify no dynamic calls |
+| Update API Z | HIGH | Multiple callers |
+```
+
+---
+
+## Step 6: Sr. Engineering Team Review
+
+Before presenting findings or creating an implementation plan, invoke the `betterui-sr-engineering-team` skill:
+
+1. **Announce**: "I'm using the betterui-sr-engineering-team skill to review garbage cleanup findings."
+
+2. **Present**: Show the findings report to the team.
+
+3. **Get verdicts**: Each team member reviews:
+   - **Lua Architect**: Verify no dynamic references or metatable usage
+   - **UI/UX Specialist**: Confirm no XML templates are loaded dynamically
+   - **Code Quality Lead**: Review for false positives in dead code detection
+   - **Sr. Software Developer**: Check for indirect call patterns
+   - **QA Gatekeeper**: Assess regression risk
+
+4. **Require PASS**: All 5 members must approve findings before proceeding.
+
+---
+
+## Step 7: Create Implementation Plan (if `--plan` specified)
+
+Only after Sr. Engineering Team approval, create `implementation_plan.md`:
+
+```markdown
+# Implementation Plan: Garbage Cleanup
+
+## User Review Required
+
+> [!WARNING]
+> This plan deletes files and removes code. Review carefully.
+> Consider creating a backup branch before proceeding.
+
+## Phase 1: Safe Deletions (No Risk)
+
+Files/code with zero references that are safe to remove.
+
+### [DELETE] [filename.lua](file:///path)
+**Reason**: Not in manifest, not imported anywhere
+
+---
+
+## Phase 2: Deprecated Migrations (Low Risk)
+
+Migrate deprecated API usage to current patterns.
+
+### [MODIFY] [filename.lua](file:///path)
+
+**Change**: Replace deprecated `OldAPI` with `NewAPI`
+
+```diff
+- local result = BETTERUI.OldAPI()
++ local result = BETTERUI.NewAPI()
+```
+
+---
+
+## Phase 3: Dead Code Removal (Medium Risk)
+
+Unreferenced functions/constants that appear safe to remove.
+
+> [!CAUTION]
+> Verify no dynamic calls before removing.
+
+### [MODIFY] [filename.lua](file:///path)
+
+**Remove**: Lines 100-150 (`unusedFunction`)
+
+---
+
+## Verification Plan
+
+- [ ] All tests pass (`lua tools/tests/run_all_tests.lua`)
+- [ ] Addon loads without errors
+- [ ] No functionality regressions in affected modules
+- [ ] Sr. Engineering Team final approval
+
+## Rollback Plan
+
+```powershell
+git checkout HEAD~1 -- <affected files>
+```
+```
+
+---
+
+## Quick Invocation
+
+### Report only (discovery):
+```
+/garbage-cleanup --core
+/garbage-cleanup --all
+```
+
+### With implementation plan:
+```
+/garbage-cleanup --core --plan
+/garbage-cleanup --all --plan
+```
+
+---
+
+## Command Reference
+
+| Command | Behavior |
+|---------|----------|
+| `/garbage-cleanup` | Core scope, report only |
+| `/garbage-cleanup --all` | All modules, report only |
+| `/garbage-cleanup --plan` | Core scope, with implementation plan |
+| `/garbage-cleanup --all --plan` | Full cleanup with implementation plan |
+
+---
+
+## Workflow Steps Summary
+
+1. **Discover**: Read DEPRECATED_ALIASES.md
+2. **Scan**: Find dead files, dead code, deprecated usage, orphaned resources
+3. **Report**: Generate structured findings
+4. **Review**: Sr. Engineering Team approval
+5. **Plan** (if `--plan`): Create implementation plan
+6. **Execute**: Implement approved changes
+7. **Verify**: Run tests, check addon loads
+8. **Commit**: `chore: remove dead code and deprecated items`
+
+---
+
+## Tips
+
+1. **Start with `--core`** - CIM is most critical, clean it first
+2. **Be conservative** - False positives are costly (removing used code)
+3. **Check dynamic patterns** - Lua can call functions via string names
+4. **Review metatable usage** - `__index` metamethods can hide references
+5. **Keep DEPRECATED_ALIASES.md updated** - Add new deprecations as they're identified
+
