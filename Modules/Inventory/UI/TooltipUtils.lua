@@ -3,7 +3,7 @@ File: Modules/Inventory/InventoryTooltipUtils.lua
 Purpose: specialized tooltip logic for the Inventory module.
          Extracted from Inventory.lua to reduce file size.
 Author: BetterUI Team
-Last Modified: 2026-01-23
+Last Modified: 2026-02-02
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
@@ -643,7 +643,8 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     if bottomRail then
                         scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
                     else
-                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI_TOOLTIP_SCROLL_OFFSET_Y)
+                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
+                            BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
                     end
                     scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
                 end

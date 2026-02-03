@@ -2,7 +2,7 @@
 File: Modules/Inventory/Module.lua
 Purpose: Handles settings, font customization, currency configuration, and module initialization.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-02
 ]]
 
 -- Shared font choices for Inventory (matches Nameplates for consistency)
@@ -64,7 +64,8 @@ function BETTERUI.Inventory.Setup()
 	end
 
 	-- Configure tooltip appearance and behavior
-	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE
+	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI.CIM.CONST
+	.TOOLTIP_MAX_FADE_GRADIENT_SIZE
 
 	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
 	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled

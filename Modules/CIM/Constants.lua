@@ -727,24 +727,11 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 -- BACKWARDS COMPATIBILITY ALIASES
 -- ============================================================================
 
--- AUDIT (2026-02-02): Backward compatibility aliases still in active use.
--- STATUS: P2 - Cannot remove yet. These aliases have active consumers:
---   - BETTERUI_TOOLTIP_Y_OFFSET: CIM/Core/TooltipLayout.lua:26
---   - BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE: Inventory/Module.lua:67
---   - BETTERUI_TOOLTIP_SCROLL_OFFSET_Y: Inventory/UI/TooltipUtils.lua:646
---
--- PLAN: Migrate consumers to use BETTERUI.CIM.CONST.* paths, then remove aliases.
--- BLOCKED: XML templates cannot use Lua namespace syntax - requires virtual control
---          offsets or Lua-based initialization. Defer until next refactoring sprint.
---
--- These aliases provide global constant names for XML attribute references which
--- cannot use Lua namespace syntax (e.g., BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH).
-
--- Tooltip legacy aliases
-BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE = BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE
-BETTERUI_TOOLTIP_X_OFFSET = BETTERUI.CIM.CONST.TOOLTIP_X_OFFSET
-BETTERUI_TOOLTIP_Y_OFFSET = BETTERUI.CIM.CONST.TOOLTIP_Y_OFFSET
-BETTERUI_TOOLTIP_SCROLL_OFFSET_Y = BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y
+-- Tooltip legacy aliases REMOVED (2026-02-02)
+-- Consumers migrated to use BETTERUI.CIM.CONST.* paths:
+--   - CIM/Core/TooltipLayout.lua
+--   - Inventory/Module.lua
+--   - Inventory/UI/TooltipUtils.lua
 
 -- Legacy namespace aliases (for code still using BETTERUI.CONST.*)
 BETTERUI.CONST.LAYOUT = BETTERUI.CIM.CONST.LAYOUT
