@@ -3,14 +3,14 @@ File: Modules/CIM/Core/PerformanceProfiler.lua
 Purpose: Performance profiling utilities for BetterUI debug mode.
          Provides timing hooks, counters, and metrics for optimization.
 Author: BetterUI Team
-Last Modified: 2026-02-01
+Last Modified: 2026-02-02
 
-TODO(architecture): This module is intentionally dormant - kept for future performance debugging.
-  Integration options:
+STATUS: DORMANT - Kept for future performance debugging needs.
+  This module has zero active consumers and is intentionally not integrated.
+  Integration options when performance profiling is needed:
   - Add BETTERUI.CIM.Profiler.StartTiming/EndTiming calls around expensive operations
   - Wrap list refresh functions with Profiler.Wrap() for automatic timing
-  - Enable via DeveloperDebug commands when investigating performance issues
-  Currently zero consumers - integrate when performance profiling is needed.
+  - Enable via /betterui debug perf or BETTERUI.Debug.perf = true
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

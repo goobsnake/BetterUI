@@ -6,16 +6,23 @@ Author: BetterUI Team
 Last Modified: 2026-01-28
 ]]
 
--- Subclass ZO_GamepadInventory
--- TODO(architecture): Document why Inventory subclasses ZO_GamepadInventory directly
--- while Banking uses BETTERUI.Interface.Window (ZO_Object). Inconsistent patterns.
+-- Architecture Note: BetterUI.Inventory subclasses ZO_GamepadInventory directly to:
+-- 1. Leverage ESO's proven inventory management foundation and slot handling
+-- 2. Override specific behaviors while maintaining API compatibility with addons
+-- 3. Access protected members without re-implementing base functionality
+-- Banking uses BETTERUI.Interface.Window (ZO_Object) because it requires more
+-- control over the scene lifecycle. This is intentional based on module needs.
+-- See: docs/ARCHITECTURE.md for inheritance diagram
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
 local BLOCK_TABBAR_CALLBACK = true
--- Override the scene name global so engine references find our scene
--- TODO(fix): Document rationale for overriding ZO_GAMEPAD_INVENTORY_SCENE_NAME
--- Modifying ZOS globals is fragile. Consider alternatives or document necessity.
+-- Scene Name Override: We replace ZO_GAMEPAD_INVENTORY_SCENE_NAME to ensure
+-- BetterUI's inventory scene is registered instead of the vanilla one. This must
+-- happen before any scene registration to avoid dual-scene conflicts. While modifying
+-- ZOS globals is generally fragile, this is required because the engine uses this
+-- global to find inventory scenes. Alternative approaches (scene name aliasing) were
+-- tested in v2.x and caused more issues than this direct override.
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
 -- Validated Globals for Core
@@ -25,8 +32,8 @@ ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 -- The global aliases (INVENTORY_CATEGORY_LIST, etc.) are created there for backward compatibility.
 
 -- Apply Mixins (populated by other modules like PositionManager)
--- TODO(refactor): Create standardized BETTERUI.CIM.ApplyMixin() helper function
--- Manual iteration pattern is repeated in multiple places
+-- Note: Consider creating BETTERUI.CIM.ApplyMixin() helper in a future refactor to DRY this pattern.
+-- Deferred: Low priority since the pattern only exists in 2-3 locations currently.
 if BETTERUI.Inventory.ClassMixins then
     for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
         BETTERUI.Inventory.Class[name] = func

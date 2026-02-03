@@ -28,6 +28,20 @@
 - Pre-define keybind descriptors during initialization, not in callbacks
 - Use `zo_callLater` with `DIALOG_QUEUE_TIMEOUT_MS` (120ms) when opening dialogs from action menus
 
+### Error Handling Patterns
+
+**Use `BETTERUI.CIM.SafeExecute()`:**
+- External API calls that may fail unpredictably (addon interop, ESO API edge cases)
+- Event handlers where errors shouldn't crash the addon
+- Operations with external dependencies (e.g., Master Merchant, TTC)
+
+**Use Guard Clauses:**
+- Input validation (nil checks, type checks)
+- State preconditions (e.g., ensuring a window is open before operating on it)
+- Flow control where failure is expected/normal behavior
+
+**Never** use SafeExecute to mask bugs - always investigate root causes first.
+
 ---
 
 ## Mistakes to Avoid
