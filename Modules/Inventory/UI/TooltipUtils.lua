@@ -280,6 +280,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 local iconSize = math.floor(fontSize * 1.2)
                 local iconSizeFmt = iconSize .. ":" .. iconSize
 
+                -- TODO(fix): Add nil-check for itemLink before calling GetItemLinkItemType
                 -- A. Item Type (Neck, Ring)
                 local itemType = GetItemLinkItemType(itemLink)
                 local typeString = GetString("SI_ITEMTYPE", itemType)

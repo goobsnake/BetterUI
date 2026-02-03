@@ -9,7 +9,7 @@
 -- and updates the UI panel with the relevant information for the current crafting station.
 --
 -- Writ detection patterns are defined in Constants.lua for centralized maintenance.
--- FUTURE: Add support for additional crafting types as ESO adds them
+-- TODO(refactor): Add support for additional crafting types as ESO adds them
 -- Last Modified: 2026-01-28
 ---------------------------------------------------------------------------------------------------
 

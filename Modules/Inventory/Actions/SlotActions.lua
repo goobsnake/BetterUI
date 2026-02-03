@@ -33,7 +33,7 @@ Last Modified: 2026-01-28
 --   - ResolveCraftBagState: Determines Stow vs Retrieve based on context
 --   - DeduplicateActions: Removes duplicate entries from action list
 --
--- FUTURE: Add support for custom actions from other addons
+-- TODO(refactor): Add support for custom actions from other addons
 --------------------------------------------------------------------------------
 
 local ACTION_KEY = 1

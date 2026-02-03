@@ -68,7 +68,6 @@ function BETTERUI.Inventory.Setup()
 	.TOOLTIP_MAX_FADE_GRADIENT_SIZE
 
 	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
-	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
 	local cimSettings = BETTERUI.Settings.Modules["CIM"]
 	if cimSettings and cimSettings.enableTooltipEnhancements ~= false then
 		BETTERUI.Inventory.ApplyTooltipStyles()

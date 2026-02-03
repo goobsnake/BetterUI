@@ -352,5 +352,4 @@ BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tal
 -- ============================================================================
 
 -- Set to true to show the shield overlay ring for visual debugging
--- Set to true to show the shield overlay ring for visual debugging
 BETTERUI_SHIELD_DEBUG = false

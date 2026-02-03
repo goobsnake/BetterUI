@@ -12,6 +12,7 @@ local Visuals = BETTERUI.ResourceOrbFrames.Visuals
 local Animations = BETTERUI.ResourceOrbFrames.Animations
 local NAME = "ResourceOrbFrames"
 
+-- TODO(doc): Document ORB_CONFIG table structure - indexes and {r, g, b, icon_path} format unclear
 -- Constants
 local ORB_CONFIG = {
     [POWERTYPE_HEALTH] = { 0, 1, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds' },

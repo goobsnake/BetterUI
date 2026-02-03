@@ -126,6 +126,7 @@ local function Init(mId, moduleName)
             warning = GetString(SI_BETTERUI_ROF_REQUIRES_RELOAD),
             requiresReload = true,
         },
+        -- TODO(refactor): Extract reset settings pattern to single ResetSettings() function - duplicated at lines 332, 509, 689
         {
             type = "button",
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),

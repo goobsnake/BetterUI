@@ -92,6 +92,7 @@ local function UpdateFrontBar(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
+    -- TODO(refactor): Use SkillBar.CONST.FRONT_BAR_SLOTS instead of duplicating slot mapping arrays
     local slotMapping = {
         { buttonName = "Button1",        slot = 3 },
         { buttonName = "Button2",        slot = 4 },
@@ -513,6 +514,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, mapping.category)
                 if effectRemaining and effectRemaining > 0 then
                     remainMs = effectRemaining
+                    -- TODO(fix): Suspicious assignment - durationMs = remainMs may break cooldown percentage calculation
                     durationMs =
                     remainMs              -- Effect timer doesn't have total duration usually accessible this way, just countdown
                     showCooldown = true
