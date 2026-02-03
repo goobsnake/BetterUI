@@ -204,6 +204,7 @@ local function RunSettingsMigrations(settings)
     if settings.Modules["Tooltips"] ~= nil then
         if settings.Modules["GeneralInterface"] == nil then
             settings.Modules["GeneralInterface"] = settings.Modules["Tooltips"]
+            -- TODO(cleanup): Remove commented debug statement or use BETTERUI.Debug()
             -- if ddebug then ddebug("Migrated settings: Tooltips -> GeneralInterface") end
         end
         -- Keep 'Tooltips' key in settings pointing to same table to avoid breaking older modules
@@ -222,6 +223,7 @@ local function RunSettingsMigrations(settings)
         if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then
             modSettings.m_enabled = modSettings.enabled
             modSettings.enabled = nil
+            -- TODO(cleanup): Remove commented debug statement or use BETTERUI.Debug()
             -- if ddebug then ddebug("Migrated settings for " .. modName .. ": enabled -> m_enabled") end
         end
     end

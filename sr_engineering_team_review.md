@@ -200,6 +200,14 @@ This review evaluates the BetterUI codebase against the standards defined in `be
 - [ ] Remove duplicate comment in SearchManager.lua:104-105
 - [ ] Remove duplicate comment in Module.lua (Inventory):71-72
 - [ ] Remove duplicate comment in Constants.lua (ROF):354-355
+- [ ] Use math.pi instead of hardcoded 3.1415 in Banking/Constants.lua:114
+- [ ] Rename "BETTERUI_TestWindow" to production name in Banking/Banking.lua:717
+- [ ] Move visibleItems magic number (10) to constants in Banking/Banking.lua:283
+- [ ] Remove commented debug statements in WindowClass.lua:422,431
+- [ ] Remove commented debug statements in RuntimeSetup.lua:207,225
+- [ ] Use SI_BETTERUI_ASSIGN_QUICKSLOTS in ActionDialogHooks.lua:153
+- [ ] Use BETTERUI_DEFAULT_SKILL_TEXT_SIZE constant in ResourceOrbFrames/Module.lua:40
+- [ ] Move font size offsets to constants in TooltipUtils.lua:25
 
 ### TODO(doc)
 - [ ] Document ORB_CONFIG table structure in OrbVisuals.lua:16-21

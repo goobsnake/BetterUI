@@ -419,6 +419,7 @@ Description: Handler for Next Tab action.
 Rationale: Placeholder debug function. Subclasses should override.
 ]]
 function BETTERUI.Interface.Window:OnTabNext()
+    -- TODO(cleanup): Remove commented debug statement
     -- ddebug("OnTabNext")
 end
 
@@ -428,6 +429,7 @@ Description: Handler for Previous Tab action.
 Rationale: Placeholder debug function. Subclasses should override.
 ]]
 function BETTERUI.Interface.Window:OnTabPrev()
+    -- TODO(cleanup): Remove commented debug statement
     -- ddebug("OnTabPrev")
 end
 

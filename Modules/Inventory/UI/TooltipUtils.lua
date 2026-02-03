@@ -22,6 +22,7 @@ References: Called by BETTERUI.Inventory.Setup
 function BETTERUI.Inventory.ApplyTooltipStyles()
     local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
 
+    -- TODO(cleanup): Move font size offsets (6, 4) to BETTERUI.CIM.CONST.TOOLTIP
     -- Calculate derived sizes from base font size
     local baseFontSize = tooltipSize
     local titleFontSize = baseFontSize + 6 -- Title is 6px larger

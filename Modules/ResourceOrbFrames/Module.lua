@@ -37,6 +37,7 @@ local function Init(mId, moduleName)
     local getOffset, setOffset = GetSet("offsetY", 0)
     local getCustomTex, setCustomTex = GetSetNoUpdate("useCustomTextures", false)
 
+    -- TODO(cleanup): Use BETTERUI_DEFAULT_SKILL_TEXT_SIZE constant instead of hardcoded 27
     local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize", 27)
     local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor", { 0.86, 0.84, 0.13, 1 })
     local getQuickslotSize, setQuickslotSize = GetSet("quickslotTextSize", 27)
