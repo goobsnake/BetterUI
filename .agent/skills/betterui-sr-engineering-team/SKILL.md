@@ -27,12 +27,15 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 
 Use this skill at these checkpoints:
 
-| Checkpoint | Trigger |
-|------------|---------|
-| **Implementation Plan Review** | Before executing a multi-phase plan |
-| **Phase Completion** | Before moving to the next phase |
-| **Pre-Commit Review** | Before committing significant code changes |
-| **Final Verification** | Before claiming work is complete |
+| Checkpoint | Trigger | Workflow |
+|------------|---------|----------|
+| **Implementation Plan Review** | Before executing a multi-phase plan | `/sr-review-gate --plan-review` |
+| **Phase Completion** | Before moving to the next phase | `/sr-review-gate --phase-review` |
+| **Pre-Commit Review** | Before committing significant code changes | `/sr-review-gate --phase-review` |
+| **Final Verification** | Before claiming work is complete | `/sr-review-gate --phase-review` |
+
+> [!TIP]
+> Use the `/sr-review-gate` workflow to invoke this team's review process in a structured way.
 
 ## Context Refresh Requirement
 
@@ -217,10 +220,11 @@ At each gate:
 
 ---
 
-## Related Skills
+## Related Skills & Workflows
 
-| Skill | When to Use |
-|-------|-------------|
+| Resource | When to Use |
+|----------|-------------|
+| `/sr-review-gate` workflow | **REQUIRED** - Structured process for invoking this team |
 | `betterui-development-guidelines` | **REQUIRED** - Compliance baseline for all reviews |
 | `verification-before-completion` | Before final sign-off |
 | `systematic-debugging` | When reviewing bug fixes |

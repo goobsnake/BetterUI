@@ -259,6 +259,12 @@ These skills complement the development workflow:
 | `using-git-worktrees` | For working on multiple branches simultaneously |
 | `writing-skills` | When creating or updating skill documentation |
 
+| Workflow | When to Use |
+|----------|-------------|
+| `/sr-review-gate` | **REQUIRED** - Before executing plans and after each phase |
+| `/verify-integrity` | Before task completion |
+| `/update-tribal-knowledge` | At end of development sessions |
+
 ## Workflow Integration
 
 A complete development cycle chains these skills together:
@@ -295,7 +301,12 @@ Execute `/verify-integrity` to ensure all automated checks pass.
 Run `/update-tribal-knowledge` to document any API quirks, gotchas, or lessons learned during the session.
 
 ### Step 3: Sr. Engineering Team Review
-Use the `betterui-sr-engineering-team` skill for final review.
+
+Use the `/sr-review-gate` workflow for structured team review:
+
+```
+Follow /sr-review-gate --phase-review
+```
 
 ### Step 4: Generate Completion Artifacts
 
