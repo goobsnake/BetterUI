@@ -152,6 +152,7 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
         self:DeactivateSpinner()
     end
 
+    -- TODO(fix): Add nil-check before calling RefreshVisible - GetList() may return nil during scene transitions
     list:RefreshVisible()
     self:ApplySpinnerMinMax(activateSpinner)
     list:SetDirectionalInputEnabled(not activateSpinner)

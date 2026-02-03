@@ -101,8 +101,6 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
 
     -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
     -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
-    -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
-    -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
     self:RefreshActiveKeybinds()
 
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then

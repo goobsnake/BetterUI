@@ -84,6 +84,7 @@ param: layout (any) - Layout info (unused explicitly here).
 References: Called by Inventory and Banking initialization.
 ]]
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
+    -- TODO(fix): Add nil-checks for chained GetNamedChild calls - crashes if XML structure is missing
     control.controls =
     {
         [TABBAR]         = control:GetNamedChild("TabBar"),
@@ -95,6 +96,7 @@ function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
 
     if createTabBar == ZO_GAMEPAD_HEADER_TABBAR_CREATE then
         local tabBarControl = control.controls[TABBAR]
+        -- TODO(fix): Add nil-check for tabBarControl before SetHidden call
         tabBarControl:SetHidden(false)
     end
 end

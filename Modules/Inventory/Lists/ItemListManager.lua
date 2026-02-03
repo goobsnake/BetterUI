@@ -612,6 +612,7 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     end
 
     -- Safety: Ensure BetterUI tooltip properties are set (in case GeneralInterface hooks are disabled)
+    -- TODO(fix): Validate tooltip state after data retrieval to prevent corrupted display
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
     if tooltip and not tooltip._betterui_itemLink and selectedData.bagId then
         tooltip._betterui_bagId = selectedData.bagId

@@ -39,6 +39,7 @@ function BETTERUI.Banking.Class:UpdateActions()
     end
     -- since SetInventorySlot also adds/removes keybinds, the order which we call these 2 functions is important
     -- based on whether we are looking at an item or a faux-item
+    -- TODO(fix): Add nil-check for ZO_GamepadBanking before calling IsEntryDataCurrencyRelated
     if ZO_GamepadBanking.IsEntryDataCurrencyRelated(targetData) then
         self.itemActions:SetInventorySlot(nil)
     else
@@ -51,6 +52,7 @@ Function: BETTERUI.Banking.Class:AddKeybinds
 Description: Registers the banking keybind groups.
 ]]
 function BETTERUI.Banking.Class:AddKeybinds()
+    -- TODO(refactor): Replace RemoveAllKeyButtonGroups() with specific group removal to avoid breaking other addons
     KEYBIND_STRIP:RemoveAllKeyButtonGroups()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)

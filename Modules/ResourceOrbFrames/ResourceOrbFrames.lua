@@ -69,6 +69,7 @@ local function RefreshAllData()
         ZO_StatusBar_SmoothTransition(pool, powerValue, powerMax)
     end
 
+    -- TODO(fix): Add nil-check for m_pools and GetMax() result to prevent crash
     if m_shieldBar then
         local healthMax = m_pools[POWERTYPE_HEALTH] and m_pools[POWERTYPE_HEALTH]:GetMax() or 1
         m_shieldBar:SetRange(0, healthMax)
@@ -298,6 +299,7 @@ local function SetupModule(control)
         function()
             ROFTasks:Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
                 SkillBar.HideNativeActionBar()
+                -- TODO(fix): Add nil-check for PLAYER_ATTRIBUTE_BARS_FRAGMENT before calling SetHiddenForReason
                 if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
                     PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
                 end
@@ -315,6 +317,7 @@ end
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
 
+    -- TODO(architecture): Add initialization guard to prevent double SetupModule() calls
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()

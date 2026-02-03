@@ -73,6 +73,7 @@ function Events.SetupVisibilityFragments(rootFrame)
         DeferredEnforceHide(100)
     end)
 
+    -- TODO(architecture): Add existence check and error handling for SCENE_MANAGER method overrides - could break other addons
     if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDScene then
         local originalRestoreHUDScene = SCENE_MANAGER.RestoreHUDScene
         SCENE_MANAGER.RestoreHUDScene = function(self, ...)

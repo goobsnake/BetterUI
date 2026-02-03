@@ -48,6 +48,7 @@ References: Called by RuntimeSetup.Apply().
 local function ApplyAPIPatches()
     if patchesApplied then return end
 
+    -- TODO(refactor): Extract common icon patching pattern into helper function - 6 nearly identical blocks follow
     -- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
     if type(zo_iconFormat) == "function" then
         local _orig_zo_iconFormat = zo_iconFormat

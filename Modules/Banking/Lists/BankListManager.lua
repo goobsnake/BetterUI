@@ -100,6 +100,7 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     end
     visibility["all"] = true
 
+    -- TODO(refactor): Extract bag setup logic to shared helper - duplicated at line 227
     -- Determine which bags to scan based on mode
     local bags = {}
     local slotType
@@ -176,6 +177,7 @@ function BETTERUI.Banking.Class:RefreshList()
         GetString(SI_BETTERUI_BANKING_DEPOSIT)
     wdString = zo_strformat("<<Z:1>>", wdString)
 
+    -- TODO(fix): Ensure activeCategoryForHeader is not nil before accessing .key property
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if (currentUsedBank == BAG_BANK) then
         if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then
