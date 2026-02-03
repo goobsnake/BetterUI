@@ -111,23 +111,27 @@ end
 --- References: Called by RefreshItemList.
 ---
 function BETTERUI.Inventory.Class:RefreshCategoryList()
-    local function IsStolenAndNotJunk()
+    local function CountStolenNotJunk()
+        local count = 0
         local backpack = self:GetCachedSlotData(BAG_BACKPACK)
         if backpack then
             for _, slotData in ipairs(backpack) do
                 if slotData and slotData.stolen and not slotData.isJunk then
-                    return true
+                    count = count + 1
                 end
             end
         end
 
-        local bagSize = GetBagSize(BAG_BACKPACK) or 0
-        for slotIndex = 0, bagSize - 1 do
-            if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
-                return true
+        -- Fallback if cache unavailable
+        if count == 0 then
+            local bagSize = GetBagSize(BAG_BACKPACK) or 0
+            for slotIndex = 0, bagSize - 1 do
+                if IsItemStolen(BAG_BACKPACK, slotIndex) and not IsItemJunk(BAG_BACKPACK, slotIndex) then
+                    count = count + 1
+                end
             end
         end
-        return false
+        return count
     end
 
     -- Store the current selected index before clearing so we can restore it
@@ -179,26 +183,33 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                     local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil, BAG_WORN)
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
                     data.showEquipped = true
+                    data.itemCount = usedBagSize
                     shouldAdd = true
                 end
             elseif catDef.key == "Quest" then
                 local questCache = SHARED_INVENTORY:GenerateFullQuestCache()
-                if next(questCache) then
+                local questCount = 0
+                for _ in pairs(questCache) do questCount = questCount + 1 end
+                if questCount > 0 then
                     local name = GetString(catDef.nameStringId)
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile)
                     data.filterType = catDef.filterType
+                    data.itemCount = questCount
                     shouldAdd = true
                 end
             elseif catDef.key == "Stolen" then
-                if IsStolenAndNotJunk() then
+                local stolenCount = CountStolenNotJunk()
+                if stolenCount > 0 then
                     local name = GetString(catDef.nameStringId)
                     local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil, BAG_BACKPACK)
                     data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
                     data.showStolen = true
+                    data.itemCount = stolenCount
                     shouldAdd = true
                 end
             elseif catDef.key == "Junk" then
-                if self:HasAnyJunkInBackpack() then
+                local junkCount = self:CountJunkInBackpack()
+                if junkCount > 0 then
                     local isListEmpty = self:IsItemListEmpty(nil, nil)
                     if not isListEmpty then
                         local name = GetString(catDef.nameStringId)
@@ -206,6 +217,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
                             BAG_BACKPACK)
                         data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
                         data.showJunk = true
+                        data.itemCount = junkCount
                         shouldAdd = true
                     end
                 end

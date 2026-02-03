@@ -125,6 +125,7 @@
         <!-- 
             Full Screen Template (CIM Screen)
             Combines Header, Footer, and List Container into a full scene fragment structure.
+            Used by Banking and other modules that want parity with Inventory's layout.
         -->
         <Control name="BETTERUI_Gamepad_ParametricList_Screen"
             inherits="BETTERUI_GamepadGrid_NavQuadrant_1_Anchors" hidden="true" virtual="true">
@@ -137,9 +138,14 @@
                             <AnchorFill />
 
                             <Controls>
-                                <!-- Header and Footer inherit CIM generic styles -->
+                                <!-- Header inherits CIM generic styles -->
                                 <Control name="$(parent)HeaderContainer"
                                     inherits="BETTERUI_GamepadScreenHeaderContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
+
+                                <!-- List Container for scroll list items -->
+                                <Control name="$(parent)ListContainer"
+                                    inherits="BETTERUI_Gamepad_ParametricList_Screen_ListContainer" />
+
                                 <!-- Use UnifiedFooter for mode switching (CURRENCY vs BANKING) -->
                                 <Control name="$(parent)FooterContainer"
                                     inherits="BETTERUI_UnifiedFooterContainer BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" />
@@ -150,5 +156,6 @@
                 </Scroll>
             </Controls>
         </Control>
+
     </Controls>
 </GuiXml>

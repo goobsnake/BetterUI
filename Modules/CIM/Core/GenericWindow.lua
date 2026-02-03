@@ -2,9 +2,11 @@
 File: Modules/CIM/Core/GenericWindow.lua
 Purpose: A specialized base class for Inventory-like windows (Banking, Backpack).
          Inherits from BETTERUI.Interface.Window and adds shared inventory behaviors.
+         Supports configurable virtual templates for header unification.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-02-03
 ]]
+
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
@@ -27,9 +29,12 @@ end
 Function: BETTERUI.CIM.GenericWindow:Initialize
 Description: Initialize the generic inventory window.
 Mechanism: Calls parent Initialize and sets up category position tracking.
+param: tlw_name (string) - Top-level window name.
+param: scene_name (string) - Scene name to register.
+param: virtualTemplate (string|nil) - Optional template override for modern modules.
 ]]
-function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name)
-    BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
+function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name, virtualTemplate)
+    BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name, virtualTemplate)
 
     -- Category position persistence
     self.categoryPositions = {}

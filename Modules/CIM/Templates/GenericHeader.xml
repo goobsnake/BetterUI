@@ -2,6 +2,7 @@
     <!--
     File: Modules/CIM/Templates/GenericHeader.xml
     Purpose: Defines the structure of the custom Gamepad Header.
+    Last Modified: 2026-02-03
     
     Visual Hierarchy:
     1. Tab Bar (Carousel): Top section, scrolling icons.
@@ -84,11 +85,17 @@
                     <Anchor point="CENTER" relativeTo="$(parent)"
                         offsetY="BETTERUI_HEADER_BUMPER_ICON_Y_OFFSET" />
                 </Texture>
-                <Label name="$(parent)Label" font="ZoFontGamepad20" horizontalAlignment="CENTER"
-                    wrapMode="ELLIPSIS" modifyTextType="UPPERCASE">
-                    <Dimensions x="0" />
-                    <Anchor point="CENTER" relativeTo="$(parent)Icon" offsetY="20" />
-                    <Anchor point="RIGHT" offsetX="-BETTERUI_TABBAR_ICON_WIDTH" />
+                <!-- Hidden label required for ZO_GamepadMenuHeaderTemplate compatibility -->
+                <Label name="$(parent)Label" font="ZoFontGamepad18" hidden="true">
+                    <Dimensions x="1" y="1" />
+                </Label>
+                <!-- Category item count badge - positioned ABOVE the icon, shown only when selected -->
+                <Label name="$(parent)CountBadge" font="ZoFontGamepad27"
+                    horizontalAlignment="CENTER"
+                    wrapMode="TRUNCATE" hidden="true">
+                    <Dimensions x="100" y="36" />
+                    <Anchor point="BOTTOM" relativeTo="$(parent)Icon" relativePoint="TOP"
+                        offsetY="-4" />
                 </Label>
             </Controls>
         </Control>

@@ -220,6 +220,32 @@ function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
     return false
 end
 
+--- Counts junk items in the backpack for category badge display.
+--- @return number count The number of junk items
+function BETTERUI.Inventory.Class:CountJunkInBackpack()
+    local count = 0
+    -- Prefer shared inventory cache
+    local backpack = self:GetCachedSlotData(BAG_BACKPACK)
+    if backpack then
+        for _, slotData in ipairs(backpack) do
+            if slotData and slotData.isJunk == true then
+                count = count + 1
+            end
+        end
+    end
+
+    -- Fallback if cache unavailable
+    if count == 0 then
+        local size = GetBagSize(BAG_BACKPACK) or 0
+        for slotIndex = 0, size - 1 do
+            if IsItemJunk(BAG_BACKPACK, slotIndex) then
+                count = count + 1
+            end
+        end
+    end
+    return count
+end
+
 --- Sets up visual data (name, icon, coloring) for an inventory row.
 function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
     self.uniqueId = itemData.uniqueId

@@ -32,10 +32,10 @@ param: activated (boolean) - (unused)
 References: Used as the setup callback for BETTERUI_TabBarScrollList.
 ]]
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
-    local label = control:GetNamedChild("Label")
+    local countBadge = control:GetNamedChild("CountBadge")
     local icon = control:GetNamedChild("Icon")
 
-    -- Resolve text if function (though ignored by SetHidden(true) above, might be used for accessiblity later)
+    -- Resolve text if function (used for accessibility)
     local text = data.text
     if type(text) == "function" then
         text = text()
@@ -49,16 +49,6 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     local color = data.filterType and colors.TAB_ICON_FILTER or colors.TAB_ICON_GOLD
     icon:SetColor(color[1], color[2], color[3], icon:GetControlAlpha())
 
-    -- Display item count badge for selected tab only
-    -- Count is populated by module's RefreshList via data.itemCount
-    if selected and data.itemCount and data.itemCount > 0 then
-        label:SetText(tostring(data.itemCount))
-        label:SetHidden(false)
-        label:SetColor(1, 1, 1, 1) -- White text for count
-    else
-        label:SetHidden(true)
-    end
-
     if data.canSelect == nil then
         data.canSelect = true
     end
@@ -70,7 +60,21 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
         BETTERUI_TabBar_OnCategoryIconClicked(self)
     end)
 
+    -- Call base setup function (this may set label text to category name)
     ZO_GamepadMenuHeaderTemplate_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
+
+    -- Display item count badge for selected tab only
+    -- Count is populated by module's RefreshList via data.itemCount
+    -- NOTE: Must be AFTER base setup since that overwrites the label control
+    if countBadge then
+        if selected and data.itemCount and data.itemCount > 0 then
+            countBadge:SetText("[" .. tostring(data.itemCount) .. "]")
+            countBadge:SetHidden(false)
+            countBadge:SetColor(1, 1, 1, 0.9) -- White text for count with slight transparency
+        else
+            countBadge:SetHidden(true)
+        end
+    end
 end
 
 --[[
