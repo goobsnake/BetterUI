@@ -479,6 +479,22 @@ BETTERUI.CIM.CONST.LAYOUT.LIST = {
 }
 
 --[[
+Constant: BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET
+Description: Y offset for column header labels relative to header bar.
+Direction: Positive (+) moves DOWN.
+Used By: WindowClass.lua AddColumn method
+]]
+BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET = 109
+
+--[[
+Constant: BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
+Description: Column widths for header hit regions used in sorting.
+Used By: WindowClass.lua AddColumn method
+Layout: { NAME, TYPE, TRAIT, STAT, VALUE }
+]]
+BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS = { 540, 250, 180, 130, 100 }
+
+--[[
 Table: BETTERUI.CIM.CONST.LAYOUT.COLUMNS
 Description: X Offsets and Widths for the inventory grid columns.
 Direction: OFFSET_X is Positive (+) moving RIGHT from the left edge of the list entry.

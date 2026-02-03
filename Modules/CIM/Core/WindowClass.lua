@@ -271,14 +271,6 @@ Description: Adds a column header to the window.
 param: columnName (string) - The text to display.
 param: xOffset (number) - The horizontal position (left-aligned anchor).
 ]]
--- Column widths for hit regions (calculated from column positions)
--- TODO(refactor): P2 - Extract COLUMN_WIDTHS to BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
--- Current values: { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
--- Also extract COLUMN_HEADER_Y_OFFSET (109) from AddColumn method (see line 291)
--- Centralize in CIM/Constants.lua with directional documentation
--- Estimated effort: 1 hour
-local COLUMN_WIDTHS = { 540, 250, 180, 130, 100 } -- NAME, TYPE, TRAIT, STAT, VALUE
-
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     local label = CreateControlFromVirtual("Column" .. colNumber,
@@ -287,14 +279,13 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
 
     -- Use fixed column header offset (decoupled from list container position)
     local adjustedXOffset = xOffset + BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER.COLUMN_HEADER_X_ADJUST
-    -- Nudge column headers further downward for better alignment with divider bars
-    -- TODO(refactor): Extract 109 to BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET
-    -- Direction: Positive (+) moves DOWN. Document in Constants.lua
+    -- Use centralized constant for Y offset (positive moves DOWN)
     label:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
-        adjustedXOffset, 109)
+        adjustedXOffset, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
     label:SetText(columnName)
 
     -- Set explicit dimensions for proper mouse hit region
+    local COLUMN_WIDTHS = BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
     local columnWidth = COLUMN_WIDTHS[colNumber] or 100
     label:SetDimensions(columnWidth, 30)
 
