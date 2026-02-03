@@ -397,3 +397,100 @@ return: boolean - True if focused.
 function BETTERUI.Interface.SearchMixin.IsSearchFocused(self)
     return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
 end
+
+-------------------------------------------------------------------------------------------------
+-- SEARCH FOCUS HANDLERS MIXIN
+-- Consolidated edit box handlers previously duplicated in Banking.lua and InventoryClass.lua
+-------------------------------------------------------------------------------------------------
+
+--[[
+Function: SearchMixin.SetupEditBoxHandlers
+Description: Sets up focus, text change, and navigation handlers for the search edit box.
+Rationale: Consolidates ~50 lines of duplicate code from Banking.lua and InventoryClass.lua.
+Mechanism:
+  1. Wraps existing handlers to preserve original behavior.
+  2. Adds scene guards to prevent processing when scene is hidden.
+  3. Handles D-pad/stick navigation to exit search on Down press.
+param: options (table) - Configuration options:
+  - isSceneShowing (function): Returns true if the window's scene is showing
+  - onTextChanged (function|nil): Custom callback when search text changes
+  - onExitFocus (function|nil): Custom callback when exiting search focus
+  - enterHeaderFn (function|nil): Called when focus should enter header mode
+]]
+function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
+    if not self.textSearchHeaderFocus then return end
+    local editBox = self.textSearchHeaderFocus:GetEditBox()
+    if not editBox then return end
+
+    options = options or {}
+    local isSceneShowing = options.isSceneShowing or function() return true end
+    local onTextChanged = options.onTextChanged
+    local onExitFocus = options.onExitFocus or function() self:ExitSearchFocus() end
+    local enterHeaderFn = options.enterHeaderFn
+
+    -- Preserve original handlers
+    local origOnFocusGained = editBox:GetHandler("OnFocusGained")
+    local origOnFocusLost = editBox:GetHandler("OnFocusLost")
+    local origOnTextChanged = editBox:GetHandler("OnTextChanged")
+    local origOnKeyDown = editBox:GetHandler("OnKeyDown")
+    local origOnShortcut = editBox:GetHandler("OnShortcut")
+
+    -- OnFocusGained: Request header mode if needed
+    editBox:SetHandler("OnFocusGained", function(eb)
+        if origOnFocusGained then origOnFocusGained(eb) end
+        if not isSceneShowing() then return end
+        if enterHeaderFn then
+            enterHeaderFn(self)
+        elseif self.IsHeaderActive and self.RequestEnterHeader then
+            if not self:IsHeaderActive() then self:RequestEnterHeader() end
+        end
+    end)
+
+    -- OnFocusLost: Exit search focus
+    editBox:SetHandler("OnFocusLost", function(eb)
+        if origOnFocusLost then origOnFocusLost(eb) end
+        if not isSceneShowing() then return end
+        onExitFocus(self)
+    end)
+
+    -- OnTextChanged: Update search query and optionally refresh
+    editBox:SetHandler("OnTextChanged", function(eb)
+        if origOnTextChanged then origOnTextChanged(eb) end
+        if not isSceneShowing() then return end
+
+        local txt = eb:GetText() or ""
+        self.searchQuery = txt
+
+        if onTextChanged then
+            onTextChanged(self, txt)
+        end
+    end)
+
+    -- OnKeyDown: Handle D-pad Down to exit search
+    editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
+        if origOnKeyDown then
+            local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
+            if handled then return handled end
+        end
+        if not isSceneShowing() then return end
+
+        if command == "UI_SHORTCUT_DOWN" then
+            onExitFocus(self)
+            return true
+        end
+    end)
+
+    -- OnShortcut: Handle UI shortcuts (e.g., gamepad equivalents)
+    if origOnShortcut then
+        editBox:SetHandler("OnShortcut", function(eb, shortcut)
+            local handled = origOnShortcut(eb, shortcut)
+            if handled then return handled end
+            if not isSceneShowing() then return end
+
+            if shortcut == "UI_SHORTCUT_DOWN" then
+                onExitFocus(self)
+                return true
+            end
+        end)
+    end
+end

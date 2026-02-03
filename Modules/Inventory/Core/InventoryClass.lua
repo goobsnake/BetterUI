@@ -183,70 +183,28 @@ function BETTERUI.Inventory.Class:Initialize(control)
                 self:RefreshItemList()
             end
         end)
-        if self.PositionSearchControl then
-            self:PositionSearchControl()
-        end
-        -- Hook into the actual edit box to detect when it gains/loses keyboard focus.
-        if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
-            local editBox = self.textSearchHeaderFocus:GetEditBox()
-            local origOnFocusGained = editBox:GetHandler("OnFocusGained")
-            local origOnFocusLost = editBox:GetHandler("OnFocusLost")
-            local origOnTextChanged = editBox:GetHandler("OnTextChanged")
-            local origOnKeyDown = editBox:GetHandler("OnKeyDown")
-
-            -- TODO(refactor): Extract search focus handlers to CIM/Core/SearchManager.lua SearchFocusMixin
-            -- This code duplicates Banking.lua L261-320 (~50 lines nearly identical)
-            editBox:SetHandler("OnFocusGained", function(eb)
-                if origOnFocusGained then origOnFocusGained(eb) end
-                -- Guard: Only process if inventory scene is actually showing
-                if not (self.scene and self.scene:IsShowing()) then return end
-                if not self:IsHeaderActive() then self:RequestEnterHeader() end
-            end)
-
-            editBox:SetHandler("OnFocusLost", function(eb)
-                if origOnFocusLost then origOnFocusLost(eb) end
-                -- Guard: Only process if inventory scene is actually showing
-                if not (self.scene and self.scene:IsShowing()) then return end
-                self:ExitSearchFocus()
-            end)
-
-            editBox:SetHandler("OnTextChanged", function(eb)
-                if origOnTextChanged then origOnTextChanged(eb) end
-                -- Guard: Only process if inventory scene is actually showing
-                if not (self.scene and self.scene:IsShowing()) then return end
-
-                local txt = ""
-                local t = eb:GetText()
-                if t then txt = t end
-                self.searchQuery = txt or ""
+        -- Use consolidated SearchFocusMixin for edit box handlers
+        -- This replaces ~60 lines of duplicate code (previously duplicated in Banking.lua)
+        BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
+            isSceneShowing = function()
+                return self.scene and self.scene:IsShowing()
+            end,
+            onTextChanged = function(window, txt)
+                window.searchQuery = txt
 
                 -- Only force a local refresh for the craft-bag when the engine
                 -- will not perform background filtering (to avoid doubling work).
                 local willEngineFilter = false
                 if ZO_TextSearchManager and ZO_TextSearchManager.CanFilterByText then
-                    willEngineFilter = ZO_TextSearchManager.CanFilterByText(self.searchQuery)
+                    willEngineFilter = ZO_TextSearchManager.CanFilterByText(window.searchQuery)
                 end
 
-                if self:GetCurrentList() == self.craftBagList and not willEngineFilter then
-                    self:SaveListPosition()
-                    self:RefreshCraftBagList()
+                if window:GetCurrentList() == window.craftBagList and not willEngineFilter then
+                    window:SaveListPosition()
+                    window:RefreshCraftBagList()
                 end
-            end)
-
-            editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
-                if origOnKeyDown then
-                    local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
-                    if handled then return handled end
-                end
-                -- Guard: Only process if inventory scene is actually showing
-                if not (self.scene and self.scene:IsShowing()) then return end
-
-                if command == "UI_SHORTCUT_DOWN" then
-                    self:ExitSearchFocus()
-                    return true
-                end
-            end)
-        end
+            end,
+        })
     end
 
     -- Force a short delayed refresh of the main keybind group
