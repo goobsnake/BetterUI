@@ -21,14 +21,15 @@ Analyze all TODO comments in the BetterUI codebase and prioritize the most impac
 
 ## Step 1: Gather All TODOs
 
-Search the codebase for TODO, FIXME, HACK, and XXX comments.
+Search the codebase for TODO, FIXME, HACK, and XXX comments in **BetterUI source code only**.
 
 > [!NOTE]
-> `rg` (ripgrep) is NOT installed on this system. Use `grep` instead.
+> - `rg` (ripgrep) is NOT installed on this system. Use `grep` instead.
+> - The search excludes: `esoui/` (base game), `.agent/`, `tools/`, and other `.gitignore` patterns.
 
 // turbo
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" --include="*.xml" -E "TODO|FIXME|HACK|XXX" . | grep -v "^./.agent/" | grep -v "^./tools/"
+cd x:\Git\BetterUI && grep -rn --include="*.lua" --include="*.xml" -E "TODO|FIXME|HACK|XXX" . | grep -v "^./esoui/" | grep -v "^./.agent/" | grep -v "^./tools/" | grep -v "^./.idea/" | grep -v "^./.vscode/" | grep -v "^./source/"
 ```
 
 ---
@@ -73,7 +74,20 @@ For the top TODOs from Step 3:
 
 1. Use the `writing-plans` skill to create an implementation plan for the prioritized TODO(s)
 2. Group related TODOs together where it makes sense
-3. Execute via standard development workflow
+3. **Before executing**, invoke the review gate:
+
+```
+Follow /sr-review-gate --plan-review
+```
+
+All 5 team members must PASS before proceeding.
+
+4. Execute via standard development workflow
+5. **After each phase completes:**
+
+```
+Follow /sr-review-gate --phase-review
+```
 
 > [!IMPORTANT]
 > **Remove TODOs after implementation**: When a TODO from an implementation plan is completed, the corresponding TODO comment in the source code MUST be removed. Do not leave resolved TODOs in the codebase - they create confusion and clutter future audits.

@@ -411,13 +411,25 @@ Create `implementation_plan.md` with:
 ...
 ```
 
-#### 3A.2 Request User Approval
+#### 3A.2 Plan Review Gate
 
-Present the plan via `notify_user` and wait for approval.
+Before executing, invoke the review gate:
 
-#### 3A.3 Execute TODO Insertions
+```
+Follow /sr-review-gate --plan-review
+```
+
+All 5 team members must PASS before proceeding.
+
+#### 3A.3 Execute TODO Insertions With Phase Gates
 
 Add TODO comments using `multi_replace_file_content` for efficiency.
+
+**After each phase completes:**
+
+```
+Follow /sr-review-gate --phase-review
+```
 
 #### 3A.4 Verify & Commit
 
@@ -478,18 +490,32 @@ Create `implementation_plan.md` with:
 - [ ] No regressions in [related area]
 ```
 
-#### 3B.3 Request User Approval
+#### 3B.3 Plan Review Gate
 
-Present the plan via `notify_user` with `BlockedOnUser: true`.
+Before executing, invoke the review gate:
 
-**Critical**: Do NOT proceed without explicit approval for action mode.
+```
+Follow /sr-review-gate --plan-review
+```
 
-#### 3B.4 Execute Fixes
+All 5 team members must PASS before proceeding.
+
+**Critical**: Do NOT proceed without approval for action mode.
+
+#### 3B.4 Execute Fixes With Phase Gates
 
 Implement changes per the approved plan:
 - Use `multi_replace_file_content` for multiple edits in same file
 - Use `replace_file_content` for single contiguous edits
 - Batch by module to maintain context
+
+**After each phase completes:**
+
+```
+Follow /sr-review-gate --phase-review
+```
+
+**Mandatory**: Every phase must be reviewed before proceeding to the next.
 
 #### 3B.5 Verification
 
@@ -503,7 +529,11 @@ Request user to verify in-game if changes affect runtime behavior.
 
 #### 3B.6 Sr. Engineering Team Final Review
 
-Before committing in action mode, invoke `betterui-sr-engineering-team` for a final review of the changes made.
+Before committing in action mode, invoke the final phase review:
+
+```
+Follow /sr-review-gate --phase-review
+```
 
 **All 5 team members must PASS** before proceeding.
 

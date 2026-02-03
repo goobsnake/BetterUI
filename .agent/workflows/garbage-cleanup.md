@@ -192,22 +192,15 @@ Create a structured report of all findings:
 
 ---
 
-## Step 6: Sr. Engineering Team Review
+## Step 6: Sr. Engineering Team Findings Review
 
-Before presenting findings or creating an implementation plan, invoke the `betterui-sr-engineering-team` skill:
+Before creating an implementation plan, invoke the `/sr-review-gate` workflow:
 
-1. **Announce**: "I'm using the betterui-sr-engineering-team skill to review garbage cleanup findings."
+```
+Follow /sr-review-gate --plan-review
+```
 
-2. **Present**: Show the findings report to the team.
-
-3. **Get verdicts**: Each team member reviews:
-   - **Lua Architect**: Verify no dynamic references or metatable usage
-   - **UI/UX Specialist**: Confirm no XML templates are loaded dynamically
-   - **Code Quality Lead**: Review for false positives in dead code detection
-   - **Sr. Software Developer**: Check for indirect call patterns
-   - **QA Gatekeeper**: Assess regression risk
-
-4. **Require PASS**: All 5 members must approve findings before proceeding.
+Present the findings report to the team. All 5 members must PASS before proceeding.
 
 ---
 
@@ -274,6 +267,33 @@ Unreferenced functions/constants that appear safe to remove.
 git checkout HEAD~1 -- <affected files>
 ```
 ```
+
+---
+
+## Step 8: Plan Review Gate
+
+Before executing the implementation plan:
+
+```
+Follow /sr-review-gate --plan-review
+```
+
+All 5 team members must PASS before proceeding to execution.
+
+---
+
+## Step 9: Execute With Phase Gates
+
+After each phase completes:
+
+```
+Follow /sr-review-gate --phase-review
+```
+
+**Mandatory**: Every phase must be reviewed before proceeding to the next.
+- Phase 1 complete → Phase review → Phase 2
+- Phase 2 complete → Phase review → Phase 3
+- Phase 3 complete → Final phase review → Commit
 
 ---
 
