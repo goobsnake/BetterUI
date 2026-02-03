@@ -618,11 +618,18 @@ Description: Icon paths for equipment and item status indicators.
 Used By: Inventory and Banking list rendering.
 ]]
 BETTERUI.CIM.CONST.ICONS = {
+    -- Equipment Status
     EQUIP_MAIN = "BetterUI/Modules/CIM/Images/inv_equip.dds",
     EQUIP_BACKUP = "BetterUI/Modules/CIM/Images/inv_equip_backup.dds",
     EQUIP_SLOT = "BetterUI/Modules/CIM/Images/inv_equip_quickslot.dds",
     NEW_ITEM = "EsoUI/Art/Miscellaneous/Gamepad/gp_icon_new.dds",
-    DEFAULT_SLOT = "/esoui/art/inventory/inventory_slot.dds"
+    DEFAULT_SLOT = "/esoui/art/inventory/inventory_slot.dds",
+    -- Item Status Indicators (used in InventoryList label setup)
+    STOLEN = "BetterUI/Modules/CIM/Images/inv_stolen.dds",
+    ENCHANTED = "BetterUI/Modules/CIM/Images/inv_enchanted.dds",
+    SET_ITEM = "BetterUI/Modules/CIM/Images/inv_setitem.dds",
+    UNBOUND = "/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds",
+    RECIPE_UNKNOWN = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds",
 }
 
 -- ============================================================================
@@ -720,24 +727,18 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 -- BACKWARDS COMPATIBILITY ALIASES
 -- ============================================================================
 
--- AUDIT (2026-01-28): Backward compatibility aliases still in use by:
--- TODO(cleanup): P1 OVERDUE - These aliases were planned for v3.0 removal (current version).
--- Complete XML template migration and remove these backward compatibility aliases.
--- See: sr_engineering_team_review.md for priority assignment
--- Estimated effort: 2 hours
---   XML Templates:
---     - Modules/CIM/UI/GenericHeader.xml
---     - Modules/CIM/UI/GenericFooter.xml
---     - Modules/Banking/Templates/BankList.xml
---     - Modules/Inventory/Templates/*.xml
---   Lua Files:
---     - Various legacy imports across Banking and Inventory modules
+-- AUDIT (2026-02-02): Backward compatibility aliases still in active use.
+-- STATUS: P2 - Cannot remove yet. These aliases have active consumers:
+--   - BETTERUI_TOOLTIP_Y_OFFSET: CIM/Core/TooltipLayout.lua:26
+--   - BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE: Inventory/Module.lua:67
+--   - BETTERUI_TOOLTIP_SCROLL_OFFSET_Y: Inventory/UI/TooltipUtils.lua:646
+--
+-- PLAN: Migrate consumers to use BETTERUI.CIM.CONST.* paths, then remove aliases.
+-- BLOCKED: XML templates cannot use Lua namespace syntax - requires virtual control
+--          offsets or Lua-based initialization. Defer until next refactoring sprint.
 --
 -- These aliases provide global constant names for XML attribute references which
 -- cannot use Lua namespace syntax (e.g., BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH).
---
--- TARGET: Audit and remove aliases after all XML templates are migrated to use
--- virtual control offsets or Lua-based initialization. Planned for v3.0 release.
 
 -- Tooltip legacy aliases
 BETTERUI_TOOLTIP_MAX_FADE_GRADIENT_SIZE = BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE

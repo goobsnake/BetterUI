@@ -131,12 +131,10 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
         if data.stolen then
-            -- TODO(refactor): Move asset paths to BETTERUI.CIM.CONST.ASSETS
-            -- Centralizes paths for easier maintenance when assets move
             labelTxt = labelTxt ..
                 " |t" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":/BetterUI/Modules/CIM/Images/inv_stolen.dds|t"
+                ":" .. BETTERUI.CIM.CONST.ICONS.STOLEN .. "|t"
         end
         if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then
             labelTxt = labelTxt ..
@@ -144,19 +142,19 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
                 ":" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds|t"
+                ":" .. BETTERUI.CIM.CONST.ICONS.UNBOUND .. "|t"
         end
         if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then
             labelTxt = labelTxt ..
                 " |t" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":/BetterUI/Modules/CIM/Images/inv_enchanted.dds|t"
+                ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.CIM.CONST.ICONS.ENCHANTED .. "|t"
         end
         if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then
             labelTxt = labelTxt ..
                 " |t" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":/BetterUI/Modules/CIM/Images/inv_setitem.dds|t"
+                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.CIM.CONST.ICONS.SET_ITEM .. "|t"
         end
         if isRecipeAndUnknown then
             labelTxt = labelTxt ..
@@ -164,7 +162,7 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
                 ":" ..
                 BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds|t"
+                ":" .. BETTERUI.CIM.CONST.ICONS.RECIPE_UNKNOWN .. "|t"
         end
 
         label:SetText(labelTxt)
@@ -510,10 +508,11 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local iconSize = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) +
         0.5)
-    -- TODO(refactor): Extract 28 and 24 to BETTERUI.Inventory.CONST.EQUIP_ICON dimensions
-    -- These are base width/height values used for scaling calculations
-    local equipIconWidth = math.floor(28 * (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
-    local equipIconHeight = math.floor(24 * (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    -- Calculate equip icon dimensions (scales proportionally with font size)
+    local equipIconWidth = math.floor(BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH *
+        (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
+    local equipIconHeight = math.floor(BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_HEIGHT *
+        (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) + 0.5)
     local iconOffset = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET +
         (fontSize - BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) *
         BETTERUI.Inventory.CONST.LIST_ENTRY_ICON_OFFSET_FACTOR + 0.5) -- Adjust offset as font grows

@@ -121,6 +121,11 @@ BETTERUI.Inventory.CONST.ICON_SIZE_SMALL = 16
 BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM = 24
 BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34
 
+-- Equipment Icon Base Dimensions (for scaling calculations)
+-- Used in InventoryList.lua to scale equip icons proportionally with font size
+BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH = 28
+BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_HEIGHT = 24
+
 -- ============================================================================
 -- SORT SCHEMA (delegating to CIM shared version)
 -- ============================================================================
