@@ -56,10 +56,10 @@ local tests_failed = 0
 local function assert_equal(expected, actual, message)
     if expected == actual then
         tests_passed = tests_passed + 1
-        print("  ✓ " .. message)
+        print("  [OK] " .. message)
     else
         tests_failed = tests_failed + 1
-        print("  ✗ " .. message)
+        print("  [X] " .. message)
         print("    Expected: " .. tostring(expected))
         print("    Actual:   " .. tostring(actual))
     end
