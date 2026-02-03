@@ -649,7 +649,7 @@ end
 --- References: Called by Initialize.
 ---
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
-	ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
+	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		canQueue = true,
 
 		gamepadInfo = {
@@ -736,7 +736,7 @@ end
 --- - Calls `TryDestroyItem(..., true)` on confirmation.
 ---
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
-	ZO_Dialogs_RegisterCustomDialog("BETTERUI_CONFIRM_DESTROY_DIALOG", {
+	BETTERUI.CIM.Dialogs.Register("BETTERUI_CONFIRM_DESTROY_DIALOG", {
 		blockDirectionalInput = true,
 		canQueue = true,
 		gamepadInfo = {
@@ -798,7 +798,7 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 		ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG)
 	end
 
-	ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG, {
+	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG, {
 		blockDialogReleaseOnPress = true,
 		canQueue = true,
 		gamepadInfo = {

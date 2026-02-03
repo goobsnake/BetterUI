@@ -77,7 +77,7 @@ function BETTERUI.Inventory.Setup()
 
 	-- Register custom dialog for Bind on Equip protection (if SaveEquip addon is not handling it)
 	if not SaveEquip then
-		ZO_Dialogs_RegisterCustomDialog("CONFIRM_EQUIP_BOE", {
+		BETTERUI.CIM.Dialogs.Register("CONFIRM_EQUIP_BOE", {
 			gamepadInfo = {
 				dialogType = GAMEPAD_DIALOGS.BASIC,
 			},

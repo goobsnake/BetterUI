@@ -77,7 +77,7 @@ function BETTERUI.Inventory.HookActionDialog()
         dialog:setupFunc()
     end
 
-    ZO_Dialogs_RegisterCustomDialog(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, {
+    BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG, {
         blockDirectionalInput = true,
         canQueue = true,
         --[[

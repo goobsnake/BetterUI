@@ -114,7 +114,7 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
         [8] = "South",
     }
 
-    ZO_Dialogs_RegisterCustomDialog("BETTERUI_QUICKSLOT_ASSIGN_DIALOG", {
+    BETTERUI.CIM.Dialogs.Register("BETTERUI_QUICKSLOT_ASSIGN_DIALOG", {
         blockDirectionalInput = true,
         canQueue = true,
         gamepadInfo = {

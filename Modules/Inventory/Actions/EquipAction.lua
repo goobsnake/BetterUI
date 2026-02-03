@@ -329,7 +329,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         return str
     end
 
-    ZO_Dialogs_RegisterCustomDialog(BETTERUI_EQUIP_SLOT_DIALOG, {
+    BETTERUI.CIM.Dialogs.Register(BETTERUI_EQUIP_SLOT_DIALOG, {
         blockDialogReleaseOnPress = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.BASIC,
