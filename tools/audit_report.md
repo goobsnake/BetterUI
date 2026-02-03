@@ -1,9 +1,9 @@
 # BetterUI Localization Audit
-Date: 01/23/2026 18:56:03
+Date: 02/02/2026 16:45:43
 ---
 
 ## 1. Generating Used Strings List
- Found 354 unique strings. Saved to X:\Git\BetterUI\tools\used_strings.txt
+ Found 385 unique strings. Saved to X:\Git\BetterUI\tools\used_strings.txt
 
 ## 2. Auditing Language Keys
 All keys in en.lua follow naming convention.
@@ -15,43 +15,49 @@ All keys in en.lua follow naming convention.
  No missing keys.
 
  - - -   A u d i t i n g   fr.lua   - - -
- Missing keys (present in en.lua but not in fr.lua) [Count: 1]:
-     SI_BETTERUI_BOE_PROTECTION
+ No missing keys.
 
  - - -   A u d i t i n g   jp.lua   - - -
- Missing keys (present in en.lua but not in jp.lua) [Count: 1]:
-     SI_BETTERUI_BOE_PROTECTION
+ No missing keys.
 
  - - -   A u d i t i n g   ru.lua   - - -
- Missing keys (present in en.lua but not in ru.lua) [Count: 1]:
-     SI_BETTERUI_BOE_PROTECTION
+ No missing keys.
 
  - - -   A u d i t i n g   zh.lua   - - -
- Missing keys (present in en.lua but not in zh.lua) [Count: 1]:
-     SI_BETTERUI_BOE_PROTECTION
+ No missing keys.
 
 ## 3. Auditing String Usage
 Unused strings (defined in en.lua but not found in codebase):
+ SI_BETTERUI_BATCH_ACTIONS
+ SI_BETTERUI_CONFIRM
+ SI_BETTERUI_DEPOSIT_SELECTED
+ SI_BETTERUI_DESTRUCTIVE_WARNING
+ SI_BETTERUI_ENABLE_CIM
+ SI_BETTERUI_ENABLE_CIM_TOOLTIP
+ SI_BETTERUI_FOOTER_EVENT_TICKETS
+ SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER
+ SI_BETTERUI_SELECTION_MODE
+ SI_BETTERUI_SELL_SELECTED
+ SI_BETTERUI_WITHDRAW_SELECTED
 
  Missing strings (found in codebase but not in en.lua):
- SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP
 
 ## 4. Auditing Untranslated Strings
 
  - - -   C h e c k i n g   de.lua   - - -
- Found 50 potentially untranslated strings.
+ Found 87 potentially untranslated strings.
 
  - - -   C h e c k i n g   es.lua   - - -
- Found 37 potentially untranslated strings.
+ Found 75 potentially untranslated strings.
 
  - - -   C h e c k i n g   fr.lua   - - -
- Found 46 potentially untranslated strings.
+ Found 84 potentially untranslated strings.
 
  - - -   C h e c k i n g   jp.lua   - - -
- Found 38 potentially untranslated strings.
+ Found 78 potentially untranslated strings.
 
  - - -   C h e c k i n g   ru.lua   - - -
- Found 57 potentially untranslated strings.
+ Found 95 potentially untranslated strings.
 
  - - -   C h e c k i n g   zh.lua   - - -
- Found 36 potentially untranslated strings.
+ Found 74 potentially untranslated strings.

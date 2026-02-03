@@ -487,3 +487,19 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Replaces the item \"Value\" with either MM's, ATT's or TTC's average price")                                                                            -- TODO: Translate
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "預入額を選択してください")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "引き出し額を選択してください")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Many") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Mark Junk (Selected)") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Unmark Junk (Selected)") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Destroy Selected") -- TODO: Translate
