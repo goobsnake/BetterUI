@@ -29,16 +29,7 @@ KEY MECHANICS:
 
 ]]
 
--- ===========================================================================
--- TODO(cleanup): CRITICAL - Remove ALL debug statements from this file:
--- - Line 34: zo_callLater with d() on file load (runs EVERY addon load!)
--- - Line 115: d() in Initialize() entry
--- - Lines 194-214: zo_callLater debug blocks for HeaderSortController
--- This is blocking the Sr. Engineering Team review. See: sr_engineering_team_review.md
--- Either remove entirely OR gate through FeatureFlags.DEBUG_LOGGING
--- Estimated effort: 15 minutes
--- ===========================================================================
-zo_callLater(function() d("[BetterUI Banking] Banking.lua FILE LOADED") end, 2000)
+
 
 -------------------------------------------------------------------------------------------------
 -- LOCAL REFERENCES TO NAMESPACE CONSTANTS
@@ -119,7 +110,6 @@ param: scene_name (string) - Scene name.
 --- @param tlw_name string Top level window name
 --- @param scene_name string Scene name
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
-    d("[BetterUI Banking] >>> Initialize STARTING <<<")
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
 
@@ -197,28 +187,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     -- Initialize Header Sort Controller for column-based sorting
     -- Must be called after headerGeneric is set (needs self.headerGeneric for column labels)
-    local hasFunc = self.InitializeHeaderSortController ~= nil
-    zo_callLater(function()
-        d("[BetterUI Banking] Initialize - InitializeHeaderSortController exists: " .. tostring(hasFunc))
-    end, 4000)
-
     if self.InitializeHeaderSortController then
         self:InitializeHeaderSortController()
-        zo_callLater(function()
-            d("[BetterUI Banking] InitializeHeaderSortController completed")
-            d("[BetterUI Banking] headerSortController: " .. tostring(self.headerSortController ~= nil))
-            -- Check if column labels were linked
-            if self.headerSortController and self.headerSortController.columnLabels then
-                local count = 0
-                for _ in pairs(self.headerSortController.columnLabels) do count = count + 1 end
-                d("[BetterUI Banking] columnLabels count: " .. count)
-            else
-                d("[BetterUI Banking] WARNING: No columnLabels table!")
-            end
-            -- Check headerGeneric
-            d("[BetterUI Banking] headerGeneric: " ..
-                tostring(self.headerGeneric and self.headerGeneric:GetName() or "nil"))
-        end, 4500)
     end
 
     -- Add gamepad text search support; callback updates searchQuery and refreshes the list
@@ -258,78 +228,22 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- Hook into the actual edit box to detect focus and text changes so we can swap keybinds
-    -- matching Inventory behavior (Clear-only while focused).
-    if self.textSearchHeaderFocus and self.textSearchHeaderFocus:GetEditBox() then
-        local editBox = self.textSearchHeaderFocus:GetEditBox()
-        local origOnFocusGained = editBox:GetHandler("OnFocusGained")
-        local origOnFocusLost = editBox:GetHandler("OnFocusLost")
-        local origOnTextChanged = editBox:GetHandler("OnTextChanged")
-        local origOnKeyDown = editBox:GetHandler("OnKeyDown")
-
-        -- TODO(refactor): Extract search focus handlers to CIM/Core/SearchManager.lua SearchFocusMixin
-        -- This code duplicates InventoryClass.lua L191-240 (~50 lines nearly identical)
-        editBox:SetHandler("OnFocusGained", function(eb)
-            if origOnFocusGained then origOnFocusGained(eb) end
-            -- Guard: Only process if banking scene is actually showing
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-            if self.RequestEnterHeader then
-                self:RequestEnterHeader()
+    -- Hook into the actual edit box using the consolidated SearchFocusMixin
+    -- This replaces ~70 lines of duplicate code (previously duplicated in InventoryClass.lua)
+    BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
+        isSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing,
+        onTextChanged = function(window, txt)
+            window.searchQuery = txt
+            window:RefreshList()
+        end,
+        enterHeaderFn = function(window)
+            if window.RequestEnterHeader then
+                window:RequestEnterHeader()
             else
-                self:EnterSearchMode()
+                window:EnterSearchMode()
             end
-        end)
-
-        editBox:SetHandler("OnFocusLost", function(eb)
-            if origOnFocusLost then origOnFocusLost(eb) end
-            -- Guard: Only process if banking scene is actually showing
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-            self:ExitSearchFocus()
-        end)
-
-        editBox:SetHandler("OnTextChanged", function(eb)
-            if origOnTextChanged then origOnTextChanged(eb) end
-            -- Guard: Only process if banking scene is actually showing
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-            local txt = ""
-            local t = eb:GetText()
-            if t then txt = t end
-            self.searchQuery = txt or ""
-            -- When search changes, reset selection to top and refresh
-            self:RefreshList()
-        end)
-
-        editBox:SetHandler("OnKeyDown", function(eb, key, ctrl, alt, shift, command)
-            if origOnKeyDown then
-                local handled = origOnKeyDown(eb, key, ctrl, alt, shift, command)
-                if handled then
-                    return handled
-                end
-            end
-            -- Guard: Only process if banking scene is actually showing
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-            if command == "UI_SHORTCUT_DOWN" then
-                self:ExitSearchFocus()
-                return true
-            end
-        end)
-
-        local origOnShortcut = editBox:GetHandler("OnShortcut")
-        editBox:SetHandler("OnShortcut", function(eb, shortcut)
-            if origOnShortcut then
-                local handled = origOnShortcut(eb, shortcut)
-                if handled then
-                    return handled
-                end
-            end
-            -- Guard: Only process if banking scene is actually showing
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
-            if shortcut == "UI_SHORTCUT_DOWN" then
-                self:ExitSearchFocus()
-                return true
-            end
-        end)
-    end
+        end,
+    })
 
     -- EnsureHeaderKeybindsActive is defined on the class below; keep calls here
 
@@ -587,6 +501,21 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         self._inventorySingleSlotCallback = nil
     end
 
+    -- Unregister action dialog callbacks to prevent accumulation
+    if self._actionDialogSetupCallback then
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", self._actionDialogSetupCallback)
+        self._actionDialogSetupCallback = nil
+    end
+    if self._actionDialogFinishCallback then
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", self._actionDialogFinishCallback)
+        self._actionDialogFinishCallback = nil
+    end
+    if self._actionDialogButtonConfirmCallback then
+        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM",
+            self._actionDialogButtonConfirmCallback)
+        self._actionDialogButtonConfirmCallback = nil
+    end
+
     -- Clear search state using shared helper
     BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
 
@@ -750,11 +679,11 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
-    -- TODO(fix): P1 - Add matching CALLBACK_MANAGER:UnregisterCallback calls in OnSceneHidden cleanup
-    -- Risk: Callback accumulation if scenes are rapidly shown/hidden
-    -- Location to unregister: BETTERUI.Banking.Class:OnSceneHidden()
-    -- Callbacks to unregister: BETTERUI_EVENT_ACTION_DIALOG_SETUP, _FINISH, _BUTTON_CONFIRM
-    -- Estimated effort: 30 minutes
+
+    -- Store callbacks for unregistration in OnSceneHidden
+    self._actionDialogSetupCallback = ActionDialogSetup
+    self._actionDialogFinishCallback = ActionDialogFinish
+    self._actionDialogButtonConfirmCallback = ActionDialogButtonConfirm
 end
 
 -- NOTE: ActivateSpinner and DeactivateSpinner have been removed.

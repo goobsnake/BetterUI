@@ -141,32 +141,7 @@ Rationale: Called by the core when the module should initialize its keybinds, se
 Mechanism: Calls Init to register settings menu, then calls BETTERUI.Banking.Init to start the class.
 References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
--- TODO(cleanup): CRITICAL - Remove all debug statements from Setup() function
--- Lines 145, 147, 153, 155, 158, 161, 163, 166 contain d() calls
--- Either remove entirely OR gate through FeatureFlags.DEBUG_LOGGING
--- This is blocking the Sr. Engineering Team review. See: sr_engineering_team_review.md
--- Estimated effort: 10 minutes
 function BETTERUI.Banking.Setup()
-	d("[BetterUI] Banking.Setup() ENTER")
-
-	d("[BetterUI] Checking Settings.RegisterPanel: " ..
-		tostring(BETTERUI.Banking.Settings ~= nil and BETTERUI.Banking.Settings.RegisterPanel ~= nil))
-	local ok1, err1 = pcall(function()
-		BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
-	end)
-	if not ok1 then
-		d("[BetterUI] ERROR in Settings.RegisterPanel: " .. tostring(err1))
-	else
-		d("[BetterUI] Settings.RegisterPanel done")
-	end
-
-	d("[BetterUI] Checking Banking.Init: " .. tostring(BETTERUI.Banking.Init ~= nil))
-	local ok2, err2 = pcall(BETTERUI.Banking.Init)
-	if not ok2 then
-		d("[BetterUI] ERROR in Banking.Init: " .. tostring(err2))
-	else
-		d("[BetterUI] Banking.Init completed")
-	end
-
-	d("[BetterUI] Banking.Setup() EXIT")
+	BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
+	BETTERUI.Banking.Init()
 end
