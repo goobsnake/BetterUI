@@ -118,9 +118,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
     end
 
     self.mainKeybindStripDescriptor = {
-        -- Primary (A) for Equip/Use with Hold for Multi-Select
-        -- Wrapped with HoldKeybindWrapper to enable timer-based hold detection
-        BETTERUI.CIM.HoldKeybindWrapper.Wrap({
+        -- Primary (A) for Equip/Use/Retrieve actions
+        -- Multi-Select entry is now via Y-Hold (QUINARY) button
+        {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
@@ -128,15 +128,15 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     return ""
                 end
 
+                -- Use SafeGetTargetData for consistent access (handles inner list structure)
                 local target
                 if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                    target = self.craftBagList and self.craftBagList.selectedData
+                    target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                 else
-                    target = self.itemList and self.itemList.selectedData
+                    target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
                 end
-                if not target then return "" end
 
-                -- If in selection mode, show "Select"
+                -- If in multi-select mode, show "Select"
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     return GetString(SI_BETTERUI_SELECT_ITEM)
                 end
@@ -146,18 +146,20 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.itemActions and self.itemActions.actionName then
                     baseName = self.itemActions.actionName
                 else
-                    -- Fallback to simple Equip/Use logic if itemActions not ready
-                    if target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
+                    -- Fallback logic if itemActions not ready or target not yet selected
+                    if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                        -- Craft Bag items always default to "Retrieve"
+                        baseName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+                    elseif target and target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
                         baseName = GetString(SI_ITEM_ACTION_EQUIP)
+                    elseif target then
+                        baseName = GetString(SI_ITEM_ACTION_USE)
                     else
+                        -- No target selected yet - show generic action
                         baseName = GetString(SI_ITEM_ACTION_USE)
                     end
                 end
 
-                -- Add hold hint if multi-select is available (only for regular inventory, not craftbag)
-                if self.multiSelectManager and self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-                    return baseName .. " |cBBBBBB(Hold: Select)|r"
-                end
                 return baseName
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
@@ -170,16 +172,15 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.itemActions and self.itemActions.slotActions then
                     return self.itemActions.slotActions:CheckPrimaryActionVisibility()
                 end
-                -- Fallback: visible if we have selected data
+                -- Fallback: visible if we have selected data (use SafeGetTargetData for consistency)
                 if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                    return self.craftBagList and self.craftBagList.selectedData ~= nil
+                    return BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil
                 end
-                return self.itemList and self.itemList.selectedData ~= nil
+                return BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
             end,
-            -- Tap action: Execute discovered action or Toggle Selection
             callback = function()
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    -- In selection mode - toggle selection
+                    -- In multi-select mode - toggle selection
                     local target = self.itemList and self.itemList.selectedData
                     if target then
                         self.multiSelectManager:ToggleSelection(target)
@@ -208,20 +209,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     end
                 end
             end,
-            -- Hold action: Enter selection mode (500ms threshold)
-            holdCallback = function()
-                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-                    return
-                end
-                if not self.multiSelectManager then return end
-
-                if not self.multiSelectManager:IsActive() then
-                    self:EnterSelectionMode()
-                end
-            end,
-            holdDuration = 500,
-        }),
-        -- Primary (A) reserved for item primary actions (equip/use/etc.).
+        },
         --X Button for Quick Action
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -428,37 +416,26 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return self.searchQuery and self.searchQuery ~= ""
             end
         ),
-        -- Y Hold (Quinary) for Header Sort Focus
-        -- Dedicated entry point for column header sorting
+        -- Y-Hold (QUINARY) for Multi-Select Mode
+        -- Dedicated entry point for multi-select functionality
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(SI_BETTERUI_HEADER_SORT),
+            name = GetString(SI_BETTERUI_MULTI_SELECT),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
-                -- Only visible in item list or craft bag mode with items to sort
-                local isItemMode = self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
-                local isCraftBagMode = self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE
-                if not isItemMode and not isCraftBagMode then
+                -- Only visible in item list mode (not craft bag) with items
+                -- Multi-select is only supported for regular inventory items
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return false
                 end
-                -- Must have items in the appropriate list and header sort controller
-                local currentList = isItemMode and self.itemList or self.craftBagList
-                return currentList and not currentList:IsEmpty()
-                    and self.EnterHeaderSortMode ~= nil
+                -- Must have items in the list and multi-select manager available
+                return self.itemList and not self.itemList:IsEmpty()
+                    and self.multiSelectManager ~= nil
+                    and not self.multiSelectManager:IsActive()
             end,
             callback = function()
-                if self.EnterHeaderSortMode then
-                    -- Force clean entry: reset state if stuck, then enter
-                    -- This ensures Y always works even if header mode was exited unexpectedly
-                    if self.isInHeaderSortMode then
-                        -- Already in header mode state - force reset and re-enter
-                        self.isInHeaderSortMode = false
-                        -- Clean up any stale keybinds
-                        if self.headerSortKeybindDescriptor then
-                            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
-                        end
-                    end
-                    self:EnterHeaderSortMode()
+                if self.multiSelectManager and not self.multiSelectManager:IsActive() then
+                    self:EnterSelectionMode()
                 end
             end,
         },
