@@ -322,6 +322,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
 	self:InitializeConfirmDestroyDialog()
 	self:InitializeConfirmDestroyArmoryItemDialog()
+	self:InitializeBatchDestroyDialog()
 	self:InitializeEquipSlotDialog()
 
 	self:InitializeItemActions()

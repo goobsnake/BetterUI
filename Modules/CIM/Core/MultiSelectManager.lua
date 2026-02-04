@@ -210,17 +210,47 @@ function Manager:ClearSelections()
     end
 end
 
---- Selects all items in the current list
-function Manager:SelectAll()
-    if not self.list then return end
+--- Selects all items in the specified list (or the stored list if none provided)
+--- Handles ZO_GamepadEntryData which wraps item data in dataSource
+--- @param listOverride table? Optional list to use instead of stored self.list
+function Manager:SelectAll(listOverride)
+    local targetList = listOverride or self.list
+    if not targetList then return end
 
-    local numItems = self.list:GetNumItems()
+    -- Use same fallback pattern as ItemListManager.lua line 102:
+    -- (list.GetNumItems and list:GetNumItems()) or (list.dataList and #list.dataList) or 0
+    local numItems = 0
+    local dataList = nil
+
+    if targetList.GetNumItems then
+        numItems = targetList:GetNumItems()
+    elseif targetList.dataList then
+        -- Fallback: ESO parametric scroll lists use dataList
+        dataList = targetList.dataList
+        numItems = #dataList
+    end
+
     for i = 1, numItems do
-        local data = self.list:GetDataForDataIndex(i)
-        if data and data.bagId and data.slotIndex then
-            local uniqueId = self:GetItemUniqueId(data)
-            if uniqueId then
-                self.selectedItems[uniqueId] = data
+        local data
+        if dataList then
+            -- Direct access when using dataList fallback
+            data = dataList[i]
+        elseif targetList.GetDataForDataIndex then
+            data = targetList:GetDataForDataIndex(i)
+        end
+
+        if data then
+            -- Handle ZO_GamepadEntryData which wraps raw item data in dataSource
+            local rawData = data.dataSource or data
+            local bagId = rawData.bagId or data.bagId
+            local slotIndex = rawData.slotIndex or data.slotIndex
+
+            if bagId and slotIndex then
+                local uniqueId = self:GetItemUniqueId(data)
+                if uniqueId then
+                    -- Store the full data (including wrapper) for consistent id lookup later
+                    self.selectedItems[uniqueId] = data
+                end
             end
         end
     end
@@ -288,19 +318,34 @@ end
 --------------------------------------------------------------------------------
 
 --- Gets a unique identifier for an item
---- @param itemData table The item data
+--- Handles ZO_GamepadEntryData which wraps item data in dataSource
+--- Uses ESO's Id64ToString for reliable Id64 conversion
+--- @param itemData table The item data (may be ZO_GamepadEntryData or raw slot data)
 --- @return string|nil uniqueId The unique identifier or nil
 function Manager:GetItemUniqueId(itemData)
     if not itemData then return nil end
 
-    -- Try uniqueId first (most reliable)
-    if itemData.uniqueId then
-        return tostring(itemData.uniqueId)
+    -- Check for dataSource (ZO_GamepadEntryData wraps raw item data)
+    local rawData = itemData.dataSource or itemData
+
+    -- Try uniqueId first (most reliable - use rawData for consistency)
+    local uniqueId = rawData.uniqueId or itemData.uniqueId
+    if uniqueId then
+        -- CRITICAL: Use Id64ToString for ESO's Id64 userdata type.
+        -- Lua's tostring() produces inconsistent results for Id64.
+        if Id64ToString then
+            return Id64ToString(uniqueId)
+        else
+            return tostring(uniqueId)
+        end
     end
 
     -- Fall back to bagId + slotIndex combination
-    if itemData.bagId and itemData.slotIndex then
-        return string.format("%d_%d", itemData.bagId, itemData.slotIndex)
+    -- Check both rawData and itemData since properties might be copied to top level
+    local bagId = rawData.bagId or itemData.bagId
+    local slotIndex = rawData.slotIndex or itemData.slotIndex
+    if bagId and slotIndex then
+        return string.format("%d_%d", bagId, slotIndex)
     end
 
     return nil

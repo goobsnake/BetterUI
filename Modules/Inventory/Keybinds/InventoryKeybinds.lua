@@ -136,9 +136,15 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
                 end
 
-                -- If in multi-select mode, show "Select"
+                -- If in multi-select mode, show "Unselect" or "Select (count)"
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    return GetString(SI_BETTERUI_SELECT_ITEM)
+                    -- Check if current item is already selected
+                    if target and self.multiSelectManager:IsSelected(target) then
+                        return GetString(SI_BETTERUI_DESELECT_ITEM)
+                    else
+                        local count = self.multiSelectManager:GetSelectedCount()
+                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                    end
                 end
 
                 -- Use itemActions for proper action name discovery (Equip/Unequip/Use/Retrieve/etc.)
@@ -341,10 +347,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
-                if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local count = self.multiSelectManager:GetSelectedCount()
-                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
-                end
+                -- Always show "Actions" - the selected count is now on the A button
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
             keybind = "UI_SHORTCUT_TERTIARY",

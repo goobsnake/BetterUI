@@ -488,10 +488,19 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         end
     end
 
-    -- Apply green tint to SelectionBar for multi-selected items that aren't focused
-    if selectionBar and isMultiSelected and not selected then
-        selectionBar:SetHidden(false)
-        selectionBar:SetColor(0.2, 0.8, 0.3, 0.6) -- Green tint for multi-selected
+    -- Handle SelectionBar color based on multi-select state
+    -- CRITICAL: Must reset color when NOT multi-selected to handle control recycling.
+    -- Controls are pooled and reused - the green color would persist on recycled controls otherwise.
+    if selectionBar then
+        if isMultiSelected then
+            selectionBar:SetHidden(false)
+            selectionBar:SetColor(0.2, 0.8, 0.3, 0.6) -- Green tint for multi-selected
+        elseif selected then
+            -- Reset to default gold color for focused non-multi-selected items
+            -- Default gold from XML: #C4A64D = (196/255, 166/255, 77/255) ≈ (0.77, 0.65, 0.30)
+            selectionBar:SetColor(0.77, 0.65, 0.30, 0.45)
+        end
+        -- Note: When not selected and not multi-selected, SelectionHighlight.Setup already hides the bar
     end
 
     BETTERUI_CooldownSetup(control, data)
