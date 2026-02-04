@@ -402,6 +402,10 @@ end
 
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
+    -- Skip refresh during batch processing to prevent flickering
+    if self:IsBatchProcessing() then
+        return
+    end
     -- Capture current selection before clearing
     -- Priority: _splitStackUniqueId > _preserveUniqueId > uniqueId > savedIndex
     local targetUniqueId = nil

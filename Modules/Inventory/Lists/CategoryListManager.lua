@@ -111,6 +111,11 @@ end
 --- References: Called by RefreshItemList.
 ---
 function BETTERUI.Inventory.Class:RefreshCategoryList()
+    -- Skip refresh during batch processing to prevent flickering
+    if self:IsBatchProcessing() then
+        return
+    end
+
     local function CountStolenNotJunk()
         local count = 0
         local backpack = self:GetCachedSlotData(BAG_BACKPACK)
@@ -210,16 +215,14 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             elseif catDef.key == "Junk" then
                 local junkCount = self:CountJunkInBackpack()
                 if junkCount > 0 then
-                    local isListEmpty = self:IsItemListEmpty(nil, nil)
-                    if not isListEmpty then
-                        local name = GetString(catDef.nameStringId)
-                        local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil,
-                            BAG_BACKPACK)
-                        data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
-                        data.showJunk = true
-                        data.itemCount = junkCount
-                        shouldAdd = true
-                    end
+                    -- Show Junk category if there are any junk items
+                    local name = GetString(catDef.nameStringId)
+                    local hasAnyNewItems = self:AreAnyItemsNew(function() return true end, nil,
+                        BAG_BACKPACK)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile, nil, nil, hasAnyNewItems)
+                    data.showJunk = true
+                    data.itemCount = junkCount
+                    shouldAdd = true
                 end
 
                 -- STANDARD CATEGORIES (All, Weapons, etc)

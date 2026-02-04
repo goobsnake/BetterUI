@@ -105,6 +105,19 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Update debounce (seconds, alternative unit)
     -- Equivalent to DEBOUNCE_MS but in seconds for APIs that expect float
     UPDATE_DEBOUNCE_SEC = 0.05,
+
+    -- ========================================================================
+    -- BATCH ACTION THROTTLING
+    -- Prevents rate-limit kicks when processing many items at once
+    -- ========================================================================
+
+    -- Delay between each item action during batch operations (ms)
+    -- Lower = faster but risks rate-limit kick; Higher = slower but safer
+    BATCH_ACTION_DELAY_MS = 75,
+
+    -- Minimum items before showing progress dialog
+    -- Small batches process silently; larger batches show progress UI
+    BATCH_PROGRESS_THRESHOLD = 10,
 }
 
 
