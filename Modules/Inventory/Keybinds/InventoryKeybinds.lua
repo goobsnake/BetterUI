@@ -391,7 +391,6 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     -- Skip if in header sort mode
                     if not self.isInHeaderSortMode then
                         self:RefreshKeybinds()
-                        self:UpdateActions()
                     end
                 end
             end,
