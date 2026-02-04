@@ -22,6 +22,7 @@ local m_frontBarContainer = nil -- Cached reference to the front bar container
 local m_quickslotBtn = nil      -- Cached reference to quickslot button
 local m_companionBtn = nil      -- Cached reference to companion button
 local m_bgMiddle = nil          -- Cached reference to BgMiddle control
+local m_effectDurationCache = {} -- Cache of initial effect durations for cooldown percentage calculation
 
 --[[
 Function: CacheFrontBarControls
@@ -514,10 +515,17 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, mapping.category)
                 if effectRemaining and effectRemaining > 0 then
                     remainMs = effectRemaining
-                    -- TODO(fix): Suspicious assignment - durationMs = remainMs may break cooldown percentage calculation
-                    durationMs =
-                    remainMs              -- Effect timer doesn't have total duration usually accessible this way, just countdown
+                    -- Cache the initial duration when effect first appears for accurate percentage calculation
+                    local cacheKey = mapping.slot .. "_" .. (mapping.category or 0)
+                    if not m_effectDurationCache[cacheKey] or m_effectDurationCache[cacheKey] < effectRemaining then
+                        m_effectDurationCache[cacheKey] = effectRemaining
+                    end
+                    durationMs = m_effectDurationCache[cacheKey]
                     showCooldown = true
+                else
+                    -- Effect ended, clear cache
+                    local cacheKey = mapping.slot .. "_" .. (mapping.category or 0)
+                    m_effectDurationCache[cacheKey] = nil
                 end
             end
 

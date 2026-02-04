@@ -970,8 +970,8 @@ end
 function BETTERUI.Inventory.Class:BatchDeposit()
     if not self.multiSelectManager then return end
 
-    -- TODO(fix): Add nil-check for items before iteration - GetSelectedItems() may return nil
     local items = self.multiSelectManager:GetSelectedItems()
+    if not items then return end
     for _, itemData in ipairs(items) do
         if itemData.bagId and itemData.slotIndex then
             -- Request bank transfer

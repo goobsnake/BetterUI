@@ -65,7 +65,7 @@ Mechanism:
 References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
 ]]
 function BETTERUI.GenericFooter:Refresh()
-    -- TODO(fix): Add nil-check chain for BETTERUI.Settings.Modules["Inventory"]
+    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
     local invSettings = BETTERUI.Settings.Modules["Inventory"]
     local footer = self.footer
     if not footer._stringCache then footer._stringCache = {} end

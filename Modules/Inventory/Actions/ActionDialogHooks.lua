@@ -150,8 +150,7 @@ function BETTERUI.Inventory.HookActionDialog()
         title = {
             text = function(dialog)
                 if dialog and dialog.data and dialog.data.quickslotAssign then
-                    -- TODO(cleanup): Use GetString(SI_BETTERUI_ASSIGN_QUICKSLOTS) instead of hardcoded string
-                    return "Assign Quickslots"
+                    return GetString(SI_BETTERUI_ASSIGN_QUICKSLOTS)
                 end
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,

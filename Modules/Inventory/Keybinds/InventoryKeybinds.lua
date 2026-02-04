@@ -326,7 +326,6 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     end
                 elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     --craftbag mode
-                    -- TODO(fix): Add nil-check for targetData before calling ZO_Inventory_GetBagAndIndex
                     local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                     local itemLink
                     local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)

@@ -55,8 +55,7 @@ end
 --- @param key string The setting key.
 --- @return any The setting value or nil.
 function BETTERUI.Banking.GetSetting(key)
-	-- TODO(fix): Add nil-check for BETTERUI.Settings and BETTERUI.Settings.Modules before access
-	if not BETTERUI.Settings.Modules["Banking"] then return nil end
+	if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Banking"] then return nil end
 	return BETTERUI.Settings.Modules["Banking"][key]
 end
 

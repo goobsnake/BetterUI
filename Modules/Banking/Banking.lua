@@ -719,8 +719,7 @@ Mechanism:
 References: Called by BETTERUI.Banking.Setup().
 ]]
 function BETTERUI.Banking.Init()
-    -- TODO(cleanup): Rename "BETTERUI_TestWindow" to proper production name (e.g., "BETTERUI_BankingWindow")
-    BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_TestWindow", BETTERUI_TEST_SCENE)
+    BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", BETTERUI_BANKING_SCENE_NAME)
     BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r")
 
     -- Initialize header with categories & selection immediately

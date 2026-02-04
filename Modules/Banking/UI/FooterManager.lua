@@ -17,7 +17,7 @@ Function: BETTERUI.Banking.Class:RefreshFooter
 Description: Updates the footer information (bag capacity, currency).
 ]]
 function BETTERUI.Banking.Class:RefreshFooter()
-    -- TODO(fix): Add nil-checks for self.footer and self.footer.footer before GetNamedChild chains
+    if not self.footer or not self.footer.footer then return end
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if (currentUsedBank == BAG_BANK) then
         --IsBankOpen()

@@ -41,8 +41,9 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         },
 
         setup = function(dialog, data)
-            -- TODO(fix): Add existence check for dialog.setupFunc before calling
-            dialog:setupFunc()
+            if dialog.setupFunc then
+                dialog:setupFunc()
+            end
         end,
 
         title = {

@@ -177,7 +177,6 @@ function BETTERUI.Banking.Class:RefreshList()
         GetString(SI_BETTERUI_BANKING_DEPOSIT)
     wdString = zo_strformat("<<Z:1>>", wdString)
 
-    -- TODO(fix): Ensure activeCategoryForHeader is not nil before accessing .key property
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if (currentUsedBank == BAG_BANK) then
         if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then

@@ -384,11 +384,11 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
     end
 
-    -- TODO(fix): Add nil-checks for GetNamedChild results before calling SetFont
     local itemTypeControl = control:GetNamedChild("ItemType")
     local traitControl = control:GetNamedChild("Trait")
     local statControl = control:GetNamedChild("Stat")
     local valueControl = control:GetNamedChild("Value")
+    if not itemTypeControl or not traitControl or not statControl or not valueControl then return end
 
     -- Apply column font
     itemTypeControl:SetFont(columnFont)

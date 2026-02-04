@@ -111,8 +111,7 @@ Constant: BETTERUI_BANK_DEPOSIT_ARROW_ROTATION
 Description: Rotation (radians) for the selection background arrow in Deposit mode.
 Used By: StateManager.lua
 ]]
--- TODO(cleanup): Use math.pi instead of hardcoded value
-BETTERUI_BANK_DEPOSIT_ARROW_ROTATION = 3.1415 -- Pi
+BETTERUI_BANK_DEPOSIT_ARROW_ROTATION = math.pi
 
 -- ============================================================================
 -- TIMING CONSTANTS (delegate to CIM shared values)
