@@ -173,13 +173,42 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         local fontSize = BETTERUI.GetTooltipFontSize()
         local iconSize = math.floor(fontSize * 0.7)
 
-        -- TTC Integration
-        local ttcLine = GetAddonPriceDisplay("TTC", TamrielTradeCentre, function(link)
-            local itemInfo = TamrielTradeCentre_ItemInfo:New(link)
+        -- TTC Integration (custom format to show both Avg and Suggested prices)
+        if TamrielTradeCentre and BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration then
+            local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
             local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
-            return priceInfo and (priceInfo.SuggestedPrice or priceInfo.Avg)
-        end, "ttcIntegration", itemLink, stackCount, iconSize)
-        if ttcLine then table.insert(lines, ttcLine) end
+            if priceInfo then
+                local avgPrice = priceInfo.Avg
+                local sugPrice = priceInfo.SuggestedPrice
+                local coinIcon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))
+                local ttcLine
+
+                if avgPrice and sugPrice then
+                    -- Both prices available - show both
+                    ttcLine = zo_strformat("TTC - Avg: <<1>> / Sug: <<2>> |t<<3>>:<<3>>:<<4>>|t",
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2)),
+                        iconSize,
+                        coinIcon)
+                elseif avgPrice then
+                    -- Only Avg available
+                    ttcLine = zo_strformat("TTC - Avg: <<1>> |t<<2>>:<<2>>:<<3>>|t",
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
+                        iconSize,
+                        coinIcon)
+                elseif sugPrice then
+                    -- Only Suggested available
+                    ttcLine = zo_strformat("TTC - Sug: <<1>> |t<<2>>:<<2>>:<<3>>|t",
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2)),
+                        iconSize,
+                        coinIcon)
+                else
+                    ttcLine = "TTC Price: No Data"
+                end
+
+                if ttcLine then table.insert(lines, ttcLine) end
+            end
+        end
 
         -- MM Integration
         local mmLine = GetAddonPriceDisplay("MM", MasterMerchant, function(link)
