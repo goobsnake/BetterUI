@@ -141,13 +141,21 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")
 -- Multi-Select Mode
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Multi-Select")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deselect")
+ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Select (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")
+ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Select All")
 ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
+    "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")
 ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")
 ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")
 ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")
+-- Legacy strings for backwards compatibility (batch actions now use ESO's SI_ITEM_ACTION_* strings)
 ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected")
 ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected")
 ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Many") -- DEPRECATED: Use SI_BETTERUI_MULTI_SELECT
@@ -521,7 +529,7 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "Show an icon after set g
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Enable quick destroy functionality")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog!")
+    "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog! Does not apply to multi-select mode (batch destroy always requires confirmation).")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next item type")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type")
