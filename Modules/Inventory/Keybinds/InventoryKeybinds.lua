@@ -168,6 +168,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
                 end
+                -- FLICKER FIX: Hide button during action transition when actionName cleared
+                -- This prevents showing incorrect fallback text after equip/unequip
+                if self.itemActions and self.itemActions.slotActions and not self.itemActions.actionName then
+                    return false
+                end
                 -- Check itemActions visibility if available
                 if self.itemActions and self.itemActions.slotActions then
                     return self.itemActions.slotActions:CheckPrimaryActionVisibility()
@@ -187,6 +192,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         self:RefreshItemList()
                     end
                 else
+                    -- FLICKER FIX: Clear stale action name BEFORE executing action
+                    -- This prevents fallback logic from showing incorrect text (e.g. "Use" instead of "Unequip")
+                    if self.itemActions then
+                        self.itemActions.actionName = nil
+                    end
+
                     -- Use itemActions to execute the discovered primary action
                     if self.itemActions and self.itemActions.slotActions then
                         local slotActions = self.itemActions.slotActions
