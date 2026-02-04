@@ -164,7 +164,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- offsetX: 9 (rightward), offsetTopY: -8 (upward), offsetBottomY: -8 (up from footer)
     local listControl = self.list and self.list.control
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 9, -8, -8)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 9, -8, -8, self.list)
     end
 
     self.currentMode = LIST_WITHDRAW
