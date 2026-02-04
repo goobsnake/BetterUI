@@ -47,12 +47,6 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
         end
     end
 
-    -- 3. Cancel any pending hold keybind timers
-    -- Prevents timer from firing after scene exit (e.g., user holds A then presses B to exit)
-    if BETTERUI.CIM.HoldKeybindWrapper and BETTERUI.CIM.HoldKeybindWrapper.CancelAll then
-        BETTERUI.CIM.HoldKeybindWrapper.CancelAll()
-    end
-
     -- 3. Deactivate search focus to release DIRECTIONAL_INPUT
     screen._searchModeActive = false
     screen._searchHeaderActive = false

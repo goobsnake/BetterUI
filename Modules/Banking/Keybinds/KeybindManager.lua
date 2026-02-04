@@ -202,20 +202,21 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 -- automatically refresh the list when the cache is updated
             end,
         },
-        -- Y Hold (Quinary) for Header Sort Focus
-        -- Dedicated entry point for column header sorting
+        -- Y-Hold (QUINARY) for Multi-Select Mode
+        -- Dedicated entry point for multi-select functionality
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(SI_BETTERUI_HEADER_SORT),
+            name = GetString(SI_BETTERUI_MULTI_SELECT),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
-                -- Must have items and header sort controller
+                -- Must have items and multi-select manager available
                 return self.list and not self.list:IsEmpty()
-                    and self.EnterHeaderSortMode ~= nil
+                    and self.multiSelectManager ~= nil
+                    and not self.multiSelectManager:IsActive()
             end,
             callback = function()
-                if self.EnterHeaderSortMode then
-                    self:EnterHeaderSortMode()
+                if self.multiSelectManager and not self.multiSelectManager:IsActive() then
+                    self:EnterSelectionMode()
                 end
             end,
         },

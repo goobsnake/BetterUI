@@ -45,7 +45,6 @@ Modules\CIM\Core\DeprecationRegistry.lua
 Modules\CIM\Core\SceneLifecycleManager.lua
 Modules\CIM\Core\CategoryDefinitions.lua
 Modules\CIM\Core\MultiSelectManager.lua
-Modules\CIM\Core\HoldKeybindWrapper.lua
 Modules\CIM\Core\SceneCleanup.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
