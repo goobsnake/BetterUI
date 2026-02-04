@@ -276,6 +276,10 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         if list.Deactivate then
             list:Deactivate()
         end
+        -- Also disable directional input for proper greying out
+        if list.SetDirectionalInputEnabled then
+            list:SetDirectionalInputEnabled(false)
+        end
 
         -- Enter header mode on controller
         controller:EnterHeaderMode()
@@ -284,10 +288,9 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 
         -- Swap keybinds to header mode
-        local mainKeybinds = config.keybindDescriptor or self.mainKeybindStripDescriptor or self.coreKeybinds
-        if mainKeybinds then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(mainKeybinds)
-        end
+        -- First, clear all keybind groups to prevent stale action names showing
+        -- (e.g., "Equip"/"Use" lingering from rapid button presses before entering sort mode)
+        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
 
         -- Create header mode keybinds via shared CIM factory
         if not self.headerSortKeybindDescriptor then
@@ -325,8 +328,13 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
 
         -- Reactivate the item list
         local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
-        if list and list.Activate then
-            list:Activate()
+        if list then
+            if list.SetDirectionalInputEnabled then
+                list:SetDirectionalInputEnabled(true)
+            end
+            if list.Activate then
+                list:Activate()
+            end
         end
     end
 end
