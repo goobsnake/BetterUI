@@ -32,11 +32,18 @@ Function: BETTERUI.Banking.Class:UpdateActions
 Description: Updates the active item actions based on current selection.
 ]]
 function BETTERUI.Banking.Class:UpdateActions()
+    -- Skip itemActions updates when in header sort mode to prevent keybind flicker
+    -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
+    if self.isInHeaderSortMode then
+        return
+    end
+
     local targetData = self:GetList() and self:GetList().selectedData or nil
     if not targetData then
         self.itemActions:SetInventorySlot(nil)
         return
     end
+
     -- since SetInventorySlot also adds/removes keybinds, the order which we call these 2 functions is important
     -- based on whether we are looking at an item or a faux-item
     -- TODO(fix): Add nil-check for ZO_GamepadBanking before calling IsEntryDataCurrencyRelated
@@ -194,6 +201,23 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
                 -- No manual refresh needed - SHARED_INVENTORY callbacks will
                 -- automatically refresh the list when the cache is updated
+            end,
+        },
+        -- Y Hold (Quinary) for Header Sort Focus
+        -- Dedicated entry point for column header sorting
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = GetString(SI_BETTERUI_HEADER_SORT),
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                -- Must have items and header sort controller
+                return self.list and not self.list:IsEmpty()
+                    and self.EnterHeaderSortMode ~= nil
+            end,
+            callback = function()
+                if self.EnterHeaderSortMode then
+                    self:EnterHeaderSortMode()
+                end
             end,
         },
     }

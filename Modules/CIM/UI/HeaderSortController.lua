@@ -225,15 +225,34 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     self.currentColumnIndex = columnIndex
 
     local currentDirection = self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
+    local column = self.columns[columnIndex]
+    local startsDescending = column and column.defaultDirection == "descending"
 
     -- Cycle through directions
+    -- Normal columns: NONE → ASCENDING → DESCENDING → NONE
+    -- Descending-default columns: NONE → DESCENDING → ASCENDING → NONE
     local newDirection
     if currentDirection == SORT_DIRECTION.NONE then
-        newDirection = SORT_DIRECTION.ASCENDING
+        -- Start with column's default direction
+        if startsDescending then
+            newDirection = SORT_DIRECTION.DESCENDING
+        else
+            newDirection = SORT_DIRECTION.ASCENDING
+        end
     elseif currentDirection == SORT_DIRECTION.ASCENDING then
-        newDirection = SORT_DIRECTION.DESCENDING
-    else
-        newDirection = SORT_DIRECTION.NONE
+        -- ASC goes to DESC for normal, goes to NONE for descending-default
+        if startsDescending then
+            newDirection = SORT_DIRECTION.NONE
+        else
+            newDirection = SORT_DIRECTION.DESCENDING
+        end
+    else -- DESCENDING
+        -- DESC goes to NONE for normal, goes to ASC for descending-default
+        if startsDescending then
+            newDirection = SORT_DIRECTION.ASCENDING
+        else
+            newDirection = SORT_DIRECTION.NONE
+        end
     end
 
     -- Clear other columns if we're setting a direction
@@ -483,6 +502,17 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             name = GetString(SI_GAMEPAD_BACK_OPTION),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = exitCallback,
+        },
+        -- Y button: Already in header mode, show current state (no-op)
+        -- This prevents Y from being "lost" when main keybinds are removed
+        {
+            name = GetString(SI_BETTERUI_HEADER_SORT),
+            keybind = "UI_SHORTCUT_QUINARY",
+            ethereal = true, -- Hidden since A already shows "Sort"
+            callback = function()
+                -- Already in header mode, no action needed
+                -- This captures the Y press to prevent it from falling through
+            end,
         },
         -- D-pad navigation keybinds (ethereal = hidden from UI)
         -- Note: Uses keybinds instead of DIRECTIONAL_INPUT to avoid

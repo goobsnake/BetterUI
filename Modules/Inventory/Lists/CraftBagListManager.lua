@@ -42,6 +42,7 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
                 self:SetSelectedItemUniqueId(selectedData)
                 self.craftBagList:RefreshVisible()
             end
+            -- Keybind Refresh - protected by RefreshKeybinds() override
             self:RefreshKeybinds()
         end
     end

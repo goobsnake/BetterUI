@@ -400,6 +400,10 @@ param: self (table) - The Banking class instance.
 param: isCurrencyRow (boolean) - True if currency row is selected.
 ]]
 local function UpdateKeybindsForSelection(self, isCurrencyRow)
+    -- Skip keybind updates when in header sort mode - header has its own keybinds
+    if self.isInHeaderSortMode then
+        return
+    end
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     if isCurrencyRow then

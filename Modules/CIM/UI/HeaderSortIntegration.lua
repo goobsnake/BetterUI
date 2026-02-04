@@ -256,7 +256,8 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
     function instance:EnterHeaderSortMode()
         if self.isInHeaderSortMode then return end
 
-        local list = config.list or self.list or self.itemList
+        -- Support both static list and dynamic listFn for screens with multiple lists (e.g., Inventory + CraftBag)
+        local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
         if not list or list:GetNumItems() == 0 then
             return
         end
@@ -323,7 +324,7 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         end
 
         -- Reactivate the item list
-        local list = config.list or self.list or self.itemList
+        local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
         if list and list.Activate then
             list:Activate()
         end

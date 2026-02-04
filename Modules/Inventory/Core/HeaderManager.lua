@@ -137,6 +137,11 @@ local function EnsureHeaderKeybindsActive(self)
 end
 
 local function ExitSearchFocus(self)
+    -- Skip if in header sort mode to preserve header mode keybinds
+    if self.isInHeaderSortMode then
+        return
+    end
+
     -- Remove search keybinds first
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)

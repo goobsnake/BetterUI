@@ -407,6 +407,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 			if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
 				self:OnUpdate() -- immediate to keep dialog/keybinds consistent
 			else
+				-- RefreshKeybinds() is protected by InventoryClass override
 				if currentList == self.itemList then
 					self:RefreshKeybinds()
 				end
@@ -439,29 +440,16 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventoryUpdateCallback)
 	SHARED_INVENTORY:RegisterCallback("SingleQuestUpdate", self._inventoryUpdateCallback)
 
-	-- Ensure keybinds (including the Clear Search prompt) are updated once
-	-- deferred initialization finishes. Some UI elements become visible only
-	-- after a short delay; refreshing keybinds here prevents the Clear Search
-	-- button from not appearing until the player scrolls the list.
-	BETTERUI.Inventory.Tasks:Schedule("keybindRefreshDeferred", BETTERUI.CIM.CONST.TIMING.KEYBIND_REFRESH_DELAY_MS,
-		function()
-			if self.RefreshKeybinds then
-				self:RefreshKeybinds()
-			elseif self.mainKeybindStripDescriptor then
-				KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
-				-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
-				if self.SetActiveKeybinds then
-					self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-				end
-				-- Additional delay to ensure main group activation sticks
-				BETTERUI.Inventory.Tasks:Schedule("keybindActivationStick",
-					BETTERUI.CIM.CONST.TIMING.KEYBIND_ACTIVATION_DELAY_MS, function()
-						if self.SetActiveKeybinds then
-							self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-						end
-					end)
-			end
-		end)
+	-- Keybind refresh - protected by RefreshKeybinds() override
+	if self.RefreshKeybinds then
+		self:RefreshKeybinds()
+	elseif self.mainKeybindStripDescriptor then
+		KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+		-- Ensure the main group is active on initial load to prevent missing shoulder navigation.
+		if self.SetActiveKeybinds then
+			self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+		end
+	end
 
 	-- Set the active list to ItemList by default
 	self:SwitchActiveList(INVENTORY_ITEM_LIST)

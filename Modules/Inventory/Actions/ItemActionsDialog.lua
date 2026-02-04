@@ -100,13 +100,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 if self and self.RefreshItemActions then
                     self:RefreshItemActions()
                 end
-                if self and self.RefreshKeybinds then
+                if self and self.RefreshKeybinds and not self.isInHeaderSortMode then
                     self:RefreshKeybinds()
                 end
-                -- Ensure the main keybind descriptor becomes active after toggling junk
-                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                -- Ensure the main keybind descriptor becomes active after toggling junk (skip if in header sort mode)
+                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor and not self.isInHeaderSortMode then
                     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                    -- NOTE: Removed duplicate zo_callLater call - causes flickering
                 end
             end
             -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
@@ -125,13 +124,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 if self and self.RefreshItemActions then
                     self:RefreshItemActions()
                 end
-                if self and self.RefreshKeybinds then
+                if self and self.RefreshKeybinds and not self.isInHeaderSortMode then
                     self:RefreshKeybinds()
                 end
-                -- Ensure the main keybind descriptor becomes active after toggling junk
-                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+                -- Ensure the main keybind descriptor becomes active after toggling junk (skip if in header sort mode)
+                if self.SetActiveKeybinds and self.mainKeybindStripDescriptor and not self.isInHeaderSortMode then
                     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-                    -- NOTE: Removed duplicate zo_callLater call - causes flickering
                 end
             end
 
@@ -332,8 +330,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
     end
     local function ActionDialogFinish()
         if self.scene:IsShowing() then
-            -- make sure to wipe out the keybinds added by
-            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+            -- make sure to wipe out the keybinds added by dialog (skip if in header sort mode)
+            if not self.isInHeaderSortMode then
+                self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+            end
 
             --restore the selected inventory item
             if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
@@ -351,8 +351,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             else
                 self:RefreshItemActions()
             end
-            --refresh so keybinds react to newly selected item
-            self:RefreshKeybinds()
+            --refresh so keybinds react to newly selected item (skip if in header sort mode)
+            if not self.isInHeaderSortMode then
+                self:RefreshKeybinds()
+            end
             -- NOTE: Removed OnUpdate() call - it triggers RefreshItemList + RefreshItemActions
             -- which duplicates the refresh we just did, causing flickering.
         end

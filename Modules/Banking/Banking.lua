@@ -530,6 +530,10 @@ Description: Updates the context menu actions for the currently selected item.
 Rationale: Refreshes the available actions (e.g., Link to Chat, Split Stack) based on selection.
 ]]
 function BETTERUI.Banking.Class:RefreshItemActions()
+    -- Skip itemActions updates when in header sort mode to prevent keybind flicker
+    if self.isInHeaderSortMode then
+        return
+    end
     local targetData = self:GetList().selectedData
     --self:SetSelectedInventoryData(targetData) instead:
     self.itemActions:SetInventorySlot(targetData)

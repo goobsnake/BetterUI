@@ -119,7 +119,8 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
 
     self.mainKeybindStripDescriptor = {
         -- Primary (A) for Equip/Use with Hold for Multi-Select
-        {
+        -- Wrapped with HoldKeybindWrapper to enable timer-based hold detection
+        BETTERUI.CIM.HoldKeybindWrapper.Wrap({
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -133,11 +134,20 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     return GetString(SI_BETTERUI_SELECT_ITEM)
                 end
 
-                -- Normal mode - show equip/use
+                -- Normal mode - show equip/use with hold hint for multi-select
+                local baseName
                 if target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
-                    return GetString(SI_ITEM_ACTION_EQUIP)
+                    baseName = GetString(SI_ITEM_ACTION_EQUIP)
+                else
+                    baseName = GetString(SI_ITEM_ACTION_USE)
                 end
-                return GetString(SI_ITEM_ACTION_USE)
+
+                -- Add hold hint if multi-select is available
+                if self.multiSelectManager then
+                    -- Show hint: "EQUIP (Hold: Select)"
+                    return baseName .. " |cBBBBBB(Hold: Select)|r"
+                end
+                return baseName
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             visible = function()
@@ -146,6 +156,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
                 return self.itemList.selectedData ~= nil
             end,
+            -- Tap action: Equip/Use or Toggle Selection
             callback = function()
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     -- In selection mode - toggle selection
@@ -159,7 +170,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     local target = self.itemList.selectedData
                     if target and target.bagId and target.slotIndex then
                         if IsEquipable(target.bagId, target.slotIndex) then
-                            self:EquipItem(target)
+                            -- TryEquipItem expects inventorySlot with dataSource property
+                            -- If target already has dataSource, use it directly; otherwise wrap it
+                            local inventorySlot = target.dataSource and target or { dataSource = target }
+                            self:TryEquipItem(inventorySlot, false)
                         else
                             -- Use item
                             CallSecureProtected("UseItem", target.bagId, target.slotIndex)
@@ -167,8 +181,8 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     end
                 end
             end,
-            -- Hold A for 0.5s to enter selection mode
-            hold = function()
+            -- Hold action: Enter selection mode (500ms threshold)
+            holdCallback = function()
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return
                 end
@@ -178,7 +192,8 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     self:EnterSelectionMode()
                 end
             end,
-        },
+            holdDuration = 500,
+        }),
         -- Primary (A) reserved for item primary actions (equip/use/etc.).
         --X Button for Quick Action
         {
@@ -373,8 +388,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self._searchModeActive then
                     self:ExitSearchFocus()
                 else
-                    self:RefreshKeybinds()
-                    self:UpdateActions()
+                    -- Skip if in header sort mode
+                    if not self.isInHeaderSortMode then
+                        self:RefreshKeybinds()
+                        self:UpdateActions()
+                    end
                 end
             end,
             function()
@@ -385,6 +403,40 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return self.searchQuery and self.searchQuery ~= ""
             end
         ),
+        -- Y Hold (Quinary) for Header Sort Focus
+        -- Dedicated entry point for column header sorting
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = GetString(SI_BETTERUI_HEADER_SORT),
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                -- Only visible in item list or craft bag mode with items to sort
+                local isItemMode = self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                local isCraftBagMode = self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE
+                if not isItemMode and not isCraftBagMode then
+                    return false
+                end
+                -- Must have items in the appropriate list and header sort controller
+                local currentList = isItemMode and self.itemList or self.craftBagList
+                return currentList and not currentList:IsEmpty()
+                    and self.EnterHeaderSortMode ~= nil
+            end,
+            callback = function()
+                if self.EnterHeaderSortMode then
+                    -- Force clean entry: reset state if stuck, then enter
+                    -- This ensures Y always works even if header mode was exited unexpectedly
+                    if self.isInHeaderSortMode then
+                        -- Already in header mode state - force reset and re-enter
+                        self.isInHeaderSortMode = false
+                        -- Clean up any stale keybinds
+                        if self.headerSortKeybindDescriptor then
+                            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
+                        end
+                    end
+                    self:EnterHeaderSortMode()
+                end
+            end,
+        },
     }
 
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)

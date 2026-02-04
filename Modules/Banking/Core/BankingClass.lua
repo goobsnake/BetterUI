@@ -117,21 +117,194 @@ end
 --------------------------------------------------------------------------------
 -- HEADER SORT MODE
 --------------------------------------------------------------------------------
-
 -- Column definitions for header sort navigation (matches Inventory)
--- Each column has a name (for display), key (internal), and sort key for item data
+-- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
 local BANKING_SORT_COLUMNS = {
     { name = "NAME",  key = "name",  sortKey = "name" },
     { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
-    { name = "TRAIT", key = "trait", sortKey = "traitType" },
-    { name = "STAT",  key = "stat",  sortKey = "statValue" },
-    { name = "VALUE", key = "value", sortKey = "stackSellPrice" },
+    { name = "TRAIT", key = "trait", sortKey = "trait" },                                                       -- Special handling for alphabetical sort
+    { name = "STAT",  key = "stat",  sortKey = "stat" },                                                        -- Special handling for mixed alpha/numeric
+    { name = "VALUE", key = "value", sortKey = "value",                      defaultDirection = "descending" }, -- Market price, default high-to-low
 }
 
+--- Helper: Get trait display name for sorting (alphabetical with blanks last)
+--- Returns uppercase trait name for consistent sorting
+--- @param data table Item data
+--- @return string|nil Trait name (uppercase) or nil if no trait
+local function GetTraitSortValue(data)
+    if not data then return nil end
+
+    -- Check for dataSource (ZO_GamepadEntryData wraps item data)
+    local itemData = data.dataSource or data
+
+    -- Use cached trait name if available and not blank
+    local cachedTrait = itemData.cached_traitName or data.cached_traitName
+    if cachedTrait and cachedTrait ~= "-" and cachedTrait ~= "" then
+        return cachedTrait:upper() -- Normalize to uppercase
+    end
+
+    -- Try to get trait type from stored data first
+    local traitType = itemData.traitType or itemData.traitInformation or data.traitType
+
+    -- If no cached traitType, get it directly from the API using bagId/slotIndex
+    if not traitType or traitType == 0 then
+        local bagId = itemData.bagId or data.bagId
+        local slotIndex = itemData.slotIndex or data.slotIndex
+        if bagId and slotIndex and GetItemTrait then
+            traitType = GetItemTrait(bagId, slotIndex)
+        end
+    end
+
+    -- Convert trait type to name
+    if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and traitType ~= 0 then
+        local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
+        if traitName and traitName ~= "" then
+            return traitName:upper() -- Normalize to uppercase
+        end
+    end
+
+    return nil -- Return nil for blanks (sorted last)
+end
+
+--- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
+--- Returns: sortPriority (1=alpha, 2=numeric, 3=blank), sortValue
+--- @param data table Item data
+--- @return number priority Sort priority (1=alpha, 2=numeric, 3=blank)
+--- @return string|number value Value to compare within priority
+local function GetStatSortValue(data)
+    if not data then return 3, "" end
+
+    local statValue = data.statValue
+    if statValue == nil or statValue == "" or statValue == 0 or statValue == "-" then
+        return 3, "" -- Blank - lowest priority
+    end
+
+    -- Convert to string for analysis
+    local statStr = tostring(statValue)
+
+    -- Check if purely numeric
+    local numVal = tonumber(statStr)
+    if numVal then
+        return 2, numVal -- Numeric - medium priority
+    end
+
+    -- Check if starts with letter (alphabetical)
+    if statStr:match("^%a") then
+        return 1, statStr:upper() -- Alphabetical - highest priority
+    end
+
+    -- Special characters
+    return 2.5, statStr -- After numeric, before blank
+end
+
+--- Helper: Get value sort value (market price first, then vendor price)
+--- @param data table Item data
+--- @return number price Best available price
+local function GetValueSortValue(data)
+    if not data then return 0 end
+
+    -- Try to get market price first
+    if BETTERUI.GetMarketPrice then
+        local itemLink = data.itemLink or (data.bagId and data.slotIndex and GetItemLink(data.bagId, data.slotIndex))
+        if itemLink then
+            local marketPrice = BETTERUI.GetMarketPrice(itemLink, data.stackCount or 1)
+            if marketPrice and marketPrice > 0 then
+                return marketPrice
+            end
+        end
+    end
+
+    -- Fall back to vendor price
+    return data.stackSellPrice or 0
+end
+
 --- Creates sort comparator for a column with the specified direction
+--- Handles special cases: TRAIT (alphabetical, blanks last), STAT (alpha/numeric/blank),
+--- VALUE (market price priority)
 --- @param sortKey string The key to sort by
 --- @param ascending boolean True for ascending, false for descending
 local function CreateColumnSortComparator(sortKey, ascending)
+    -- TRAIT: Alphabetical with blanks after "z"
+    if sortKey == "trait" then
+        return function(left, right)
+            local leftVal = GetTraitSortValue(left)
+            local rightVal = GetTraitSortValue(right)
+
+            -- Blanks (nil) always sort last regardless of direction
+            if leftVal == nil and rightVal == nil then return false end
+            if leftVal == nil then return false end -- left is blank, goes after right
+            if rightVal == nil then return true end -- right is blank, left goes first
+
+            -- Alphabetical comparison
+            local leftUpper = tostring(leftVal):upper()
+            local rightUpper = tostring(rightVal):upper()
+            if ascending then
+                return leftUpper < rightUpper
+            else
+                return leftUpper > rightUpper
+            end
+        end
+    end
+
+    -- STAT: Alphabetical first, then numeric by value, special chars, blanks last
+    if sortKey == "stat" then
+        return function(left, right)
+            local leftPrio, leftVal = GetStatSortValue(left)
+            local rightPrio, rightVal = GetStatSortValue(right)
+
+            -- Blanks (priority 3) always sort last regardless of direction
+            if leftPrio == 3 and rightPrio == 3 then return false end
+            if leftPrio == 3 then return false end -- left is blank, goes after right
+            if rightPrio == 3 then return true end -- right is blank, left goes first
+
+            -- Different priorities: sort by priority (alpha < numeric < special)
+            if leftPrio ~= rightPrio then
+                if ascending then
+                    return leftPrio < rightPrio
+                else
+                    return leftPrio > rightPrio
+                end
+            end
+
+            -- Same priority: compare values
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+    end
+
+    -- VALUE: Market price first, then vendor price
+    -- Descending: highest first, 0 last
+    -- Ascending: 0 first (lowest), then lowest to highest
+    if sortKey == "value" then
+        return function(left, right)
+            local leftVal = GetValueSortValue(left)
+            local rightVal = GetValueSortValue(right)
+
+            -- Handle zero values based on sort direction
+            if ascending then
+                -- Ascending: 0 comes first (lowest value)
+                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 then return true end   -- left is 0, goes before right
+                if rightVal == 0 then return false end -- right is 0, left goes after right
+            else
+                -- Descending: 0 comes last (after highest values)
+                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 then return false end -- left is 0, goes after right
+                if rightVal == 0 then return true end -- right is 0, left goes first
+            end
+
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+    end
+
+    -- Default comparator for NAME, TYPE, and other columns
     return function(left, right)
         local leftVal = left[sortKey]
         local rightVal = right[sortKey]
@@ -250,6 +423,13 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
                 break
             end
         end
+    end
+    -- NOTE: Keybinds are protected by UpdateActions guard which skips
+    -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
+
+    -- Keep list deactivated during header sort mode to prevent scrolling
+    if self.isInHeaderSortMode and self.list and self.list.Deactivate then
+        self.list:Deactivate()
     end
 end
 

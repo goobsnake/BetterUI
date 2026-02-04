@@ -195,6 +195,10 @@ Description: Sets the active keybind group, removing any previous one.
 param: keybindDescriptor (table) - The keybind group to activate.
 ]]
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
+    -- Skip keybind changes if in header sort mode to preserve header mode keybinds
+    if self.isInHeaderSortMode then
+        return
+    end
     if self.activeKeybindDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
     end
@@ -209,6 +213,10 @@ Function: BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds
 Description: Refreshes the currently active keybind group.
 ]]
 function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
+    -- Skip refreshing active keybinds if in header sort mode
+    if self.isInHeaderSortMode then
+        return
+    end
     if self.activeKeybindDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.activeKeybindDescriptor)
     end
@@ -223,6 +231,22 @@ function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
     end
     self.activeKeybindDescriptor = nil
+end
+
+--[[
+Function: BETTERUI.CIM.UnifiedScreen:RefreshKeybinds
+Description: Overrides base class RefreshKeybinds with header mode guard.
+             Prevents keybind updates during header sort mode.
+]]
+function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
+    -- Block keybind refresh during header sort mode to preserve header mode keybinds
+    if self.isInHeaderSortMode then
+        return
+    end
+    -- Call parent class implementation if it exists
+    if BETTERUI_Gamepad_ParametricList_Screen.RefreshKeybinds then
+        BETTERUI_Gamepad_ParametricList_Screen.RefreshKeybinds(self)
+    end
 end
 
 -- ============================================================================

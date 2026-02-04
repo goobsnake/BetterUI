@@ -36,6 +36,7 @@ local function SwitchActiveList(self, listDescriptor)
     if self.scene:IsShowing() then
         if listDescriptor == INVENTORY_ITEM_LIST then
             self:SetCurrentList(self.itemList)
+            -- SetActiveKeybinds() is protected by UnifiedScreen override
             self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
             self:RefreshCategoryList()
 
@@ -108,6 +109,7 @@ local function SwitchActiveList(self, listDescriptor)
             self:UpdateItemLeftTooltip(self.itemList.selectedData)
         elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
             self:SetCurrentList(self.craftBagList)
+            -- SetActiveKeybinds() is protected by UnifiedScreen override
             self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
             self:RefreshCategoryList()
 
@@ -187,6 +189,7 @@ local function SwitchActiveList(self, listDescriptor)
                 self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
             end
         end
+        -- RefreshKeybinds() is protected by InventoryClass override
         self:RefreshKeybinds()
     else
         self.actionMode = nil

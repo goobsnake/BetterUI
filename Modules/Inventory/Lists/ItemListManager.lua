@@ -92,15 +92,8 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 
             self:PrepareNextClearNewStatus(selectedData)
 
-            -- Debounce Keybind Refresh (Prevent rebuilding strip on every scroll step)
-            if self.keybindCallLaterId ~= nil then
-                EVENT_MANAGER:UnregisterForUpdate(self.keybindCallLaterId)
-            end
-            BETTERUI.Inventory.Tasks:Schedule("keybindUpdate", 50, function()
-                self:RefreshKeybinds()
-                self.keybindCallLaterId = nil
-            end)
-            self.keybindCallLaterId = "InventoryKeybindUpdate"
+            -- Keybind Refresh - protected by RefreshKeybinds() override
+            self:RefreshKeybinds()
 
             -- Update scroll indicator position
             local listCtrl = self.itemList and self.itemList.control
@@ -117,13 +110,10 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
     self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
 
-    -- Hook beginning of list to enter header sort navigation mode
-    -- When user presses D-pad Up at the first item, this fires the callback
-    self.itemList:SetOnHitBeginningOfListCallback(function()
-        if self.EnterHeaderSortMode then
-            self:EnterHeaderSortMode()
-        end
-    end)
+    -- NOTE: Removed SetOnHitBeginningOfListCallback for header sort mode.
+    -- Header sort mode is now entered ONLY via Y Hold keybind.
+    -- D-pad Up at top of list should focus the search box, not enter header mode.
+    -- See keybind UI_SHORTCUT_QUINARY in InventoryKeybinds.lua for Y Hold entry point.
 
     local emptyText = GetString(SI_BETTERUI_EMPTY_LIST)
     local listControl = self.itemList and self.itemList.control
@@ -547,7 +537,10 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     self.pendingBatchIndex = nil
     self.pendingContext = nil
 
-    local sortFunc = BETTERUI.Inventory.DefaultSortComparator
+    -- Use the list's custom sort function if set, otherwise fall back to default
+    -- This allows header sort to override the default sorting
+    -- self.currentSortComparator is set by OnHeaderSortChanged when user sorts by header column
+    local sortFunc = self.currentSortComparator or BETTERUI.Inventory.DefaultSortComparator
 
     -- If the list is small enough, process synchronously (prevents flickering on small lists)
     if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then

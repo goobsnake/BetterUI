@@ -98,8 +98,59 @@ function BETTERUI.Inventory.Class:GetCachedSlotData(...)
 end
 
 --------------------------------------------------------------------------------
+-- KEYBIND MANAGEMENT (Override ESO Base Class)
+--------------------------------------------------------------------------------
+
+--[[
+Function: RefreshKeybinds (Override)
+Description: Guards keybind refresh against header sort mode.
+Rationale: ESO's ZO_Gamepad_ParametricList_Screen:CreateAndSetupList wraps the list's
+           OnSelectedDataChangedCallback with a call to self:RefreshKeybinds(). This
+           bypasses all our guards on individual RefreshKeybinds calls because ESO's
+           base class is calling RefreshKeybinds directly. By overriding the function
+           itself, we intercept ALL refresh calls - both from our code and ESO's base class.
+Mechanism: Check isInHeaderSortMode; if true, skip refresh entirely. Otherwise, call
+           the parent implementation via ZO_GamepadInventory.RefreshKeybinds.
+References: Called by ESO base class in selection callbacks.
+]]
+function BETTERUI.Inventory.Class:RefreshKeybinds()
+    -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
+    -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
+    -- RefreshKeybinds on every selection change, which was overwriting our header keybinds
+    if self.isInHeaderSortMode then
+        return
+    end
+    -- Call parent implementation
+    ZO_GamepadInventory.RefreshKeybinds(self)
+end
+
+--[[
+Function: SetSelectedInventoryData (Override)
+Description: Guards itemActions:SetInventorySlot against header sort mode.
+Rationale: ESO's ZO_ItemSlotActionsController:SetInventorySlot calls RefreshKeybindStrip()
+           which DIRECTLY manipulates KEYBIND_STRIP (Add/Update/Remove). This bypasses our
+           RefreshKeybinds override. By guarding at the SetSelectedInventoryData level,
+           we prevent itemActions from updating keybinds during header sort mode.
+References: Called on every selection change via selection callbacks.
+]]
+function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
+    -- Skip itemActions keybind updates when in header sort mode
+    -- This is the REAL fix for the "A-Button Burn" flicker - itemActions:SetInventorySlot
+    -- calls RefreshKeybindStrip() which directly manipulates KEYBIND_STRIP, bypassing
+    -- our RefreshKeybinds override
+    if self.isInHeaderSortMode then
+        -- Only update uniqueId tracking, skip itemActions entirely
+        self:SetSelectedItemUniqueId(inventoryData)
+        return
+    end
+    -- Call parent implementation (includes itemActions:SetInventorySlot)
+    ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
+end
+
+--------------------------------------------------------------------------------
 -- INITIALIZATION
 --------------------------------------------------------------------------------
+
 
 --- Initializes the Inventory object.
 --- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
@@ -214,14 +265,15 @@ function BETTERUI.Inventory.Class:Initialize(control)
         })
     end
 
-    -- Force a short delayed refresh of the main keybind group
-    BETTERUI.Inventory.Tasks:Schedule("keybindRefresh", BETTERUI.CIM.CONST.TIMING.DEBOUNCE_MS, function()
+    -- Keybind refresh - synchronous with header mode guard
+    -- Skip if in header sort mode to avoid overwriting header keybinds
+    if not self.isInHeaderSortMode then
         if self.RefreshKeybinds then
             self:RefreshKeybinds()
         elseif self.mainKeybindStripDescriptor then
             KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
         end
-    end)
+    end
 end
 
 --------------------------------------------------------------------------------
@@ -365,21 +417,192 @@ end
 --------------------------------------------------------------------------------
 -- HEADER SORT MODE
 --------------------------------------------------------------------------------
-
 -- Column definitions for header sort navigation
--- Each column has a name (for display), key (internal), and sort function
+-- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
 local INVENTORY_SORT_COLUMNS = {
     { name = "NAME",  key = "name",  sortKey = "name" },
     { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
-    { name = "TRAIT", key = "trait", sortKey = "traitType" },
-    { name = "STAT",  key = "stat",  sortKey = "statValue" },
-    { name = "VALUE", key = "value", sortKey = "stackSellPrice" },
+    { name = "TRAIT", key = "trait", sortKey = "trait" },                                                       -- Special handling for alphabetical sort
+    { name = "STAT",  key = "stat",  sortKey = "stat" },                                                        -- Special handling for mixed alpha/numeric
+    { name = "VALUE", key = "value", sortKey = "value",                      defaultDirection = "descending" }, -- Market price, default high-to-low
 }
 
+--- Helper: Get trait display name for sorting (alphabetical with blanks last)
+--- Returns uppercase trait name for consistent sorting
+--- @param data table Item data
+--- @return string|nil Trait name (uppercase) or nil if no trait
+local function GetTraitSortValue(data)
+    if not data then return nil end
+
+    -- Check for dataSource (ZO_GamepadEntryData wraps item data)
+    local itemData = data.dataSource or data
+
+    -- Use cached trait name if available and not blank
+    local cachedTrait = itemData.cached_traitName or data.cached_traitName
+    if cachedTrait and cachedTrait ~= "-" and cachedTrait ~= "" then
+        return cachedTrait:upper() -- Normalize to uppercase
+    end
+
+    -- Try to get trait type from stored data first
+    local traitType = itemData.traitType or itemData.traitInformation or data.traitType
+
+    -- If no cached traitType, get it directly from the API using bagId/slotIndex
+    if not traitType or traitType == 0 then
+        local bagId = itemData.bagId or data.bagId
+        local slotIndex = itemData.slotIndex or data.slotIndex
+        if bagId and slotIndex and GetItemTrait then
+            traitType = GetItemTrait(bagId, slotIndex)
+        end
+    end
+
+    -- Convert trait type to name
+    if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and traitType ~= 0 then
+        local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
+        if traitName and traitName ~= "" then
+            return traitName:upper() -- Normalize to uppercase
+        end
+    end
+
+    return nil -- Return nil for blanks (sorted last)
+end
+
+--- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
+--- Returns: sortPriority (1=alpha, 2=numeric, 3=blank), sortValue
+--- @param data table Item data
+--- @return number priority Sort priority (1=alpha, 2=numeric, 3=blank)
+--- @return string|number value Value to compare within priority
+local function GetStatSortValue(data)
+    if not data then return 3, "" end
+
+    local statValue = data.statValue
+    if statValue == nil or statValue == "" or statValue == 0 or statValue == "-" then
+        return 3, "" -- Blank - lowest priority
+    end
+
+    -- Convert to string for analysis
+    local statStr = tostring(statValue)
+
+    -- Check if purely numeric
+    local numVal = tonumber(statStr)
+    if numVal then
+        return 2, numVal -- Numeric - medium priority
+    end
+
+    -- Check if starts with letter (alphabetical)
+    if statStr:match("^%a") then
+        return 1, statStr:upper() -- Alphabetical - highest priority
+    end
+
+    -- Special characters
+    return 2.5, statStr -- After numeric, before blank
+end
+
+--- Helper: Get value sort value (market price first, then vendor price)
+--- @param data table Item data
+--- @return number price Best available price
+local function GetValueSortValue(data)
+    if not data then return 0 end
+
+    -- Try to get market price first
+    if BETTERUI.GetMarketPrice then
+        local itemLink = data.itemLink or (data.bagId and data.slotIndex and GetItemLink(data.bagId, data.slotIndex))
+        if itemLink then
+            local marketPrice = BETTERUI.GetMarketPrice(itemLink, data.stackCount or 1)
+            if marketPrice and marketPrice > 0 then
+                return marketPrice
+            end
+        end
+    end
+
+    -- Fall back to vendor price
+    return data.stackSellPrice or 0
+end
+
 --- Creates sort comparator for a column with the specified direction
+--- Handles special cases: TRAIT (alphabetical, blanks last), STAT (alpha/numeric/blank),
+--- VALUE (market price priority)
 --- @param sortKey string The key to sort by
 --- @param ascending boolean True for ascending, false for descending
 local function CreateColumnSortComparator(sortKey, ascending)
+    -- TRAIT: Alphabetical with blanks after "z"
+    if sortKey == "trait" then
+        return function(left, right)
+            local leftVal = GetTraitSortValue(left)
+            local rightVal = GetTraitSortValue(right)
+
+            -- Blanks (nil) always sort last regardless of direction
+            if leftVal == nil and rightVal == nil then return false end
+            if leftVal == nil then return false end -- left is blank, goes after right
+            if rightVal == nil then return true end -- right is blank, left goes first
+
+            -- Alphabetical comparison (already uppercase from helper)
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+    end
+
+    -- STAT: Alphabetical first, then numeric by value, special chars, blanks last
+    if sortKey == "stat" then
+        return function(left, right)
+            local leftPrio, leftVal = GetStatSortValue(left)
+            local rightPrio, rightVal = GetStatSortValue(right)
+
+            -- Blanks (priority 3) always sort last regardless of direction
+            if leftPrio == 3 and rightPrio == 3 then return false end
+            if leftPrio == 3 then return false end -- left is blank, goes after right
+            if rightPrio == 3 then return true end -- right is blank, left goes first
+
+            -- Different priorities: sort by priority (alpha < numeric < special)
+            if leftPrio ~= rightPrio then
+                if ascending then
+                    return leftPrio < rightPrio
+                else
+                    return leftPrio > rightPrio
+                end
+            end
+
+            -- Same priority: compare values
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+    end
+
+    -- VALUE: Market price first, then vendor price
+    -- Descending: highest first, 0 last
+    -- Ascending: 0 first (lowest), then lowest to highest
+    if sortKey == "value" then
+        return function(left, right)
+            local leftVal = GetValueSortValue(left)
+            local rightVal = GetValueSortValue(right)
+
+            -- Handle zero values based on sort direction
+            if ascending then
+                -- Ascending: 0 comes first (lowest value)
+                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 then return true end   -- left is 0, goes before right
+                if rightVal == 0 then return false end -- right is 0, left goes after right
+            else
+                -- Descending: 0 comes last (after highest values)
+                if leftVal == 0 and rightVal == 0 then return false end
+                if leftVal == 0 then return false end -- left is 0, goes after right
+                if rightVal == 0 then return true end -- right is 0, left goes first
+            end
+
+            if ascending then
+                return leftVal < rightVal
+            else
+                return leftVal > rightVal
+            end
+        end
+    end
+
+    -- Default comparator for NAME, TYPE, and other columns
     return function(left, right)
         local leftVal = left[sortKey]
         local rightVal = right[sortKey]
@@ -430,7 +653,8 @@ function BETTERUI.Inventory.Class:InitializeHeaderSortController()
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
     if HeaderSortIntegration and HeaderSortIntegration.ApplyMixin then
         HeaderSortIntegration.ApplyMixin(self, {
-            list = self.itemList,
+            -- Use a function to get the current list dynamically (supports itemList and craftBagList)
+            listFn = function() return self:GetCurrentList() end,
             keybindDescriptor = self.mainKeybindStripDescriptor,
             headerControllerFn = function() return self.headerSortController end,
             initControllerFn = function() self:InitializeHeaderSortController() end,
@@ -502,17 +726,33 @@ function BETTERUI.Inventory.Class:OnHeaderSortChanged(columnKey, direction)
 
     if not column then return end
 
+    -- Get the current active list (could be itemList or craftBagList)
+    local currentList = self:GetCurrentList()
+    if not currentList then return end
+
     -- Update the list sort function
     if direction == SORT_DIRECTION.NONE then
         -- Reset to default sort
-        self.itemList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
+        self.currentSortComparator = nil
+        if currentList.SetSortFunction then
+            currentList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
+        end
     else
         local ascending = (direction == SORT_DIRECTION.ASCENDING)
-        self.itemList:SetSortFunction(CreateColumnSortComparator(column.sortKey, ascending))
+        self.currentSortComparator = CreateColumnSortComparator(column.sortKey, ascending)
+        if currentList.SetSortFunction then
+            currentList:SetSortFunction(self.currentSortComparator)
+        end
     end
 
-    -- Refresh the list to apply new sort
-    self:RefreshItemList()
+    -- Refresh the appropriate list to apply new sort
+    -- NOTE: Keybinds are protected by SetSelectedInventoryData override which skips
+    -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
+    if currentList == self.itemList then
+        self:RefreshItemList()
+    elseif currentList == self.craftBagList then
+        self:RefreshCraftBagList()
+    end
 end
 
 --- Enters header sort navigation mode.
@@ -541,8 +781,10 @@ function BETTERUI.Inventory.Class:EnterSelectionMode()
         self.multiSelectManager:ToggleSelection(target)
     end
 
-    -- Update keybinds for selection mode
-    self:RefreshKeybinds()
+    -- Update keybinds for selection mode (skip if in header sort mode)
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
 
     -- Refresh list to show selection visuals
     self:RefreshItemList()
@@ -558,8 +800,10 @@ function BETTERUI.Inventory.Class:ExitSelectionMode()
         self.multiSelectManager:ExitSelectionMode()
     end
 
-    -- Update keybinds to normal mode
-    self:RefreshKeybinds()
+    -- Update keybinds to normal mode (skip if in header sort mode)
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
 
     -- Refresh list to remove selection visuals
     self:RefreshItemList()
@@ -578,8 +822,10 @@ function BETTERUI.Inventory.Class:OnSelectionCountChanged(selectedCount)
         self.selectedCount = 0
     end
 
-    -- Refresh keybinds to update Y-button batch actions visibility
-    self:RefreshKeybinds()
+    -- Refresh keybinds to update Y-button batch actions visibility (skip if in header sort mode)
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
 end
 
 --- Gets whether selection mode is currently active.

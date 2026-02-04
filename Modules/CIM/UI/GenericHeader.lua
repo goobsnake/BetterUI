@@ -71,6 +71,11 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
             countBadge:SetText("[" .. tostring(data.itemCount) .. "]")
             countBadge:SetHidden(false)
             countBadge:SetColor(1, 1, 1, 0.9) -- White text for count with slight transparency
+            -- Apply custom vertical offset if specified (e.g., Banking needs badge lower than Inventory)
+            if data.countBadgeOffsetY then
+                countBadge:ClearAnchors()
+                countBadge:SetAnchor(BOTTOM, icon, TOP, 0, data.countBadgeOffsetY)
+            end
         else
             countBadge:SetHidden(true)
         end
