@@ -123,10 +123,17 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         BETTERUI.CIM.HoldKeybindWrapper.Wrap({
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
-                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                    and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return ""
                 end
-                local target = self.itemList.selectedData
+
+                local target
+                if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                    target = self.craftBagList and self.craftBagList.selectedData
+                else
+                    target = self.itemList and self.itemList.selectedData
+                end
                 if not target then return "" end
 
                 -- If in selection mode, show "Select"
@@ -134,49 +141,69 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     return GetString(SI_BETTERUI_SELECT_ITEM)
                 end
 
-                -- Normal mode - show equip/use with hold hint for multi-select
+                -- Use itemActions for proper action name discovery (Equip/Unequip/Use/Retrieve/etc.)
                 local baseName
-                if target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
-                    baseName = GetString(SI_ITEM_ACTION_EQUIP)
+                if self.itemActions and self.itemActions.actionName then
+                    baseName = self.itemActions.actionName
                 else
-                    baseName = GetString(SI_ITEM_ACTION_USE)
+                    -- Fallback to simple Equip/Use logic if itemActions not ready
+                    if target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
+                        baseName = GetString(SI_ITEM_ACTION_EQUIP)
+                    else
+                        baseName = GetString(SI_ITEM_ACTION_USE)
+                    end
                 end
 
-                -- Add hold hint if multi-select is available
-                if self.multiSelectManager then
-                    -- Show hint: "EQUIP (Hold: Select)"
+                -- Add hold hint if multi-select is available (only for regular inventory, not craftbag)
+                if self.multiSelectManager and self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     return baseName .. " |cBBBBBB(Hold: Select)|r"
                 end
                 return baseName
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             visible = function()
-                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                    and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
                 end
-                return self.itemList.selectedData ~= nil
+                -- Check itemActions visibility if available
+                if self.itemActions and self.itemActions.slotActions then
+                    return self.itemActions.slotActions:CheckPrimaryActionVisibility()
+                end
+                -- Fallback: visible if we have selected data
+                if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                    return self.craftBagList and self.craftBagList.selectedData ~= nil
+                end
+                return self.itemList and self.itemList.selectedData ~= nil
             end,
-            -- Tap action: Equip/Use or Toggle Selection
+            -- Tap action: Execute discovered action or Toggle Selection
             callback = function()
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     -- In selection mode - toggle selection
-                    local target = self.itemList.selectedData
+                    local target = self.itemList and self.itemList.selectedData
                     if target then
                         self.multiSelectManager:ToggleSelection(target)
                         self:RefreshItemList()
                     end
                 else
-                    -- Normal equip/use action
-                    local target = self.itemList.selectedData
-                    if target and target.bagId and target.slotIndex then
-                        if IsEquipable(target.bagId, target.slotIndex) then
-                            -- TryEquipItem expects inventorySlot with dataSource property
-                            -- If target already has dataSource, use it directly; otherwise wrap it
-                            local inventorySlot = target.dataSource and target or { dataSource = target }
-                            self:TryEquipItem(inventorySlot, false)
+                    -- Use itemActions to execute the discovered primary action
+                    if self.itemActions and self.itemActions.slotActions then
+                        local slotActions = self.itemActions.slotActions
+                        if slotActions._betterui_primaryOverride then
+                            slotActions._betterui_primaryOverride()
                         else
-                            -- Use item
-                            CallSecureProtected("UseItem", target.bagId, target.slotIndex)
+                            slotActions:DoPrimaryAction()
+                        end
+                    else
+                        -- Fallback: direct equip/use if itemActions not available
+                        local target = self.itemList and self.itemList.selectedData
+                        if target and target.bagId and target.slotIndex then
+                            if IsEquipable(target.bagId, target.slotIndex) then
+                                local inventorySlot = target.dataSource and target or { dataSource = target }
+                                self:TryEquipItem(inventorySlot, false)
+                            else
+                                CallSecureProtected("UseItem", target.bagId, target.slotIndex)
+                            end
                         end
                     end
                 end

@@ -428,10 +428,8 @@ function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAc
                 table.remove(slotActions.m_slotActions, i)
             end
         end
-        -- Ensure Retrieve is primary action
-        if primaryAction == retrieveActionName then
-            actionName = retrieveActionName
-        end
+        -- Ensure Retrieve is primary action for craft bag items
+        actionName = retrieveActionName
     elseif BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot) then
         -- INVENTORY VIEW: Force "Stow" as primary for eligible items
         -- Remove any existing craft-bag entries to avoid duplicates

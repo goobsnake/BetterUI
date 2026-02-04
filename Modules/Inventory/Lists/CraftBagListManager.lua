@@ -8,16 +8,25 @@ local function MenuEntryTemplateEquality(left, right)
     return left.uniqueId == right.uniqueId
 end
 
+--- Setup function wrapper that binds SLOT_TYPE_CRAFT_BAG_ITEM before rendering.
+--- Without this, ZO_InventorySlot_GetType returns nil and IsSlotInCraftBag fails,
+--- causing the "Retrieve" action to never appear.
+local function CraftBagEntrySetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+    -- Bind the slot type BEFORE rendering so action discovery works correctly
+    ZO_Inventory_BindSlot(data, SLOT_TYPE_CRAFT_BAG_ITEM, data.slotIndex, data.bagId)
+    BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+end
+
 local function SetupCraftBagList(buiList)
     buiList.list:AddDataTemplate(
         "BETTERUI_GamepadItemSubEntryTemplate",
-        BETTERUI_SharedGamepadEntry_OnSetup,
+        CraftBagEntrySetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
         MenuEntryTemplateEquality
     )
     buiList.list:AddDataTemplateWithHeader(
         "BETTERUI_GamepadItemSubEntryTemplate",
-        BETTERUI_SharedGamepadEntry_OnSetup,
+        CraftBagEntrySetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction,
         MenuEntryTemplateEquality,
         "ZO_GamepadMenuEntryHeaderTemplate"
