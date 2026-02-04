@@ -238,6 +238,21 @@ The following git commands **do not require user approval** and can be auto-run:
 
 This allows maintaining atomic commits and clean git history without interrupting the workflow for routine version control operations.
 
+## Feature Branch Strategy
+
+For substantial refactors or phased implementation plans, agents are authorized to create a new git feature branch off of `develop`:
+
+```bash
+git checkout develop && git checkout -b feature/<descriptive-name>
+```
+
+**When to branch:**
+- Multi-phase implementation plans
+- Changes spanning multiple modules
+- Refactors requiring isolated testing
+
+**Branch naming:** `feature/<short-descriptive-name>` (e.g., `feature/header-sort-refactor`)
+
 ## Related Skills
 
 These skills complement the development workflow:
