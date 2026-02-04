@@ -310,19 +310,59 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end
             end
 
-            -- Add "Select Multiple..." entry for multi-select mode (only in item list mode)
-            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
-                and not (self.isInSelectionMode or self:IsInSelectionMode()) then
-                local selectMultipleEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_SELECT_MULTIPLE))
-                selectMultipleEntry:SetIconTintOnSelection(true)
-                selectMultipleEntry.isSelectMultiple = true
-                selectMultipleEntry.setup = ZO_SharedGamepadEntry_OnSetup
+            -- Add "Sort" entry for header sort mode access
+            -- Works for both Inventory (item/craft bag mode) and Banking scenes
+            local showSortEntry = false
+            local currentList = nil
+            local sortContext = nil -- The class instance to call EnterHeaderSortMode on
+
+            -- Check Inventory modes (self is Inventory.Class in this callback)
+            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                currentList = self.itemList
+                sortContext = self
+                showSortEntry = true
+            elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                currentList = self.craftBagList
+                sortContext = self
+                showSortEntry = true
+                -- Check Banking scene - access Banking.Class directly since self is Inventory
+            elseif BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                local bankingClass = BETTERUI.Banking and BETTERUI.Banking.Class
+                if bankingClass and bankingClass.list then
+                    currentList = bankingClass.list
+                    sortContext = bankingClass
+                    showSortEntry = true
+                end
+            end
+
+            if showSortEntry and sortContext and sortContext.EnterHeaderSortMode
+                and currentList and not currentList:IsEmpty() then
+                local sortEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_HEADER_SORT))
+                sortEntry:SetIconTintOnSelection(true)
+                sortEntry.isSortAction = true
+                sortEntry.sortContext = sortContext -- Store which class to call
+                sortEntry.setup = ZO_SharedGamepadEntry_OnSetup
 
                 local listItem = {
                     template = "ZO_GamepadItemEntryTemplate",
-                    entryData = selectMultipleEntry,
+                    entryData = sortEntry,
                 }
                 table.insert(parametricList, listItem)
+            end
+
+            -- Move "Get Help" to end of list (should always be last action)
+            -- ZO_GamepadEntryData stores text via GetText(), not .name
+            local getHelpName = GetString(SI_ITEM_ACTION_REPORT_ITEM)
+            local getHelpIndex = nil
+            for i, entry in ipairs(parametricList) do
+                if entry.entryData and entry.entryData.GetText and entry.entryData:GetText() == getHelpName then
+                    getHelpIndex = i
+                    break
+                end
+            end
+            if getHelpIndex and getHelpIndex < #parametricList then
+                local getHelpEntry = table.remove(parametricList, getHelpIndex)
+                table.insert(parametricList, getHelpEntry)
             end
 
             dialog:setupFunc()
@@ -406,12 +446,14 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
-        -- Handle "Select Multiple..." entry to enter multi-select mode
+        -- Handle "Sort" entry to enter header sort mode
         local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-        if selectedRow and selectedRow.isSelectMultiple then
+        if selectedRow and selectedRow.isSortAction then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-            if self.EnterSelectionMode then
-                self:EnterSelectionMode()
+            -- Use stored sortContext (could be Inventory or Banking class)
+            local sortContext = selectedRow.sortContext or self
+            if sortContext and sortContext.EnterHeaderSortMode then
+                sortContext:EnterHeaderSortMode()
             end
             return
         end

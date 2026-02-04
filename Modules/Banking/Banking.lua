@@ -620,14 +620,47 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction) -- Insert at top for easy access
             end
 
+            -- Add "Sort" entry for header sort mode access
+            if self.list and not self.list:IsEmpty() and self.EnterHeaderSortMode then
+                local sortEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_HEADER_SORT))
+                sortEntry:SetIconTintOnSelection(true)
+                sortEntry.isSortAction = true
+                sortEntry.sortContext = self -- Store Banking class for callback
+                sortEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                local listItem = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = sortEntry,
+                }
+                table.insert(parametricList, listItem)
+            end
+
+            -- Move "Get Help" to end of list (should always be last action)
+            local getHelpName = GetString(SI_ITEM_ACTION_REPORT_ITEM)
+            local getHelpIndex = nil
+            for i, entry in ipairs(parametricList) do
+                if entry.entryData and entry.entryData.GetText and entry.entryData:GetText() == getHelpName then
+                    getHelpIndex = i
+                    break
+                end
+            end
+            if getHelpIndex and getHelpIndex < #parametricList then
+                local getHelpEntry = table.remove(parametricList, getHelpIndex)
+                table.insert(parametricList, getHelpEntry)
+            end
+
             dialog:setupFunc()
         end
     end
 
     local function ActionDialogFinish()
         if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-            -- make sure to wipe out the keybinds added by actions
-            self:AddKeybinds()
+            -- Skip keybind restoration if we're entering header sort mode
+            -- (EnterHeaderSortMode already set up its own keybinds)
+            if not self.isInHeaderSortMode then
+                -- make sure to wipe out the keybinds added by actions
+                self:AddKeybinds()
+            end
             --restore the selected inventory item
 
             self:RefreshItemActions()
@@ -647,6 +680,16 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 self:SaveListPosition()
                 self:MoveItem(self.list, stackCount)
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                return
+            end
+
+            -- Handle "Sort" entry to enter header sort mode
+            if selectedEntry and selectedEntry.isSortAction then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                local sortContext = selectedEntry.sortContext or self
+                if sortContext and sortContext.EnterHeaderSortMode then
+                    sortContext:EnterHeaderSortMode()
+                end
                 return
             end
 
