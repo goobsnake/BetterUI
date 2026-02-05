@@ -19,8 +19,12 @@ Description: Human-readable font names for LAM dropdown menus.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.CHOICES = {
-    "System Default (Localized)", -- NEW: Uses ESO's language-appropriate font
-    "Univers 57 (Default)",
+    "System Default (Localized)", -- Uses ESO's language-appropriate font
+    "System Bold (Localized)",    -- Bold variant, localized
+    "Antique (Localized)",        -- Stylized serif, localized for CJK
+    "Handwritten (Localized)",    -- Handwritten style, localized for CJK
+    "Stone Tablet (Localized)",   -- Carved stone style, localized for CJK
+    "Univers 57",
     "Univers 67 (Bold)",
     "Futura Condensed Light",
     "Futura Condensed Medium",
@@ -40,7 +44,11 @@ Description: ESO font file paths corresponding to CHOICES.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.VALUES = {
-    "$(GAMEPAD_MEDIUM_FONT)", -- Uses ESO's localized font system
+    "$(GAMEPAD_MEDIUM_FONT)", -- ESO's localized medium font
+    "$(BOLD_FONT)",           -- ESO's localized bold font
+    "$(ANTIQUE_FONT)",        -- Resolves to ProseAntique (Western) or KafuPenji (JP) or MYoyo (ZH)
+    "$(HANDWRITTEN_FONT)",    -- Resolves to Handwritten_Bold (Western) or localized equivalent
+    "$(STONE_TABLET_FONT)",   -- Resolves to TrajanPro (Western) or localized equivalent
     "EsoUI/Common/Fonts/Univers57.otf",
     "EsoUI/Common/Fonts/Univers67.otf",
     "EsoUI/Common/Fonts/FTN47.otf",

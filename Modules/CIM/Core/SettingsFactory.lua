@@ -64,6 +64,10 @@ return: table - Array of LAM options (header, description, 2 submenus)
 ]]
 function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fontChoices, fontValues, styleChoices,
                                                         styleValues, strings, refreshFn)
+    -- Apply language-based font filtering (non-English users only see compatible fonts)
+    local Localization = BETTERUI.CIM.Font.Localization
+    local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(fontChoices, fontValues)
+
     local function getSettings()
         return BETTERUI.Settings.Modules[moduleName]
     end
@@ -93,8 +97,8 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     type = "dropdown",
                     name = GetString(strings.nameFont),
                     tooltip = GetString(strings.nameFontTooltip),
-                    choices = fontChoices,
-                    choicesValues = fontValues,
+                    choices = filteredChoices,
+                    choicesValues = filteredValues,
                     getFunc = function()
                         local s = getSettings()
                         if not s then return defaults.nameFont end
@@ -177,8 +181,8 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     type = "dropdown",
                     name = GetString(strings.columnFont),
                     tooltip = GetString(strings.columnFontTooltip),
-                    choices = fontChoices,
-                    choicesValues = fontValues,
+                    choices = filteredChoices,
+                    choicesValues = filteredValues,
                     getFunc = function()
                         local s = getSettings()
                         if not s then return defaults.columnFont end

@@ -562,4 +562,10 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deseleccionar")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Seleccionar (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Seleccionar todo")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
     "Elige una acción para aplicar a los objetos seleccionados. Los objetos bloqueados pueden no ser compatibles con ciertas acciones.")

@@ -196,19 +196,30 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options["columnFontStyle"] = oldStyle
 	end
 
-	-- Migration: Hardcoded Western fonts -> Localized font (for CJK support)
-	local westernFontPaths = {
-		["EsoUI/Common/Fonts/FTN57.otf"] = true,
-		["EsoUI/Common/Fonts/FTN47.otf"] = true,
-		["EsoUI/Common/Fonts/FTN87.otf"] = true,
-		["EsoUI/Common/Fonts/Univers57.otf"] = true,
-		["EsoUI/Common/Fonts/Univers67.otf"] = true,
-	}
-	if m_options["nameFont"] and westernFontPaths[m_options["nameFont"]] then
-		m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-	end
-	if m_options["columnFont"] and westernFontPaths[m_options["columnFont"]] then
-		m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
+	-- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
+	-- Only migrate non-English users; English users keep their font selections
+	local currentLang = GetCVar("language.2") or "en"
+	local isEnglish = (currentLang == "en")
+
+	if not isEnglish then
+		local westernOnlyFonts = {
+			["EsoUI/Common/Fonts/FTN57.otf"] = true,
+			["EsoUI/Common/Fonts/FTN47.otf"] = true,
+			["EsoUI/Common/Fonts/FTN87.otf"] = true,
+			["EsoUI/Common/Fonts/Univers57.otf"] = true,
+			["EsoUI/Common/Fonts/Univers67.otf"] = true,
+			["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
+			["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
+			["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
+			["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
+			["EsoUI/Common/Fonts/consola.otf"] = true,
+		}
+		if m_options["nameFont"] and westernOnlyFonts[m_options["nameFont"]] then
+			m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
+		end
+		if m_options["columnFont"] and westernOnlyFonts[m_options["columnFont"]] then
+			m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
+		end
 	end
 
 	-- Currency visibility defaults

@@ -546,4 +546,10 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Снять выбор")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Выбрать (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Выбрать всё")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
     "Выберите действие для применения к выбранным предметам. Заблокированные предметы могут быть несовместимы с некоторыми действиями.")

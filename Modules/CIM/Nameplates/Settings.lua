@@ -45,8 +45,14 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             type = "dropdown",
             name = GetString(SI_BETTERUI_NAMEPLATES_FONT),
             tooltip = GetString(SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP),
-            choices = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_CHOICES or {},
-            choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {},
+            choices = BETTERUI.CIM.Font.Localization.GetFilteredFontChoices(
+                BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_CHOICES or {},
+                BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {}
+            ),
+            choicesValues = BETTERUI.CIM.Font.Localization.GetFilteredFontValues(
+                BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_CHOICES or {},
+                BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {}
+            ),
             default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.font,
             getFunc = function()
                 local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or { font = "$(BOLD_FONT)" }
@@ -159,16 +165,27 @@ function BETTERUI.Nameplates.InitModule(m_options)
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
 
-    -- Migration: Hardcoded Western fonts -> Localized font (for CJK support)
-    local westernFontPaths = {
-        ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-        ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-        ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-        ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-        ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-    }
-    if m_options.font and westernFontPaths[m_options.font] then
-        m_options.font = "$(BOLD_FONT)"
+    -- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
+    -- Only migrate non-English users; English users keep their font selections
+    local currentLang = GetCVar("language.2") or "en"
+    local isEnglish = (currentLang == "en")
+
+    if not isEnglish then
+        local westernOnlyFonts = {
+            ["EsoUI/Common/Fonts/Univers57.otf"] = true,
+            ["EsoUI/Common/Fonts/Univers67.otf"] = true,
+            ["EsoUI/Common/Fonts/FTN57.otf"] = true,
+            ["EsoUI/Common/Fonts/FTN47.otf"] = true,
+            ["EsoUI/Common/Fonts/FTN87.otf"] = true,
+            ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
+            ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
+            ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
+            ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
+            ["EsoUI/Common/Fonts/consola.otf"] = true,
+        }
+        if m_options.font and westernOnlyFonts[m_options.font] then
+            m_options.font = "$(BOLD_FONT)"
+        end
     end
 
     return m_options

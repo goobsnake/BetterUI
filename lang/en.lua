@@ -335,6 +335,15 @@ ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Reset name font settin
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Reset column font settings to defaults.")
 
+-- Font Localization Warnings
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
+    "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.")
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
+    "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.")
+
+-- Tooltip Strings
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection")
+
 -- Orb Text Settings
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE", "Health Text Size")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP", "Adjust the font size of the health text")

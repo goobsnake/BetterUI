@@ -511,3 +511,8 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "選択解除")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "選択 (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "すべて選択")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "選択したアイテムに適用するアクションを選択してください。ロックされたアイテムは特定のアクションに対応していない場合があります。")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate

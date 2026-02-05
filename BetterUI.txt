@@ -24,6 +24,7 @@ Modules\CIM\Core\EventRegistry.lua
 Modules\CIM\Core\PositionManager.lua
 Modules\CIM\Core\NavigationState.lua
 Modules\CIM\Core\FontDefinitions.lua
+Modules\CIM\Core\FontLocalization.lua
 Modules\CIM\Core\NumberFormatting.lua
 Modules\CIM\Core\HookFactory.lua
 Modules\CIM\Core\ResearchCache.lua

@@ -25,6 +25,13 @@ end
 
 --- Returns the LAM control list for Font Customization.
 function BETTERUI.Inventory.Settings.GetFontOptions()
+    -- Apply language-based font filtering (non-English users only see compatible fonts)
+    local Localization = BETTERUI.CIM.Font.Localization
+    local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(
+        BETTERUI.Inventory.FONT_CHOICES,
+        BETTERUI.Inventory.FONT_VALUES
+    )
+
     return {
         {
             type = "header",
@@ -44,8 +51,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     type = "dropdown",
                     name = GetString(SI_BETTERUI_INV_NAME_FONT),
                     tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_TOOLTIP),
-                    choices = BETTERUI.Inventory.FONT_CHOICES,
-                    choicesValues = BETTERUI.Inventory.FONT_VALUES,
+                    choices = filteredChoices,
+                    choicesValues = filteredValues,
                     getFunc = function()
                         if not BETTERUI.Settings.Modules["Inventory"] then
                             return BETTERUI.Inventory.DEFAULTS.nameFont
@@ -137,8 +144,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     type = "dropdown",
                     name = GetString(SI_BETTERUI_INV_COLUMN_FONT),
                     tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP),
-                    choices = BETTERUI.Inventory.FONT_CHOICES,
-                    choicesValues = BETTERUI.Inventory.FONT_VALUES,
+                    choices = filteredChoices,
+                    choicesValues = filteredValues,
                     getFunc = function()
                         return BETTERUI.Settings.Modules["Inventory"].columnFont or
                             BETTERUI.Inventory.DEFAULTS.columnFont
