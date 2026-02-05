@@ -24,13 +24,7 @@ Fields:
   onHidden (function|nil) - Callback when scene is fully hidden
 ]]
 
---- @class SceneLifecycleConfig
---- @field keybinds table[]|nil Array of keybind button group descriptors
---- @field taskManager table|nil Task manager with CancelAll method
---- @field eventRegistryModule string|nil Module name for EventRegistry cleanup
---- @field onShowing function|nil Callback when scene starts showing
---- @field onHiding function|nil Callback when scene starts hiding
---- @field onHidden function|nil Callback when scene is fully hidden
+-- Type annotation for SceneLifecycleConfig is in Types.lua
 
 --[[
 Function: BETTERUI.CIM.SceneLifecycle.Register

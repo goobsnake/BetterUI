@@ -13,11 +13,7 @@ BETTERUI.CIM.FeatureFlags = {}
 -- FEATURE FLAG DEFINITIONS
 -- ============================================================================
 
---- @class FeatureFlagDefinition
---- @field name string Feature identifier
---- @field description string Human-readable description
---- @field defaultEnabled boolean Default state if not overridden
---- @field version string Version when feature was introduced
+-- Feature flag definition type is defined in Types.lua as FeatureFlagDefinition
 
 --- @type table<string, FeatureFlagDefinition>
 local FLAG_DEFINITIONS = {

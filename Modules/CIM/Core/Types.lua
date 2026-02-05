@@ -181,7 +181,7 @@ BETTERUI.CIM.Types = {}
 
 ---@class SceneLifecycleConfig
 ---@field onShowing fun(self: table, wasPushed: boolean)|nil Called when scene starts showing
----@field onShowing fun(self: table)|nil Called when scene finishes showing
+---@field onShown fun(self: table)|nil Called when scene finishes showing
 ---@field onHiding fun(self: table)|nil Called when scene starts hiding
 ---@field onHidden fun(self: table)|nil Called when scene is fully hidden
 ---@field keybinds table[]|nil Keybind groups to add/remove with scene
