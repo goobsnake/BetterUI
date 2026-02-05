@@ -458,25 +458,14 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     -- Get track dimensions
     local trackHeight = controls.track:GetHeight()
 
-    -- KEY FIX: Calculate the EFFECTIVE track height based on content
-    -- The track visually matches the list area, but when there are fewer
-    -- items than can fit, we scale the effective height proportionally
-    local effectiveTrackHeight
-    if totalItems >= visibleItems then
-        -- Full scrolling: use entire track
-        effectiveTrackHeight = trackHeight
-    else
-        -- Partial content: scale track proportionally to item count
-        -- This ensures thumb fills the relevant portion of the track
-        effectiveTrackHeight = trackHeight * (totalItems / visibleItems)
-    end
-
     -- Calculate thumb height (proportional to visible items relative to total)
+    -- Use full trackHeight so thumb size is consistent with visual track
     local thumbHeightRatio = visibleItems / math.max(totalItems, 1)
-    local thumbHeight = math.max(SCROLL_INDICATOR.THUMB.MIN_HEIGHT, effectiveTrackHeight * math.min(thumbHeightRatio, 1))
+    local thumbHeight = math.max(SCROLL_INDICATOR.THUMB.MIN_HEIGHT, trackHeight * math.min(thumbHeightRatio, 1))
 
-    -- Calculate available travel distance within the effective track
-    local availableTravel = effectiveTrackHeight - thumbHeight
+    -- Calculate available travel distance within the FULL track
+    -- This ensures thumb can travel from top arrow to bottom arrow
+    local availableTravel = math.max(0, trackHeight - thumbHeight)
 
     -- Calculate thumb offset from track top
     local thumbOffset = availableTravel * scrollPosition
