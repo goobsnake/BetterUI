@@ -26,7 +26,7 @@ local SCROLL_INDICATOR = {
     TRACK = {
         WIDTH = 14,                                        -- Reduced by 1/5
         COLOR = { r = 0.15, g = 0.15, b = 0.15, a = 0.5 }, -- Subtle dark background
-        OFFSET_X = -5,                                     -- Original position
+        OFFSET_X = 5,                                      -- Shifted right for edge positioning
     },
     THUMB = {
         WIDTH = 14,                                         -- Match track width
@@ -372,17 +372,34 @@ function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBott
 
     -- Return existing instance if already initialized
     if indicatorInstances[controlName] then
+        local instance = indicatorInstances[controlName]
+
         -- Update listObject if provided (allows late binding)
         if listObject then
-            indicatorInstances[controlName].listObject = listObject
+            instance.listObject = listObject
             -- Setup handlers if not already done
-            if not indicatorInstances[controlName].mouseHandlersSetup then
-                SetupArrowMouseHandlers(indicatorInstances[controlName])
-                SetupThumbDragHandlers(indicatorInstances[controlName])
-                indicatorInstances[controlName].mouseHandlersSetup = true
+            if not instance.mouseHandlersSetup then
+                SetupArrowMouseHandlers(instance)
+                SetupThumbDragHandlers(instance)
+                instance.mouseHandlersSetup = true
             end
         end
-        return indicatorInstances[controlName]
+
+        -- Update position if new offsets are provided (fixes caching bug)
+        if offsetX or offsetTopY or offsetBottomY then
+            local actualOffsetX = offsetX or SCROLL_INDICATOR.TRACK.OFFSET_X
+            local actualOffsetTopY = offsetTopY or 0
+            local actualOffsetBottomY = offsetBottomY or 0
+
+            local container = instance.controls and instance.controls.container
+            if container then
+                container:ClearAnchors()
+                container:SetAnchor(TOPRIGHT, listControl, TOPRIGHT, actualOffsetX, actualOffsetTopY)
+                container:SetAnchor(BOTTOMRIGHT, listControl, BOTTOMRIGHT, actualOffsetX, actualOffsetBottomY)
+            end
+        end
+
+        return instance
     end
 
     -- Create new indicator
