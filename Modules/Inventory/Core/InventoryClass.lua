@@ -738,10 +738,10 @@ function BETTERUI.Inventory.Class:OnHeaderSortChanged(columnKey, direction)
 
     -- Update the list sort function
     if direction == SORT_DIRECTION.NONE then
-        -- Reset to default sort
+        -- Reset to default sort (nil lets each list use its own default comparator)
         self.currentSortComparator = nil
         if currentList.SetSortFunction then
-            currentList:SetSortFunction(BETTERUI.Inventory.DefaultSortComparator)
+            currentList:SetSortFunction(nil)
         end
     else
         local ascending = (direction == SORT_DIRECTION.ASCENDING)

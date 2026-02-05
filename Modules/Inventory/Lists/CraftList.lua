@@ -21,6 +21,13 @@ KEY RESPONSIBILITIES:
 -- Class: BETTERUI.Inventory.CraftList (extends BETTERUI.Inventory.List)
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
+--- Sets the sort function for the craft bag list.
+--- Called by OnHeaderSortChanged when user sorts by column header.
+--- @param sortFunction function|nil The sort comparator function, or nil to reset to default.
+function BETTERUI.Inventory.CraftList:SetSortFunction(sortFunction)
+    self.sortFunction = sortFunction
+end
+
 --- Creates a filter comparator for craft bag items.
 ---
 --- Purpose: Generates a closure to filter items.
@@ -152,8 +159,9 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
 
 
 
-    -- Sort the filtered data
-    table.sort(filteredDataTable, BETTERUI_CraftList_DefaultItemSortComparator)
+    -- Sort the filtered data using custom sort function if set, otherwise default
+    local sortFunc = self.sortFunction or BETTERUI_CraftList_DefaultItemSortComparator
+    table.sort(filteredDataTable, sortFunc)
 
     -- BATCH PROCESSING CONSTANTS (Using global BetterUI.Inventory.CONST)
 
