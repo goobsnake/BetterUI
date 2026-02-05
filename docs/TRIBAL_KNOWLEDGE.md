@@ -125,6 +125,127 @@
 
 ---
 
+## UI Layout & Positioning
+
+> [!IMPORTANT]
+> This section documents the **final, validated values** for Banking and Inventory UI elements.
+> When making adjustments, update this section to maintain accuracy.
+
+### Quick Reference Tables
+
+#### Banking Layout Values (`InterfaceLibrary.xml`)
+
+| Element | Anchor | Property | Value | Notes |
+|---------|--------|----------|-------|-------|
+| **Header/Tab Bar** |
+| Category Title | TOPLEFT | offsetX/Y | 45 / -4 | `BETTERUI_HeaderTitleAnchors` |
+| Tab Bar DividerF | L→R anchored | RIGHT offsetY | 90 | First tab divider |
+| Tab Bar DividerS | L→R anchored | RIGHT offsetY | 94 | Second tab divider (4px below) |
+| Column Header Divider | L→R anchored | offsetX/Y | 20 / 125 | Below column headers (NAME/TYPE/etc.) |
+| **Item List** |
+| List TOPLEFT | HeaderHeader | offsetX/Y | -27 / 15 | Negative X shifts right |
+| List BOTTOMRIGHT | FooterFooter | offsetX/Y | 0 / -8 | Negative Y shrinks list up |
+| **Scroll Indicator** (`Banking.lua:162`) |
+| offsetX | - | - | 25 | Distance from right edge |
+| offsetTopY | - | - | -5 | Top margin (negative = up) |
+| offsetBottomY | - | - | 1 | Bottom margin |
+| **Footer Elements** |
+| SelectBg (background) | CENTER | Dimensions | PANEL_WIDTH × 90 | Withdraw/Deposit background |
+| DividerBottomT | TOPLEFT SelectBg | offsetX/Y | 45 / 0 | Top footer divider |
+| DividerBottomB | TOPLEFT SelectBg | offsetX/Y | 45 / 4 | Bottom footer divider (4px gap) |
+| Footer Divider Width | - | x dimension | 1325 | Hard-coded, slightly < panel |
+| Deposit Icon | RIGHT | offsetX | -15 | Negative = left inset |
+
+#### Inventory Layout Values
+
+| Element | File | Property | Value | Notes |
+|---------|------|----------|-------|-------|
+| **Scroll Indicator** (`ItemListManager.lua:138`, `InventoryList.lua:608`) |
+| offsetX | - | - | 5 | Much closer to edge than Banking |
+| offsetTopY | - | - | -8 | Standard top margin |
+| offsetBottomY | - | - | 6 | Standard bottom margin |
+
+### Anchor Direction Reference
+
+Understanding ESO anchor offsets:
+
+```
+                    ← offsetX negative    offsetX positive →
+                    
+                              ↑ offsetY negative
+                              │
+                              │
+    offsetY positive →        ▼
+```
+
+| Direction | Anchor Point | Offset Sign |
+|-----------|-------------|-------------|
+| Move DOWN | Any | offsetY **positive** (+) |
+| Move UP | Any | offsetY **negative** (-) |
+| Move RIGHT | Any | offsetX **positive** (+) |
+| Move LEFT | Any | offsetX **negative** (-) |
+| Extend past RIGHT edge | RIGHT anchor | offsetX **positive** (+) |
+| Inset from RIGHT edge | RIGHT anchor | offsetX **negative** (-) |
+
+### Key Files for UI Adjustments
+
+| File | Purpose | Key Elements |
+|------|---------|--------------|
+| `CIM/Templates/InterfaceLibrary.xml` | Banking UI structure | Header, list, footer, dividers |
+| `CIM/Templates/GenericHeader.xml` | Inventory header | Column headers, dividers |
+| `CIM/Constants.lua` | Shared constants | `BETTERUI_GAMEPAD_*` globals |
+| `Banking/Banking.lua` | Banking scroll indicator | `ScrollIndicator.Initialize()` call |
+| `Inventory/Lists/ItemListManager.lua` | Inventory scroll indicator | `ScrollIndicator.Initialize()` call |
+| `Inventory/Lists/InventoryList.lua` | Inventory list scroll | `ScrollIndicator.Initialize()` call |
+
+### ScrollIndicator.Initialize() Signature
+
+```lua
+BETTERUI.CIM.ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY, listObject)
+```
+
+| Parameter | Description | Banking | Inventory |
+|-----------|-------------|---------|-----------|
+| `offsetX` | Horizontal position from right | 25 | 5 |
+| `offsetTopY` | Top margin (negative = up) | -5 | -8 |
+| `offsetBottomY` | Bottom margin | 1 | 6 |
+
+### Footer Divider Structure (Banking)
+
+The Banking footer has **two horizontal dividers** with a gap between them:
+
+```
+┌────────────────────────────────────────────────────────────┐
+│                                                            │
+│                    [Item List Area]                        │
+│                                                            │
+├────────────────────────────────────────────────────────────┤  ← DividerBottomT (Y=0)
+│                          4px gap                           │
+├────────────────────────────────────────────────────────────┤  ← DividerBottomB (Y=4)
+│     [Withdraw Icon]  WITHDRAW  │  DEPOSIT  [Deposit Icon]  │
+│                    298/400     │     118/205               │
+└────────────────────────────────────────────────────────────┘
+```
+
+### Adjustment Workflow
+
+1. **Identify the element** in the appropriate XML file
+2. **Note the current values** from the tables above
+3. **Adjust incrementally** (5-10px at a time)
+4. **Test with `/reloadui`** after each change
+5. **Update this documentation** with new values
+6. **Run deployment script**: `.\tools\helper_script.ps1`
+
+### Common Adjustment Scenarios
+
+| Issue | Element to Adjust | Direction |
+|-------|-------------------|-----------|
+| Item icons peeking at bottom | List BOTTOMRIGHT offsetY | Make more negative (-8 → -10) |
+| List too close to header | List TOPLEFT offsetY | Increase positive value |
+| Scroll bar too far from edge | ScrollIndicator offsetX | Decrease value |
+| Dividers too short | Divider anchor RIGHT offsetX | Increase positive value |
+| Footer divider gap too big | DividerBottomT/B offsetY | Reduce gap between values |
+
 ## Debugging Tips
 
 ### Joystick Lock-up
