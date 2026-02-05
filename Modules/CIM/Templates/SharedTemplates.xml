@@ -128,7 +128,7 @@
         <Control name="BETTERUI_GamepadSubMenuEntryTemplate"
             inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate"
             virtual="true">
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
             <Controls>
                 <!-- 

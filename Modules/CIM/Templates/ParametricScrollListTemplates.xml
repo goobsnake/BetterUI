@@ -21,8 +21,8 @@
         </Control>
         <Control name="BETTERUI_GamepadGrid_NavQuadrant_1_ContainerAnchors" virtual="true">
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH" />
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
-            <Anchor point="BOTTOMLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
+            <Anchor point="BOTTOMLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
         </Control>
 
         <!-- 

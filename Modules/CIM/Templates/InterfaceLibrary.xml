@@ -27,7 +27,7 @@
         </Control>
 
         <Control name="BETTERUI_LeftMenuEntry_Anchors" virtual="true">
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
         </Control>
 
@@ -102,13 +102,13 @@
         </Control>
         <Control name="BETTERUI_NavQuadrant_1_ContainerAnchors" virtual="true">
             <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH" />
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
-            <Anchor point="BOTTOMLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
+            <Anchor point="BOTTOMLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
         </Control>
 
         <Control name="BETTERUI_HeaderTitleAnchors" virtual="true">
             <!-- Raise header title slightly so it clears LB/RB in banking header -->
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" offsetY="-5" />
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="-5" />
             <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetX="0" />
         </Control>
 
@@ -290,7 +290,7 @@
                 <Control name="$(parent)TabBar" inherits="BETTERUI_GamepadTabBarScrollListTemplate"
                     hidden="false">
                     <Anchor point="TOPLEFT" offsetY="100"
-                        offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" />
+                        offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
                     <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" />
                     <Controls>
                         <!-- Selected background arrow, matching inventory header -->
@@ -395,7 +395,7 @@
                     <Anchor point="CENTER" relativeTo="$(parent)SelectBg" relativePoint="CENTER"
                         offsetX="0" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)SelectBg" relativePoint="TOPLEFT"
-                        offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" offsetY="0" />
+                        offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="0" />
                 </Control>
 
                 <Control name="$(parent)DividerBottomB"
@@ -404,7 +404,7 @@
                     <Anchor point="CENTER" relativeTo="$(parent)SelectBg" relativePoint="CENTER"
                         offsetX="0" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)SelectBg" relativePoint="TOPLEFT"
-                        offsetX="BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING" offsetY="6" />
+                        offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="6" />
                 </Control>
 
                 <Control name="$(parent)Withdraw">

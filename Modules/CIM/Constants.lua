@@ -493,7 +493,8 @@ Description: Horizontal padding values for UI elements.
 Used By: XML templates and list entry calculations.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.PADDING = {
-    DEFAULT = 36,
+    DEFAULT = 47,   -- Panel offset from GuiRoot (fixes scrollbar clipping)
+    CONTAINER = 24, -- Container offset from panel (shifts content left)
     OTHER = 10,
     SCREEN = 40,
 }
@@ -545,11 +546,11 @@ Direction: OFFSET_X is Positive (+) moving RIGHT from the left edge of the list 
 Used By: Inventory list templates.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.COLUMNS = {
-    SUBMENU = { OFFSET_X = 87, WIDTH = 540 },
-    TYPE    = { OFFSET_X = 560, WIDTH = 250 },  -- +10 from 550
-    TRAIT   = { OFFSET_X = 820, WIDTH = 180 },  -- +10 from 810
-    STAT    = { OFFSET_X = 1010, WIDTH = 130 }, -- +10 from 1000
-    VALUE   = { OFFSET_X = 1160, WIDTH = 100 }, -- +10 from 1150
+    SUBMENU = { OFFSET_X = 70, WIDTH = 540 },   -- Aligned with NAME header
+    TYPE    = { OFFSET_X = 513, WIDTH = 250 },  -- Shifted left 12px to align with header
+    TRAIT   = { OFFSET_X = 773, WIDTH = 180 },  -- Shifted left 12px to align with header
+    STAT    = { OFFSET_X = 963, WIDTH = 130 },  -- Shifted left 12px to align with header
+    VALUE   = { OFFSET_X = 1113, WIDTH = 100 }, -- Shifted left 12px to align with header
 }
 
 --[[
@@ -571,6 +572,7 @@ BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
 
 -- Backward Compatibility Aliases (XML Support) - PADDING
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
+BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.CONTAINER
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER = BETTERUI.CIM.CONST.LAYOUT.PADDING.OTHER
 BETTERUI_GAMEPAD_SCREEN_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.SCREEN
 BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ = BETTERUI.CIM.CONST.LAYOUT.PADDING.SCREEN +
@@ -739,11 +741,11 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
     Used By: GenericHeader.xml
     ]]
     COLUMNS = {
-        NAME = 87,
-        TYPE = 647,   -- +10 from 637
-        TRAIT = 907,  -- +10 from 897
-        STAT = 1097,  -- +10 from 1087
-        VALUE = 1247, -- +10 from 1237
+        NAME = 80,    -- Aligned with LAYOUT.COLUMNS.SUBMENU (+10)
+        TYPE = 592,   -- Shifted left 20px
+        TRAIT = 852,  -- Shifted left 20px
+        STAT = 1042,  -- Shifted left 20px
+        VALUE = 1192, -- Shifted left 20px
     },
     EQUIP_SLOT = {
         --[[

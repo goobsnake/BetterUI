@@ -65,7 +65,7 @@
                     <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
                         offsetX="0" />
                     <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
-                        offsetX="-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER"
+                        offsetX="0"
                         offsetY="BETTERUI_FOOTER_DIVIDER_OFFSET_Y" />
                 </Control>
 
