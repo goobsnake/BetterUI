@@ -315,9 +315,9 @@ end
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
 
-    -- TODO(architecture): Add initialization guard to prevent double SetupModule() calls
     -- Defer full setup until player is actually in the world
     -- This ensures all ESO UI fragments and systems are ready
+    -- Guard: m_isInitialized check in DeferredTask callback (L331) prevents double SetupModule()
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED, function()
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
