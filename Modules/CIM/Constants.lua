@@ -212,7 +212,7 @@ BETTERUI.CIM.CONST.SEARCH_BAR = {
     },
     -- Banking-specific overrides (different header layout)
     BANKING = {
-        X_OFFSET = 58,
+        X_OFFSET = 55,
         Y_OFFSET = 15,
         RIGHT_INSET = -8,
     },
@@ -736,16 +736,19 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
     },
     --[[
     Constant: COLUMNS
-    Description: Horizontal X offsets for grid column headers.
-    Direction: Positive (+) moves RIGHT from the left anchor.
-    Used By: GenericHeader.xml
+    Description: Horizontal X offsets for grid column headers from TabBar BOTTOMLEFT.
+    Direction: Positive (+) moves RIGHT from TabBar left anchor.
+    NOTE: These values match Inventory columns in GenericHeader.xml (lines 268-315).
+          Row data anchors: Label(70) + TYPE(513) = 583 from row entry.
+          TabBar position aligns with row entries so header X = row absolute X + adjustment.
+    Used By: WindowClass.AddColumn (Banking only - Inventory uses XML-defined columns)
     ]]
     COLUMNS = {
-        NAME = 80,    -- Aligned with LAYOUT.COLUMNS.SUBMENU (+10)
-        TYPE = 592,   -- Shifted left 20px
-        TRAIT = 852,  -- Shifted left 20px
-        STAT = 1042,  -- Shifted left 20px
-        VALUE = 1192, -- Shifted left 20px
+        NAME = 80,    -- Matches GenericHeader.xml Column1Label (line 274)
+        TYPE = 592,   -- Matches GenericHeader.xml Column2Label (line 283)
+        TRAIT = 852,  -- Matches GenericHeader.xml Column4Label (line 293)
+        STAT = 1042,  -- Matches GenericHeader.xml Column6Label (line 302)
+        VALUE = 1192, -- Matches GenericHeader.xml Column5Label (line 311)
     },
     EQUIP_SLOT = {
         --[[

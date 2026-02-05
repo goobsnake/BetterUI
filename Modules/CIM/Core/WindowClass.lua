@@ -273,25 +273,33 @@ end
 Function: BETTERUI.Interface.Window:AddColumn
 Description: Adds a column header to the window.
 param: columnName (string) - The text to display.
-param: xOffset (number) - The horizontal position (left-aligned anchor).
+param: xOffset (number) - The horizontal position (left-aligned anchor from TabBar BOTTOMLEFT).
 ]]
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
+    -- Create label as child of HeaderColumnBar for container purposes
     local label = CreateControlFromVirtual("Column" .. colNumber,
         self.header:GetNamedChild("HeaderColumnBar"), "BETTERUI_GenericColumn_Label")
     self.header.columns[colNumber] = label
 
-    -- Use fixed column header offset (decoupled from list container position)
-    local adjustedXOffset = xOffset + BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER.COLUMN_HEADER_X_ADJUST
-    -- Use centralized constant for Y offset (positive moves DOWN)
-    label:SetAnchor(LEFT, self.header:GetNamedChild("HeaderColumnBar"), BOTTOMLEFT,
-        adjustedXOffset, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
+    -- Find the TabBar control - columns anchor to TabBar's BOTTOMLEFT (like Inventory)
+    local tabBar = self.header:GetNamedChild("HeaderTabBar")
+    if not tabBar then
+        -- Fallback to HeaderColumnBar if TabBar not found
+        tabBar = self.header:GetNamedChild("HeaderColumnBar")
+    end
+
+    -- Anchor to TabBar's BOTTOMLEFT (matching Inventory's GenericHeader.xml column layout)
+    -- Use HEADER_LAYOUT.COLUMNS values which match Inventory offsets (80/592/852/1042/1192)
+    label:SetAnchor(LEFT, tabBar, BOTTOMLEFT,
+        xOffset, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
     label:SetText(columnName)
 
     -- Set explicit dimensions for proper mouse hit region
     local COLUMN_WIDTHS = BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS
     local columnWidth = COLUMN_WIDTHS[colNumber] or 100
     label:SetDimensions(columnWidth, 30)
+
 
     -- Enable mouse interaction for keyboard/mouse users
     label:SetMouseEnabled(true)
