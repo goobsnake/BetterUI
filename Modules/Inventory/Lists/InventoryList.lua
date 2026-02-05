@@ -605,7 +605,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     -- offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, nil, -8, 6, self.list)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, 5, -8, 6, self.list)
     end
 
     local function SelectionChangedCallback(list, selectedData)

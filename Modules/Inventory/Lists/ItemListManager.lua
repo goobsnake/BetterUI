@@ -110,6 +110,10 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * 0.75, GAMEPAD_HEADER_SELECTED_PADDING * 0.75)
     self.itemList:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * 0.75)
 
+    -- Move selected item position up to align with tooltip arrow
+    -- Negative values move the focus point upward from center
+    self.itemList:SetFixedCenterOffset(-50)
+
     -- NOTE: Removed SetOnHitBeginningOfListCallback for header sort mode.
     -- Header sort mode is now entered ONLY via Y Hold keybind.
     -- D-pad Up at top of list should focus the search box, not enter header mode.
@@ -131,7 +135,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- Initialize scroll indicator for main item list
     -- offsetX: nil (default), offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, nil, -8, 6, self.itemList)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 5, -8, 6, self.itemList)
     end
 end
 
