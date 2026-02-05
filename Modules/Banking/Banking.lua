@@ -280,8 +280,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if list and list.control and BETTERUI.CIM.ScrollIndicator then
             local totalItems = list:GetNumItems() or 0
             local currentIndex = list:GetSelectedIndex() or 1
-            -- TODO(cleanup): Move magic number to BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS
-            local visibleItems = 10 -- approximate visible items in banking list
+            local visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS
             BETTERUI.CIM.ScrollIndicator.Update(list.control, currentIndex, totalItems, visibleItems)
         end
 

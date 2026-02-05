@@ -22,11 +22,11 @@ References: Called by BETTERUI.Inventory.Setup
 function BETTERUI.Inventory.ApplyTooltipStyles()
     local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
 
-    -- TODO(cleanup): Move font size offsets (6, 4) to BETTERUI.CIM.CONST.TOOLTIP
-    -- Calculate derived sizes from base font size
+    -- Calculate derived sizes from base font size using centralized constants
     local baseFontSize = tooltipSize
-    local titleFontSize = baseFontSize + 6 -- Title is 6px larger
-    local valueFontSize = baseFontSize + 4 -- Value is 4px larger
+    local fontOffsets = BETTERUI.CIM.CONST.TOOLTIP.FONT_OFFSETS
+    local titleFontSize = baseFontSize + fontOffsets.TITLE -- Title is larger
+    local valueFontSize = baseFontSize + fontOffsets.VALUE -- Value is larger
 
     -- Apply tooltip styles with size adjustments
     ZO_TOOLTIP_STYLES["topSection"] = {

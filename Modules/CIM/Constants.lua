@@ -122,6 +122,37 @@ BETTERUI.CIM.CONST.TIMING = {
 
 
 -- ============================================================================
+-- UI CONSTANTS
+-- Shared UI magic numbers consolidated for maintainability
+-- ============================================================================
+
+--[[
+Table: BETTERUI.CIM.CONST.UI
+Description: Shared UI constants for list and display configuration.
+             Consolidates magic numbers from across modules.
+Used By: Banking/Banking.lua, Inventory/UI/TooltipUtils.lua
+]]
+BETTERUI.CIM.CONST.UI = {
+    -- Approximate visible items in banking list (for scroll indicator)
+    BANKING_VISIBLE_ITEMS = 10,
+}
+
+--[[
+Table: BETTERUI.CIM.CONST.TOOLTIP
+Description: Tooltip font size configuration.
+             Contains size offsets applied to base tooltip font size.
+Used By: Inventory/UI/TooltipUtils.lua
+]]
+BETTERUI.CIM.CONST.TOOLTIP = BETTERUI.CIM.CONST.TOOLTIP or {}
+BETTERUI.CIM.CONST.TOOLTIP.FONT_OFFSETS = {
+    -- Title font is this many pixels larger than base size
+    TITLE = 6,
+    -- Value font is this many pixels larger than base size
+    VALUE = 4,
+}
+
+
+-- ============================================================================
 -- MODULE IDENTIFIERS
 -- Centralized string constants for CIM PositionManager namespacing
 -- ============================================================================
