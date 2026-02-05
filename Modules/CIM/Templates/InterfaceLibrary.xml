@@ -107,8 +107,8 @@
         </Control>
 
         <Control name="BETTERUI_HeaderTitleAnchors" virtual="true">
-            <!-- Raise header title slightly so it clears LB/RB in banking header -->
-            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="-5" />
+            <!-- Banking-specific: title aligned with LB spacing from divider -->
+            <Anchor point="TOPLEFT" offsetX="45" offsetY="-4" />
             <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" offsetX="0" />
         </Control>
 
@@ -289,19 +289,23 @@
             <Controls>
                 <Control name="$(parent)TabBar" inherits="BETTERUI_GamepadTabBarScrollListTemplate"
                     hidden="false">
-                    <Anchor point="TOPLEFT" offsetY="100"
+                    <!-- Using shared constant to match Inventory header positioning -->
+                    <Anchor point="TOPLEFT" offsetY="BETTERUI_HEADER_TABBAR_LIST_Y_OFFSET"
                         offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
                     <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT" />
                     <Controls>
-                        <!-- Selected background arrow, matching inventory header -->
+                        <!-- Selection triangle - aligned under category icons -->
                         <Button name="$(parent)SelectedBg">
                             <Dimensions x="50" y="25" />
-                            <Anchor point="CENTER" relativeTo="$(parent)" offsetY="32" />
+                            <Anchor point="CENTER" relativeTo="$(parent)" offsetX="18" offsetY="45" />
                             <Textures normal="BetterUI/Modules/CIM/Images/select_tabbar.dds" />
                         </Button>
                         <Button name="$(parent)LeftIcon">
-                            <Dimensions x="60" y="60" />
-                            <Anchor point="LEFT" relativeTo="$(parent)" offsetY="5" />
+                            <Dimensions x="BETTERUI_HEADER_BUMPER_ICON_SIZE"
+                                y="BETTERUI_HEADER_BUMPER_ICON_SIZE" />
+                            <!-- Banking-specific: moved down +15, right +20 -->
+                            <Anchor point="LEFT" relativeTo="$(parent)"
+                                offsetX="15" offsetY="20" />
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_LB.dds" />
                             <OnClicked>
                                 if self:GetParent().scrollList then
@@ -310,8 +314,11 @@
                             </OnClicked>
                         </Button>
                         <Button name="$(parent)RightIcon">
-                            <Dimensions x="60" y="60" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="-5" offsetY="5" />
+                            <Dimensions x="BETTERUI_HEADER_BUMPER_ICON_SIZE"
+                                y="BETTERUI_HEADER_BUMPER_ICON_SIZE" />
+                            <!-- Banking-specific: RB moved further right -->
+                            <Anchor point="RIGHT" relativeTo="$(parent)" offsetX="25"
+                                offsetY="20" />
                             <Textures normal="EsoUI/Art/Buttons/Gamepad/Xbox/Nav_XBone_RB.dds" />
                             <OnClicked>
                                 if self:GetParent().scrollList then
@@ -322,17 +329,21 @@
 
                         <Control name="$(parent)DividerBottomF"
                             inherits="BETTERUI_GamepadHeaderHorizontalDivider">
-                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
-                                offsetX="0" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
-                                offsetX="0" offsetY="93" />
+                            <!-- Banking-specific: extend dividers further right -->
+                            <Anchor point="LEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="20" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMRIGHT" offsetX="20"
+                                offsetY="90" />
                         </Control>
                         <Control name="$(parent)DividerBottomS"
                             inherits="BETTERUI_GamepadHeaderHorizontalDivider">
-                            <Anchor point="LEFT" relativeTo="$(parent)" relativePoint="BOTTOMLEFT"
-                                offsetX="0" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
-                                offsetX="0" offsetY="86" />
+                            <!-- Banking-specific: extend dividers further right -->
+                            <Anchor point="LEFT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMLEFT" offsetX="20" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)"
+                                relativePoint="BOTTOMRIGHT" offsetX="20"
+                                offsetY="94" />
                         </Control>
                     </Controls>
                 </Control>
@@ -349,10 +360,11 @@
 
                 <Control name="$(parent)DividerBottom"
                     inherits="BETTERUI_GamepadHeaderHorizontalDivider">
+                    <!-- Column header bottom divider - offset down/right to clear column names -->
                     <Anchor point="LEFT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMLEFT"
-                        offsetX="0" />
+                        offsetX="20" />
                     <Anchor point="RIGHT" relativeTo="$(parent)TabBar" relativePoint="BOTTOMRIGHT"
-                        offsetX="0" offsetY="124" />
+                        offsetX="20" offsetY="125" />
                 </Control>
             </Controls>
         </Control>
@@ -391,20 +403,17 @@
 
                 <Control name="$(parent)DividerBottomT"
                     inherits="BETTERUI_GamepadFooterHorizontalDivider">
-                    <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH" y="5" />
-                    <Anchor point="CENTER" relativeTo="$(parent)SelectBg" relativePoint="CENTER"
-                        offsetX="0" />
+                    <Dimensions x="1325" y="5" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)SelectBg" relativePoint="TOPLEFT"
-                        offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="0" />
+                        offsetX="45" offsetY="0" />
                 </Control>
 
                 <Control name="$(parent)DividerBottomB"
                     inherits="BETTERUI_GamepadFooterHorizontalDivider">
-                    <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH" y="5" />
-                    <Anchor point="CENTER" relativeTo="$(parent)SelectBg" relativePoint="CENTER"
-                        offsetX="0" />
+                    <!-- Extended width to match header dividers (minus 10px) -->
+                    <Dimensions x="1325" y="5" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)SelectBg" relativePoint="TOPLEFT"
-                        offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" offsetY="6" />
+                        offsetX="45" offsetY="4" />
                 </Control>
 
                 <Control name="$(parent)Withdraw">
@@ -467,7 +476,8 @@
                         </Button>
                         <Texture name="$(parent)Icon"
                             textureFile="/esoui/art/bank/bank_tabicon_deposit_up.dds" level="2">
-                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT" />
+                            <Anchor point="RIGHT" relativeTo="$(parent)" relativePoint="BOTTOMRIGHT"
+                                offsetX="-15" />
                             <Dimensions x="64" y="64" />
                         </Texture>
                     </Controls>
@@ -566,10 +576,12 @@
 
                         <Control name="$(parent)List"
                             inherits="BETTERUI_NavQuadrant_1_Anchors BETTERUI_Generic_ScrollListTemplate">
+                            <!-- Push list below header dividers - positive Y moves DOWN, less
+                            negative X shifts RIGHT -->
                             <Anchor point="TOPLEFT" relativeTo="$(parent)HeaderHeader"
-                                relativePoint="BOTTOMLEFT" offsetX="0" />
+                                relativePoint="BOTTOMLEFT" offsetX="-27" offsetY="15" />
                             <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FooterFooter"
-                                relativePoint="TOPRIGHT" />
+                                relativePoint="TOPRIGHT" offsetX="0" offsetY="-8" />
 
                             <OnInitialized>
                                 self:GetParent().list = self

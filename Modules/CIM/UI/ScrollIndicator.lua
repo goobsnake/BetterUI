@@ -26,7 +26,7 @@ local SCROLL_INDICATOR = {
     TRACK = {
         WIDTH = 14,                                        -- Reduced by 1/5
         COLOR = { r = 0.15, g = 0.15, b = 0.15, a = 0.5 }, -- Subtle dark background
-        OFFSET_X = 5,                                      -- Shifted right for edge positioning
+        OFFSET_X = 25,                                     -- Shifted right to align with divider edge
     },
     THUMB = {
         WIDTH = 14,                                         -- Match track width

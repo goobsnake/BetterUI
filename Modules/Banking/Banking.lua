@@ -130,16 +130,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.itemActions:SetUseKeybindStrip(false)
     self:InitializeActionsDialog()
 
-    -- Re-anchor the list to match Inventory's offset using shared CIM constants
-    local listContainer = self.control:GetNamedChild("Container"):GetNamedChild("List")
-    if listContainer then
-        local LIST_OFFSETS = BETTERUI.CIM.CONST.LAYOUT.LIST.CONTAINER
-        listContainer:ClearAnchors()
-        listContainer:SetAnchor(TOPLEFT, self.header:GetNamedChild("Header"), BOTTOMLEFT,
-            LIST_OFFSETS.HEADER_X_OFFSET, LIST_OFFSETS.HEADER_Y_OFFSET)
-        listContainer:SetAnchor(BOTTOMRIGHT, self.footer:GetNamedChild("Footer"), TOPRIGHT, 0,
-            LIST_OFFSETS.FOOTER_Y_OFFSET)
-    end
+    -- NOTE: List anchoring is handled by the BETTERUI_GenericInterface template in InterfaceLibrary.xml
+    -- The template uses offsetX=-50, offsetY=-25 to match Inventory's positioning
 
     local function CallbackSplitStackFinished()
         --refresh list
@@ -156,15 +148,18 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         GAMEPAD_HEADER_SELECTED_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
     self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
 
+    -- Move selected item position up to align with tooltip arrow (matches Inventory)
+    self.list:SetFixedCenterOffset(-50)
+
     -- Setup data templates of the lists
     BETTERUI.Banking.Class.SetupItemList(self.list)
     self:AddTemplate("BETTERUI_HeaderRow_Template", BETTERUI.Banking.Class.SetupLabelListing)
 
     -- Initialize scroll indicator for banking list
-    -- offsetX: 9 (rightward), offsetTopY: -8 (upward), offsetBottomY: -8 (up from footer)
+    -- Params match Inventory: offsetX=nil (default), offsetTopY=-8, offsetBottomY=6
     local listControl = self.list and self.list.control
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 9, -8, -8, self.list)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 25, -5, 1, self.list)
     end
 
     self.currentMode = LIST_WITHDRAW
