@@ -76,8 +76,6 @@ end
 ---
 --- References: Called by the core Addon initialization.
 ---
---- @param m_options table The options table to initialize (unused here, handled by InitModule).
---- @return table The initialized options table.
 function BETTERUI.GeneralInterface.Setup()
 	Init("General", "General Interface")
 

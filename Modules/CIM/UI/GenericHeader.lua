@@ -289,7 +289,7 @@ end
 ---
 --- @param control table Header control.
 --- @param data table Header data (title, carousel config, callbacks).
---- @param blockTabBarCallbacks boolean If true, supresses OnSelectedChanged during initialization.
+--- @param blockTabBarCallbacks? boolean If true, supresses OnSelectedChanged during initialization.
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 

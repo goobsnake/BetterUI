@@ -37,7 +37,7 @@ param: control (Control) - The XML control to manage.
 return: UnifiedFooterController
 ]]
 --- @param control Control The XML control to manage
---- @return UnifiedFooterController
+--- @return table UnifiedFooterController instance
 function UnifiedFooterController:New(control)
     local obj = ZO_Object.New(self)
     obj:Initialize(control)
@@ -163,7 +163,7 @@ param: control (Control) - The XML control to manage.
 return: UnifiedFooterController
 ]]
 --- @param control Control The XML control to manage
---- @return UnifiedFooterController
+--- @return table UnifiedFooterController instance
 function BETTERUI.CIM.UnifiedFooter.Create(control)
     return UnifiedFooterController:New(control)
 end

@@ -348,7 +348,7 @@ end
 --- - Calls GenericHeader.Refresh with categoryHeaderData (which has proper titleText).
 --- - Re-attaches the mouse click callback (which might be wiped by Refresh).
 --- - Ensures scrollList link.
---- @param blockCallback boolean Whether to block the tab bar callback during refresh.
+--- @param blockCallback? boolean Whether to block the tab bar callback during refresh.
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)
 

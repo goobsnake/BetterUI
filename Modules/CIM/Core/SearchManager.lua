@@ -425,7 +425,7 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     options = options or {}
     local isSceneShowing = options.isSceneShowing or function() return true end
     local onTextChanged = options.onTextChanged
-    local onExitFocus = options.onExitFocus or function() self:ExitSearchFocus() end
+    local onExitFocus = options.onExitFocus or function(_) self:ExitSearchFocus() end
     local enterHeaderFn = options.enterHeaderFn
 
     -- Preserve original handlers

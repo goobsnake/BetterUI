@@ -550,7 +550,7 @@ function GetBestItemCategoryDescription(itemData)
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end
 
---- @class BETTERUI.Inventory.List : ZO_GamepadInventoryList
+-- Class: BETTERUI.Inventory.List (extends ZO_GamepadInventoryList)
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
 
 function BETTERUI.Inventory.List:New(...)

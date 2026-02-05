@@ -14,7 +14,7 @@ Last Modified: 2026-01-28
 -- Common parent for Inventory and Banking implementing shared patterns.
 -- ============================================================================
 
----@class BETTERUI.CIM.UnifiedScreen : BETTERUI_Gamepad_ParametricList_Screen
+-- Class: BETTERUI.CIM.UnifiedScreen (extends BETTERUI_Gamepad_ParametricList_Screen)
 BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 
 local MODE = BETTERUI.CIM.UnifiedFooter.MODE

@@ -481,8 +481,6 @@ end
 --- - Repositions Search Control.
 --- References: Called on Currency Update or List Switch.
 ---
---- @param blockCallback boolean If true, prevents tab bar callbacks (used during internal updates).
-
 -- RefreshHeader extracted to Core/InventoryClass.lua
 -- BETTERUI.Inventory.Class:RefreshHeader
 
@@ -551,8 +549,6 @@ end
 --- 4. **Refresh**: Triggers Header and Keybind updates.
 --- References: Called by Tab Navigation and Scene Entry.
 ---
---- @param listDescriptor table|string The list or list ID to switch to.
-
 -- SwitchActiveList moved to State/ListStateManager.lua
 
 

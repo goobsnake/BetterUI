@@ -109,7 +109,7 @@ Mechanism: Returns a table with stub implementations of interface methods.
 References: Used when creating new BetterUI modules.
 ]]
 --- @param name string The module name
---- @return BetterUI.ModuleInterface module A new module template
+--- @return table module A new module template
 function BETTERUI.CIM.Interfaces.CreateModuleTemplate(name)
     return {
         name = name,

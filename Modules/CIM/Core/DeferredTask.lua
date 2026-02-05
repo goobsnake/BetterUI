@@ -25,12 +25,12 @@ BETTERUI.CIM.DeferredTask = {}
 -- DEFERRED TASK MANAGER CLASS
 -- ============================================================================
 
----@class DeferredTaskManager : ZO_Object
----@field private _tasks table<string, number> Task ID -> zo_callLater ID mapping
+-- Class: DeferredTaskManager (extends ZO_Object)
+-- Field: _tasks - table<string, number> Task ID -> zo_callLater ID mapping
 local DeferredTaskManager = ZO_Object:Subclass()
 
 --- Creates a new DeferredTaskManager instance.
----@return DeferredTaskManager
+---@return table DeferredTaskManager instance
 function DeferredTaskManager:New()
     local obj = ZO_Object.New(self)
     obj._tasks = {}

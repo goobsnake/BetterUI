@@ -18,7 +18,7 @@ KEY RESPONSIBILITIES:
     *   AddSlotDataToTable: Populates the list with cached category information.
 ]]
 
---- @class BETTERUI.Inventory.CraftList : BETTERUI.Inventory.List
+-- Class: BETTERUI.Inventory.CraftList (extends BETTERUI.Inventory.List)
 BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
 --- Creates a filter comparator for craft bag items.

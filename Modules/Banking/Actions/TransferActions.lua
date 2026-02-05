@@ -56,7 +56,7 @@ Function: BETTERUI.Banking.Class:MoveItem
 Description: Moves an item (Withdraw or Deposit) between bags.
 ]]
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
---- @param list ParametricScrollList The list to get selected data from
+--- @param list table The list to get selected data from
 --- @param quantity number|nil The quantity to move (nil = all)
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil

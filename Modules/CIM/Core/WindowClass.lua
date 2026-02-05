@@ -59,11 +59,13 @@ Note: Scene/fragment setup is NOT done here. Subclasses should:
 
 param: tlw_name (string) - The name of the TopLevelWindow control.
 param: scene_name (string) - Reserved for future use (scene name identifier).
+param: virtualTemplate (string|nil) - Optional template override (defaults to BETTERUI_GenericInterface).
 ]]
-function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name)
+function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTemplate)
     self.windowName = tlw_name
     self.sceneName = scene_name -- Store for reference by subclasses
-    self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, "BETTERUI_GenericInterface")
+    local template = virtualTemplate or "BETTERUI_GenericInterface"
+    self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, template)
     self.header = self.control:GetNamedChild("ContainerHeader")
     self.footer = self.control:GetNamedChild("ContainerFooter")
 
