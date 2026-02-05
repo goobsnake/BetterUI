@@ -23,6 +23,13 @@
 - Use `BETTERUI.CIM.CONST` for shared constants
 - DeferredTaskManager prevents ghost callbacks from `zo_callLater`
 
+### XML Template Constants
+- ESO XML cannot reference Lua namespace syntax (`BETTERUI.CIM.CONST.*`)
+- Global constants like `BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH` exist **only** for XML template support
+- In **Lua code**: Always use `BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH` (canonical)
+- In **XML templates**: Use `BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH` (required)
+- All XML-support globals are defined in `CIM/Constants.lua` and delegate to canonical paths
+
 ### Keybind Management
 - Use ethereal keybinds for directional navigation instead of `ZO_DirectionalInput`
 - Pre-define keybind descriptors during initialization, not in callbacks
