@@ -215,6 +215,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "调整名牌文字的大小。默认值为16。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置为默认")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置重置为默认值。")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")

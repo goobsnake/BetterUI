@@ -216,6 +216,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "フォントサイズ")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "ネームプレートテキストのサイズを調整します。デフォルトは16です。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "デフォルトにリセット")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネームプレート設定をデフォルト値にリセットします。")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "フォントカスタマイズ")

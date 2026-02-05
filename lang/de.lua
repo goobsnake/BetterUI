@@ -235,6 +235,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Passe die Größe des 
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Auf Standard zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
     "Alle Namensschildeinstellungen auf Standardwerte zurücksetzen.")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Schriftanpassung")

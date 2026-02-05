@@ -226,6 +226,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Настройте размер текста табличек. По умолчанию 16.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить все настройки табличек к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")

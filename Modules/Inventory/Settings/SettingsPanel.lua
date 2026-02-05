@@ -154,10 +154,10 @@ function BETTERUI.Inventory.InitModule(m_options)
 
 	-- Defaults from FontSettings (accessed globally if available, otherwise local defaults)
 	local funcDefaults = BETTERUI.Inventory.DEFAULTS or {
-		nameFont = "EsoUI/Common/Fonts/FTN57.otf",
+		nameFont = "$(GAMEPAD_MEDIUM_FONT)",
 		nameFontSize = 24,
 		nameFontStyle = "",
-		columnFont = "EsoUI/Common/Fonts/FTN57.otf",
+		columnFont = "$(GAMEPAD_MEDIUM_FONT)",
 		columnFontSize = 24,
 		columnFontStyle = "",
 	}
@@ -194,6 +194,21 @@ function BETTERUI.Inventory.InitModule(m_options)
 		end
 		m_options["nameFontStyle"] = oldStyle
 		m_options["columnFontStyle"] = oldStyle
+	end
+
+	-- Migration: Hardcoded Western fonts -> Localized font (for CJK support)
+	local westernFontPaths = {
+		["EsoUI/Common/Fonts/FTN57.otf"] = true,
+		["EsoUI/Common/Fonts/FTN47.otf"] = true,
+		["EsoUI/Common/Fonts/FTN87.otf"] = true,
+		["EsoUI/Common/Fonts/Univers57.otf"] = true,
+		["EsoUI/Common/Fonts/Univers67.otf"] = true,
+	}
+	if m_options["nameFont"] and westernFontPaths[m_options["nameFont"]] then
+		m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
+	end
+	if m_options["columnFont"] and westernFontPaths[m_options["columnFont"]] then
+		m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
 	end
 
 	-- Currency visibility defaults

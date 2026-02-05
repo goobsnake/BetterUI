@@ -230,6 +230,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Ajustez la taille du t
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Réinitialiser")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
     "Réinitialiser tous les paramètres des plaques aux valeurs par défaut.")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Personnalisation des polices")

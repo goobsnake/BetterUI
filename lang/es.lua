@@ -198,6 +198,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Ajusta el tamaño del 
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Restablecer valores")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
     "Restablecer todos los ajustes de placas a sus valores por defecto.")
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Personalización de fuentes")

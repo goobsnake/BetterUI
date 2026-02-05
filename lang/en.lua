@@ -281,6 +281,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate settings to their default values.")
 
 -- Inventory Font Settings
+ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Font Customization")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC",
     "Customize fonts for the inventory list. Set different fonts for the Name column and other columns (Type, Trait, Stat, Value).")

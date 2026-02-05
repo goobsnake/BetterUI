@@ -28,7 +28,8 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             tooltip = GetString(SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP),
             default = false,
             getFunc = function()
-                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled) or false
+                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].m_enabled) or
+                    false
             end,
             setFunc = function(value)
                 if BETTERUI.Settings.Modules["Nameplates"] then
@@ -48,8 +49,9 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {},
             default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.font,
             getFunc = function()
-                local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or {font="EsoUI/Common/Fonts/Univers57.otf"}
-                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].font) or defaults.font
+                local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or { font = "$(BOLD_FONT)" }
+                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].font) or
+                    defaults.font
             end,
             setFunc = function(value)
                 if BETTERUI.Settings.Modules["Nameplates"] then
@@ -73,8 +75,9 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_VALUES or {},
             default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.style,
             getFunc = function()
-                local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or {style="outline"}
-                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].style) or defaults.style
+                local defaults = (BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS) or { style = "outline" }
+                return (BETTERUI.Settings.Modules["Nameplates"] and BETTERUI.Settings.Modules["Nameplates"].style) or
+                    defaults.style
             end,
             setFunc = function(value)
                 if BETTERUI.Settings.Modules["Nameplates"] then
@@ -155,5 +158,18 @@ function BETTERUI.Nameplates.InitModule(m_options)
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
+
+    -- Migration: Hardcoded Western fonts -> Localized font (for CJK support)
+    local westernFontPaths = {
+        ["EsoUI/Common/Fonts/Univers57.otf"] = true,
+        ["EsoUI/Common/Fonts/Univers67.otf"] = true,
+        ["EsoUI/Common/Fonts/FTN57.otf"] = true,
+        ["EsoUI/Common/Fonts/FTN47.otf"] = true,
+        ["EsoUI/Common/Fonts/FTN87.otf"] = true,
+    }
+    if m_options.font and westernFontPaths[m_options.font] then
+        m_options.font = "$(BOLD_FONT)"
+    end
+
     return m_options
 end
