@@ -229,6 +229,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
             elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
                 query = editOrText:GetText() or ""
             elseif editOrText and type(editOrText) == "userdata" then
+                -- AUDITED(pcall): Defensive - userdata may not have GetText method
                 local ok, txt = pcall(function() return editOrText:GetText() end)
                 if ok and txt then query = txt else query = tostring(editOrText) end
             else
@@ -392,6 +393,7 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
     if anchorTarget and anchorTarget.GetNamedChild then
         local candidates = { "TitleContainer", "Header", "HeaderContainer", "HeaderTitle", "HeaderBar", "ContainerHeader" }
         for _, name in ipairs(candidates) do
+            -- AUDITED(pcall): Defensive - control may not support GetNamedChild
             local ok, c = pcall(function() return anchorTarget:GetNamedChild(name) end)
             if ok and c then
                 titleContainer = c

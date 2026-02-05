@@ -102,6 +102,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontStyle = value
                         if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
+                            -- AUDITED(pcall): Defensive - LAM callback context may have stale references
                             pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
                         end
                     end,

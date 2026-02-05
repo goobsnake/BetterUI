@@ -249,6 +249,7 @@ function ExperienceBar:Update()
     if isChampion then
         local currentCP = GetPlayerChampionPointsEarned()
         current = GetPlayerChampionXP()
+        -- AUDITED(pcall): Defensive - ESO API may return nil for high CP values
         local success, size = pcall(GetNumChampionXPInChampionPoint, currentCP)
         if success and size then max = size else max = 400000 end
         if max <= 0 then max = 1 end

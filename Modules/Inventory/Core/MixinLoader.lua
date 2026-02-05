@@ -13,6 +13,7 @@ function BETTERUI.Inventory.ApplyAllMixins()
     if not BETTERUI.Inventory.ClassMixins then return end
 
     if not BETTERUI.Inventory.Class then
+        -- TODO(cleanup): Replace d() with BETTERUI.Debug() for consistent debug output
         d("[BetterUI] Error: Inventory Class not initialized before applying mixins")
         return
     end
