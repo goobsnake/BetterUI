@@ -311,7 +311,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                         IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink))
 
                     if isSet and not isUnlocked then
-                        bindTypeStringLocal = "Bind for Collection"
+                        bindTypeStringLocal = GetString(SI_BETTERUI_BIND_FOR_COLLECTION)
                         bindTypeString = bindTypeStringLocal
                     else
                         bindTypeStringLocal = GetString(SI_ITEM_FORMAT_STR_BIND_ON_EQUIP)
