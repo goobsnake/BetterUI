@@ -151,7 +151,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     -- Force 'false' default handled by Settings defaults, but variable initialization logic is sound.
 
     local fontSize = BETTERUI.GetTooltipFontSize()
-    local fontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. fontSize .. "|soft-shadow-thick"
+    local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
 
     -- 1. Get BetterUI Info (Price/Trait)
     local extraText = ""
@@ -526,7 +526,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
             -- Configure and Show Custom Label
             local statusFontSize = math.floor(fontSize * 0.80)
-            local statusFontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. statusFontSize .. "|shadow"
+            local statusFontStr = "$(MEDIUM_FONT)|" .. statusFontSize .. "|shadow"
 
             customLabel:SetFont(statusFontStr)
             customLabel:SetText(fullText)

@@ -15,7 +15,8 @@ BETTERUI.Nameplates = BETTERUI.Nameplates or {}
 
 -- Available ESO built-in fonts
 BETTERUI.Nameplates.FONT_CHOICES = {
-    "Univers 57 (Default)",
+    "System Default (Localized)", -- Uses ESO's language-appropriate font
+    "Univers 57",
     "Univers 67 (Bold)",
     "Futura Condensed Light",
     "Futura Condensed Medium",
@@ -28,6 +29,7 @@ BETTERUI.Nameplates.FONT_CHOICES = {
 }
 
 BETTERUI.Nameplates.FONT_VALUES = {
+    "$(BOLD_FONT)", -- Uses ESO's localized font system for CJK support
     "EsoUI/Common/Fonts/Univers57.otf",
     "EsoUI/Common/Fonts/Univers67.otf",
     "EsoUI/Common/Fonts/FTN47.otf",
@@ -62,7 +64,7 @@ BETTERUI.Nameplates.FONTSTYLE_VALUES = {
 -- Default nameplate settings
 BETTERUI.Nameplates.DEFAULTS = {
     m_enabled = false,
-    font = "EsoUI/Common/Fonts/Univers67.otf",
+    font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
     style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
     size = 16,
 }

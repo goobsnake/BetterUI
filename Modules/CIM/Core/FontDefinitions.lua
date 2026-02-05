@@ -19,6 +19,7 @@ Description: Human-readable font names for LAM dropdown menus.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.CHOICES = {
+    "System Default (Localized)", -- NEW: Uses ESO's language-appropriate font
     "Univers 57 (Default)",
     "Univers 67 (Bold)",
     "Futura Condensed Light",
@@ -34,9 +35,12 @@ BETTERUI.CIM.Font.CHOICES = {
 --[[
 Table: BETTERUI.CIM.Font.VALUES
 Description: ESO font file paths corresponding to CHOICES.
+             The first entry uses $(GAMEPAD_MEDIUM_FONT) which ESO resolves to
+             the correct font for each language (Chinese, Japanese, etc.).
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.VALUES = {
+    "$(GAMEPAD_MEDIUM_FONT)", -- Uses ESO's localized font system
     "EsoUI/Common/Fonts/Univers57.otf",
     "EsoUI/Common/Fonts/Univers67.otf",
     "EsoUI/Common/Fonts/FTN47.otf",
@@ -84,10 +88,10 @@ Description: Default font settings shared across modules.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.DEFAULTS = {
-    nameFont = "EsoUI/Common/Fonts/FTN57.otf",
+    nameFont = "$(GAMEPAD_MEDIUM_FONT)", -- Uses ESO's localized font for CJK support
     nameFontSize = 24,
     nameFontStyle = "",
-    columnFont = "EsoUI/Common/Fonts/FTN57.otf",
+    columnFont = "$(GAMEPAD_MEDIUM_FONT)", -- Uses ESO's localized font for CJK support
     columnFontSize = 24,
     columnFontStyle = "",
 }

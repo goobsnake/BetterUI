@@ -178,8 +178,8 @@ BETTERUI.Defaults.Modules = {
     -- NAMEPLATES MODULE
     -- ========================================================================
     Nameplates = {
-        m_enabled = true, -- Enabled when GeneralInterface is on
-        font = "EsoUI/Common/Fonts/Univers67.otf",
+        m_enabled = true,      -- Enabled when GeneralInterface is on
+        font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
         style = "soft-shadow-thick",
         size = 24,
     },

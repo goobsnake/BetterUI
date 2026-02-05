@@ -319,7 +319,7 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
 
         -- 2. Scale Fonts
         local fontSize = BETTERUI.GetTooltipFontSize()
-        local fontStr = "EsoUI/Common/Fonts/Univers57.otf|" .. fontSize .. "|soft-shadow-thick"
+        local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
 
         for i = 1, self:GetNumChildren() do
             local child = self:GetChild(i)

@@ -112,7 +112,7 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
                 ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM .. ":" .. ZO_TRADE_BOP_ICON .. "|t"
         end
 
-        labelTxt = labelTxt .. data.text
+        labelTxt = labelTxt .. (data.text or data.name or "")
 
         if (data.stackCount > 1) then
             labelTxt = labelTxt .. zo_strformat(" |cFFFFFF(<<1>>)|r", data.stackCount)
