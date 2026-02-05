@@ -449,57 +449,62 @@ ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BAG:")                                                                                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANK:")                                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "背包:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "银行:")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "确定要销毁 <<1>> 吗？此操作无法撤销。")
 ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
-    "Are you sure you want to destroy this item? This cannot be undone.")                                                                                    -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")                                                                         -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Equip")                                                                                                          -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")                                                                                       -- TODO: Translate
+    "确定要销毁此物品吗？此操作无法撤销。")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "取消快捷栏")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "装备")
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "实验功能")
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
-    "Toggle experimental or optional features. Some changes may require a /reloadui.")                                                                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Enable Tooltip Enhancements")                                                                  -- TODO: Translate
+    "切换实验性或可选功能。某些更改可能需要 /reloadui。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "启用提示增强")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
-    "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.") -- TODO: Translate
+    "启用自定义改进、字体缩放和提示标题中的额外信息。禁用后将恢复为仅添加市场价格的原生UI。")
 ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "WARNING: This setting can result in data loss. Enable with caution.")                                                                                   -- TODO: Translate
+    "警告：此设置可能导致数据丢失。请谨慎启用。")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
-    "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")                                                        -- TODO: Translate
+    "警告：物品将在没有确认的情况下销毁。这可能导致永久性物品丢失。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
-    "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")                                                                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")                                                                   -- TODO: Translate
+    "警告：邮件将在没有确认的情况下删除。附件物品可能会丢失。")
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "启用武器切换动画")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
-    "Plays a slide animation when switching between main and backup weapon bars.")                                                                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Enable Swirl Effect")                                                                                     -- TODO: Translate
+    "在主手和副手武器栏之间切换时播放滑动动画。")
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "启用漩涡效果")
 ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Slowly rotates the orb fill texture, creating a gentle swirling effect.")                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")                                                                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Show Quickslot Quantity")                                                                          -- TODO: Translate
+    "缓慢旋转球体填充纹理，创建柔和的漩涡效果。")
+ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "需要重载UI")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "显示快捷栏数量")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
-    "Displays the item count for the current quickslot item.")                                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")                                                                                  -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")                                                                                -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw All")                                                                                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit All")                                                                                             -- TODO: Translate
+    "显示当前快捷栏物品的数量。")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "存入多少？")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "提取多少？")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "全部提取")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "全部存入")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "选择提取数量")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")                                              -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select")                                            -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")                                     -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode")                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")                             -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected")                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Many")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Mark Junk (Selected)")                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Unmark Junk (Selected)")                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Destroy Selected")                             -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")              -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "排序")
+ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "选择")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "取消全选")
+ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "选择模式")
+ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "已选择 <<1>> 个")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "批量操作")
+ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "存入所选")
+ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "提取所选")
+ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "出售所选")
+ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "锁定所选")
+ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "解锁所选")
+ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "多选")
+ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "标记为垃圾（所选）")
+ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "取消垃圾标记（所选）")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "销毁所选")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "正在处理 <<1>> 个物品。请稍候...")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "已处理 <<1>> 个物品。")
+-- Added from en.lua
+ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "分配快捷栏")
+ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "多选")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "取消选择")
+ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "选择 (<<1>>)")
+ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "全选")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "选择要应用于所选物品的操作。锁定的物品可能与某些操作不兼容。")

@@ -502,57 +502,63 @@ ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BAG:")                                                                                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANK:")                                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Are you sure you want to destroy <<1>>? This cannot be undone.")                                    -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BAG_CAPACITY", "BOLSA:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_BANK_CAPACITY", "BANCO:")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "¿Seguro que quieres destruir <<1>>? Esto no se puede deshacer.")
 ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
-    "Are you sure you want to destroy this item? This cannot be undone.")                                                                                    -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")                                                                         -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Equip")                                                                                                          -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")                                                                                       -- TODO: Translate
+    "¿Seguro que quieres destruir este objeto? Esto no se puede deshacer.")
+ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Quitar acceso rápido")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP", "Equipar")
+ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Opciones experimentales")
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
-    "Toggle experimental or optional features. Some changes may require a /reloadui.")                                                                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Enable Tooltip Enhancements")                                                                  -- TODO: Translate
+    "Activa o desactiva funciones experimentales u opcionales. Algunos cambios pueden requerir /reloadui.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Activar mejoras de tooltip")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
-    "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.") -- TODO: Translate
+    "Activa mejoras personalizadas, escalado de fuente e info adicional en el encabezado del tooltip. Si se desactiva, vuelve a la UI nativa solo con precio de mercado.")
 ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "WARNING: This setting can result in data loss. Enable with caution.")                                                                                   -- TODO: Translate
+    "ADVERTENCIA: Esta opción puede causar pérdida de datos. Actívala con precaución.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
-    "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")                                                        -- TODO: Translate
+    "ADVERTENCIA: Los objetos se destruirán SIN confirmación. Esto puede causar pérdida permanente de objetos.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
-    "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")                                                                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")                                                                   -- TODO: Translate
+    "ADVERTENCIA: El correo se eliminará SIN confirmación. Los objetos adjuntos pueden perderse.")
+ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Activar animación de cambio de arma")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
-    "Plays a slide animation when switching between main and backup weapon bars.")                                                                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Enable Swirl Effect")                                                                                     -- TODO: Translate
+    "Reproduce una animación deslizante al cambiar entre barras de armas principal y de respaldo.")
+ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Activar efecto de remolino")
 ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Slowly rotates the orb fill texture, creating a gentle swirling effect.")                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")                                                                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Show Quickslot Quantity")                                                                          -- TODO: Translate
+    "Rota lentamente la textura de relleno del orbe, creando un suave efecto de remolino.")
+ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requiere recargar UI")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Mostrar cantidad de acceso rápido")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
-    "Displays the item count for the current quickslot item.")                                                                                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Deposit How Many?")                                                                                  -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Withdraw How Many?")                                                                                -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw All")                                                                                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit All")                                                                                             -- TODO: Translate
+    "Muestra la cantidad del objeto actual en el acceso rápido.")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "¿Cuántos depositar?")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "¿Cuántos retirar?")
+ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Retirar todo")
+ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Depositar todo")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Selecciona la cantidad a depositar")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Selecciona la cantidad a retirar")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")                                              -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select")                                            -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")                                     -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode")                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")                                 -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")                             -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")                           -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected")                               -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Many")                                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Mark Junk (Selected)")                       -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Unmark Junk (Selected)")                   -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Destroy Selected")                             -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")              -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Ordenar")
+ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Seleccionar")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deseleccionar todo")
+ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Modo selección")
+ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> seleccionados")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Acciones en lote")
+ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Depositar seleccionados")
+ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Retirar seleccionados")
+ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Vender seleccionados")
+ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Bloquear seleccionados")
+ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Desbloquear seleccionados")
+ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Seleccionar varios")
+ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Marcar basura (selección)")
+ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Quitar basura (selección)")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Destruir seleccionados")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Procesando <<1>> objetos. Por favor espera...")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> objetos procesados.")
+-- Added from en.lua
+ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Asignar ranuras rápidas")
+ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Selección múltiple")
+ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deseleccionar")
+ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Seleccionar (<<1>>)")
+ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Seleccionar todo")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
+    "Elige una acción para aplicar a los objetos seleccionados. Los objetos bloqueados pueden no ser compatibles con ciertas acciones.")
