@@ -24,7 +24,11 @@ $excludeItems = @(
     'Source',
     'LICENSE.md',
     'docs',
-    '.agent'
+    '.agent',
+    '.claude',
+    '.luarc.json',
+    'AGENTS.md',
+    'CLAUDE.md'
 )
 
 # Copy items while excluding specified files/directories
