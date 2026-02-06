@@ -96,9 +96,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
             self:RefreshKeybinds()
 
             -- Update scroll indicator position
+            -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
+            -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
             local listCtrl = self.itemList and self.itemList.control
             if listCtrl and BETTERUI.CIM.ScrollIndicator then
-                local currentIndex = list:GetSelectedIndex() or 1
+                local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
                 local totalItems = (list.GetNumItems and list:GetNumItems()) or (list.dataList and #list.dataList) or 0
                 local visibleItems = 12 -- Approximate visible items
                 BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)

@@ -272,9 +272,11 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
 
         -- Update scroll indicator position
+        -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
+        -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
         if list and list.control and BETTERUI.CIM.ScrollIndicator then
             local totalItems = list:GetNumItems() or 0
-            local currentIndex = list:GetSelectedIndex() or 1
+            local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
             local visibleItems = BETTERUI.CIM.CONST.UI.BANKING_VISIBLE_ITEMS
             BETTERUI.CIM.ScrollIndicator.Update(list.control, currentIndex, totalItems, visibleItems)
         end

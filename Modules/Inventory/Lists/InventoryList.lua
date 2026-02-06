@@ -616,9 +616,11 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
             GAMEPAD_INVENTORY:PrepareNextClearNewStatus(selectedData)
             self:GetParametricList():RefreshVisible()
             -- Update scroll indicator position
+            -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
+            -- (the animated intermediate) to prevent the thumb from stopping short of the bottom
             local listCtrl = self.list and self.list.control
             if listCtrl then
-                local currentIndex = list:GetSelectedIndex() or 1
+                local currentIndex = list.targetSelectedIndex or list:GetSelectedIndex() or 1
                 local totalItems = list:GetNumEntries() or 0
                 local visibleItems = 15 -- Approximate visible items in inventory list
                 BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
@@ -740,9 +742,10 @@ function BETTERUI.Inventory.List:RefreshList()
     self.list:Commit()
 
     -- Update scroll indicator after list refresh
+    -- Use targetSelectedIndex for the intended position rather than animated intermediate
     local listCtrl = self.list and self.list.control
     if listCtrl then
-        local currentIndex = self.list:GetSelectedIndex() or 1
+        local currentIndex = self.list.targetSelectedIndex or self.list:GetSelectedIndex() or 1
         local totalItems = self.list:GetNumEntries() or 0
         local visibleItems = 15 -- Approximate visible items in inventory list
         BETTERUI.CIM.ScrollIndicator.Update(listCtrl, currentIndex, totalItems, visibleItems)
