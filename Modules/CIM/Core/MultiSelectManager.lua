@@ -217,6 +217,9 @@ function Manager:SelectAll(listOverride)
     local targetList = listOverride or self.list
     if not targetList then return end
 
+    -- ZO_GamepadInventoryList wraps a parametric list - get the inner list for data access
+    local innerList = targetList.GetParametricList and targetList:GetParametricList() or targetList
+
     -- Use same fallback pattern as ItemListManager.lua line 102:
     -- (list.GetNumItems and list:GetNumItems()) or (list.dataList and #list.dataList) or 0
     local numItems = 0
@@ -224,9 +227,9 @@ function Manager:SelectAll(listOverride)
 
     if targetList.GetNumItems then
         numItems = targetList:GetNumItems()
-    elseif targetList.dataList then
+    elseif innerList.dataList then
         -- Fallback: ESO parametric scroll lists use dataList
-        dataList = targetList.dataList
+        dataList = innerList.dataList
         numItems = #dataList
     end
 
@@ -235,8 +238,8 @@ function Manager:SelectAll(listOverride)
         if dataList then
             -- Direct access when using dataList fallback
             data = dataList[i]
-        elseif targetList.GetDataForDataIndex then
-            data = targetList:GetDataForDataIndex(i)
+        elseif innerList.GetDataForDataIndex then
+            data = innerList:GetDataForDataIndex(i)
         end
 
         if data then
