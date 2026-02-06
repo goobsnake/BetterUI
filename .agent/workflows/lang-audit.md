@@ -8,8 +8,7 @@ This workflow audits the BetterUI localization system to maintain clean, synchro
 
 ## Prerequisites
 
-- PowerShell available in terminal
-- Working directory: `x:\Git\BetterUI`
+See `AGENTS.md` for project context. Working directory: `x:\Git\BetterUI`
 
 ---
 

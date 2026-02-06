@@ -7,8 +7,8 @@ description: Structured session to capture API quirks, gotchas, and lessons lear
 A guided introspection session to document ESO API behaviors, BetterUI gotchas, and lessons learned.
 
 ## Prerequisites
-- Read `betterui-development-guidelines` skill
-- Have recent development context (what you just worked on)
+
+See `AGENTS.md` for project context. Have recent development context ready.
 
 ---
 

@@ -9,7 +9,8 @@ A one-stop pre-commit verification that ensures code quality before pushing chan
 // turbo-all
 
 ## Prerequisites
-- Read `betterui-development-guidelines` skill
+
+See `AGENTS.md` for project context and standards.
 
 ---
 

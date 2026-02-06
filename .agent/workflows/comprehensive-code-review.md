@@ -9,9 +9,8 @@ This workflow performs a thorough code review of the BetterUI addon in two passe
 // turbo-all
 
 ## Prerequisites
-- Read `betterui-development-guidelines` skill
-- Read `betterui-sr-engineering-team` skill
-- Have access to `docs/ARCHITECTURE.md` and `docs/TRIBAL_KNOWLEDGE.md`
+
+See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 

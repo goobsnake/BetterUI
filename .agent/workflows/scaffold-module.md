@@ -7,8 +7,8 @@ description: Create a new BetterUI module with the standard Minimal Root folder 
 Automates creation of a new BetterUI module following the **Minimal Root** organizational pattern.
 
 ## Prerequisites
-- Read `betterui-development-guidelines` skill
-- Familiarize with `docs/ARCHITECTURE.md` Section 3 (Minimal Root Module Structure)
+
+See `AGENTS.md` for project context and `docs/ARCHITECTURE.md` Section 3 for Minimal Root structure.
 
 ---
 

@@ -22,9 +22,7 @@ This workflow provides two review modes:
 
 ## Prerequisites
 
-- Read `betterui-sr-engineering-team` skill (defines team composition and review criteria)
-- Read `betterui-development-guidelines` skill (defines coding standards)
-- Have the implementation plan or completed phase artifacts ready for review
+See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 

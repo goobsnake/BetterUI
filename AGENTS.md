@@ -1,0 +1,140 @@
+# BetterUI Agent Configuration
+
+> This is the root configuration for AI agents working on BetterUI.
+> **At session start:** Read this file, then `CONTINUITY.md`, then `docs/TRIBAL_KNOWLEDGE.md`.
+
+---
+
+## Important Rules
+
+* **Build modular first.** No code files longer than 500 lines! Documentation and plans can be any length, but code must be modular.
+* **Think ahead!** Do not write code that you know will need to be changed later without planning for that change now. Keep entrypoints stable and isolate logic into smaller modules from the start.
+* **Do not limit yourself due to the LOC limit!** If a task requires more code, split it into multiple files/modules/functions.
+* **No default fallbacks during development.** If something fails, let it fail so we can fix it.
+* **No empty try-catch blocks anywhere!**
+* **Do not reinvent the wheel!** Reference existing ESO API patterns from the `esoui/` folder or online ESO documentation. Leverage in-game libraries and utilities where available.
+* **Design UI for the end-user, not for the schema!**
+
+---
+
+## Continuity Ledger
+
+Maintain a single continuity file for this workspace: `CONTINUITY.md`.
+
+`CONTINUITY.md` is the canonical briefing designed to survive compaction; do not rely on earlier chat/tool output unless it's reflected there.
+
+### Operating Rule
+- At the start of each assistant turn: read `CONTINUITY.md` before acting.
+- Update `CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
+
+### Keep It Bounded (Anti-Bloat)
+- Keep `CONTINUITY.md` short and high-signal:
+  - `Snapshot`: ≤ 25 lines.
+  - `Done (recent)`: ≤ 7 bullets.
+  - `Working set`: ≤ 12 paths.
+  - `Receipts`: keep last 10–20 entries.
+- If sections exceed caps, compress older items into milestone bullets with pointers (commit/PR/log path/doc path). Do not paste raw logs.
+
+### Anti-Drift Rules
+- Facts only, no transcripts.
+- Every entry must include:
+  - a date or ISO timestamp (e.g., `2026-01-13` or `2026-01-13T09:42Z`)
+  - a provenance tag: `[USER]`, `[CODE]`, `[TOOL]`, `[ASSUMPTION]`
+- If unknown, write `UNCONFIRMED` (never guess). If something changes, supersede it explicitly (don't silently rewrite history).
+
+### Decisions and Incidents
+- Record durable choices in `Decisions` as ADR-lite entries (e.g., `D001 ACTIVE: …`).
+- For recurring weirdness, create a small, stable incident capsule (Symptoms / Evidence pointers / Mitigation / Status).
+
+### Plan Tool vs Ledger
+- Use `update_plan` for short-term execution scaffolding (3–7 steps).
+- Use `CONTINUITY.md` for long-running continuity ("what/why/current state"), not micro task lists.
+- Keep them consistent at the intent/progress level.
+
+### In Replies
+- Start with a brief "Ledger Snapshot" (Goal + Now + Next + Open Questions).
+- Print the full ledger only when it materially changed or the user requests it.
+
+---
+
+## Project Context
+
+**Project:** BetterUI - Elder Scrolls Online addon for enhanced gamepad UI
+
+**Tech Stack:**
+- Lua 5.1 (ESO uses `luac5.1` for syntax validation)
+- XML for UI templates
+- ESO API (see `esoui/` reference folder - read-only, never modify)
+
+**Key Directories:**
+| Path | Purpose |
+|------|---------|
+| `Modules/CIM/` | Common Interface Module - all shared code goes here |
+| `Modules/Banking/` | Banking scene and features |
+| `Modules/Inventory/` | Inventory scene and features |
+| `Modules/ResourceOrbFrames/` | Resource orbs and skill bar UI |
+| `Modules/WritUnit/` | Writ crafting assistance |
+| `esoui/` | ESO base game UI reference (read-only, never modify) |
+| `docs/` | Architecture, tribal knowledge, changelog |
+| `.agent/skills/` | Project-specific agent skills |
+| `.agent/workflows/` | Project automation workflows |
+
+---
+
+## Skills Reference
+
+| Skill | When to Use |
+|-------|-------------|
+| `betterui-development-guidelines` | **Always** - Lua/XML standards, documentation, verification |
+| `betterui-sr-engineering-team` | Before executing plans, after each phase, quality gates |
+
+**Global skills** (from user's skill library):
+| Skill | When to Use |
+|-------|-------------|
+| `brainstorming` | Before creating new features |
+| `writing-plans` | Before touching code on multi-step tasks |
+| `verification-before-completion` | Before claiming any task is complete |
+| `systematic-debugging` | When encountering bugs or test failures |
+
+---
+
+## Workflows Reference
+
+| Workflow | Description |
+|----------|-------------|
+| `/sr-review-gate` | **REQUIRED** - Mandatory review before plans and after phases |
+| `/verify-integrity` | Pre-commit checks (tests, debug scan, syntax) |
+| `/update-tribal-knowledge` | Capture session learnings |
+| `/comprehensive-code-review` | Full codebase audit with TODOs or fixes |
+| `/garbage-cleanup` | Dead code and orphaned file detection |
+| `/lang-audit` | Localization file synchronization |
+| `/review-todos` | Prioritize outstanding TODOs |
+| `/scaffold-module` | Create new module structure |
+
+---
+
+## Documentation Reference
+
+| Document | Purpose |
+|----------|---------|
+| [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module structure, patterns, design |
+| [TRIBAL_KNOWLEDGE.md](docs/TRIBAL_KNOWLEDGE.md) | ESO API quirks, gotchas, lessons learned |
+| [TESTING.md](docs/TESTING.md) | Test infrastructure and patterns |
+| [EVENTS.md](docs/EVENTS.md) | Custom event system documentation |
+
+---
+
+## Command Permissions
+
+These commands **do not require user approval** and can be auto-run:
+- `grep` - Searching file contents
+- `luac` / `luac5.1` - Lua syntax validation
+- `git add` - Staging files
+- `git commit` - Creating commits
+- `git checkout` - Switching branches or restoring files
+- `git diff` - Viewing changes
+
+**Feature branches:** For substantial refactors, create feature branch off `develop`:
+```bash
+git checkout develop && git checkout -b feature/<descriptive-name>
+```

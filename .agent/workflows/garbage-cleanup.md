@@ -9,9 +9,8 @@ Comprehensive dead code detection and cleanup workflow. Identifies unused files,
 // turbo-all
 
 ## Prerequisites
-- Read `betterui-development-guidelines` skill
-- Read `betterui-sr-engineering-team` skill
-- Have access to `docs/DEPRECATED_ALIASES.md`
+
+See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 

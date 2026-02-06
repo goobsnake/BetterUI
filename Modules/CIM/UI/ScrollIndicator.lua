@@ -4,7 +4,7 @@ Purpose: Provides a visual scroll indicator for parametric lists (inventory, ban
          Shows current scroll position with a track, thumb, and up/down arrows.
          Supports mouse interaction: arrow clicks and thumb dragging.
 Author: BetterUI Team
-Last Modified: 2026-01-30
+Last Modified: 2026-02-06
 ]]
 
 -- Ensure namespace exists
@@ -487,10 +487,42 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     -- Calculate thumb offset from track top
     local thumbOffset = availableTravel * scrollPosition
 
-    -- Position thumb using single TOP anchor with SetHeight
+    -- Position thumb with dual-anchor strategy for pixel-perfect alignment at extremes.
+    -- Using TOP anchor with a large offset at position 1.0 causes floating-point accumulation:
+    -- track.TOP + offset + thumbHeight may not equal track.BOTTOM exactly in ESO's layout engine.
+    -- At the extremes, anchor directly to the track edge to guarantee alignment.
     controls.thumb:ClearAnchors()
     controls.thumb:SetHeight(thumbHeight)
-    controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
+
+    if currentIndex >= totalItems and totalItems > 1 then
+        -- Last item: anchor thumb BOTTOM to track BOTTOM for pixel-perfect bottom alignment
+        controls.thumb:SetAnchor(BOTTOM, controls.track, BOTTOM, 0, 0)
+    elseif currentIndex <= 1 or totalItems <= 1 then
+        -- First item (or single/no items): anchor thumb TOP to track TOP
+        controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, 0)
+    elseif scrollPosition > 0.5 then
+        -- Lower half: anchor from BOTTOM with negative offset for better precision near bottom
+        local distanceFromBottom = availableTravel - thumbOffset
+        controls.thumb:SetAnchor(BOTTOM, controls.track, BOTTOM, 0, -distanceFromBottom)
+    else
+        -- Upper half: anchor from TOP with positive offset (standard)
+        controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
+    end
+
+    -- TODO(cleanup): Remove diagnostic debug after scrollbar gap is verified fixed
+    if currentIndex >= totalItems - 1 and totalItems > 1 then
+        zo_callLater(function()
+            if not controls or not controls.thumb then return end
+            local tT, tB = controls.thumb:GetTop(), controls.thumb:GetBottom()
+            local rT, rB = controls.track:GetTop(), controls.track:GetBottom()
+            local aT, aB = controls.downArrow:GetTop(), controls.downArrow:GetBottom()
+            local cB = controls.container:GetBottom()
+            d(string.format("[ScrollInd] PIXELS thumb=%d-%d trk=%d-%d arrow=%d-%d cont_bot=%d",
+                tT, tB, rT, rB, aT, aB, cB))
+            d(string.format("[ScrollInd] GAPS thumb-to-trkBot=%d thumb-to-arrowTop=%d",
+                rB - tB, aT - tB))
+        end, 100)
+    end
 end
 
 --[[

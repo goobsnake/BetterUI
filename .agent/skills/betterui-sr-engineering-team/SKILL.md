@@ -5,7 +5,7 @@ description: Use for implementation planning, code reviews, phase verification, 
 
 # BetterUI Sr. Engineering Team
 
-## Overview
+> **Prerequisite:** Read `AGENTS.md` for project rules.
 
 **Announce at start:** "I'm using the betterui-sr-engineering-team skill for this review."
 
@@ -13,157 +13,79 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 
 **Core Principle**: CRITICAL and FAIR. No rubber-stamping. Every review provides actionable feedback.
 
-## Compliance Requirement
-
-> [!IMPORTANT]
-> **This team MUST comply with `betterui-development-guidelines`.**
-> 
-> Before conducting any review, team members:
-> 1. Reference the main development skill's coding standards
-> 2. Evaluate work against those standards
-> 3. Flag any violations in their review
+---
 
 ## When to Invoke
 
-Use this skill at these checkpoints:
-
 | Checkpoint | Trigger | Workflow |
 |------------|---------|----------|
-| **Implementation Plan Review** | Before executing a multi-phase plan | `/sr-review-gate --plan-review` |
-| **Phase Completion** | Before moving to the next phase | `/sr-review-gate --phase-review` |
-| **Pre-Commit Review** | Before committing significant code changes | `/sr-review-gate --phase-review` |
-| **Final Verification** | Before claiming work is complete | `/sr-review-gate --phase-review` |
-
-> [!TIP]
-> Use the `/sr-review-gate` workflow to invoke this team's review process in a structured way.
-
-## Context Refresh Requirement
-
-> [!CAUTION]
-> Before conducting any review, re-read `betterui-development-guidelines` to ensure standards are fresh.
+| **Plan Review** | Before executing a plan | `/sr-review-gate --plan-review` |
+| **Phase Completion** | Before next phase | `/sr-review-gate --phase-review` |
+| **Pre-Commit** | Before significant commits | `/sr-review-gate --phase-review` |
+| **Final Verification** | Before claiming complete | `/sr-review-gate --phase-review` |
 
 ---
 
 ## The Team
 
 ### 1. Lua Architect
-
-**Focus**: Module design, CIM patterns, inheritance, architecture decisions
-
-**Reviews For**:
-- Proper use of CIM infrastructure
-- Module boundaries and dependencies
-- Class hierarchy and inheritance patterns
-- Namespace organization (`BETTERUI.Module.Class`)
+**Focus**: Module design, CIM patterns, architecture
 
 **Key Questions**:
-- Does this follow established CIM patterns?
-- Are dependencies properly ordered in the manifest?
-- Is the module structure consistent with existing architecture?
-- Are there any circular dependencies introduced?
+- Does this follow CIM patterns?
+- Dependencies properly ordered?
+- Any circular dependencies?
 
 ---
 
 ### 2. UI/UX Specialist
-
-**Focus**: Gamepad flow, accessibility, ESO native parity
-
-**Reviews For**:
-- Gamepad navigation consistency
-- Scene lifecycle management
-- Keybind integration
-- Visual alignment with ESO native UI
-- Accessibility considerations
+**Focus**: Gamepad flow, accessibility, ESO parity
 
 **Key Questions**:
-- Does the gamepad flow feel native to ESO?
-- Are keybinds properly registered and cleaned up?
-- Does the scene cleanup prevent input lock-ups?
-- Is the visual layout consistent with existing BetterUI screens?
+- Does gamepad flow feel native?
+- Keybinds properly registered/cleaned up?
+- Scene cleanup prevents lock-ups?
 
 ---
 
 ### 3. Code Quality Lead
-
-**Focus**: Standards compliance, documentation, style, `betterui-development-guidelines` enforcement
-
-**Reviews For**:
-- File headers present and updated
-- Function documentation complete
-- TODO format compliance
-- Naming conventions
-- No debug prints (`d()`) left behind
-- Comments preserved during refactoring
+**Focus**: Standards compliance, documentation
 
 **Key Questions**:
-- Does every file have the required header block?
-- Are complex functions documented with Rationale and Mechanism?
-- Do all TODOs follow the `TODO(type):` format?
-- Is the code style consistent with the project?
+- File headers present and updated?
+- Complex functions documented?
+- TODOs use `TODO(type):` format?
+- No `d()` debug statements?
 
 ---
 
 ### 4. Sr. Software Developer
-
-**Focus**: Implementation patterns, clean code, error handling, practical solutions
-
-**Reviews For**:
-- Nil-checking and defensive coding
-- Error handling patterns
-- Code readability and maintainability
-- Efficient use of ESO APIs
-- Avoiding common Lua pitfalls
+**Focus**: Implementation patterns, error handling
 
 **Key Questions**:
-- Are there proper nil-checks for nested tables?
-- Is error handling consistent with project patterns?
-- Could this be simplified without losing functionality?
-- Are there any obvious edge cases not handled?
+- Proper nil-checks for nested tables?
+- Error handling consistent?
+- Could this be simplified?
 
 ---
 
 ### 5. QA Gatekeeper
-
-**Focus**: Testing strategy, verification, regression, edge cases
-
-**Reviews For**:
-- Verification plan completeness
-- Edge case coverage
-- Regression risk assessment
-- In-game testing requirements
+**Focus**: Testing, verification, edge cases
 
 **Key Questions**:
-- How will this change be verified in-game?
+- How will this be verified in-game?
 - What edge cases need testing?
-- What existing functionality might be affected?
-- Is there a rollback plan if issues are discovered?
+- What might regress?
 
 ---
 
 ## Review Process
 
-### Step 1: Present Work Summary
-Provide a brief summary of what was implemented or changed.
-
-### Step 2: Individual Reviews
-Each team member reviews from their perspective using their Key Questions.
-
-### Step 3: Collect Verdicts
-Each team member provides:
-```
-**[Role Name]**: PASS / FAIL
-- [Reasoning or findings]
-- [Required changes if FAIL]
-```
-
-### Step 4: Resolve Issues
-If any FAIL verdicts:
-- Address all required changes
-- Re-submit for review
-- Repeat until all PASS
-
-### Step 5: Proceed
-Only after all team members PASS, proceed to the next phase.
+1. **Present Work Summary** - Brief description of changes
+2. **Individual Reviews** - Each member reviews from their perspective
+3. **Collect Verdicts** - PASS or FAIL with reasoning
+4. **Resolve Issues** - Address all FAIL items, re-submit
+5. **Proceed** - Only after all 5 PASS
 
 ---
 
@@ -172,73 +94,37 @@ Only after all team members PASS, proceed to the next phase.
 ```markdown
 ## Sr. Engineering Team Review
 
-### Summary
-[Brief description of what was reviewed]
+**Review Type**: [Plan / Phase N]
+**Date**: [Date]
 
 ### Verdicts
 
 **Lua Architect**: PASS ✓
-- Architecture follows CIM patterns
-- Manifest ordering correct
+- [Findings]
 
 **UI/UX Specialist**: PASS ✓
-- Gamepad flow is consistent
-- Scene cleanup properly implemented
+- [Findings]
 
 **Code Quality Lead**: FAIL ✗
-- Missing file header in `NewModule.lua`
-- Function `ProcessData` lacks documentation
-- Required: Add headers before proceeding
+- [Issue and required fix]
 
 **Sr. Software Developer**: PASS ✓
-- Error handling is robust
-- Nil-checks present
+- [Findings]
 
 **QA Gatekeeper**: PASS ✓
-- Verification plan is complete
-- Edge cases identified
+- [Findings]
 
-### Overall: BLOCKED
-Address Code Quality Lead findings before proceeding.
+### Overall: PASS / BLOCKED
 ```
-
----
-
-## Phase Gate Protocol
-
-For multi-phase implementation plans:
-
-1. **Before Phase 1**: Full team review of the plan
-2. **After Each Phase**: Team verifies completion before next phase begins
-3. **Final Phase**: Full verification review before claiming completion
-
-At each gate:
-- Present what was completed
-- Show verification results
-- Get team sign-off
-- Only then proceed
-
----
-
-## Related Skills & Workflows
-
-| Resource | When to Use |
-|----------|-------------|
-| `/sr-review-gate` workflow | **REQUIRED** - Structured process for invoking this team |
-| `betterui-development-guidelines` | **REQUIRED** - Compliance baseline for all reviews |
-| `verification-before-completion` | Before final sign-off |
-| `systematic-debugging` | When reviewing bug fixes |
-| `requesting-code-review` | Integrates with this team's process |
-| `receiving-code-review` | When addressing feedback from this team |
 
 ---
 
 ## Quick Reference
 
-| Team Member | Primary Focus | Key Standard |
-|-------------|---------------|--------------|
-| Lua Architect | Architecture | CIM patterns, manifest order |
-| UI/UX Specialist | User Experience | Gamepad parity, scene lifecycle |
-| Code Quality Lead | Standards | Headers, docs, style |
-| Sr. Software Developer | Implementation | Nil-checks, error handling |
-| QA Gatekeeper | Verification | Testing, edge cases |
+| Team Member | Primary Focus |
+|-------------|---------------|
+| Lua Architect | CIM patterns, manifest order |
+| UI/UX Specialist | Gamepad parity, scene lifecycle |
+| Code Quality Lead | Headers, docs, style |
+| Sr. Software Developer | Nil-checks, error handling |
+| QA Gatekeeper | Testing, edge cases |
