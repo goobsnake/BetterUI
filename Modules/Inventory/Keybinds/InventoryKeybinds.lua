@@ -137,12 +137,21 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
 
                 -- If in multi-select mode, show "Unselect" or "Select (count)"
+                -- Check inventory multi-select manager
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    -- Check if current item is already selected
                     if target and self.multiSelectManager:IsSelected(target) then
                         return GetString(SI_BETTERUI_DESELECT_ITEM)
                     else
                         local count = self.multiSelectManager:GetSelectedCount()
+                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                    end
+                end
+                -- Check craftbag multi-select manager
+                if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+                    if target and self.craftBagMultiSelectManager:IsSelected(target) then
+                        return GetString(SI_BETTERUI_DESELECT_ITEM)
+                    else
+                        local count = self.craftBagMultiSelectManager:GetSelectedCount()
                         return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
                     end
                 end
@@ -190,8 +199,17 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
             end,
             callback = function()
+                -- Check craftbag multi-select first
+                if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+                    local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+                    if target then
+                        self.craftBagMultiSelectManager:ToggleSelection(target)
+                        self:RefreshCraftBagList()
+                    end
+                    return
+                end
+                -- Check inventory multi-select
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    -- In multi-select mode - toggle selection
                     local target = self.itemList and self.itemList.selectedData
                     if target then
                         self.multiSelectManager:ToggleSelection(target)
@@ -352,6 +370,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
+                -- Check craftbag multi-select manager first
+                if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+                    return self.craftBagMultiSelectManager:HasSelections()
+                end
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     return self.multiSelectManager:HasSelections()
                 end
@@ -367,6 +389,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return false
             end,
             callback = function()
+                -- Check craftbag multi-select manager first
+                if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+                    self:ShowCraftBagBatchActionsMenu()
+                    return
+                end
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     -- Show batch actions dialog
                     self:ShowBatchActionsMenu()
@@ -437,18 +464,27 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             name = GetString(SI_BETTERUI_MULTI_SELECT),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
-                -- Only visible in item list mode (not craft bag) with items
-                -- Multi-select is only supported for regular inventory items
-                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-                    return false
+                -- Visible in item list mode with items
+                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                    return self.itemList and not self.itemList:IsEmpty()
+                        and self.multiSelectManager ~= nil
+                        and not self.multiSelectManager:IsActive()
                 end
-                -- Must have items in the list and multi-select manager available
-                return self.itemList and not self.itemList:IsEmpty()
-                    and self.multiSelectManager ~= nil
-                    and not self.multiSelectManager:IsActive()
+                -- Also visible in craftbag mode with items
+                if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                    return self.craftBagList and not self.craftBagList:IsEmpty()
+                        and self.craftBagMultiSelectManager ~= nil
+                        and not self.craftBagMultiSelectManager:IsActive()
+                end
+                return false
             end,
             callback = function()
-                if self.multiSelectManager and not self.multiSelectManager:IsActive() then
+                -- Enter appropriate selection mode based on current list
+                if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                    if self.craftBagMultiSelectManager and not self.craftBagMultiSelectManager:IsActive() then
+                        self:EnterCraftBagSelectionMode()
+                    end
+                elseif self.multiSelectManager and not self.multiSelectManager:IsActive() then
                     self:EnterSelectionMode()
                 end
             end,

@@ -73,6 +73,16 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
     self.craftBagList:SetAlignToScreenCenter(true, 30)
 
     self.craftBagList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
+
+    -- Initialize craftbag multi-select manager
+    if not self.craftBagMultiSelectManager then
+        self.craftBagMultiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(
+            self.craftBagList,
+            function(selectedCount)
+                self:OnCraftBagSelectionCountChanged(selectedCount)
+            end
+        )
+    end
 end
 
 --- Refreshes the Craft Bag list content.

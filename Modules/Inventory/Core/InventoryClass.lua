@@ -1060,7 +1060,222 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
 end
 
--- ============================================================================
+--------------------------------------------------------------------------------
+-- CRAFTBAG MULTI-SELECT MODE
+--------------------------------------------------------------------------------
+
+--- Called when the craftbag selection count changes.
+--- @param selectedCount number The number of currently selected craftbag items
+function BETTERUI.Inventory.Class:OnCraftBagSelectionCountChanged(selectedCount)
+    -- Update count tracking
+    if self.isInCraftBagSelectionMode and selectedCount > 0 then
+        self.craftBagSelectedCount = selectedCount
+    else
+        self.craftBagSelectedCount = 0
+    end
+
+    -- Refresh keybinds to update Y-button batch actions visibility
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
+end
+
+--- Enters multi-selection mode for the craftbag.
+--- Called when user holds Y button in craftbag mode.
+function BETTERUI.Inventory.Class:EnterCraftBagSelectionMode()
+    if self.isInCraftBagSelectionMode then return end
+    if not self.craftBagMultiSelectManager then return end
+
+    self.isInCraftBagSelectionMode = true
+    self.craftBagMultiSelectManager:EnterSelectionMode()
+
+    -- Select the current item automatically
+    local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+    if target then
+        self.craftBagMultiSelectManager:ToggleSelection(target)
+    end
+
+    -- Update keybinds for selection mode
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
+
+    -- Refresh list to show selection visuals
+    self:RefreshCraftBagList()
+end
+
+--- Exits multi-selection mode for the craftbag.
+--- Called when user presses B or completes a batch action.
+function BETTERUI.Inventory.Class:ExitCraftBagSelectionMode()
+    if not self.isInCraftBagSelectionMode then return end
+
+    self.isInCraftBagSelectionMode = false
+    if self.craftBagMultiSelectManager then
+        self.craftBagMultiSelectManager:ExitSelectionMode()
+    end
+
+    -- Update keybinds to normal mode
+    if not self.isInHeaderSortMode then
+        self:RefreshKeybinds()
+    end
+
+    -- Refresh list to remove selection visuals
+    self:RefreshCraftBagList()
+end
+
+--- Shows the batch actions menu for multi-selected craftbag items.
+--- Displays limited actions: Select All, Retrieve, Deselect All.
+function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
+    if not self.craftBagMultiSelectManager or not self.craftBagMultiSelectManager:IsActive() then
+        return
+    end
+
+    local selectedItems = self.craftBagMultiSelectManager:GetSelectedItems()
+    local selectedCount = #selectedItems
+
+    if selectedCount == 0 then
+        return
+    end
+
+    -- Build batch actions dialog for craftbag
+    local dialogName = "BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG"
+
+    -- Create dialog if it doesn't exist
+    if not ESO_Dialogs[dialogName] then
+        ESO_Dialogs[dialogName] = {
+            gamepadInfo = {
+                dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+            },
+            title = {
+                text = function(dialog)
+                    local count = dialog and dialog.data and dialog.data.selectedCount or 0
+                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
+                end,
+            },
+            mainText = {
+                text = GetString(SI_BETTERUI_BATCH_ACTIONS_DESC),
+            },
+            setup = function(dialog)
+                dialog:setupFunc()
+            end,
+            parametricList = {},
+            buttons = {
+                {
+                    keybind = "DIALOG_PRIMARY",
+                    text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                    callback = function(dialog)
+                        local selected = dialog.entryList and
+                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+                        if selected and selected.callback then
+                            selected.callback()
+                        end
+                    end,
+                },
+                {
+                    keybind = "DIALOG_NEGATIVE",
+                    text = GetString(SI_GAMEPAD_BACK_OPTION),
+                    callback = function()
+                        zo_callLater(function()
+                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
+                                GAMEPAD_INVENTORY:RefreshKeybinds()
+                            end
+                        end, 50)
+                    end,
+                },
+            },
+        }
+    end
+
+    -- Build the parametric list with craftbag-specific batch actions
+    local parametricList = {}
+
+    -- Add Select All
+    local selectAllEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_SELECT_ALL))
+    selectAllEntry:SetIconTintOnSelection(true)
+    selectAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    selectAllEntry.callback = function()
+        self:SelectAllCraftBagItems()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = selectAllEntry,
+    })
+
+    -- Add Retrieve action (using ESO's built-in string)
+    local retrieveLabel = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG),
+        selectedCount)
+    local retrieveEntry = ZO_GamepadEntryData:New(retrieveLabel)
+    retrieveEntry:SetIconTintOnSelection(true)
+    retrieveEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    retrieveEntry.callback = function()
+        self:BatchRetrieve()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = retrieveEntry,
+    })
+
+    -- Add Deselect All
+    local deselectEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_DESELECT_ALL))
+    deselectEntry:SetIconTintOnSelection(true)
+    deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup
+    deselectEntry.callback = function()
+        self:ExitCraftBagSelectionMode()
+    end
+    table.insert(parametricList, {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = deselectEntry,
+    })
+
+    ESO_Dialogs[dialogName].parametricList = parametricList
+
+    ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
+end
+
+--- Selects all items in the current craftbag category.
+--- Reopens the batch actions dialog to reflect the updated selection.
+function BETTERUI.Inventory.Class:SelectAllCraftBagItems()
+    if not self.craftBagMultiSelectManager then return end
+
+    self.craftBagMultiSelectManager:SelectAll(self.craftBagList)
+
+    -- Refresh the list to show selection highlights
+    self:RefreshCraftBagList()
+    -- Refresh keybinds to update count display
+    self:RefreshKeybinds()
+
+    -- Close current dialog and reopen with updated selection
+    ZO_Dialogs_ReleaseDialog("BETTERUI_CRAFTBAG_BATCH_ACTIONS_DIALOG")
+    zo_callLater(function()
+        self:ShowCraftBagBatchActionsMenu()
+    end, 100)
+end
+
+--- Performs batch retrieve on all selected craftbag items (throttled).
+--- Moves items from craftbag to player inventory (full stacks).
+function BETTERUI.Inventory.Class:BatchRetrieve()
+    if not self.craftBagMultiSelectManager then return end
+    local items = self.craftBagMultiSelectManager:GetSelectedItems()
+    if not items or #items == 0 then return end
+
+    self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
+        -- Check if there's space in backpack before attempting transfer
+        if DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
+            -- Get full stack count (capped by max stack size for the move)
+            local stackSize, maxStackSize = GetSlotStackSize(bagId, slotIndex)
+            if stackSize >= maxStackSize then
+                stackSize = maxStackSize
+            end
+            -- Find an empty slot and transfer
+            local emptySlotIndex = FindFirstEmptySlotInBag(BAG_BACKPACK)
+            CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
+            CallSecureProtected("PlaceInInventory", BAG_BACKPACK, emptySlotIndex)
+        end
+    end, function()
+        self:ExitCraftBagSelectionMode()
+    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
+end
+
 -- THROTTLED BATCH PROCESSING
 -- ============================================================================
 
