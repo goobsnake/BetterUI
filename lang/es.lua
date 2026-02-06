@@ -568,4 +568,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not
 -- Added from en.lua (TODO: Translate)
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.") -- TODO: Translate
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.") -- TODO: Translate
     "Elige una acción para aplicar a los objetos seleccionados. Los objetos bloqueados pueden no ser compatibles con ciertas acciones.")

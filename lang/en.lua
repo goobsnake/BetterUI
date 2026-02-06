@@ -152,6 +152,7 @@ ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")
 ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")
 ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")
