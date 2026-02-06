@@ -148,7 +148,7 @@
                     <!-- Negative top offset = extends above row; positive bottom offset = extends
                     below; positive right offset = extends past value column -->
                     <Anchor point="TOPLEFT" offsetY="-4" />
-                    <Anchor point="BOTTOMRIGHT" offsetX="15" offsetY="4" />
+                    <Anchor point="BOTTOMRIGHT" offsetX="33" offsetY="4" />
                     <!-- FadeGradient: x1=1 means fade from left edge, size1=fade width in pixels -->
                     <FadeGradient x1="1" y1="0" size1="1400" x2="-1" y2="0" size2="0" />
                 </Texture>
