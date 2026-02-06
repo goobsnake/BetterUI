@@ -487,12 +487,6 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     -- Calculate thumb offset from track top
     local thumbOffset = availableTravel * scrollPosition
 
-    -- DEBUG: Trace scroll indicator values (remove after diagnosis)
-    if currentIndex >= totalItems - 1 and totalItems > 1 then
-        d(string.format("[ScrollInd] idx=%d total=%d vis=%d pos=%.3f trkH=%.1f thH=%.1f travel=%.1f off=%.1f",
-            currentIndex, totalItems, visibleItems, scrollPosition, trackHeight, thumbHeight, availableTravel, thumbOffset))
-    end
-
     -- Position thumb using single TOP anchor with SetHeight
     controls.thumb:ClearAnchors()
     controls.thumb:SetHeight(thumbHeight)
