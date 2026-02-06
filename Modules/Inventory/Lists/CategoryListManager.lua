@@ -152,6 +152,7 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         for _, catDef in ipairs(categories) do
             local name = GetString(catDef.nameStringId)
             local data = ZO_GamepadEntryData:New(name, catDef.iconFile)
+            data.itemCount = self:GetCraftBagCategoryItemCount(catDef.filterType)
             data:SetIconTintOnSelection(true)
 
             if catDef.onClickDirection then
