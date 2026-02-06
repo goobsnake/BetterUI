@@ -6,8 +6,6 @@ description: Mandatory Sr. Engineering Team review gate for implementation plans
 
 Centralized workflow for mandatory Sr. Engineering Team reviews at critical checkpoints. Ensures all code changes are reviewed from multiple expert perspectives before proceeding.
 
-// turbo-all
-
 ## Overview
 
 > [!CAUTION]
@@ -35,19 +33,7 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 
-## Step 1: Announce Review
-
-State which review mode is being used:
-
-**For Plan Review:**
-> "I'm using the sr-review-gate workflow for implementation plan review."
-
-**For Phase Review:**
-> "I'm using the sr-review-gate workflow for Phase [N] completion review."
-
----
-
-## Step 2: Gather Context
+## Step 1: Gather Context
 
 ### For Plan Review (`--plan-review`)
 
@@ -67,60 +53,19 @@ Present the following to the review team:
 
 ---
 
-## Step 3: Invoke Sr. Engineering Team
+## Step 2: Invoke Sr. Engineering Team
 
-Use the `betterui-sr-engineering-team` skill to conduct the review.
-
-Each team member reviews from their expertise:
-
-| Team Member | Focus Area |
-|-------------|------------|
-| **Lua Architect** | Module design, CIM patterns, architecture |
-| **UI/UX Specialist** | Gamepad flow, accessibility, ESO parity |
-| **Code Quality Lead** | Standards compliance, documentation, style |
-| **Sr. Software Developer** | Implementation patterns, error handling |
-| **QA Gatekeeper** | Testing strategy, verification, edge cases |
+Use the `betterui-sr-engineering-team` skill to conduct the review. See the skill for each team member's focus area, key questions, and verdict format.
 
 ---
 
-## Step 4: Collect Verdicts
+## Step 3: Collect Verdicts
 
-Each team member provides a verdict:
-
-```markdown
-### Sr. Engineering Team Review
-
-**Review Type**: [Plan Review / Phase N Review]
-**Date**: [Current Date]
-
-#### Verdicts
-
-**Lua Architect**: PASS / FAIL
-- [Findings]
-- [Required changes if FAIL]
-
-**UI/UX Specialist**: PASS / FAIL
-- [Findings]
-- [Required changes if FAIL]
-
-**Code Quality Lead**: PASS / FAIL
-- [Findings]
-- [Required changes if FAIL]
-
-**Sr. Software Developer**: PASS / FAIL
-- [Findings]
-- [Required changes if FAIL]
-
-**QA Gatekeeper**: PASS / FAIL
-- [Findings]
-- [Required changes if FAIL]
-
-#### Overall: PASS / BLOCKED
-```
+Each team member provides PASS or FAIL with findings, using the verdict format from the `betterui-sr-engineering-team` skill. All 5 must PASS before proceeding.
 
 ---
 
-## Step 5: Resolution Loop
+## Step 4: Resolution Loop
 
 > [!IMPORTANT]
 > **All 5 team members must PASS before proceeding.**
@@ -154,7 +99,7 @@ All identified issues have been addressed. Requesting re-review.
 
 ---
 
-## Step 6: Final Sign-Off
+## Step 5: Final Sign-Off
 
 Once all 5 team members PASS:
 

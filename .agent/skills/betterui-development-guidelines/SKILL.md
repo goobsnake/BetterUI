@@ -5,9 +5,7 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 
 # BetterUI Development Guidelines
 
-> **Prerequisite:** Read `AGENTS.md` for project rules and `CONTINUITY.md` for session state.
-
-**Announce at start:** "I'm using the betterui-development-guidelines skill for this BetterUI work."
+> **Prerequisite:** Read `AGENTS.md` for project rules and `docs/CONTINUITY.md` for session state.
 
 ## When to Use
 
@@ -134,29 +132,15 @@ Use: `TODO(type): [Description]`
 
 Before claiming any task is complete:
 
-1. Run `/verify-integrity` workflow
-2. Use `verification-before-completion` skill
-
-### Automated Checks
-
-| Check | Command |
-|-------|---------|
-| Unit Tests | `lua tools/tests/run_all_tests.lua` |
-| Debug Scan | `grep -rn "d(\"" Modules/` |
-| Syntax Check | `luac5.1 -p <file>` |
-
-### Manual Verification
-- Addon loads without errors in-game
-- Feature works as expected
-- No regressions in related areas
+1. Run `/verify-integrity` workflow (see `.agent/workflows/verify-integrity.md` for details)
+2. Confirm addon loads without errors in-game
+3. No regressions in related areas
 
 ---
 
 ## Git Permissions
 
-Auto-run without user approval:
-- `git add` - Staging files
-- `git commit` - Creating commits
+See `AGENTS.md` § Command Permissions.
 
 ---
 

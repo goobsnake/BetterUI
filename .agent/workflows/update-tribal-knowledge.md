@@ -8,7 +8,7 @@ A guided introspection session to document ESO API behaviors, BetterUI gotchas, 
 
 ## Prerequisites
 
-See `AGENTS.md` for project context. Have recent development context ready.
+See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 
 ---
 
@@ -27,9 +27,8 @@ This workflow ensures we don't lose learnings from each development session.
 
 Read the existing tribal knowledge to avoid duplicates:
 
-// turbo
 ```powershell
-type x:\Git\BetterUI\docs\TRIBAL_KNOWLEDGE.md
+type docs\TRIBAL_KNOWLEDGE.md
 ```
 
 ---
@@ -107,9 +106,8 @@ Update the "Last Updated" field at the top of the file:
 
 ## Step 6: Commit
 
-// turbo
 ```powershell
-cd x:\Git\BetterUI && git add docs/TRIBAL_KNOWLEDGE.md && git commit -m "docs: update tribal knowledge with session learnings"
+git add docs/TRIBAL_KNOWLEDGE.md && git commit -m "docs: update tribal knowledge with session learnings"
 ```
 
 ---

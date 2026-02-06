@@ -6,8 +6,6 @@ description: Perform a comprehensive two-pass code review of the BetterUI codeba
 
 This workflow performs a thorough code review of the BetterUI addon in two passes, generating actionable TODO items for future iteration.
 
-// turbo-all
-
 ## Prerequisites
 
 See `AGENTS.md` for project context, skills, and workflows.
@@ -60,7 +58,7 @@ Adopt the perspective of a **Sr. Software Developer and Principal Code Reviewer*
 First, map the entire codebase structure:
 
 ```
-Run: find_by_name with Extensions: ["lua"] on x:\Git\BetterUI\Modules
+Run: find_by_name with Extensions: ["lua"] on Modules/
 ```
 
 This gives you the full file inventory. Organize findings by module.
@@ -244,54 +242,15 @@ Create an artifact file `critical_code_review.md` that includes:
 
 Invoke the `betterui-sr-engineering-team` skill for a formal panel review.
 
-### 2.1 Announce Skill Usage
-State: "I'm using the betterui-sr-engineering-team skill for this review."
-
-### 2.2 Refresh Guidelines
+### 2.1 Refresh Guidelines
 Re-read `betterui-development-guidelines` before proceeding.
 
-### 2.3 Per-Module Team Review
+### 2.2 Per-Module Team Review
 
-For **Comprehensive** scope, have the team review each module:
+For **Comprehensive** scope, have each team member (see `betterui-sr-engineering-team` skill) review each module. Use a per-module verdict table:
 
 ```markdown
-## Module: [ModuleName]
-**Files Reviewed**: [List]
-
-### Lua Architect: PASS/FAIL
-- [Module-specific findings]
-
-### UI/UX Specialist: PASS/FAIL
-- [Module-specific findings]
-
-### Code Quality Lead: PASS/FAIL
-- [Module-specific findings]
-
-### Sr. Software Developer: PASS/FAIL
-- [Module-specific findings]
-
-### QA Gatekeeper: PASS/FAIL
-- [Module-specific findings]
-```
-
-### 2.4 Consolidate Team Verdicts
-
-Create an artifact file `sr_engineering_team_review.md` with consolidated verdicts:
-
-**Template:**
-```markdown
-# BetterUI Sr. Engineering Team Review
-
-**Review Date**: [Current Date]
-**Review Type**: [Quick / Standard / Comprehensive] Codebase Audit
-**Files Reviewed**: [X of Y]
-
-## Summary
-[What was reviewed]
-
-## Per-Module Verdicts
-
-### CIM Module
+### [Module Name]
 | Role | Verdict | Key Finding |
 |------|---------|-------------|
 | Lua Architect | PASS/FAIL | [Finding] |
@@ -299,80 +258,17 @@ Create an artifact file `sr_engineering_team_review.md` with consolidated verdic
 | Code Quality Lead | PASS/FAIL | [Finding] |
 | Sr. Software Developer | PASS/FAIL | [Finding] |
 | QA Gatekeeper | PASS/FAIL | [Finding] |
-
-### Inventory Module
-[Same table format]
-
-### Banking Module
-[Same table format]
-
-### ResourceOrbFrames Module
-[Same table format]
-
-### WritUnit Module
-[Same table format]
-
-## Consolidated Verdicts
-
-### **Lua Architect**: PASS/FAIL
-**Focus**: Module design, CIM patterns, inheritance, architecture
-- [Cross-module findings]
-- **TODO(architecture)**: [Specific items]
-
-### **UI/UX Specialist**: PASS/FAIL
-**Focus**: Gamepad flow, accessibility, ESO native parity
-- [Cross-module findings]
-- **TODO(refactor)**: [Specific items]
-
-### **Code Quality Lead**: PASS/FAIL
-**Focus**: Standards compliance, documentation, style
-- [Cross-module findings]
-- **TODO(cleanup)**: [Specific items]
-- **TODO(doc)**: [Specific items]
-
-### **Sr. Software Developer**: PASS/FAIL
-**Focus**: Implementation patterns, clean code, error handling
-- [Cross-module findings]
-- **TODO(refactor)**: [Specific items]
-- **TODO(fix)**: [Specific items]
-
-### **QA Gatekeeper**: PASS/FAIL
-**Focus**: Testing strategy, verification, edge cases
-- [Cross-module findings]
-- **TODO(architecture)**: [Specific items]
-
-## Overall: PASS/BLOCKED
-
-## Priority Issues Summary
-| Priority | Issue | Module | Owner | Effort |
-|----------|-------|--------|-------|--------|
-| P0 | [Critical] | [Module] | [Role] | [Time] |
-| P1 | [Major] | [Module] | [Role] | [Time] |
-| P2 | [Moderate] | [Module] | [Role] | [Time] |
-
-## All TODOs by Type
-
-### TODO(architecture)
-- [ ] [Item with file reference]
-
-### TODO(refactor)
-- [ ] [Item with file reference]
-
-### TODO(cleanup)
-- [ ] [Item with file reference]
-
-### TODO(doc)
-- [ ] [Item with file reference]
-
-### TODO(fix)
-- [ ] [Item with file reference]
-
-### TODO(optimization)
-- [ ] [Item with file reference]
-
-## Recommendations
-[Sprint focus, process improvements, tooling suggestions]
 ```
+
+### 2.3 Consolidate Team Verdicts
+
+Create `sr_engineering_team_review.md` with:
+- Review metadata (date, scope, files reviewed)
+- Per-module verdict tables (from 2.2)
+- Consolidated cross-module findings per team member with `TODO(type):` items
+- Priority issues summary table (P0/P1/P2 with module, owner, effort)
+- All TODOs grouped by type (architecture, refactor, cleanup, doc, fix, optimization)
+- Recommendations
 
 ---
 
@@ -547,153 +443,17 @@ Run: git add -A && git commit -m "fix: address code review findings
 
 ---
 
-## Quick Invocation
+## Command Reference
 
-To run this workflow, simply say:
-> "Perform a comprehensive code review of the BetterUI codebase"
+| Command | Scope | Output | Time |
+|---------|-------|--------|------|
+| `/comprehensive-code-review` | Standard (~30 files) | Prompts for mode | ~30-45 min |
+| `/comprehensive-code-review --quick` | ~10 core files | Prompts for mode | ~15-20 min |
+| `/comprehensive-code-review --comprehensive` | All files | Prompts for mode | 2-3 hours |
+| `/comprehensive-code-review --todo` | Default scope | Insert TODO comments | Varies |
+| `/comprehensive-code-review --action` | Default scope | Actual code fixes | Varies |
 
-Or use the slash command:
-> /comprehensive-code-review
-
----
-
-### Command Reference
-
-#### Base Command
-```
-/comprehensive-code-review
-```
-**Behavior**: Uses `--standard` scope and prompts for output mode after Pass 2.
-
----
-
-#### Scope Modifiers
-
-| Modifier | Files | Time | Use Case |
-|----------|-------|------|----------|
-| `--quick` | ~10 core files | 15-20 min | Quick sanity check, pre-commit review |
-| `--standard` | ~30 key files | 30-45 min | Regular code reviews, feature completion |
-| `--comprehensive` | All ~156 files | 2-3 hours | Major releases, deep audits, onboarding |
-
-```
-/comprehensive-code-review --quick
-```
-**What it does**: Reviews only the most critical files - entry points, main classes, and shared constants. Good for verifying nothing is obviously broken.
-
-```
-/comprehensive-code-review --standard
-```
-**What it does**: Reviews priority files in each module plus commonly-edited files. Balances thoroughness with time. **This is the default.**
-
-```
-/comprehensive-code-review --comprehensive
-```
-**What it does**: Reviews EVERY Lua file in the codebase. Uses `view_file_outline` and `grep_search` for efficiency. Generates per-module verdicts from Sr. Engineering Team.
-
----
-
-#### Output Mode Modifiers
-
-| Modifier | Output | Commit Type | Final Review |
-|----------|--------|-------------|--------------|
-| `--todo` | TODO comments inserted | `chore:` | Not required |
-| `--action` | Actual code fixes | `fix:` | Required (all 5 PASS) |
-
-```
-/comprehensive-code-review --todo
-```
-**What it does**: After review, inserts `TODO(type):` comments at identified problem locations. These serve as markers for future work. Code functionality unchanged.
-
-**Example output**:
-```lua
--- TODO(refactor): Extract search focus handlers to CIM/Core/SearchManager.lua
--- This code duplicates Banking.lua L261-320 (~60 lines identical)
-```
-
-```
-/comprehensive-code-review --action
-```
-**What it does**: After review, creates an implementation plan with actual code fixes. Prioritizes by severity (P0→P1→P2). Requires explicit approval before any changes. Sr. Engineering Team must approve fixes before commit.
-
-**Example output**:
-```diff
-- zo_callLater(function() d("[BetterUI Banking] FILE LOADED") end, 2000)
-+ -- Debug statement removed per code review
-```
-
----
-
-#### Combined Commands
-
-**Quick review, mark for later:**
-```
-/comprehensive-code-review --quick --todo
-```
-**Use when**: You want a fast sanity check and to document any issues found without fixing them now. Good for end-of-day reviews.
-
----
-
-**Quick review, fix critical issues now:**
-```
-/comprehensive-code-review --quick --action
-```
-**Use when**: You suspect there are critical issues (debug statements, crashes) and want to fix them immediately. Only reviews core files, only fixes P0 issues.
-
----
-
-**Standard review, mark for later:**
-```
-/comprehensive-code-review --standard --todo
-```
-**Use when**: Regular code review before a release. Documents tech debt across main modules without blocking release. **Most common usage.**
-
----
-
-**Standard review, fix now:**
-```
-/comprehensive-code-review --standard --action
-```
-**Use when**: You have time to address issues found during review. Fixes P0 and P1 issues, documents P2/P3 as TODOs.
-
----
-
-**Comprehensive audit, mark for later:**
-```
-/comprehensive-code-review --comprehensive --todo
-```
-**Use when**: Major version release or onboarding new contributor. Creates complete picture of codebase health. Generates many TODOs.
-
----
-
-**Comprehensive audit, fix everything:**
-```
-/comprehensive-code-review --comprehensive --action
-```
-**Use when**: Dedicated cleanup sprint. Reviews entire codebase and fixes all P0/P1/P2 issues. **Expect 2-4 hour session.** Multiple Sr. Team checkpoints.
-
----
-
-### Workflow Steps
-
-**Pass 1-2** (same for both modes):
-1. Discover all files in the codebase
-2. Review files based on scope (Quick: ~10, Standard: ~30, Comprehensive: all)
-3. Generate Pass 1 critique (Principal Reviewer perspective)
-4. Generate Pass 2 review (Sr. Engineering Team verdicts per module)
-
-**Pass 3 - TODO Mode** (`--todo`):
-5. Create plan for TODO insertions
-6. Request approval, insert TODOs
-7. Commit with `chore:` prefix
-
-**Pass 3 - Action Mode** (`--action`):
-5. Prioritize findings (P0 → P1 → P2)
-6. Create plan with actual code fixes
-7. Request approval (blocked until approved)
-8. Execute fixes
-9. Run verification
-10. Sr. Engineering Team final review
-11. Commit with `fix:` prefix
+Combine scope + output flags freely: `--quick --todo`, `--standard --action`, `--comprehensive --todo`, etc.
 
 ---
 
@@ -703,15 +463,14 @@ Or use the slash command:
 |----------|---------|
 | `critical_code_review.md` | Pass 1 critique with issues and recommendations |
 | `sr_engineering_team_review.md` | Pass 2 formal verdicts with additional TODOs |
-| `implementation_plan.md` | Plan for adding TODOs to codebase |
+| `implementation_plan.md` | Plan for TODO insertions or code fixes |
 
 ---
 
-## Tips for Comprehensive Reviews
+## Tips
 
-1. **Use grep_search liberally** - Pattern search is faster than reading each file
-2. **Review by file type** - All Constants.lua together, all Module.lua together
-3. **Track progress** - Update the progress table as you go
-4. **Parallel view_file_outline** - Use parallel tool calls to scan multiple files
-5. **Focus on deltas** - If files are similar, note "same issues as X"
-6. **Time-box modules** - Don't spend too long on any single module
+1. **Use pattern search liberally** - Faster than reading each file
+2. **Batch similar files** - All Constants.lua together, all Module.lua together
+3. **Track progress** - Update the progress table as you review
+4. **Focus on deltas** - If files are similar, note "same issues as X"
+5. **Time-box modules** - Don't spend too long on any single module

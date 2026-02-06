@@ -6,11 +6,9 @@ description: Pre-flight integrity check before committing - runs tests, scans fo
 
 A one-stop pre-commit verification that ensures code quality before pushing changes.
 
-// turbo-all
-
 ## Prerequisites
 
-See `AGENTS.md` for project context and standards.
+See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 
 ---
 
@@ -19,7 +17,7 @@ See `AGENTS.md` for project context and standards.
 Execute the Lua unit tests to verify core functionality:
 
 ```powershell
-cd x:\Git\BetterUI && lua tools/tests/run_all_tests.lua
+lua tools/tests/run_all_tests.lua
 ```
 
 **Expected**: All tests pass. If any fail, stop and investigate before proceeding.
@@ -31,7 +29,7 @@ cd x:\Git\BetterUI && lua tools/tests/run_all_tests.lua
 Search for leftover debug calls that should not be committed:
 
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" "d(\"" Modules/ | grep -v "-- DEBUG" | grep -v "if.*debug"
+grep -rn --include="*.lua" "d(\"" Modules/ | grep -v "-- DEBUG" | grep -v "if.*debug"
 ```
 
 **What to look for**:
@@ -53,13 +51,13 @@ cd x:\Git\BetterUI && grep -rn --include="*.lua" "d(\"" Modules/ | grep -v "-- D
 Check if XML files were modified:
 
 ```powershell
-cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml" }
+git diff --name-only HEAD | Where-Object { $_ -like "*.xml" }
 ```
 
 If any XML files appear, validate them:
 
 ```powershell
-cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml" } | ForEach-Object { Write-Host "Validating $_"; [xml](Get-Content $_) } 2>&1 | Select-String -Pattern "Exception"
+git diff --name-only HEAD | Where-Object { $_ -like "*.xml" } | ForEach-Object { Write-Host "Validating $_"; [xml](Get-Content $_) } 2>&1 | Select-String -Pattern "Exception"
 ```
 
 **Expected**: No parsing exceptions. If validation fails, fix the XML before proceeding.
@@ -74,13 +72,13 @@ cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.xml
 Check if Lua files were modified:
 
 ```powershell
-cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.lua" }
+git diff --name-only HEAD | Where-Object { $_ -like "*.lua" }
 ```
 
 If any Lua files appear, validate their syntax:
 
 ```powershell
-cd x:\Git\BetterUI && git diff --name-only HEAD | Where-Object { $_ -like "*.lua" } | ForEach-Object { Write-Host "Checking $_"; luac5.1 -p $_ }
+git diff --name-only HEAD | Where-Object { $_ -like "*.lua" } | ForEach-Object { Write-Host "Checking $_"; luac5.1 -p $_ }
 ```
 
 **Expected**: No syntax errors. If validation fails, fix the Lua before proceeding.

@@ -6,8 +6,6 @@ description: Find and remove dead code, orphaned files, deprecated aliases, and 
 
 Comprehensive dead code detection and cleanup workflow. Identifies unused files, orphaned code, deprecated aliases, and unreferenced functions.
 
-// turbo-all
-
 ## Prerequisites
 
 See `AGENTS.md` for project context, skills, and workflows.
@@ -39,7 +37,7 @@ See `AGENTS.md` for project context, skills, and workflows.
 Check `docs/DEPRECATED_ALIASES.md` for known deprecated items:
 
 ```powershell
-type x:\Git\BetterUI\docs\DEPRECATED_ALIASES.md
+type docs\DEPRECATED_ALIASES.md
 ```
 
 For each deprecated alias listed, verify if it's still used in the codebase.
@@ -53,7 +51,7 @@ For each deprecated alias listed, verify if it's still used in the codebase.
 Identify Lua files not referenced in the manifest (`BetterUI.txt`):
 
 ```powershell
-cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.lua" Modules/ | ForEach-Object { $file = $_.Name; if (-not (Select-String -Path "BetterUI.txt" -Pattern $file -Quiet)) { $_.FullName } }
+Get-ChildItem -Recurse -Filter "*.lua" Modules/ | ForEach-Object { $file = $_.Name; if (-not (Select-String -Path "BetterUI.txt" -Pattern $file -Quiet)) { $_.FullName } }
 ```
 
 ### 2.2 Find Orphaned XML Templates
@@ -61,7 +59,7 @@ cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.lua" Modules/ | ForEach-
 Identify XML templates not referenced by any Lua file:
 
 ```powershell
-cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.xml" Modules/ | ForEach-Object { $template = $_.BaseName; if (-not (Get-ChildItem -Recurse -Filter "*.lua" Modules/ | Select-String -Pattern $template -Quiet)) { $_.FullName } }
+Get-ChildItem -Recurse -Filter "*.xml" Modules/ | ForEach-Object { $template = $_.BaseName; if (-not (Get-ChildItem -Recurse -Filter "*.lua" Modules/ | Select-String -Pattern $template -Quiet)) { $_.FullName } }
 ```
 
 ### 2.3 Find Unused Image Assets
@@ -69,7 +67,7 @@ cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.xml" Modules/ | ForEach-
 Identify .dds files not referenced anywhere:
 
 ```powershell
-cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.dds" Modules/ | ForEach-Object { $img = $_.BaseName; if (-not (Get-ChildItem -Recurse -Include "*.lua","*.xml" Modules/ | Select-String -Pattern $img -Quiet)) { $_.FullName } }
+Get-ChildItem -Recurse -Filter "*.dds" Modules/ | ForEach-Object { $img = $_.BaseName; if (-not (Get-ChildItem -Recurse -Include "*.lua","*.xml" Modules/ | Select-String -Pattern $img -Quiet)) { $_.FullName } }
 ```
 
 ---
@@ -81,7 +79,7 @@ cd x:\Git\BetterUI && Get-ChildItem -Recurse -Filter "*.dds" Modules/ | ForEach-
 Use `grep` to find local functions and verify they're called:
 
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" "^local function" Modules/CIM/
+grep -rn --include="*.lua" "^local function" Modules/CIM/
 ```
 
 For each local function found, verify it's referenced elsewhere in the same file.
@@ -91,7 +89,7 @@ For each local function found, verify it's referenced elsewhere in the same file
 Find functions in the BETTERUI namespace that aren't called:
 
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" "^function BETTERUI\." Modules/
+grep -rn --include="*.lua" "^function BETTERUI\." Modules/
 ```
 
 Cross-reference with usage across the codebase.
@@ -101,7 +99,7 @@ Cross-reference with usage across the codebase.
 Search for usage of deprecated APIs from DEPRECATED_ALIASES.md:
 
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
+grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
 ```
 
 > [!NOTE]
@@ -116,7 +114,7 @@ cd x:\Git\BetterUI && grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
 Check for unused localization strings:
 
 ```powershell
-cd x:\Git\BetterUI && pwsh -File tools/LocalizationAudit.ps1
+pwsh -File tools/LocalizationAudit.ps1
 ```
 
 Review the audit report for unused strings.
@@ -126,7 +124,7 @@ Review the audit report for unused strings.
 Find constants defined but never referenced:
 
 ```powershell
-cd x:\Git\BetterUI && grep -rn --include="*.lua" "^CONST\." Modules/CIM/Constants.lua
+grep -rn --include="*.lua" "^CONST\." Modules/CIM/Constants.lua
 ```
 
 For each constant, verify it's used elsewhere.

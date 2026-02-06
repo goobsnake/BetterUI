@@ -24,16 +24,13 @@ Analyze all TODO comments in the BetterUI codebase and prioritize the most impac
 Search the codebase for TODO, FIXME, HACK, and XXX comments in **BetterUI source code only**.
 
 > [!NOTE]
-> - `rg` (ripgrep) is NOT installed on this system. Use `grep` instead.
-> - The search excludes: `esoui/` (base game), `.agent/`, `tools/`, and other `.gitignore` patterns.
-> - Results are saved to a temp file to avoid terminal output truncation.
+> The search excludes: `esoui/` (base game), `.agent/`, `tools/`, and other `.gitignore` patterns.
+> Results are saved to a temp file to avoid terminal output truncation.
 
 ### Step 1a: Run search and save to temp file
 
-// turbo
 ```powershell
 $tempFile = "$env:TEMP\betterui_todos.txt"
-cd x:\Git\BetterUI
 grep -rn --include="*.lua" --include="*.xml" -E "TODO|FIXME|HACK|XXX" . 2>&1 | Where-Object { $_ -notmatch "^\./esoui/|^\./\.agent/|^\./tools/|^\./\.idea/|^\./\.vscode/|^\./source/" } | Out-File -FilePath $tempFile -Encoding UTF8
 Write-Host "Results saved to: $tempFile"
 Write-Host "Total TODOs found: $((Get-Content $tempFile | Measure-Object -Line).Lines)"
@@ -41,13 +38,7 @@ Write-Host "Total TODOs found: $((Get-Content $tempFile | Measure-Object -Line).
 
 ### Step 1b: Read the results file
 
-Use the `view_file` tool to read the temp file:
-
-```
-view_file: $env:TEMP\betterui_todos.txt
-```
-
-The temp file path is typically: `C:\Users\<username>\AppData\Local\Temp\betterui_todos.txt`
+Read the temp file at `$env:TEMP\betterui_todos.txt` (typically `C:\Users\<username>\AppData\Local\Temp\betterui_todos.txt`).
 
 ---
 

@@ -8,7 +8,7 @@ This workflow audits the BetterUI localization system to maintain clean, synchro
 
 ## Prerequisites
 
-See `AGENTS.md` for project context. Working directory: `x:\Git\BetterUI`
+See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 
 ---
 
@@ -16,9 +16,8 @@ See `AGENTS.md` for project context. Working directory: `x:\Git\BetterUI`
 
 Run the master audit script to generate a comprehensive report:
 
-// turbo
 ```powershell
-cd x:\Git\BetterUI\tools && .\LocalizationAudit.ps1
+cd tools && .\LocalizationAudit.ps1
 ```
 
 **Review the output and `tools/audit_report.md` for:**
@@ -55,9 +54,8 @@ If the audit found missing strings (used in code but not defined):
 
 Run the sync script to propagate en.lua changes to all other language files:
 
-// turbo
 ```powershell
-cd x:\Git\BetterUI\tools && .\fix_langs.ps1
+cd tools && .\fix_langs.ps1
 ```
 
 **This will:**
@@ -81,9 +79,8 @@ The audit report lists strings that match English exactly (potential untranslate
 
 Run the audit again to confirm all issues are resolved:
 
-// turbo
 ```powershell
-cd x:\Git\BetterUI\tools && .\LocalizationAudit.ps1
+cd tools && .\LocalizationAudit.ps1
 ```
 
 **Expected results:**

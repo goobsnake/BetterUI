@@ -1,9 +1,9 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-06T08:26Z
-> **Provenance:** [USER] Initial creation during agent config refactor
+> **Last Updated:** 2026-02-06T17:29Z
+> **Provenance:** [TOOL] Agent config optimization complete
 
-**Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](docs/TRIBAL_KNOWLEDGE.md).
+**Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
 ---
 
@@ -28,16 +28,15 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-06] [TOOL] Agent config optimization: moved docs, simplified Claude commands, standardized prerequisites
 - [2026-02-06] [TOOL] Created AGENTS.md root configuration
-- [2026-02-06] [TOOL] Created CONTINUITY.md with two-file approach
 - [2026-02-06] [USER] Approved agent config refactor plan
 
 **Now:**
-- Executing agent configuration refactor (Phase 3-5)
+- Agent configuration complete
 
 **Next:**
-- Streamline skill files to remove duplication
-- Update workflows to reference AGENTS.md
+- Continue with BetterUI feature development
 
 ---
 
@@ -58,10 +57,13 @@
 ## Working Set (≤12 paths)
 
 - `AGENTS.md`
-- `CONTINUITY.md`
+- `CLAUDE.md`
+- `docs/CONTINUITY.md`
+- `docs/CONTRIBUTING.md`
 - `.agent/skills/betterui-development-guidelines/SKILL.md`
 - `.agent/skills/betterui-sr-engineering-team/SKILL.md`
 - `.agent/workflows/*.md` (8 files)
+- `.claude/commands/*.md` (8 files)
 - `docs/TRIBAL_KNOWLEDGE.md`
 
 ---
@@ -70,6 +72,8 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-06 | [TOOL] | Completed 7-phase agent config optimization |
+| 2026-02-06 | [TOOL] | Moved CONTRIBUTING.md + CONTINUITY.md to docs/ |
 | 2026-02-06 | [USER] | Requested agent configuration refactor with AGENTS.md |
 | 2026-02-06 | [USER] | Approved two-file approach (CONTINUITY + TRIBAL_KNOWLEDGE) |
-| 2026-02-06 | [TOOL] | Created AGENTS.md and CONTINUITY.md |
+| 2026-02-06 | [TOOL] | Created AGENTS.md and docs/CONTINUITY.md |

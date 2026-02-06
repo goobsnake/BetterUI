@@ -1,7 +1,7 @@
 # BetterUI Agent Configuration
 
 > This is the root configuration for AI agents working on BetterUI.
-> **At session start:** Read this file, then `CONTINUITY.md`, then `docs/TRIBAL_KNOWLEDGE.md`.
+> **At session start:** Read this file, then `docs/CONTINUITY.md`, then `docs/TRIBAL_KNOWLEDGE.md`.
 
 ---
 
@@ -19,16 +19,16 @@
 
 ## Continuity Ledger
 
-Maintain a single continuity file for this workspace: `CONTINUITY.md`.
+Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 
-`CONTINUITY.md` is the canonical briefing designed to survive compaction; do not rely on earlier chat/tool output unless it's reflected there.
+`docs/CONTINUITY.md` is the canonical briefing designed to survive compaction; do not rely on earlier chat/tool output unless it's reflected there.
 
 ### Operating Rule
-- At the start of each assistant turn: read `CONTINUITY.md` before acting.
-- Update `CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
+- At the start of each assistant turn: read `docs/CONTINUITY.md` before acting.
+- Update `docs/CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
 
 ### Keep It Bounded (Anti-Bloat)
-- Keep `CONTINUITY.md` short and high-signal:
+- Keep `docs/CONTINUITY.md` short and high-signal:
   - `Snapshot`: ≤ 25 lines.
   - `Done (recent)`: ≤ 7 bullets.
   - `Working set`: ≤ 12 paths.
@@ -45,15 +45,6 @@ Maintain a single continuity file for this workspace: `CONTINUITY.md`.
 ### Decisions and Incidents
 - Record durable choices in `Decisions` as ADR-lite entries (e.g., `D001 ACTIVE: …`).
 - For recurring weirdness, create a small, stable incident capsule (Symptoms / Evidence pointers / Mitigation / Status).
-
-### Plan Tool vs Ledger
-- Use `update_plan` for short-term execution scaffolding (3–7 steps).
-- Use `CONTINUITY.md` for long-running continuity ("what/why/current state"), not micro task lists.
-- Keep them consistent at the intent/progress level.
-
-### In Replies
-- Start with a brief "Ledger Snapshot" (Goal + Now + Next + Open Questions).
-- Print the full ledger only when it materially changed or the user requests it.
 
 ---
 

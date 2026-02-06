@@ -5,9 +5,7 @@ description: Use for implementation planning, code reviews, phase verification, 
 
 # BetterUI Sr. Engineering Team
 
-> **Prerequisite:** Read `AGENTS.md` for project rules.
-
-**Announce at start:** "I'm using the betterui-sr-engineering-team skill for this review."
+> **Prerequisite:** Read `AGENTS.md` for project rules and `docs/CONTINUITY.md` for session state.
 
 The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review work at critical checkpoints. Their mandate is to ensure code quality, architectural integrity, and project standards compliance.
 
