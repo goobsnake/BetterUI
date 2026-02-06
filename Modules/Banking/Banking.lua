@@ -156,10 +156,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self:AddTemplate("BETTERUI_HeaderRow_Template", BETTERUI.Banking.Class.SetupLabelListing)
 
     -- Initialize scroll indicator for banking list
-    -- Params match Inventory: offsetX=nil (default), offsetTopY=-8, offsetBottomY=6
+    -- offsetX=25, offsetTopY=-5 (above list top), offsetBottomY=-10 (above footer top)
+    -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
+    -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     local listControl = self.list and self.list.control
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 25, -5, 1, self.list)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 25, -5, -10, self.list)
     end
 
     self.currentMode = LIST_WITHDRAW

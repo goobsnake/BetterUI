@@ -135,9 +135,11 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList:SetNoItemText(emptyText)
 
     -- Initialize scroll indicator for main item list
-    -- offsetX: nil (default), offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
+    -- offsetX=5, offsetTopY=-8 (above list top), offsetBottomY=-10 (above footer top)
+    -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
+    -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     if listControl and BETTERUI.CIM.ScrollIndicator then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 5, -8, 6, self.itemList)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listControl, 5, -8, -10, self.itemList)
     end
 end
 

@@ -601,11 +601,12 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     ZO_Gamepad_AddListTriggerKeybindDescriptors(self.triggerKeybinds, self.list)
 
     -- Initialize scroll indicator on the list's internal control
-    -- Note: offsetX is unused (uses SCROLL_INDICATOR.TRACK.OFFSET_X constant instead)
-    -- offsetTopY: -8 (up), offsetBottomY: +6 (down toward footer)
+    -- offsetX=5, offsetTopY=-8 (above list top), offsetBottomY=-10 (above footer top)
+    -- Note: List BOTTOMRIGHT is anchored 10px below FooterContainerFooter's top,
+    -- so offsetBottomY=-10 aligns the container bottom with the footer's top edge.
     local listScrollControl = self.list and self.list.control
     if listScrollControl then
-        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, 5, -8, 6, self.list)
+        BETTERUI.CIM.ScrollIndicator.Initialize(listScrollControl, 5, -8, -10, self.list)
     end
 
     local function SelectionChangedCallback(list, selectedData)
