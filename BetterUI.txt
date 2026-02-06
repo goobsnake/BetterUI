@@ -141,6 +141,7 @@ Modules\Inventory\Lists\CategoryListManager.lua
 Modules\Inventory\Keybinds\InventoryKeybinds.lua
 Modules\Inventory\Templates\GamepadInventory.xml
 Modules\Inventory\Lists\InventoryList.lua
+Modules\Inventory\Dialogs\CraftBagQuantityDialog.lua
 Modules\Inventory\Actions\SlotActions.lua
 Modules\Inventory\Lists\CraftList.lua
 Modules\Inventory\Core\Utils.lua

@@ -254,9 +254,16 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bag then return end
 
+    -- Maximum items that can be transferred in a single operation (ESO game limit)
+    local MAX_STACK_TRANSFER = 200
+
     local stackSize, maxStackSize = GetSlotStackSize(bag, index)
     if stackSize >= maxStackSize then
         stackSize = maxStackSize
+    end
+    -- Cap at max transfer limit
+    if stackSize > MAX_STACK_TRANSFER then
+        stackSize = MAX_STACK_TRANSFER
     end
 
     if targetBag ~= BAG_VIRTUAL then
@@ -329,7 +336,12 @@ param: canUseItem (boolean) - Whether the item is also usable (adds USE as secon
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
     local stowCallback = function()
-        BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
+        -- Use quantity dialog for stacked items
+        if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryStowWithQuantity then
+            BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
+        else
+            BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
+        end
     end
 
     if canUseItem then

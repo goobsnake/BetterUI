@@ -292,8 +292,15 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 SI_ITEM_ACTION_BANK_DEPOSIT,
                 function(...) TryBankItem(inventorySlot) end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+            -- Retrieve: Use quantity dialog for stacked items
             SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
-                function(...) TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK) end, inventorySlot)
+                function(...)
+                    if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity then
+                        BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
+                    else
+                        TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK)
+                    end
+                end, inventorySlot)
             -- NOTE: Split Stack is NOT added here because it's handled by _betterui_primaryOverride
             -- in PrimaryCommandActivate. Adding it here would cause double invocation.
         end

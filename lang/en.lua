@@ -564,6 +564,14 @@ ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Select the amount to with
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw Stack")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit Stack")
 
+-- Craft Bag Stow/Retrieve Quantity Dialog
+ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Stow How Many?")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Retrieve How Many?")
+ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Select the amount to stow")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Select the amount to retrieve")
+ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stow Stack")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack")
+
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")

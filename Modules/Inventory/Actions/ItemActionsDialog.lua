@@ -295,7 +295,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                             or (not companionJunkEnabled and actorCat == GAMEPLAY_ACTOR_CATEGORY_COMPANION)
                     end
                 end
-                if not (hideDestroy and isDestroy) and not hideMarkJunk then
+
+                -- Hide Stow/Retrieve from Y-menu (redundant with A-button and Stack actions)
+                local isStowOrRetrieve = (actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
+                    or (actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
+
+                if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve then
                     local entryData = ZO_GamepadEntryData:New(actionName)
                     -- Ensure consistent selection visuals for action rows
                     entryData:SetIconTintOnSelection(true)
@@ -307,6 +312,50 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                         entryData = entryData,
                     }
                     table.insert(parametricList, listItem)
+                end
+            end
+
+            -- Add "Stow Stack" entry for Inventory mode (stow all items at once)
+            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                local itemTarget = self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                if itemTarget and itemTarget.bagId and itemTarget.slotIndex then
+                    local stackCount = GetSlotStackSize(itemTarget.bagId, itemTarget.slotIndex) or 1
+                    local canStow = BETTERUI.CIM.CanItemMoveToCraftBag(itemTarget)
+                    if canStow and stackCount > 1 then
+                        local stowStackEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_STOW_STACK))
+                        stowStackEntry:SetIconTintOnSelection(true)
+                        stowStackEntry.isStowStackAction = true
+                        stowStackEntry.itemTarget = itemTarget
+                        stowStackEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                        local listItem = {
+                            template = "ZO_GamepadItemEntryTemplate",
+                            entryData = stowStackEntry,
+                        }
+                        table.insert(parametricList, 1, listItem)
+                    end
+                end
+            end
+
+            -- Add "Retrieve Stack" entry for Craft Bag mode (retrieve all items at once)
+            if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                local craftBagTarget = self.craftBagList and
+                    BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+                if craftBagTarget and craftBagTarget.bagId and craftBagTarget.slotIndex then
+                    local stackCount = GetSlotStackSize(craftBagTarget.bagId, craftBagTarget.slotIndex) or 1
+                    if stackCount > 1 then
+                        local retrieveStackEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_RETRIEVE_STACK))
+                        retrieveStackEntry:SetIconTintOnSelection(true)
+                        retrieveStackEntry.isRetrieveStackAction = true
+                        retrieveStackEntry.itemTarget = craftBagTarget
+                        retrieveStackEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                        local listItem = {
+                            template = "ZO_GamepadItemEntryTemplate",
+                            entryData = retrieveStackEntry,
+                        }
+                        table.insert(parametricList, 1, listItem)
+                    end
                 end
             end
 
@@ -454,6 +503,26 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             local sortContext = selectedRow.sortContext or self
             if sortContext and sortContext.EnterHeaderSortMode then
                 sortContext:EnterHeaderSortMode()
+            end
+            return
+        end
+
+        -- Handle "Stow Stack" action
+        if selectedRow and selectedRow.isStowStackAction then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local itemTarget = selectedRow.itemTarget
+            if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.StowFullStack then
+                BETTERUI.Inventory.Dialogs.StowFullStack(itemTarget)
+            end
+            return
+        end
+
+        -- Handle "Retrieve Stack" action
+        if selectedRow and selectedRow.isRetrieveStackAction then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local itemTarget = selectedRow.itemTarget
+            if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.RetrieveFullStack then
+                BETTERUI.Inventory.Dialogs.RetrieveFullStack(itemTarget)
             end
             return
         end

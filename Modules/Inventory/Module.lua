@@ -39,6 +39,11 @@ function BETTERUI.Inventory.Setup()
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
 
+	-- Initialize the Craft Bag quantity dialog for stow/retrieve operations
+	if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog then
+		BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
+	end
+
 	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag
 	-- This is the ONLY guard needed - it blocks at the source
 	local originalSplitItem = ZO_StackSplit_SplitItem
@@ -65,7 +70,7 @@ function BETTERUI.Inventory.Setup()
 
 	-- Configure tooltip appearance and behavior
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI.CIM.CONST
-	.TOOLTIP_MAX_FADE_GRADIENT_SIZE
+		.TOOLTIP_MAX_FADE_GRADIENT_SIZE
 
 	-- Only apply custom tooltip styles (font scaling) if enhancements are enabled
 	local cimSettings = BETTERUI.Settings.Modules["CIM"]
