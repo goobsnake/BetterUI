@@ -114,7 +114,7 @@ grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
 Check for unused localization strings:
 
 ```powershell
-pwsh -File tools/LocalizationAudit.ps1
+pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit
 ```
 
 Review the audit report for unused strings.

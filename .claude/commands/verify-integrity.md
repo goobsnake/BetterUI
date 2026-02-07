@@ -1,1 +1,1 @@
-Follow `.agent/workflows/verify-integrity.md`.
+../../.agent/workflows/verify-integrity.md

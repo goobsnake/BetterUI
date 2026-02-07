@@ -1,1 +1,1 @@
-Follow `.agent/workflows/garbage-cleanup.md`.
+../../.agent/workflows/garbage-cleanup.md

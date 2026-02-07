@@ -1,1 +1,1 @@
-Follow `.agent/workflows/lang-audit.md`.
+../../.agent/workflows/lang-audit.md

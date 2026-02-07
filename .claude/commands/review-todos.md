@@ -1,1 +1,1 @@
-Follow `.agent/workflows/review-todos.md`.
+../../.agent/workflows/review-todos.md

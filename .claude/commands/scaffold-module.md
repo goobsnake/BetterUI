@@ -1,1 +1,1 @@
-Follow `.agent/workflows/scaffold-module.md`.
+../../.agent/workflows/scaffold-module.md

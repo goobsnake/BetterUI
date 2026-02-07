@@ -17,7 +17,7 @@ See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 Run the master audit script to generate a comprehensive report:
 
 ```powershell
-cd tools && .\LocalizationAudit.ps1
+pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit
 ```
 
 **Review the output and `tools/audit_report.md` for:**
@@ -55,7 +55,7 @@ If the audit found missing strings (used in code but not defined):
 Run the sync script to propagate en.lua changes to all other language files:
 
 ```powershell
-cd tools && .\fix_langs.ps1
+pwsh -File tools/LanguageMaintenance.ps1 -Mode Sync
 ```
 
 **This will:**
@@ -80,7 +80,7 @@ The audit report lists strings that match English exactly (potential untranslate
 Run the audit again to confirm all issues are resolved:
 
 ```powershell
-cd tools && .\LocalizationAudit.ps1
+pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit
 ```
 
 **Expected results:**
@@ -112,6 +112,7 @@ git commit -m "chore: audit and sync language files"
 
 | Task | Command |
 |------|---------|
-| Full audit | `.\LocalizationAudit.ps1` |
-| Sync lang files | `.\fix_langs.ps1` |
+| Full audit | `pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit` |
+| Sync lang files | `pwsh -File tools/LanguageMaintenance.ps1 -Mode Sync` |
+| Sync + audit (recommended) | `pwsh -File tools/LanguageMaintenance.ps1 -Mode SyncAndAudit` |
 | View report | `cat tools/audit_report.md` |

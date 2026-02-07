@@ -14,6 +14,7 @@
 * **No empty try-catch blocks anywhere!**
 * **Do not reinvent the wheel!** Reference existing ESO API patterns from the `esoui/` folder or online ESO documentation. Leverage in-game libraries and utilities where available.
 * **Design UI for the end-user, not for the schema!**
+* **Keep docs addon-focused.** Files under `docs/` must stay strictly about BetterUI addon architecture, behavior, testing, and ESO implementation details.
 
 ---
 
@@ -26,6 +27,7 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 ### Operating Rule
 - At the start of each assistant turn: read `docs/CONTINUITY.md` before acting.
 - Update `docs/CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
+- Do **not** update `docs/CONTINUITY.md` or other `docs/` files for agent-infrastructure-only changes (for example: `.agent/*`, `.claude/*`, `AGENTS.md`, `CLAUDE.md`) unless those changes materially affect BetterUI addon behavior or development outcomes.
 
 ### Keep It Bounded (Anti-Bloat)
 - Keep `docs/CONTINUITY.md` short and high-signal:
@@ -97,10 +99,32 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 | `/verify-integrity` | Pre-commit checks (tests, debug scan, syntax) |
 | `/update-tribal-knowledge` | Capture session learnings |
 | `/comprehensive-code-review` | Full codebase audit with TODOs or fixes |
+| `/code-review` | Alias for `/comprehensive-code-review` |
 | `/garbage-cleanup` | Dead code and orphaned file detection |
 | `/lang-audit` | Localization file synchronization |
 | `/review-todos` | Prioritize outstanding TODOs |
 | `/scaffold-module` | Create new module structure |
+
+---
+
+## Cross-IDE Bridge Notes
+
+For Claude/Codex compatibility when following `.agent/` workflows:
+
+### Tool Name Mapping
+
+| Antigravity Tool | Claude/Codex Equivalent |
+|---|---|
+| `find_by_name` | file glob / recursive file listing |
+| `grep_search` | `grep` / `rg` content search |
+| `view_file` / `view_file_outline` | file read / outline scan |
+| `replace_file_content` / `multi_replace_file_content` | file edit / patch |
+
+### Global Skills Availability
+
+Some global skills may not be mounted in all IDEs (`brainstorming`, `writing-plans`, `verification-before-completion`, `systematic-debugging`).
+
+When unavailable, apply equivalent reasoning directly and continue with the workflow.
 
 ---
 
