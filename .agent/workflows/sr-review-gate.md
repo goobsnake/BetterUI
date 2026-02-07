@@ -25,6 +25,17 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 
+## Step 0: Restore Session Context (Required on resume/compaction)
+
+If the session is long-running, compacted, or resumed:
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** using its tiered sequence.
+2. Apply `AGENTS.md` → **Quota Efficiency Defaults** before review.
+3. Re-open prior review artifacts (if present) and continue unresolved findings before issuing new verdicts.
+4. If state is unclear, stop and ask the user before issuing verdicts.
+
+---
+
 ## Mode Configuration
 
 | Mode | Trigger | Use When |

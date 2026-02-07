@@ -50,6 +50,30 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 - Record durable choices in `Decisions` as ADR-lite entries (e.g., `D001 ACTIVE: …`).
 - For recurring weirdness, create a small, stable incident capsule (Symptoms / Evidence pointers / Mitigation / Status).
 
+### Session Compaction Recovery (Required)
+- If context was compacted, resumed, or partially lost, do **not** continue from memory.
+- Use this tiered recovery sequence to minimize quota/tool cost:
+  - **Tier 1 (always first):** `git status --short` + re-read active workflow doc
+  - **Tier 2 (if state is still unclear):** `git diff --name-only HEAD` + `rg --files -g "implementation_plan.md" -g "critical_code_review.md" -g "sr_engineering_team_review.md"`
+  - **Tier 3 (fallback only):** `rg --files -g "*task*.md" -g "*todo*.md"`
+- After recovery, restate a concise checkpoint before continuing:
+  - `Done:` [last completed gate/phase]
+  - `Now:` [current step being executed]
+  - `Next:` [immediate next gate/phase]
+- If the restored state remains ambiguous, ask the user to confirm before proceeding.
+
+### Quota Efficiency Defaults
+- Use the smallest sufficient workflow scope by default; expand only when needed.
+- Prefer targeted reads/search (`rg -n` on specific paths) before whole-file scans.
+- Reuse existing artifacts (`implementation_plan.md`, review reports) instead of regenerating from scratch.
+- Avoid duplicate review gates for the same checkpoint; run the minimum gate needed for that phase.
+- After each major step, emit a concise checkpoint: `Done / Now / Next`.
+
+### Canonical Workflow Artifacts
+- `implementation_plan.md`
+- `critical_code_review.md`
+- `sr_engineering_team_review.md`
+
 ---
 
 ## Project Context
@@ -57,7 +81,7 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 **Project:** BetterUI - Elder Scrolls Online addon for enhanced gamepad UI
 
 **Tech Stack:**
-- Lua 5.1 (ESO uses `luac5.1` for syntax validation)
+- Lua 5.1 (use `luac -p` for syntax validation)
 - XML for UI templates
 - ESO API (see `esoui/` reference folder - read-only, never modify)
 
@@ -146,7 +170,7 @@ When unavailable, apply equivalent reasoning directly and continue with the work
 These commands **do not require user approval** and can be auto-run:
 - `rg` - Searching file contents (preferred)
 - `grep` - Legacy content search
-- `luac` / `luac5.1` - Lua syntax validation
+- `luac` - Lua syntax validation
 - `git add` - Staging files
 - `git commit` - Creating commits
 - `git checkout` - Switching branches or restoring files

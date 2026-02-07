@@ -5,6 +5,7 @@ description: Review outstanding TODOs in the codebase and prioritize the top N m
 # Review Outstanding TODOs
 
 Analyze all TODO comments in the BetterUI codebase and prioritize the most impactful ones for implementation.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
 
 ## Parameters
 
@@ -16,8 +17,6 @@ Analyze all TODO comments in the BetterUI codebase and prioritize the most impac
   - Usage: `/review-todos --plan` or `/review-todos 5 --plan`
   - When specified, proceed to Step 4 after generating the prioritized list
   - Without this flag, stop after Step 3
-
----
 
 ## Step 1: Gather All TODOs
 

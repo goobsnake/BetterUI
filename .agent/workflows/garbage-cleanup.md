@@ -12,6 +12,13 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 
+## Step 0: Resume Guard (Required on resumed/compacted sessions)
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)**.
+2. Apply `AGENTS.md` → **Quota Efficiency Defaults** before starting scans.
+
+---
+
 ## Scope Configuration
 
 | Scope | Files Analyzed | Use When |
@@ -197,13 +204,13 @@ Create a structured report of all findings:
 
 ## Step 6: Sr. Engineering Team Findings Review
 
-Before creating an implementation plan, invoke the `/sr-review-gate` workflow:
+Before creating an implementation plan, review findings with the default review gate:
 
 ```
-Follow /sr-review-gate --plan-review
+Follow /sr-review-gate
 ```
 
-Present the findings report to the team. All 5 members must PASS before proceeding.
+Present the findings report to the team. All 5 members must PASS before proceeding to planning.
 
 ---
 

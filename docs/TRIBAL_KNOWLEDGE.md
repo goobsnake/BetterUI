@@ -101,7 +101,7 @@
 
 ### Lua Version
 - ESO uses Lua 5.1 - no bitwise operators or modern features
-- Use `luac5.1 -p` for syntax validation
+- Use `luac -p` for syntax validation
 
 ### SetItemIsJunk Is Asynchronous
 - `SetItemIsJunk(bagId, slotIndex, isJunk)` does NOT update engine state synchronously

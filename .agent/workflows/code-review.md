@@ -12,6 +12,17 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 
+## Pass 0: Restore Session Context (Required on resume/compaction)
+
+If context may be stale due to long-running or resumed work:
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** using its tiered sequence.
+2. Apply `AGENTS.md` → **Quota Efficiency Defaults** before running broad scans.
+3. If `critical_code_review.md`, `sr_engineering_team_review.md`, or `implementation_plan.md` already exist, resume unresolved findings instead of restarting from scratch.
+4. If prior state is ambiguous, ask the user before starting a new pass.
+
+---
+
 ## Review Scope Configuration
 
 Before starting, determine the review scope:
@@ -330,7 +341,7 @@ Follow /sr-review-gate --phase-review
 
 ```
 Remove any temporary review artifacts or implementation plans before committing.
-Run: luac5.1 -p <modified files> (syntax check)
+Run: luac -p <modified files> (syntax check)
 Run: git add -A && git commit -m "chore: add code review TODOs for future iteration"
 ```
 
@@ -418,7 +429,7 @@ Follow /sr-review-gate --phase-review
 Use the `verification-before-completion` skill:
 
 ```
-Run: luac5.1 -p <modified files> (syntax check)
+Run: luac -p <modified files> (syntax check)
 ```
 
 Request user to verify in-game if changes affect runtime behavior.

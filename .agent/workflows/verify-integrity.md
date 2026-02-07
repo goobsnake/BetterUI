@@ -12,9 +12,19 @@ See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 
 ---
 
+## Pre-Step: Restore Session Context (Required on resume/compaction)
+
+If context may be stale due to a long or resumed session:
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** using its tiered sequence.
+2. Apply `AGENTS.md` → **Quota Efficiency Defaults** (smallest sufficient scope, targeted reads, reuse artifacts).
+3. Confirm there are no unresolved prior review/integrity findings before running checks.
+
+---
+
 ## Step 0: Remove Temporary Review Artifacts
 
-Before committing, ensure review artifacts and implementation plans are not tracked:
+Before committing, ensure canonical workflow artifacts are not tracked:
 
 ```powershell
 rg --files -g "critical_code_review.md" -g "sr_engineering_team_review.md" -g "implementation_plan.md"
@@ -63,13 +73,15 @@ rg -n --glob "*.lua" "d\\(\"" Modules | rg -v -- "-- DEBUG|if.*debug"
 Check if XML files were modified:
 
 ```powershell
-git diff --name-only HEAD | Where-Object { $_ -like "*.xml" }
+$changedFiles = git diff --name-only HEAD
+$xmlFiles = $changedFiles | Where-Object { $_ -like "*.xml" }
+$xmlFiles
 ```
 
 If any XML files appear, validate them:
 
 ```powershell
-git diff --name-only HEAD | Where-Object { $_ -like "*.xml" } | ForEach-Object { Write-Host "Validating $_"; [xml](Get-Content $_) } 2>&1 | Select-String -Pattern "Exception"
+$xmlFiles | ForEach-Object { Write-Host "Validating $_"; [xml](Get-Content $_) } 2>&1 | Select-String -Pattern "Exception"
 ```
 
 **Expected**: No parsing exceptions. If validation fails, fix the XML before proceeding.
@@ -84,13 +96,15 @@ git diff --name-only HEAD | Where-Object { $_ -like "*.xml" } | ForEach-Object {
 Check if Lua files were modified:
 
 ```powershell
-git diff --name-only HEAD | Where-Object { $_ -like "*.lua" }
+$changedFiles = if ($changedFiles) { $changedFiles } else { git diff --name-only HEAD }
+$luaFiles = $changedFiles | Where-Object { $_ -like "*.lua" }
+$luaFiles
 ```
 
 If any Lua files appear, validate their syntax:
 
 ```powershell
-git diff --name-only HEAD | Where-Object { $_ -like "*.lua" } | ForEach-Object { Write-Host "Checking $_"; luac5.1 -p $_ }
+$luaFiles | ForEach-Object { Write-Host "Checking $_"; luac -p $_ }
 ```
 
 **Expected**: No syntax errors. If validation fails, fix the Lua before proceeding.

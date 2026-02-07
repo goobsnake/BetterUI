@@ -13,6 +13,7 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 > **BetterUI Only**: This skill is strictly for use when working on the BetterUI project.
 
 - **Start of Task**: Refresh memory on file header and indentation standards
+- **Session Resume/Compaction**: Reconstruct context from workflow artifacts before continuing
 - **Writing Code**: When adding new functions, tables, or files
 - **Refactoring**: When cleaning up old code
 - **Documentation**: When adding or updating comments
@@ -30,6 +31,16 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 | Locals | `camelCase` |
 | TODOs | `TODO(type): description` |
 | Constants | Module → `Constants.lua`; Shared → `CIM/Constants.lua` |
+
+---
+
+## Context Recovery (Compaction-Safe)
+
+If the session is resumed or compacted, do not continue from memory:
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**.
+2. Resume from unresolved artifact findings, not from chat memory.
+3. If state is ambiguous, ask the user before proceeding.
 
 ---
 

@@ -9,6 +9,7 @@ This workflow audits the BetterUI localization system to maintain clean, synchro
 ## Prerequisites
 
 See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
 
 ---
 

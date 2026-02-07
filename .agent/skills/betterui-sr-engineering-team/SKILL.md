@@ -24,6 +24,16 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 
 ---
 
+## Context Recovery Before Review
+
+If the session is resumed/compacted, reconstruct prior review state before issuing verdicts:
+
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**.
+2. Re-open prior review artifacts and continue unresolved findings first.
+3. If prior state is unclear, request user confirmation before PASS/FAIL decisions.
+
+---
+
 ## The Team
 
 ### 1. Lua Architect

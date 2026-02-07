@@ -20,18 +20,20 @@ See `AGENTS.md` for project rules and `docs/CONTINUITY.md` for current session s
 
 ---
 
-## Step 0: Reconfirm Session Baseline
+## Step 0: Reconfirm Session Baseline and Restore Context
 
 Before closing work, re-read:
 1. `AGENTS.md`
 2. `docs/CONTINUITY.md`
 3. `docs/TRIBAL_KNOWLEDGE.md`
 
-Confirm active changes with:
+Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**, then confirm active changes:
 
 ```powershell
 git status --short
 ```
+
+If any prior workflow has unresolved items, continue that resolution path before declaring wrap-up complete.
 
 ---
 
