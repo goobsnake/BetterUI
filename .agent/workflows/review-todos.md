@@ -31,7 +31,8 @@ Search the codebase for TODO, FIXME, HACK, and XXX comments in **BetterUI source
 
 ```powershell
 $tempFile = "$env:TEMP\betterui_todos.txt"
-grep -rn --include="*.lua" --include="*.xml" -E "TODO|FIXME|HACK|XXX" . 2>&1 | Where-Object { $_ -notmatch "^\./esoui/|^\./\.agent/|^\./tools/|^\./\.idea/|^\./\.vscode/|^\./source/" } | Out-File -FilePath $tempFile -Encoding UTF8
+rg -n --glob "*.lua" --glob "*.xml" "TODO|FIXME|HACK|XXX" Modules BetterUI.lua BetterUI.txt |
+    Out-File -FilePath $tempFile -Encoding UTF8
 Write-Host "Results saved to: $tempFile"
 Write-Host "Total TODOs found: $((Get-Content $tempFile | Measure-Object -Line).Lines)"
 ```

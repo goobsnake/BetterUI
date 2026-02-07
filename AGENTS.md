@@ -11,6 +11,7 @@
 * **Think ahead!** Do not write code that you know will need to be changed later without planning for that change now. Keep entrypoints stable and isolate logic into smaller modules from the start.
 * **Do not limit yourself due to the LOC limit!** If a task requires more code, split it into multiple files/modules/functions.
 * **No default fallbacks during development.** If something fails, let it fail so we can fix it.
+* **Localization exception:** Do not use English placeholder text in non-English locale files. Add translated locale strings in the same change set.
 * **No empty try-catch blocks anywhere!**
 * **Do not reinvent the wheel!** Reference existing ESO API patterns from the `esoui/` folder or online ESO documentation. Leverage in-game libraries and utilities where available.
 * **Design UI for the end-user, not for the schema!**
@@ -95,11 +96,10 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 
 | Workflow | Description |
 |----------|-------------|
-| `/sr-review-gate` | **REQUIRED** - Mandatory review before plans and after phases |
+| `/sr-review-gate` | **REQUIRED** for implementation plans, multi-phase code work, and destructive changes |
 | `/verify-integrity` | Pre-commit checks (tests, debug scan, syntax) |
 | `/update-tribal-knowledge` | Capture session learnings |
-| `/comprehensive-code-review` | Full codebase audit with TODOs or fixes |
-| `/code-review` | Alias for `/comprehensive-code-review` |
+| `/code-review` | Full codebase audit with TODOs or fixes |
 | `/garbage-cleanup` | Dead code and orphaned file detection |
 | `/lang-audit` | Localization file synchronization |
 | `/review-todos` | Prioritize outstanding TODOs |
@@ -116,7 +116,7 @@ For Claude/Codex compatibility when following `.agent/` workflows:
 | Antigravity Tool | Claude/Codex Equivalent |
 |---|---|
 | `find_by_name` | file glob / recursive file listing |
-| `grep_search` | `grep` / `rg` content search |
+| `grep_search` | `rg` content search (preferred) |
 | `view_file` / `view_file_outline` | file read / outline scan |
 | `replace_file_content` / `multi_replace_file_content` | file edit / patch |
 
@@ -142,7 +142,8 @@ When unavailable, apply equivalent reasoning directly and continue with the work
 ## Command Permissions
 
 These commands **do not require user approval** and can be auto-run:
-- `grep` - Searching file contents
+- `rg` - Searching file contents (preferred)
+- `grep` - Legacy content search
 - `luac` / `luac5.1` - Lua syntax validation
 - `git add` - Staging files
 - `git commit` - Creating commits

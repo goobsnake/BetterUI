@@ -136,7 +136,7 @@ Workflows that use this review gate:
 | Workflow | Plan Review | Phase Review |
 |----------|-------------|--------------|
 | `/garbage-cleanup` | Before Phase 1 | After each phase |
-| `/comprehensive-code-review` | Before Pass 3 | After each implementation phase |
+| `/code-review` | Before Pass 3 | After each implementation phase |
 | `/review-todos` | Before implementing TODOs | After implementation |
 
 ---

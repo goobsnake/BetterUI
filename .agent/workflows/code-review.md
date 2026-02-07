@@ -2,7 +2,7 @@
 description: Perform a comprehensive two-pass code review of the BetterUI codebase with TODO generation or actionable fixes
 ---
 
-# Comprehensive Code Review Workflow
+# Code Review Workflow
 
 This workflow performs a thorough code review of the BetterUI addon in two passes, generating actionable TODO items for future iteration.
 
@@ -58,7 +58,7 @@ Adopt the perspective of a **Sr. Software Developer and Principal Code Reviewer*
 First, map the entire codebase structure:
 
 ```
-Run: find_by_name with Extensions: ["lua"] on Modules/
+Run: `rg --files Modules -g "*.lua"`
 ```
 
 This gives you the full file inventory. Organize findings by module.
@@ -78,7 +78,7 @@ Review each module systematically. For each module:
 - `Modules/CIM/Core/SceneLifecycleManager.lua`
 
 **Extended Files** (for Standard/Comprehensive):
-- All files in `Modules/CIM/Core/` (use `view_file_outline` for efficiency)
+- All files in `Modules/CIM/Core/` (start with quick outline-style reads for efficiency)
 - `Modules/CIM/UI/*.lua`
 - `Modules/CIM/Lists/*.lua`
 
@@ -131,14 +131,14 @@ Review each module systematically. For each module:
 
 For **Comprehensive** reviews with many files:
 
-1. **Use `view_file_outline`** first to understand structure without reading full content
+1. **Use quick outline-style reads** first to understand structure without reading full content
 2. **Batch similar files** - review all `Constants.lua` files together, all `Module.lua` files together
-3. **Use `grep_search`** to find patterns across files:
+3. **Use `rg`** to find patterns across files:
    ```
-   grep_search for "d(" to find debug statements
-   grep_search for "TODO" to find existing TODOs
-   grep_search for "-- TODO:" to find non-compliant TODO format
-   grep_search for "pcall" to audit error handling
+   rg -n "d\\(" Modules
+   rg -n "TODO" Modules
+   rg -n -- "-- TODO:" Modules
+   rg -n "pcall" Modules
    ```
 4. **Focus on public interfaces** - prioritize exported functions over internal helpers
 
@@ -318,7 +318,7 @@ All 5 team members must PASS before proceeding.
 
 #### 3A.3 Execute TODO Insertions With Phase Gates
 
-Add TODO comments using `multi_replace_file_content` for efficiency.
+Add TODO comments using batched edits for efficiency.
 
 **After each phase completes:**
 
@@ -368,7 +368,7 @@ Create `implementation_plan.md` with:
 
 ## Phase 1: Critical Fixes (P0)
 
-### [MODIFY] [File.lua](file:///path)
+### [MODIFY] `Modules/SomeModule/File.lua`
 
 **Issue**: [Description]
 **Fix**: [What we're changing]
@@ -400,8 +400,8 @@ All 5 team members must PASS before proceeding.
 #### 3B.4 Execute Fixes With Phase Gates
 
 Implement changes per the approved plan:
-- Use `multi_replace_file_content` for multiple edits in same file
-- Use `replace_file_content` for single contiguous edits
+- Use batched edits for multiple changes in the same file
+- Use targeted patches for single contiguous edits
 - Batch by module to maintain context
 
 **After each phase completes:**
@@ -447,11 +447,11 @@ Run: git add -A && git commit -m "fix: address code review findings
 
 | Command | Scope | Output | Time |
 |---------|-------|--------|------|
-| `/comprehensive-code-review` | Standard (~30 files) | Prompts for mode | ~30-45 min |
-| `/comprehensive-code-review --quick` | ~10 core files | Prompts for mode | ~15-20 min |
-| `/comprehensive-code-review --comprehensive` | All files | Prompts for mode | 2-3 hours |
-| `/comprehensive-code-review --todo` | Default scope | Insert TODO comments | Varies |
-| `/comprehensive-code-review --action` | Default scope | Actual code fixes | Varies |
+| `/code-review` | Standard (~30 files) | Prompts for mode | ~30-45 min |
+| `/code-review --quick` | ~10 core files | Prompts for mode | ~15-20 min |
+| `/code-review --comprehensive` | All files | Prompts for mode | 2-3 hours |
+| `/code-review --todo` | Default scope | Insert TODO comments | Varies |
+| `/code-review --action` | Default scope | Actual code fixes | Varies |
 
 Combine scope + output flags freely: `--quick --todo`, `--standard --action`, `--comprehensive --todo`, etc.
 

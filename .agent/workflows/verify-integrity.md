@@ -29,7 +29,7 @@ lua tools/tests/run_all_tests.lua
 Search for leftover debug calls that should not be committed:
 
 ```powershell
-grep -rn --include="*.lua" "d(\"" Modules/ | grep -v "-- DEBUG" | grep -v "if.*debug"
+rg -n --glob "*.lua" "d\\(\"" Modules | rg -v -- "-- DEBUG|if.*debug"
 ```
 
 **What to look for**:

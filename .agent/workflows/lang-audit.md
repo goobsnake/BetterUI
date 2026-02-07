@@ -59,19 +59,22 @@ pwsh -File tools/LanguageMaintenance.ps1 -Mode Sync
 ```
 
 **This will:**
-- Add missing keys to foreign files (using English as placeholder with `-- TODO: Translate`)
+- Add/remove keys to align locale file structure with `en.lua`
 - Remove orphaned keys that no longer exist in `en.lua`
+
+> [!IMPORTANT]
+> Do not leave English placeholder values in non-English locale files. Before completing this workflow, every added key in each locale file must have a translated value.
 
 ---
 
-## Phase 5: Review Untranslated Strings
+## Phase 5: Resolve Untranslated Strings
 
 The audit report lists strings that match English exactly (potential untranslated copy-pastes).
 
 **For each language file with untranslated strings:**
-1. The agent should NOT attempt to translate these automatically
-2. Flag them in the report for human translators
-3. Optional: Create a translation request document
+1. Provide a translated string value in that locale file in the same change set
+2. If a translation is unavailable, stop and escalate to the user instead of merging placeholder text
+3. Keep untranslated entries at zero before completion
 
 ---
 
@@ -87,6 +90,7 @@ pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit
 - 0 unused strings
 - 0 missing strings
 - All foreign files have matching keys with `en.lua`
+- 0 untranslated copy-pasted English entries in non-English locale files
 
 ---
 

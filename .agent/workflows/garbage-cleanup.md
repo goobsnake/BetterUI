@@ -1,10 +1,10 @@
 ---
-description: Find and remove dead code, orphaned files, deprecated aliases, and unused references from the codebase
+description: Find and remove dead code, orphaned files, deprecated usage, and unused references from the codebase
 ---
 
 # Garbage Cleanup Workflow
 
-Comprehensive dead code detection and cleanup workflow. Identifies unused files, orphaned code, deprecated aliases, and unreferenced functions.
+Comprehensive dead code detection and cleanup workflow. Identifies unused files, orphaned code, deprecated usage, and unreferenced functions.
 
 ## Prerequisites
 
@@ -32,15 +32,15 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 ---
 
-## Step 1: Discover Deprecated Aliases
+## Step 1: Discover Deprecated Usage Candidates
 
-Check `docs/DEPRECATED_ALIASES.md` for known deprecated items:
+Create an initial candidate list by scanning for deprecation indicators:
 
 ```powershell
-type docs\DEPRECATED_ALIASES.md
+rg -n -i "deprecated|legacy|obsolete|to be removed|remove in" Modules
 ```
 
-For each deprecated alias listed, verify if it's still used in the codebase.
+Then validate each candidate manually before classifying it as deprecated usage.
 
 ---
 
@@ -51,7 +51,13 @@ For each deprecated alias listed, verify if it's still used in the codebase.
 Identify Lua files not referenced in the manifest (`BetterUI.txt`):
 
 ```powershell
-Get-ChildItem -Recurse -Filter "*.lua" Modules/ | ForEach-Object { $file = $_.Name; if (-not (Select-String -Path "BetterUI.txt" -Pattern $file -Quiet)) { $_.FullName } }
+$manifest = Get-Content BetterUI.txt |
+    ForEach-Object { $_.Trim() } |
+    Where-Object { $_ -and -not $_.StartsWith(";") -and -not $_.StartsWith("##") }
+Get-ChildItem -Recurse -Filter "*.lua" Modules | ForEach-Object {
+    $relPath = $_.FullName.Replace((Resolve-Path .).Path + "\\", "").Replace("\", "/")
+    if (-not ($manifest -contains $relPath)) { $relPath }
+}
 ```
 
 ### 2.2 Find Orphaned XML Templates
@@ -76,10 +82,10 @@ Get-ChildItem -Recurse -Filter "*.dds" Modules/ | ForEach-Object { $img = $_.Bas
 
 ### 3.1 Unused Local Functions
 
-Use `grep` to find local functions and verify they're called:
+Use `rg` to find local functions and verify they're called:
 
 ```powershell
-grep -rn --include="*.lua" "^local function" Modules/CIM/
+rg -n --glob "*.lua" "^local function" Modules/CIM
 ```
 
 For each local function found, verify it's referenced elsewhere in the same file.
@@ -89,21 +95,21 @@ For each local function found, verify it's referenced elsewhere in the same file
 Find functions in the BETTERUI namespace that aren't called:
 
 ```powershell
-grep -rn --include="*.lua" "^function BETTERUI\." Modules/
+rg -n --glob "*.lua" "^function BETTERUI\\." Modules
 ```
 
 Cross-reference with usage across the codebase.
 
 ### 3.3 Deprecated API Usage
 
-Search for usage of deprecated APIs from DEPRECATED_ALIASES.md:
+Search for usage of deprecated APIs from your candidate list:
 
 ```powershell
-grep -rn --include="*.lua" "DEPRECATED_PATTERN" Modules/
+rg -n --glob "*.lua" "DEPRECATED_PATTERN" Modules
 ```
 
 > [!NOTE]
-> Replace `DEPRECATED_PATTERN` with actual patterns from DEPRECATED_ALIASES.md
+> Replace `DEPRECATED_PATTERN` with verified symbols/names from Step 1.
 
 ---
 
@@ -124,7 +130,7 @@ Review the audit report for unused strings.
 Find constants defined but never referenced:
 
 ```powershell
-grep -rn --include="*.lua" "^CONST\." Modules/CIM/Constants.lua
+rg -n "^CONST\\." Modules/CIM/Constants.lua
 ```
 
 For each constant, verify it's used elsewhere.
@@ -218,7 +224,7 @@ Only after Sr. Engineering Team approval, create `implementation_plan.md`:
 
 Files/code with zero references that are safe to remove.
 
-### [DELETE] [filename.lua](file:///path)
+### [DELETE] `Modules/SomeModule/filename.lua`
 **Reason**: Not in manifest, not imported anywhere
 
 ---
@@ -227,7 +233,7 @@ Files/code with zero references that are safe to remove.
 
 Migrate deprecated API usage to current patterns.
 
-### [MODIFY] [filename.lua](file:///path)
+### [MODIFY] `Modules/SomeModule/filename.lua`
 
 **Change**: Replace deprecated `OldAPI` with `NewAPI`
 
@@ -245,7 +251,7 @@ Unreferenced functions/constants that appear safe to remove.
 > [!CAUTION]
 > Verify no dynamic calls before removing.
 
-### [MODIFY] [filename.lua](file:///path)
+### [MODIFY] `Modules/SomeModule/filename.lua`
 
 **Remove**: Lines 100-150 (`unusedFunction`)
 
@@ -323,7 +329,7 @@ Follow /sr-review-gate --phase-review
 
 ## Workflow Steps Summary
 
-1. **Discover**: Read DEPRECATED_ALIASES.md
+1. **Discover**: Build deprecated usage candidates from code search
 2. **Scan**: Find dead files, dead code, deprecated usage, orphaned resources
 3. **Report**: Generate structured findings
 4. **Review**: Sr. Engineering Team approval
@@ -340,5 +346,5 @@ Follow /sr-review-gate --phase-review
 2. **Be conservative** - False positives are costly (removing used code)
 3. **Check dynamic patterns** - Lua can call functions via string names
 4. **Review metatable usage** - `__index` metamethods can hide references
-5. **Keep DEPRECATED_ALIASES.md updated** - Add new deprecations as they're identified
+5. **Keep candidate rules explicit** - Save validated deprecation patterns in your findings report
 
