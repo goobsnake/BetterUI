@@ -3,7 +3,7 @@ File: Modules/Banking/Keybinds/KeybindManager.lua
 Purpose: Manages keybind descriptors and registration for the Banking module.
          Extracted from Banking.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-07
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -58,8 +58,11 @@ Function: BETTERUI.Banking.Class:AddKeybinds
 Description: Registers the banking keybind groups.
 ]]
 function BETTERUI.Banking.Class:AddKeybinds()
-    -- TODO(refactor): Replace RemoveAllKeyButtonGroups() with specific group removal to avoid breaking other addons
-    KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+    if self.textSearchKeybindStripDescriptor then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
     self:UpdateActions()

@@ -3,7 +3,7 @@ File: Modules/Inventory/Core/InventoryClass.lua
 Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization logic,
          header management, and high-level caching mechanisms.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-07
 ]]
 
 -- Architecture Note: BetterUI.Inventory subclasses ZO_GamepadInventory directly to:
@@ -413,9 +413,9 @@ function BETTERUI.Inventory.Class:PositionSearchControl()
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0,
-            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET or 10)
+            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0,
-            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET or 10)
+            BETTERUI.Inventory.CONST.SEARCH_Y_OFFSET)
     end
     self.textSearchHeaderControl:SetHidden(false)
 end

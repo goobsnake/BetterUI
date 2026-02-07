@@ -4,7 +4,7 @@ Purpose: Provides a visual scroll indicator for parametric lists (inventory, ban
          Shows current scroll position with a track, thumb, and up/down arrows.
          Supports mouse interaction: arrow clicks and thumb dragging.
 Author: BetterUI Team
-Last Modified: 2026-02-06
+Last Modified: 2026-02-07
 ]]
 
 -- Ensure namespace exists
@@ -509,19 +509,24 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
         controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, thumbOffset)
     end
 
-    -- TODO(cleanup): Remove diagnostic debug after scrollbar gap is verified fixed
-    if currentIndex >= totalItems - 1 and totalItems > 1 then
-        zo_callLater(function()
-            if not controls or not controls.thumb then return end
-            local tT, tB = controls.thumb:GetTop(), controls.thumb:GetBottom()
-            local rT, rB = controls.track:GetTop(), controls.track:GetBottom()
-            local aT, aB = controls.downArrow:GetTop(), controls.downArrow:GetBottom()
-            local cB = controls.container:GetBottom()
-            d(string.format("[ScrollInd] PIXELS thumb=%d-%d trk=%d-%d arrow=%d-%d cont_bot=%d",
-                tT, tB, rT, rB, aT, aB, cB))
-            d(string.format("[ScrollInd] GAPS thumb-to-trkBot=%d thumb-to-arrowTop=%d",
-                rB - tB, aT - tB))
-        end, 100)
+    if BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled() then
+        if currentIndex >= totalItems - 1 and totalItems > 1 then
+            zo_callLater(function()
+                if not controls or not controls.thumb then return end
+                local tT, tB = controls.thumb:GetTop(), controls.thumb:GetBottom()
+                local rT, rB = controls.track:GetTop(), controls.track:GetBottom()
+                local aT, aB = controls.downArrow:GetTop(), controls.downArrow:GetBottom()
+                local cB = controls.container:GetBottom()
+                BETTERUI.CIM.Debug.Log(string.format(
+                    "[ScrollInd] PIXELS thumb=%d-%d trk=%d-%d arrow=%d-%d cont_bot=%d",
+                    tT, tB, rT, rB, aT, aB, cB
+                ), "ScrollIndicator")
+                BETTERUI.CIM.Debug.Log(string.format(
+                    "[ScrollInd] GAPS thumb-to-trkBot=%d thumb-to-arrowTop=%d",
+                    rB - tB, aT - tB
+                ), "ScrollIndicator")
+            end, 100)
+        end
     end
 end
 

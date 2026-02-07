@@ -2,7 +2,7 @@
 File: Modules/Banking/Banking.lua
 Purpose: Implements the comprehensive banking interface for BetterUI.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-02-07
 
 This module completely replaces the default gamepad banking interface with a feature-rich,
 inventory-like experience. It supports advanced filtering, searching, custom categories,
@@ -485,7 +485,15 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     BETTERUI.CIM.SceneCleanup.DeactivateLists(self)
     self.confirmationMode = false
 
-    KEYBIND_STRIP:RemoveAllKeyButtonGroups()
+    if KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
 
     self:UpdateExternalAddons(false)
