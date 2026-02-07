@@ -33,9 +33,9 @@ function BETTERUI.Inventory.PopulateQuickslotDialogEntries(parametricList, targe
         assignedIndex = FindActionSlotMatchingItem(target.bagId, target.slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
         if assignedIndex then
             hasUnassign = true
-            local unassignEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN),
-                "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot_empty.dds")
+            local unassignEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN))
             unassignEntry.action = "unassign"
+            unassignEntry.isUnassign = true
             unassignEntry.setup = ZO_SharedGamepadEntry_OnSetup
             table.insert(
                 parametricList,
@@ -71,8 +71,9 @@ function BETTERUI.Inventory.PopulateQuickslotDialogEntries(parametricList, targe
     for _, slotIndex in ipairs(orderedSlots) do
         local icon = GetSlotTexture and GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) or nil
         local lower = type(icon) == "string" and icon:lower() or nil
-        if not lower or lower:find("gamepad/gp_inventory_icon_quickslot_empty") then
-            icon = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot_empty.dds"
+        -- Empty slots use ESO's standard empty slot graphic
+        if not lower or icon == "" then
+            icon = ZO_UTILITY_SLOT_EMPTY_TEXTURE
         end
 
         local name = slotLabel(slotIndex)
@@ -154,8 +155,9 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
                 if GetSlotTexture then
                     icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
                 end
+                -- Empty slots use ESO's standard empty slot graphic
                 if not icon or icon == "" then
-                    icon = "/esoui/art/quickslots/quickslot_empty.dds"
+                    icon = ZO_UTILITY_SLOT_EMPTY_TEXTURE
                 end
 
                 local entryData = ZO_GamepadEntryData:New(SLOT_LABELS[slotIndex] or tostring(slotIndex), icon)
