@@ -7,7 +7,7 @@
 
 ## Last Updated
 
-**2026-02-01**: Initial creation during skill restructuring.
+**2026-02-07**: Added quest item API, texture path, and position persistence learnings.
 
 ---
 
@@ -67,6 +67,22 @@
 - Always call base class `Initialize` at the start of subclass `Initialize`
 - Check native `esoui/` source to ensure all required side-effect initializers are preserved
 
+### Quest Item API Gotchas
+- `UseQuestTool()` and `UseQuestItem()` are **NOT** protected functions — `CallSecureProtected` silently fails on them
+- Always call them directly: `UseQuestTool(questIndex, toolIndex)`, `UseQuestItem(questIndex, stepIndex, conditionIndex)`
+- Do **NOT** call `SCENE_MANAGER:Hide()` before quest item APIs — the engine handles scene transitions automatically (book reader, world map, etc.) and keeps the source scene on the stack
+- Reference implementation: `esoui/ingame/inventory/inventoryslot.lua:420` (`TryUseQuestItem`)
+
+### Texture Path Validation
+- `EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot_empty.dds` does **NOT** exist — using it renders a white box
+- For empty quickslot slots, use `ZO_UTILITY_SLOT_EMPTY_TEXTURE` (ESO's own constant from `utilitywheel_shared.lua`)
+- The valid quickslot *category* icon is `EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_quickslot.dds`
+
+### Position Persistence Gap
+- `SaveListPosition()` must update **both** `CIM.PositionManager` AND the local fields read by `SwitchActiveList`
+- Fields: `savedInventoryCategoryKey`, `savedInventoryPositionsByKey`, `savedInventorySelectedItemUniqueByKey` (plus CraftBag equivalents)
+- If these fields are nil/empty, `SwitchActiveList` defaults to category index 1 and item index 1
+
 ---
 
 ## ESO Engine Quirks
@@ -117,6 +133,8 @@
 - Historically had weaker cleanup than Banking
 - Now standardized with symmetric cleanup guards in `SCENE_HIDDEN`
 - Uses `TargetDataChanged` callback for high-frequency keybind updates
+- Quest items use `SLOT_TYPE_QUEST_ITEM` — they lack `meetsUsageRequirement` (only set by `GetItemInfo` for bag items)
+- `sortPriorityName` must be pre-computed before `table.sort` in `RefreshItemList` for consistent sort order
 
 ### CIM (Common Interface Module)
 - Central location for all shared code

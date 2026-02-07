@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T05:37Z
-> **Provenance:** [TOOL] Added cleanup requirements for review artifacts before commit
+> **Last Updated:** 2026-02-07T15:18Z
+> **Provenance:** [CODE] Fixed 4 inventory bugs (sort, quickslot icons, quest item use, quickslot unassign)
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,16 +28,16 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
+- [2026-02-07] [CODE] Fixed position persistence in SaveListPosition (category key + item index now saved)
 - [2026-02-07] [CODE] Added cleanup requirements for review artifacts before commits
-- [2026-02-07] [TOOL] Removed review artifacts and implementation plan
 - [2026-02-07] [CODE] Fixed profiler report shadowing and aligned module enable documentation
 - [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 - [2026-02-06] [TOOL] Agent config optimization: moved docs, simplified Claude commands, standardized prerequisites
 - [2026-02-06] [TOOL] Created AGENTS.md root configuration
-- [2026-02-06] [USER] Approved agent config refactor plan
 
 **Now:**
-- Commit cleanup instruction updates
+- Committing bugfix changes
 
 **Next:**
 - Plan modularization work for >500-line files (Inventory/Banking/CIM/ResourceOrbFrames)
