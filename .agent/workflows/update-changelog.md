@@ -69,6 +69,14 @@ Classify each commit into one of these buckets:
 
 Use commit subject + touched files + final code state to decide.
 
+Runtime eligibility rule (required):
+- A changelog bullet is valid only if backed by one or more commits that touch BetterUI runtime addon paths:
+  - `Modules/**`
+  - `lang/**`
+  - `BetterUI.lua`
+  - `BetterUI.txt`
+- Commits that only touch `.agent/**`, `.claude/**`, `AGENTS.md`, `CLAUDE.md`, or `docs/**` are never valid sources for release-note bullets.
+
 ---
 
 ## Step 4: Filter Internal Dev-Cycle Fixes (Required)
@@ -112,6 +120,7 @@ Before finishing:
 2. No internal-only stabilization fix is listed as user-facing.
 3. No obvious user-facing commit is missing.
 4. Changelog text reflects final post-range code state (not intermediate broken states).
+5. Every bullet maps to runtime addon code paths, not agent/workflow/docs-only commits.
 
 Helpful checks:
 
@@ -144,4 +153,3 @@ git commit -m "docs(changelog): update notes for upcoming release"
 ```text
 /update-changelog
 ```
-
