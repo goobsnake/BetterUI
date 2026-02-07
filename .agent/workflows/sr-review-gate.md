@@ -1,5 +1,5 @@
 ---
-description: Mandatory Sr. Engineering Team review gate for implementation plans and phase completions
+description: Mandatory Sr. Engineering Team review gate for bugfix/adhoc work, implementation plans, and phase completions
 ---
 
 # Sr. Review Gate Workflow
@@ -12,7 +12,8 @@ Centralized workflow for mandatory Sr. Engineering Team reviews at critical chec
 > **No Fast-Track**: Every review must pass. Even minor issues must be fixed before proceeding.
 > Tech debt accumulates from skipping "trivial" issues.
 
-This workflow provides two review modes:
+This workflow provides three review modes:
+- **Adhoc/Bugfix Review (Default)**: For bugfixes, one-off tasks, and general implementation work
 - **Plan Review**: Before executing any implementation plan
 - **Phase Review**: After completing each phase, before proceeding to the next
 
@@ -28,12 +29,21 @@ See `AGENTS.md` for project context, skills, and workflows.
 
 | Mode | Trigger | Use When |
 |------|---------|----------|
+| `default` | No flag passed | Reviewing bugfixes, adhoc tasks, and general code changes |
 | `--plan-review` | Before Phase 1 | Reviewing an implementation plan before execution begins |
 | `--phase-review` | After each phase | Reviewing completed work before proceeding to next phase |
 
 ---
 
 ## Step 1: Gather Context
+
+### For Adhoc/Bugfix Review (Default)
+
+Present the following to the review team:
+1. **Change Summary**: What was changed and why
+2. **Files Changed**: Current working-set file list with key deltas
+3. **Risk Check**: Potential regressions and impacted systems
+4. **Verification Status**: What has been validated so far
 
 ### For Plan Review (`--plan-review`)
 
@@ -127,6 +137,11 @@ Follow /sr-review-gate --plan-review
 Follow /sr-review-gate --phase-review
 ```
 
+### For bugfixes and adhoc work (default):
+```
+Follow /sr-review-gate
+```
+
 ---
 
 ## Integration Points
@@ -138,6 +153,7 @@ Workflows that use this review gate:
 | `/garbage-cleanup` | Before Phase 1 | After each phase |
 | `/code-review` | Before Pass 3 | After each implementation phase |
 | `/review-todos` | Before implementing TODOs | After implementation |
+| `/wrap-up` | N/A | Uses default mode for adhoc final review |
 
 ---
 
@@ -145,6 +161,7 @@ Workflows that use this review gate:
 
 | Command | When to Use |
 |---------|-------------|
+| `/sr-review-gate` | Default bugfix/adhoc review for current work |
 | `/sr-review-gate --plan-review` | Before starting implementation |
 | `/sr-review-gate --phase-review` | After completing each phase |
 

@@ -7,7 +7,7 @@
 
 ## Important Rules
 
-* **Build modular first.** No code files longer than 500 lines! Documentation and plans can be any length, but code must be modular.
+* **Build modular first.** No new code file exceeds 500 LOC (modular-first rule), existing files ignore this limit. Documentation and plans can be any length, but code must be modular.
 * **Think ahead!** Do not write code that you know will need to be changed later without planning for that change now. Keep entrypoints stable and isolate logic into smaller modules from the start.
 * **Do not limit yourself due to the LOC limit!** If a task requires more code, split it into multiple files/modules/functions.
 * **No default fallbacks during development.** If something fails, let it fail so we can fix it.
@@ -97,8 +97,9 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 
 | Workflow | Description |
 |----------|-------------|
-| `/sr-review-gate` | **REQUIRED** for implementation plans, multi-phase code work, and destructive changes |
+| `/sr-review-gate` | **REQUIRED** review gate. Default = bugfix/adhoc review; use `--plan-review` for plans and `--phase-review` for phase gates |
 | `/verify-integrity` | Pre-commit checks (tests, debug scan, syntax) |
+| `/wrap-up` | End-of-session closeout: AGENTS compliance, sr-review-gate, verify-integrity, fix loops, and commit |
 | `/update-tribal-knowledge` | Capture session learnings |
 | `/code-review` | Full codebase audit with TODOs or fixes |
 | `/garbage-cleanup` | Dead code and orphaned file detection |

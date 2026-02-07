@@ -40,7 +40,7 @@
 - Preparing commit for finalized scrollbar visual fix
 
 **Next:**
-- Continue modularization work for Inventory/CIM files over 500 LOC
+- Continue opportunistic modularization work for Inventory/CIM hotspots as needed
 
 ---
 
