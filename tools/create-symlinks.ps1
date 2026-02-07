@@ -31,6 +31,7 @@ $commandMap = @{
     "verify-integrity.md"        = "verify-integrity.md"
     "sr-review-gate.md"          = "sr-review-gate.md"
     "update-tribal-knowledge.md" = "update-tribal-knowledge.md"
+    "update-changelog.md"        = "update-changelog.md"
     "code-review.md"             = "code-review.md"
     "wrap-up.md"                 = "wrap-up.md"
     "garbage-cleanup.md"         = "garbage-cleanup.md"

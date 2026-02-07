@@ -124,6 +124,7 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 | `/sr-review-gate` | **REQUIRED** review gate. Default = bugfix/adhoc review; use `--plan-review` for plans and `--phase-review` for phase gates |
 | `/verify-integrity` | Pre-commit checks (tests, debug scan, syntax) |
 | `/wrap-up` | End-of-session closeout: AGENTS compliance, sr-review-gate, verify-integrity, fix loops, and commit |
+| `/update-changelog` | Build upcoming release notes from full commit history since the last changelog update, excluding internal dev-cycle fix churn |
 | `/update-tribal-knowledge` | Capture session learnings |
 | `/code-review` | Full codebase audit with TODOs or fixes |
 | `/garbage-cleanup` | Dead code and orphaned file detection |
