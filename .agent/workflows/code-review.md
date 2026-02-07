@@ -329,6 +329,7 @@ Follow /sr-review-gate --phase-review
 #### 3A.4 Verify & Commit
 
 ```
+Remove any temporary review artifacts or implementation plans before committing.
 Run: luac5.1 -p <modified files> (syntax check)
 Run: git add -A && git commit -m "chore: add code review TODOs for future iteration"
 ```
@@ -435,6 +436,7 @@ Follow /sr-review-gate --phase-review
 #### 3B.7 Commit Changes
 
 ```
+Remove any temporary review artifacts or implementation plans before committing.
 Run: git add -A && git commit -m "fix: address code review findings
 
 - [List key changes]
