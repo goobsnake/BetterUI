@@ -549,6 +549,34 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     self.pendingBatchIndex = nil
     self.pendingContext = nil
 
+    -- Pre-compute sortPriorityName for all items BEFORE sorting.
+    -- DefaultSortComparator uses sortPriorityName as the primary key, so it must be
+    -- populated before table.sort. Without this, first-load has nil values (falling
+    -- through to tiebreakers) while subsequent refreshes have stale values from batch
+    -- processing, producing inconsistent sort order.
+    for i = 1, #filteredDataTable do
+        local itemData = filteredDataTable[i]
+        if not itemData.sortPriorityName then
+            local bestCategoryDesc = itemData.cachedBestCategoryDesc
+            if not bestCategoryDesc then
+                bestCategoryDesc = zo_strformat(SI_INVENTORY_HEADER, GetBestItemCategoryDescription(itemData))
+                itemData.cachedBestCategoryDesc = bestCategoryDesc
+            end
+            if AutoCategory and AutoCategory.Inited then
+                local customCategory, matched, catName, catPriority = BETTERUI.GetCustomCategory(itemData)
+                if customCategory and not matched then
+                    itemData.sortPriorityName = string.format("%03d%s", 999, catName)
+                elseif customCategory then
+                    itemData.sortPriorityName = string.format("%03d%s", 100 - catPriority, catName)
+                else
+                    itemData.sortPriorityName = bestCategoryDesc
+                end
+            else
+                itemData.sortPriorityName = bestCategoryDesc
+            end
+        end
+    end
+
     -- Use the list's custom sort function if set, otherwise fall back to default
     -- This allows header sort to override the default sorting
     -- self.currentSortComparator is set by OnHeaderSortChanged when user sorts by header column
@@ -572,8 +600,9 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         return
     end
 
-    -- LARGE LIST: Process first batch synchronously, then defer the rest
-    -- Partial sort? No, sort raw data first so top items appear first
+    -- LARGE LIST: Sort first, then process in batches
+    -- sortPriorityName was pre-computed above for all items
+    table.sort(filteredDataTable, sortFunc)
 
     self.pendingContext = {
         showJunkCategory = showJunkCategory,
