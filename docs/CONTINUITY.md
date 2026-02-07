@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T16:50Z
-> **Provenance:** [CODE] Finalized scroll thumb texture fix and removed temporary diagnostic toggles
+> **Last Updated:** 2026-02-07T18:35Z
+> **Provenance:** [CODE] Fixed Junk category tab not appearing on mark-as-junk
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,16 +28,16 @@
 ## State
 
 **Done (recent ≤7):**
-- [2026-02-07] [CODE] Finalized scroll thumb backdrop replacement with native gamepad divider sample and removed temporary diagnostic toggles
-- [2026-02-07] [CODE] Fixed inventory scroll indicator bottom gap by normalizing thumb/drag math to first/last selectable indices
+- [2026-02-07] [CODE] Fixed Junk category tab not appearing when marking items as junk (SetItemIsJunk is async)
+- [2026-02-07] [CODE] Finalized scroll thumb backdrop replacement with native gamepad divider sample
+- [2026-02-07] [CODE] Fixed inventory scroll indicator bottom gap by normalizing thumb/drag math
 - [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
 - [2026-02-07] [CODE] Fixed position persistence in SaveListPosition (category key + item index now saved)
-- [2026-02-07] [CODE] Added cleanup requirements for review artifacts before commits
 - [2026-02-07] [CODE] Fixed profiler report shadowing and aligned module enable documentation
 - [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 
 **Now:**
-- Preparing commit for finalized scrollbar visual fix
+- Session complete
 
 **Next:**
 - Continue opportunistic modularization work for Inventory/CIM hotspots as needed
@@ -62,9 +62,9 @@
 
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
-- `Modules/CIM/UI/ScrollIndicator.lua`
+- `Modules/Inventory/Inventory.lua`
+- `Modules/Inventory/Actions/ItemActionsDialog.lua`
 - `Modules/Inventory/Lists/ItemListManager.lua`
-- `Modules/Inventory/Lists/InventoryList.lua`
 
 ---
 
@@ -72,6 +72,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-07 | [CODE] | Fixed Junk tab bug: `SetItemIsJunk()` is async, moved coalesced `RefreshCategoryList` outside dialog if/else in `OnInventoryUpdated` |
 | 2026-02-07 | [CODE] | Finalized ScrollIndicator thumb texture (`gp_nav1_horDividerFlat.dds` center-row sampling); removed temporary legacy/flip diagnostics |
 | 2026-02-07 | [CODE] | ScrollIndicator now uses CalculateFirst/LastSelectableIndex to anchor bottom correctly at last selectable row |
 | 2026-02-07 | [CODE] | Added cleanup requirement for temporary review artifacts before commit |

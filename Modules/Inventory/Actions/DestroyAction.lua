@@ -22,8 +22,9 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
     if not bagId or not slotIndex then
         return false
     end
-    -- Allow destruction if explicitly confirmed or the item is junk
-    if force or IsItemJunk(bagId, slotIndex) then
+    -- Only destroy immediately when explicitly forced (quickDestroy setting)
+    -- Junk items still get the confirmation dialog for safety
+    if force then
         -- Direct engine destroy path (matches the original working hook behavior)
         SetCursorItemSoundsEnabled(false)
         DestroyItem(bagId, slotIndex)
@@ -50,17 +51,38 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
     return false
 end
 
---- Hooks the native destroy logic (X button in some contexts).
+--- Hooks the native destroy logic (RS-button and engine action callbacks).
 ---
---- Purpose: Redirects engine destruction calls to `TryDestroyItem`.
---- Mechanics: Overwrites `ZO_InventorySlot_InitiateDestroyItem` with a wrapper that checks `quickDestroy` settings.
+--- Purpose: Redirects engine destruction calls to BetterUI's destroy flow.
+--- Mechanics:
+--- - Overwrites `ZO_InventorySlot_InitiateDestroyItem`.
+--- - If quickDestroy is enabled, destroys immediately via `TryDestroyItem`.
+--- - Otherwise, shows `BETTERUI_CONFIRM_DESTROY_DIALOG` for user confirmation.
+--- - Always returns true to prevent the engine's cursor-based destroy flow
+---   from showing a second (native) confirmation dialog.
 function BETTERUI.Inventory.HookDestroyItem()
     ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        local force = false
-        if BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"] then
-            force = BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+        if not bag or not index then return false end
+
+        local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+            and BETTERUI.Settings.Modules["Inventory"]
+            and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+
+        -- TryDestroyItem handles junk and force-destroy cases (returns true if destroyed)
+        if BETTERUI.Inventory.TryDestroyItem(bag, index, quick) then
+            return true
         end
-        return BETTERUI.Inventory.TryDestroyItem(bag, index, force)
+
+        -- Non-junk, non-quickDestroy: show BetterUI's confirmation dialog
+        -- This prevents the engine's own cursor-based destroy dialog from appearing
+        -- Dismiss the action dialog first if it's still showing (safety against stacked dialogs)
+        if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+        end
+        local link = GetItemLink(bag, index)
+        ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+            { bagId = bag, slotIndex = index, itemLink = link }, nil, true, true)
+        return true
     end
 end

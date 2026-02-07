@@ -423,21 +423,26 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				end
 				RefreshSelectedData()
 				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-				-- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly
-				-- BUT skip if we just opened the scene (within 200ms) since SwitchActiveList already refreshed
-				local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or
-					999
-				if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
-					self._pendingCategoryListRefresh = true
-					-- Coalesce category refresh to prevent spam during rapid updates
-					BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
-						BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, function()
-							self._pendingCategoryListRefresh = false
-							if self.scene:IsShowing() then
-								self:RefreshCategoryList()
-							end
-						end)
-				end
+			end
+			-- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly.
+			-- This runs OUTSIDE the dialog if/else because SetItemIsJunk is asynchronous:
+			-- IsItemJunk() returns false immediately after SetItemIsJunk(), so any
+			-- immediate RefreshCategoryList call in MarkAsJunk/UnmarkAsJunk finds 0 junk.
+			-- The engine only updates IsItemJunk after processing EVENT_INVENTORY_SINGLE_SLOT_UPDATE,
+			-- which fires this OnInventoryUpdated callback. At that point, IsItemJunk is correct
+			-- and the coalesced RefreshCategoryList will create/remove the Junk tab.
+			-- Skip if we just opened the scene (within 200ms) since SwitchActiveList already refreshed.
+			local timeSinceShow = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneShowedTime or 0)) or
+				999
+			if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
+				self._pendingCategoryListRefresh = true
+				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+					BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, function()
+						self._pendingCategoryListRefresh = false
+						if self.scene:IsShowing() then
+							self:RefreshCategoryList()
+						end
+					end)
 			end
 		end
 	end

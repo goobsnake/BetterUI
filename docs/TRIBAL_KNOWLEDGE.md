@@ -7,7 +7,7 @@
 
 ## Last Updated
 
-**2026-02-07**: Added quest item API, texture path, and position persistence learnings.
+**2026-02-07**: Added `SetItemIsJunk` async quirk, quest item API, texture path, and position persistence learnings.
 
 ---
 
@@ -103,7 +103,12 @@
 - ESO uses Lua 5.1 - no bitwise operators or modern features
 - Use `luac5.1 -p` for syntax validation
 
----
+### SetItemIsJunk Is Asynchronous
+- `SetItemIsJunk(bagId, slotIndex, isJunk)` does NOT update engine state synchronously
+- `IsItemJunk(bagId, slotIndex)` returns **stale data** immediately after `SetItemIsJunk()`
+- The engine processes the change asynchronously and fires `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` when done
+- At that point, `IsItemJunk()` returns the correct value and `SHARED_INVENTORY` cache is updated
+- **Pattern**: Do not call `RefreshCategoryList` immediately after `SetItemIsJunk`; instead rely on the `SingleSlotInventoryUpdate` callback to schedule a coalesced refresh
 
 ## Performance Learnings
 

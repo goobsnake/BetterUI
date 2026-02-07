@@ -88,14 +88,24 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 if not companionJunkEnabled and GetItemActorCategory(target.bagId, target.slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
                     return
                 end
+                -- SetItemIsJunk is ASYNCHRONOUS: IsItemJunk() returns false immediately after,
+                -- so any immediate RefreshCategoryList here cannot create the Junk tab.
+                -- The engine fires EVENT_INVENTORY_SINGLE_SLOT_UPDATE after processing the change,
+                -- which triggers OnInventoryUpdated -> coalesced RefreshCategoryList (80ms).
+                SetItemIsJunk(target.bagId, target.slotIndex, true)
                 -- Close the actions dialog to restore header/keybind focus
                 if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 end
-                SetItemIsJunk(target.bagId, target.slotIndex, true)
-                -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
-                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-                    GAMEPAD_INVENTORY:RefreshItemList()
+                -- Invalidate slot data cache so subsequent refreshes get fresh engine data
+                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
+                    GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+                end
+                -- Refresh item list and keybinds (category list refresh is deferred via OnInventoryUpdated)
+                if GAMEPAD_INVENTORY then
+                    if GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
                 end
                 if self and self.RefreshItemActions then
                     self:RefreshItemActions()
@@ -112,14 +122,22 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
             local function UnmarkAsJunk()
                 local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                -- SetItemIsJunk is ASYNCHRONOUS (see MarkAsJunk comment).
+                -- Category list refresh is handled by OnInventoryUpdated coalesced timer.
+                SetItemIsJunk(target.bagId, target.slotIndex, false)
                 -- Close the actions dialog to restore header/keybind focus
                 if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 end
-                SetItemIsJunk(target.bagId, target.slotIndex, false)
-                -- Refresh immediately to restore UI/keybind state (avoid leaving stale focus)
-                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-                    GAMEPAD_INVENTORY:RefreshItemList()
+                -- Invalidate slot data cache so subsequent refreshes get fresh engine data
+                if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
+                    GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+                end
+                -- Refresh item list and keybinds (category list refresh is deferred via OnInventoryUpdated)
+                if GAMEPAD_INVENTORY then
+                    if GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
                 end
                 if self and self.RefreshItemActions then
                     self:RefreshItemActions()
@@ -300,7 +318,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 local isStowOrRetrieve = (actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
                     or (actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
 
-                if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve then
+                -- Hide obsolete "Convert to Style" actions (handled by Outfit Stations now)
+                local isConvertStyle = (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_IMPERIAL_STYLE))
+                    or (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_MORAG_TONG_STYLE))
+
+                if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve and not isConvertStyle then
                     local entryData = ZO_GamepadEntryData:New(actionName)
                     -- Ensure consistent selection visuals for action rows
                     entryData:SetIconTintOnSelection(true)
@@ -561,12 +583,9 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
-        -- Determine the selected action name (prefer dialog.itemActions, fallback to self.itemActions)
-        local actionController = (dialog and dialog.itemActions) or (self and self.itemActions) or nil
-        local selectedActionName = nil
-        if actionController and actionController.selectedAction then
-            selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController.selectedAction)
-        end
+        -- Determine the selected action name from the parametric list entry (not the engine controller,
+        -- which can be out of sync with what the user actually selected in the dialog)
+        local selectedActionName = selectedRow and selectedRow.text or nil
 
         -- Intercept engine Destroy/Delete
         if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY) or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
@@ -643,9 +662,12 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
-        -- Fallback to original action on the action controller (dialog or self)
-        if actionController and actionController.DoSelectedAction then
-            actionController:DoSelectedAction()
+        -- Fallback: execute the action stored on the selected parametric list entry
+        if selectedRow and selectedRow.action then
+            local actions = self.itemActions and self.itemActions:GetSlotActions()
+            if actions then
+                actions:DoAction(selectedRow.action)
+            end
         end
     end
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)

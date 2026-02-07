@@ -299,12 +299,20 @@ function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
     if itemData.equipType == EQUIP_TYPE_INVALID then
         return GetString("SI_ITEMTYPE", itemData.itemType)
     end
-    local categoryType = BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(itemData.bagId, itemData.slotIndex)
-    if categoryType == GAMEPAD_WEAPON_CATEGORY_UNCATEGORIZED then
-        local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
-        return GetString("SI_WEAPONTYPE", weaponType)
-    elseif categoryType then
-        return GetString("SI_GAMEPADWEAPONCATEGORY", categoryType)
+    -- Weapon type with handedness suffix only for weapons that have both variants
+    local weaponType = GetItemWeaponType(itemData.bagId, itemData.slotIndex)
+    if weaponType and weaponType ~= WEAPONTYPE_NONE then
+        local weaponName = GetString("SI_WEAPONTYPE", weaponType)
+        -- Only Axe, Sword, and Hammer have both 1H and 2H variants — add suffix for clarity
+        -- Bow (always 2H), Dagger (always 1H), Staves (always 2H), Shield get no suffix
+        local needsSuffix = (weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_TWO_HANDED_AXE)
+            or (weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_TWO_HANDED_SWORD)
+            or (weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_TWO_HANDED_HAMMER)
+        if needsSuffix and (itemData.equipType == EQUIP_TYPE_ONE_HAND or itemData.equipType == EQUIP_TYPE_TWO_HAND) then
+            local handedness = GetString("SI_EQUIPTYPE", itemData.equipType)
+            return weaponName .. " - " .. handedness
+        end
+        return weaponName
     end
     local armorType = GetItemArmorType(itemData.bagId, itemData.slotIndex)
     local itemLink = GetItemLink(itemData.bagId, itemData.slotIndex)
