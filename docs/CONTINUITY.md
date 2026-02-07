@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T18:35Z
-> **Provenance:** [CODE] Fixed Junk category tab not appearing on mark-as-junk
+> **Last Updated:** 2026-02-07T21:08Z
+> **Provenance:** [CODE] Fixed 3 bugs: banking keyboard toggle, tooltip label hiding, Seals currency display
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,12 +28,12 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-07] [CODE] Fixed Seals currency display: `CURT_SEALS` renamed from `CURT_ENDEAVOR_SEALS` — added compat alias like Trade Bars
+- [2026-02-07] [CODE] Fixed tooltip label hiding regression: hooks on `ZO_Tooltip` class table don't affect `zo_mixin`'d instances; moved to per-instance overrides
+- [2026-02-07] [CODE] Fixed banking keyboard toggle (I/G/M keys) causing blurry screen by intercepting `SCENE_MANAGER:Toggle/Show` during banking
 - [2026-02-07] [CODE] Fixed Junk category tab not appearing when marking items as junk (SetItemIsJunk is async)
 - [2026-02-07] [CODE] Finalized scroll thumb backdrop replacement with native gamepad divider sample
-- [2026-02-07] [CODE] Fixed inventory scroll indicator bottom gap by normalizing thumb/drag math
 - [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
-- [2026-02-07] [CODE] Fixed position persistence in SaveListPosition (category key + item index now saved)
-- [2026-02-07] [CODE] Fixed profiler report shadowing and aligned module enable documentation
 - [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 
 **Now:**
@@ -62,9 +62,10 @@
 
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
-- `Modules/Inventory/Inventory.lua`
-- `Modules/Inventory/Actions/ItemActionsDialog.lua`
-- `Modules/Inventory/Lists/ItemListManager.lua`
+- `Modules/Banking/Banking.lua`
+- `Modules/CIM/Core/EnhancementModule.lua`
+- `Modules/CIM/UI/CurrencyManager.lua`
+- `Modules/Inventory/UI/TooltipUtils.lua`
 
 ---
 
@@ -72,19 +73,19 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-07 | [CODE] | Fixed Seals currency: `CURT_SEALS` → `CURT_SEALS or CURT_ENDEAVOR_SEALS` compat alias (same pattern as Trade Bars) |
+| 2026-02-07 | [CODE] | Fixed tooltip hiding: `zo_mixin` copies methods from class to instance at init time; must hook per-instance, not class table |
+| 2026-02-07 | [CODE] | Fixed banking keyboard toggle: intercept `SCENE_MANAGER:Toggle/Show` with re-entrancy guard during active banking |
+| 2026-02-07 | [CODE] | Removed `BetterUI_RecursiveHide` from TooltipUtils.lua — native labels now suppressed at source via `AddTopLinesToTopSection` hook |
 | 2026-02-07 | [CODE] | Fixed Junk tab bug: `SetItemIsJunk()` is async, moved coalesced `RefreshCategoryList` outside dialog if/else in `OnInventoryUpdated` |
-| 2026-02-07 | [CODE] | Finalized ScrollIndicator thumb texture (`gp_nav1_horDividerFlat.dds` center-row sampling); removed temporary legacy/flip diagnostics |
-| 2026-02-07 | [CODE] | ScrollIndicator now uses CalculateFirst/LastSelectableIndex to anchor bottom correctly at last selectable row |
+| 2026-02-07 | [CODE] | Finalized ScrollIndicator thumb texture (`gp_nav1_horDividerFlat.dds` center-row sampling) |
 | 2026-02-07 | [CODE] | Added cleanup requirement for temporary review artifacts before commit |
-| 2026-02-07 | [TOOL] | Removed critical_code_review.md, sr_engineering_team_review.md, implementation_plan.md |
 | 2026-02-07 | [CODE] | Fixed profiler report shadowing bug and updated module enable documentation |
 | 2026-02-07 | [CODE] | Replaced Banking keybind strip resets with targeted group removal |
 | 2026-02-07 | [CODE] | Localized tooltip cleanup tokens and junk label rendering |
-| 2026-02-07 | [CODE] | Removed fallback strings in Feature Flags and search positioning |
-| 2026-02-07 | [CODE] | Gated ScrollIndicator diagnostics behind debug flag |
-| 2026-02-07 | [USER] | Requested comprehensive code review with action mode |
 | 2026-02-06 | [TOOL] | Completed 7-phase agent config optimization |
 | 2026-02-06 | [TOOL] | Moved CONTRIBUTING.md + CONTINUITY.md to docs/ |
 | 2026-02-06 | [USER] | Requested agent configuration refactor with AGENTS.md |
 | 2026-02-06 | [USER] | Approved two-file approach (CONTINUITY + TRIBAL_KNOWLEDGE) |
 | 2026-02-06 | [TOOL] | Created AGENTS.md and docs/CONTINUITY.md |
+

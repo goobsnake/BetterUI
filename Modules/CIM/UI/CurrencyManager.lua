@@ -20,9 +20,11 @@ BETTERUI.CIM.Currency = BETTERUI.CIM.Currency or {}
 
 -- Backwards Compatibility:
 -- "Trade Bars" (Update 49+) used to be "Event Tickets".
+-- "Seals" used to be "Endeavor Seals" (renamed in upcoming release).
 -- "Tome Points" are new in Update 49 and may not exist on older clients.
 local IS_LEGACY_TICKETS = (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil)
 local TRADE_BARS_ID = CURT_TRADE_BARS or CURT_EVENT_TICKETS
+local SEALS_ID = CURT_SEALS or CURT_ENDEAVOR_SEALS
 local TOME_POINTS_ID = CURT_TOME_POINTS -- can be nil
 
 BETTERUI.CIM.Currency.DEFS = {
@@ -121,7 +123,7 @@ BETTERUI.CIM.Currency.DEFS = {
         token = "seals",
         labelName = "SealsLabel",
         settingKey = "showCurrencySeals",
-        apiConst = CURT_SEALS,
+        apiConst = SEALS_ID,
         labelStringId = "SI_BETTERUI_FOOTER_SEALS_LABEL",
         color = "00FF00",
         location = CURRENCY_LOCATION_ACCOUNT
@@ -175,17 +177,33 @@ end
 Function: BETTERUI.CIM.Currency.FormatLabel
 Description: Formats a currency label with localized text, color, value, and icon.
 Rationale: Provides consistent formatting across all currency types in the footer.
-Mechanism: Retrieves localized label string, gets currency icon, formats with
-           zo_strformat using color codes and icon markup.
+Mechanism: Retrieves localized label string, gets gamepad currency icon (with keyboard
+           fallback), formats via string concatenation with color codes and icon markup.
 param: def (table) - Currency definition from CURRENCY_DEFS
 param: amount (number) - The currency amount to display
 return: string - Formatted label text with color codes and icon
 ]]
 function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
-    local icon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(def.apiConst))
-    return zo_strformat("<<1>> |c<<2>><<3>>|r |t24:24:<<4>>|t",
-        label, def.color, BETTERUI.AbbreviateNumber(amount), icon)
+    -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
+    if not label or label == "" then
+        label = zo_strupper(def.token) .. ":"
+    end
+
+    -- Try gamepad icon first, fall back to keyboard icon.
+    local icon = GetCurrencyGamepadIcon(def.apiConst)
+    if not icon or icon == "" then
+        icon = GetCurrencyKeyboardIcon and GetCurrencyKeyboardIcon(def.apiConst) or ""
+    end
+    icon = BETTERUI.SafeIcon(icon)
+
+    -- Build label: "LABEL |cCOLORVALUE|r [icon]"
+    local valueStr = tostring(BETTERUI.AbbreviateNumber(amount) or "0")
+    local formatted = label .. " |c" .. def.color .. valueStr .. "|r"
+    if icon ~= "" then
+        formatted = formatted .. " |t24:24:" .. icon .. "|t"
+    end
+    return formatted
 end
 
 --[[
@@ -238,8 +256,12 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
         if label then
             local cached = cache[def.token] or {}
 
-            -- If the API constant is missing (e.g. Tome Points on old versions), force hide the label.
-            if def.apiConst == nil then
+            -- Runtime availability check:
+            --   API constant missing (e.g. CURT_TOME_POINTS on pre-U49 clients)
+            --   means this currency system does not exist on this client.
+            local available = def.apiConst ~= nil
+
+            if not available then
                 if not label:IsHidden() then
                     label:SetHidden(true)
                     anyChanged = true

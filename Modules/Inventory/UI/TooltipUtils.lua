@@ -253,7 +253,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
         local customLabel = container._betterUiStatus
 
-        if enhancementsEnabled and extraText ~= "" then
+        if enhancementsEnabled then
             -- A. Use Custom Label
             -- Hide native labels first
             GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
@@ -443,57 +443,17 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     fullText = fullText .. infoLine .. "\n"
                 end
 
-                -- HIDE ORIGINAL BODY LABEL via Recursion
-                local hideTokens = {
-                    boundStringLocal,
-                    bindTypeStringLocal,
-                    traitStringLocal,
-                    stolenString,
-                    junkString,
-                    GetString(SI_ITEM_FORMAT_STR_ADD_SET_COLLECTION_PIECE),
-                }
-
-                local function BetterUI_RecursiveHide(control)
-                    if not control then return end
-
-                    if control.GetText and (control:GetType() == CT_LABEL or control:GetType() == CT_EDITBOX) then
-                        local text = control:GetText()
-                        local textUpper = zo_strupper(text)
-
-                        -- Helper to check contain
-                        local function has(str)
-                            return str and str ~= "" and string.find(textUpper, zo_strupper(str))
-                        end
-
-                        for _, token in ipairs(hideTokens) do
-                            if has(token) then
-                                control:SetHidden(true)
-                                return
-                            end
-                        end
-
-                        -- 5. Bag/Bank Icons
-                        if string.find(textUpper, "ICON_BAG") or string.find(textUpper, "ICON_BANK") or string.find(textUpper, "ICON_CRAFT_BAG") then
-                            control:SetHidden(true)
-                            return
-                        end
-                    end
-
-                    if control.GetNumChildren then
-                        for i = 1, control:GetNumChildren() do
-                            BetterUI_RecursiveHide(control:GetChild(i))
-                        end
-                    end
-                end
-
-                BetterUI_RecursiveHide(tooltip)
+                -- NOTE: Native tooltip labels (bag/bank counts, bound, stolen, set collection)
+                -- are suppressed at source via ZO_Tooltip.AddTopLinesToTopSection hook
+                -- in EnhancementModule.lua. No post-hoc hiding needed.
             end
 
             -- 3. MARKET DATA (White Color)
-            -- Use extraText which includes Price + Trait (if any)
-            -- But we want standard usage here
-            local extraTextWhite = "|cFFFFFF" .. extraText .. "|r"
-            fullText = fullText .. extraTextWhite
+            -- Only append price/trait data if available
+            if extraText ~= "" then
+                local extraTextWhite = "|cFFFFFF" .. extraText .. "|r"
+                fullText = fullText .. extraTextWhite
+            end
 
             -- Configure and Show Custom Label
             local statusFontSize = math.floor(fontSize * 0.80)

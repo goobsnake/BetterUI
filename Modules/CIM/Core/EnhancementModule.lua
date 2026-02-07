@@ -107,7 +107,37 @@ function BETTERUI.GeneralInterface.Setup()
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), "LayoutItem", BETTERUI.ReturnItemLink,
 		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 
-
+	-- SUPPRESS NATIVE TOP-SECTION LABELS (bag/bank counts, bound, stolen, set collection)
+	-- When BetterUI tooltip enhancements are enabled, our custom status label in
+	-- UpdateTooltipEquippedText already displays this information.
+	-- The native AddTopLinesToTopSection adds pool-managed controls that are difficult
+	-- to reliably hide after-the-fact (ZO_ControlPool parents to GuiRoot, then re-parents
+	-- on acquire). Instead, we prevent them from being created in the first place.
+	--
+	-- IMPORTANT: ZO_Tooltip:Initialize uses zo_mixin(control, ..., self) which copies
+	-- all methods from ZO_Tooltip onto each control. Modifying ZO_Tooltip.AddTopLinesToTopSection
+	-- after initialization won't affect already-created controls. We must override the
+	-- method directly on each tooltip control instance.
+	local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+	for _, tooltipType in ipairs(tooltipTypes) do
+		local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
+		if tooltipControl and tooltipControl.AddTopLinesToTopSection then
+			local originalAddTopLines = tooltipControl.AddTopLinesToTopSection
+			tooltipControl.AddTopLinesToTopSection = function(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
+				local settings = BETTERUI.Settings.Modules["CIM"]
+				local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
+				if enhancementsEnabled then
+					-- Skip native labels — BetterUI's custom label handles them
+					-- We still need to add the empty subsection to preserve tooltip layout
+					local topSubsection = topSection:AcquireSection(self:GetStyle("topSubsectionItemDetails"))
+					topSection:AddSectionEvenIfEmpty(topSubsection)
+					return
+				end
+				-- Enhancements disabled — fall through to native behavior
+				return originalAddTopLines(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
+			end
+		end
+	end
 
 	-- Always register scene callback, check setting at runtime for live-refresh support
 	local scene = SCENE_MANAGER and SCENE_MANAGER.scenes and SCENE_MANAGER.scenes['gamepad_trading_house']

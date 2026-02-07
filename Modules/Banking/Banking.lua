@@ -803,5 +803,84 @@ function BETTERUI.Banking.Init()
     -- Configure unified footer for BANKING mode
     BETTERUI.Banking.Window:SetupUnifiedFooter()
 
+    -- =========================================================================
+    -- KEYBOARD SHORTCUT INTERCEPTION
+    -- Prevents keyboard keys (I, G, M, etc.) from interrupting the banking
+    -- ZO_InteractScene mid-interaction. Without this, pressing a keyboard
+    -- toggle key while banking causes:
+    --   1. Banking closes (interaction ends)
+    --   2. InteractScene fires RequestShowLeaderBaseScene (shows HUD)
+    --   3. Target scene never opens → blurry screen / broken state
+    --
+    -- Fix: Hook SCENE_MANAGER:Toggle and :Show while banking is active.
+    -- When intercepted, close banking properly via HideCurrentScene (the same
+    -- mechanism used by the Back button), then open the target scene after
+    -- the banking scene fully hides.
+    --
+    -- IMPORTANT: HideCurrentScene() internally calls Show("hud") which would
+    -- re-enter our hook. The `intercepting` guard prevents infinite recursion.
+    -- =========================================================================
+    local originalToggle = SCENE_MANAGER.Toggle
+    local originalShow = SCENE_MANAGER.Show
+    local bankingSceneName = BETTERUI_BANKING_SCENE_NAME
+    local intercepting = false -- Re-entrancy guard
+
+    --- Intercept a scene transition request issued while banking is active.
+    --- Closes banking properly via the scene manager and queues the target
+    --- scene to open after the banking scene has fully hidden.
+    --- @param targetSceneName string The scene the keyboard shortcut wants to show
+    local function InterceptSceneChange(targetSceneName)
+        -- Re-entrancy guard: HideCurrentScene() internally calls Show("hud"),
+        -- which would re-enter this hook. Pass through during teardown.
+        if intercepting then
+            return false
+        end
+
+        -- Don't intercept if the target IS the banking scene (that's just a close)
+        if targetSceneName == bankingSceneName or targetSceneName == "gamepad_banking" then
+            return false
+        end
+
+        -- Don't intercept base scene transitions (these are internal teardown)
+        if targetSceneName == "hud" or targetSceneName == "hudui" then
+            return false
+        end
+
+        local bankScene = SCENE_MANAGER:GetScene(bankingSceneName)
+        if not bankScene or not bankScene:IsShowing() then
+            return false
+        end
+
+        -- Register a one-shot callback: once banking is fully hidden, show the target scene
+        local function OnBankHidden(oldState, newState)
+            if newState == SCENE_HIDDEN then
+                bankScene:UnregisterCallback("StateChange", OnBankHidden)
+                -- Brief delay to let interaction cleanup finish before showing target scene
+                zo_callLater(function()
+                    originalShow(SCENE_MANAGER, targetSceneName)
+                end, 50)
+            end
+        end
+        bankScene:RegisterCallback("StateChange", OnBankHidden)
+
+        -- Close banking via the scene manager (same as the Back button).
+        -- This properly triggers the full scene teardown: keybind removal,
+        -- fragment hiding, and ZO_InteractScene:OnSceneHidden → EndInteraction.
+        intercepting = true
+        SCENE_MANAGER:HideCurrentScene()
+        intercepting = false
+        return true
+    end
+
+    SCENE_MANAGER.Toggle = function(sm, sceneName, ...)
+        if InterceptSceneChange(sceneName) then return end
+        return originalToggle(sm, sceneName, ...)
+    end
+
+    SCENE_MANAGER.Show = function(sm, sceneName, ...)
+        if InterceptSceneChange(sceneName) then return end
+        return originalShow(sm, sceneName, ...)
+    end
+
     esoSubscriber = IsESOPlusSubscriber()
 end

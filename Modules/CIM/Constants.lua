@@ -275,7 +275,7 @@ BETTERUI.CURRENCY_PRESETS = {
         orderCurrencyOutfitTokens = 10,
         showCurrencySeals = true,
         orderCurrencySeals = 11,
-        showCurrencyTomePoints = true,
+        showCurrencyTomePoints = false,
         orderCurrencyTomePoints = 12,
     },
     pvp = {

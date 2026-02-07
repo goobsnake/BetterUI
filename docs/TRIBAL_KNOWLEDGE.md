@@ -7,7 +7,7 @@
 
 ## Last Updated
 
-**2026-02-07**: Added `SetItemIsJunk` async quirk, quest item API, texture path, and position persistence learnings.
+**2026-02-07**: Added API constant rename compat pattern, `zo_mixin` hook pattern, `SetItemIsJunk` async quirk, and more.
 
 ---
 
@@ -109,6 +109,18 @@
 - The engine processes the change asynchronously and fires `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` when done
 - At that point, `IsItemJunk()` returns the correct value and `SHARED_INVENTORY` cache is updated
 - **Pattern**: Do not call `RefreshCategoryList` immediately after `SetItemIsJunk`; instead rely on the `SingleSlotInventoryUpdate` callback to schedule a coalesced refresh
+
+### Currency API Constant Renames
+- ZOS periodically renames currency constants (e.g., `CURT_EVENT_TICKETS` → `CURT_TRADE_BARS`, `CURT_ENDEAVOR_SEALS` → `CURT_SEALS`)
+- The `addoncompatibilityaliases` file defines backwards-compat aliases, but **addons do not load this file** — only the game client uses it
+- Always use `CURT_NEW_NAME or CURT_OLD_NAME` at file scope for constants that may have been renamed
+- See `CurrencyManager.lua` lines 25-27 for the canonical pattern
+
+### zo_mixin Copies Methods at Init Time
+- `ZO_Tooltip:Initialize` uses `zo_mixin(control, ..., self)` which copies all methods from the class table onto the control instance
+- Modifying `ZO_Tooltip.SomeMethod` AFTER tooltip controls are created has **no effect** — controls already have copies
+- To hook tooltip methods, override them directly on each control instance (e.g., `tooltipControl.AddTopLinesToTopSection = ...`)
+- Use `GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)` to get the actual control object
 
 ## Performance Learnings
 
