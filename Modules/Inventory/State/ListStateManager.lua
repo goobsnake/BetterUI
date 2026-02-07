@@ -11,8 +11,21 @@ local function SwitchActiveList(self, listDescriptor)
         return
     end
 
+    -- Clear multi-select state when switching between inventory/craftbag
+    -- Selected items are not compatible across list contexts
+    if self.isInSelectionMode then
+        self:ExitSelectionMode()
+    end
+    if self.isInCraftBagSelectionMode then
+        self:ExitCraftBagSelectionMode()
+    end
+
     -- Save the current list position before switching so positions are restored correctly later
-    if self.currentListType then
+    -- CRITICAL: Only save when scene is actively showing. During SCENE_HIDDEN cleanup,
+    -- SwitchActiveList(nil) is called AFTER DeactivateLists(), which may leave lists in
+    -- a state where selectedIndex/selectedData are stale. Position is already correctly
+    -- saved in SCENE_HIDING (before deactivation), so this guard prevents overwriting it.
+    if self.currentListType and self.scene and self.scene:IsShowing() then
         self:SaveListPosition()
     end
 

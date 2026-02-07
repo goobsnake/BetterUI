@@ -139,6 +139,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 -- If in multi-select mode, show "Unselect" or "Select (count)"
                 -- Check inventory multi-select manager
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    -- Quest items cannot be selected in multi-select mode
+                    if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
+                        return ""
+                    end
                     if target and self.multiSelectManager:IsSelected(target) then
                         return GetString(SI_BETTERUI_DESELECT_ITEM)
                     else
@@ -182,6 +186,13 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
+                end
+                -- Hide A-button when in multi-select and targeting a quest item
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local target = self.itemList and self.itemList.selectedData
+                    if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
+                        return false
+                    end
                 end
                 -- FLICKER FIX: Hide button during action transition when actionName cleared
                 -- This prevents showing incorrect fallback text after equip/unequip
@@ -466,6 +477,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             visible = function()
                 -- Visible in item list mode with items
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                    -- Hide for quest category (quest items can't be batch-operated)
+                    local catData = self.categoryList and self.categoryList.selectedData
+                    if catData and catData.filterType == ITEMFILTERTYPE_QUEST then
+                        return false
+                    end
                     return self.itemList and not self.itemList:IsEmpty()
                         and self.multiSelectManager ~= nil
                         and not self.multiSelectManager:IsActive()

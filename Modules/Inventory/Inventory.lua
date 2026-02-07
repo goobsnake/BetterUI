@@ -104,6 +104,12 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- Mark when scene showed so we can skip redundant category refreshes during initial load
 		self._sceneShowedTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
 
+		-- Invalidate slot data cache so RefreshItemList gets fresh data from SHARED_INVENTORY.
+		-- While the scene was hidden, the _inventoryUpdateCallback is unregistered, so any
+		-- inventory changes (e.g., container consumption during looting) won't have
+		-- invalidated the cache. This ensures consumed items are removed on return.
+		self:InvalidateSlotDataCache()
+
 		--figure out which list to land on
 		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
 		-- We normally do not want to enter the gamepad inventory on the item list
@@ -115,12 +121,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 			listToActivate = INVENTORY_CATEGORY_LIST
 		end
 
-		-- If returning from stacked scene (enchant dialog, etc.), restore position
-		if wasOnStack and self.ToSavedPosition then
-			self:ToSavedPosition()
-		end
-
 		-- switching the active list will handle activating/refreshing header, keybinds, etc.
+		-- Position restoration is handled by SwitchActiveList via savedInventoryCategoryKey
+		-- and savedInventoryPositionsByKey (saved in SCENE_HIDING).
 		self:SwitchActiveList(listToActivate)
 
 		self:ActivateHeader()
@@ -186,7 +189,13 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- Note: Inventory has multiple lists (itemList, craftBagList, categoryList)
 		BETTERUI.CIM.SceneCleanup.DeactivateLists(self, self.itemList, self.craftBagList, self.categoryList)
 
+		local savedListType = self.currentListType
 		self:SwitchActiveList(nil)
+		-- Preserve previousListType when scene is being pushed to stack (enchant, etc.)
+		-- so we can restore to the correct list type on return
+		if SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME) then
+			self.previousListType = savedListType
+		end
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
 
 		self.listWaitingOnDestroyRequest = nil
