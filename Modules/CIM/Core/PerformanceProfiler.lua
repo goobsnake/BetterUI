@@ -3,7 +3,7 @@ File: Modules/CIM/Core/PerformanceProfiler.lua
 Purpose: Performance profiling utilities for BetterUI debug mode.
          Provides timing hooks, counters, and metrics for optimization.
 Author: BetterUI Team
-Last Modified: 2026-02-02
+Last Modified: 2026-02-07
 
 STATUS: DORMANT - Kept for future performance debugging needs.
   This module has zero active consumers and is intentionally not integrated.
@@ -154,10 +154,10 @@ function BETTERUI.CIM.Profiler.Report()
     table.sort(sortedTimings, function(a, b) return a.data.totalMs > b.data.totalMs end)
 
     for _, entry in ipairs(sortedTimings) do
-        local d = entry.data
-        local avgMs = d.count > 0 and (d.totalMs / d.count) or 0
+        local timingData = entry.data
+        local avgMs = timingData.count > 0 and (timingData.totalMs / timingData.count) or 0
         d(string.format("  %s: %.1fms total, %d calls, avg %.2fms (min %.1f, max %.1f)",
-            entry.name, d.totalMs, d.count, avgMs, d.minMs, d.maxMs))
+            entry.name, timingData.totalMs, timingData.count, avgMs, timingData.minMs, timingData.maxMs))
     end
 
     -- Counter report

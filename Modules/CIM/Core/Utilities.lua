@@ -3,7 +3,7 @@ File: Modules/CIM/Core/Utilities.lua
 Purpose: Core utility functions for the BetterUI addon.
          Provides debug logging, module status checks, and icon safety wrappers.
 Author: BetterUI Team
-Last Modified: 2026-01-27
+Last Modified: 2026-02-07
 ]]
 
 -- ============================================================================
@@ -37,8 +37,8 @@ References: Used during module initialization to check if module should load.
 param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
 return: boolean - True if the module is enabled.
 ]]
--- NOTE: As of v2.8, 'm_enabled' is the canonical key. The 'enabled' fallback is retained for
--- backward compatibility with older saved variables but will be removed in v3.0.
+-- NOTE: As of v2.8, 'm_enabled' is the canonical key. Legacy 'enabled' fallback was removed
+-- to avoid silent defaults; migrate older saved variables before v3.0.
 --- @param moduleName string The key of the module in BETTERUI.Settings.Modules
 --- @return boolean enabled True if the module is enabled
 function BETTERUI.GetModuleEnabled(moduleName)

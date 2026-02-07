@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T00:35Z
-> **Provenance:** [TOOL] Removed review artifacts per user request
+> **Last Updated:** 2026-02-07T05:37Z
+> **Provenance:** [TOOL] Added cleanup requirements for review artifacts before commit
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,17 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
-- [2026-02-07] [TOOL] Removed code review artifacts and implementation plan files
+- [2026-02-07] [CODE] Added cleanup requirements for review artifacts before commits
+- [2026-02-07] [TOOL] Removed review artifacts and implementation plan
+- [2026-02-07] [CODE] Fixed profiler report shadowing and aligned module enable documentation
 - [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 - [2026-02-06] [TOOL] Agent config optimization: moved docs, simplified Claude commands, standardized prerequisites
 - [2026-02-06] [TOOL] Created AGENTS.md root configuration
 - [2026-02-06] [USER] Approved agent config refactor plan
 
 **Now:**
-- Cleanup complete; ready for further fixes or validation
+- Commit cleanup instruction updates
 
 **Next:**
-- Run `luac5.1 -p` on modified files and perform in-game validation
+- Plan modularization work for >500-line files (Inventory/Banking/CIM/ResourceOrbFrames)
 
 ---
 
@@ -58,12 +60,9 @@
 
 ## Working Set (≤12 paths)
 
-- `BetterUI.lua`
-- `Modules/Banking/Banking.lua`
-- `Modules/Banking/Keybinds/KeybindManager.lua`
-- `Modules/CIM/UI/ScrollIndicator.lua`
-- `Modules/Inventory/Core/InventoryClass.lua`
-- `Modules/Inventory/UI/TooltipUtils.lua`
+- `AGENTS.md`
+- `.agent/workflows/code-review.md`
+- `.agent/workflows/verify-integrity.md`
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
 
@@ -73,7 +72,9 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-07 | [CODE] | Added cleanup requirement for temporary review artifacts before commit |
 | 2026-02-07 | [TOOL] | Removed critical_code_review.md, sr_engineering_team_review.md, implementation_plan.md |
+| 2026-02-07 | [CODE] | Fixed profiler report shadowing bug and updated module enable documentation |
 | 2026-02-07 | [CODE] | Replaced Banking keybind strip resets with targeted group removal |
 | 2026-02-07 | [CODE] | Localized tooltip cleanup tokens and junk label rendering |
 | 2026-02-07 | [CODE] | Removed fallback strings in Feature Flags and search positioning |

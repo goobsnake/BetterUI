@@ -16,6 +16,7 @@
 * **Do not reinvent the wheel!** Reference existing ESO API patterns from the `esoui/` folder or online ESO documentation. Leverage in-game libraries and utilities where available.
 * **Design UI for the end-user, not for the schema!**
 * **Keep docs addon-focused.** Files under `docs/` must stay strictly about BetterUI addon architecture, behavior, testing, and ESO implementation details.
+* **Cleanup before commit.** Remove temporary files (code review artifacts, implementation plans, scratch notes) before `git commit`.
 
 ---
 

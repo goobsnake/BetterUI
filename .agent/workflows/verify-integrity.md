@@ -12,6 +12,18 @@ See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
 
 ---
 
+## Step 0: Remove Temporary Review Artifacts
+
+Before committing, ensure review artifacts and implementation plans are not tracked:
+
+```powershell
+rg --files -g "critical_code_review.md" -g "sr_engineering_team_review.md" -g "implementation_plan.md"
+```
+
+**Expected**: No results. If any appear, delete them before proceeding.
+
+---
+
 ## Step 1: Run Test Suite
 
 Execute the Lua unit tests to verify core functionality:
@@ -117,4 +129,3 @@ Or before any commit:
 |------|----------|
 | `--quick` | Skip XML validation and syntax check (Steps 3-4) |
 | `--full` | Include all checks (default) |
-
