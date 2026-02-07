@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T15:18Z
-> **Provenance:** [CODE] Fixed 4 inventory bugs (sort, quickslot icons, quest item use, quickslot unassign)
+> **Last Updated:** 2026-02-07T15:51Z
+> **Provenance:** [CODE] Patched scroll indicator bottom alignment using selectable index bounds
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-07] [CODE] Fixed inventory scroll indicator bottom gap by normalizing thumb/drag math to first/last selectable indices
 - [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
 - [2026-02-07] [CODE] Fixed position persistence in SaveListPosition (category key + item index now saved)
 - [2026-02-07] [CODE] Added cleanup requirements for review artifacts before commits
 - [2026-02-07] [CODE] Fixed profiler report shadowing and aligned module enable documentation
 - [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 - [2026-02-06] [TOOL] Agent config optimization: moved docs, simplified Claude commands, standardized prerequisites
-- [2026-02-06] [TOOL] Created AGENTS.md root configuration
 
 **Now:**
-- Committing bugfix changes
+- Validating scroll indicator bottom alignment in-game after selectable-range patch
 
 **Next:**
-- Plan modularization work for >500-line files (Inventory/Banking/CIM/ResourceOrbFrames)
+- In-game verify thumb reaches the down arrow at the last selectable list item
 
 ---
 
@@ -60,11 +60,11 @@
 
 ## Working Set (≤12 paths)
 
-- `AGENTS.md`
-- `.agent/workflows/code-review.md`
-- `.agent/workflows/verify-integrity.md`
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
+- `Modules/CIM/UI/ScrollIndicator.lua`
+- `Modules/Inventory/Lists/ItemListManager.lua`
+- `Modules/Inventory/Lists/InventoryList.lua`
 
 ---
 
@@ -72,6 +72,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-07 | [CODE] | ScrollIndicator now uses CalculateFirst/LastSelectableIndex to anchor bottom correctly at last selectable row |
 | 2026-02-07 | [CODE] | Added cleanup requirement for temporary review artifacts before commit |
 | 2026-02-07 | [TOOL] | Removed critical_code_review.md, sr_engineering_team_review.md, implementation_plan.md |
 | 2026-02-07 | [CODE] | Fixed profiler report shadowing bug and updated module enable documentation |
