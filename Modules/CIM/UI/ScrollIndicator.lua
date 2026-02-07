@@ -32,6 +32,9 @@ local SCROLL_INDICATOR = {
         WIDTH = 14,                                         -- Match track width
         MIN_HEIGHT = 120,                                   -- Visual sizing for cleaner look
         COLOR = { r = 0.77, g = 0.65, b = 0.30, a = 0.65 }, -- Match SelectionBar gold (#C4A64D @ 65% for visibility)
+        -- Use a native gamepad divider sample row to avoid hidden vertical padding artifacts.
+        TEXTURE = "EsoUI/Art/Windows/Gamepad/gp_nav1_horDividerFlat.dds",
+        TEXTURE_COORDS = { left = 0, right = 1, top = 0.5, bottom = 0.5 },
     },
     ARROW = {
         SIZE = 32,     -- Larger arrows
@@ -303,6 +306,15 @@ end
 -- HELPER FUNCTIONS
 -- ============================================================================
 
+local function ApplyThumbTexture(thumb)
+    if not thumb then return end
+
+    local textureConfig = SCROLL_INDICATOR.THUMB
+    thumb:SetTexture(textureConfig.TEXTURE)
+    local coords = textureConfig.TEXTURE_COORDS
+    thumb:SetTextureCoords(coords.left, coords.right, coords.top, coords.bottom)
+end
+
 --[[
 Function: CreateIndicatorControls
 Description: Creates the visual controls for the scroll indicator.
@@ -365,8 +377,7 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     -- Thumb (position indicator)
     -- IMPORTANT: Must have a texture file for mouse hit detection to work
     local thumb = WINDOW_MANAGER:CreateControl(controlName .. "Thumb", container, CT_TEXTURE)
-    -- Use a solid white texture that can be tinted with SetColor
-    thumb:SetTexture("EsoUI/Art/Miscellaneous/listItem_backdrop_white.dds")
+    ApplyThumbTexture(thumb)
     thumb:SetWidth(SCROLL_INDICATOR.THUMB.WIDTH)
     thumb:SetHeight(SCROLL_INDICATOR.THUMB.MIN_HEIGHT)
     thumb:SetColor(
