@@ -182,11 +182,15 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
         if inventorySlot then
+            -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
+            -- (this matches how the base game's TryUseQuestItem works in inventoryslot.lua:420)
+            -- Do NOT hide the scene manually — ESO's engine handles the scene transition
+            -- (e.g., opening book reader, world map) and keeps inventory on the scene stack
+            -- so WasSceneOnStack returns true on re-entry, preserving category/position
             if inventorySlot.toolIndex then
-                CallSecureProtected("UseQuestTool", inventorySlot.questIndex, inventorySlot.toolIndex)
+                UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
             elseif inventorySlot.conditionIndex then
-                CallSecureProtected("UseQuestItem", inventorySlot.questIndex, inventorySlot.stepIndex,
-                    inventorySlot.conditionIndex)
+                UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
             end
         end
     else

@@ -327,12 +327,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                             -- Use the item (this handles scene transitions natively for books/maps)
                             -- Access dataSource for quest-specific properties
                             local ds = target.dataSource or target
-                            -- Hide inventory scene to allow native scene transition
-                            SCENE_MANAGER:Hide("gamepad_inventory_root")
+                            -- UseQuestTool and UseQuestItem are NOT protected functions - call directly
+                            -- Do NOT hide the scene — ESO handles scene transitions automatically
                             if ds.toolIndex then
-                                CallSecureProtected("UseQuestTool", ds.questIndex, ds.toolIndex)
+                                UseQuestTool(ds.questIndex, ds.toolIndex)
                             elseif ds.stepIndex and ds.conditionIndex then
-                                CallSecureProtected("UseQuestItem", ds.questIndex, ds.stepIndex, ds.conditionIndex)
+                                UseQuestItem(ds.questIndex, ds.stepIndex, ds.conditionIndex)
                             else
                                 -- Fallback for items without tool/step info (shouldn't happen but safe)
                                 local bag, slot = ZO_Inventory_GetBagAndIndex(ds)

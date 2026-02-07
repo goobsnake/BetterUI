@@ -111,6 +111,53 @@ function BETTERUI.Inventory.SaveListPosition(self)
 
     -- Save position using CIM PositionManager
     BETTERUI.CIM.PositionManager.SavePosition(subModuleKey, key, currentList)
+
+    -- Also update the fields that SwitchActiveList reads for restoration
+    if isCraftBag then
+        self.savedCraftBagCategoryKey = key
+        self.savedCraftBagCategoryIndex = self.categoryList.selectedIndex
+        if currentList then
+            local selectedIndex = currentList.selectedIndex
+                or (currentList.list and currentList.list.selectedIndex)
+            if selectedIndex then
+                self.savedCraftBagPositionsByKey = self.savedCraftBagPositionsByKey or {}
+                self.savedCraftBagPositionsByKey[key] = selectedIndex
+            end
+            -- Save uniqueId for precise item restoration
+            local selectedData = currentList.selectedData
+                or (currentList.list and currentList.list.selectedData)
+            if selectedData then
+                local uid = (selectedData.dataSource and selectedData.dataSource.uniqueId)
+                    or selectedData.uniqueId
+                if uid then
+                    self.savedCraftBagSelectedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey or {}
+                    self.savedCraftBagSelectedItemUniqueByKey[key] = uid
+                end
+            end
+        end
+    else
+        self.savedInventoryCategoryKey = key
+        self.savedInventoryCategoryIndex = self.categoryList.selectedIndex
+        if currentList then
+            local selectedIndex = currentList.selectedIndex
+                or (currentList.list and currentList.list.selectedIndex)
+            if selectedIndex then
+                self.savedInventoryPositionsByKey = self.savedInventoryPositionsByKey or {}
+                self.savedInventoryPositionsByKey[key] = selectedIndex
+            end
+            -- Save uniqueId for precise item restoration
+            local selectedData = currentList.selectedData
+                or (currentList.list and currentList.list.selectedData)
+            if selectedData then
+                local uid = (selectedData.dataSource and selectedData.dataSource.uniqueId)
+                    or selectedData.uniqueId
+                if uid then
+                    self.savedInventorySelectedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey or {}
+                    self.savedInventorySelectedItemUniqueByKey[key] = uid
+                end
+            end
+        end
+    end
 end
 
 -- Register mixins for Core to pick up
