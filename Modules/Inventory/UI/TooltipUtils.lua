@@ -3,7 +3,7 @@ File: Modules/Inventory/InventoryTooltipUtils.lua
 Purpose: specialized tooltip logic for the Inventory module.
          Extracted from Inventory.lua to reduce file size.
 Author: BetterUI Team
-Last Modified: 2026-02-02
+Last Modified: 2026-02-07
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
@@ -358,6 +358,10 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 if bagId and slotIndex then
                     isJunk = IsItemJunk(bagId, slotIndex)
                 end
+                local junkString = ""
+                if isJunk then
+                    junkString = GetString(SI_ITEM_FORMAT_STR_JUNK)
+                end
 
                 -- F. Collected Status
                 local isCollected = false
@@ -403,9 +407,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
 
 
-                if isJunk then
+                if isJunk and junkString ~= "" then
                     local junkIcon = "|t" .. iconSizeFmt .. ":esoui/art/inventory/inventory_tabicon_junk_up.dds|t"
-                    table.insert(segments, "|cD5B526" .. junkIcon .. " Junk" .. "|r")
+                    table.insert(segments, "|cD5B526" .. junkIcon .. " " .. junkString .. "|r")
                 end
 
                 -- Stolen (Red)
@@ -440,65 +444,32 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
 
                 -- HIDE ORIGINAL BODY LABEL via Recursion
+                local hideTokens = {
+                    boundStringLocal,
+                    bindTypeStringLocal,
+                    traitStringLocal,
+                    stolenString,
+                    junkString,
+                    GetString(SI_ITEM_FORMAT_STR_ADD_SET_COLLECTION_PIECE),
+                }
+
                 local function BetterUI_RecursiveHide(control)
                     if not control then return end
 
                     if control.GetText and (control:GetType() == CT_LABEL or control:GetType() == CT_EDITBOX) then
                         local text = control:GetText()
-                        local textUpper = string.upper(text)
+                        local textUpper = zo_strupper(text)
 
                         -- Helper to check contain
                         local function has(str)
                             return str and str ~= "" and string.find(textUpper, zo_strupper(str))
                         end
 
-                        -- 1. Bound / Bind on Equip
-                        if has(boundStringLocal) then
-                            control:SetHidden(true)
-                            return
-                        end
-                        if has(bindTypeStringLocal) then
-                            control:SetHidden(true)
-                            return
-                        end
-                        -- Force check for standard strings
-                        if string.find(textUpper, "BIND ON EQUIP") then
-                            control:SetHidden(true)
-                            return
-                        end
-                        if string.find(textUpper, "BIND ON PICKUP") then
-                            control:SetHidden(true)
-                            return
-                        end
-
-                        -- 2. Traits (Ornate/Intricate)
-                        if has(traitStringLocal) then
-                            control:SetHidden(true)
-                            return
-                        end
-
-                        -- 3. Collected
-                        if string.find(textUpper, "COLLECTED") then
-                            control:SetHidden(true)
-                            return
-                        end
-                        if string.find(textUpper, "ALREADY COLLECTED") then
-                            control:SetHidden(true)
-                            return
-                        end
-                        if has(GetString(SI_ITEM_FORMAT_STR_ADD_SET_COLLECTION_PIECE)) then
-                            control:SetHidden(true)
-                            return
-                        end
-
-                        -- 4. Stolen
-                        if string.find(textUpper, "STOLEN") then
-                            control:SetHidden(true)
-                            return
-                        end
-                        if string.find(textUpper, "JUNK") then
-                            control:SetHidden(true)
-                            return
+                        for _, token in ipairs(hideTokens) do
+                            if has(token) then
+                                control:SetHidden(true)
+                                return
+                            end
                         end
 
                         -- 5. Bag/Bank Icons

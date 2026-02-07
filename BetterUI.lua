@@ -6,7 +6,7 @@ Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
            Manages the loading of sub-modules based on Gamepad mode.
            Runtime patches and settings migrations are delegated to CIM/RuntimeSetup.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-02-07
 
 -- TODO(ARCHITECTURE): Consider adopting a formal module registration pattern.
 -- Current approach: Each module is manually listed in LoadModules() and Initialize().
@@ -173,12 +173,12 @@ function BETTERUI.InitModuleOptions()
 		local flagControls = {
 			{
 				type = "header",
-				name = GetString(SI_BETTERUI_FEATURE_FLAGS_HEADER) or "Feature Flags",
+				name = GetString(SI_BETTERUI_FEATURE_FLAGS_HEADER),
 				width = "full",
 			},
 			{
 				type = "description",
-				text = GetString(SI_BETTERUI_FEATURE_FLAGS_DESC) or "Toggle experimental or optional features.",
+				text = GetString(SI_BETTERUI_FEATURE_FLAGS_DESC),
 				width = "full",
 			},
 		}
