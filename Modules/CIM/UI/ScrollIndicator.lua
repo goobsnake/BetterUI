@@ -169,6 +169,36 @@ local function SetupArrowMouseHandlers(instance)
 end
 
 --[[
+Function: GetSelectableBounds
+Description: Resolves the first/last selectable indices for a list.
+Rationale: Parametric lists can contain non-selectable rows; using raw item count
+           causes the thumb to stop short of visual extremes.
+param: instance (table) - The scroll indicator instance.
+param: totalItems (number) - Total entries currently in the list.
+return: number, number - firstSelectableIndex, lastSelectableIndex
+]]
+local function GetSelectableBounds(instance, totalItems)
+    local firstSelectableIndex = 1
+    local lastSelectableIndex = totalItems
+
+    local listObject = instance and instance.listObject
+    if listObject and totalItems > 0 then
+        if listObject.CalculateFirstSelectableIndex then
+            firstSelectableIndex = listObject:CalculateFirstSelectableIndex()
+        end
+        if listObject.CalculateLastSelectableIndex then
+            lastSelectableIndex = listObject:CalculateLastSelectableIndex()
+        end
+    end
+
+    local maxIndex = math.max(totalItems, 1)
+    firstSelectableIndex = zo_clamp(firstSelectableIndex or 1, 1, maxIndex)
+    lastSelectableIndex = zo_clamp(lastSelectableIndex or totalItems, firstSelectableIndex, maxIndex)
+
+    return firstSelectableIndex, lastSelectableIndex
+end
+
+--[[
 Function: SetupThumbDragHandlers
 Description: Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
 param: instance (table) - The scroll indicator instance.
@@ -228,13 +258,23 @@ local function SetupThumbDragHandlers(instance)
         -- Calculate target index based on scroll percent
         -- Map directly to item index: 0% = item 1, 100% = item totalItems
         local totalItems = instance.totalItems or 0
-        local visibleItems = instance.visibleItems or 10
 
         if totalItems <= 1 then return end
 
-        -- Direct mapping: scrollPercent 0 = item 1, scrollPercent 1 = item totalItems
-        local targetIndex = math.floor(1 + (scrollPercent * (totalItems - 1)) + 0.5)
-        targetIndex = zo_clamp(targetIndex, 1, totalItems)
+        -- Map drag position across the selectable range (skips non-selectable rows).
+        local firstSelectableIndex, lastSelectableIndex = GetSelectableBounds(instance, totalItems)
+        local selectableSpan = lastSelectableIndex - firstSelectableIndex
+        if selectableSpan <= 0 then return end
+
+        local targetIndex = math.floor(firstSelectableIndex + (scrollPercent * selectableSpan) + 0.5)
+        targetIndex = zo_clamp(targetIndex, firstSelectableIndex, lastSelectableIndex)
+
+        if instance.listObject.CanSelect and instance.listObject.GetNextSelectableIndex and not instance.listObject:CanSelect(targetIndex) then
+            targetIndex = instance.listObject:GetNextSelectableIndex(targetIndex - 1)
+            if targetIndex > lastSelectableIndex then
+                targetIndex = lastSelectableIndex
+            end
+        end
 
         -- Only update if index changed
         if targetIndex ~= instance.currentIndex then
@@ -463,12 +503,14 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     controls.upArrow:SetHidden(false)
     controls.downArrow:SetHidden(false)
 
+    local firstSelectableIndex, lastSelectableIndex = GetSelectableBounds(instance, instance.totalItems)
+    local selectableSpan = lastSelectableIndex - firstSelectableIndex
+
     -- Calculate scroll position (0-1 range)
-    -- currentIndex is the selected item (1 to totalItems)
-    -- Map it directly: item 1 = top (0), item totalItems = bottom (1)
+    -- Normalize against selectable bounds, not raw entry count.
     local scrollPosition = 0
-    if totalItems > 1 then
-        scrollPosition = (currentIndex - 1) / (totalItems - 1)
+    if selectableSpan > 0 then
+        scrollPosition = (currentIndex - firstSelectableIndex) / selectableSpan
     end
     scrollPosition = zo_clamp(scrollPosition, 0, 1)
 
@@ -477,7 +519,8 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
 
     -- Calculate thumb height (proportional to visible items relative to total)
     -- Use full trackHeight so thumb size is consistent with visual track
-    local thumbHeightRatio = visibleItems / math.max(totalItems, 1)
+    local selectableItems = lastSelectableIndex - firstSelectableIndex + 1
+    local thumbHeightRatio = visibleItems / math.max(selectableItems, 1)
     local thumbHeight = math.max(SCROLL_INDICATOR.THUMB.MIN_HEIGHT, trackHeight * math.min(thumbHeightRatio, 1))
 
     -- Calculate available travel distance within the FULL track
@@ -494,10 +537,10 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     controls.thumb:ClearAnchors()
     controls.thumb:SetHeight(thumbHeight)
 
-    if currentIndex >= totalItems and totalItems > 1 then
+    if currentIndex >= lastSelectableIndex and selectableSpan > 0 then
         -- Last item: anchor thumb BOTTOM to track BOTTOM for pixel-perfect bottom alignment
         controls.thumb:SetAnchor(BOTTOM, controls.track, BOTTOM, 0, 0)
-    elseif currentIndex <= 1 or totalItems <= 1 then
+    elseif currentIndex <= firstSelectableIndex or selectableSpan <= 0 then
         -- First item (or single/no items): anchor thumb TOP to track TOP
         controls.thumb:SetAnchor(TOP, controls.track, TOP, 0, 0)
     elseif scrollPosition > 0.5 then
@@ -510,7 +553,7 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     end
 
     if BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled() then
-        if currentIndex >= totalItems - 1 and totalItems > 1 then
+        if currentIndex >= lastSelectableIndex - 1 and selectableSpan > 0 then
             zo_callLater(function()
                 if not controls or not controls.thumb then return end
                 local tT, tB = controls.thumb:GetTop(), controls.thumb:GetBottom()
