@@ -28,14 +28,14 @@ $claudeCommandsDir = Join-Path $repoRoot ".claude/commands"
 $workflowsDir = Join-Path $repoRoot ".agent/workflows"
 
 $commandMap = @{
-    "verify-integrity.md"      = "verify-integrity.md"
-    "sr-review-gate.md"        = "sr-review-gate.md"
+    "verify-integrity.md"        = "verify-integrity.md"
+    "sr-review-gate.md"          = "sr-review-gate.md"
     "update-tribal-knowledge.md" = "update-tribal-knowledge.md"
-    "code-review.md"           = "comprehensive-code-review.md"
-    "garbage-cleanup.md"       = "garbage-cleanup.md"
-    "lang-audit.md"            = "lang-audit.md"
-    "review-todos.md"          = "review-todos.md"
-    "scaffold-module.md"       = "scaffold-module.md"
+    "code-review.md"             = "code-review.md"
+    "garbage-cleanup.md"         = "garbage-cleanup.md"
+    "lang-audit.md"              = "lang-audit.md"
+    "review-todos.md"            = "review-todos.md"
+    "scaffold-module.md"         = "scaffold-module.md"
 }
 
 function Test-SymbolicLinkSupport {
