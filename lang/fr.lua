@@ -11,15 +11,15 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Endurance de monture")
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Rien dans la liste")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Chargement de la liste...")
-ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "Aucun objet trouvé")
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: Aucune donnée de prix")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Avg: <<1>> / Sug: <<2>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Avg: <<1>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Sug: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Price: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Price: <<2>>,   Stack(<<3>>): <<4>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Prix: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Prix: <<2>>,   Pile(<<3>>): <<4>>")
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Transporter")
@@ -109,7 +109,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING",
     "Voulez-vous équiper <<t:1>> dans le premier ou second emplacement de bague?")
 ZO_CreateStringId("SI_BETTERUI_BANKING_TOGGLE_LIST", "Basculer la liste")
 ZO_CreateStringId("SI_BETTERUI_CONFIRM_AMOUNT", "CONFIRMER LE MONTANT")
-ZO_CreateStringId("SI_BETTERUI_CONFIRM", "Confirmer")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_GOLD", "OR")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_TEL_VAR", "TEL VAR")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ALLIANCE_POINT", "PA")
@@ -138,7 +137,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Redéfinit complètemen
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Activer |c0066FFModule de commandes|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Affiche les commandes journalières et leur progression à chaque station d'artisanat")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Module d'interface commun")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Active des fonctionnalités supplémentaires pour les interfaces \"Améliorées\"!")
 
@@ -239,7 +237,6 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Ajustez la taille du t
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Réinitialiser")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
     "Réinitialiser tous les paramètres des plaques aux valeurs par défaut.")
-ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Personnalisation des polices")
@@ -457,51 +454,49 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Afficher un dialogue avant d'équiper des objets Lier à l'équipement")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Afficher les tickets d'événement")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Position tickets d'événement")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Cadres des Orbes de Ressources")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Activer |c0066FFCadres des Orbes de Ressources|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Active le module Cadres des Orbes de Ressources.")
 
 -- Skill Bars Settings
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Afficher le temps de recharge du raccourci")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
-    "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+    "Affiche un minuteur de recharge sur le bouton de raccourci, remplaçant le compteur d'objets pendant la recharge.")
 
 -- Ultimate Number Display Settings
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
-ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Affichage du numéro d'ultime")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Afficher le numéro d'ultime")
 ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP",
-    "Display your current ultimate value on the ultimate button.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
+    "Affiche la valeur actuelle de votre ultime sur le bouton d'ultime.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Taille du texte d'ultime")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Taille de la police pour l'affichage du numéro d'ultime.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Couleur du texte d'ultime")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Couleur pour l'affichage du numéro d'ultime.")
 
 -- Combat Indicators Settings
-ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Indicateurs de combat")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Activer la lueur de combat")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
-    "Display a pulsing red/orange glow around the skill bar when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Play a sound when entering and exiting combat.")
+    "Affiche une lueur pulsante rouge/orange autour de la barre de compétences en combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Couleur de la lueur de combat")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Couleur de l'effet de lueur de combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Activer l'icône de combat")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Affiche une icône d'épées croisées en combat.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Activer le signal audio de combat")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Joue un son lors de l'entrée et de la sortie du combat.")
 
 -- Banking Specific Strings
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
-ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
-ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "BANQUE DE MAISON VIDE !")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "BANQUE DE MAISON")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "SAC DU JOUEUR VIDE !")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "SAC DU JOUEUR")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Fonds insuffisants pour le transfert.")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Banque avancée")
 
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
@@ -520,8 +515,6 @@ ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Activer les améliorations d'infobulle")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Active les améliorations personnalisées, le redimensionnement de police et les infos supplémentaires dans l'en-tête de l'infobulle. Si désactivé, revient à l'interface native avec seulement le prix du marché.")
-ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "ATTENTION : Ce paramètre peut entraîner une perte de données. Activez avec prudence.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ATTENTION : Les objets seront détruits SANS confirmation. Cela peut entraîner une perte permanente d'objets.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -543,20 +536,9 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Tout déposer")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Sélectionnez le montant à déposer")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Sélectionnez le montant à retirer")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Trier")
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Sélectionner")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Tout désélectionner")
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Mode sélection")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> sélectionnés")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Actions groupées")
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Déposer la sélection")
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Retirer la sélection")
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Vendre la sélection")
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Verrouiller la sélection")
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Déverrouiller la sélection")
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Sélection multiple")
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Marquer comme rebut (sélection)")
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Retirer du rebut (sélection)")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Détruire la sélection")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Traitement de <<1>> objets. Veuillez patienter...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> objets traités.")
 -- Added from en.lua
@@ -566,19 +548,16 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Désélectionner")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Sélectionner (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Tout sélectionner")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Stow How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Retrieve How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Select the amount to stow") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Select the amount to retrieve") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stow Stack") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack") -- TODO: Translate
     "Choisissez une action à appliquer aux objets sélectionnés. Les objets verrouillés peuvent ne pas être compatibles avec certaines actions.")
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
+    "⚠️ Cette police peut ne pas afficher correctement les caractères chinois/japonais. Envisagez d'utiliser une option de police localisée.")
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
+    "⚠️ Cette police peut ne pas afficher correctement les caractères russes. Envisagez d'utiliser une option de police localisée.")
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Lier pour la collection")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Sac plein ! <<1>> sur <<2>> objets traités.")
+ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Combien ranger ?")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Combien récupérer ?")
+ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Sélectionnez la quantité à ranger")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Sélectionnez la quantité à récupérer")
+ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Ranger la pile")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Récupérer la pile")

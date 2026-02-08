@@ -117,8 +117,8 @@ function Invoke-LanguageSync {
             $langSet.Add($key) | Out-Null
         }
 
-        $missing = $enKeys | Where-Object { -not $langSet.Contains($_) }
-        $extra = $langMap.Keys | Where-Object { -not $enMap.Contains($_) }
+        $missing = @($enKeys | Where-Object { -not $langSet.Contains($_) })
+        $extra = @($langMap.Keys | Where-Object { -not $enMap.Contains($_) })
 
         $newContent = $content
         $removedCount = 0
@@ -222,7 +222,7 @@ function Invoke-LanguageAudit {
     $enContent = Get-Content -LiteralPath $EnPath -Raw
     $enKeys = [regex]::Matches($enContent, 'ZO_CreateStringId\("([^"]+)"') | ForEach-Object { $_.Groups[1].Value }
 
-    $badKeys = $enKeys | Where-Object { $_ -notmatch '^SI_BETTERUI_' }
+    $badKeys = @($enKeys | Where-Object { $_ -notmatch '^SI_BETTERUI_' })
     if ($badKeys.Count -gt 0) {
         $warning = 'WARNING: Finding keys violating naming convention (must start with SI_BETTERUI_):'
         Write-Host "`n$warning" -ForegroundColor Yellow
@@ -249,7 +249,7 @@ function Invoke-LanguageAudit {
             $keySet.Add($key) | Out-Null
         }
 
-        $missing = $enKeys | Where-Object { -not $keySet.Contains($_) }
+        $missing = @($enKeys | Where-Object { -not $keySet.Contains($_) })
         if ($missing.Count -gt 0) {
             $msg = "Missing keys (present in en.lua but not in $($langFile.Name)) [Count: $($missing.Count)]:"
             Write-Host $msg
@@ -285,13 +285,13 @@ function Invoke-LanguageAudit {
     foreach ($item in $used) { $usedSet.Add($item) | Out-Null }
 
     'Unused strings (defined in en.lua but not found in codebase):' | Add-Content -LiteralPath $OutputPath
-    $unused = $defined | Where-Object { -not $usedSet.Contains($_) } | Sort-Object
+    $unused = @($defined | Where-Object { -not $usedSet.Contains($_) } | Sort-Object)
     foreach ($item in $unused) {
         " $item" | Add-Content -LiteralPath $OutputPath
     }
 
     "`n Missing strings (found in codebase but not in en.lua):" | Add-Content -LiteralPath $OutputPath
-    $missingDefs = $used | Where-Object { -not $definedSet.Contains($_) } | Sort-Object
+    $missingDefs = @($used | Where-Object { -not $definedSet.Contains($_) } | Sort-Object)
     foreach ($item in $missingDefs) {
         " $item" | Add-Content -LiteralPath $OutputPath
     }

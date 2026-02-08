@@ -11,15 +11,15 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "坐骑耐力")
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "列表中没有内容")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "正在加载列表...")
-ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "未找到物品")
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: 无价格数据")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Avg: <<1>> / Sug: <<2>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Avg: <<1>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Sug: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Price: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Price: <<2>>,   Stack(<<3>>): <<4>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> 价格: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> 价格: <<2>>,   堆叠(<<3>>): <<4>>")
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "携带")
@@ -106,7 +106,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "是否要将 <<t:1>> �
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "是否要将 <<t:1>> 装备到第一个或第二个指环槽位？")
 ZO_CreateStringId("SI_BETTERUI_BANKING_TOGGLE_LIST", "切换列表")
 ZO_CreateStringId("SI_BETTERUI_CONFIRM_AMOUNT", "确认数量")
-ZO_CreateStringId("SI_BETTERUI_CONFIRM", "确认")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_GOLD", "金币")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_TEL_VAR", "生命石")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ALLIANCE_POINT", "阵营点数")
@@ -132,7 +131,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "启用 |c0066FF增强银行|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "完全重新设计手柄的银行界面")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "启用 |c0066FF日常委托模块|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "在每个制作站显示日常委托及进度")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "通用界面模块")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "为完全重新设计的\"增强\"界面启用额外功能！")
 
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "北")
@@ -224,7 +222,6 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "调整名牌文字的大小。默认值为16。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置为默认")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置重置为默认值。")
-ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
@@ -410,51 +407,49 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "显示活动门票")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "活动门票位置")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "资源球框架")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "启用|c0066FF资源球框架|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "启用资源球框架模块。")
 
 -- Skill Bars Settings
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "显示快捷槽冷却")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
-    "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+    "在快捷槽按钮上显示冷却计时器。")
 
 -- Ultimate Number Display Settings
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
-ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "终极技能数值显示")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "显示终极数值")
 ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP",
-    "Display your current ultimate value on the ultimate button.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
+    "在终极技能按钮上显示当前终极值。")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "终极文本大小")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "终极数值显示的字体大小。")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "终极文本颜色")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "终极数值显示的颜色。")
 
 -- Combat Indicators Settings
-ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "战斗指示器")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "启用战斗光效")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
-    "Display a pulsing red/orange glow around the skill bar when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Play a sound when entering and exiting combat.")
+    "战斗时在技能栏周围显示红/橙色脉动光效。")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "战斗光效颜色")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "战斗光效的颜色。")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "启用战斗图标")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "战斗时显示交叉剑图标。")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "启用战斗音效提示")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "进入和退出战斗时播放音效。")
 
 -- Banking Specific Strings
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
-ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
-ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "房屋银行为空！")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "房屋银行")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "玩家背包为空！")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "玩家背包")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "资金不足，无法转账。")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "高级银行")
 
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
@@ -472,8 +467,6 @@ ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "启用提示增强")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "启用自定义改进、字体缩放和提示标题中的额外信息。禁用后将恢复为仅添加市场价格的原生UI。")
-ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "警告：此设置可能导致数据丢失。请谨慎启用。")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：物品将在没有确认的情况下销毁。这可能导致永久性物品丢失。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -495,20 +488,9 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "全部存入")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "选择提取数量")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "排序")
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "选择")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "取消全选")
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "选择模式")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "已选择 <<1>> 个")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "批量操作")
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "存入所选")
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "提取所选")
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "出售所选")
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "锁定所选")
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "解锁所选")
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "多选")
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "标记为垃圾（所选）")
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "取消垃圾标记（所选）")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "销毁所选")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "正在处理 <<1>> 个物品。请稍候...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "已处理 <<1>> 个物品。")
 -- Added from en.lua
@@ -518,19 +500,15 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "取消选择")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "选择 (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "全选")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "选择要应用于所选物品的操作。锁定的物品可能与某些操作不兼容。")
--- Added from en.lua (TODO: Translate)
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
+    "⚠️ 此字体可能无法正确显示中文/日文字符。请考虑使用本地化字体选项。")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Stow How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Retrieve How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Select the amount to stow") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Select the amount to retrieve") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stow Stack") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack") -- TODO: Translate
+    "⚠️ 此字体可能无法正确显示俄文字符。请考虑使用本地化字体选项。")
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "绑定以收藏")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "背包已满！已处理<<1>>个中的<<2>>个物品。")
+ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "存入多少？")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "取出多少？")
+ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "选择存入数量")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
+ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")

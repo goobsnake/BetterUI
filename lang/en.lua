@@ -37,7 +37,6 @@ ZO_CreateStringId("SI_BETTERUI_FOOTER_TELVAR", "Tel Var")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_AP", "AP")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_WRITS", "Writs")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TRADE_BARS", "Trade Bars")
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets") -- Legacy: pre-Update 49 name for Trade Bars
 ZO_CreateStringId("SI_BETTERUI_FOOTER_OUTFIT_TOKENS", "Outfit Tokens")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_SEALS", "Seals")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_TOME_POINTS", "Tome Points")
@@ -127,7 +126,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Do you want to equip <<
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Do you want to equip <<t:1>> in first or second ring slot?")
 ZO_CreateStringId("SI_BETTERUI_BANKING_TOGGLE_LIST", "Toggle List")
 ZO_CreateStringId("SI_BETTERUI_CONFIRM_AMOUNT", "CONFIRM AMOUNT")
-ZO_CreateStringId("SI_BETTERUI_CONFIRM", "Confirm")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_GOLD", "GOLD")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_TEL_VAR", "TEL VAR")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ALLIANCE_POINT", "AP")
@@ -149,12 +147,10 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")
 
 -- Multi-Select Mode
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Multi-Select")
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Select")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deselect")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Select (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Deselect All")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Select All")
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Selection Mode")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
@@ -162,16 +158,6 @@ ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.")
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Deposit Selected")
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Withdraw Selected")
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Sell Selected")
--- Legacy strings for backwards compatibility (batch actions now use ESO's SI_ITEM_ACTION_* strings)
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Lock Selected")
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Unlock Selected")
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Select Many") -- DEPRECATED: Use SI_BETTERUI_MULTI_SELECT
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Mark Junk (Selected)")
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Unmark Junk (Selected)")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Destroy Selected")
 
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_HEADER", "Master Settings")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "Master Addon Settings")
@@ -186,9 +172,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the gamepad's banking interface")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Common Interface Module")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Enables added functionality to the completely redesigned \"Enhanced\" interfaces!")
 
 -- Feature Flags Settings
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")
@@ -291,7 +274,6 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate settings to their default values.")
 
 -- Inventory Font Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Font Customization")
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_DESC",
     "Customize fonts for the inventory list. Set different fonts for the Name column and other columns (Type, Trait, Stat, Value).")
@@ -444,8 +426,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Enables custom improvements, font scaling, and additional info in the tooltip header. If disabled, reverts to native UI with only Market Price added.")
 
 -- Destructive Settings Warnings
-ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "WARNING: This setting can result in data loss. Enable with caution.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -490,7 +470,6 @@ ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
 
 -- Quickslot Cooldown Settings
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
     "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")

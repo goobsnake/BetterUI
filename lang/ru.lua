@@ -11,15 +11,15 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Выносливость �
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Ничего в списке")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Загрузка списка...")
-ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "Предметы не найдены")
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: Нет данных о цене")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Avg: <<1>> / Sug: <<2>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Avg: <<1>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Sug: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Price: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Price: <<2>>,   Stack(<<3>>): <<4>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Цена: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Цена: <<2>>,   Стак(<<3>>): <<4>>")
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Нести")
@@ -108,7 +108,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Экипировать 
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Экипировать <<t:1>> в первый или второй слот?")
 ZO_CreateStringId("SI_BETTERUI_BANKING_TOGGLE_LIST", "Переключить список")
 ZO_CreateStringId("SI_BETTERUI_CONFIRM_AMOUNT", "Подтвердить сумму")
-ZO_CreateStringId("SI_BETTERUI_CONFIRM", "Подтвердить")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_GOLD", "Золото")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_TEL_VAR", "Камни Тель-Вар")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ALLIANCE_POINT", "Очки альянса")
@@ -137,7 +136,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Полностью пе
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Включить |c0066FFежедневные заказы|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM", "Общий модуль интерфейса")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Включает дополнительные функции для полностью переработанных \"улучшенных\" интерфейсов!")
 
@@ -235,7 +233,6 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Настройте размер текста табличек. По умолчанию 16.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить все настройки табличек к значениям по умолчанию.")
-ZO_CreateStringId("SI_BETTERUI_FONT_SYSTEM_DEFAULT", "System Default (Localized)")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")
@@ -381,38 +378,38 @@ ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
     "Позволяет отображать больше или меньше информации о предмете во всплывающих подсказках")
 
 -- Skill Bars Settings (ResourceOrbFrames)
-ZO_CreateStringId("SI_BETTERUI_SKILL_BARS_SUBMENU", "Skill Bars")
-ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_TIMER_HEADER", "Skill Cooldown Timer")
-ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP", "Adjust the font size of the skill cooldown timer")
-ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_COLOR_TOOLTIP", "Adjust the color of the skill cooldown timer")
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOTS_HEADER", "Quickslots")
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP", "Adjust the font size of the quickslot count")
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP", "Adjust the color of the quickslot count")
-ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Back Bar Appearance")
-ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Back Bar Opacity")
+ZO_CreateStringId("SI_BETTERUI_SKILL_BARS_SUBMENU", "Панели умений")
+ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_TIMER_HEADER", "Таймер перезарядки умений")
+ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP", "Настройте размер шрифта таймера перезарядки")
+ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_COLOR_TOOLTIP", "Настройте цвет таймера перезарядки")
+ZO_CreateStringId("SI_BETTERUI_QUICKSLOTS_HEADER", "Быстрые слоты")
+ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP", "Настройте размер шрифта счётчика быстрых слотов")
+ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP", "Настройте цвет счётчика быстрых слотов")
+ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Внешний вид резервной панели")
+ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Непрозрачность резервной панели")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
-    "Adjust how dimmed the back bar icons appear. Lower values make the back bar less noticeable.")
-ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Reset Skill Bar Settings")
+    "Настройте, насколько затемненными выглядят иконки резервной панели. Меньшие значения делают её менее заметной.")
+ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Сбросить настройки панели умений")
 
 -- XP Bar Settings
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "Enable Experience Bar")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "Включить панель опыта")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP",
-    "Displays an experience/champion point bar above the top skill bar")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE", "XP Text Size")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP", "Adjust the font size of the experience text")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR", "XP Text Color")
-ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP", "Adjust the color of the experience text")
+    "Отображает панель опыта/очков чемпиона над верхней панелью умений")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE", "Размер текста опыта")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP", "Настройте размер шрифта текста опыта")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR", "Цвет текста опыта")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP", "Настройте цвет текста опыта")
 
 -- Cast Bar Settings
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED", "Enable Cast Bar")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Displays a casting bar above the Experience bar")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW", "Always Show Cast Bar")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED", "Включить полосу каста")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Отображает полосу каста над панелью опыта")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW", "Всегда показывать полосу каста")
 ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP",
-    "When enabled, the cast bar frame is always visible. When disabled, the cast bar only appears during casting.")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE", "Cast Text Size")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP", "Adjust the font size of the cast timer")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR", "Cast Text Color")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP", "Adjust the color of the cast timer text")
+    "При включении рамка полосы каста всегда видна. При выключении она появляется только во время каста.")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE", "Размер текста каста")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP", "Настройте размер шрифта таймера каста")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR", "Цвет текста каста")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP", "Настройте цвет текста таймера каста")
 
 -- Mount Stamina Bar Settings
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED", "Включить панель выносливости маунта")
@@ -446,51 +443,49 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS", "Event Tickets")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Show Event Tickets")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Event Tickets Position")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Показать билеты событий")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Позиция билетов")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Рамки сфер ресурсов")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Включить |c0066FFРамки сфер ресурсов|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Включает модуль рамок сфер ресурсов.")
 
 -- Skill Bars Settings
-ZO_CreateStringId("SI_BETTERUI_QUICKSLOT_COOLDOWN_HEADER", "Quickslot Cooldown")
-ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Show Quickslot Cooldown")
+ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Показать перезарядку быстрого слота")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP",
-    "Display cooldown timer on the quickslot button, replacing the item count during cooldown.")
+    "Отображает таймер перезарядки на кнопке быстрого слота.")
 
 -- Ultimate Number Display Settings
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
-ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Show Ultimate Number")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Отображение ульты")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER", "Показать значение ульты")
 ZO_CreateStringId("SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP",
-    "Display your current ultimate value on the ultimate button.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Ultimate Text Size")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Font size for the ultimate number display.")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Ultimate Text Color")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Color for the ultimate number display.")
+    "Отображает текущее значение ульты на кнопке ульты.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE", "Размер текста ульты")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP", "Размер шрифта для отображения ульты.")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR", "Цвет текста ульты")
+ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP", "Цвет для отображения ульты.")
 
 -- Combat Indicators Settings
-ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Индикаторы боя")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Включить свечение боя")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
-    "Display a pulsing red/orange glow around the skill bar when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Play a sound when entering and exiting combat.")
+    "Отображает пульсирующее красно-оранжевое свечение вокруг панели умений в бою.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Цвет свечения боя")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Цвет эффекта свечения боя.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Включить иконку боя")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Отображает иконку скрещённых мечей в бою.")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Включить звуковой сигнал боя")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Воспроизводит звук при начале и окончании боя.")
 
 -- Banking Specific Strings
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
-ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
-ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
-ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Advanced Banking")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "ДОМАШНИЙ БАНК ПУСТ!")
+ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "ДОМАШНИЙ БАНК")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "СУМКА ИГРОКА ПУСТА!")
+ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "СУМКА ИГРОКА")
+ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Недостаточно средств для перевода.")
+ZO_CreateStringId("SI_BETTERUI_BANK_TITLE", "Расширенный банк")
 
 -- Imagery strings
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
@@ -509,8 +504,6 @@ ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS", "Включить улучшения подсказок")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Включает пользовательские улучшения, масштабирование шрифта и дополнительную информацию в заголовке подсказки. При отключении возвращается к нативному интерфейсу только с рыночной ценой.")
-ZO_CreateStringId("SI_BETTERUI_DESTRUCTIVE_WARNING",
-    "ВНИМАНИЕ: Эта настройка может привести к потере данных. Включайте с осторожностью.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ВНИМАНИЕ: Предметы будут уничтожены БЕЗ подтверждения. Это может привести к безвозвратной потере предметов.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -532,20 +525,9 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Внести всё")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Выберите количество для внесения")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Выберите количество для снятия")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Сортировка")
-ZO_CreateStringId("SI_BETTERUI_SELECT_ITEM", "Выбрать")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Снять выбор")
-ZO_CreateStringId("SI_BETTERUI_SELECTION_MODE", "Режим выбора")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> выбрано")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Групповые действия")
-ZO_CreateStringId("SI_BETTERUI_DEPOSIT_SELECTED", "Внести выбранное")
-ZO_CreateStringId("SI_BETTERUI_WITHDRAW_SELECTED", "Снять выбранное")
-ZO_CreateStringId("SI_BETTERUI_SELL_SELECTED", "Продать выбранное")
-ZO_CreateStringId("SI_BETTERUI_LOCK_SELECTED", "Заблокировать выбранное")
-ZO_CreateStringId("SI_BETTERUI_UNLOCK_SELECTED", "Разблокировать выбранное")
-ZO_CreateStringId("SI_BETTERUI_SELECT_MULTIPLE", "Множественный выбор")
-ZO_CreateStringId("SI_BETTERUI_MARK_JUNK_SELECTED", "Пометить как хлам (выбранное)")
-ZO_CreateStringId("SI_BETTERUI_UNMARK_JUNK_SELECTED", "Убрать из хлама (выбранное)")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_SELECTED", "Уничтожить выбранное")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Обработка <<1>> предметов. Пожалуйста, подождите...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> предметов обработано.")
 -- Added from en.lua
@@ -555,19 +537,16 @@ ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Снять выбор")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Выбрать (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Выбрать всё")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Stow How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Retrieve How Many?") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Select the amount to stow") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Select the amount to retrieve") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stow Stack") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack") -- TODO: Translate
     "Выберите действие для применения к выбранным предметам. Заблокированные предметы могут быть несовместимы с некоторыми действиями.")
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
+    "⚠️ Этот шрифт может некорректно отображать китайские/японские символы. Рассмотрите использование локализованного варианта шрифта.")
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
+    "⚠️ Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
+ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
+ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Сколько убрать?")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Сколько достать?")
+ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Выберите количество для хранения")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Выберите количество для извлечения")
+ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Убрать стак")
+ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Достать стак")
