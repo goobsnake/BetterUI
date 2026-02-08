@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T17:44Z
-> **Provenance:** [CODE] Banking tooltip icon follow-up: bank-capacity value icon swapped to inventory bag icon (`gp_inventory_icon_all.dds`) while keeping no-space aligned-right formatting, 90% icon size, and 290 top spacing
+> **Last Updated:** 2026-02-08T18:17Z
+> **Provenance:** [USER] Requested restoring `New Item` feature-request details and marking it not working; updated `docs/FEATURE_REQUESTS.md` status/matrix accordingly
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,20 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-08] [CODE] Feature-request follow-up: restored full `New Item` section details in `docs/FEATURE_REQUESTS.md` and reclassified #13 as `NOT WORKING - NEEDS REVIEW` (removed from closed items, moved to P1)
+- [2026-02-08] [TOOL] Feature-request workflow run (`/feature-requests`, standard scope): refined existing backlog entries, marked implemented items (#13/#14) as closed, and added sections #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub)
 - [2026-02-08] [CODE] Banking tooltip icon follow-up: bank-capacity value icon switched from mount-capacity glyph to inventory bag icon (`gp_inventory_icon_all`) for better semantic fit, retaining no-space aligned-right formatting, 90% icon size, and 290 spacing
 - [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
 - [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
 - [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
 - [2026-02-07] [CODE] Fixed Seals currency display: `CURT_SEALS` renamed from `CURT_ENDEAVOR_SEALS` — added compat alias like Trade Bars
 - [2026-02-07] [CODE] Fixed tooltip label hiding regression: hooks on `ZO_Tooltip` class table don't affect `zo_mixin`'d instances; moved to per-instance overrides
-- [2026-02-07] [CODE] Fixed Junk category tab not appearing when marking items as junk (SetItemIsJunk is async)
 
 **Now:**
-- Feature branch polish implementation complete; awaiting in-game verification pass
+- Feature request roadmap doc refresh complete; priorities and implementation status are now aligned with current codebase reality
 
 **Next:**
-- In-game validate currency row horizontal placement, action text scale, bank-space details bottom layout, and gold amount tint for withdraw/deposit rows
+- Select next roadmap target from refreshed P1 queue (Accessibility completion or Guild Bank permission-aware mode)
 
 ---
 
@@ -62,6 +63,7 @@
 
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
+- `docs/FEATURE_REQUESTS.md`
 - `Modules/Banking/Banking.lua`
 - `Modules/Banking/Lists/BankListManager.lua`
 - `Modules/Banking/Keybinds/KeybindManager.lua`
@@ -73,6 +75,8 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | Feature requests follow-up: restored detailed #13 "New Item Visual Tracking System" content, set status to `NOT WORKING - NEEDS REVIEW`, and updated matrix/order to prioritize review |
+| 2026-02-08 | [TOOL] | Feature requests audit (standard scope): updated statuses for implemented/partial features, closed #13/#14 as implemented, and added #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub) |
 | 2026-02-08 | [CODE] | Banking tooltip icon follow-up: replaced bank-capacity value icon with `gp_inventory_icon_all` (from mount-capacity icon) while retaining no-space aligned-right formatting, 90% icon size, and 290 top spacing |
 | 2026-02-08 | [CODE] | Banking currency-row consistency pass: font scales with Banking Name setting (+2), row text nudged up, gold amount rendered in gold tint, and icon pulse standardized |
 | 2026-02-08 | [CODE] | Banking polish iteration: switched currency rows to BetterUI template for left alignment + smaller text, moved bank-space details into styled bottom section of left currency tooltip, and tinted gold transfer amount in gold |
@@ -92,5 +96,4 @@
 | 2026-02-06 | [TOOL] | Moved CONTRIBUTING.md + CONTINUITY.md to docs/ |
 | 2026-02-06 | [USER] | Requested agent configuration refactor with AGENTS.md |
 | 2026-02-06 | [USER] | Approved two-file approach (CONTINUITY + TRIBAL_KNOWLEDGE) |
-| 2026-02-06 | [TOOL] | Created AGENTS.md and docs/CONTINUITY.md |
 

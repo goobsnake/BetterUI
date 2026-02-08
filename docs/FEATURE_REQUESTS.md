@@ -1,21 +1,27 @@
 # BetterUI Feature Requests: Gamepad QoL Enhancements
 
 > **Created:** 2026-02-08
-> **Source:** Comprehensive audit of `esoui/` gamepad reference folder (130+ gamepad directories, 713+ files) cross-referenced against BetterUI's current 5 modules (CIM, Banking, Inventory, ResourceOrbFrames, WritUnit).
+> **Last audited:** 2026-02-08
+> **Source:** Standard-scope audit of `esoui/` gamepad systems (Categories A-C and F) cross-referenced against BetterUI modules (`CIM`, `Banking`, `Inventory`, `ResourceOrbFrames`, `WritUnit`).
 
 ---
 
 ## Overview
 
-This document catalogs gamepad-specific quality-of-life features present in the ESO base UI (`esoui/`) that BetterUI does not currently implement. Each recommendation includes source file references, a description of the base game feature, a gap analysis explaining what BetterUI lacks, and implementation notes.
+This document catalogs gamepad QoL opportunities from `esoui/` and tracks their current BetterUI status (`MISSING`, `PARTIAL`, `IMPLEMENTED`).
 
-A priority matrix is provided at the end.
+### Audit Delta (2026-02-08)
+
+- **Added:** 4 new requests (`Guild Roster`, `Social Hub`, `Chat Menu`, `Maintenance Hub`)
+- **Updated:** 11 existing requests (status and priority corrections)
+- **Closed as implemented:** 2 items (inventory stat comparison baseline, stack-all keybind exposure)
+- **Reopened for review:** 1 item (`New Item` visual lifecycle appears non-functional in current BetterUI behavior)
 
 ---
 
 ## Table of Contents
 
-1. [Item Stat Comparison Tooltip System](#1-item-stat-comparison-tooltip-system)
+1. [Item Stat Comparison Tooltip System (Parity)](#1-item-stat-comparison-tooltip-system-parity)
 2. [Radial Utility Wheel / Quick Slot Management](#2-radial-utility-wheel--quick-slot-management)
 3. [Guild Bank Module with Permission-Aware UI](#3-guild-bank-module-with-permission-aware-ui)
 4. [Enhanced Loot Pickup Window](#4-enhanced-loot-pickup-window)
@@ -27,15 +33,21 @@ A priority matrix is provided at the end.
 10. [Map Filter Enhancement & Quest Integration](#10-map-filter-enhancement--quest-integration)
 11. [Group Finder & Role Selection Enhancement](#11-group-finder--role-selection-enhancement)
 12. [Accessibility & Screen Narration Support](#12-accessibility--screen-narration-support)
-13. ["New Item" Visual Tracking System](#13-new-item-visual-tracking-system)
-14. [Stack Consolidation ("Stack All") Feature](#14-stack-consolidation-stack-all-feature)
+13. ["New Item" Visual Tracking System (Needs Review)](#13-new-item-visual-tracking-system-needs-review)
+14. [Stack Consolidation ("Stack All") Feature (Implemented)](#14-stack-consolidation-stack-all-feature-implemented)
 15. [Companion Equipment Management](#15-companion-equipment-management)
+16. [Guild Roster & Rank Management Workspace](#16-guild-roster--rank-management-workspace)
+17. [Social Contacts & Notification Hub](#17-social-contacts--notification-hub)
+18. [Chat Menu & Channel Tooling](#18-chat-menu--channel-tooling)
+19. [Equipment Maintenance Hub (Repair + Soul Gems)](#19-equipment-maintenance-hub-repair--soul-gems)
 
 ---
 
-## 1. Item Stat Comparison Tooltip System
+## 1. Item Stat Comparison Tooltip System (Parity)
 
-**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua` (lines ~2050-2061)
+**Status:** `PARTIAL`  
+**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua:2051`  
+**BetterUI baseline:** `Modules/Inventory/Lists/ItemListManager.lua:721`, `Modules/Inventory/Keybinds/InventoryKeybinds.lua:295`
 
 ### What the base game has
 
@@ -49,20 +61,20 @@ A full side-by-side stat comparison system for gamepad inventory. When browsing 
 
 ### What BetterUI lacks
 
-BetterUI's Inventory and Banking modules show item tooltips but don't implement the stat comparison overlay. Players must mentally calculate whether an item is an upgrade. Adding a comparison mode with clear +/- stat deltas (especially for traits and enchantments, which BetterUI already extracts) would be a significant usability win.
+BetterUI already supports inventory stat comparison with toggle behavior, but parity is incomplete across adjacent systems (Banking and dedicated Companion surfaces). The remaining gap is coverage consistency, not baseline capability.
 
 ### Implementation notes
 
-- Hook into the existing `GAMEPAD_TOOLTIPS:LayoutItemStatComparison()` API
-- Add a toggle keybind to Inventory and Banking keybind descriptors
-- Persist the toggle via `useStatComparisonTooltip` saved variable
-- Extend CIM's `TooltipLayout.lua` to format comparison deltas with color coding
+- Keep Inventory implementation as canonical reference.
+- Extend comparison to Banking item rows where equip-slot derivation is valid.
+- Apply same comparison policy to future Companion-focused list surfaces.
 
 ---
 
 ## 2. Radial Utility Wheel / Quick Slot Management
 
 **esoui source:** `esoui/ingame/quickslot/gamepad/quickslot_gamepad.lua`, `esoui/ingame/utilitywheel/gamepad/accessibleassignableutilitywheel_gamepad.lua`
+**Status:** `PARTIAL`
 
 ### What the base game has
 
@@ -76,13 +88,14 @@ A radial wheel UI (`ZO_AssignableUtilityWheel_Gamepad`) for quickslot assignment
 
 ### What BetterUI lacks
 
-BetterUI has a `QuickslotAction` in Inventory for *assigning* an item to a quickslot, but no dedicated quickslot *management* module. An enhanced quickslot manager with BetterUI's list-style UX (searchable, categorized, with item stat tooltips) alongside or replacing the radial wheel would let players manage their quickslot loadout far more efficiently than the stock radial-only interface.
+BetterUI has a working quickslot assignment flow (`Modules/Inventory/Actions/QuickslotAction.lua`) but still lacks a dedicated quickslot management scene for full loadout browsing, reordering, and cross-category maintenance.
 
 ### Implementation notes
 
 - New module: `Modules/QuickSlots/`
-- Use CIM's parametric list for a browsable quickslot inventory
-- Integrate `ZO_RadialMenu` for the visual wheel (or offer list-based alternative)
+- Keep current assignment dialog as fallback path.
+- Use CIM's parametric list for a browsable quickslot inventory.
+- Integrate `ZO_RadialMenu` for the visual wheel (or offer list-based alternative).
 - Support all three assignment types: items, collectibles, quest items
 - Add search/filter using CIM's `SearchManager`
 
@@ -91,6 +104,8 @@ BetterUI has a `QuickslotAction` in Inventory for *assigning* an item to a quick
 ## 3. Guild Bank Module with Permission-Aware UI
 
 **esoui source:** `esoui/ingame/inventory/gamepad/guildbank_gamepad.lua` (35KB)
+**Status:** `MISSING`  
+**BetterUI baseline:** `Modules/Banking/State/StateManager.lua` currently resolves non-house banking to `BAG_BANK`, so guild-bank mode is not surfaced.
 
 ### What the base game has
 
@@ -119,6 +134,7 @@ BetterUI's Banking module handles personal bank, subscriber bank, and house bank
 ## 4. Enhanced Loot Pickup Window
 
 **esoui source:** `esoui/ingame/zo_loot/gamepad/lootpickup_gamepad.lua`, `esoui/ingame/zo_loot/gamepad/lootcommon_gamepad.lua`
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -155,6 +171,7 @@ BetterUI doesn't touch the loot window at all. An enhanced loot module could add
 ## 5. Store / Vendor Window Enhancements
 
 **esoui source:** `esoui/ingame/storewindow/gamepad/` (multiple files)
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -188,6 +205,7 @@ BetterUI doesn't modify vendor interactions. An enhanced store module could add:
 ## 6. Trading House / Guild Store Enhancement
 
 **esoui source:** `esoui/ingame/tradinghouse/gamepad/` (multiple files including browse, sell, name search autocomplete)
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -226,6 +244,7 @@ The gamepad guild store experience is widely considered one of the weakest parts
 ## 7. Crafting Station UI Enhancements
 
 **esoui source:** `esoui/ingame/crafting/gamepad/` (40+ files covering all crafting types)
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -264,6 +283,7 @@ BetterUI only touches crafting via WritUnit (writ progress display). BetterUI co
 ## 8. Mail System Enhancement
 
 **esoui source:** `esoui/ingame/mail/gamepad/` (multiple files)
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -298,6 +318,7 @@ BetterUI doesn't touch the mail system. An enhanced mail module could add:
 ## 9. Collections & Outfit Management Browser
 
 **esoui source:** `esoui/ingame/collections/gamepad/collectionsbook_gamepad.lua`, `esoui/ingame/restyle/gamepad/`, `esoui/ingame/dyeing/gamepad/`
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -332,6 +353,7 @@ None of these are touched by BetterUI. An enhanced collections browser could pro
 ## 10. Map Filter Enhancement & Quest Integration
 
 **esoui source:** `esoui/ingame/map/gamepad/` (multiple files: worldmapfilters, worldmapquests, worldmaplocations, worldmapzonestory)
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -366,6 +388,7 @@ BetterUI doesn't touch the map system. An enhanced map module could:
 ## 11. Group Finder & Role Selection Enhancement
 
 **esoui source:** `esoui/ingame/groupfinder/gamepad/` (multiple files), `esoui/ingame/lfg/gamepad/`
+**Status:** `MISSING`
 
 ### What the base game has
 
@@ -401,6 +424,8 @@ The group finder is one of the most-used systems for endgame players and its gam
 ## 12. Accessibility & Screen Narration Support
 
 **esoui source:** Found in **300+ files** across the entire gamepad UI
+**Status:** `PARTIAL`  
+**BetterUI baseline:** Search narration exists via `SCREEN_NARRATION_MANAGER:RegisterTextSearchHeader(...)` in `Modules/CIM/Core/SearchManager.lua`.
 
 ### What the base game has
 
@@ -417,7 +442,7 @@ A comprehensive accessibility system:
 
 ### What BetterUI lacks
 
-BetterUI's custom UI screens (Banking, Inventory) don't implement narration hooks. Since BetterUI replaces the stock screens entirely, players using screen readers lose all accessibility support when BetterUI is enabled. This is the single most impactful gap relative to effort.
+BetterUI has partial narration support but does not yet match native coverage for full parametric-list screen registration, generalized entry narration, and price narration consistency. Accessibility parity is not complete across all custom BetterUI screens.
 
 ### Implementation notes
 
@@ -429,9 +454,11 @@ BetterUI's custom UI screens (Banking, Inventory) don't implement narration hook
 
 ---
 
-## 13. "New Item" Visual Tracking System
+## 13. "New Item" Visual Tracking System (Needs Review)
 
-**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua` (lines ~62-75), `esoui/common/gamepad/zo_gamepadentrydata.lua`
+**Status:** `NOT WORKING - NEEDS REVIEW`  
+**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua` (lines ~62-75), `esoui/common/gamepad/zo_gamepadentrydata.lua`  
+**Current BetterUI references to audit:** `Modules/Inventory/Lists/InventoryList.lua:211`, `Modules/Inventory/Lists/InventoryList.lua:617`, `Modules/Inventory/Lists/ItemListManager.lua:93`
 
 ### What the base game has
 
@@ -444,49 +471,36 @@ BetterUI's custom UI screens (Banking, Inventory) don't implement narration hook
 
 ### What BetterUI lacks
 
-BetterUI tracks `isNew` in its item data structure but doesn't implement the visual "NEW" badge or the smart clear-on-view behavior. Adding a pulsing new-item indicator to inventory and banking lists would help players quickly identify freshly looted items, especially after returning from dungeons with full bags.
+BetterUI appears to have hook points for new-item behavior, but the feature is currently reported as not working in practice and requires review. Until verified in-game, this should be treated as an active backlog item rather than implemented.
 
 ### Implementation notes
 
-- Add a "NEW" badge texture to CIM's shared list templates (similar to the existing banking currency pulse animation work)
-- Use `ZO_GamepadEntryData:SetNew()` / `:IsNew()` for state management
-- Implement `PrepareNextClearNewStatus()` in list selection-changed callbacks
-- Add fade-out animation timeline via `ANIMATION_MANAGER:CreateTimelineFromVirtual()`
-- **Low effort**: reuses existing animation patterns from banking currency row pulse
+- Verify whether `data.brandNew` is populated correctly for BetterUI list entries.
+- Confirm `PrepareNextClearNewStatus()` / `TryClearNewStatusOnHidden()` timing against list activation/deactivation flow.
+- Add/restore explicit visual animation timeline if state is present but icon never renders.
+- Re-validate in-game after fixes before reclassifying as implemented.
 
 ---
 
-## 14. Stack Consolidation ("Stack All") Feature
+## 14. Stack Consolidation ("Stack All") Feature (Implemented)
 
-**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua` (lines ~804-811)
+**Status:** `IMPLEMENTED`  
+**esoui source:** `esoui/ingame/inventory/gamepad/gamepadinventory.lua:804`  
+**BetterUI implementation:** `Modules/CIM/Keybinds/GenericKeybinds.lua:50`, `Modules/Inventory/Keybinds/InventoryKeybinds.lua:419`, `Modules/Banking/Keybinds/KeybindManager.lua:186`
 
-### What the base game has
+BetterUI already exposes stack-all keybinds in Inventory and Banking flows, including Banking-specific dual-bank handling.
 
-- **Left Stick click** (`UI_SHORTCUT_LEFT_STICK`) triggers `StackBag()`
-- Consolidates all partial stacks of the same item in the current bag
-- Works across backpack and craft bag
+### Optional follow-up (not backlog-critical)
 
-### What BetterUI lacks
-
-BetterUI's inventory doesn't expose this as a prominent keybind action. While the ESO API function `StackBag()` exists, BetterUI could enhance this with:
-
-- A visual progress indicator during stacking
-- A confirmation toast showing how many stacks were consolidated
-- Extending it to work in banking (consolidate bank stacks, or merge inventory+bank stacks of the same item during deposit)
-
-### Implementation notes
-
-- Add `UI_SHORTCUT_LEFT_STICK` keybind to Inventory and Banking keybind descriptors
-- Call `StackBag(bagId)` on activation
-- Show a brief alert via `ZO_AlertTextForContext()` with consolidation count
-- Optionally add a "Stack All in Bank" variant during banking sessions
-- **Very low effort**: single keybind addition + one API call
+- Add optional completion toast/count feedback after stack operations.
 
 ---
 
 ## 15. Companion Equipment Management
 
 **esoui source:** `esoui/ingame/companion/gamepad/companionequipment_gamepad.lua`, `esoui/ingame/companion/gamepad/companionskills_gamepad.lua`
+**Status:** `PARTIAL`  
+**BetterUI baseline:** Companion compatibility and equip patching exist (`Modules/Inventory/Actions/EquipAction.lua`), but no dedicated companion-management scene exists.
 
 ### What the base game has
 
@@ -510,39 +524,138 @@ BetterUI's Inventory module filters companion items via `ITEMFILTERTYPE_COMPANIO
 
 ---
 
+## 16. Guild Roster & Rank Management Workspace
+
+**esoui source:** `esoui/ingame/guild/gamepad/guildroster_gamepad.lua:209`, `esoui/ingame/guild/gamepad/guildroster_gamepad.lua:231`, `esoui/ingame/guild/gamepad/guildroster_gamepad.lua:307`, `esoui/ingame/guild/gamepad/zo_guildranks_gamepad.lua:150`, `esoui/ingame/guild/gamepad/zo_guildranks_gamepad.lua:888`  
+**Status:** `MISSING`
+
+### What the base game has
+
+- Permission-aware member moderation actions (promote/demote/set rank/remove/uninvite/edit note)
+- Rank editing and permission grid workflows
+- Integrated social actions (mail, whisper, invite, travel)
+
+### What BetterUI lacks
+
+BetterUI currently does not enhance guild roster or rank-management gamepad flows despite heavy daily usage in trading and social guilds.
+
+### Implementation notes
+
+- New module: `Modules/Guild/` (or `Modules/Social/Guild/`)
+- Reuse CIM list/search/sort infrastructure for roster readability upgrades
+- Keep native permission checks and dialogs, improve discoverability and row clarity
+
+---
+
+## 17. Social Contacts & Notification Hub
+
+**esoui source:** `esoui/ingame/contacts/gamepad/sociallist_gamepad.lua:28`, `esoui/ingame/contacts/gamepad/sociallist_gamepad.lua:105`, `esoui/ingame/contacts/gamepad/sociallist_gamepad.lua:220`, `esoui/ingame/contacts/gamepad/notifications_gamepad.lua:578`, `esoui/ingame/contacts/gamepad/notifications_gamepad.lua:719`  
+**Status:** `MISSING`
+
+### What the base game has
+
+- Searchable social list with hide-offline toggles and status filters
+- Guild invite option templating from social lists
+- Multi-action gamepad notification handling (accept/decline/more info/gamercard)
+
+### What BetterUI lacks
+
+BetterUI does not currently provide enhanced UX for friends/ignore/notifications despite having reusable list and tooltip foundations.
+
+### Implementation notes
+
+- New module: `Modules/Social/`
+- Improve row density, status emphasis, and notification decision clarity
+- Reuse CIM search and keybind patterns for consistent interaction
+
+---
+
+## 18. Chat Menu & Channel Tooling
+
+**esoui source:** `esoui/ingame/chatsystem/gamepad/chatmenu_gamepad.lua:162`, `esoui/ingame/chatsystem/gamepad/chatmenu_gamepad.lua:250`, `esoui/ingame/chatsystem/gamepad/chatmenu_gamepad.lua:349`, `esoui/ingame/chatsystem/gamepad/chatmenu_gamepad.lua:405`, `esoui/ingame/chatsystem/gamepad/chatmenu_gamepad.lua:511`  
+**Status:** `MISSING`
+
+### What the base game has
+
+- Dedicated channel dropdown lifecycle and active-channel syncing
+- Link extraction and link-target navigation in chat log rows
+- Gamepad keybind actions for send/roll/social options
+
+### What BetterUI lacks
+
+BetterUI does not currently improve gamepad chat channel ergonomics or link-focused message navigation.
+
+### Implementation notes
+
+- New module: `Modules/Chat/`
+- Add channel presets and better channel-switching affordances
+- Add stronger visual cues for link-containing rows and active context
+
+---
+
+## 19. Equipment Maintenance Hub (Repair + Soul Gems)
+
+**esoui source:** `esoui/ingame/repair/gamepad/repairkits_gamepad.lua:7`, `esoui/ingame/soulgemitemcharger/gamepad/soulgemitemcharger_gamepad.lua:7`, `esoui/ingame/storewindow/gamepad/storewindow_gamepad.lua:277`  
+**Status:** `MISSING`
+
+### What the base game has
+
+- Dedicated repair-kit flow with tier sorting and pending repair tooltip
+- Dedicated soul-gem charging flow with pending charge tooltip
+- Repair-all vendor integration and cost messaging
+
+### What BetterUI lacks
+
+BetterUI does not provide a unified maintenance UX that connects durability and charge workflows with inventory triage.
+
+### Implementation notes
+
+- New module: `Modules/Maintenance/`
+- Add quick-jump actions from Inventory and Banking
+- Surface maintenance urgency in BetterUI item rows and/or tooltips
+
+---
+
 ## Priority Matrix
 
-| # | Feature | User Impact | Dev Effort | CIM Synergy | Priority |
-|---|---------|-------------|------------|-------------|----------|
-| 12 | Accessibility / Narration | **High** | **Low** | Done once in base classes | **P0** |
-| 13 | "New Item" Visual Tracking | Medium | **Low** | Reuses pulse animation | **P1** |
-| 14 | Stack Consolidation | Low | **Very Low** | Single keybind | **P1** |
-| 1 | Item Stat Comparison | **High** | Medium | Extends tooltip system | **P1** |
-| 3 | Guild Bank Module | **High** | Medium | Extends Banking directly | **P1** |
-| 4 | Enhanced Loot Window | **High** | Medium | New module, uses CIM + Market | **P2** |
-| 5 | Store / Vendor Enhancements | **High** | Medium | New module, reuses CIM | **P2** |
-| 15 | Companion Equipment | Medium | Medium | Extends Inventory | **P2** |
-| 6 | Trading House Enhancement | **Very High** | **High** | Highest user demand | **P2** |
-| 7 | Crafting Station Enhancements | Medium | High | Extends CIM into crafting | **P3** |
-| 8 | Mail System Enhancement | Medium | Medium | New module | **P3** |
-| 2 | Radial Quick Slot Manager | Medium | High | New module | **P3** |
-| 9 | Collections & Outfit Browser | Medium | High | New module | **P3** |
-| 10 | Map Filter Enhancement | Medium | High | New module | **P4** |
-| 11 | Group Finder Enhancement | Medium | High | New module | **P4** |
+| # | Feature | Status | User Impact | Dev Effort | Priority |
+|---|---------|--------|-------------|------------|----------|
+| 12 | Accessibility / Narration | PARTIAL | **High** | **Low** | **P1** |
+| 13 | New Item Visual Tracking | NOT WORKING - NEEDS REVIEW | Medium | **Low** | **P1** |
+| 3 | Guild Bank Module | MISSING | **High** | Medium | **P1** |
+| 4 | Enhanced Loot Window | MISSING | **High** | Medium | **P2** |
+| 5 | Store / Vendor Enhancements | MISSING | **High** | Medium | **P2** |
+| 6 | Trading House Enhancement | MISSING | **Very High** | **High** | **P2** |
+| 1 | Item Stat Comparison Parity | PARTIAL | Medium | Medium | **P2** |
+| 2 | Radial Quick Slot Manager | PARTIAL | Medium | High | **P3** |
+| 7 | Crafting Station Enhancements | MISSING | Medium | High | **P3** |
+| 8 | Mail System Enhancement | MISSING | Medium | Medium | **P3** |
+| 9 | Collections & Outfit Browser | MISSING | Medium | High | **P3** |
+| 15 | Companion Equipment Management | PARTIAL | Medium | Medium | **P3** |
+| 16 | Guild Roster & Rank Workspace | MISSING | Medium | High | **P3** |
+| 17 | Social Contacts & Notification Hub | MISSING | Medium | Medium | **P3** |
+| 18 | Chat Menu & Channel Tooling | MISSING | Medium | Medium | **P3** |
+| 19 | Equipment Maintenance Hub | MISSING | Medium | Medium | **P3** |
+| 10 | Map Filter Enhancement | MISSING | Medium | High | **P4** |
+| 11 | Group Finder Enhancement | MISSING | Medium | High | **P4** |
+
+### Closed items (implemented)
+
+- **#14 Stack Consolidation** — implemented in BetterUI Inventory and Banking keybind flows.
 
 ### Priority key
 
-- **P0**: Should be done ASAP — low effort, fixes a regression (accessibility loss)
-- **P1**: High value, achievable quickly — quick wins or natural extensions of existing modules
-- **P2**: High value, moderate effort — new modules that leverage CIM heavily
-- **P3**: Medium value, higher effort — worthwhile but can wait
-- **P4**: Medium value, high effort — long-term roadmap items
+- **P1**: High value and high adjacency to current BetterUI module coverage.
+- **P2**: High value with moderate-to-high effort but clear payoff.
+- **P3**: Valuable expansions that can follow core adjacency work.
+- **P4**: Long-horizon roadmap items.
 
 ### Recommended implementation order
 
-1. **Accessibility** (#12) — one-time CIM base class change, all modules benefit
-2. **New Item Tracking** (#13) + **Stack All** (#14) — quick wins, immediate visual improvement
-3. **Stat Comparison** (#1) — high visibility feature, extends existing tooltip work
-4. **Guild Bank** (#3) — natural extension of the Banking module already built
-5. **Loot Window** (#4) + **Vendor** (#5) — two new modules sharing patterns
-6. **Trading House** (#6) — the crown jewel, highest community demand
+1. **Accessibility completion** (#12) — finish narration parity on existing BetterUI surfaces.
+2. **New Item tracking review/fix** (#13) — validate behavior and close regression risk.
+3. **Guild Bank** (#3) — strongest module adjacency to current Banking architecture.
+4. **Loot + Store/Vendor** (#4, #5) — shared item-list patterns and tooltip reuse.
+5. **Trading House** (#6) — highest impact major module once core adjacent wins land.
+6. **Quickslot + Companion parity** (#2, #15) — convert partial support into full workflows.
+7. **Social/Guild/Chat tranche** (#16, #17, #18) — coordinated social UX pass.
