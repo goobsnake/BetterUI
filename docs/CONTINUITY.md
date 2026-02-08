@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T21:01:18Z
-> **Provenance:** [USER] Requested `sr-review-gate` execution and full fix loop for all findings after the comprehensive LAM settings audit/fix pass
+> **Last Updated:** 2026-02-08T22:26:00Z
+> **Provenance:** [CODE] Column alignment fixes: non-carousel tab positioning, name label wrapping, inline icon scaling
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
-- [2026-02-08] [CODE] Completed LAM settings integrity pass + sr-review remediation: fixed non-functional Inventory trigger toggle wiring, corrected Inventory/Banking live-refresh callbacks to use runtime window instances, fixed ResourceOrbFrames mount-setting key mismatches, added real-time tooltip style apply hooks, and gated developer-only feature flags behind `SHOW_DEVELOPER_SETTINGS`
-- [2026-02-08] [CODE] Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` in `docs/FEATURE_REQUESTS.md` using `esoui/` API evidence plus official support/forum constraints; updated TOC, matrix, and recommended order
-- [2026-02-08] [CODE] Feature-request follow-up: restored full `New Item` section details in `docs/FEATURE_REQUESTS.md` and reclassified #13 as `NOT WORKING - NEEDS REVIEW` (removed from closed items, moved to P1)
-- [2026-02-08] [TOOL] Feature-request workflow run (`/feature-requests`, standard scope): refined existing backlog entries, marked implemented items (#13/#14) as closed, and added sections #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub)
-- [2026-02-08] [CODE] Banking tooltip icon follow-up: bank-capacity value icon switched from mount-capacity glyph to inventory bag icon (`gp_inventory_icon_all`) for better semantic fit, retaining no-space aligned-right formatting, 90% icon size, and 290 spacing
-- [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
-- [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
+- [2026-02-08] [CODE] Column alignment and text wrapping: unified non-carousel tab positioning in `TabBarScrollList.lua`, reduced name label width 540→500 in `Constants.lua` to prevent TYPE overlap, changed wrapMode ELLIPSIS→WRAP in `SharedTemplates.xml` for long item names
+- [2026-02-08] [CODE] Icon settings and inline scaling: added icon previews to settings checkboxes via `IconSettingsFactory.lua`, scene-aware inline icon sizing in `InventoryList.lua` with per-icon weight tuning
+- [2026-02-08] [CODE] Follow-up icon parity tune: unbound icon preview increased (24px) to match enchant/set visual weight
+- [2026-02-08] [CODE] Completed LAM settings integrity pass + sr-review remediation
+- [2026-02-08] [CODE] Expanded feature request #20 and restored #13 details
+- [2026-02-08] [CODE] Banking tooltip icon and currency-row consistency passes
+- [2026-02-08] [TOOL] Feature-request workflow run: refined backlog, added #16-#19
 
 **Now:**
-- LAM settings pass and `sr-review-gate` remediation are complete in code; pending in-game validation for live-apply behavior and reload prompts
+- All changes committed; awaiting in-game validation of text wrapping behavior with long item names
 
 **Next:**
-- Run focused in-game verification matrix for each settings panel (Master, General, Inventory, Banking, Resource Orb Frames) and capture any behavior drift
+- Verify text wrapping looks correct in-game for both inventory and banking, adjust width/wrap behavior if needed
 
 ---
 
@@ -61,16 +61,11 @@
 ## Working Set (≤12 paths)
 
 - `docs/CONTINUITY.md`
-- `BetterUI.lua`
-- `Modules/CIM/Core/DeveloperDebug.lua`
-- `Modules/CIM/Tooltips/Settings.lua`
-- `Modules/CIM/Module.lua`
-- `Modules/Inventory/Settings/SettingsPanel.lua`
-- `Modules/Inventory/Inventory.lua`
+- `Modules/Inventory/Lists/InventoryList.lua`
+- `Modules/CIM/Core/IconSettingsFactory.lua`
 - `Modules/Banking/Settings/SettingsPanel.lua`
-- `Modules/ResourceOrbFrames/Module.lua`
-- `Modules/ResourceOrbFrames/Core/OrbBars.lua`
-- `Modules/ResourceOrbFrames/Settings/Defaults.lua`
+- `Modules/Inventory/Settings/SettingsPanel.lua`
+- `Modules/CIM/Constants.lua`
 - `lang/en.lua`
 
 ---
@@ -79,6 +74,8 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | Follow-up tuning: increased shared icon-toggle `Unbound` preview size from 22 to 24 in `IconSettingsFactory` to compensate for texture padding and match the enchant/set preview visual weight |
+| 2026-02-08 | [CODE] | Fixed shared Inventory/Banking row-icon behavior: icon toggles now read active scene module settings (Banking toggles now disable banking list icons correctly), inline status icons now scale from active name font size with per-icon weight tuning, and shared icon-toggle settings now include matching inline icon previews |
 | 2026-02-08 | [CODE] | LAM settings audit/fix + sr-review loop: only true reload-required controls remain in Master panel, ResourceOrbFrames custom textures now live-apply (including orb bars), mount stamina setting key mismatches fixed, Inventory trigger-skip toggle now wired to runtime behavior, Inventory/Banking settings refresh now target runtime window instances, and developer-only feature flags are hidden unless `BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = true` |
 | 2026-02-08 | [CODE] | Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` with deeper `esoui` API anchors (dynamic support events, disk threshold, menu visibility gates, mod browser install/search APIs) and official external constraints (next-gen scope, no PC/Mac browser path, UI-only, no language add-ons, 100 MB cap) |
 | 2026-02-08 | [CODE] | Feature requests follow-up: restored detailed #13 "New Item Visual Tracking System" content, set status to `NOT WORKING - NEEDS REVIEW`, and updated matrix/order to prioritize review |
@@ -98,5 +95,4 @@
 | 2026-02-07 | [CODE] | Fixed profiler report shadowing bug and updated module enable documentation |
 | 2026-02-07 | [CODE] | Replaced Banking keybind strip resets with targeted group removal |
 | 2026-02-07 | [CODE] | Localized tooltip cleanup tokens and junk label rendering |
-| 2026-02-06 | [TOOL] | Completed 7-phase agent config optimization |
 

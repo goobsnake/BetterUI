@@ -76,7 +76,7 @@ Description: Override UpdateAnchors to implement CAROUSEL rotation behavior.
 Rationale: Positions list items in a circular carousel or linear list.
 Mechanism:
   - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
-  - If Normal Mode: Falls back to ZO_ParametricScrollList logic (Camera moves).
+  - If Normal Mode: Positions items linearly using the same offset constants (no wrapping).
 param: continousTargetOffset (number) - The floating point index of the selection.
 param: initialUpdate (boolean) - True if this is the first update.
 param: reselectingDuringRebuild (boolean) - True if reselecting.
@@ -84,12 +84,6 @@ param: blockSelectionChangedCallback (boolean) - True to supress callbacks.
 ]]
 function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialUpdate, reselectingDuringRebuild,
                                                  blockSelectionChangedCallback)
-    if not self.carouselMode then
-        -- Fallback to default parametric list behavior if carousel is disabled
-        return ZO_ParametricScrollList.UpdateAnchors(self, continousTargetOffset, initialUpdate, reselectingDuringRebuild,
-            blockSelectionChangedCallback)
-    end
-
     self.visibleControls, self.unseenControls = self.unseenControls, self.visibleControls
     ZO_ClearTable(self.visibleControls)
 
@@ -117,12 +111,24 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
     local baseOffset = newSelectedDataIndex - continousTargetOffset
     local animationOffset = baseOffset * self.carouselItemSpacing
 
-    -- Position items in carousel order starting from the selected item
+    -- Position items using shared offset constants for consistent alignment with
+    -- SelectedBg triangle and CountBadge across both carousel and non-carousel modes.
+    -- Carousel mode: circular order starting from selected item (wraps around)
+    -- Non-carousel mode: natural order (1, 2, 3...) shifted so selected item stays at startOffset
     local currentOffset = self.carouselStartOffset + animationOffset
 
     for i = 0, numItems - 1 do
-        -- Calculate the actual data index in circular order starting from selected
-        local dataIndex = ((newSelectedDataIndex - 1 + i) % numItems) + 1
+        local dataIndex
+        if self.carouselMode then
+            -- Circular order: selected item first, then wraps around
+            dataIndex = ((newSelectedDataIndex - 1 + i) % numItems) + 1
+        else
+            -- Linear order: items in natural sequence (1, 2, 3...)
+            -- Offset shifted so that the selected item always lands at carouselStartOffset
+            dataIndex = i + 1
+            currentOffset = self.carouselStartOffset + animationOffset
+                + (i - (newSelectedDataIndex - 1)) * self.carouselItemSpacing
+        end
 
         local control, justCreated = self:AcquireControlAtDataIndex(dataIndex)
         self.unseenControls[control] = nil
@@ -324,7 +330,7 @@ function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDi
 
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
-    if self.carouselMode and self.UpdateAnchors then
+    if self.UpdateAnchors then
         self:UpdateAnchors(selectedIndex, false, false)
     end
 
@@ -345,7 +351,7 @@ function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedInde
     ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled,
         dontCallSelectedDataChangedCallback)
     self:RefreshPips()
-    if self.carouselMode and self.UpdateAnchors then
+    if self.UpdateAnchors then
         self:UpdateAnchors(selectedIndex, true, false)
     end
 end
@@ -366,7 +372,7 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
     end
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_BACK)
-        if self.carouselMode and self.UpdateAnchors then
+        if self.UpdateAnchors then
             self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
         end
     elseif not suppressFailSound then
@@ -392,7 +398,7 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     end
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_FORWARD)
-        if self.carouselMode and self.UpdateAnchors then
+        if self.UpdateAnchors then
             self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
         end
     elseif not suppressFailSound then

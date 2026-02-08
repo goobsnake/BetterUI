@@ -54,6 +54,74 @@ function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
         ZO_SORT_ORDER_UP)
 end
 
+-- Inline status icon tuning for item labels.
+-- These icons are embedded in text and therefore need visual-weight compensation.
+local INLINE_STATUS_ICON_BASE_SIZE = BETTERUI.Inventory.CONST.ICON_SIZE_SMALL
+local INLINE_STATUS_ICON_MIN_SIZE = 12
+local INLINE_STATUS_ICON_MAX_SIZE = 32
+local INLINE_STATUS_ICON_WEIGHT = {
+    LOCKED = 1.1,
+    BOP = 1.05,
+    STOLEN = 1.0,
+    UNBOUND = 1.2,
+    ENCHANTED = 1.0,
+    SET_ITEM = 1.0,
+    RESEARCHABLE_TRAIT = 1.0,
+    RECIPE_UNKNOWN = 1.0,
+    BOOK_UNKNOWN = 1.0,
+}
+
+local function GetActiveListModuleName()
+    if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        return "Banking"
+    end
+    return "Inventory"
+end
+
+local function GetModuleSettings(moduleName)
+    local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+    if not modules then
+        return nil
+    end
+    return modules[moduleName]
+end
+
+local function GetActiveNameFontSize(moduleName)
+    local settings = GetModuleSettings(moduleName)
+    if settings and settings.nameFontSize then
+        return settings.nameFontSize
+    end
+    return BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
+end
+
+local function Clamp(value, minValue, maxValue)
+    if value < minValue then
+        return minValue
+    end
+    if value > maxValue then
+        return maxValue
+    end
+    return value
+end
+
+local function GetScaledInlineIconSize(fontSize, weightMultiplier)
+    local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
+    local ratio = fontSize / baseFontSize
+    local scaled = math.floor((INLINE_STATUS_ICON_BASE_SIZE * ratio * (weightMultiplier or 1.0)) + 0.5)
+    return Clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
+end
+
+local function BuildInlineIconTag(texturePath, iconSize)
+    return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
+end
+
+local function GetIconToggleSetting(moduleSettings, key, defaultValue)
+    if moduleSettings and moduleSettings[key] ~= nil then
+        return moduleSettings[key]
+    end
+    return defaultValue
+end
+
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
 ---
 --- Purpose: Formats the main text label for an inventory item.
@@ -68,9 +136,14 @@ end
 --- @param selected boolean True if the entry is selected.
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
+        -- Determine active module context (Inventory vs Banking)
+        local moduleName = GetActiveListModuleName()
+        local moduleSettings = GetModuleSettings(moduleName)
+        local nameFontSize = GetActiveNameFontSize(moduleName)
+
         -- Determine which scene is active and use appropriate font settings
         local font
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetNameFontDescriptor then
             font = BETTERUI.Banking.GetNameFontDescriptor()
         else
             font = BETTERUI.Inventory.GetNameFontDescriptor()
@@ -98,18 +171,22 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local isBoPTradeable = dS.isBoPTradeable
 
         local labelTxt = ""
+        local lockIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.LOCKED)
+        local bopIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.BOP)
+        local stolenIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.STOLEN)
+        local unboundIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.UNBOUND)
+        local enchantedIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.ENCHANTED)
+        local setItemIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.SET_ITEM)
+        local researchableTraitIconSize = GetScaledInlineIconSize(nameFontSize,
+            INLINE_STATUS_ICON_WEIGHT.RESEARCHABLE_TRAIT)
+        local unknownRecipeIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.RECIPE_UNKNOWN)
+        local unknownBookIconSize = GetScaledInlineIconSize(nameFontSize, INLINE_STATUS_ICON_WEIGHT.BOOK_UNKNOWN)
 
         if isLocked then
-            labelTxt = labelTxt ..
-                "|t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM .. ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM .. ":" ..
-                ZO_GAMEPAD_LOCKED_ICON_32 .. "|t"
+            labelTxt = labelTxt .. BuildInlineIconTag(ZO_GAMEPAD_LOCKED_ICON_32, lockIconSize)
         end
         if isBoPTradeable then
-            labelTxt = labelTxt ..
-                "|t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM ..
-                ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM .. ":" .. ZO_TRADE_BOP_ICON .. "|t"
+            labelTxt = labelTxt .. BuildInlineIconTag(ZO_TRADE_BOP_ICON, bopIconSize)
         end
 
         labelTxt = labelTxt .. (data.text or data.name or "")
@@ -124,45 +201,66 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local hasEnchantment = data.cached_hasEnchantment or GetItemLinkEnchantInfo(itemData)
 
         local currentItemType = data.cached_itemType or GetItemLinkItemType(itemData)
-        local isRecipeAndUnknown = data.cached_isRecipeAndUnknown or
-            ((currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData))
+        local isRecipeAndUnknown = data.cached_isRecipeAndUnknown
+        if isRecipeAndUnknown == nil then
+            isRecipeAndUnknown = (currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData)
+            data.cached_isRecipeAndUnknown = isRecipeAndUnknown
+            dS.cached_isRecipeAndUnknown = isRecipeAndUnknown
+        end
+
+        local isBookAndUnknown = data.cached_isBookAndUnknown
+        if isBookAndUnknown == nil then
+            local isBookType = (currentItemType == ITEMTYPE_BOOK or currentItemType == ITEMTYPE_LOREBOOK)
+            if isBookType then
+                local isBookKnown = data.cached_isBookKnown
+                if isBookKnown == nil then
+                    isBookKnown = IsItemLinkBookKnown(itemData)
+                    data.cached_isBookKnown = isBookKnown
+                    dS.cached_isBookKnown = isBookKnown
+                end
+                isBookAndUnknown = not isBookKnown
+            else
+                isBookAndUnknown = false
+            end
+            data.cached_isBookAndUnknown = isBookAndUnknown
+            dS.cached_isBookAndUnknown = isBookAndUnknown
+        end
+
+        local isResearchableTrait = data.cached_isTraitResearchable
+        if isResearchableTrait == nil then
+            if type(CanItemLinkBeTraitResearched) == "function" then
+                isResearchableTrait = CanItemLinkBeTraitResearched(itemData) == true
+            else
+                isResearchableTrait = false
+            end
+            data.cached_isTraitResearchable = isResearchableTrait
+            dS.cached_isTraitResearchable = isResearchableTrait
+        end
 
         local isUnbound = data.cached_isUnbound or
             (not IsItemBound(bagId, slotIndex) and not data.stolen and data.quality ~= ITEM_QUALITY_TRASH)
 
         if data.stolen then
-            labelTxt = labelTxt ..
-                " |t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" .. BETTERUI.CIM.CONST.ICONS.STOLEN .. "|t"
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.STOLEN, stolenIconSize)
         end
-        if isUnbound and BETTERUI.Settings.Modules["Inventory"].showIconUnboundItem then
-            labelTxt = labelTxt ..
-                " |t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" .. BETTERUI.CIM.CONST.ICONS.UNBOUND .. "|t"
+        if isUnbound and GetIconToggleSetting(moduleSettings, "showIconUnboundItem", true) then
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.UNBOUND, unboundIconSize)
         end
-        if hasEnchantment and BETTERUI.Settings.Modules["Inventory"].showIconEnchantment then
-            labelTxt = labelTxt ..
-                " |t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" .. BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.CIM.CONST.ICONS.ENCHANTED .. "|t"
+        if hasEnchantment and GetIconToggleSetting(moduleSettings, "showIconEnchantment", true) then
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.ENCHANTED, enchantedIconSize)
         end
-        if setItem and BETTERUI.Settings.Modules["Inventory"].showIconSetGear then
-            labelTxt = labelTxt ..
-                " |t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL .. ":" .. BETTERUI.CIM.CONST.ICONS.SET_ITEM .. "|t"
+        if setItem and GetIconToggleSetting(moduleSettings, "showIconSetGear", true) then
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.SET_ITEM, setItemIconSize)
         end
-        if isRecipeAndUnknown then
-            labelTxt = labelTxt ..
-                " |t" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" ..
-                BETTERUI.Inventory.CONST.ICON_SIZE_SMALL ..
-                ":" .. BETTERUI.CIM.CONST.ICONS.RECIPE_UNKNOWN .. "|t"
+        if isResearchableTrait and GetIconToggleSetting(moduleSettings, "showIconResearchableTrait", true) then
+            labelTxt = labelTxt .. " " ..
+                BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT, researchableTraitIconSize)
+        end
+        if isRecipeAndUnknown and GetIconToggleSetting(moduleSettings, "showIconUnknownRecipe", true) then
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.RECIPE_UNKNOWN, unknownRecipeIconSize)
+        end
+        if isBookAndUnknown and GetIconToggleSetting(moduleSettings, "showIconUnknownBook", true) then
+            labelTxt = labelTxt .. " " .. BuildInlineIconTag(BETTERUI.CIM.CONST.ICONS.BOOK_UNKNOWN, unknownBookIconSize)
         end
 
         label:SetText(labelTxt)
@@ -352,7 +450,7 @@ end
 --- 3. **Columns**: Populates Item Type, Trait, Stat (Damage/Armor/Known), and Value.
 --- 4. **Market Price**: Fetches MasterMerchant/TTC price if enabled.
 --- 5. **Icons**: Calls `BETTERUI_SharedGamepadEntryIconSetup`.
---- 6. **Sizing**: Dynamically scales icons based on `invSettings.nameFontSize`.
+--- 6. **Sizing**: Dynamically scales icons based on the active module's `nameFontSize`.
 ---
 --- @param control table The UI control for the row.
 --- @param data table The data item to display.
@@ -362,6 +460,7 @@ end
 --- @param active boolean True if the row is active.
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
+    local moduleName = GetActiveListModuleName()
 
     -- Use cached values for performance
     local bagId = data.bagId or (data.dataSource and data.dataSource.bagId)
@@ -378,7 +477,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Determine which scene is active and use appropriate column font settings
     local columnFont
-    if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetColumnFontDescriptor then
         columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
     else
         columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
@@ -506,11 +605,10 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     BETTERUI_CooldownSetup(control, data)
     BETTERUI_IconSetup(control:GetNamedChild("StatusIndicator"), control:GetNamedChild("EquippedMain"), data)
 
-    -- Adjust icon dimensions based on inventory font size setting
+    -- Adjust icon dimensions based on active scene/module name font size setting
     local iconControl = control:GetNamedChild("Icon")
     local equipIconControl = control:GetNamedChild("EquippedMain")
-    local invSettings = BETTERUI.Settings.Modules["Inventory"]
-    local fontSize = invSettings and invSettings.nameFontSize or BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
+    local fontSize = GetActiveNameFontSize(moduleName)
 
 
 

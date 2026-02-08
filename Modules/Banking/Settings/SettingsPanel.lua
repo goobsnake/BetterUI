@@ -49,13 +49,10 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         -- Icon Visibility (using shared CIM factory)
     }
 
-    -- Insert icon toggle options from CIM factory
-    local iconOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions("Banking", function()
+    -- Item Icon Customization submenu (using shared CIM factory)
+    table.insert(optionsTable, BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Banking", function()
         RefreshBankingWindowList()
-    end)
-    for _, opt in ipairs(iconOptions) do
-        table.insert(optionsTable, opt)
-    end
+    end))
 
     -- Font Customization (using CIM factory)
     local fontStrings = {

@@ -49,6 +49,9 @@ BETTERUI.Defaults.Modules = {
         showIconEnchantment = true,
         showIconSetGear = true,
         showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
 
         -- Safety Features
         bindOnEquipProtection = true, -- Warn before equipping BoE items
@@ -72,6 +75,9 @@ BETTERUI.Defaults.Modules = {
         showIconEnchantment = true,
         showIconSetGear = true,
         showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
     },
 
     -- ========================================================================

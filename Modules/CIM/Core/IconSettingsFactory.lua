@@ -17,23 +17,89 @@ Used By: CreateIconToggleOptions
 local ICON_DEFINITIONS = {
     {
         key = "showIconUnboundItem",
+        iconKey = "UNBOUND",
+        -- This texture has more internal padding than the custom 16x16 icons.
+        -- Use a slightly larger preview so visual weight matches adjacent rows.
+        iconSize = 24,
         nameStringId = SI_BETTERUI_ICON_UNBOUND,
         tooltipStringId = SI_BETTERUI_ICON_UNBOUND_TOOLTIP,
         defaultValue = true,
     },
     {
         key = "showIconEnchantment",
+        iconKey = "ENCHANTED",
+        iconSize = 20,
         nameStringId = SI_BETTERUI_ICON_ENCHANTMENT,
         tooltipStringId = SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP,
         defaultValue = true,
     },
     {
         key = "showIconSetGear",
+        iconKey = "SET_ITEM",
+        iconSize = 20,
         nameStringId = SI_BETTERUI_ICON_SET_GEAR,
         tooltipStringId = SI_BETTERUI_ICON_SET_GEAR_TOOLTIP,
         defaultValue = true,
     },
+    {
+        key = "showIconResearchableTrait",
+        iconKey = "RESEARCHABLE_TRAIT",
+        iconSize = 20,
+        name = "Item Icon - Researchable Trait",
+        tooltip = "Show an icon after items with traits you can research.",
+        defaultValue = true,
+    },
+    {
+        key = "showIconUnknownRecipe",
+        iconKey = "RECIPE_UNKNOWN",
+        iconSize = 20,
+        name = "Item Icon - Unknown Recipe",
+        tooltip = "Show an icon after recipe items that are not yet learned.",
+        defaultValue = true,
+    },
+    {
+        key = "showIconUnknownBook",
+        iconKey = "BOOK_UNKNOWN",
+        iconSize = 20,
+        name = "Item Icon - Unknown Book",
+        tooltip = "Show an icon after books or lorebooks that are not yet learned.",
+        defaultValue = true,
+    },
 }
+
+local DEFAULT_SETTING_ICON_SIZE = 20
+local ICON_SUBMENU_NAME = "Item Icon Customization"
+local ICON_SUBMENU_TOOLTIP = "Configure which status icons appear next to item names."
+local ICON_SUBMENU_DESCRIPTION =
+    "Choose which item-state icons to display in Inventory and Banking lists. " ..
+    "Icons scale with Name column font size and can be toggled individually."
+
+local function ResolveDisplayString(nameStringId, text)
+    if nameStringId then
+        return GetString(nameStringId)
+    end
+    return text or ""
+end
+
+local function GetIconTexture(iconDef)
+    local iconTable = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS
+    if not iconTable or not iconDef.iconKey then
+        return nil
+    end
+    return iconTable[iconDef.iconKey]
+end
+
+local function FormatSettingName(iconDef)
+    local baseName = ResolveDisplayString(iconDef.nameStringId, iconDef.name)
+    local iconTexture = GetIconTexture(iconDef)
+
+    if type(zo_iconFormat) == "function" and iconTexture and iconTexture ~= "" then
+        local iconSize = iconDef.iconSize or DEFAULT_SETTING_ICON_SIZE
+        return zo_iconFormat(iconTexture, iconSize, iconSize) .. " " .. baseName
+    end
+
+    return baseName
+end
 
 --[[
 Function: BETTERUI.CIM.Settings.CreateIconToggleOptions
@@ -56,8 +122,8 @@ function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
     for _, iconDef in ipairs(ICON_DEFINITIONS) do
         table.insert(options, {
             type = "checkbox",
-            name = GetString(iconDef.nameStringId),
-            tooltip = GetString(iconDef.tooltipStringId),
+            name = FormatSettingName(iconDef),
+            tooltip = ResolveDisplayString(iconDef.tooltipStringId, iconDef.tooltip),
             getFunc = function()
                 local settings = BETTERUI.Settings.Modules[moduleName]
                 if not settings then return iconDef.defaultValue end
@@ -79,4 +145,34 @@ function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
     end
 
     return options
+end
+
+--[[
+Function: BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption
+Description: Creates a dedicated submenu for item icon customization controls.
+Rationale: Keeps Inventory/Banking settings focused as icon options expand.
+param: moduleName (string) - The module name key in BETTERUI.Settings.Modules.
+param: refreshFn (function) - Callback to refresh visible lists after settings changes.
+return: table - A LAM submenu option containing icon toggles.
+]]
+function BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption(moduleName, refreshFn)
+    local controls = {
+        {
+            type = "description",
+            text = ICON_SUBMENU_DESCRIPTION,
+            width = "full",
+        },
+    }
+
+    local toggleOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
+    for _, option in ipairs(toggleOptions) do
+        controls[#controls + 1] = option
+    end
+
+    return {
+        type = "submenu",
+        name = ICON_SUBMENU_NAME,
+        tooltip = ICON_SUBMENU_TOOLTIP,
+        controls = controls,
+    }
 end

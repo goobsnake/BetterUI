@@ -546,7 +546,7 @@ Direction: OFFSET_X is Positive (+) moving RIGHT from the left edge of the list 
 Used By: Inventory list templates.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.COLUMNS = {
-    SUBMENU = { OFFSET_X = 70, WIDTH = 540 },   -- Aligned with NAME header
+    SUBMENU = { OFFSET_X = 70, WIDTH = 500 },   -- Constrained to not overlap TYPE at 513
     TYPE    = { OFFSET_X = 513, WIDTH = 250 },  -- Shifted left 12px to align with header
     TRAIT   = { OFFSET_X = 773, WIDTH = 180 },  -- Shifted left 12px to align with header
     STAT    = { OFFSET_X = 963, WIDTH = 130 },  -- Shifted left 12px to align with header
@@ -676,7 +676,9 @@ BETTERUI.CIM.CONST.ICONS = {
     ENCHANTED = "BetterUI/Modules/CIM/Images/inv_enchanted.dds",
     SET_ITEM = "BetterUI/Modules/CIM/Images/inv_setitem.dds",
     UNBOUND = "/esoui/art/guild/gamepad/gp_ownership_icon_guildtrader.dds",
+    RESEARCHABLE_TRAIT = "esoui/art/inventory/inventory_trait_intricate_icon.dds",
     RECIPE_UNKNOWN = "/esoui/art/inventory/gamepad/gp_inventory_icon_craftbag_provisioning.dds",
+    BOOK_UNKNOWN = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_loreLibrary.dds",
 }
 
 -- ============================================================================

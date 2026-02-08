@@ -155,7 +155,7 @@
 
 
                 <Label name="$(parent)Label" inherits="BETTERUI_MenuEntryLabelTemplate"
-                    font="ZoFontGamepad42" wrapMode="ELLIPSIS">
+                    font="ZoFontGamepad42" wrapMode="WRAP">
                     <Anchor point="TOPLEFT" offsetX="BETTERUI_SUBMENU_LABEL_OFFSET_X" />
                     <Dimensions x="BETTERUI_SUBMENU_LABEL_WIDTH" />
                 </Label>

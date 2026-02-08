@@ -134,13 +134,10 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		-- Icon Visibility (using shared CIM factory)
 	}
 
-	-- Insert icon toggle options from CIM factory
-	local iconOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions("Inventory", function()
+	-- Item Icon Customization submenu (using shared CIM factory)
+	table.insert(optionsTable, BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Inventory", function()
 		RefreshInventoryList()
-	end)
-	for _, opt in ipairs(iconOptions) do
-		table.insert(optionsTable, opt)
-	end
+	end))
 
 	-- Continue with remaining options
 	table.insert(optionsTable, {
@@ -197,6 +194,9 @@ function BETTERUI.Inventory.InitModule(m_options)
 		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
 		if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
 		if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
+		if m_options["showIconResearchableTrait"] == nil then m_options["showIconResearchableTrait"] = true end
+		if m_options["showIconUnknownRecipe"] == nil then m_options["showIconUnknownRecipe"] = true end
+		if m_options["showIconUnknownBook"] == nil then m_options["showIconUnknownBook"] = true end
 		if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
 		if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
 		if m_options["enableCompanionJunk"] == nil then m_options["enableCompanionJunk"] = false end
