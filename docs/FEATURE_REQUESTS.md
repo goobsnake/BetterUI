@@ -16,6 +16,7 @@ This document catalogs gamepad QoL opportunities from `esoui/` and tracks their 
 - **Updated:** 11 existing requests (status and priority corrections)
 - **Closed as implemented:** 2 items (inventory stat comparison baseline, stack-all keybind exposure)
 - **Reopened for review:** 1 item (`New Item` visual lifecycle appears non-functional in current BetterUI behavior)
+- **Added (follow-up):** 1 strategic request (`Console Add-On Support & Mod Browser Readiness`)
 
 ---
 
@@ -40,6 +41,7 @@ This document catalogs gamepad QoL opportunities from `esoui/` and tracks their 
 17. [Social Contacts & Notification Hub](#17-social-contacts--notification-hub)
 18. [Chat Menu & Channel Tooling](#18-chat-menu--channel-tooling)
 19. [Equipment Maintenance Hub (Repair + Soul Gems)](#19-equipment-maintenance-hub-repair--soul-gems)
+20. [Console Add-On Support & Mod Browser Readiness](#20-console-add-on-support--mod-browser-readiness)
 
 ---
 
@@ -616,6 +618,41 @@ BetterUI does not provide a unified maintenance UX that connects durability and 
 
 ---
 
+## 20. Console Add-On Support & Mod Browser Readiness
+
+**esoui source:** `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:97`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:139`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:238`, `esoui/pregameandingame/addons/gamepad/modbrowser_gamepad.lua:44`, `esoui/pregameandingame/addons/modbrowserdata.lua:201`, `esoui/ingame/contacts/notifications_common.lua:1934`  
+**Status:** `MISSING`  
+**External references:** `https://help.elderscrollsonline.com/#en/answer/20536` (official support), `https://forums.elderscrollsonline.com/en/discussion/68344` (official June 2025 console add-on launch comms)
+
+### What the base game has
+
+- Dedicated console/gamepad add-on scenes (`console_addons`, `modBrowserGamepad`) and option routing from the gamepad add-on manager
+- Capability-gated access via `DoesPlatformSupportModBrowser()` and `AreUserAddOnsSupported()`
+- In-client mod browsing/search/install/update/uninstall/report workflows (`RequestModsSearch`, `InstallModListing`, `UninstallModListing`, `ReinstallModListing`)
+- Console resource pressure handling in the UX: disk-usage footer plus memory/saved-variable limit notifications
+- Officially documented console constraints: current support scope is Xbox Series X|S and PlayStation 5; add-ons must be UI add-ons, language add-ons are not supported, and the platform enforces a 100 MB add-on cap
+
+### What BetterUI lacks
+
+BetterUI currently has no console-targeted delivery and validation track despite native game support now existing for console add-ons. The project is still effectively PC-first in packaging and QA, with no explicit guardrails for console-specific constraints.
+
+### Implementation notes
+
+- Add a console-readiness gate to tooling:
+  - Validate case-sensitive asset paths/references in manifest and Lua/XML (required for console correctness)
+  - Add size-budget checks for shipped files and saved-variable growth risk
+  - Report unsupported content categories early (for example language-pack style behavior)
+- Add runtime capability gating in bootstrap paths:
+  - Detect `AreUserAddOnsSupported()` and `DoesPlatformSupportModBrowser()`
+  - Keep feature behavior deterministic when support is disabled or temporarily unavailable
+- Add a "console footprint profile" for optional load-shedding:
+  - Reduce non-essential animation/update churn
+  - Trim caches or optional subsystems with the highest memory pressure
+- Add release-process documentation for console publication lifecycle:
+  - Build artifact policy, versioning, rollback procedure, and post-install sanity checklist
+
+---
+
 ## Priority Matrix
 
 | # | Feature | Status | User Impact | Dev Effort | Priority |
@@ -626,6 +663,7 @@ BetterUI does not provide a unified maintenance UX that connects durability and 
 | 4 | Enhanced Loot Window | MISSING | **High** | Medium | **P2** |
 | 5 | Store / Vendor Enhancements | MISSING | **High** | Medium | **P2** |
 | 6 | Trading House Enhancement | MISSING | **Very High** | **High** | **P2** |
+| 20 | Console Add-On Support / Mod Browser Readiness | MISSING | **High** | **High** | **P2** |
 | 1 | Item Stat Comparison Parity | PARTIAL | Medium | Medium | **P2** |
 | 2 | Radial Quick Slot Manager | PARTIAL | Medium | High | **P3** |
 | 7 | Crafting Station Enhancements | MISSING | Medium | High | **P3** |
@@ -657,5 +695,6 @@ BetterUI does not provide a unified maintenance UX that connects durability and 
 3. **Guild Bank** (#3) — strongest module adjacency to current Banking architecture.
 4. **Loot + Store/Vendor** (#4, #5) — shared item-list patterns and tooltip reuse.
 5. **Trading House** (#6) — highest impact major module once core adjacent wins land.
-6. **Quickslot + Companion parity** (#2, #15) — convert partial support into full workflows.
-7. **Social/Guild/Chat tranche** (#16, #17, #18) — coordinated social UX pass.
+6. **Console support readiness track** (#20) — establish publish/test guardrails before console-target expansion.
+7. **Quickslot + Companion parity** (#2, #15) — convert partial support into full workflows.
+8. **Social/Guild/Chat tranche** (#16, #17, #18) — coordinated social UX pass.
