@@ -217,14 +217,25 @@ Description: Displays the currency selector for depositing/withdrawing funds.
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
 
-    if (self.currentMode == LIST_DEPOSIT) then
-        currency_max = GetCarriedCurrencyAmount(currencyType)
+    if GetMaxCurrencyTransfer then
+        local fromLocation
+        local toLocation
+        if self.currentMode == LIST_DEPOSIT then
+            fromLocation = CURRENCY_LOCATION_CHARACTER
+            toLocation = CURRENCY_LOCATION_BANK
+        else
+            fromLocation = CURRENCY_LOCATION_BANK
+            toLocation = CURRENCY_LOCATION_CHARACTER
+        end
+        currency_max = GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation) or 0
+    elseif (self.currentMode == LIST_DEPOSIT) then
+        currency_max = GetCarriedCurrencyAmount(currencyType) or 0
     else
-        currency_max = GetBankedCurrencyAmount(currencyType)
+        currency_max = GetBankedCurrencyAmount(currencyType) or 0
     end
 
     -- Does the player actually have anything that can be transferred?
-    if (currency_max ~= 0) then
+    if (currency_max > 0) then
         self.selector:SetMaxValue(currency_max)
         self.selector:SetClampValues(0, currency_max)
         self.selector.control:GetParent():SetHidden(false)

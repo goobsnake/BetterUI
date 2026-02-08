@@ -86,11 +86,77 @@ Function: BETTERUI.Banking.Class:RefreshCurrencyTooltip
 Description: Updates the tooltip for currency rows.
 Rationale: Shows currency balances in the tooltip when a currency row is selected.
 ]]
+local function BuildBankUpgradeDetailsLines()
+    if GetBankingBag() ~= BAG_BANK then
+        return nil
+    end
+
+    local currentUnlock = GetCurrentBankUpgrade and GetCurrentBankUpgrade() or 0
+    local maxUnlock = GetMaxBankUpgrade and GetMaxBankUpgrade() or currentUnlock
+    local upgradesRemaining = zo_max((maxUnlock or 0) - (currentUnlock or 0), 0)
+    local slotsPerUpgrade = NUM_BANK_SLOTS_PER_UPGRADE or 0
+    local slotMultiplier = (IsESOPlusSubscriber and IsESOPlusSubscriber()) and 2 or 1
+    local slotsRemaining = upgradesRemaining * slotsPerUpgrade * slotMultiplier
+
+    local primaryBankSize = GetBagUseableSize(BAG_BANK) or GetBagSize(BAG_BANK) or 0
+    local subscriberBankSize = GetBagUseableSize(BAG_SUBSCRIBER_BANK) or GetBagSize(BAG_SUBSCRIBER_BANK) or 0
+    local currentBankSize = primaryBankSize + subscriberBankSize
+    local maxPurchasableSize = currentBankSize + slotsRemaining
+    local canPurchaseUpgrade = IsBankUpgradeAvailable and IsBankUpgradeAvailable()
+
+    local details = {
+        showBuyHeader = canPurchaseUpgrade,
+        lines = {},
+    }
+    details.lines[#details.lines + 1] = zo_strformat(SI_BUY_BAG_SPACE_UPGRADES_REMAINING, upgradesRemaining)
+    details.lines[#details.lines + 1] = zo_strformat(SI_INVENTORY_BANK_REMAINING_SPACES, currentBankSize, maxPurchasableSize)
+
+    if canPurchaseUpgrade then
+        local cost = GetNextBankUpgradePrice and GetNextBankUpgradePrice() or 0
+        local costText = ZO_Currency_FormatGamepad(CURT_MONEY, cost, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+        details.lines[#details.lines + 1] = zo_strformat(SI_BANK_UPGRADE_TEXT, costText)
+    end
+
+    return details
+end
+
+local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
+    if not tooltip or not details or not details.lines or #details.lines == 0 then
+        return
+    end
+
+    local detailsMainSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencyMainSection"))
+    local detailsSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencySection"))
+    local function AddDetailsStatValuePair(lineText)
+        local statValuePair = detailsSection:AcquireStatValuePair(tooltip:GetStyle("currencyStatValuePair"))
+        statValuePair:SetStat(lineText, tooltip:GetStyle("currencyStatValuePairStat"))
+        statValuePair:SetValue("", tooltip:GetStyle("currencyStatValuePairValue"))
+        detailsSection:AddStatValuePair(statValuePair)
+    end
+
+    if details.showBuyHeader then
+        AddDetailsStatValuePair(GetString(SI_PROMPT_TITLE_BUY_BANK_SPACE))
+    end
+
+    for i = 1, #details.lines do
+        AddDetailsStatValuePair(details.lines[i])
+    end
+
+    detailsMainSection:AddSection(detailsSection)
+    tooltip:AddSection(detailsMainSection)
+end
+
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
     if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
     local list = self:GetList()
-    if not list or not list.selectedData or not list.selectedData.label then return end
+    if not list or not list.selectedData or not list.selectedData.currencyType then return end
+
+    GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
+    GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
     GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
+
+    local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+    LayoutBankUpgradeDetailsTooltip(tooltip, BuildBankUpgradeDetailsLines())
 end
 
 --[[

@@ -14,6 +14,15 @@ local LIST_DEPOSIT       = BETTERUI.Banking.LIST_DEPOSIT
 
 local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
 
+-- Currency row template used for withdraw/deposit currency entries.
+local CURRENCY_ROW_TEMPLATE = "BETTERUI_BankCurrencySelectorTemplate"
+local GOLD_TRANSFER_AMOUNT_COLOR = ZO_ColorDef:New("FFBF00")
+local CURRENCY_ACTION_SELECTED_COLOR = ZO_ColorDef:New("FFBF00")
+local CURRENCY_ACTION_FONT_SIZE_BONUS = 3
+local CURRENCY_ICON_PULSE_DURATION_MS = 360
+local CURRENCY_ICON_PULSE_MIN_ALPHA = 0.45
+local CURRENCY_ICON_PULSE_MAX_SCALE = 1.12
+
 -------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
 -------------------------------------------------------------------------------------------------
@@ -79,6 +88,140 @@ function BETTERUI.Banking.Class.SetupLabelListing(control, data)
     -- Use Banking module's custom font descriptor for Name column
     local font = BETTERUI.Banking.GetNameFontDescriptor()
     control:GetNamedChild("Label"):SetFont(font)
+end
+
+local function GetCurrencyActionFontDescriptor()
+    local moduleSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Banking"]
+    local defaults = BETTERUI.CIM.Font.DEFAULTS
+    local fontPath = (moduleSettings and moduleSettings.nameFont) or defaults.nameFont
+    local fontSize = BETTERUI.CIM.Font.GetSizeValue((moduleSettings and moduleSettings.nameFontSize) or defaults.nameFontSize)
+    local fontStyle = (moduleSettings and moduleSettings.nameFontStyle) or defaults.nameFontStyle
+
+    return BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize + CURRENCY_ACTION_FONT_SIZE_BONUS, fontStyle)
+end
+
+local function GetCurrencyTransferMax(self, currencyType)
+    local fromLocation
+    local toLocation
+    if self.currentMode == LIST_WITHDRAW then
+        fromLocation = CURRENCY_LOCATION_BANK
+        toLocation = CURRENCY_LOCATION_CHARACTER
+    else
+        fromLocation = CURRENCY_LOCATION_CHARACTER
+        toLocation = CURRENCY_LOCATION_BANK
+    end
+
+    if GetMaxCurrencyTransfer then
+        local maxTransfer = GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation)
+        return maxTransfer or 0
+    end
+
+    local fromAmount = GetCurrencyAmount(currencyType, fromLocation) or 0
+    local toAmount = GetCurrencyAmount(currencyType, toLocation) or 0
+    local toMax = GetMaxPossibleCurrency(currencyType, toLocation) or 0
+    local remainingCapacity = zo_max(toMax - toAmount, 0)
+    return zo_min(fromAmount, remainingCapacity)
+end
+
+local function GetCurrencyTransferEntryLabel(modeText, currencyLabel, currencyType, transferMax)
+    local formatOptions
+    if currencyType == CURT_MONEY then
+        formatOptions = { color = GOLD_TRANSFER_AMOUNT_COLOR }
+    end
+
+    local amountText = ZO_Currency_FormatGamepad(
+        currencyType,
+        transferMax or 0,
+        ZO_CURRENCY_FORMAT_AMOUNT_ICON,
+        formatOptions
+    ) or tostring(transferMax or 0)
+
+    return string.format("%s %s (%s)", modeText, currencyLabel, amountText)
+end
+
+local function BuildCurrencyTransferEntryData(self, currencyType, modeText, labelByCurrency)
+    local currencyLabel = labelByCurrency[currencyType] or
+        (GetCurrencyName and GetCurrencyName(currencyType, true, false)) or tostring(currencyType)
+    local transferMax = GetCurrencyTransferMax(self, currencyType)
+    local iconPath
+    if ZO_Currency_GetGamepadCurrencyIcon then
+        iconPath = ZO_Currency_GetGamepadCurrencyIcon(currencyType)
+    end
+    if not iconPath then
+        iconPath = BETTERUI.Banking.CONST.CURRENCY_TEXTURES[currencyType]
+    end
+
+    local rowLabel = GetCurrencyTransferEntryLabel(modeText, currencyLabel, currencyType, transferMax)
+    local entryData = ZO_GamepadEntryData:New(rowLabel, iconPath)
+    -- Match item-row readability: keep transfer rows at a stable size when selected.
+    entryData:SetFontScaleOnSelection(false)
+    entryData:SetNameColors(CURRENCY_ACTION_SELECTED_COLOR, ZO_GAMEPAD_UNSELECTED_COLOR)
+    entryData:SetDisabledNameColors(ZO_GAMEPAD_DISABLED_SELECTED_COLOR, ZO_GAMEPAD_DISABLED_UNSELECTED_COLOR)
+    entryData:SetIconTint(CURRENCY_ACTION_SELECTED_COLOR, ZO_GAMEPAD_UNSELECTED_COLOR)
+    entryData:SetDisabledIconTint(ZO_GAMEPAD_DISABLED_SELECTED_COLOR, ZO_GAMEPAD_DISABLED_UNSELECTED_COLOR)
+    entryData:SetEnabled(transferMax > 0)
+    entryData.currencyType = currencyType
+    entryData.isCurrenciesMenuEntry = true
+    entryData.transferMax = transferMax
+    entryData.keybindLabel = zo_strformat("<<1>> <<2>>", modeText, currencyLabel)
+    return entryData
+end
+
+local function EnsureCurrencyPulseTimeline(control, icon)
+    if control._betteruiCurrencyPulseTimeline then
+        return control._betteruiCurrencyPulseTimeline
+    end
+
+    local timeline = ANIMATION_MANAGER:CreateTimeline()
+    local fadeOut = timeline:InsertAnimation(ANIMATION_ALPHA, icon, 0)
+    fadeOut:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+    fadeOut:SetAlphaValues(1, CURRENCY_ICON_PULSE_MIN_ALPHA)
+    fadeOut:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+    local fadeIn = timeline:InsertAnimation(ANIMATION_ALPHA, icon, CURRENCY_ICON_PULSE_DURATION_MS)
+    fadeIn:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+    fadeIn:SetAlphaValues(CURRENCY_ICON_PULSE_MIN_ALPHA, 1)
+    fadeIn:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+    local scaleUp = timeline:InsertAnimation(ANIMATION_SCALE, icon, 0)
+    scaleUp:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+    scaleUp:SetScaleValues(1, CURRENCY_ICON_PULSE_MAX_SCALE)
+    scaleUp:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+    local scaleDown = timeline:InsertAnimation(ANIMATION_SCALE, icon, CURRENCY_ICON_PULSE_DURATION_MS)
+    scaleDown:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+    scaleDown:SetScaleValues(CURRENCY_ICON_PULSE_MAX_SCALE, 1)
+    scaleDown:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+    timeline:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY)
+    control._betteruiCurrencyPulseTimeline = timeline
+    return timeline
+end
+
+function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, selected, selectedDuringRebuild, enabled, activated)
+    ZO_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+
+    local label = control.label or control:GetNamedChild("Label")
+    if label then
+        label:SetFont(GetCurrencyActionFontDescriptor())
+    end
+
+    local icon = control.icon or control:GetNamedChild("Icon")
+    if not icon then return end
+
+    local timeline = EnsureCurrencyPulseTimeline(control, icon)
+    local isSelected = selected or selectedDuringRebuild
+    if isSelected and data and data.enabled then
+        if not timeline:IsPlaying() then
+            timeline:PlayFromStart()
+        end
+    else
+        if timeline:IsPlaying() then
+            timeline:Stop()
+        end
+        icon:SetAlpha(1)
+        icon:SetScale(1)
+    end
 end
 
 --[[
@@ -172,7 +315,7 @@ function BETTERUI.Banking.Class:RefreshList()
         self:UpdateHeaderTitle()
     end
 
-    -- We have to add 2 rows to the list, one for Withdraw/Deposit GOLD and one for Withdraw/Deposit TEL-VAR
+    -- Add currency transfer rows at the top when viewing "All Items" in player bank.
     local wdString = self.currentMode == LIST_WITHDRAW and GetString(SI_BETTERUI_BANKING_WITHDRAW) or
         GetString(SI_BETTERUI_BANKING_DEPOSIT)
     wdString = zo_strformat("<<Z:1>>", wdString)
@@ -180,7 +323,8 @@ function BETTERUI.Banking.Class:RefreshList()
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if (currentUsedBank == BAG_BANK) then
         if not activeCategoryForHeader or activeCategoryForHeader.key == "all" then
-            -- Build currency transfer rows dynamically; guard older APIs without ZO_BANKABLE_CURRENCIES
+            -- Build currency transfer rows dynamically; guard older APIs without
+            -- ZO_BANKABLE_CURRENCIES.
             local labelByCurrency = {
                 [CURT_MONEY] = GetString(SI_BETTERUI_CURRENCY_GOLD),
                 [CURT_TELVAR_STONES] = GetString(SI_BETTERUI_CURRENCY_TEL_VAR),
@@ -200,10 +344,8 @@ function BETTERUI.Banking.Class:RefreshList()
                 bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
             end
             for _, currencyType in ipairs(bankableList) do
-                local label = labelByCurrency[currencyType] or
-                    (GetCurrencyName and GetCurrencyName(currencyType, true, false)) or tostring(currencyType)
-                self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                    { label = "|cFFFFFF" .. wdString .. " " .. tostring(label) .. "|r", currencyType = currencyType })
+                local entryData = BuildCurrencyTransferEntryData(self, currencyType, wdString, labelByCurrency)
+                self.list:AddEntry(CURRENCY_ROW_TEMPLATE, entryData)
             end
         end
     else
@@ -336,7 +478,7 @@ function BETTERUI.Banking.Class:RefreshList()
     end
 
     -- Use itemSortComparator if set (for column header sorting), otherwise use default
-    -- This only applies to items, NOT currency rows which are added before this loop
+    -- This only applies to items, NOT currency rows which are added before this loop.
     local sortFn = self.itemSortComparator or BETTERUI.Inventory.DefaultSortComparator
     table.sort(filteredDataTable, sortFn)
 
@@ -432,6 +574,7 @@ Rationale: Extracted from OnItemSelectedChange to improve readability.
 param: selectedData (table) - The selected item data.
 ]]
 local function HandleItemRowSelection(selectedData)
+    GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
     if selectedData.bagId and selectedData.slotIndex then
         GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
         -- Apply BetterUI tooltip enhancements (price info, trait info, etc.)
@@ -475,6 +618,7 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     if not selectedData then
         UpdateKeybindsForSelection(self, false)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
         BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         self:UpdateActions()
         return
@@ -484,7 +628,9 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
 
     if currentUsedBank == BAG_BANK then
-        local isCurrencyRow = selectedData.label ~= nil
+        local isCurrencyRow = ZO_GamepadBanking
+            and ZO_GamepadBanking.IsEntryDataCurrencyRelated
+            and ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData)
             and activeCategoryForHeader
             and activeCategoryForHeader.key == "all"
 
@@ -505,6 +651,11 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
 end
 
 function BETTERUI.Banking.Class.SetupItemList(list)
+    list:AddDataTemplate(
+        CURRENCY_ROW_TEMPLATE,
+        BETTERUI.Banking.Class.SetupCurrencyTransferEntry,
+        ZO_GamepadMenuEntryTemplateParametricListFunction
+    )
     list:AddDataTemplate("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality)
     list:AddDataTemplateWithHeader("BETTERUI_GamepadItemSubEntryTemplate", BETTERUI_SharedGamepadEntry_OnSetup,

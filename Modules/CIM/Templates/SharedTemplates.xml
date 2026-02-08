@@ -256,6 +256,32 @@
             </Controls>
         </Control>
 
+        <!--
+            Template: Banking Currency Transfer Row
+            Purpose: Currency action rows (Withdraw/Deposit Gold/Tel Var/AP/Writs) aligned
+                     to BetterUI's widened list and typography rather than native 470px gamepad
+                     template dimensions.
+        -->
+        <Control name="BETTERUI_BankCurrencySelectorTemplate"
+            inherits="BETTERUI_GamepadMenuEntryDimensionsTemplate BETTERUI_GamepadMenuEntryLabelSizedTemplate"
+            virtual="true">
+            <Anchor point="TOPLEFT" offsetX="BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING" />
+            <Dimensions x="BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH" />
+            <Controls>
+                <Label name="$(parent)Label" inherits="BETTERUI_GamepadMenuEntryLabelTemplate"
+                    font="ZoFontGamepad27">
+                    <Anchor point="TOPLEFT" offsetX="44" offsetY="-5" />
+                    <Dimensions x="BETTERUI_SUBMENU_LABEL_WIDTH" />
+                </Label>
+                <Texture name="$(parent)Icon" inherits="BETTERUI_GamepadMenuEntryIconTemplate">
+                    <Controls>
+                        <Label name="$(parent)StackCount"
+                            inherits="ZO_GamepadMenuEntryStackCountTemplate" />
+                    </Controls>
+                </Texture>
+            </Controls>
+        </Control>
+
 
         <!-- 
             Template: Item Slot Wrapper

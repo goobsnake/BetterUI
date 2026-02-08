@@ -290,7 +290,16 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 local lbl = nil
                 local list = self:GetList()
                 if list and list.selectedData then
-                    lbl = list.selectedData.label
+                    local selectedData = list.selectedData
+                    if selectedData.keybindLabel then
+                        lbl = selectedData.keybindLabel
+                    elseif selectedData.label then
+                        lbl = selectedData.label
+                    elseif selectedData.GetText then
+                        lbl = selectedData:GetText()
+                    else
+                        lbl = selectedData.text
+                    end
                 end
                 return lbl or ""
             end,
@@ -302,7 +311,20 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             visible = function()
                 return true
             end,
-            enabled = true,
+            enabled = function()
+                local list = self:GetList()
+                local selectedData = list and list:GetSelectedData()
+                if not selectedData then
+                    return false
+                end
+                if selectedData.IsEnabled then
+                    return selectedData:IsEnabled()
+                end
+                if selectedData.enabled ~= nil then
+                    return selectedData.enabled
+                end
+                return true
+            end,
         },
     }
 

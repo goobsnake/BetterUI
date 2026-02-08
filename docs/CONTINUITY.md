@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T01:51Z
-> **Provenance:** [CODE] Fixed 5 UI bugs: TTC tooltip, multi-select auto-exit, empty search state, tooltip icon sizing, banking currency persistence
+> **Last Updated:** 2026-02-08T04:20Z
+> **Provenance:** [CODE] Banking currency-row highlight/pulse follow-up: selected currency action text+icon now use gold accent tint, icon lookup prefers native ZO_Currency_GetGamepadCurrencyIcon, and currency row XML icon anchor override removed to avoid hidden icons that blocked visible pulse feedback
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-08] [CODE] Banking currency-row highlight/pulse follow-up: selected action rows now tint to gold accent (text+icon), icon path lookup now uses native currency icon API first, and currency-row XML icon anchor override removed to prevent hidden icons/pulse loss
+- [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
+- [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
 - [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
 - [2026-02-07] [CODE] Fixed Seals currency display: `CURT_SEALS` renamed from `CURT_ENDEAVOR_SEALS` — added compat alias like Trade Bars
 - [2026-02-07] [CODE] Fixed tooltip label hiding regression: hooks on `ZO_Tooltip` class table don't affect `zo_mixin`'d instances; moved to per-instance overrides
-- [2026-02-07] [CODE] Fixed banking keyboard toggle (I/G/M keys) causing blurry screen by intercepting `SCENE_MANAGER:Toggle/Show` during banking
 - [2026-02-07] [CODE] Fixed Junk category tab not appearing when marking items as junk (SetItemIsJunk is async)
-- [2026-02-07] [CODE] Finalized scroll thumb backdrop replacement with native gamepad divider sample
-- [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
 
 **Now:**
-- Session complete
+- Feature branch polish implementation complete; awaiting in-game verification pass
 
 **Next:**
-- Continue opportunistic modularization work for Inventory/CIM hotspots as needed
+- In-game validate currency row horizontal placement, action text scale, bank-space details bottom layout, and gold amount tint for withdraw/deposit rows
 
 ---
 
@@ -63,9 +63,9 @@
 - `docs/CONTINUITY.md`
 - `docs/TRIBAL_KNOWLEDGE.md`
 - `Modules/Banking/Banking.lua`
-- `Modules/CIM/Core/EnhancementModule.lua`
-- `Modules/CIM/UI/CurrencyManager.lua`
-- `Modules/Inventory/UI/TooltipUtils.lua`
+- `Modules/Banking/Lists/BankListManager.lua`
+- `Modules/Banking/Keybinds/KeybindManager.lua`
+- `Modules/Banking/Actions/TransferActions.lua`
 
 ---
 
@@ -73,6 +73,10 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | Banking currency-row highlight/pulse follow-up: selected action rows use gold accent tint (text+icon), icon lookup prefers native gamepad currency icons, and XML icon anchor override removed to prevent hidden icons/pulse loss |
+| 2026-02-08 | [CODE] | Banking currency-row consistency pass: font scales with Banking Name setting (+2), row text nudged up, gold amount rendered in gold tint, and icon pulse standardized |
+| 2026-02-08 | [CODE] | Banking polish iteration: switched currency rows to BetterUI template for left alignment + smaller text, moved bank-space details into styled bottom section of left currency tooltip, and tinted gold transfer amount in gold |
+| 2026-02-08 | [CODE] | Banking currency-row polish prototype: iconized rows + selection pulse + right tooltip bank upgrade/capacity details |
 | 2026-02-08 | [CODE] | Fixed 5 UI bugs: TTC tooltip, multi-select, empty search, icon sizing, banking currency persistence |
 | 2026-02-07 | [CODE] | Fixed Seals currency: `CURT_SEALS` → `CURT_SEALS or CURT_ENDEAVOR_SEALS` compat alias (same pattern as Trade Bars) |
 | 2026-02-07 | [CODE] | Fixed tooltip hiding: `zo_mixin` copies methods from class to instance at init time; must hook per-instance, not class table |
