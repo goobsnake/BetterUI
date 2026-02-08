@@ -87,6 +87,9 @@ Description: Updates the tooltip for currency rows.
 Rationale: Shows currency balances in the tooltip when a currency row is selected.
 ]]
 local function BuildBankUpgradeDetailsLines()
+    local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
+    local BANK_CAPACITY_ICON_SIZE = "90%"
+
     if GetBankingBag() ~= BAG_BANK then
         return nil
     end
@@ -105,7 +108,15 @@ local function BuildBankUpgradeDetailsLines()
     local canPurchaseUpgrade = IsBankUpgradeAvailable and IsBankUpgradeAvailable()
 
     local details = { rows = {} }
-    local bankCapacityValue = zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, currentBankSize, maxPurchasableSize)
+    local bankCapacityText = zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, currentBankSize, maxPurchasableSize)
+    local bankCapacityValue = zo_iconTextFormatNoSpaceAlignedRight(
+        BANK_CAPACITY_ICON_TEXTURE,
+        BANK_CAPACITY_ICON_SIZE,
+        BANK_CAPACITY_ICON_SIZE,
+        bankCapacityText,
+        false,
+        true
+    )
     details.rows[#details.rows + 1] = {
         stat = GetString(SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL),
         value = bankCapacityValue,
@@ -123,7 +134,7 @@ local function BuildBankUpgradeDetailsLines()
     return details
 end
 
-local BANK_UPGRADE_DETAILS_TOP_SPACING = 215
+local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
 
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     if not tooltip or not details or not details.rows or #details.rows == 0 then

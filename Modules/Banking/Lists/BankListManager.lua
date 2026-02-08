@@ -9,21 +9,21 @@ Last Modified: 2026-02-08
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS & STATE
 -------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW      = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT       = BETTERUI.Banking.LIST_DEPOSIT
+local LIST_WITHDRAW                   = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT                    = BETTERUI.Banking.LIST_DEPOSIT
 
-local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
+local BANK_CATEGORY_DEFS              = BETTERUI.Banking.CATEGORY_DEFS
 
 -- Currency row template used for withdraw/deposit currency entries.
-local CURRENCY_ROW_TEMPLATE = "BETTERUI_BankCurrencySelectorTemplate"
-local GOLD_TRANSFER_AMOUNT_COLOR = ZO_ColorDef:New("FFBF00")
-local CURRENCY_ACTION_SELECTED_COLOR = ZO_ColorDef:New("FFBF00")
+local CURRENCY_ROW_TEMPLATE           = "BETTERUI_BankCurrencySelectorTemplate"
+local GOLD_TRANSFER_AMOUNT_COLOR      = ZO_ColorDef:New("FFBF00")
+local CURRENCY_ACTION_SELECTED_COLOR  = ZO_ColorDef:New("FFBF00")
 local CURRENCY_ACTION_FONT_SIZE_BONUS = 3
 local CURRENCY_ICON_PULSE_DURATION_MS = 675
-local CURRENCY_ICON_PULSE_MIN_ALPHA = 0.20
-local CURRENCY_ICON_PULSE_MAX_SCALE = 1.28
-local CURRENCY_LABEL_PULSE_MIN_ALPHA = 0.66
-local CURRENCY_LABEL_PULSE_MAX_SCALE = 1.03
+local CURRENCY_ICON_PULSE_MIN_ALPHA   = 0.20
+local CURRENCY_ICON_PULSE_MAX_SCALE   = 1.28
+local CURRENCY_LABEL_PULSE_MIN_ALPHA  = 0.66
+local CURRENCY_LABEL_PULSE_MAX_SCALE  = 1.03
 
 -------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
@@ -96,7 +96,8 @@ local function GetCurrencyActionFontDescriptor()
     local moduleSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Banking"]
     local defaults = BETTERUI.CIM.Font.DEFAULTS
     local fontPath = (moduleSettings and moduleSettings.nameFont) or defaults.nameFont
-    local fontSize = BETTERUI.CIM.Font.GetSizeValue((moduleSettings and moduleSettings.nameFontSize) or defaults.nameFontSize)
+    local fontSize = BETTERUI.CIM.Font.GetSizeValue((moduleSettings and moduleSettings.nameFontSize) or
+    defaults.nameFontSize)
     local fontStyle = (moduleSettings and moduleSettings.nameFontStyle) or defaults.nameFontStyle
 
     return BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize + CURRENCY_ACTION_FONT_SIZE_BONUS, fontStyle)
@@ -228,7 +229,8 @@ local function EnsureCurrencyPulseTimeline(control, icon, label)
     return timeline
 end
 
-function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, selected, selectedDuringRebuild, enabled, activated)
+function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, selected, selectedDuringRebuild, enabled,
+                                                           activated)
     ZO_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
 
     local label = control.label or control:GetNamedChild("Label")
@@ -337,6 +339,10 @@ Function: BETTERUI.Banking.Class:RefreshList
 Description: Refreshes the banking list contents.
 ]]
 function BETTERUI.Banking.Class:RefreshList()
+    -- Guard: when called on the class table (e.g. from settings panel) rather than
+    -- a live instance, self.list will be nil.  Nothing to refresh in that case.
+    if not self.list then return end
+
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
 
     -- If we're in the middle of a tab selection animation, skip interim refreshes
