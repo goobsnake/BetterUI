@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-07T21:08Z
-> **Provenance:** [CODE] Fixed 3 bugs: banking keyboard toggle, tooltip label hiding, Seals currency display
+> **Last Updated:** 2026-02-08T01:51Z
+> **Provenance:** [CODE] Fixed 5 UI bugs: TTC tooltip, multi-select auto-exit, empty search state, tooltip icon sizing, banking currency persistence
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,13 +28,13 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
 - [2026-02-07] [CODE] Fixed Seals currency display: `CURT_SEALS` renamed from `CURT_ENDEAVOR_SEALS` — added compat alias like Trade Bars
 - [2026-02-07] [CODE] Fixed tooltip label hiding regression: hooks on `ZO_Tooltip` class table don't affect `zo_mixin`'d instances; moved to per-instance overrides
 - [2026-02-07] [CODE] Fixed banking keyboard toggle (I/G/M keys) causing blurry screen by intercepting `SCENE_MANAGER:Toggle/Show` during banking
 - [2026-02-07] [CODE] Fixed Junk category tab not appearing when marking items as junk (SetItemIsJunk is async)
 - [2026-02-07] [CODE] Finalized scroll thumb backdrop replacement with native gamepad divider sample
 - [2026-02-07] [CODE] Fixed 4 inventory bugs: sort consistency, quickslot icons, quest item use, quickslot unassign
-- [2026-02-07] [CODE] Implemented P1/P2 fixes (Banking keybinds, tooltip localization, fallback removal, debug gating)
 
 **Now:**
 - Session complete
@@ -73,6 +73,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | Fixed 5 UI bugs: TTC tooltip, multi-select, empty search, icon sizing, banking currency persistence |
 | 2026-02-07 | [CODE] | Fixed Seals currency: `CURT_SEALS` → `CURT_SEALS or CURT_ENDEAVOR_SEALS` compat alias (same pattern as Trade Bars) |
 | 2026-02-07 | [CODE] | Fixed tooltip hiding: `zo_mixin` copies methods from class to instance at init time; must hook per-instance, not class table |
 | 2026-02-07 | [CODE] | Fixed banking keyboard toggle: intercept `SCENE_MANAGER:Toggle/Show` with re-entrancy guard during active banking |

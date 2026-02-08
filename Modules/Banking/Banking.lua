@@ -405,6 +405,12 @@ Rationale: Migrated from OnEffectivelyShown to use unified scene lifecycle.
 param: wasPushed (boolean) - Whether scene was pushed (not resumed).
 ]]
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
+    -- Ensure currency selector is hidden on scene entry (prevents stale selector from previous visit)
+    if self.selector and self.selector.control then
+        self.selector.control:GetParent():SetHidden(true)
+        self.selector:Deactivate()
+    end
+
     self:CurrentUsedBank()
     -- Rebuild categories on show in case bank type changed
     self.bankCategories = self:ComputeVisibleBankCategories()
@@ -477,6 +483,12 @@ Rationale: Uses shared CIM.SceneCleanup helpers for consistent cleanup.
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
+
+    -- Force-hide currency selector to prevent stale state on re-entry
+    if self.selector and self.selector.control then
+        self.selector.control:GetParent():SetHidden(true)
+        self.selector:Deactivate()
+    end
 
     -- Use shared CIM cleanup for input state (header sort, selection mode, search focus, tab bar)
     BETTERUI.CIM.SceneCleanup.CleanupInputState(self)

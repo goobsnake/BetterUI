@@ -11,6 +11,7 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Выносливость �
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Ничего в списке")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Загрузка списка...")
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Нести")

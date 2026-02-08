@@ -15,6 +15,7 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Mount Stamina")
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Nothing in list")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Loading list...")
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found")
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Carry")

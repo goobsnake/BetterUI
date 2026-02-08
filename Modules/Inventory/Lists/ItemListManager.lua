@@ -272,6 +272,8 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
 
     -- If we're done, clear state
     if startIndex > totalItems then
+        -- Commit is needed even with zero items so SetNoItemText can display
+        self.itemList:Commit()
         self.pendingBatchData = nil
         self.pendingBatchIndex = nil
         return
@@ -443,6 +445,13 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         targetIndex = self._preserveIndex
     end
     self._preserveIndex = nil -- Clear after capturing
+
+    -- Update empty-state text based on search context
+    if self.searchQuery and tostring(self.searchQuery) ~= "" then
+        self.itemList:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+    else
+        self.itemList:SetNoItemText(GetString(SI_BETTERUI_EMPTY_LIST))
+    end
 
     self.itemList:Clear()
     if self.categoryList:IsEmpty() then

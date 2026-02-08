@@ -11,6 +11,7 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "Aguante de montura")
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Nada en la lista")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Cargando lista...")
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Cargar")

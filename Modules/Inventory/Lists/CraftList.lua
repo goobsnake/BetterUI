@@ -131,6 +131,13 @@ end
 --- @param filterType number|table The filter type(s) to apply.
 --- @param searchQuery string|nil The text search query to filter by name.
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
+    -- Update empty-state text based on search context
+    if searchQuery and tostring(searchQuery) ~= "" then
+        self.list:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+    else
+        self.list:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY))
+    end
+
     self.list:Clear()
 
     self.itemFilterFunction = GetFilterComparator(filterType)

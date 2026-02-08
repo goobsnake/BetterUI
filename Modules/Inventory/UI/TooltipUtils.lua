@@ -203,7 +203,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         -- Custom Header Logic ONLY if Enabled
         if enhancementsEnabled then
             -- Calculate icon size based on font (scale icons proportionally)
-            local iconSize = math.floor(fontSize * 1.2) -- Icons slightly larger than font
+            local iconSize = math.floor(fontSize * 1.0) -- Icons consistent with font size
             local iconSizeFmt = iconSize .. ":" .. iconSize
 
             if isHidden and equipSlotText ~= "" then
@@ -278,8 +278,12 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 local slotIndex = tooltip._betterui_slotIndex
 
                 -- Calculate icon size for enhanced tooltip (scale with font)
-                local iconSize = math.floor(fontSize * 1.2)
+                local iconSize = math.floor(fontSize * 1.0)
                 local iconSizeFmt = iconSize .. ":" .. iconSize
+                -- Dense icons (stolen, bag, bank, craftbag, junk) have no internal padding
+                -- in their textures, so they need a smaller size to match padded icons like lock/trait
+                local denseIconSize = math.floor(fontSize * 0.8)
+                local denseIconSizeFmt = denseIconSize .. ":" .. denseIconSize
 
                 -- A. Item Type (Neck, Ring)
                 local itemType = GetItemLinkItemType(itemLink)
@@ -350,7 +354,8 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 local stolenIcon = ""
                 if isStolen then
                     stolenString = GetString(SI_GAMEPAD_ITEM_STOLEN_LABEL) -- "Stolen"
-                    stolenIcon = "|t" .. iconSizeFmt .. ":EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
+                    stolenIcon = "|t" ..
+                    denseIconSizeFmt .. ":EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
                 end
 
                 -- E3. Junk Status
@@ -373,9 +378,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
                 -- G. Bag/Bank Counts
                 local bagCount, bankCount, craftBagCount = GetItemLinkStacks(itemLink)
-                local bagIcon = "|t" .. iconSizeFmt .. ":EsoUI/Art/Tooltips/icon_bag.dds|t"
-                local bankIcon = "|t" .. iconSizeFmt .. ":EsoUI/Art/Tooltips/icon_bank.dds|t"
-                local craftBagIcon = "|t" .. iconSizeFmt .. ":EsoUI/Art/Tooltips/icon_craft_bag.dds|t"
+                local bagIcon = "|t" .. denseIconSizeFmt .. ":EsoUI/Art/Tooltips/icon_bag.dds|t"
+                local bankIcon = "|t" .. denseIconSizeFmt .. ":EsoUI/Art/Tooltips/icon_bank.dds|t"
+                local craftBagIcon = "|t" .. denseIconSizeFmt .. ":EsoUI/Art/Tooltips/icon_craft_bag.dds|t"
 
                 -- Build Info Line
                 local segments = {}
@@ -408,7 +413,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
 
                 if isJunk and junkString ~= "" then
-                    local junkIcon = "|t" .. iconSizeFmt .. ":esoui/art/inventory/inventory_tabicon_junk_up.dds|t"
+                    local junkIcon = "|t" .. denseIconSizeFmt .. ":esoui/art/inventory/inventory_tabicon_junk_up.dds|t"
                     table.insert(segments, "|cD5B526" .. junkIcon .. " " .. junkString .. "|r")
                 end
 

@@ -364,7 +364,17 @@ function BETTERUI.Banking.Class:RefreshList()
         end
     end
 
+    -- Set dynamic empty-state text based on search context (before Commit)
+    -- Uses SetNoItemText for consistent font size and centering with inventory/craftbag
+    if self.searchQuery and self.searchQuery ~= "" then
+        self.list:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+    else
+        -- Reset to default empty text when not searching
+        self.list:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
+    end
+
     self.list:Commit()
+
     -- If list becomes empty, deactivate to avoid parametric list moving errors
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if entryCount == 0 then

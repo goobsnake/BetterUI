@@ -824,8 +824,18 @@ function BETTERUI.Inventory.Class:OnSelectionCountChanged(selectedCount)
         local countText = zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), selectedCount)
         -- Could update header title here if needed
         self.selectedCount = selectedCount
+        self.hadSelections = true -- Track that user has selected at least one item
     else
         self.selectedCount = 0
+    end
+
+    -- Auto-exit selection mode when last item is deselected
+    -- Only exit if items were previously selected (hadSelections prevents exit on initial entry
+    -- when MultiSelectManager fires callback(0) before the first ToggleSelection)
+    if self.isInSelectionMode and selectedCount == 0 and self.hadSelections then
+        self.hadSelections = nil
+        self:ExitSelectionMode()
+        return
     end
 
     -- Refresh keybinds to update Y-button batch actions visibility (skip if in header sort mode)
@@ -1096,8 +1106,17 @@ function BETTERUI.Inventory.Class:OnCraftBagSelectionCountChanged(selectedCount)
     -- Update count tracking
     if self.isInCraftBagSelectionMode and selectedCount > 0 then
         self.craftBagSelectedCount = selectedCount
+        self.hadCraftBagSelections = true -- Track that user has selected at least one item
     else
         self.craftBagSelectedCount = 0
+    end
+
+    -- Auto-exit craftbag selection mode when last item is deselected
+    -- Only exit if items were previously selected (prevents exit on initial entry)
+    if self.isInCraftBagSelectionMode and selectedCount == 0 and self.hadCraftBagSelections then
+        self.hadCraftBagSelections = nil
+        self:ExitCraftBagSelectionMode()
+        return
     end
 
     -- Refresh keybinds to update Y-button batch actions visibility

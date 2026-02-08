@@ -11,6 +11,7 @@ ZO_CreateStringId("SI_BETTERUI_LABEL_MOUNT_STAMINA", "坐骑耐力")
 -- List States
 ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "列表中没有内容")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "正在加载列表...")
+ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "携带")
@@ -510,8 +511,10 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "选择 (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "全选")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "选择要应用于所选物品的操作。锁定的物品可能与某些操作不兼容。")
 -- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK", "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
-ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC", "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
+    "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
+    "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.") -- TODO: Translate
 -- Added from en.lua (TODO: Translate)
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection") -- TODO: Translate
 -- Added from en.lua (TODO: Translate)

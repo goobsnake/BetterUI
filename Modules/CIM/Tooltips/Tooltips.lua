@@ -203,10 +203,13 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
                         iconSize,
                         coinIcon)
                 else
-                    ttcLine = "TTC Price: No Data"
+                    ttcLine = "TTC: No Price Data"
                 end
 
                 if ttcLine then table.insert(lines, ttcLine) end
+            else
+                -- priceInfo is nil — TTC has no data for this item at all
+                table.insert(lines, "TTC: No Price Data")
             end
         end
 
