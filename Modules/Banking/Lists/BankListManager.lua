@@ -3,7 +3,7 @@ File: Modules/Banking/Lists/BankListManager.lua
 Purpose: Manages the banking list, including filtering, sorting, and category logic.
          Extracted from Banking.lua to separate list management from core logic.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-02-08
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -19,9 +19,11 @@ local CURRENCY_ROW_TEMPLATE = "BETTERUI_BankCurrencySelectorTemplate"
 local GOLD_TRANSFER_AMOUNT_COLOR = ZO_ColorDef:New("FFBF00")
 local CURRENCY_ACTION_SELECTED_COLOR = ZO_ColorDef:New("FFBF00")
 local CURRENCY_ACTION_FONT_SIZE_BONUS = 3
-local CURRENCY_ICON_PULSE_DURATION_MS = 360
-local CURRENCY_ICON_PULSE_MIN_ALPHA = 0.45
-local CURRENCY_ICON_PULSE_MAX_SCALE = 1.12
+local CURRENCY_ICON_PULSE_DURATION_MS = 675
+local CURRENCY_ICON_PULSE_MIN_ALPHA = 0.20
+local CURRENCY_ICON_PULSE_MAX_SCALE = 1.28
+local CURRENCY_LABEL_PULSE_MIN_ALPHA = 0.66
+local CURRENCY_LABEL_PULSE_MAX_SCALE = 1.03
 
 -------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
@@ -167,31 +169,59 @@ local function BuildCurrencyTransferEntryData(self, currencyType, modeText, labe
     return entryData
 end
 
-local function EnsureCurrencyPulseTimeline(control, icon)
+local function EnsureCurrencyPulseTimeline(control, icon, label)
+    if not icon and not label then
+        return nil
+    end
+
     if control._betteruiCurrencyPulseTimeline then
         return control._betteruiCurrencyPulseTimeline
     end
 
     local timeline = ANIMATION_MANAGER:CreateTimeline()
-    local fadeOut = timeline:InsertAnimation(ANIMATION_ALPHA, icon, 0)
-    fadeOut:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
-    fadeOut:SetAlphaValues(1, CURRENCY_ICON_PULSE_MIN_ALPHA)
-    fadeOut:SetEasingFunction(ZO_EaseInOutQuadratic)
+    if icon then
+        local fadeOut = timeline:InsertAnimation(ANIMATION_ALPHA, icon, 0)
+        fadeOut:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        fadeOut:SetAlphaValues(1, CURRENCY_ICON_PULSE_MIN_ALPHA)
+        fadeOut:SetEasingFunction(ZO_EaseInOutQuadratic)
 
-    local fadeIn = timeline:InsertAnimation(ANIMATION_ALPHA, icon, CURRENCY_ICON_PULSE_DURATION_MS)
-    fadeIn:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
-    fadeIn:SetAlphaValues(CURRENCY_ICON_PULSE_MIN_ALPHA, 1)
-    fadeIn:SetEasingFunction(ZO_EaseInOutQuadratic)
+        local fadeIn = timeline:InsertAnimation(ANIMATION_ALPHA, icon, CURRENCY_ICON_PULSE_DURATION_MS)
+        fadeIn:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        fadeIn:SetAlphaValues(CURRENCY_ICON_PULSE_MIN_ALPHA, 1)
+        fadeIn:SetEasingFunction(ZO_EaseInOutQuadratic)
 
-    local scaleUp = timeline:InsertAnimation(ANIMATION_SCALE, icon, 0)
-    scaleUp:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
-    scaleUp:SetScaleValues(1, CURRENCY_ICON_PULSE_MAX_SCALE)
-    scaleUp:SetEasingFunction(ZO_EaseInOutQuadratic)
+        local scaleUp = timeline:InsertAnimation(ANIMATION_SCALE, icon, 0)
+        scaleUp:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        scaleUp:SetScaleValues(1, CURRENCY_ICON_PULSE_MAX_SCALE)
+        scaleUp:SetEasingFunction(ZO_EaseInOutQuadratic)
 
-    local scaleDown = timeline:InsertAnimation(ANIMATION_SCALE, icon, CURRENCY_ICON_PULSE_DURATION_MS)
-    scaleDown:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
-    scaleDown:SetScaleValues(CURRENCY_ICON_PULSE_MAX_SCALE, 1)
-    scaleDown:SetEasingFunction(ZO_EaseInOutQuadratic)
+        local scaleDown = timeline:InsertAnimation(ANIMATION_SCALE, icon, CURRENCY_ICON_PULSE_DURATION_MS)
+        scaleDown:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        scaleDown:SetScaleValues(CURRENCY_ICON_PULSE_MAX_SCALE, 1)
+        scaleDown:SetEasingFunction(ZO_EaseInOutQuadratic)
+    end
+
+    if label then
+        local labelFadeOut = timeline:InsertAnimation(ANIMATION_ALPHA, label, 0)
+        labelFadeOut:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        labelFadeOut:SetAlphaValues(1, CURRENCY_LABEL_PULSE_MIN_ALPHA)
+        labelFadeOut:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+        local labelFadeIn = timeline:InsertAnimation(ANIMATION_ALPHA, label, CURRENCY_ICON_PULSE_DURATION_MS)
+        labelFadeIn:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        labelFadeIn:SetAlphaValues(CURRENCY_LABEL_PULSE_MIN_ALPHA, 1)
+        labelFadeIn:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+        local labelScaleUp = timeline:InsertAnimation(ANIMATION_SCALE, label, 0)
+        labelScaleUp:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        labelScaleUp:SetScaleValues(1, CURRENCY_LABEL_PULSE_MAX_SCALE)
+        labelScaleUp:SetEasingFunction(ZO_EaseInOutQuadratic)
+
+        local labelScaleDown = timeline:InsertAnimation(ANIMATION_SCALE, label, CURRENCY_ICON_PULSE_DURATION_MS)
+        labelScaleDown:SetDuration(CURRENCY_ICON_PULSE_DURATION_MS)
+        labelScaleDown:SetScaleValues(CURRENCY_LABEL_PULSE_MAX_SCALE, 1)
+        labelScaleDown:SetEasingFunction(ZO_EaseInOutQuadratic)
+    end
 
     timeline:SetPlaybackType(ANIMATION_PLAYBACK_LOOP, LOOP_INDEFINITELY)
     control._betteruiCurrencyPulseTimeline = timeline
@@ -207,10 +237,13 @@ function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, select
     end
 
     local icon = control.icon or control:GetNamedChild("Icon")
-    if not icon then return end
 
-    local timeline = EnsureCurrencyPulseTimeline(control, icon)
-    local isSelected = selected or selectedDuringRebuild
+    local timeline = EnsureCurrencyPulseTimeline(control, icon, label)
+    if not timeline then
+        return
+    end
+
+    local isSelected = selected
     if isSelected and data and data.enabled then
         if not timeline:IsPlaying() then
             timeline:PlayFromStart()
@@ -219,8 +252,14 @@ function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, select
         if timeline:IsPlaying() then
             timeline:Stop()
         end
-        icon:SetAlpha(1)
-        icon:SetScale(1)
+        if icon then
+            icon:SetAlpha(1)
+            icon:SetScale(1)
+        end
+        if label then
+            label:SetAlpha(1)
+            label:SetScale(1)
+        end
     end
 end
 

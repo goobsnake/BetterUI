@@ -2,7 +2,7 @@
 File: Modules/Banking/Banking.lua
 Purpose: Implements the comprehensive banking interface for BetterUI.
 Author: BetterUI Team
-Last Modified: 2026-02-07
+Last Modified: 2026-02-08
 
 This module completely replaces the default gamepad banking interface with a feature-rich,
 inventory-like experience. It supports advanced filtering, searching, custom categories,
@@ -104,44 +104,48 @@ local function BuildBankUpgradeDetailsLines()
     local maxPurchasableSize = currentBankSize + slotsRemaining
     local canPurchaseUpgrade = IsBankUpgradeAvailable and IsBankUpgradeAvailable()
 
-    local details = {
-        showBuyHeader = canPurchaseUpgrade,
-        lines = {},
+    local details = { rows = {} }
+    local bankCapacityValue = zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, currentBankSize, maxPurchasableSize)
+    details.rows[#details.rows + 1] = {
+        stat = GetString(SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL),
+        value = bankCapacityValue,
     }
-    details.lines[#details.lines + 1] = zo_strformat(SI_BUY_BAG_SPACE_UPGRADES_REMAINING, upgradesRemaining)
-    details.lines[#details.lines + 1] = zo_strformat(SI_INVENTORY_BANK_REMAINING_SPACES, currentBankSize, maxPurchasableSize)
 
     if canPurchaseUpgrade then
         local cost = GetNextBankUpgradePrice and GetNextBankUpgradePrice() or 0
         local costText = ZO_Currency_FormatGamepad(CURT_MONEY, cost, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
-        details.lines[#details.lines + 1] = zo_strformat(SI_BANK_UPGRADE_TEXT, costText)
+        details.rows[#details.rows + 1] = {
+            stat = GetString(SI_PROMPT_TITLE_BUY_BANK_SPACE),
+            value = costText,
+        }
     end
 
     return details
 end
 
+local BANK_UPGRADE_DETAILS_TOP_SPACING = 215
+
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
-    if not tooltip or not details or not details.lines or #details.lines == 0 then
+    if not tooltip or not details or not details.rows or #details.rows == 0 then
         return
     end
 
     local detailsMainSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencyMainSection"))
     local detailsSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencySection"))
-    local function AddDetailsStatValuePair(lineText)
+    local function AddDetailsStatValuePair(statText, valueText)
         local statValuePair = detailsSection:AcquireStatValuePair(tooltip:GetStyle("currencyStatValuePair"))
-        statValuePair:SetStat(lineText, tooltip:GetStyle("currencyStatValuePairStat"))
-        statValuePair:SetValue("", tooltip:GetStyle("currencyStatValuePairValue"))
+        statValuePair:SetStat(statText, tooltip:GetStyle("currencyStatValuePairStat"))
+        statValuePair:SetValue(valueText or "", tooltip:GetStyle("currencyStatValuePairValue"))
         detailsSection:AddStatValuePair(statValuePair)
     end
 
-    if details.showBuyHeader then
-        AddDetailsStatValuePair(GetString(SI_PROMPT_TITLE_BUY_BANK_SPACE))
+    for i = 1, #details.rows do
+        local row = details.rows[i]
+        AddDetailsStatValuePair(row.stat, row.value)
     end
 
-    for i = 1, #details.lines do
-        AddDetailsStatValuePair(details.lines[i])
-    end
-
+    -- Push the bank-upgrade block lower so it sits closer to the tooltip bottom edge.
+    detailsMainSection:SetNextSpacing(BANK_UPGRADE_DETAILS_TOP_SPACING)
     detailsMainSection:AddSection(detailsSection)
     tooltip:AddSection(detailsMainSection)
 end
@@ -416,11 +420,30 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             return
         end
-        self:RefreshFooter()
-        if KEYBIND_STRIP then
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-        end
-        self:RefreshCurrencyTooltip()
+
+        -- Currency transfers emit both carried+banked events; coalesce to one UI refresh.
+        BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", 40, function()
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                return
+            end
+
+            local currentUsedBank = BETTERUI.Banking.currentUsedBank
+            local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+            local showingCurrencyRows = (currentUsedBank == BAG_BANK)
+                and (not activeCategoryForHeader or activeCategoryForHeader.key == "all")
+
+            if showingCurrencyRows then
+                -- Rebuild list so withdraw/deposit currency row counts are recalculated.
+                self.isDirty = true
+                self:RefreshList()
+            end
+
+            self:RefreshFooter()
+            if KEYBIND_STRIP then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+            end
+            self:RefreshCurrencyTooltip()
+        end)
     end
 
     -- Scene showing handler moved to OnSceneShowing method.

@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T04:20Z
-> **Provenance:** [CODE] Banking currency-row highlight/pulse follow-up: selected currency action text+icon now use gold accent tint, icon lookup prefers native ZO_Currency_GetGamepadCurrencyIcon, and currency row XML icon anchor override removed to avoid hidden icons that blocked visible pulse feedback
+> **Last Updated:** 2026-02-08T17:14Z
+> **Provenance:** [CODE] Banking currency-row pulse tuning follow-up: half-cycle duration increased to 675ms (~33% slower than 450ms) while retaining focused-row-only pulse gating; bank-upgrade details block remains offset to 215 for near-border placement
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,7 +28,7 @@
 ## State
 
 **Done (recent ≤7):**
-- [2026-02-08] [CODE] Banking currency-row highlight/pulse follow-up: selected action rows now tint to gold accent (text+icon), icon path lookup now uses native currency icon API first, and currency-row XML icon anchor override removed to prevent hidden icons/pulse loss
+- [2026-02-08] [CODE] Banking pulse tuning follow-up: half-cycle duration increased to 675ms (from 450ms) for ~33% slower pulse speed while remaining keyed to true row focus (`selected`) to prevent all-currency startup pulsing; bank-upgrade detail block remains at 215 for near-border placement
 - [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
 - [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
 - [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
@@ -73,7 +73,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
-| 2026-02-08 | [CODE] | Banking currency-row highlight/pulse follow-up: selected action rows use gold accent tint (text+icon), icon lookup prefers native gamepad currency icons, and XML icon anchor override removed to prevent hidden icons/pulse loss |
+| 2026-02-08 | [CODE] | Banking pulse tuning follow-up: increased pulse cadence to 675ms half-cycle (~33% slower than 450ms), retained focused-only trigger (`selected` instead of rebuild selection), and kept bank-upgrade detail top spacing at 215 for lower near-border placement |
 | 2026-02-08 | [CODE] | Banking currency-row consistency pass: font scales with Banking Name setting (+2), row text nudged up, gold amount rendered in gold tint, and icon pulse standardized |
 | 2026-02-08 | [CODE] | Banking polish iteration: switched currency rows to BetterUI template for left alignment + smaller text, moved bank-space details into styled bottom section of left currency tooltip, and tinted gold transfer amount in gold |
 | 2026-02-08 | [CODE] | Banking currency-row polish prototype: iconized rows + selection pulse + right tooltip bank upgrade/capacity details |
