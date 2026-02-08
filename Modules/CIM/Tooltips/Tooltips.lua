@@ -144,23 +144,23 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
 
     local avgPrice = getPriceFunc(itemLink)
     if not avgPrice or avgPrice == 0 then
-        return string.format("%s Price: No Data", addonName)
+        return zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), addonName)
     end
 
     if stackCount > 1 then
-        return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t,   Stack(<<5>>): <<6>> |t<<3>>:<<3>>:<<4>>|t",
-            addonName,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
-            iconSize,
-            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)),
-            stackCount,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)))
-    else
-        return zo_strformat("<<1>> Price: <<2>> |t<<3>>:<<3>>:<<4>>|t",
-            addonName,
-            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
-            iconSize,
+        local coinIcon = string.format("|t%d:%d:%s|t", iconSize, iconSize,
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
+        return zo_strformat(GetString(SI_BETTERUI_MARKET_PRICE_STACK),
+            addonName,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon,
+            stackCount,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)) .. " " .. coinIcon)
+    else
+        local coinIcon = string.format("|t%d:%d:%s|t", iconSize, iconSize,
+            BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
+        return zo_strformat(GetString(SI_BETTERUI_MARKET_PRICE),
+            addonName,
+            BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon)
     end
 end
 
@@ -185,31 +185,28 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
 
                 if avgPrice and sugPrice then
                     -- Both prices available - show both
-                    ttcLine = zo_strformat("TTC - Avg: <<1>> / Sug: <<2>> |t<<3>>:<<3>>:<<4>>|t",
+                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
+                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG_SUG),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2)),
-                        iconSize,
-                        coinIcon)
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 elseif avgPrice then
                     -- Only Avg available
-                    ttcLine = zo_strformat("TTC - Avg: <<1>> |t<<2>>:<<2>>:<<3>>|t",
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
-                        iconSize,
-                        coinIcon)
+                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
+                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG),
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2))) .. " " .. coinIconStr
                 elseif sugPrice then
                     -- Only Suggested available
-                    ttcLine = zo_strformat("TTC - Sug: <<1>> |t<<2>>:<<2>>:<<3>>|t",
-                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2)),
-                        iconSize,
-                        coinIcon)
+                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
+                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_SUG),
+                        BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 else
-                    ttcLine = "TTC: No Price Data"
+                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), "TTC")
                 end
 
                 if ttcLine then table.insert(lines, ttcLine) end
             else
                 -- priceInfo is nil — TTC has no data for this item at all
-                table.insert(lines, "TTC: No Price Data")
+                table.insert(lines, zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), "TTC"))
             end
         end
 

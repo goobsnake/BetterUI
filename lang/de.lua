@@ -13,6 +13,14 @@ ZO_CreateStringId("SI_BETTERUI_EMPTY_LIST", "Nichts in der Liste")
 ZO_CreateStringId("SI_BETTERUI_LOADING_LIST", "Liste wird geladen...")
 ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "No items found") -- NEEDS TRANSLATION
 
+-- Market Price Tooltip Strings (TTC / MM / ATT integration)
+ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: Keine Preisdaten")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Avg: <<1>> / Sug: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Avg: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Sug: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Preis: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Preis: <<2>>,   Stapel(<<3>>): <<4>>")
+
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Tragen")
 ZO_CreateStringId("SI_BETTERUI_FOOTER_GOLD", "Gold")
