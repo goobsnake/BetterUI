@@ -15,7 +15,7 @@ Purpose: Orchestration layer for BetterUI Inventory system.
          - State/PositionManager.lua - Position save/restore
          - State/ListStateManager.lua - SwitchActiveList
 Author: BetterUI Team
-Last Modified: 2026-01-25
+Last Modified: 2026-02-08
 ]]
 
 
@@ -307,7 +307,8 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.savedVars = ZO_SavedVars:NewAccountWide("ZO_Ingame_SavedVariables", 2, "GamepadInventory", SAVED_VAR_DEFAULTS)
 	self.switchInfo = false
 
-	self:SetListsUseTriggerKeybinds(true)
+	local inventorySettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"]
+	self:SetListsUseTriggerKeybinds(inventorySettings and inventorySettings.useTriggersForSkip == true)
 
 	self.categoryPositions = {}
 	self.categoryCraftPositions = {}

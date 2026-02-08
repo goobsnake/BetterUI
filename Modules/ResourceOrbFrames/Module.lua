@@ -3,7 +3,7 @@ File: Modules/ResourceOrbFrames/Module.lua
 Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-08
 ]]
 
 local LAM = LibAddonMenu2
@@ -27,62 +27,89 @@ local function Init(mId, moduleName)
         end
     end
 
+    local moduleDefaults = {}
+    if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.GetDefaults then
+        moduleDefaults = BETTERUI.ResourceOrbFrames.GetDefaults()
+    end
+
+    local function Default(key, fallback)
+        local value = moduleDefaults[key]
+        if value == nil then
+            return fallback
+        end
+        return value
+    end
+
+    local function CloneColor(value, fallback)
+        local source = value
+        if type(source) ~= "table" then
+            source = fallback
+        end
+        if type(source) ~= "table" then
+            return { 1, 1, 1, 1 }
+        end
+        return {
+            source[1] or 1,
+            source[2] or 1,
+            source[3] or 1,
+            source[4] or 1,
+        }
+    end
+
     -- Accessor with live update
     local GetSet = BETTERUI.CreateSettingAccessors("ResourceOrbFrames", Apply)
-    -- Accessor without live update (for reload-required settings)
-    local GetSetNoUpdate = BETTERUI.CreateSettingAccessors("ResourceOrbFrames", nil)
     local GetColorSet = BETTERUI.CreateColorSettingAccessors("ResourceOrbFrames", Apply)
 
-    local getScale, setScale = GetSet("scale", 1)
-    local getOffset, setOffset = GetSet("offsetY", 0)
-    local getCustomTex, setCustomTex = GetSetNoUpdate("useCustomTextures", false)
+    local getScale, setScale = GetSet("scale", Default("scale", 1))
+    local getOffset, setOffset = GetSet("offsetY", Default("offsetY", 0))
+    local getCustomTex, setCustomTex = GetSet("useCustomTextures", Default("useCustomTextures", false))
 
-    local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE)
-    local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor", { 0.86, 0.84, 0.13, 1 })
-    local getQuickslotSize, setQuickslotSize = GetSet("quickslotTextSize", 27)
-    local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor", { 1, 1, 1, 1 })
-    local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", 0.5)
-    local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", false)
+    local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize", Default("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE))
+    local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor", CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 }))
+    local getQuickslotSize, setQuickslotSize = GetSet("quickslotTextSize", Default("quickslotTextSize", 27))
+    local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor", CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 }))
+    local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", Default("backBarOpacity", 1))
+    local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", Default("weaponSwapAnimation", true))
 
-    local getShowUlt, setShowUlt = GetSet("showUltimateNumber", false)
-    local getUltSize, setUltSize = GetSet("ultimateTextSize", 27)
-    local getUltColor, setUltColor = GetColorSet("ultimateTextColor", { 1, 1, 1, 1 })
+    local getShowUlt, setShowUlt = GetSet("showUltimateNumber", Default("showUltimateNumber", true))
+    local getUltSize, setUltSize = GetSet("ultimateTextSize", Default("ultimateTextSize", 27))
+    local getUltColor, setUltColor = GetColorSet("ultimateTextColor", CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 }))
 
-    local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", false)
-    local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", true)
+    local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", Default("showQuickslotCooldown", false))
+    local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", Default("showQuickslotCount", true))
 
-    local getShowGlow, setShowGlow = GetSet("showCombatGlow", false)
-    local getGlowColor, setGlowColor = GetColorSet("combatGlowColor", { 1, 0.3, 0.1, 0.8 })
-    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", false)
-    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", false)
+    local getShowGlow, setShowGlow = GetSet("showCombatGlow", Default("showCombatGlow", false))
+    local getGlowColor, setGlowColor = GetColorSet("combatGlowColor", CloneColor(Default("combatGlowColor", nil), { 1, 0.3, 0.1, 0.8 }))
+    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", Default("showCombatIcon", false))
+    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", Default("playCombatAudio", false))
 
-    local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", false)
-    local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", false)
-    local getLeftSize, setLeftSize = GetSet("leftOrbSizeScale", 1.0)
-    local getHideRight, setHideRight = GetSet("hideRightOrnament", false)
-    local getRightSize, setRightSize = GetSet("rightOrbSizeScale", 1.0)
+    local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", Default("orbAnimFlow", false))
+    local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", Default("hideLeftOrnament", false))
+    local getLeftSize, setLeftSize = GetSet("leftOrbSizeScale", Default("leftOrbSizeScale", 1.0))
+    local getHideRight, setHideRight = GetSet("hideRightOrnament", Default("hideRightOrnament", false))
+    local getRightSize, setRightSize = GetSet("rightOrbSizeScale", Default("rightOrbSizeScale", 1.0))
 
-    local getHealthSize, setHealthSize = GetSet("healthTextSize", 20)
-    local getHealthColor, setHealthColor = GetColorSet("healthTextColor", { 1, 1, 1, 1 })
-    local getMagsize, setMagSize = GetSet("magickaTextSize", 20)
-    local getMagColor, setMagColor = GetColorSet("magickaTextColor", { 1, 1, 1, 1 })
-    local getStamSize, setStamSize = GetSet("staminaTextSize", 20)
-    local getStamColor, setStamColor = GetColorSet("staminaTextColor", { 1, 1, 1, 1 })
-    local getShieldSize, setShieldSize = GetSet("shieldTextSize", 20)
-    local getShieldColor, setShieldColor = GetColorSet("shieldTextColor", { 0, 1, 1, 1 })
+    local getHealthSize, setHealthSize = GetSet("healthTextSize", Default("healthTextSize", 20))
+    local getHealthColor, setHealthColor = GetColorSet("healthTextColor", CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 }))
+    local getMagsize, setMagSize = GetSet("magickaTextSize", Default("magickaTextSize", 20))
+    local getMagColor, setMagColor = GetColorSet("magickaTextColor", CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 }))
+    local getStamSize, setStamSize = GetSet("staminaTextSize", Default("staminaTextSize", 20))
+    local getStamColor, setStamColor = GetColorSet("staminaTextColor", CloneColor(Default("staminaTextColor", nil), { 1, 1, 1, 1 }))
+    local getShieldSize, setShieldSize = GetSet("shieldTextSize", Default("shieldTextSize", 20))
+    local getShieldColor, setShieldColor = GetColorSet("shieldTextColor", CloneColor(Default("shieldTextColor", nil), { 0, 1, 1, 1 }))
 
-    local getXpEnabled, setXpEnabled = GetSet("xpBarEnabled", false)
-    local getXpSize, setXpSize = GetSet("xpBarTextSize", 16)
-    local getXpColor, setXpColor = GetColorSet("xpBarTextColor", { 1, 1, 1, 1 })
+    local getXpEnabled, setXpEnabled = GetSet("xpBarEnabled", Default("xpBarEnabled", true))
+    local getXpSize, setXpSize = GetSet("xpBarTextSize", Default("xpBarTextSize", 16))
+    local getXpColor, setXpColor = GetColorSet("xpBarTextColor", CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 }))
 
-    local getCastEnabled, setCastEnabled = GetSet("castBarEnabled", false)
-    local getCastAlways, setCastAlways = GetSet("castBarAlwaysShow", false)
-    local getCastSize, setCastSize = GetSet("castBarTextSize", 16)
-    local getCastColor, setCastColor = GetColorSet("castBarTextColor", { 1, 1, 1, 1 })
+    local getCastEnabled, setCastEnabled = GetSet("castBarEnabled", Default("castBarEnabled", true))
+    local getCastAlways, setCastAlways = GetSet("castBarAlwaysShow", Default("castBarAlwaysShow", false))
+    local getCastSize, setCastSize = GetSet("castBarTextSize", Default("castBarTextSize", 16))
+    local getCastColor, setCastColor = GetColorSet("castBarTextColor", CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 }))
 
-    local getMountEnabled, setMountEnabled = GetSet("mountBarEnabled", false)
-    local getMountSize, setMountSize = GetSet("mountBarTextSize", 16)
-    local getMountColor, setMountColor = GetColorSet("mountBarTextColor", { 1, 1, 1, 1 })
+    local getMountEnabled, setMountEnabled = GetSet("mountStaminaBarEnabled", Default("mountStaminaBarEnabled", true))
+    local getMountSize, setMountSize = GetSet("mountStaminaBarTextSize", Default("mountStaminaBarTextSize", 16))
+    local getMountColor, setMountColor = GetColorSet("mountStaminaBarTextColor", CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 }))
 
     local optionsTable = {
         {
@@ -102,7 +129,7 @@ local function Init(mId, moduleName)
             getFunc = getScale,
             setFunc = setScale,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = 1,
+            default = Default("scale", 1),
         },
         {
             type = "slider",
@@ -114,7 +141,7 @@ local function Init(mId, moduleName)
             getFunc = getOffset,
             setFunc = setOffset,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = 0,
+            default = Default("offsetY", 0),
         },
         {
             type = "checkbox",
@@ -123,8 +150,7 @@ local function Init(mId, moduleName)
             getFunc = getCustomTex,
             setFunc = setCustomTex,
             width = "full",
-            warning = GetString(SI_BETTERUI_ROF_REQUIRES_RELOAD),
-            requiresReload = true,
+            default = Default("useCustomTextures", false),
         },
         -- TODO(refactor): Extract reset settings pattern to single ResetSettings() function - duplicated at lines 332, 509, 689
         {
@@ -132,17 +158,18 @@ local function Init(mId, moduleName)
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
             tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
             func = function()
-                local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                 local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                settings.scale = 1
-                settings.offsetY = 0
-                settings.useCustomTextures = defaults.useCustomTextures
-                settings.cooldownTextSize = 27
-                settings.cooldownTextColor = { 0.86, 0.84, 0.13, 1 }
-                settings.quickslotTextSize = 27
-                settings.quickslotTextColor = { 1, 1, 1, 1 }
-                settings.hideLeftOrnament = defaults.hideLeftOrnament
-                settings.hideRightOrnament = defaults.hideRightOrnament
+                settings.scale = Default("scale", 1)
+                settings.offsetY = Default("offsetY", 0)
+                settings.useCustomTextures = Default("useCustomTextures", false)
+                settings.cooldownTextSize = Default("cooldownTextSize", 27)
+                settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 })
+                settings.quickslotTextSize = Default("quickslotTextSize", 27)
+                settings.quickslotTextColor = CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 })
+                settings.hideLeftOrnament = Default("hideLeftOrnament", false)
+                settings.hideRightOrnament = Default("hideRightOrnament", false)
+                settings.leftOrbSizeScale = Default("leftOrbSizeScale", 1.0)
+                settings.rightOrbSizeScale = Default("rightOrbSizeScale", 1.0)
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -331,22 +358,22 @@ local function Init(mId, moduleName)
                     type = "button",
                     name = GetString(SI_BETTERUI_RESET_SKILL_BAR),
                     func = function()
-                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        settings.cooldownTextSize = 27
-                        settings.cooldownTextColor = { 0.86, 0.84, 0.13, 1 }
-                        settings.quickslotTextSize = 27
-                        settings.quickslotTextColor = { 1, 1, 1, 1 }
-                        settings.backBarOpacity = 1
-                        -- Reset new settings (default to off - user must opt-in)
-                        settings.showUltimateNumber = false
-                        settings.ultimateTextSize = 27
-                        settings.ultimateTextColor = { 1, 1, 1, 1 }
-                        settings.showQuickslotCooldown = false
-                        settings.showCombatGlow = false
-                        settings.showCombatIcon = false
-                        settings.playCombatAudio = false
-                        settings.combatGlowColor = { 1, 0.3, 0.1, 0.8 }
+                        settings.cooldownTextSize = Default("cooldownTextSize", 27)
+                        settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 })
+                        settings.quickslotTextSize = Default("quickslotTextSize", 27)
+                        settings.quickslotTextColor = CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 })
+                        settings.backBarOpacity = Default("backBarOpacity", 1)
+                        settings.weaponSwapAnimation = Default("weaponSwapAnimation", true)
+                        settings.showUltimateNumber = Default("showUltimateNumber", true)
+                        settings.ultimateTextSize = Default("ultimateTextSize", 27)
+                        settings.ultimateTextColor = CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 })
+                        settings.showQuickslotCooldown = Default("showQuickslotCooldown", false)
+                        settings.showQuickslotCount = Default("showQuickslotCount", true)
+                        settings.showCombatGlow = Default("showCombatGlow", false)
+                        settings.showCombatIcon = Default("showCombatIcon", false)
+                        settings.playCombatAudio = Default("playCombatAudio", false)
+                        settings.combatGlowColor = CloneColor(Default("combatGlowColor", nil), { 1, 0.3, 0.1, 0.8 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -508,22 +535,21 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
                         -- Ornament visibility and orb scaling
-                        settings.hideLeftOrnament = defaults.hideLeftOrnament
-                        settings.hideRightOrnament = defaults.hideRightOrnament
-                        settings.leftOrbSizeScale = defaults.leftOrbSizeScale
-                        settings.rightOrbSizeScale = defaults.rightOrbSizeScale
+                        settings.hideLeftOrnament = Default("hideLeftOrnament", false)
+                        settings.hideRightOrnament = Default("hideRightOrnament", false)
+                        settings.leftOrbSizeScale = Default("leftOrbSizeScale", 1.0)
+                        settings.rightOrbSizeScale = Default("rightOrbSizeScale", 1.0)
                         -- Text settings
-                        settings.healthTextSize = defaults.healthTextSize
-                        settings.healthTextColor = defaults.healthTextColor
-                        settings.magickaTextSize = defaults.magickaTextSize
-                        settings.magickaTextColor = defaults.magickaTextColor
-                        settings.staminaTextSize = defaults.staminaTextSize
-                        settings.staminaTextColor = defaults.staminaTextColor
-                        settings.shieldTextSize = defaults.shieldTextSize
-                        settings.shieldTextColor = defaults.shieldTextColor
+                        settings.healthTextSize = Default("healthTextSize", 20)
+                        settings.healthTextColor = CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 })
+                        settings.magickaTextSize = Default("magickaTextSize", 20)
+                        settings.magickaTextColor = CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 })
+                        settings.staminaTextSize = Default("staminaTextSize", 20)
+                        settings.staminaTextColor = CloneColor(Default("staminaTextColor", nil), { 1, 1, 1, 1 })
+                        settings.shieldTextSize = Default("shieldTextSize", 20)
+                        settings.shieldTextColor = CloneColor(Default("shieldTextColor", nil), { 0, 1, 1, 1 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -572,10 +598,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        settings.xpBarTextSize = defaults.xpBarTextSize
-                        settings.xpBarTextColor = defaults.xpBarTextColor
+                        settings.xpBarTextSize = Default("xpBarTextSize", 16)
+                        settings.xpBarTextColor = CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -634,10 +659,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        settings.castBarTextSize = defaults.castBarTextSize
-                        settings.castBarTextColor = defaults.castBarTextColor
+                        settings.castBarTextSize = Default("castBarTextSize", 16)
+                        settings.castBarTextColor = CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -692,10 +716,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local defaults = BETTERUI.ResourceOrbFrames.InitModule({})
                         local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        settings.mountStaminaBarTextSize = defaults.mountStaminaBarTextSize
-                        settings.mountStaminaBarTextColor = defaults.mountStaminaBarTextColor
+                        settings.mountStaminaBarTextSize = Default("mountStaminaBarTextSize", 16)
+                        settings.mountStaminaBarTextColor = CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()

@@ -1,6 +1,7 @@
 --[[
 File: Modules/Inventory/Settings/FontSettings.lua
 Purpose: Manages font definitions and the font customization UI.
+Last Modified: 2026-02-08
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
@@ -12,6 +13,13 @@ BETTERUI.Inventory.FONT_VALUES = BETTERUI.CIM.Font.VALUES
 BETTERUI.Inventory.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
 BETTERUI.Inventory.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Inventory.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
+
+local function RefreshInventoryList()
+    local inv = GAMEPAD_INVENTORY
+    if inv and inv.RefreshItemList then
+        inv:RefreshItemList()
+    end
+end
 
 --- Returns the ESO font descriptor for the Name column.
 function BETTERUI.Inventory.GetNameFontDescriptor()
@@ -62,9 +70,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFont = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -88,9 +94,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -108,10 +112,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].nameFontStyle = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            -- AUDITED(pcall): Defensive - LAM callback context may have stale references
-                            pcall(function() BETTERUI_GAMEPAD_INVENTORY:RefreshItemList() end)
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -127,9 +128,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.nameFont = d.nameFont
                         s.nameFontSize = d.nameFontSize
                         s.nameFontStyle = d.nameFontStyle
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "half",
@@ -152,9 +151,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFont = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -178,9 +175,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -198,9 +193,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     end,
                     setFunc = function(value)
                         BETTERUI.Settings.Modules["Inventory"].columnFontStyle = value
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "full",
@@ -216,9 +209,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         s.columnFont = d.columnFont
                         s.columnFontSize = d.columnFontSize
                         s.columnFontStyle = d.columnFontStyle
-                        if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-                            BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-                        end
+                        RefreshInventoryList()
                     end,
                     disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
                     width = "half",

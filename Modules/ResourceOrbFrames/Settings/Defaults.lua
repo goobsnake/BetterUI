@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/Settings/Defaults.lua
 Purpose: Default settings for Resource Orb Frames module.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-08
 ]]
 
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
@@ -11,7 +11,7 @@ BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 --- @return table The default settings table.
 local function GetDefaults()
     return {
-        m_enabled = false,
+        m_enabled = true,
         scale = 1.15,
         offsetY = 80,
         useCustomTextures = false,

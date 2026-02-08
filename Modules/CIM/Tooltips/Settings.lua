@@ -2,13 +2,26 @@
     BetterUI Tooltip Settings
     Description: Configuration options for BetterUI Tooltip enhancements.
     Part of the General Interface module.
-    Last Modified: 2026-01-28
+    Last Modified: 2026-02-08
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 local LAM = LibAddonMenu2
+
+local function ApplyTooltipVisualSettings()
+    if BETTERUI.Inventory and BETTERUI.Inventory.ApplyTooltipStyles then
+        BETTERUI.Inventory.ApplyTooltipStyles()
+    end
+end
+
+local function CleanupTooltipEnhancementArtifacts()
+    if not (BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip) then return end
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
+end
 
 --- Returns the table of LAM settings options for General Interface.
 --- @return table options The list of settings control definitions
@@ -142,6 +155,11 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             end,
             setFunc = function(value)
                 BETTERUI.Settings.Modules["CIM"].enableTooltipEnhancements = value
+                if value then
+                    ApplyTooltipVisualSettings()
+                else
+                    CleanupTooltipEnhancementArtifacts()
+                end
             end,
             width = "full",
             default = true,
@@ -162,7 +180,10 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
                 return val
             end,
-            setFunc = function(value) BETTERUI.Settings.Modules["CIM"].tooltipSize = value end,
+            setFunc = function(value)
+                BETTERUI.Settings.Modules["CIM"].tooltipSize = value
+                ApplyTooltipVisualSettings()
+            end,
             disabled = function()
                 local settings = BETTERUI.Settings.Modules["CIM"]
                 if not settings then return true end
@@ -179,12 +200,17 @@ end
 --- @param m_options table The raw settings table
 --- @return table m_options The initialized settings table
 function BETTERUI.GeneralInterface.InitModule(m_options)
-    if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
-    if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
-    if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
-    if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = false end
-    if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end
-    if m_options["mmIntegration"] == nil then m_options["mmIntegration"] = true end
-    if m_options["ttcIntegration"] == nil then m_options["ttcIntegration"] = true end
+    m_options = m_options or {}
+    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
+        m_options = BETTERUI.Defaults.ApplyModuleDefaults("GeneralInterface", m_options)
+    else
+        if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
+        if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
+        if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
+        if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = true end
+        if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end
+        if m_options["mmIntegration"] == nil then m_options["mmIntegration"] = true end
+        if m_options["ttcIntegration"] == nil then m_options["ttcIntegration"] = true end
+    end
     return m_options
 end

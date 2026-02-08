@@ -3,7 +3,7 @@ File: Modules/Banking/Settings/SettingsPanel.lua
 Purpose: Extracted LAM settings panel for Banking module.
          Matches Inventory's structure with dedicated Settings folder.
 Author: BetterUI Team
-Last Modified: 2026-01-28
+Last Modified: 2026-02-08
 ]]
 
 local LAM = LibAddonMenu2
@@ -21,6 +21,13 @@ param: moduleName (string) - The display name for the panel.
 function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
+    local function RefreshBankingWindowList()
+        local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
+        if bankingWindow and bankingWindow.RefreshList then
+            bankingWindow:RefreshList()
+        end
+    end
+
     local optionsTable = {
         -- Carousel Navigation
         {
@@ -30,7 +37,13 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             getFunc = function()
                 return BETTERUI.Banking.GetSetting("enableCarousel")
             end,
-            setFunc = function(value) BETTERUI.Banking.SetSetting("enableCarousel", value) end,
+            setFunc = function(value)
+                BETTERUI.Banking.SetSetting("enableCarousel", value)
+                local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
+                if bankingWindow and bankingWindow.RebuildHeaderCategories then
+                    bankingWindow:RebuildHeaderCategories()
+                end
+            end,
             width = "full",
         },
         -- Icon Visibility (using shared CIM factory)
@@ -38,9 +51,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
 
     -- Insert icon toggle options from CIM factory
     local iconOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions("Banking", function()
-        if BETTERUI.Banking.Class and BETTERUI.Banking.Class.RefreshList then
-            BETTERUI.Banking.Class:RefreshList()
-        end
+        RefreshBankingWindowList()
     end)
     for _, opt in ipairs(iconOptions) do
         table.insert(optionsTable, opt)
@@ -70,9 +81,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         columnResetTooltip = SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP,
     }
     local fontRefreshFn = function()
-        if BETTERUI.Banking.Class and BETTERUI.Banking.Class.RefreshList then
-            BETTERUI.Banking.Class:RefreshList()
-        end
+        RefreshBankingWindowList()
     end
     local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(
         "Banking",

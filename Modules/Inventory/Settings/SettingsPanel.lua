@@ -2,7 +2,7 @@
 File: Modules/Inventory/Settings/SettingsPanel.lua
 Purpose: Handles the LAM settings panel construction for the Inventory module.
          Aggregates settings from FontSettings, CurrencySettings, and internal general settings.
-Last Modified: 2026-01-28
+Last Modified: 2026-02-08
 ]]
 
 local LAM = LibAddonMenu2
@@ -32,6 +32,35 @@ end
 function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
+	local function GetInventoryWindow()
+		return GAMEPAD_INVENTORY
+	end
+
+	local function RefreshInventoryList()
+		local inv = GetInventoryWindow()
+		if inv and inv.RefreshItemList then
+			inv:RefreshItemList()
+		end
+	end
+
+	local function RefreshBankingList()
+		local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
+		if bankingWindow and bankingWindow.RefreshList then
+			bankingWindow:RefreshList()
+		end
+	end
+
+	local function ApplyTriggerMode(useCategoryJump)
+		local inv = GetInventoryWindow()
+		if not inv then return end
+		if inv.SetListsUseTriggerKeybinds then
+			inv:SetListsUseTriggerKeybinds(useCategoryJump)
+		end
+		if inv.RefreshKeybinds then
+			inv:RefreshKeybinds()
+		end
+	end
+
 	local optionsTable = {
 		-- Quick Destroy
 		{
@@ -52,7 +81,17 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("enableCarousel")
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCarousel", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("enableCarousel", value)
+				local inv = GetInventoryWindow()
+				if inv and inv.categoryHeaderData then
+					inv.categoryHeaderData.carouselConfig = inv.categoryHeaderData.carouselConfig or {}
+					inv.categoryHeaderData.carouselConfig.enabled = value
+					if inv.RefreshHeader then
+						inv:RefreshHeader(true)
+					end
+				end
+			end,
 			width = "full",
 		},
 		{
@@ -62,7 +101,10 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("useTriggersForSkip")
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("useTriggersForSkip", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("useTriggersForSkip", value)
+				ApplyTriggerMode(value)
+			end,
 			width = "full",
 		},
 		{
@@ -72,7 +114,11 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("showMarketPrice")
 			end,
-			setFunc = function(value) BETTERUI.Inventory.SetSetting("showMarketPrice", value) end,
+			setFunc = function(value)
+				BETTERUI.Inventory.SetSetting("showMarketPrice", value)
+				RefreshInventoryList()
+				RefreshBankingList()
+			end,
 			width = "full",
 		},
 		{
@@ -90,9 +136,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 
 	-- Insert icon toggle options from CIM factory
 	local iconOptions = BETTERUI.CIM.Settings.CreateIconToggleOptions("Inventory", function()
-		if BETTERUI_GAMEPAD_INVENTORY and BETTERUI_GAMEPAD_INVENTORY.RefreshItemList then
-			BETTERUI_GAMEPAD_INVENTORY:RefreshItemList()
-		end
+		RefreshInventoryList()
 	end)
 	for _, opt in ipairs(iconOptions) do
 		table.insert(optionsTable, opt)
@@ -106,7 +150,13 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		getFunc = function()
 			return BETTERUI.Inventory.GetSetting("enableCompanionJunk") == true
 		end,
-		setFunc = function(value) BETTERUI.Inventory.SetSetting("enableCompanionJunk", value) end,
+		setFunc = function(value)
+			BETTERUI.Inventory.SetSetting("enableCompanionJunk", value)
+			local inv = GetInventoryWindow()
+			if inv and inv.RefreshItemActions then
+				inv:RefreshItemActions()
+			end
+		end,
 		width = "full",
 	})
 

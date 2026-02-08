@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/OrbBars.lua
 Purpose: Implements rectangular bar frames (XP, Cast, Mount Stamina).
          Contains BetterUIBarFrame and its subclasses.
-Last Modified: 2026-01-23
+Last Modified: 2026-02-08
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -74,6 +74,8 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     if not self.control or self.control:IsHidden() then return end
 
     if self.backdrop then
+        -- Keep backdrop texture in sync with live "Use Custom Textures" toggles.
+        self.backdrop:SetTexture(ResolveTexturePath("Bar.dds"))
         self.backdrop:SetDimensions(barWidth, barHeight)
     end
 

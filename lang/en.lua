@@ -365,7 +365,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Move the frame up/down. Positive moves up; negative moves down.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Use Custom Textures")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
-    "Enable this to use textures from 'BetterUI/Modules/GeneralInterface/CustomOrbTextures'. You must place your own textures there with the correct filenames.")
+    "Use textures from 'BetterUI/Modules/ResourceOrbFrames/CustomTextures'. Place your own files there using the same filenames as the default texture set.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset to Defaults")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
@@ -414,7 +414,7 @@ ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Alters how many lines to 
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Remove confirmation screen when deleting mail")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Mouse Scrolling speed on Left Hand tooltip")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP",
-    "Change how quickly the menu skips when pressing the triggers.")
+    "Change how quickly the left tooltip scrolls when using the mouse wheel.")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "Number of lines to skip on trigger")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Change how quickly the menu skips when pressing the triggers.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE", "Tooltip Font Size")

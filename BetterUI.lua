@@ -6,7 +6,7 @@ Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
            Manages the loading of sub-modules based on Gamepad mode.
            Runtime patches and settings migrations are delegated to CIM/RuntimeSetup.lua.
 Author: BetterUI Team
-Last Modified: 2026-02-07
+Last Modified: 2026-02-08
 
 -- TODO(ARCHITECTURE): Consider adopting a formal module registration pattern.
 -- Current approach: Each module is manually listed in LoadModules() and Initialize().
@@ -168,8 +168,13 @@ function BETTERUI.InitModuleOptions()
 		-- based on dependent modules (Inventory, Banking, GeneralInterface)
 	}
 
-	-- Add Feature Flags submenu dynamically from FeatureFlags API
-	if BETTERUI.CIM and BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.GetAllFlags then
+	-- Developer-only feature flag controls (hidden for normal users)
+	local showDeveloperSettings = BETTERUI.CIM
+		and BETTERUI.CIM.Debug
+		and BETTERUI.CIM.Debug.ShouldShowDeveloperSettings
+		and BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
+
+	if showDeveloperSettings and BETTERUI.CIM and BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.GetAllFlags then
 		local flagControls = {
 			{
 				type = "header",
@@ -184,32 +189,21 @@ function BETTERUI.InitModuleOptions()
 		}
 
 		local allFlags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
-		local FLAGS = BETTERUI.CIM.FeatureFlags.FLAGS
-
-		-- Technical flags to hide from normal users (internal implementation details)
-		local HIDDEN_FLAGS = {
-			BATCH_PROCESSING = true,
-			POSITION_PERSISTENCE = true,
-			PERFORMANCE_METRICS = true,
-		}
 
 		-- Sort flag names for consistent ordering
 		local sortedFlags = {}
 		for name in pairs(allFlags) do
-			-- Only include user-visible flags
-			if not HIDDEN_FLAGS[name] then
-				table.insert(sortedFlags, name)
-			end
+			table.insert(sortedFlags, name)
 		end
 		table.sort(sortedFlags)
 
 		for _, flagName in ipairs(sortedFlags) do
 			local flagData = allFlags[flagName]
-			local def = flagData.definition
+			local def = (flagData and flagData.definition) or {}
 			table.insert(flagControls, {
 				type = "checkbox",
-				name = def.description or flagName,
-				tooltip = "Version " .. (def.version or "?") .. " | Key: " .. flagName,
+				name = def.name or flagName,
+				tooltip = (def.description or flagName) .. " | Version " .. (def.version or "?"),
 				getFunc = function()
 					return BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
 				end,

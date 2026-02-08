@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T18:28Z
-> **Provenance:** [USER] Requested deep `esoui/` + internet investigation and a detailed console add-on support request; expanded `docs/FEATURE_REQUESTS.md` #20 details and aligned roadmap priorities/order
+> **Last Updated:** 2026-02-08T21:01:18Z
+> **Provenance:** [USER] Requested `sr-review-gate` execution and full fix loop for all findings after the comprehensive LAM settings audit/fix pass
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-08] [CODE] Completed LAM settings integrity pass + sr-review remediation: fixed non-functional Inventory trigger toggle wiring, corrected Inventory/Banking live-refresh callbacks to use runtime window instances, fixed ResourceOrbFrames mount-setting key mismatches, added real-time tooltip style apply hooks, and gated developer-only feature flags behind `SHOW_DEVELOPER_SETTINGS`
 - [2026-02-08] [CODE] Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` in `docs/FEATURE_REQUESTS.md` using `esoui/` API evidence plus official support/forum constraints; updated TOC, matrix, and recommended order
 - [2026-02-08] [CODE] Feature-request follow-up: restored full `New Item` section details in `docs/FEATURE_REQUESTS.md` and reclassified #13 as `NOT WORKING - NEEDS REVIEW` (removed from closed items, moved to P1)
 - [2026-02-08] [TOOL] Feature-request workflow run (`/feature-requests`, standard scope): refined existing backlog entries, marked implemented items (#13/#14) as closed, and added sections #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub)
 - [2026-02-08] [CODE] Banking tooltip icon follow-up: bank-capacity value icon switched from mount-capacity glyph to inventory bag icon (`gp_inventory_icon_all`) for better semantic fit, retaining no-space aligned-right formatting, 90% icon size, and 290 spacing
 - [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
 - [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
-- [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
 
 **Now:**
-- Feature request roadmap now includes #20 console add-on support readiness with current platform constraints and `esoui` capability anchors
+- LAM settings pass and `sr-review-gate` remediation are complete in code; pending in-game validation for live-apply behavior and reload prompts
 
 **Next:**
-- Choose between a console-readiness implementation spike (#20) and current P1 backlog execution (#12 accessibility, #13 new-item review, #3 guild bank)
+- Run focused in-game verification matrix for each settings panel (Master, General, Inventory, Banking, Resource Orb Frames) and capture any behavior drift
 
 ---
 
@@ -61,12 +61,17 @@
 ## Working Set (≤12 paths)
 
 - `docs/CONTINUITY.md`
-- `docs/TRIBAL_KNOWLEDGE.md`
-- `docs/FEATURE_REQUESTS.md`
-- `Modules/Banking/Banking.lua`
-- `Modules/Banking/Lists/BankListManager.lua`
-- `Modules/Banking/Keybinds/KeybindManager.lua`
-- `Modules/Banking/Actions/TransferActions.lua`
+- `BetterUI.lua`
+- `Modules/CIM/Core/DeveloperDebug.lua`
+- `Modules/CIM/Tooltips/Settings.lua`
+- `Modules/CIM/Module.lua`
+- `Modules/Inventory/Settings/SettingsPanel.lua`
+- `Modules/Inventory/Inventory.lua`
+- `Modules/Banking/Settings/SettingsPanel.lua`
+- `Modules/ResourceOrbFrames/Module.lua`
+- `Modules/ResourceOrbFrames/Core/OrbBars.lua`
+- `Modules/ResourceOrbFrames/Settings/Defaults.lua`
+- `lang/en.lua`
 
 ---
 
@@ -74,6 +79,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | LAM settings audit/fix + sr-review loop: only true reload-required controls remain in Master panel, ResourceOrbFrames custom textures now live-apply (including orb bars), mount stamina setting key mismatches fixed, Inventory trigger-skip toggle now wired to runtime behavior, Inventory/Banking settings refresh now target runtime window instances, and developer-only feature flags are hidden unless `BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = true` |
 | 2026-02-08 | [CODE] | Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` with deeper `esoui` API anchors (dynamic support events, disk threshold, menu visibility gates, mod browser install/search APIs) and official external constraints (next-gen scope, no PC/Mac browser path, UI-only, no language add-ons, 100 MB cap) |
 | 2026-02-08 | [CODE] | Feature requests follow-up: restored detailed #13 "New Item Visual Tracking System" content, set status to `NOT WORKING - NEEDS REVIEW`, and updated matrix/order to prioritize review |
 | 2026-02-08 | [TOOL] | Feature requests audit (standard scope): updated statuses for implemented/partial features, closed #13/#14 as implemented, and added #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub) |

@@ -4,11 +4,15 @@ Purpose: Consolidated developer debug module for BetterUI.
          Provides diagnostic commands, debug flags, and development utilities.
          DISABLED BY DEFAULT - Enable via DEBUG_LOGGING feature flag or BETTERUI_DEBUG global.
 Author: BetterUI Team
-Last Modified: 2026-01-31
+Last Modified: 2026-02-08
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Debug = {}
+
+-- Set to true during development to expose developer-only settings in LAM.
+-- This is intentionally false for normal users.
+BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = false
 
 -- ============================================================================
 -- DEBUG FLAGS
@@ -52,6 +56,16 @@ function BETTERUI.CIM.Debug.IsEnabled()
     end
 
     return false
+end
+
+--- Returns whether developer-only settings should be visible in LAM.
+--- Developers can enable this by setting SHOW_DEVELOPER_SETTINGS = true above.
+--- @return boolean show True when developer settings should be shown
+function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
+    if BETTERUI_DEBUG then
+        return true
+    end
+    return BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS == true
 end
 
 --[[
