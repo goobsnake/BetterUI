@@ -38,6 +38,7 @@ $commandMap = @{
     "lang-audit.md"              = "lang-audit.md"
     "review-todos.md"            = "review-todos.md"
     "scaffold-module.md"         = "scaffold-module.md"
+    "feature-requests.md"        = "feature-requests.md"
 }
 
 function Test-SymbolicLinkSupport {

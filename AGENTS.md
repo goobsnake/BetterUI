@@ -131,6 +131,7 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 | `/lang-audit` | Localization file synchronization |
 | `/review-todos` | Prioritize outstanding TODOs |
 | `/scaffold-module` | Create new module structure |
+| `/feature-requests` | Scan esoui for gamepad QoL gaps, update `docs/FEATURE_REQUESTS.md` |
 
 ---
 
