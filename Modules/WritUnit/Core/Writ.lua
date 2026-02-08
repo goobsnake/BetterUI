@@ -76,11 +76,13 @@ function BETTERUI.Writs.Update()
 	for qId = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(qId) then
 			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
-				local qName, _, qDesc, _, _, qCompleted = GetJournalQuestInfo(qId)
+				-- TODO(cleanup): Replace unused qDesc, qCompleted with _ placeholders
+			local qName, _, qDesc, _, _, qCompleted = GetJournalQuestInfo(qId)
 				local currentWrit                       = -1
 				local q                                 = string.lower(qName or "")
 				-- Use patterns from Constants.lua for maintainability
 				-- Order matters: last match wins as in the original chain
+				-- TODO(fix): Use BETTERUI.Writs.CONST.GetLocalizedPatterns() instead of CONST.PATTERNS for i18n support (German/French users affected)
 				local patterns                          = BETTERUI.Writs.CONST.PATTERNS
 				for i = 1, #patterns do
 					local pat = patterns[i].pattern
@@ -111,6 +113,7 @@ end
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
+		-- TODO(cleanup): Replace unused activeText, completed with _ placeholders
 		local qName, _, activeText, _, _, completed = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
 		-- Use cached control references for performance
 		if m_writNameLabel then

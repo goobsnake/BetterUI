@@ -91,6 +91,7 @@ local function Init(mId, moduleName)
 
     local getHealthSize, setHealthSize = GetSet("healthTextSize", Default("healthTextSize", 20))
     local getHealthColor, setHealthColor = GetColorSet("healthTextColor", CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 }))
+    -- TODO(cleanup): Rename getMagsize to getMagSize for consistent getter/setter casing
     local getMagsize, setMagSize = GetSet("magickaTextSize", Default("magickaTextSize", 20))
     local getMagColor, setMagColor = GetColorSet("magickaTextColor", CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 }))
     local getStamSize, setStamSize = GetSet("staminaTextSize", Default("staminaTextSize", 20))

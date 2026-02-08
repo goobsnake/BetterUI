@@ -25,6 +25,7 @@ BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27
 -- Defines the ability slot dimensions and offsets for main bar skinning.
 -- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
 -- ============================================================================
+-- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
 LAYOUT_CONFIG = {
     GAMEPAD = {
         abilitySlotWidth = 67,
@@ -302,6 +303,7 @@ BETTERUI_ORB_FRAMES = {
 -- CUSTOM BARS
 -- ============================================================================
 
+-- TODO(refactor): Namespace bar config globals (BETTERUI_XP_BAR_*, BETTERUI_CAST_BAR_*, BETTERUI_MOUNT_STAMINA_BAR_*) under BETTERUI.ResourceOrbFrames.CONST.BARS
 -- Experience/Champion Bar positioning (Below left ornament)
 BETTERUI_XP_BAR_SCALE = 1.0        -- Scale multiplier for XP bar
 BETTERUI_XP_BAR_OFFSET_X = 0       -- X offset from center (positive = right)
@@ -351,5 +353,6 @@ BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tal
 -- DEBUG FLAGS
 -- ============================================================================
 
+-- TODO(cleanup): Migrate BETTERUI_SHIELD_DEBUG to CIM FeatureFlags system instead of bare global
 -- Set to true to show the shield overlay ring for visual debugging
 BETTERUI_SHIELD_DEBUG = false

@@ -57,6 +57,7 @@ BETTERUI.Banking.CONST.SEARCH = {
 }
 
 -- DEPRECATED(v3.1): Use BETTERUI.Banking.CONST.SEARCH.* instead
+-- TODO(cleanup): Remove BETTERUI_BANK_SEARCH_* deprecated global aliases after v3.1 migration complete
 -- Backward compatibility aliases (global constants for existing code)
 BETTERUI_BANK_SEARCH_X_OFFSET = searchConst.X_OFFSET
 BETTERUI_BANK_SEARCH_Y_OFFSET = searchConst.Y_OFFSET

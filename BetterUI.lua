@@ -442,6 +442,7 @@ end
 
 -- Event handlers for initialization and gamepad mode changes
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED, function(...) BETTERUI.Initialize(...) end)
+-- TODO(fix): Only call LoadModules() when inGamepad is true to avoid unnecessary execution on keyboard switch
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name .. "_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
 	function(code, inGamepad) BETTERUI.LoadModules() end)
 

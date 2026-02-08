@@ -565,6 +565,7 @@ BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
     PRICE_LABEL_OFFSET_Y = 5,
 }
 
+-- TODO(cleanup): Audit XML templates for BETTERUI_GAMEPAD_* usage — remove aliases whose XML consumers have been migrated
 -- Backward Compatibility Aliases (XML Support) - PANEL
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH
 BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH
@@ -782,6 +783,7 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 --   - Inventory/Module.lua
 --   - Inventory/UI/TooltipUtils.lua
 
+-- TODO(cleanup): Audit consumers of BETTERUI.CONST.* aliases and migrate to BETTERUI.CIM.CONST.* paths
 -- Legacy namespace aliases (for code still using BETTERUI.CONST.*)
 BETTERUI.CONST.LAYOUT = BETTERUI.CIM.CONST.LAYOUT
 BETTERUI.CONST.COLORS = BETTERUI.CIM.CONST.COLORS
