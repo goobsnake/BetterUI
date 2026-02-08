@@ -620,17 +620,18 @@ BetterUI does not provide a unified maintenance UX that connects durability and 
 
 ## 20. Console Add-On Support & Mod Browser Readiness
 
-**esoui source:** `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:97`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:139`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:238`, `esoui/pregameandingame/addons/gamepad/modbrowser_gamepad.lua:44`, `esoui/pregameandingame/addons/modbrowserdata.lua:201`, `esoui/ingame/contacts/notifications_common.lua:1934`  
+**esoui source:** `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:35`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:95`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:139`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:238`, `esoui/pregameandingame/addons/gamepad/zo_addonmanager_gamepad.lua:447`, `esoui/pregameandingame/addons/gamepad/modbrowser_gamepad.lua:44`, `esoui/pregameandingame/addons/modbrowserdata.lua:201`, `esoui/ingame/gamemenu_ingame/gamemenu_ingame.lua:140`, `esoui/pregame/gamemenu_pregame/keyboard/gamemenu_characterselect.lua:67`, `esoui/ingame/contacts/notifications_common.lua:1934`, `esoui/lang/en_client.lua:8605`  
 **Status:** `MISSING`  
-**External references:** `https://help.elderscrollsonline.com/#en/answer/20536` (official support), `https://forums.elderscrollsonline.com/en/discussion/68344` (official June 2025 console add-on launch comms)
+**External references:** `https://help.elderscrollsonline.com/#en/answer/42209` (official console add-on FAQ), `https://help.elderscrollsonline.com/#en/answer/20536` (official add-on support article), `https://forums.elderscrollsonline.com/en/discussion/68344` (official June 23, 2025 console add-on launch comms)
 
 ### What the base game has
 
 - Dedicated console/gamepad add-on scenes (`console_addons`, `modBrowserGamepad`) and option routing from the gamepad add-on manager
 - Capability-gated access via `DoesPlatformSupportModBrowser()` and `AreUserAddOnsSupported()`
+- Runtime availability changes are event-driven (`EVENT_CONSOLE_ADDONS_DISABLED_STATE_CHANGED`, `EVENT_ADDONS_DISABLED_STATE_CHANGED`) and stock UI re-evaluates visibility dynamically
 - In-client mod browsing/search/install/update/uninstall/report workflows (`RequestModsSearch`, `InstallModListing`, `UninstallModListing`, `ReinstallModListing`)
-- Console resource pressure handling in the UX: disk-usage footer plus memory/saved-variable limit notifications
-- Officially documented console constraints: current support scope is Xbox Series X|S and PlayStation 5; add-ons must be UI add-ons, language add-ons are not supported, and the platform enforces a 100 MB add-on cap
+- Console resource pressure handling in the UX: disk-usage footer (warning threshold at 90% usage), add-on memory-limit notifications, and saved-variable-limit notifications
+- Officially documented console constraints: current support scope is Xbox Series X|S and PlayStation 5, the console add-on browser is not for PC/Mac users, add-ons must be UI add-ons, language add-ons are not supported, and the platform enforces a 100 MB add-on cap
 
 ### What BetterUI lacks
 
@@ -644,10 +645,13 @@ BetterUI currently has no console-targeted delivery and validation track despite
   - Report unsupported content categories early (for example language-pack style behavior)
 - Add runtime capability gating in bootstrap paths:
   - Detect `AreUserAddOnsSupported()` and `DoesPlatformSupportModBrowser()`
-  - Keep feature behavior deterministic when support is disabled or temporarily unavailable
+  - Listen for disabled-state events and keep behavior deterministic when support is disabled or temporarily unavailable
 - Add a "console footprint profile" for optional load-shedding:
   - Reduce non-essential animation/update churn
   - Trim caches or optional subsystems with the highest memory pressure
+- Add in-addon telemetry/debug visibility for platform limits:
+  - Surface near-capacity alerts before hard disable thresholds
+  - Track optional feature memory contributors to guide safe defaults
 - Add release-process documentation for console publication lifecycle:
   - Build artifact policy, versioning, rollback procedure, and post-install sanity checklist
 

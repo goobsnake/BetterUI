@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
-> **Last Updated:** 2026-02-08T18:17Z
-> **Provenance:** [USER] Requested restoring `New Item` feature-request details and marking it not working; updated `docs/FEATURE_REQUESTS.md` status/matrix accordingly
+> **Last Updated:** 2026-02-08T18:28Z
+> **Provenance:** [USER] Requested deep `esoui/` + internet investigation and a detailed console add-on support request; expanded `docs/FEATURE_REQUESTS.md` #20 details and aligned roadmap priorities/order
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,20 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-08] [CODE] Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` in `docs/FEATURE_REQUESTS.md` using `esoui/` API evidence plus official support/forum constraints; updated TOC, matrix, and recommended order
 - [2026-02-08] [CODE] Feature-request follow-up: restored full `New Item` section details in `docs/FEATURE_REQUESTS.md` and reclassified #13 as `NOT WORKING - NEEDS REVIEW` (removed from closed items, moved to P1)
 - [2026-02-08] [TOOL] Feature-request workflow run (`/feature-requests`, standard scope): refined existing backlog entries, marked implemented items (#13/#14) as closed, and added sections #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub)
 - [2026-02-08] [CODE] Banking tooltip icon follow-up: bank-capacity value icon switched from mount-capacity glyph to inventory bag icon (`gp_inventory_icon_all`) for better semantic fit, retaining no-space aligned-right formatting, 90% icon size, and 290 spacing
 - [2026-02-08] [CODE] Banking currency-row consistency pass: currency action text now derives from Banking Name font settings (+2 size for readable emphasis), row label anchor nudged up for spacing, gold transfer amount text forced gold tint, and icon pulse standardized with alpha+scale timeline plus clean reset
 - [2026-02-08] [CODE] Banking UI polish iteration on `feature/banking-currency-row-polish`: currency action rows moved left and downsized to match list typography; bank-space details now appended at bottom of left currency tooltip using native currency styles; gold transfer amount now tinted gold in custom withdraw/deposit rows
 - [2026-02-08] [CODE] Fixed 5 UI bugs: TTC tooltip 'No Price Data', multi-select auto-exit with hadSelections guard, empty search state across all 3 scenes, tooltip icon sizing (two-tier dense/padded), banking currency selector persistence
-- [2026-02-07] [CODE] Fixed Seals currency display: `CURT_SEALS` renamed from `CURT_ENDEAVOR_SEALS` — added compat alias like Trade Bars
-- [2026-02-07] [CODE] Fixed tooltip label hiding regression: hooks on `ZO_Tooltip` class table don't affect `zo_mixin`'d instances; moved to per-instance overrides
 
 **Now:**
-- Feature request roadmap doc refresh complete; priorities and implementation status are now aligned with current codebase reality
+- Feature request roadmap now includes #20 console add-on support readiness with current platform constraints and `esoui` capability anchors
 
 **Next:**
-- Select next roadmap target from refreshed P1 queue (Accessibility completion or Guild Bank permission-aware mode)
+- Choose between a console-readiness implementation spike (#20) and current P1 backlog execution (#12 accessibility, #13 new-item review, #3 guild bank)
 
 ---
 
@@ -75,6 +74,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-08 | [CODE] | Expanded feature request #20 `Console Add-On Support & Mod Browser Readiness` with deeper `esoui` API anchors (dynamic support events, disk threshold, menu visibility gates, mod browser install/search APIs) and official external constraints (next-gen scope, no PC/Mac browser path, UI-only, no language add-ons, 100 MB cap) |
 | 2026-02-08 | [CODE] | Feature requests follow-up: restored detailed #13 "New Item Visual Tracking System" content, set status to `NOT WORKING - NEEDS REVIEW`, and updated matrix/order to prioritize review |
 | 2026-02-08 | [TOOL] | Feature requests audit (standard scope): updated statuses for implemented/partial features, closed #13/#14 as implemented, and added #16-#19 (guild roster/ranks, social hub, chat tooling, maintenance hub) |
 | 2026-02-08 | [CODE] | Banking tooltip icon follow-up: replaced bank-capacity value icon with `gp_inventory_icon_all` (from mount-capacity icon) while retaining no-space aligned-right formatting, 90% icon size, and 290 top spacing |
@@ -93,7 +93,4 @@
 | 2026-02-07 | [CODE] | Replaced Banking keybind strip resets with targeted group removal |
 | 2026-02-07 | [CODE] | Localized tooltip cleanup tokens and junk label rendering |
 | 2026-02-06 | [TOOL] | Completed 7-phase agent config optimization |
-| 2026-02-06 | [TOOL] | Moved CONTRIBUTING.md + CONTINUITY.md to docs/ |
-| 2026-02-06 | [USER] | Requested agent configuration refactor with AGENTS.md |
-| 2026-02-06 | [USER] | Approved two-file approach (CONTINUITY + TRIBAL_KNOWLEDGE) |
 
