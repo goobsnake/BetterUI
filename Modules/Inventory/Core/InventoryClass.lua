@@ -773,82 +773,24 @@ end
 -- MULTI-SELECT MODE
 --------------------------------------------------------------------------------
 
---- Enters multi-selection mode.
---- Called when user holds the A button for 0.5s.
+-- Multi-select lifecycle delegates to CIM.MultiSelectMixin.
+-- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
+local MSMixin = BETTERUI.CIM.MultiSelectMixin
+
 function BETTERUI.Inventory.Class:EnterSelectionMode()
-    if self.isInSelectionMode then return end
-    if not self.multiSelectManager then return end
-
-    self.isInSelectionMode = true
-    self.multiSelectManager:EnterSelectionMode()
-
-    -- Select the current item automatically
-    local target = self.itemList.selectedData
-    if target then
-        self.multiSelectManager:ToggleSelection(target)
-    end
-
-    -- Update keybinds for selection mode (skip if in header sort mode)
-    if not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
-    end
-
-    -- Refresh list to show selection visuals
-    self:RefreshItemList()
+    MSMixin.EnterSelectionMode(self)
 end
 
---- Exits multi-selection mode.
---- Called when user presses B or completes a batch action.
 function BETTERUI.Inventory.Class:ExitSelectionMode()
-    if not self.isInSelectionMode then return end
-
-    self.isInSelectionMode = false
-    if self.multiSelectManager then
-        self.multiSelectManager:ExitSelectionMode()
-    end
-
-    -- Update keybinds to normal mode (skip if in header sort mode)
-    if not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
-    end
-
-    -- Refresh list to remove selection visuals
-    self:RefreshItemList()
+    MSMixin.ExitSelectionMode(self)
 end
 
---- Called when the selection count changes.
---- Used to update the title bar or any selection count display.
---- @param selectedCount number The number of currently selected items
 function BETTERUI.Inventory.Class:OnSelectionCountChanged(selectedCount)
-    -- Update title to show selection count if in selection mode
-    if self.isInSelectionMode and selectedCount > 0 then
-        local countText = zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), selectedCount)
-        -- Could update header title here if needed
-        self.selectedCount = selectedCount
-        self.hadSelections = true -- Track that user has selected at least one item
-    else
-        self.selectedCount = 0
-    end
-
-    -- Auto-exit selection mode when last item is deselected
-    -- Only exit if items were previously selected (hadSelections prevents exit on initial entry
-    -- when MultiSelectManager fires callback(0) before the first ToggleSelection)
-    if self.isInSelectionMode and selectedCount == 0 and self.hadSelections then
-        self.hadSelections = nil
-        self:ExitSelectionMode()
-        return
-    end
-
-    -- Refresh keybinds to update Y-button batch actions visibility (skip if in header sort mode)
-    if not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
-    end
+    MSMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
---- Gets whether selection mode is currently active.
---- @return boolean isActive
 function BETTERUI.Inventory.Class:IsInSelectionMode()
-    return self.isInSelectionMode or false
+    return MSMixin.IsInSelectionMode(self)
 end
 
 --- Shows the batch actions menu for multi-selected items.
@@ -865,51 +807,16 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
         return
     end
 
-    -- Analyze selected items to determine which actions are applicable
-    -- Use counts instead of booleans so we can display "Lock (40)" etc.
-    local lockedCount = 0
-    local unlockedCount = 0      -- Items not locked (used for Destroy)
-    local canLockCount = 0       -- Items that CAN be locked AND are not already locked
-    -- Track junk status for eligible items only
-    local canMarkJunkCount = 0   -- Can be junked AND not locked AND not already junk
-    local canUnmarkJunkCount = 0 -- Can be junked AND not locked AND is junk
-    local canStowCount = 0       -- Can be moved to craft bag (ESO+ only, crafting materials)
+    -- Analyze selected items using shared mixin (lock/unlock/junk counts)
+    local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
 
+    -- Inventory-specific: count stow-eligible items
+    local canStowCount = 0
     for _, itemData in ipairs(selectedItems) do
         local rawData = itemData.dataSource or itemData
         local bagId = rawData.bagId or itemData.bagId
         local slotIndex = rawData.slotIndex or itemData.slotIndex
-
         if bagId and slotIndex then
-            -- Check lock status and lockability
-            local isLocked = IsItemPlayerLocked(bagId, slotIndex)
-            local canBeLocked = CanItemBePlayerLocked(bagId, slotIndex)
-
-            if isLocked then
-                lockedCount = lockedCount + 1
-            else
-                unlockedCount = unlockedCount + 1
-            end
-
-            -- Lock: only count items that CAN be locked AND are not already locked
-            if canBeLocked and not isLocked then
-                canLockCount = canLockCount + 1
-            end
-
-            -- Check junk status and junkability
-            local isJunk = IsItemJunk(bagId, slotIndex)
-            local canBeJunked = CanItemBeMarkedAsJunk(bagId, slotIndex)
-
-            -- Junk: must be junkable, not locked
-            if canBeJunked and not isLocked then
-                if isJunk then
-                    canUnmarkJunkCount = canUnmarkJunkCount + 1
-                else
-                    canMarkJunkCount = canMarkJunkCount + 1
-                end
-            end
-
-            -- Stow: check if item can be moved to craft bag
             if HasCraftBagAccess() and CanItemBeVirtual(bagId, slotIndex) and not IsItemStolen(bagId, slotIndex) then
                 canStowCount = canStowCount + 1
             end
@@ -971,125 +878,39 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     -- Build the parametric list with applicable batch actions
     local parametricList = {}
 
-    -- Add Select All (to select all items in current category) - always at top
-    local selectAllEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_SELECT_ALL))
-    selectAllEntry:SetIconTintOnSelection(true)
-    selectAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
-    selectAllEntry.callback = function()
-        self:SelectAllItems()
-    end
-    table.insert(parametricList, {
-        template = "ZO_GamepadItemEntryTemplate",
-        entryData = selectAllEntry,
-    })
+    -- Select All (always first)
+    table.insert(parametricList, MSMixin.CreateDialogEntry(
+        GetString(SI_BETTERUI_SELECT_ALL),
+        function() self:SelectAllItems() end
+    ))
 
-    -- Add Lock (only if lockable unlocked items exist) - show count
-    if canLockCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), canLockCount)
-        local lockEntry = ZO_GamepadEntryData:New(label)
-        lockEntry:SetIconTintOnSelection(true)
-        lockEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        lockEntry.callback = function()
-            self:BatchLock()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = lockEntry,
-        })
+    -- Common batch entries from mixin (Lock, Unlock, Mark/Unmark Junk)
+    MSMixin.AppendCommonBatchEntries(parametricList, counts, self)
+
+    -- Destroy (only if unlocked items exist) - Inventory-specific
+    if counts.unlockedCount > 0 then
+        table.insert(parametricList, MSMixin.CreateDialogEntry(
+            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), counts.unlockedCount),
+            function() self:BatchDestroy() end
+        ))
     end
 
-    -- Add Unlock (only if any locked items exist) - show count
-    if lockedCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), lockedCount)
-        local unlockEntry = ZO_GamepadEntryData:New(label)
-        unlockEntry:SetIconTintOnSelection(true)
-        unlockEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        unlockEntry.callback = function()
-            self:BatchUnlock()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = unlockEntry,
-        })
-    end
-
-    -- Add Mark as Junk (only if unlocked non-junk items exist) - show count
-    if canMarkJunkCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_MARK_AS_JUNK), canMarkJunkCount)
-        local junkEntry = ZO_GamepadEntryData:New(label)
-        junkEntry:SetIconTintOnSelection(true)
-        junkEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        junkEntry.callback = function()
-            self:BatchMarkAsJunk()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = junkEntry,
-        })
-    end
-
-    -- Add Unmark as Junk (only if unlocked junk items exist) - show count
-    if canUnmarkJunkCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), canUnmarkJunkCount)
-        local unjunkEntry = ZO_GamepadEntryData:New(label)
-        unjunkEntry:SetIconTintOnSelection(true)
-        unjunkEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        unjunkEntry.callback = function()
-            self:BatchUnmarkAsJunk()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = unjunkEntry,
-        })
-    end
-
-    -- Add Destroy (only if unlocked items exist) - show count
-    -- Only unlocked items can be destroyed
-    if unlockedCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), unlockedCount)
-        local destroyEntry = ZO_GamepadEntryData:New(label)
-        destroyEntry:SetIconTintOnSelection(true)
-        destroyEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        destroyEntry.callback = function()
-            self:BatchDestroy()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = destroyEntry,
-        })
-    end
-
-    -- Add Stow (only if craftbag-eligible items exist) - show count
+    -- Stow (only if craftbag-eligible items exist) - Inventory-specific
     if canStowCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), canStowCount)
-        local stowEntry = ZO_GamepadEntryData:New(label)
-        stowEntry:SetIconTintOnSelection(true)
-        stowEntry.setup = ZO_SharedGamepadEntry_OnSetup
-        stowEntry.callback = function()
-            self:BatchStow()
-        end
-        table.insert(parametricList, {
-            template = "ZO_GamepadItemEntryTemplate",
-            entryData = stowEntry,
-        })
+        table.insert(parametricList, MSMixin.CreateDialogEntry(
+            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), canStowCount),
+            function() self:BatchStow() end
+        ))
     end
 
-    -- Add Deselect All (always at bottom) - show count
-    local deselectLabel = zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount)
-    local deselectEntry = ZO_GamepadEntryData:New(deselectLabel)
-    deselectEntry:SetIconTintOnSelection(true)
-    deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup
-    deselectEntry.callback = function()
-        -- Release dialog first, then defer exit to allow UI update
-        ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
-        zo_callLater(function()
-            self:ExitSelectionMode()
-        end, 50)
-    end
-    table.insert(parametricList, {
-        template = "ZO_GamepadItemEntryTemplate",
-        entryData = deselectEntry,
-    })
+    -- Deselect All (always last)
+    table.insert(parametricList, MSMixin.CreateDialogEntry(
+        zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount),
+        function()
+            ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
+            zo_callLater(function() self:ExitSelectionMode() end, 50)
+        end
+    ))
 
     ESO_Dialogs[dialogName].parametricList = parametricList
 
@@ -1367,99 +1188,15 @@ function BETTERUI.Inventory.Class:BatchStow()
     end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
 end
 
--- THROTTLED BATCH PROCESSING
+-- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
 -- ============================================================================
 
--- Use centralized constants from CIM
-local BATCH_THROTTLE_DELAY_MS = BETTERUI.CIM.CONST.TIMING.BATCH_ACTION_DELAY_MS
-local BATCH_PROGRESS_THRESHOLD = BETTERUI.CIM.CONST.TIMING.BATCH_PROGRESS_THRESHOLD
-
---- Checks if batch processing is currently in progress.
---- Used by refresh functions to skip updates during batch operations.
---- @return boolean True if batch processing is active
 function BETTERUI.Inventory.Class:IsBatchProcessing()
-    return self.isBatchProcessing == true
+    return MSMixin.IsBatchProcessing(self)
 end
 
---- Processes items with staggered delays to prevent rate-limiting.
---- Suppresses list/keybind refreshes during processing to prevent flickering.
---- @param items table Array of items to process
---- @param actionFn fun(bagId: number, slotIndex: number, itemData: table): boolean? Function to execute per item, returns false to stop
---- @param onComplete fun()? Optional callback when all items processed
---- @param actionName string? Name of the action for notifications
 function BETTERUI.Inventory.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName)
-    local index = 0
-    local totalItems = #items
-    local processedCount = 0
-    local stoppedEarly = false
-    local showProgress = totalItems >= BATCH_PROGRESS_THRESHOLD
-    local self_ref = self
-
-    -- Set batch processing flag to suppress refreshes
-    self.isBatchProcessing = true
-
-    -- Get display name for notifications (needed in completion handler too)
-    local displayName = actionName or GetString(SI_BETTERUI_BATCH_ACTIONS)
-
-    -- Show start notification for large batches
-    if showProgress then
-        -- Use CENTER_SCREEN_ANNOUNCE for a non-blocking notification (LARGE_TEXT for bigger font)
-        local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT)
-        messageParams:SetText(displayName,
-            zo_strformat(GetString(SI_BETTERUI_BATCH_PROCESSING_START), totalItems))
-        messageParams:SetLifespanMS(3000)
-        CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
-    end
-
-    local function processNext()
-        index = index + 1
-
-        -- Check if we've completed all items or stopped early
-        if index > totalItems or stoppedEarly then
-            -- Clear batch processing flag
-            self_ref.isBatchProcessing = false
-
-            -- Show completion notification
-            if showProgress or stoppedEarly then
-                local messageParams = CENTER_SCREEN_ANNOUNCE:CreateMessageParams(CSA_CATEGORY_LARGE_TEXT)
-                local completeText
-                if stoppedEarly then
-                    -- Show actual processed count when stopped early (bag full)
-                    completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_BAG_FULL), processedCount, totalItems)
-                else
-                    completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PROCESSING_COMPLETE), totalItems)
-                end
-                messageParams:SetText(displayName, completeText)
-                messageParams:SetLifespanMS(stoppedEarly and 4000 or 2000)
-                CENTER_SCREEN_ANNOUNCE:AddMessageWithParams(messageParams)
-            end
-
-            -- Now call completion handler (which will do refresh)
-            if onComplete then onComplete() end
-            return
-        end
-
-        local itemData = items[index]
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-
-        if bagId and slotIndex then
-            -- actionFn returns false to signal "stop processing" (e.g., bag full)
-            local result = actionFn(bagId, slotIndex, itemData)
-            if result == false then
-                stoppedEarly = true
-            else
-                processedCount = processedCount + 1
-            end
-        end
-
-        -- Schedule next item with delay
-        zo_callLater(processNext, BATCH_THROTTLE_DELAY_MS)
-    end
-
-    -- Start processing
-    processNext()
+    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName)
 end
 
 -- ============================================================================
@@ -1481,127 +1218,21 @@ function BETTERUI.Inventory.Class:BatchDeposit()
     end, "Depositing")
 end
 
---- Performs batch lock on all selected items (throttled).
---- Pre-filters to only include items that CAN be locked AND are not already locked.
+-- Common batch operations delegate to CIM.MultiSelectMixin
 function BETTERUI.Inventory.Class:BatchLock()
-    if not self.multiSelectManager then return end
-    local allItems = self.multiSelectManager:GetSelectedItems()
-
-    -- Pre-filter to only lockable, unlocked items
-    local items = {}
-    for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex then
-            if CanItemBePlayerLocked(bagId, slotIndex) and not IsItemPlayerLocked(bagId, slotIndex) then
-                table.insert(items, itemData)
-            end
-        end
-    end
-
-    if #items == 0 then return end
-
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        SetItemIsPlayerLocked(bagId, slotIndex, true)
-        return true
-    end, function()
-        self:ExitSelectionMode()
-        self:RefreshItemList()
-    end, GetString(SI_ITEM_ACTION_MARK_AS_LOCKED))
+    MSMixin.BatchLock(self)
 end
 
---- Performs batch unlock on all selected items (throttled).
---- Pre-filters to only include items that are currently locked.
 function BETTERUI.Inventory.Class:BatchUnlock()
-    if not self.multiSelectManager then return end
-    local allItems = self.multiSelectManager:GetSelectedItems()
-
-    -- Pre-filter to only locked items
-    local items = {}
-    for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex and IsItemPlayerLocked(bagId, slotIndex) then
-            table.insert(items, itemData)
-        end
-    end
-
-    if #items == 0 then return end
-
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        SetItemIsPlayerLocked(bagId, slotIndex, false)
-        return true
-    end, function()
-        self:ExitSelectionMode()
-        self:RefreshItemList()
-    end, GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED))
+    MSMixin.BatchUnlock(self)
 end
 
---- Performs batch mark-as-junk on all selected items (throttled).
---- Pre-filters to only include items that can be junked, are unlocked, and not already junk.
 function BETTERUI.Inventory.Class:BatchMarkAsJunk()
-    if not self.multiSelectManager then return end
-    local allItems = self.multiSelectManager:GetSelectedItems()
-
-    -- Pre-filter to only junkable, unlocked, non-junk items
-    local items = {}
-    for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex then
-            local canBeJunked = CanItemBeMarkedAsJunk(bagId, slotIndex)
-            local isLocked = IsItemPlayerLocked(bagId, slotIndex)
-            local isJunk = IsItemJunk(bagId, slotIndex)
-            if canBeJunked and not isLocked and not isJunk then
-                table.insert(items, itemData)
-            end
-        end
-    end
-
-    if #items == 0 then return end
-
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        SetItemIsJunk(bagId, slotIndex, true)
-        return true
-    end, function()
-        self:ExitSelectionMode()
-        self:RefreshItemList()
-    end, GetString(SI_ITEM_ACTION_MARK_AS_JUNK))
+    MSMixin.BatchMarkAsJunk(self)
 end
 
---- Performs batch unmark-as-junk on all selected items (throttled).
---- Pre-filters to only include items that are junk and unlocked.
 function BETTERUI.Inventory.Class:BatchUnmarkAsJunk()
-    if not self.multiSelectManager then return end
-    local allItems = self.multiSelectManager:GetSelectedItems()
-
-    -- Pre-filter to only junk items that are unlocked
-    local items = {}
-    for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex then
-            local isLocked = IsItemPlayerLocked(bagId, slotIndex)
-            local isJunk = IsItemJunk(bagId, slotIndex)
-            if isJunk and not isLocked then
-                table.insert(items, itemData)
-            end
-        end
-    end
-
-    if #items == 0 then return end
-
-    self:ProcessBatchThrottled(items, function(bagId, slotIndex)
-        SetItemIsJunk(bagId, slotIndex, false)
-        return true
-    end, function()
-        self:ExitSelectionMode()
-        self:RefreshItemList()
-    end, GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK))
+    MSMixin.BatchUnmarkAsJunk(self)
 end
 
 --- Performs batch destroy on all selected items (with confirmation).

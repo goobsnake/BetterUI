@@ -440,10 +440,10 @@ end
 
 
 --------------------------------------------------------------------------------
--- MULTI-SELECT MODE (Mirrors Inventory implementation)
+-- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
 --------------------------------------------------------------------------------
 
---- Initializes the multi-select manager.
+--- Initializes the multi-select manager and applies the shared mixin.
 function BETTERUI.Banking.Class:InitializeMultiSelectManager()
     if self.multiSelectManager then return end
 
@@ -453,105 +453,64 @@ function BETTERUI.Banking.Class:InitializeMultiSelectManager()
             self:OnSelectionCountChanged(selectedCount)
         end
     )
+
+    -- Apply the shared mixin with Banking-specific hooks
+    local MSMixin = BETTERUI.CIM.MultiSelectMixin
+    MSMixin.Apply(self, {
+        getList = function(s) return s.list end,
+        refreshList = function(s) s:RefreshList() end,
+        refreshKeybinds = function(s)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(s.coreKeybinds)
+            if s.withdrawDepositKeybinds then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(s.withdrawDepositKeybinds)
+            end
+        end,
+    })
 end
 
---- Enters multi-selection mode.
+-- Delegate lifecycle and batch methods to the shared mixin.
+-- Banking-specific operations (BatchTransfer, ShowBatchActionsMenu) remain
+-- in MultiSelectActions.lua.
+local MSMixin = BETTERUI.CIM.MultiSelectMixin
+
 function BETTERUI.Banking.Class:EnterSelectionMode()
-    if self.isInSelectionMode then return end
-
-    -- Initialize manager if needed
+    -- Lazy-initialize manager on first use
     self:InitializeMultiSelectManager()
-    if not self.multiSelectManager then return end
-
-    self.isInSelectionMode = true
-    self.multiSelectManager:EnterSelectionMode()
-
-    -- Select the current item automatically
-    local target = self.list and self.list.selectedData
-    if target then
-        self.multiSelectManager:ToggleSelection(target)
-    end
-
-    -- Update keybinds for selection mode
-    if self.RefreshKeybinds then
-        self:RefreshKeybinds()
-    end
-
-    -- Refresh list to show selection visuals
-    if self.RefreshList then
-        self:RefreshList()
-    end
+    MSMixin.EnterSelectionMode(self)
 end
 
---- Exits multi-selection mode.
 function BETTERUI.Banking.Class:ExitSelectionMode()
-    if not self.isInSelectionMode then return end
-
-    self.isInSelectionMode = false
-    self.hadSelections = nil
-    self.selectedCount = 0
-    if self.multiSelectManager then
-        self.multiSelectManager:ExitSelectionMode()
-    end
-
-    -- Update keybinds to normal mode
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
-
-    -- Refresh list to remove selection visuals
-    self:RefreshList()
+    MSMixin.ExitSelectionMode(self)
 end
 
---- Called when the selection count changes.
---- @param selectedCount number The number of currently selected items
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
-    -- Update title to show selection count if in selection mode
-    if self.isInSelectionMode and selectedCount > 0 then
-        self.selectedCount = selectedCount
-        self.hadSelections = true -- Track that user has selected at least one item
-    else
-        self.selectedCount = 0
-    end
-
-    -- Auto-exit selection mode when last item is deselected
-    -- Only exit if items were previously selected (hadSelections prevents exit on initial entry
-    -- when MultiSelectManager fires callback(0) before the first ToggleSelection)
-    if self.isInSelectionMode and selectedCount == 0 and self.hadSelections then
-        self.hadSelections = nil
-        self:ExitSelectionMode()
-        return
-    end
-
-    -- Refresh keybinds to update Y-button batch actions visibility
-    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    MSMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
---- Gets whether selection mode is currently active.
---- @return boolean isActive
 function BETTERUI.Banking.Class:IsInSelectionMode()
-    return self.isInSelectionMode or false
+    return MSMixin.IsInSelectionMode(self)
 end
 
---- Checks if batch processing is currently in progress.
---- Used by refresh functions to skip updates during batch operations.
---- @return boolean True if batch processing is active
 function BETTERUI.Banking.Class:IsBatchProcessing()
-    return self.isBatchProcessing == true
+    return MSMixin.IsBatchProcessing(self)
 end
 
---- Performs batch withdraw on all selected items.
-function BETTERUI.Banking.Class:BatchWithdraw()
-    if not self.multiSelectManager then return end
+function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName)
+    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName)
+end
 
-    local items = self.multiSelectManager:GetSelectedItems()
-    for _, itemData in ipairs(items) do
-        if itemData.bagId and itemData.slotIndex then
-            -- Request transfer to backpack
-            CallSecureProtected("RequestMoveItem", itemData.bagId, itemData.slotIndex, BAG_BACKPACK, nil,
-                itemData.stackCount or 1)
-        end
-    end
+function BETTERUI.Banking.Class:BatchLock()
+    MSMixin.BatchLock(self)
+end
 
-    -- Exit selection mode after batch action
-    self:ExitSelectionMode()
+function BETTERUI.Banking.Class:BatchUnlock()
+    MSMixin.BatchUnlock(self)
+end
+
+function BETTERUI.Banking.Class:BatchMarkAsJunk()
+    MSMixin.BatchMarkAsJunk(self)
+end
+
+function BETTERUI.Banking.Class:BatchUnmarkAsJunk()
+    MSMixin.BatchUnmarkAsJunk(self)
 end

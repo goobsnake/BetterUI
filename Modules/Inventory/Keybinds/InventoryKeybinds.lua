@@ -115,6 +115,16 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 self:OnSelectionCountChanged(selectedCount)
             end
         )
+        -- Apply shared mixin with Inventory-specific hooks
+        BETTERUI.CIM.MultiSelectMixin.Apply(self, {
+            getList = function(s) return s.itemList end,
+            refreshList = function(s) s:RefreshItemList() end,
+            refreshKeybinds = function(s)
+                if not s.isInHeaderSortMode then
+                    s:RefreshKeybinds()
+                end
+            end,
+        })
     end
 
     self.mainKeybindStripDescriptor = {
