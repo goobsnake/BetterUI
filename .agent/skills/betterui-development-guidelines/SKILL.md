@@ -24,7 +24,7 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 
 | Standard | Rule |
 |----------|------|
-| File Headers | Required on all `.lua` and `.xml` files |
+| File Headers | Required on new `.lua`/`.xml` files and substantial rewrites (avoid mass header-only churn) |
 | Function Docs | Required for non-trivial functions |
 | Indentation | 4 spaces (match existing) |
 | Globals | `BETTERUI.Module.Class` |
@@ -32,15 +32,23 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 | TODOs | `TODO(type): description` |
 | Constants | Module → `Constants.lua`; Shared → `CIM/Constants.lua` |
 
+## Efficiency Defaults
+
+- Work diff-first: inspect changed files before broad scans.
+- Prefer targeted `rg -n` queries over whole-file or whole-module reads.
+- Do not perform repo-wide style rewrites when implementing focused fixes.
+- Keep comments and docs concise; avoid boilerplate text that adds noise.
+
 ---
 
 ## Context Recovery (Compaction-Safe)
 
 If the session is resumed or compacted, do not continue from memory:
 
-1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**.
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults**.
 2. Resume from unresolved artifact findings, not from chat memory.
-3. If state is ambiguous, ask the user before proceeding.
+3. Re-anchor target files with targeted reads/search before editing if they were read long ago.
+4. If state is ambiguous, ask the user before proceeding.
 
 ---
 
@@ -143,9 +151,9 @@ Use: `TODO(type): [Description]`
 
 Before claiming any task is complete:
 
-1. Run `/verify-integrity` workflow (see `.agent/workflows/verify-integrity.md` for details)
-2. Confirm addon loads without errors in-game
-3. No regressions in related areas
+1. Run `/verify-integrity` (changed-file scope first; full checks when risk is high or user requests)
+2. Confirm addon loads without errors in-game when runtime behavior changed
+3. Validate no regressions in directly impacted areas
 
 ---
 
@@ -160,6 +168,6 @@ See `AGENTS.md` § Command Permissions.
 When a task concludes:
 
 1. ☐ Run `/verify-integrity`
-2. ☐ Run `/update-tribal-knowledge` if new learnings
-3. ☐ Run `/sr-review-gate --phase-review`
-4. ☐ Update `CONTINUITY.md` with outcomes
+2. ☐ Run `/sr-review-gate --phase-review` for multi-step or high-risk work
+3. ☐ Run `/update-tribal-knowledge` only if durable new learnings emerged
+4. ☐ Update `docs/CONTINUITY.md` only when addon development state meaningfully changed

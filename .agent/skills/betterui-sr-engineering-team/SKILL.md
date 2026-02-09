@@ -13,6 +13,14 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 
 ---
 
+## Efficiency Defaults
+
+- Review only the active diff/plan scope unless the user asks for full-module review.
+- Report blockers first; avoid long narrative when there are no findings.
+- Reuse prior unresolved findings instead of re-reviewing already accepted areas.
+
+---
+
 ## When to Invoke
 
 | Checkpoint | Trigger | Workflow |
@@ -28,9 +36,10 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 
 If the session is resumed/compacted, reconstruct prior review state before issuing verdicts:
 
-1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**.
+1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults**.
 2. Re-open prior review artifacts and continue unresolved findings first.
-3. If prior state is unclear, request user confirmation before PASS/FAIL decisions.
+3. Re-anchor current diff and continuity `Done/Now/Next` before issuing verdicts.
+4. If prior state is unclear, request user confirmation before PASS/FAIL decisions.
 
 ---
 
@@ -94,6 +103,8 @@ If the session is resumed/compacted, reconstruct prior review state before issui
 3. **Collect Verdicts** - PASS or FAIL with reasoning
 4. **Resolve Issues** - Address all FAIL items, re-submit
 5. **Proceed** - Only after all 5 PASS
+
+For low-risk adhoc changes, keep each role's output to one concise verdict line unless a finding exists.
 
 ---
 

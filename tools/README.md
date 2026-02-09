@@ -19,6 +19,24 @@ Unified localization script for sync + audit workflows.
 - `tools/audit_report.md`
 - `tools/used_strings.txt`
 
+## Agent Context
+
+### `context_health_check.ps1`
+Lightweight stale-context and continuity drift snapshot for long-running agent sessions.
+
+**Usage:**
+```powershell
+pwsh -File .\context_health_check.ps1
+pwsh -File .\context_health_check.ps1 -Strict
+pwsh -File .\context_health_check.ps1 -Json
+```
+
+**What it checks:**
+- Git fingerprint (`branch`, `HEAD`, working tree count, changed-file count)
+- Continuity caps (`Done`, `Working Set`, `Receipts`)
+- Required continuity anchors (`Now`, `Next`, `Open Questions`)
+- Changed-file vs `Working Set` coverage mismatch
+
 ## Graphics
 
 ### `ConvertPngToDds.ps1`

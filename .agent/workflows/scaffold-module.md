@@ -9,7 +9,7 @@ Automates creation of a new BetterUI module following the **Minimal Root** organ
 ## Prerequisites
 
 See `AGENTS.md` for project context and `docs/ARCHITECTURE.md` Section 3 for Minimal Root structure.
-If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults** first.
 
 ---
 

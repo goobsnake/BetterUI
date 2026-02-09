@@ -4,138 +4,80 @@ description: End-of-session closeout workflow that enforces AGENTS compliance, z
 
 # Wrap-Up Workflow
 
-Use this workflow at the end of an implementation session to ensure all work is reviewed, verified, fixed, and committed without deferrals.
+End-of-session closeout with mandatory review and integrity checks.
 
-## Prerequisites
+## Rules
 
-See `AGENTS.md` for project rules and `docs/CONTINUITY.md` for current session state.
+1. No deferrals for blocking findings.
+2. No commit until review + integrity are clean.
+3. Keep scope limited to active changes.
 
----
-
-## Non-Negotiable Rules
-
-1. **No deferrals**: Findings from review or verification must be fixed in this session.
-2. **No skip path**: Do not bypass `sr-review-gate` or `verify-integrity`.
-3. **No commit until clean**: Commit only after all checks pass.
-
----
-
-## Step 0: Reconfirm Session Baseline and Restore Context
-
-Before closing work, re-read:
-1. `AGENTS.md`
-2. `docs/CONTINUITY.md`
-3. `docs/TRIBAL_KNOWLEDGE.md`
-
-Execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults**, then confirm active changes:
+## Step 0: Baseline
 
 ```powershell
+git rev-parse --abbrev-ref HEAD
+git rev-parse --short HEAD
 git status --short
 ```
 
-If any prior workflow has unresolved items, continue that resolution path before declaring wrap-up complete.
+If stale-risk is present (resume/compaction/long gap/workflow switch), run AGENTS Session Compaction Recovery Tier 1 then Tier 2 only if needed.
+Optional: run `pwsh -File tools/context_health_check.ps1 -Strict` before final review/integrity loops.
 
----
+## Step 1: AGENTS Compliance Pass
 
-## Step 1: AGENTS.md Compliance Check
+Validate active changes only:
 
-Validate the current change set against AGENTS requirements:
+- New code files follow modular-first rule.
+- No fallback masking or empty catch-equivalent blocks.
+- Temporary artifacts are not intended for commit.
+- Docs changes remain addon-focused.
 
-1. No new code file exceeds 500 LOC (modular-first rule), existing files ignore this limit.
-2. No empty try/catch-equivalent blocks or fallback masking patterns.
-3. No temporary review/plan artifacts intended for cleanup.
-4. Docs updates are addon-focused only.
-
-If any issue is found, fix it immediately before continuing.
-
----
-
-## Step 2: Sr. Review Gate (Default Adhoc/Bugfix Mode)
-
-Run:
+## Step 2: Sr Review Gate
 
 ```text
 Follow /sr-review-gate
 ```
 
-This is a code-review gate for the current work (bugfix/adhoc/default mode).
+If blocked, fix findings and rerun until PASS.
 
-### Resolution Loop (Mandatory)
-
-If review findings exist:
-1. Fix every finding immediately.
-2. Re-run `/sr-review-gate`.
-3. Repeat until full PASS.
-
-No TODO deferrals, no "follow-up later" for review findings.
-
----
-
-## Step 3: Verify Integrity (Full)
-
-After `sr-review-gate` passes, run:
+## Step 3: Verify Integrity
 
 ```text
 Follow /verify-integrity --full
 ```
 
-### Resolution Loop (Mandatory)
+If failed, fix and rerun until PASS.
 
-If integrity checks fail:
-1. Fix every failing check immediately (tests, debug scan, XML/Lua validation, etc.).
-2. Re-run `/verify-integrity --full`.
-3. Repeat until all checks PASS.
+## Step 4: Final Cleanup
 
-No deferrals are allowed.
+Remove temporary workflow artifacts if present:
 
----
+- `critical_code_review.md`
+- `sr_engineering_team_review.md`
+- `implementation_plan.md`
 
-## Step 4: Final Cleanup and Required Updates
+If this was a long session and `docs/CONTINUITY.md` is in play, apply AGENTS Continuity Health Check caps before finishing.
 
-Before commit:
-
-1. Remove temporary artifacts (`critical_code_review.md`, `sr_engineering_team_review.md`, `implementation_plan.md`) if present.
-2. Apply AGENTS-directed file updates when applicable:
-   - Update `docs/CONTINUITY.md` only for meaningful addon development deltas.
-   - Do not update continuity/docs for agent-infrastructure-only changes unless they materially affect addon development outcomes.
-   - Update `docs/TRIBAL_KNOWLEDGE.md` only when durable implementation learnings were discovered.
-
----
+Update docs only when required by AGENTS policy.
 
 ## Step 5: Commit
 
-Once review + integrity + cleanup are all clean:
-
-1. Stage all intended changes.
-2. Create one commit that reflects the completed work.
-3. Use a commit message that summarizes what was fixed/changed.
-
-Example:
-
 ```powershell
 git add -A
-git commit -m "chore(workflows): add wrap-up flow and default adhoc sr-review-gate mode"
+git commit -m "<type(scope): concise summary>"
 ```
 
----
+## Step 6: Closeout Report
 
-## Step 6: Final Wrap-Up Report
+Provide:
 
-Provide a concise session closeout summary:
+- AGENTS Compliance: PASS/FAIL
+- Sr Review Gate: PASS/FAIL
+- Verify Integrity: PASS/FAIL
+- Deferrals: None
+- Commit: `<hash> <message>`
 
-| Item | Result |
-|------|--------|
-| AGENTS Compliance | PASS/FAIL |
-| Sr. Review Gate | PASS/FAIL |
-| Verify Integrity | PASS/FAIL |
-| Deferrals | None |
-| Commit | `<hash>` + message |
-
-If any row is FAIL, do not claim wrap-up complete.
-
----
-
-## Quick Invocation
+## Invocation
 
 ```text
 /wrap-up

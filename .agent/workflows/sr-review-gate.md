@@ -1,197 +1,97 @@
 ---
-description: Mandatory Sr. Engineering Team review gate for bugfix/adhoc work, implementation plans, and phase completions
+description: Mandatory Sr. Engineering Team review gate for adhoc work, implementation plans, and phase completions
 ---
 
 # Sr. Review Gate Workflow
 
-Centralized workflow for mandatory Sr. Engineering Team reviews at critical checkpoints. Ensures all code changes are reviewed from multiple expert perspectives before proceeding.
+Use this gate for quality decisions, not ceremony.
 
-## Overview
+## Efficiency Defaults
 
-> [!CAUTION]
-> **No Fast-Track**: Every review must pass. Even minor issues must be fixed before proceeding.
-> Tech debt accumulates from skipping "trivial" issues.
+- Review active diff or active plan scope only.
+- Reuse unresolved findings; do not re-review already accepted areas.
+- Keep verdicts compact unless blockers exist.
 
-This workflow provides three review modes:
-- **Adhoc/Bugfix Review (Default)**: For bugfixes, one-off tasks, and general implementation work
-- **Plan Review**: Before executing any implementation plan
-- **Phase Review**: After completing each phase, before proceeding to the next
-
----
-
-## Prerequisites
-
-See `AGENTS.md` for project context, skills, and workflows.
-
----
-
-## Step 0: Restore Session Context (Required on resume/compaction)
-
-If the session is long-running, compacted, or resumed:
-
-1. Execute `AGENTS.md` → **Session Compaction Recovery (Required)** using its tiered sequence.
-2. Apply `AGENTS.md` → **Quota Efficiency Defaults** before review.
-3. Re-open prior review artifacts (if present) and continue unresolved findings before issuing new verdicts.
-4. If state is unclear, stop and ask the user before issuing verdicts.
-
----
-
-## Mode Configuration
+## Modes
 
 | Mode | Trigger | Use When |
 |------|---------|----------|
-| `default` | No flag passed | Reviewing bugfixes, adhoc tasks, and general code changes |
-| `--plan-review` | Before Phase 1 | Reviewing an implementation plan before execution begins |
-| `--phase-review` | After each phase | Reviewing completed work before proceeding to next phase |
+| `default` | No flag passed | Bugfixes/adhoc implementation review |
+| `--plan-review` | Before execution | Approving an implementation plan |
+| `--phase-review` | After each phase | Verifying completed phase work |
 
----
+## Step 0: Resume Guard (if context may be stale)
 
-## Step 1: Gather Context
+1. Execute `AGENTS.md` Session Compaction Recovery Tier 1 fingerprint:
+   - `git rev-parse --abbrev-ref HEAD`
+   - `git rev-parse --short HEAD`
+   - `git status --short`
+   - optional: `pwsh -File tools/context_health_check.ps1`
+2. Re-anchor continuity with targeted scan:
+   - `rg -n "^\*\*Done|^\*\*Now:|^\*\*Next:|^## Open Questions|^## Working Set" docs/CONTINUITY.md`
+3. If state is unclear, run Tier 2 (`git diff --name-only HEAD` + artifact discovery).
+4. Continue only after `Done / Now / Next` is clear and aligned with active review scope.
 
-### For Adhoc/Bugfix Review (Default)
+## Step 1: Gather Minimal Context
 
-Present the following to the review team:
-1. **Change Summary**: What was changed and why
-2. **Files Changed**: Current working-set file list with key deltas
-3. **Risk Check**: Potential regressions and impacted systems
-4. **Verification Status**: What has been validated so far
+Use the smallest sufficient context:
 
-### For Plan Review (`--plan-review`)
+```powershell
+git diff --name-only HEAD
+```
 
-Present the following to the review team:
-1. **Implementation Plan Summary**: What will be changed and why
-2. **Files Affected**: List of files to be created, modified, or deleted
-3. **Risk Assessment**: What could go wrong
-4. **Verification Plan**: How changes will be validated
+Then inspect targeted diffs for changed files only.
 
-### For Phase Review (`--phase-review`)
+For `--plan-review`, read only the active plan and touched-file list.
 
-Present the following to the review team:
-1. **Phase Summary**: What was completed in this phase
-2. **Files Changed**: List of files that were modified with key changes
-3. **Verification Status**: What has been verified so far
-4. **Issues Encountered**: Any unexpected problems and how they were resolved
+For `--phase-review`, verify recovered `Done / Now / Next` in continuity still matches the phase being reviewed before issuing verdicts.
 
----
+## Step 2: Run Sr. Team Review
 
-## Step 2: Invoke Sr. Engineering Team
+Use `betterui-sr-engineering-team` and return one verdict per role:
 
-Use the `betterui-sr-engineering-team` skill to conduct the review. See the skill for each team member's focus area, key questions, and verdict format.
+- Lua Architect
+- UI/UX Specialist
+- Code Quality Lead
+- Sr. Software Developer
+- QA Gatekeeper
 
----
+## Step 3: Verdict and Resolution Loop
 
-## Step 3: Collect Verdicts
+All 5 roles must PASS before proceeding.
 
-Each team member provides PASS or FAIL with findings, using the verdict format from the `betterui-sr-engineering-team` skill. All 5 must PASS before proceeding.
-
----
-
-## Step 4: Resolution Loop
-
-> [!IMPORTANT]
-> **All 5 team members must PASS before proceeding.**
-> There is no exception to this rule.
-
-### If Any FAIL Verdict
-
-1. **Document Issues**: List all findings from FAIL verdicts
-2. **Fix Issues**: Address each finding
-3. **Re-submit**: Present fixed work to team
-4. **Repeat**: Continue until all 5 members PASS
-
-### Resolution Format
+Compact output format:
 
 ```markdown
-### Issue Resolution
+## Sr. Engineering Team Review
 
-**Issue 1**: [From Lua Architect]
-- **Problem**: [Description]
-- **Fix Applied**: [What was changed]
-- **Verification**: [How it was verified]
+**Review Type**: [Default / Plan / Phase]
 
-**Issue 2**: [From Code Quality Lead]
-- **Problem**: [Description]
-- **Fix Applied**: [What was changed]
-- **Verification**: [How it was verified]
+- Lua Architect: PASS/FAIL - [short reason]
+- UI/UX Specialist: PASS/FAIL - [short reason]
+- Code Quality Lead: PASS/FAIL - [short reason]
+- Sr. Software Developer: PASS/FAIL - [short reason]
+- QA Gatekeeper: PASS/FAIL - [short reason]
 
-### Re-Review Request
-All identified issues have been addressed. Requesting re-review.
+**Overall**: PASS / BLOCKED
 ```
 
----
+If any FAIL:
 
-## Step 5: Final Sign-Off
+1. List only blocking findings with file references.
+2. Fix all blockers.
+3. Re-run this gate on the same scope.
 
-Once all 5 team members PASS:
+## Step 4: Continue
 
-```markdown
-### Review Gate: PASSED ✓
+- `default`: continue current task.
+- `--plan-review`: start implementation.
+- `--phase-review`: continue to next phase or wrap-up.
 
-**Review Type**: [Plan Review / Phase N Review]
-**Date**: [Current Date]
-**All Team Members**: PASS
+## Invocation
 
-Proceeding to [execution / next phase].
+```text
+/sr-review-gate
+/sr-review-gate --plan-review
+/sr-review-gate --phase-review
 ```
-
----
-
-## Quick Invocation
-
-### Before executing an implementation plan:
-```
-Follow /sr-review-gate --plan-review
-```
-
-### After completing a phase:
-```
-Follow /sr-review-gate --phase-review
-```
-
-### For bugfixes and adhoc work (default):
-```
-Follow /sr-review-gate
-```
-
----
-
-## Integration Points
-
-Workflows that use this review gate:
-
-| Workflow | Plan Review | Phase Review |
-|----------|-------------|--------------|
-| `/garbage-cleanup` | Before Phase 1 | After each phase |
-| `/code-review` | Before Pass 3 | After each implementation phase |
-| `/review-todos` | Before implementing TODOs | After implementation |
-| `/wrap-up` | N/A | Uses default mode for adhoc final review |
-
----
-
-## Command Reference
-
-| Command | When to Use |
-|---------|-------------|
-| `/sr-review-gate` | Default bugfix/adhoc review for current work |
-| `/sr-review-gate --plan-review` | Before starting implementation |
-| `/sr-review-gate --phase-review` | After completing each phase |
-
----
-
-## Key Principles
-
-1. **Mandatory**: No skipping reviews, no exceptions
-2. **All Must Pass**: Every team member must approve
-3. **Fix Before Proceed**: Issues resolved before continuing
-4. **No Fast-Track**: Even trivial issues must be addressed
-5. **Document Everything**: All findings and resolutions recorded
-
----
-
-## Tips
-
-1. **Prepare thoroughly** - Gather all context before invoking review
-2. **Be specific** - Vague descriptions lead to incomplete reviews
-3. **Address root causes** - Don't just fix symptoms
-4. **Learn from patterns** - Recurring issues indicate systemic problems
-5. **Update tribal knowledge** - New learnings go in TRIBAL_KNOWLEDGE.md

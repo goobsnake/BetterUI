@@ -5,7 +5,12 @@ description: Review outstanding TODOs in the codebase and prioritize the top N m
 # Review Outstanding TODOs
 
 Analyze all TODO comments in the BetterUI codebase and prioritize the most impactful ones for implementation.
-If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults** first.
+
+## Efficiency Defaults
+
+- Start with `Modules/` and active diff files before widening scope.
+- Keep output to top N actionable items; avoid dumping full raw search output.
 
 ## Parameters
 
@@ -20,25 +25,16 @@ If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Req
 
 ## Step 1: Gather All TODOs
 
-Search the codebase for TODO, FIXME, HACK, and XXX comments in **BetterUI source code only**.
+Search for TODO/FIXME/HACK/XXX in **BetterUI source code only**.
 
 > [!NOTE]
-> The search excludes: `esoui/` (base game), `.agent/`, `tools/`, and other `.gitignore` patterns.
-> Results are saved to a temp file to avoid terminal output truncation.
+> Exclude `esoui/`, `.agent/`, and tooling folders from ranking analysis.
 
-### Step 1a: Run search and save to temp file
+### Step 1a: Run search
 
 ```powershell
-$tempFile = "$env:TEMP\betterui_todos.txt"
-rg -n --glob "*.lua" --glob "*.xml" "TODO|FIXME|HACK|XXX" Modules BetterUI.lua BetterUI.txt |
-    Out-File -FilePath $tempFile -Encoding UTF8
-Write-Host "Results saved to: $tempFile"
-Write-Host "Total TODOs found: $((Get-Content $tempFile | Measure-Object -Line).Lines)"
+rg -n --glob "*.lua" --glob "*.xml" "TODO|FIXME|HACK|XXX" Modules BetterUI.lua BetterUI.txt
 ```
-
-### Step 1b: Read the results file
-
-Read the temp file at `$env:TEMP\betterui_todos.txt` (typically `C:\Users\<username>\AppData\Local\Temp\betterui_todos.txt`).
 
 ---
 

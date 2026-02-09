@@ -9,7 +9,7 @@ Use this workflow to keep `docs/ChangeLog.txt` accurate for the **next upcoming 
 ## Prerequisites
 
 See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
-If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults** first.
 
 ---
 

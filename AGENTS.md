@@ -28,15 +28,18 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 
 ### Operating Rule
 - At the start of each assistant turn: read `docs/CONTINUITY.md` before acting.
+- Per-turn minimum read (quota-efficient): `State (Done/Now/Next)`, `Open Questions`, and `Working Set`.
+- Full-file continuity re-read is required on session start, stale-risk states, workflow switches, or before major phase transitions.
 - Update `docs/CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
 - Do **not** update `docs/CONTINUITY.md` or other `docs/` files for agent-infrastructure-only changes (for example: `.agent/*`, `.claude/*`, `AGENTS.md`, `CLAUDE.md`) unless those changes materially affect BetterUI addon behavior or development outcomes.
 
 ### Keep It Bounded (Anti-Bloat)
 - Keep `docs/CONTINUITY.md` short and high-signal:
   - `Snapshot`: ≤ 25 lines.
-  - `Done (recent)`: ≤ 7 bullets.
+  - `Done (recent)`: ≤ 12 bullets.
   - `Working set`: ≤ 12 paths.
   - `Receipts`: keep last 10–20 entries.
+- Receipt style target: concise one-line entries; prefer milestone compression + commit pointers over narrative detail.
 - If sections exceed caps, compress older items into milestone bullets with pointers (commit/PR/log path/doc path). Do not paste raw logs.
 
 ### Anti-Drift Rules
@@ -53,26 +56,66 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 ### Session Compaction Recovery (Required)
 - If context was compacted, resumed, or partially lost, do **not** continue from memory.
 - Use this tiered recovery sequence to minimize quota/tool cost:
-  - **Tier 1 (always first):** `git status --short` + re-read active workflow doc
-  - **Tier 2 (if state is still unclear):** `git diff --name-only HEAD` + `rg --files -g "implementation_plan.md" -g "critical_code_review.md" -g "sr_engineering_team_review.md"`
+  - **Tier 1 (always first):** run a freshness fingerprint:
+    - `git rev-parse --abbrev-ref HEAD`
+    - `git rev-parse --short HEAD`
+    - `git status --short`
+    - re-read active workflow doc
+    - optional fast path: `pwsh -File tools/context_health_check.ps1`
+  - **Tier 2 (if state is still unclear):** `git diff --name-only HEAD` + `rg --files -g "implementation_plan.md" -g "critical_code_review.md" -g "sr_engineering_team_review.md"` + `rg -n "^\*\*Done|^\*\*Now:|^\*\*Next:|^## Working Set|^## Open Questions" docs/CONTINUITY.md`
   - **Tier 3 (fallback only):** `rg --files -g "*task*.md" -g "*todo*.md"`
 - After recovery, restate a concise checkpoint before continuing:
   - `Done:` [last completed gate/phase]
   - `Now:` [current step being executed]
   - `Next:` [immediate next gate/phase]
-- If the restored state remains ambiguous, ask the user to confirm before proceeding.
+- If any ambiguity remains (workflow mismatch, changed-file mismatch, unresolved findings), ask the user to confirm before proceeding.
+
+### Context Freshness Protocol (Long Sessions)
+- Treat context as **stale-risk** when any is true:
+  - session resumed/compacted
+  - workflow switched mid-session
+  - long idle gap (`UNCONFIRMED`: ~30+ min) before next major action
+  - large scope change (diff/file-count jumps unexpectedly)
+- Before major actions in stale-risk state, run Tier 1 fingerprint and re-anchor to:
+  - active workflow step
+  - `docs/CONTINUITY.md` (`Done/Now/Next`, `Working set`, `Open questions`)
+  - active diff file list
+- Re-anchor before editing files last read long ago: re-open the target file or run targeted `rg -n` to confirm current symbols/lines.
+- Emit compact checkpoints during long runs: `Done / Now / Next` after each major step.
+
+### Continuity Health Check (Drift Control)
+- On long sessions, ensure `docs/CONTINUITY.md` still respects cap rules (`Done ≤12`, `Working set ≤12`, `Receipts ≤20`).
+- If caps are exceeded, compress oldest history into milestone bullets with date/provenance preserved.
+- Prefer one compact consolidation over many micro-edits to keep continuity stable and low-noise.
 
 ### Quota Efficiency Defaults
-- Use the smallest sufficient workflow scope by default; expand only when needed.
+- Default to diff-first execution: inspect `git diff --name-only HEAD` and touched files before broad scans.
+- Default workflow scope is incremental/changed-files; use full-repo modes only when explicitly requested or clearly high-risk.
 - Prefer targeted reads/search (`rg -n` on specific paths) before whole-file scans.
-- Reuse existing artifacts (`implementation_plan.md`, review reports) instead of regenerating from scratch.
+- Reuse existing artifacts only when they reduce rework; do not regenerate large artifacts without unresolved findings.
 - Avoid duplicate review gates for the same checkpoint; run the minimum gate needed for that phase.
+- Keep outputs compact (findings first, concise summaries).
 - After each major step, emit a concise checkpoint: `Done / Now / Next`.
 
-### Canonical Workflow Artifacts
-- `implementation_plan.md`
-- `critical_code_review.md`
-- `sr_engineering_team_review.md`
+### Agent Operating Loop (Default)
+- Use this loop for every task to balance recall quality with low quota:
+  1. **Anchor**: read `docs/CONTINUITY.md` and classify task type (edit/review/docs/investigation).
+  2. **Scope**: determine minimal file set from active diff + user request.
+  3. **Load**: read only required workflow/skill docs for the current step (lazy-load, do not preload all workflows).
+  4. **Execute**: make scoped changes or analysis.
+  5. **Verify**: run smallest sufficient checks first; escalate only when risk demands.
+  6. **Checkpoint**: emit `Done / Now / Next`; update continuity only for meaningful addon-state deltas.
+- For long sessions, repeat **Anchor + Scope** before each major phase or after idle gaps.
+- If stale-risk is high, run `tools/context_health_check.ps1` once per major phase (not every turn).
+
+### Artifact Lifecycle (Quota + Hygiene)
+- Canonical names (use only when needed):
+  - `implementation_plan.md`
+  - `critical_code_review.md`
+  - `sr_engineering_team_review.md`
+- Create artifacts only for multi-phase work, broad audits, or when the user explicitly asks for persisted reports.
+- For small/medium tasks, keep plans and reviews inline instead of creating files.
+- Do not commit temporary artifacts unless explicitly requested.
 
 ---
 
@@ -126,12 +169,12 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 | `/wrap-up` | End-of-session closeout: AGENTS compliance, sr-review-gate, verify-integrity, fix loops, and commit |
 | `/update-changelog` | Build upcoming release notes from full commit history since the last changelog update, excluding internal dev-cycle fix churn |
 | `/update-tribal-knowledge` | Capture session learnings |
-| `/code-review` | Full codebase audit with TODOs or fixes |
+| `/code-review` | Diff-first review by default; full codebase audit only for explicit deep-review requests |
 | `/garbage-cleanup` | Dead code and orphaned file detection |
-| `/lang-audit` | Localization file synchronization |
+| `/lang-audit` | Localization audit with changed-file fast path; full sync/audit optional |
 | `/review-todos` | Prioritize outstanding TODOs |
 | `/scaffold-module` | Create new module structure |
-| `/feature-requests` | Scan esoui for gamepad QoL gaps, update `docs/FEATURE_REQUESTS.md` |
+| `/feature-requests` | Targeted esoui gap scan by default; expanded scan only when requested |
 
 ---
 
@@ -173,6 +216,9 @@ These commands **do not require user approval** and can be auto-run:
 - `rg` - Searching file contents (preferred)
 - `grep` - Legacy content search
 - `luac` - Lua syntax validation
+- `git rev-parse` - Branch/commit fingerprinting
+- `pwsh -File tools/context_health_check.ps1` - Optional stale-context health snapshot
+- `git status` - Working tree snapshot
 - `git add` - Staging files
 - `git commit` - Creating commits
 - `git checkout` - Switching branches or restoring files

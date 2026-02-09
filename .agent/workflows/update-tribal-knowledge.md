@@ -9,7 +9,7 @@ A guided introspection session to document ESO API behaviors, BetterUI gotchas, 
 ## Prerequisites
 
 See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
-If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)** and **Quota Efficiency Defaults** first.
+If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults** first.
 
 ---
 
