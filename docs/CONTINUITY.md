@@ -28,6 +28,7 @@
 ## State
 
 **Done (recent ≤12):**
+- [2026-02-09] [CODE] Resource Orb Frames custom-texture workflow hardened: `Modules/ResourceOrbFrames/Core/OrbVisuals.lua` now applies custom `Shield.dds` at runtime, `tools/ConvertPngToDds.ps1` gained `-Profile ResourceOrbFrames` (required filename + exact size enforcement + post-convert size checks), and `Modules/ResourceOrbFrames/CustomTextures/README.md` was expanded with AI-ready generation contract, layer diagrams, and OrbBorder glass-lens transparency requirements
 - [2026-02-09] [CODE] Banking multi-select review/fix pass completed: fixed unreachable entry path in `Modules/Banking/Keybinds/KeybindManager.lua` (Y-hold now works even before manager init), hardened `Modules/CIM/Core/MultiSelectMixin.lua` target resolution (`GetSelectedData` fallback), and revalidated with `luac -p` + `lua tools/tests/run_all_tests.lua` (9/9 PASS)
 - [2026-02-09] [CODE] Added centralized settings metadata registry in `Modules/CIM/Core/SettingsFactory.lua` (schema includes label/tooltip/default/dependency/sortGroup/resetGroup) and replaced duplicated top-level submenu sorting helpers with shared utilities to reduce drift
 - [2026-02-09] [CODE] `IconSettingsFactory` now fully localized: removed remaining hardcoded English names/tooltips/submenu copy; wired icon labels/defaults through metadata registry and added localized keys across `lang/en/de/es/fr/jp/ru/zh.lua`
@@ -37,10 +38,10 @@
 - [2026-02-09] [CODE] Layout/label follow-up: Inventory+Banking font reset labels now use requested wording (`Reset Name Font Settings`, `Reset Other Font Settings`), Currency submenu now opts out of recursive alphabetical sorting to preserve paired visibility/order row layout, Currency reset text shortened to `Reset Currency Settings`, Resource Orb Frames offset label updated to `Offset (Up/Down)`, and settings sorter now supports `sortAlwaysLast` (applied to `Use Custom Textures` so it remains bottom in General)
 
 **Now:**
-- Commit-scope Banking multi-select review is complete for `9948ca6` and `c38d0e6`; critical entry-path regression fixed, CIM extraction verified, and locale-key coverage validated across `lang/en,de,es,fr,jp,ru,zh.lua`
+- Resource Orb Frames custom-texture quality pass completed in code/docs/tooling; profile-mode conversion and runtime custom shield icon path are implemented and syntax-validated
 
 **Next:**
-- In-game validation pass for Banking multi-select UX: Y-hold entry, A-toggle select/deselect, Y batch menu actions, back-to-exit behavior, and Withdraw/Deposit mode switch teardown while selections are active
+- In-game validation for Resource Orb Frames custom packs: verify `Use Custom Textures` applies all 10 assets (including `Shield.dds`) with ornaments ON/OFF and scale extremes (`0.75`/`1.75`)
 
 ---
 
@@ -61,13 +62,12 @@
 ## Working Set (≤12 paths)
 
 - `docs/CONTINUITY.md`
-- `Modules/Banking/Keybinds/KeybindManager.lua`
-- `Modules/CIM/Core/MultiSelectMixin.lua`
-- `Modules/Banking/Core/BankingClass.lua`
-- `Modules/Banking/Core/MultiSelectActions.lua`
-- `Modules/Inventory/Core/InventoryClass.lua`
-- `BetterUI.txt`
-- `lang/*.lua`
+- `Modules/ResourceOrbFrames/Core/OrbVisuals.lua`
+- `Modules/ResourceOrbFrames/CustomTextures/README.md`
+- `Modules/ResourceOrbFrames/Templates/ResourceOrbFrames.xml`
+- `Modules/ResourceOrbFrames/Constants.lua`
+- `tools/ConvertPngToDds.ps1`
+- `tools/README.md`
 
 ---
 
@@ -75,6 +75,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-09 | [TOOL] | ROF custom-texture profile smoke test PASS via `tools/ConvertPngToDds.ps1 -Profile ResourceOrbFrames` against shipped textures (10/10 converted); `luac -p Modules/ResourceOrbFrames/Core/OrbVisuals.lua` and PowerShell parse check for converter both PASS |
 | 2026-02-09 | [TOOL] | Banking multi-select repair review completed for `9948ca6` + `c38d0e6` (entry-path fix, multi-select target fallback, `luac -p`, tests 9/9 PASS, locale key parity verified) |
 | 2026-02-09 | [TOOL] | Wrap-up gate PASS: clean status, sr-review-gate PASS, tests 9/9 PASS, debug scan clean, Lua syntax clean, locale parity clean (`lang/en,de,es,fr,jp,ru,zh.lua`) |
 | 2026-02-09 | [CODE] | Settings consistency hardening: aligned defaults/resets, strict integer editbox parsing, and nil-safe settings callbacks across affected modules (`luac -p` validated) |

@@ -24,11 +24,17 @@ If set, applies texconv `-pow2` resize. ESO textures should use power-of-two dim
 .PARAMETER TexconvPath
 Optional explicit path to `texconv.exe`.
 
+.PARAMETER Profile
+Optional named profile. `ResourceOrbFrames` enforces required filenames and exact source dimensions.
+
 .EXAMPLE
 .\ConvertPngToDds.ps1 -InputPath '.\Modules\CIM\Textures' -Format DXT5 -ResizePow2
 
 .EXAMPLE
 .\ConvertPngToDds.ps1 -InputPath '.\foo.png' -OutputDir '.\out' -SkipMipmaps
+
+.EXAMPLE
+.\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\CustomTextures' -Profile ResourceOrbFrames -Format DXT5
 #>
 param(
     [Parameter(Mandatory = $true, Position = 0, HelpMessage = 'Path to PNG/DDS file or directory containing files')]
@@ -46,6 +52,10 @@ param(
 
     [Parameter(HelpMessage = 'Resize to nearest power-of-2 dimensions')]
     [switch]$ResizePow2,
+
+    [Parameter(HelpMessage = 'Optional conversion profile: ResourceOrbFrames enforces required names and exact dimensions')]
+    [ValidateSet('None', 'ResourceOrbFrames')]
+    [string]$Profile = 'None',
 
     [Parameter(HelpMessage = 'Path to texconv.exe (auto-detected if in PATH or same directory)')]
     [string]$TexconvPath
@@ -96,6 +106,196 @@ function Get-FormatArgs {
         'BGRA' { return @('-f', 'B8G8R8A8_UNORM') }
         default { return @('-f', 'BC3_UNORM') }
     }
+}
+
+function Get-ResourceOrbFramesProfileSpec {
+    return [ordered]@{
+        'Bar'              = @{ Width = 1024; Height = 512 }
+        'Health'           = @{ Width = 512; Height = 512 }
+        'MagStam'          = @{ Width = 512; Height = 512 }
+        'OrbBorder'        = @{ Width = 512; Height = 512 }
+        'OrbFill'          = @{ Width = 256; Height = 256 }
+        'OrbOverlay_Shield' = @{ Width = 256; Height = 256 }
+        'OrbSplitter'      = @{ Width = 512; Height = 512 }
+        'OrnamentLeft'     = @{ Width = 512; Height = 512 }
+        'OrnamentRight'    = @{ Width = 512; Height = 512 }
+        'Shield'           = @{ Width = 64; Height = 64 }
+    }
+}
+
+function Get-PngDimensions {
+    param([string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 24) {
+        return $null
+    }
+
+    $pngSig = @([byte]0x89, [byte]0x50, [byte]0x4E, [byte]0x47, [byte]0x0D, [byte]0x0A, [byte]0x1A, [byte]0x0A)
+    for ($i = 0; $i -lt $pngSig.Length; $i++) {
+        if ($bytes[$i] -ne $pngSig[$i]) {
+            return $null
+        }
+    }
+
+    $widthBytes = [byte[]]$bytes[16..19]
+    $heightBytes = [byte[]]$bytes[20..23]
+    [array]::Reverse($widthBytes)
+    [array]::Reverse($heightBytes)
+
+    return @{
+        Width = [int][BitConverter]::ToUInt32($widthBytes, 0)
+        Height = [int][BitConverter]::ToUInt32($heightBytes, 0)
+        Type = 'PNG'
+    }
+}
+
+function Get-DdsDimensions {
+    param([string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    if ($bytes.Length -lt 128) {
+        return $null
+    }
+
+    $magic = [System.Text.Encoding]::ASCII.GetString($bytes, 0, 3)
+    if ($magic -ne 'DDS') {
+        return $null
+    }
+
+    return @{
+        Width = [int][BitConverter]::ToUInt32($bytes, 16)
+        Height = [int][BitConverter]::ToUInt32($bytes, 12)
+        Type = 'DDS'
+    }
+}
+
+function Get-TextureDimensions {
+    param([string]$Path)
+
+    $ext = [System.IO.Path]::GetExtension($Path)
+    if (-not $ext) {
+        return $null
+    }
+
+    switch ($ext.ToLowerInvariant()) {
+        '.png' { return Get-PngDimensions -Path $Path }
+        '.dds' { return Get-DdsDimensions -Path $Path }
+        default { return $null }
+    }
+}
+
+function Resolve-ResourceOrbFramesProfileFiles {
+    param(
+        [string]$InputDirectory,
+        [hashtable]$ProfileSpec
+    )
+
+    $allFiles = Get-ChildItem -LiteralPath $InputDirectory -Include '*.png', '*.dds' -Recurse -File
+    if ($allFiles.Count -eq 0) {
+        Write-Host 'ERROR: No PNG/DDS files found for ResourceOrbFrames profile.' -ForegroundColor Red
+        return $null
+    }
+
+    $resolved = @()
+    $errors = @()
+
+    foreach ($logicalName in $ProfileSpec.Keys) {
+        $expected = $ProfileSpec[$logicalName]
+        $candidates = @($allFiles | Where-Object { $_.BaseName -ieq $logicalName })
+
+        if ($candidates.Count -eq 0) {
+            $errors += "Missing required file: $logicalName.png or $logicalName.dds"
+            continue
+        }
+
+        $pngCandidates = @($candidates | Where-Object { $_.Extension -ieq '.png' })
+        $ddsCandidates = @($candidates | Where-Object { $_.Extension -ieq '.dds' })
+
+        if ($pngCandidates.Count -gt 1) {
+            $errors += "Found multiple PNG sources for '$logicalName'. Keep only one."
+            continue
+        }
+        if ($ddsCandidates.Count -gt 1) {
+            $errors += "Found multiple DDS sources for '$logicalName'. Keep only one."
+            continue
+        }
+
+        $selected = $null
+        if ($pngCandidates.Count -eq 1) {
+            $selected = $pngCandidates[0]
+            if ($ddsCandidates.Count -eq 1) {
+                Write-Host "Profile note: using PNG for '$logicalName' and ignoring DDS source." -ForegroundColor DarkYellow
+            }
+        }
+        elseif ($ddsCandidates.Count -eq 1) {
+            $selected = $ddsCandidates[0]
+        }
+
+        if (-not $selected) {
+            $errors += "Unable to resolve source for '$logicalName'."
+            continue
+        }
+
+        $dims = Get-TextureDimensions -Path $selected.FullName
+        if (-not $dims) {
+            $errors += "Could not read dimensions for '$($selected.FullName)'."
+            continue
+        }
+
+        if (($dims.Width -ne $expected.Width) -or ($dims.Height -ne $expected.Height)) {
+            $errors += "$logicalName size mismatch: got $($dims.Width)x$($dims.Height), expected $($expected.Width)x$($expected.Height)."
+            continue
+        }
+
+        $resolved += [PSCustomObject]@{
+            LogicalName = $logicalName
+            File = $selected
+            Width = $dims.Width
+            Height = $dims.Height
+        }
+    }
+
+    if ($errors.Count -gt 0) {
+        foreach ($err in $errors) {
+            Write-Host "ERROR: $err" -ForegroundColor Red
+        }
+        return $null
+    }
+
+    return @($resolved)
+}
+
+function Validate-ProfileOutputDimensions {
+    param(
+        [string]$OutputFile,
+        [string]$LogicalName,
+        [hashtable]$ProfileSpec
+    )
+
+    $expected = $ProfileSpec[$LogicalName]
+    if (-not $expected) {
+        Write-Host "  ERROR: No profile spec found for '$LogicalName'." -ForegroundColor Red
+        return $false
+    }
+
+    if (-not (Test-Path -LiteralPath $OutputFile -PathType Leaf)) {
+        Write-Host "  ERROR: Expected output not found: $OutputFile" -ForegroundColor Red
+        return $false
+    }
+
+    $dims = Get-TextureDimensions -Path $OutputFile
+    if (-not $dims) {
+        Write-Host "  ERROR: Could not read output dimensions: $OutputFile" -ForegroundColor Red
+        return $false
+    }
+
+    if (($dims.Width -ne $expected.Width) -or ($dims.Height -ne $expected.Height)) {
+        Write-Host "  ERROR: Output size mismatch for '$LogicalName': got $($dims.Width)x$($dims.Height), expected $($expected.Width)x$($expected.Height)." -ForegroundColor Red
+        return $false
+    }
+
+    return $true
 }
 
 function Convert-TextureToDds {
@@ -185,12 +385,41 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 }
 
 $files = @()
-if (Test-Path -LiteralPath $InputPath -PathType Container) {
-    $files = Get-ChildItem -LiteralPath $InputPath -Include '*.png', '*.dds' -Recurse -File
-    Write-Host "Found $($files.Count) texture file(s) in directory" -ForegroundColor Gray
+$profileSpec = $null
+
+if ($Profile -eq 'ResourceOrbFrames') {
+    if (-not (Test-Path -LiteralPath $InputPath -PathType Container)) {
+        Write-Host 'ERROR: -Profile ResourceOrbFrames requires InputPath to be a directory containing the full texture set.' -ForegroundColor Red
+        exit 1
+    }
+
+    if ($Format -ne 'DXT5') {
+        Write-Host "WARNING: ResourceOrbFrames profile is tuned for DXT5. Current format: $Format" -ForegroundColor Yellow
+    }
+
+    $profileSpec = Get-ResourceOrbFramesProfileSpec
+    Write-Host "Profile: ResourceOrbFrames ($($profileSpec.Count) required files)" -ForegroundColor Cyan
+
+    $resolved = Resolve-ResourceOrbFramesProfileFiles -InputDirectory $InputPath -ProfileSpec $profileSpec
+    if (-not $resolved) {
+        Write-Host 'Profile validation failed. No files were converted.' -ForegroundColor Red
+        exit 1
+    }
+
+    foreach ($item in $resolved) {
+        Write-Host "  OK: $($item.LogicalName) -> $($item.Width)x$($item.Height) from $($item.File.Name)" -ForegroundColor Gray
+    }
+
+    $files = @($resolved | ForEach-Object { $_.File })
 }
 else {
-    $files = @(Get-Item -LiteralPath $InputPath)
+    if (Test-Path -LiteralPath $InputPath -PathType Container) {
+        $files = Get-ChildItem -LiteralPath $InputPath -Include '*.png', '*.dds' -Recurse -File
+        Write-Host "Found $($files.Count) texture file(s) in directory" -ForegroundColor Gray
+    }
+    else {
+        $files = @(Get-Item -LiteralPath $InputPath)
+    }
 }
 
 if ($files.Count -eq 0) {
@@ -209,6 +438,12 @@ foreach ($file in $files) {
         -SelectedFormat $Format `
         -DisableMipmaps $SkipMipmaps `
         -Pow2Resize $ResizePow2
+
+    if ($result -and $Profile -eq 'ResourceOrbFrames') {
+        $logicalName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $outputFile = Join-Path $OutputDir "$logicalName.dds"
+        $result = Validate-ProfileOutputDimensions -OutputFile $outputFile -LogicalName $logicalName -ProfileSpec $profileSpec
+    }
 
     if ($result) {
         $successCount++

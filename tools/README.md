@@ -45,6 +45,7 @@ Converts textures with `texconv.exe` to ESO-compatible DDS output.
 **Usage:**
 ```powershell
 .\ConvertPngToDds.ps1 -InputPath '.\Modules\CIM\Textures' -Format DXT5 -ResizePow2
+.\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\CustomTextures' -Profile ResourceOrbFrames -Format DXT5
 ```
 
 ## Deployment

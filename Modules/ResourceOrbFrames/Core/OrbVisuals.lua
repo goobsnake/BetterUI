@@ -361,6 +361,8 @@ function Visuals.ApplyThemeVisuals(rootFrame)
     if shieldOrb then
         local fog = FindControl(shieldOrb, 'Fog')
         if fog then fog:SetTexture(ResolveTexturePath('OrbOverlay_Shield.dds')) end
+        local shieldIcon = FindControl(shieldOrb, 'ShieldIcon')
+        if shieldIcon then shieldIcon:SetTexture(ResolveTexturePath('Shield.dds')) end
     end
 end
 
