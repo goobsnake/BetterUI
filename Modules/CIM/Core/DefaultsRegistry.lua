@@ -27,7 +27,7 @@ BETTERUI.Defaults.FirstInstall = {
     GeneralInterface = true,  -- Enhanced tooltips, QoL
     ResourceOrbFrames = true, -- Per user request
     Writs = false,            -- Niche feature, opt-in
-    Nameplates = true,        -- Part of General Interface
+    Nameplates = false,       -- Align with reset/default baseline
 }
 
 -- ============================================================================
@@ -42,7 +42,6 @@ BETTERUI.Defaults.Modules = {
     -- ========================================================================
     Inventory = {
         -- Display Features (showcase for new users)
-        showMarketPrice = true, -- Show market price from MM/ATT/TTC
         enableCarousel = true,  -- Modern tab navigation
 
         -- Icon Visibility (all on by default)
@@ -84,6 +83,10 @@ BETTERUI.Defaults.Modules = {
     -- GENERAL INTERFACE MODULE
     -- ========================================================================
     GeneralInterface = {
+        -- Shared Market Value Display (used by both Inventory and Banking item rows)
+        showMarketPrice = true,
+        marketPricePriority = "mm_att_ttc",
+
         -- Trait & Research
         showStyleTrait = true, -- Show style/trait info in tooltips
 
@@ -118,8 +121,8 @@ BETTERUI.Defaults.Modules = {
     -- ========================================================================
     ResourceOrbFrames = {
         -- Core Settings
-        scale = 1.15,
-        offsetY = 80,
+        scale = 1.0,
+        offsetY = 0,
         useCustomTextures = false,
 
         -- Showcase Features (ON by default for great first impression)
@@ -184,10 +187,10 @@ BETTERUI.Defaults.Modules = {
     -- NAMEPLATES MODULE
     -- ========================================================================
     Nameplates = {
-        m_enabled = true,      -- Enabled when GeneralInterface is on
+        m_enabled = false,
         font = "$(BOLD_FONT)", -- Uses ESO's localized font for CJK support
-        style = "soft-shadow-thick",
-        size = 24,
+        style = FONT_STYLE_SOFT_SHADOW_THIN or 5,
+        size = 16,
     },
 
     -- ========================================================================

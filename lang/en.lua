@@ -69,6 +69,8 @@ ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_GENERIC",
 
 
 -- Currency limit alert
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING",
+    "Maximum visible currencies reached (<<1>>). Disable one currency before enabling another.")
 
 
 
@@ -213,9 +215,12 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "PvP Focus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "Crafter Focus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "Events Focus")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "Custom")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "Reset Currency Settings")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP",
     "Reset all currency visibility and order settings to default values.")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "Reset General Settings")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET_TOOLTIP",
+    "Reset all settings in this General section to their default values.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "1st")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "2nd")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_3", "3rd")
@@ -263,15 +268,20 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC",
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Enable Enhanced Nameplates")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP",
     "Toggle the Enhanced Nameplates feature. When enabled, custom font settings will be applied to all nameplates.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Nameplate Font")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Font")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Select the font for nameplates from ESO's built-in fonts.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP",
     "Select the style effect for nameplate text (outline, shadow, etc).")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Font Size")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Size")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Adjust the size of nameplate text. Default is 16.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Reset Nameplate Settings")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate settings to their default values.")
+
+-- Inventory General Settings
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
+    "Configure core inventory behavior, including navigation, protection, and interaction options.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Font Customization")
@@ -285,7 +295,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "Font")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "Select the font for item names.")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "Size")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
-ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
 
 -- Inventory Column Font Settings (Type, Trait, Stat, Value)
@@ -294,8 +304,13 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "Font")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Select the font for column data (Type, Trait, Stat, Value).")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "Size")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
+
+-- Banking General Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
+    "Configure core banking behavior, including navigation and interaction options.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Font Customization")
@@ -309,7 +324,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "Font")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "Select the font for item names.")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "Size")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
 
 -- Banking Column Font Settings (Type, Trait, Stat, Value)
@@ -318,13 +333,13 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "Font")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Select the font for column data (Type, Trait, Stat, Value).")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "Size")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Style")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Font Style")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
 
 -- Individual Reset Strings
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Reset Name Font Settings")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Reset name font settings to defaults.")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Reset Other Font Settings")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Reset column font settings to defaults.")
 
 -- Font Localization Warnings
@@ -353,21 +368,23 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Shield Text Size")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Adjust the font size of the shield text")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Shield Text Color")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Adjust the color of the shield text")
+ZO_CreateStringId("SI_BETTERUI_ORB_VISUALS_HEADER", "Orb Visuals")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Orb Text")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "General")
 
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Scale")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Overall size of the frame.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertical Offset (Up/Down)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Offset (Up/Down)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Move the frame up/down. Positive moves up; negative moves down.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Use Custom Textures")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
     "Use textures from 'BetterUI/Modules/ResourceOrbFrames/CustomTextures'. Place your own files there using the same filenames as the default texture set.")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset to Defaults")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset General Settings")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Reset settings in this section to their default values.")
 
@@ -398,6 +415,29 @@ ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Font Scale")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Font Color")
 
 -- General Interface Settings
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
+    "Configure core interface behavior, tooltip integrations, and quality-of-life options.")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Enhanced Tooltips")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
+    "Customize enhanced tooltip behavior, including style/trait details and font sizing.")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Reset Tooltip Settings")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
+    "Reset all settings in this Enhanced Tooltips section to their default values.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Market Price Integration")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Configure item market-value sources and controls for Inventory and Banking value columns.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Reset Market Settings")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
+    "Reset all settings in this Market Price Integration section to their default values.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Market Price Source Priority")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
+    "Choose the source order used when replacing Value in Inventory and Banking.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Guild Store Error Suppression")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Removes guild store error messages caused by MM or ATT")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -406,12 +446,13 @@ ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION", "Master Merchant integration")
 ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP", "Hooks Master Merchant into the item tooltips")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION", "Tamriel Trade Centre integration")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Hooks TTC Price info into the item tooltips")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Display item style and trait knowledge")
+ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Addon not detected: <<1>>.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Tooltip - Style and Trait Knowledge")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
-    "On items, displays the style of the item and whether the trait can be researched")
+    "Shows an item's style and researchable trait details in the enhanced tooltip. This is separate from item-list icons.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chat window history size")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Alters how many lines to store in the chat buffer, default=200")
-ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Remove confirmation screen when deleting mail")
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Skip Mail Delete Confirmation")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Mouse Scrolling speed on Left Hand tooltip")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP",
     "Change how quickly the left tooltip scrolls when using the mouse wheel.")
@@ -431,7 +472,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "General")
 
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
@@ -449,6 +490,10 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Back Bar Opacity")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Adjust how dimmed the back bar icons appear. Lower values make the back bar less noticeable.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Reset Skill Bar Settings")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Reset Orb Settings")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Reset Exp Bar Settings")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "Reset Cast Bar Settings")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "Reset Mount Bar Settings")
 
 -- ResourceOrbFrames Additional Settings
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")
@@ -524,6 +569,21 @@ ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT", "Item Icon - Enchantment")
 ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP", "Show an icon after enchanted item.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR", "Item Icon - Set Gear")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "Show an icon after set gears.")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT", "Item Icon - Researchable Trait")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT_TOOLTIP",
+    "Show an icon after items with traits you can research.")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE", "Item Icon - Unknown Recipe")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE_TOOLTIP",
+    "Show an icon after recipe items that are not yet learned.")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK", "Item Icon - Unknown Book")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP",
+    "Show an icon after books or lorebooks that are not yet learned.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "Item Icon Customization")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "Configure which status icons appear next to item names.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
+    "Choose which item-state icons to display in Inventory and Banking lists. Icons scale with Name column font size and can be toggled individually.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Reset Item Icon Settings")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Reset item icon customization settings to their default values.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Enable quick destroy functionality")
@@ -533,8 +593,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Replace \"Value\" with the market's price")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
-    "Replaces the item \"Value\" with either MM's, ATT's or TTC's average price")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bind on Equip Protection")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Show a dialog before equipping Bind on Equip items")
 
@@ -563,3 +622,5 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack")
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
+
+

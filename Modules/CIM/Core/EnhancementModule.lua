@@ -21,7 +21,6 @@ local LAM = LibAddonMenu2
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
-
 --- Initializes the settings panel for General Interface options.
 ---
 --- Purpose: Creates a LibAddonMenu panel with all configurable options.
@@ -39,13 +38,25 @@ local function Init(mId, moduleName)
 
 	local optionsTable = {}
 
-	-- Tooltip Settings Submenu
+	-- General Interface settings (flat section, consistent with Inventory/Banking)
 	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
 		table.insert(optionsTable, {
-			type = "submenu",
-			name = "General",
-			controls = BETTERUI.GeneralInterface.GetSettingsOptions()
+			type = "header",
+			name = GetString(SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER),
+			width = "full",
 		})
+		table.insert(optionsTable, {
+			type = "description",
+			text = GetString(SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC),
+			width = "full",
+		})
+
+		local generalOptions = BETTERUI.GeneralInterface.GetSettingsOptions()
+		if generalOptions then
+			for _, option in ipairs(generalOptions) do
+				table.insert(optionsTable, option)
+			end
+		end
 	end
 
 	-- Nameplate Settings Submenu
@@ -55,6 +66,16 @@ local function Init(mId, moduleName)
 			name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
 			controls = BETTERUI.Nameplates.GetSettingsOptions()
 		})
+	end
+
+	-- Alphabetize top-level submenu rows (e.g., Enhanced Nameplates / Enhanced Tooltips).
+	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically then
+		BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsTable)
+	end
+
+	-- Alphabetize top-level General settings and all submenu settings.
+	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+		BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
 	end
 
 	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)

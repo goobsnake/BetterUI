@@ -14,15 +14,24 @@ BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 --- @param key string The setting key.
 --- @return any The setting value or nil.
 function BETTERUI.Inventory.GetSetting(key)
-	if not BETTERUI.Settings.Modules["Inventory"] then return nil end
-	return BETTERUI.Settings.Modules["Inventory"][key]
+	local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+	if not modules or not modules["Inventory"] then
+		return nil
+	end
+	return modules["Inventory"][key]
 end
 
 --- Sets a setting value for the Inventory module.
 --- @param key string The setting key.
 --- @param value any The value to set.
 function BETTERUI.Inventory.SetSetting(key, value)
-	if not BETTERUI.Settings.Modules["Inventory"] then return end
+	if not BETTERUI or not BETTERUI.Settings then
+		return
+	end
+	BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+	if type(BETTERUI.Settings.Modules["Inventory"]) ~= "table" then
+		BETTERUI.Settings.Modules["Inventory"] = {}
+	end
 	BETTERUI.Settings.Modules["Inventory"][key] = value
 end
 
@@ -36,23 +45,24 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		return GAMEPAD_INVENTORY
 	end
 
-	local function RefreshInventoryList()
-		local inv = GetInventoryWindow()
-		if inv and inv.RefreshItemList then
-			inv:RefreshItemList()
+	local function IsInventorySceneShowing(inv)
+		if not inv then return false end
+		if inv.scene and inv.scene.IsShowing then
+			return inv.scene:IsShowing()
 		end
+		return false
 	end
 
-	local function RefreshBankingList()
-		local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
-		if bankingWindow and bankingWindow.RefreshList then
-			bankingWindow:RefreshList()
+	local function RefreshInventoryList()
+		local inv = GetInventoryWindow()
+		if inv and IsInventorySceneShowing(inv) and inv.RefreshItemList then
+			inv:RefreshItemList()
 		end
 	end
 
 	local function ApplyTriggerMode(useCategoryJump)
 		local inv = GetInventoryWindow()
-		if not inv then return end
+		if not inv or not IsInventorySceneShowing(inv) then return end
 		if inv.SetListsUseTriggerKeybinds then
 			inv:SetListsUseTriggerKeybinds(useCategoryJump)
 		end
@@ -61,7 +71,46 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		end
 	end
 
+	local function ResetInventoryGeneralSettings()
+		if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
+			BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Inventory", "general")
+		else
+			BETTERUI.Inventory.SetSetting("quickDestroy", false)
+			BETTERUI.Inventory.SetSetting("enableCarousel", true)
+			BETTERUI.Inventory.SetSetting("useTriggersForSkip", false)
+			BETTERUI.Inventory.SetSetting("bindOnEquipProtection", true)
+			BETTERUI.Inventory.SetSetting("enableCompanionJunk", false)
+		end
+
+		local inv = GetInventoryWindow()
+		if inv and inv.categoryHeaderData then
+			inv.categoryHeaderData.carouselConfig = inv.categoryHeaderData.carouselConfig or {}
+			inv.categoryHeaderData.carouselConfig.enabled = BETTERUI.Inventory.GetSetting("enableCarousel")
+			if inv.RefreshHeader then
+				inv:RefreshHeader(true)
+			end
+		end
+
+		ApplyTriggerMode(BETTERUI.Inventory.GetSetting("useTriggersForSkip"))
+
+		if inv and IsInventorySceneShowing(inv) and inv.RefreshItemActions then
+			inv:RefreshItemActions()
+		end
+
+		RefreshInventoryList()
+	end
+
 	local optionsTable = {
+		{
+			type = "header",
+			name = GetString(SI_BETTERUI_INV_GENERAL_HEADER),
+			width = "full",
+		},
+		{
+			type = "description",
+			text = GetString(SI_BETTERUI_INV_GENERAL_DESC),
+			width = "full",
+		},
 		-- Quick Destroy
 		{
 			type = "checkbox",
@@ -109,20 +158,6 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_SHOW_MARKET_PRICE),
-			tooltip = GetString(SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP),
-			getFunc = function()
-				return BETTERUI.Inventory.GetSetting("showMarketPrice")
-			end,
-			setFunc = function(value)
-				BETTERUI.Inventory.SetSetting("showMarketPrice", value)
-				RefreshInventoryList()
-				RefreshBankingList()
-			end,
-			width = "full",
-		},
-		{
-			type = "checkbox",
 			name = GetString(SI_BETTERUI_BOE_PROTECTION),
 			tooltip = GetString(SI_BETTERUI_BOE_PROTECTION_TOOLTIP),
 			getFunc = function()
@@ -131,13 +166,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("bindOnEquipProtection", value) end,
 			width = "full",
 		},
-		-- Icon Visibility (using shared CIM factory)
 	}
-
-	-- Item Icon Customization submenu (using shared CIM factory)
-	table.insert(optionsTable, BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Inventory", function()
-		RefreshInventoryList()
-	end))
 
 	-- Continue with remaining options
 	table.insert(optionsTable, {
@@ -150,11 +179,20 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		setFunc = function(value)
 			BETTERUI.Inventory.SetSetting("enableCompanionJunk", value)
 			local inv = GetInventoryWindow()
-			if inv and inv.RefreshItemActions then
+			if inv and IsInventorySceneShowing(inv) and inv.RefreshItemActions then
 				inv:RefreshItemActions()
 			end
 		end,
 		width = "full",
+	})
+	table.insert(optionsTable, {
+		type = "button",
+		name = GetString(SI_BETTERUI_GENERAL_RESET),
+		tooltip = GetString(SI_BETTERUI_GENERAL_RESET_TOOLTIP),
+		func = function()
+			ResetInventoryGeneralSettings()
+		end,
+		width = "half",
 	})
 
 	-- Append Currency Settings (if available)
@@ -165,6 +203,11 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		end
 	end
 
+	-- Item Icon Customization submenu (using shared CIM factory)
+	table.insert(optionsTable, BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Inventory", function()
+		RefreshInventoryList()
+	end))
+
 	-- Append Font Settings (if available)
 	if BETTERUI.Inventory.Settings.GetFontOptions then
 		local fontOptions = BETTERUI.Inventory.Settings.GetFontOptions()
@@ -173,6 +216,11 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				table.insert(optionsTable, opt)
 			end
 		end
+	end
+
+	-- Alphabetize top-level General settings and all submenu settings.
+	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+		BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
 	end
 
 	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
@@ -188,7 +236,6 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options = BETTERUI.Defaults.ApplyModuleDefaults("Inventory", m_options)
 	else
 		-- Fallback if DefaultsRegistry not loaded yet
-		if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end
 		if m_options["useTriggersForSkip"] == nil then m_options["useTriggersForSkip"] = false end
 		if m_options["bindOnEquipProtection"] == nil then m_options["bindOnEquipProtection"] = true end
 		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
@@ -272,33 +319,42 @@ function BETTERUI.Inventory.InitModule(m_options)
 		end
 	end
 
-	-- Currency visibility defaults
-	if m_options["showCurrencyGold"] == nil then m_options["showCurrencyGold"] = true end
-	if m_options["showCurrencyAlliancePoints"] == nil then m_options["showCurrencyAlliancePoints"] = true end
-	if m_options["showCurrencyTelVar"] == nil then m_options["showCurrencyTelVar"] = true end
-	if m_options["showCurrencyCrownGems"] == nil then m_options["showCurrencyCrownGems"] = true end
-	if m_options["showCurrencyCrowns"] == nil then m_options["showCurrencyCrowns"] = true end
-	if m_options["showCurrencyTransmute"] == nil then m_options["showCurrencyTransmute"] = true end
-	if m_options["showCurrencyWritVouchers"] == nil then m_options["showCurrencyWritVouchers"] = true end
-	if m_options["showCurrencyTradeBars"] == nil then m_options["showCurrencyTradeBars"] = true end
-	if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
-	if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
-	if m_options["showCurrencySeals"] == nil then m_options["showCurrencySeals"] = false end
-	if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = false end
+	-- Currency defaults should match the canonical "default" preset (same behavior as reset).
+	local defaultCurrencyPreset = BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS.default
+	if type(defaultCurrencyPreset) == "table" then
+		for key, value in pairs(defaultCurrencyPreset) do
+			if m_options[key] == nil then
+				m_options[key] = value
+			end
+		end
+	else
+		-- Fallback defaults if preset table is unavailable.
+		if m_options["showCurrencyGold"] == nil then m_options["showCurrencyGold"] = true end
+		if m_options["showCurrencyAlliancePoints"] == nil then m_options["showCurrencyAlliancePoints"] = true end
+		if m_options["showCurrencyTelVar"] == nil then m_options["showCurrencyTelVar"] = true end
+		if m_options["showCurrencyCrownGems"] == nil then m_options["showCurrencyCrownGems"] = true end
+		if m_options["showCurrencyCrowns"] == nil then m_options["showCurrencyCrowns"] = true end
+		if m_options["showCurrencyTransmute"] == nil then m_options["showCurrencyTransmute"] = true end
+		if m_options["showCurrencyWritVouchers"] == nil then m_options["showCurrencyWritVouchers"] = true end
+		if m_options["showCurrencyTradeBars"] == nil then m_options["showCurrencyTradeBars"] = true end
+		if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
+		if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
+		if m_options["showCurrencySeals"] == nil then m_options["showCurrencySeals"] = true end
+		if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = false end
 
-	-- Currency order defaults
-	if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
-	if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
-	if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
-	if m_options["orderCurrencyUndauntedKeys"] == nil then m_options["orderCurrencyUndauntedKeys"] = 4 end
-	if m_options["orderCurrencyTransmute"] == nil then m_options["orderCurrencyTransmute"] = 5 end
-	if m_options["orderCurrencyCrowns"] == nil then m_options["orderCurrencyCrowns"] = 6 end
-	if m_options["orderCurrencyCrownGems"] == nil then m_options["orderCurrencyCrownGems"] = 7 end
-	if m_options["orderCurrencyWritVouchers"] == nil then m_options["orderCurrencyWritVouchers"] = 8 end
-	if m_options["orderCurrencyTradeBars"] == nil then m_options["orderCurrencyTradeBars"] = 9 end
-	if m_options["orderCurrencyOutfitTokens"] == nil then m_options["orderCurrencyOutfitTokens"] = 10 end
-	if m_options["orderCurrencySeals"] == nil then m_options["orderCurrencySeals"] = 11 end
-	if m_options["orderCurrencyTomePoints"] == nil then m_options["orderCurrencyTomePoints"] = 12 end
+		if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
+		if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
+		if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
+		if m_options["orderCurrencyUndauntedKeys"] == nil then m_options["orderCurrencyUndauntedKeys"] = 4 end
+		if m_options["orderCurrencyTransmute"] == nil then m_options["orderCurrencyTransmute"] = 5 end
+		if m_options["orderCurrencyCrowns"] == nil then m_options["orderCurrencyCrowns"] = 6 end
+		if m_options["orderCurrencyCrownGems"] == nil then m_options["orderCurrencyCrownGems"] = 7 end
+		if m_options["orderCurrencyWritVouchers"] == nil then m_options["orderCurrencyWritVouchers"] = 8 end
+		if m_options["orderCurrencyTradeBars"] == nil then m_options["orderCurrencyTradeBars"] = 9 end
+		if m_options["orderCurrencyOutfitTokens"] == nil then m_options["orderCurrencyOutfitTokens"] = 10 end
+		if m_options["orderCurrencySeals"] == nil then m_options["orderCurrencySeals"] = 11 end
+		if m_options["orderCurrencyTomePoints"] == nil then m_options["orderCurrencyTomePoints"] = 12 end
+	end
 
 	if m_options["currencyPreset"] == nil then m_options["currencyPreset"] = "default" end
 	if m_options["currencyOrder"] == nil then

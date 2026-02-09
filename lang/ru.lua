@@ -178,9 +178,14 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "Фокус на PvP")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "Фокус на крафте")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "Фокус на событиях")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "Пользовательский")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "Сбросить настройки видимости и порядка валют")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP",
     "Сбросить все настройки видимости и порядка валют к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING",
+    "Достигнут максимум отображаемых валют (<<1>>). Отключите одну валюту перед включением другой.")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "Сбросить общие настройки")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET_TOOLTIP",
+    "Сбрасывает все параметры в этом разделе «Общие» к значениям по умолчанию.")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "1-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "2-я")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_3", "3-я")
@@ -224,15 +229,20 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "Настройте шрифт�
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "Включить улучшенные таблички")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP",
     "Переключить функцию улучшенных табличек. При включении пользовательские настройки шрифта будут применены ко всем табличкам.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Шрифт табличек")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "Шрифт")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Выберите шрифт для табличек из встроенных шрифтов ESO.")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP",
     "Выберите эффект стиля для текста табличек (контур, тень и т.д.).")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер шрифта")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "Размер")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "Настройте размер текста табличек. По умолчанию 16.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "Сбросить настройки табличек")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить все настройки табличек к значениям по умолчанию.")
+
+-- Inventory General Settings
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "Общие")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
+    "Настройте основное поведение инвентаря, включая параметры навигации, защиты и взаимодействия.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")
@@ -246,7 +256,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "Шрифт")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "Выберите шрифт для названий предметов.")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "Размер")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для названий предметов.")
-ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для названий предметов.")
 
 -- Inventory Column Font Settings (Type, Trait, Stat, Value)
@@ -255,8 +265,13 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "Шрифт")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Выберите шрифт для данных столбцов (Тип, Черта, Стат, Цена).")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "Размер")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для данных столбцов.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
+
+-- Banking General Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "Общие")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
+    "Настройте основное поведение банка, включая параметры навигации и взаимодействия.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Настройка шрифтов")
@@ -270,7 +285,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "Шрифт")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "Выберите шрифт для названий предметов.")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "Размер")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для названий предметов.")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для названий предметов.")
 
 -- Banking Column Font Settings (Type, Trait, Stat, Value)
@@ -279,13 +294,13 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "Шрифт")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Выберите шрифт для данных столбцов (Тип, Черта, Стат, Цена).")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "Размер")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Выберите размер шрифта для данных столбцов.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Стиль")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "Стиль шрифта")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Выберите стиль шрифта для данных столбцов.")
 
 -- Individual Reset Strings
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "Сбросить настройки шрифта колонки названия")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Сбросить настройки шрифта названий к значениям по умолчанию.")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "Сбросить настройки шрифта остальных колонок")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Сбросить настройки шрифта столбцов к значениям по умолчанию.")
 
 -- Orb Text Settings
@@ -305,9 +320,11 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "Размер текста
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "Настроить размер шрифта текста щита")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "Цвет текста щита")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "Настроить цвет текста щита")
+ZO_CreateStringId("SI_BETTERUI_ORB_VISUALS_HEADER", "Визуал орбов")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Текст орбов")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Общие")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Масштаб")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Общий размер рамки.")
@@ -318,7 +335,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Исп
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
     "Включите, чтобы использовать текстуры из 'BetterUI/Modules/GeneralInterface/CustomOrbTextures'. Вы должны поместить туда свои текстуры с правильными именами файлов.")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить настройки")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить общие настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Сбросить настройки в этом разделе к значениям по умолчанию.")
 
@@ -349,6 +366,29 @@ ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Размер шрифта")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Цвет шрифта")
 
 -- General Interface Settings
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "Общие")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
+    "Настройте основное поведение интерфейса, интеграции подсказок и параметры удобства.")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Улучшенные подсказки")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
+    "Настройте поведение улучшенных подсказок, включая сведения о стиле/черте и размер шрифта.")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Сбросить настройки подсказок")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
+    "Сбрасывает все параметры в этом разделе «Улучшенные подсказки» к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Интеграция рыночных цен")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Настройка источников и параметров рыночной цены для столбца стоимости в инвентаре и банке.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Сбросить настройки рынка")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
+    "Сбрасывает все параметры в этом разделе «Интеграция рыночных цен» к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Приоритет источника рыночной цены")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
+    "Выберите порядок источников, используемый для замены столбца «Стоимость» в инвентаре и банке.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Скрытие ошибок в магазине гильдии")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
     "Убирает сообщения об ошибках в магазине гильдии, вызванные MM или ATT")
@@ -361,13 +401,14 @@ ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION", "Интеграция Tamriel Trade Centre")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP",
     "Добавляет информацию о цене TTC во всплывающие подсказки предметов")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Отображать стиль и изученность черты")
+ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Аддон не обнаружен: <<1>>.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Подсказка - стиль и черта")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
-    "Отображает стиль предмета и возможность изучения его черты во всплывающих подсказках")
+    "Показывает в расширенной подсказке стиль предмета и сведения об изучаемой черте. Это отдельно от значков в списке предметов.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Размер истории чата")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Изменяет количество строк, сохраняемых в буфере чата (по умолчанию 200)")
-ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Убрать подтверждение при удалении почты")
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Пропускать подтверждение удаления почты")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "Скорость прокрутки подсказки (левая рука)")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP",
     "Изменяет скорость прокрутки меню при использовании триггеров.")
@@ -390,6 +431,10 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Непрозрачность 
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Настройте, насколько затемненными выглядят иконки резервной панели. Меньшие значения делают её менее заметной.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Сбросить настройки панели умений")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Сбросить настройки сфер")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Сбросить настройки полосы опыта")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "Сбросить настройки полосы каста")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "Сбросить настройки полосы маунта")
 
 -- XP Bar Settings
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "Включить панель опыта")
@@ -427,6 +472,22 @@ ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT", "Иконка предмета
 ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP", "Показывать иконку после зачарованных предметов.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR", "Иконка предмета - Комплектная экипировка")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "Показывать иконку после комплектной экипировки.")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT", "Иконка предмета - Исследуемая черта")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT_TOOLTIP",
+    "Показывать иконку после предметов с чертами, которые можно исследовать.")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE", "Иконка предмета - Неизвестный рецепт")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE_TOOLTIP",
+    "Показывать иконку после рецептов, которые ещё не изучены.")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK", "Иконка предмета - Неизвестная книга")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP",
+    "Показывать иконку после книг или лор-книг, которые ещё не изучены.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "Настройка иконок предметов")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
+    "Настройте, какие статусные иконки отображаются рядом с названиями предметов.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
+    "Выберите, какие иконки состояния предметов показывать в списках инвентаря и банка. Иконки масштабируются по размеру шрифта столбца названия и переключаются по отдельности.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Сбросить настройки иконок предметов")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Сбрасывает настройки иконок предметов к значениям по умолчанию.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Включить функцию быстрого уничтожения")
@@ -436,8 +497,7 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Использовать т�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Вместо пропуска определенного количества предметов при каждом нажатии триггера (поведение по умолчанию), это переведет к следующему типу предметов")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Заменить \"Стоимость\" на рыночную цену")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
-    "Заменяет \"Стоимость\" предмета на среднюю цену MM, ATT или TTC")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Заменяет столбец «Стоимость» в инвентаре и банке рыночной ценой из MM, ATT или TTC (если доступно).")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Защита привязки при экипировке")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
@@ -448,7 +508,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Показать �
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Позиция билетов")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Рамки сфер ресурсов")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Общие")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Включить |c0066FFРамки сфер ресурсов|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Включает модуль рамок сфер ресурсов.")
 
@@ -550,3 +610,5 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Выберите количест�
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Выберите количество для извлечения")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Убрать стак")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Достать стак")
+
+

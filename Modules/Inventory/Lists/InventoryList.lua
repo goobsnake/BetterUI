@@ -86,6 +86,26 @@ local function GetModuleSettings(moduleName)
     return modules[moduleName]
 end
 
+local function ShouldShowMarketPrice()
+    local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+    if not modules then
+        return true
+    end
+
+    local generalInterfaceSettings = modules["GeneralInterface"]
+    if generalInterfaceSettings and generalInterfaceSettings.showMarketPrice ~= nil then
+        return generalInterfaceSettings.showMarketPrice
+    end
+
+    -- Legacy fallback for pre-migration saved variables.
+    local inventorySettings = modules["Inventory"]
+    if inventorySettings and inventorySettings.showMarketPrice ~= nil then
+        return inventorySettings.showMarketPrice
+    end
+
+    return true
+end
+
 local function GetActiveNameFontSize(moduleName)
     local settings = GetModuleSettings(moduleName)
     if settings and settings.nameFontSize then
@@ -537,7 +557,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     statControl:SetText(statText)
 
     -- Handle market price display
-    if BETTERUI.Settings.Modules["Inventory"].showMarketPrice and
+    if ShouldShowMarketPrice() and
         (BETTERUI.CIM.Utils.IsBankingSceneShowing() or BETTERUI.CIM.Utils.IsInventorySceneShowing()) then
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then

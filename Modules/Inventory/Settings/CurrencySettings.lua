@@ -111,6 +111,25 @@ local CURRENCY_DATA = {
     },
 }
 
+local function GetInventorySettings()
+    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+    if not modules then
+        return nil
+    end
+    return modules["Inventory"]
+end
+
+local function EnsureInventorySettings()
+    if not BETTERUI or not BETTERUI.Settings then
+        return nil
+    end
+    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+    if type(BETTERUI.Settings.Modules["Inventory"]) ~= "table" then
+        BETTERUI.Settings.Modules["Inventory"] = {}
+    end
+    return BETTERUI.Settings.Modules["Inventory"]
+end
+
 -- Resolve dynamic labels
 local function GetCurrencyLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
@@ -142,7 +161,7 @@ local function SafeRefresh(headerToo)
 end
 
 local function CanEnableMoreCurrencies()
-    local inv = BETTERUI.Settings.Modules["Inventory"]
+    local inv = GetInventorySettings()
     if not inv then return false end
 
     local count = 0
@@ -160,8 +179,17 @@ local function CanEnableMoreCurrencies()
     return count < max
 end
 
+local function NotifyCurrencyEnableLimitReached()
+    local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 5
+    local warningText = zo_strformat(GetString(SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING), maxVisible)
+    BETTERUI.Debug(warningText)
+    if PlaySound and SOUNDS and SOUNDS.NEGATIVE_CLICK then
+        PlaySound(SOUNDS.NEGATIVE_CLICK)
+    end
+end
+
 local function RecomputeCurrencyOrderString()
-    local inv = BETTERUI.Settings.Modules["Inventory"]
+    local inv = GetInventorySettings()
     if not inv then return end
 
     local items = {}
@@ -189,7 +217,7 @@ end
 --- Applies a currency preset by enabling/disabling specific currencies.
 --- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom").
 function BETTERUI.ApplyCurrencyPreset(presetName)
-    local inv = BETTERUI.Settings.Modules["Inventory"]
+    local inv = EnsureInventorySettings()
     if not inv then return end
 
     -- Use centralized preset definitions from Modules/CIM/Constants.lua
@@ -250,11 +278,16 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
             },
             choicesValues = { "default", "pvp", "crafter", "events", "custom" },
             getFunc = function()
-                if not BETTERUI.Settings.Modules["Inventory"] then return "custom" end
-                return BETTERUI.Settings.Modules["Inventory"].currencyPreset or "custom"
+                local settings = GetInventorySettings()
+                if not settings then return "custom" end
+                return settings.currencyPreset or "custom"
             end,
             setFunc = function(value)
-                BETTERUI.Settings.Modules["Inventory"].currencyPreset = value
+                local settings = EnsureInventorySettings()
+                if not settings then
+                    return
+                end
+                settings.currencyPreset = value
                 BETTERUI.ApplyCurrencyPreset(value)
                 RecomputeCurrencyOrderString()
                 SafeRefresh(true)
@@ -277,7 +310,8 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                 type = "checkbox",
                 name = GetCurrencyLabel(data),
                 getFunc = function()
-                    if not BETTERUI.Settings.Modules["Inventory"] then
+                    local settings = GetInventorySettings()
+                    if not settings then
                         return data.id ~= "seals" and
                             data.id ~= "tomepoints"
                     end -- defaults logic
@@ -285,15 +319,22 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     -- In original code, 'getFunc' returned 'inv[k] ~= false' which implies default true.
                     -- Except 'Seals' and 'TomePoints' returned '== true' which implies default false.
                     if data.id == "seals" or data.id == "tomepoints" then
-                        return BETTERUI.Settings.Modules["Inventory"][data.settingKey] == true
+                        return settings[data.settingKey] == true
                     else
-                        return BETTERUI.Settings.Modules["Inventory"][data.settingKey] ~= false
+                        return settings[data.settingKey] ~= false
                     end
                 end,
                 setFunc = function(value)
-                    if value and not CanEnableMoreCurrencies() then return end
-                    BETTERUI.Settings.Modules["Inventory"][data.settingKey] = value
-                    BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+                    local settings = EnsureInventorySettings()
+                    if not settings then
+                        return
+                    end
+                    if value and not CanEnableMoreCurrencies() then
+                        NotifyCurrencyEnableLimitReached()
+                        return
+                    end
+                    settings[data.settingKey] = value
+                    settings.currencyPreset = "custom"
                     SafeRefresh(true)
                 end,
                 width = "half",
@@ -306,7 +347,11 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                 choices = CURRENCY_ORDER_CHOICES,
                 choicesValues = CURRENCY_ORDER_VALUES,
                 disabled = function()
-                    local val = BETTERUI.Settings.Modules["Inventory"][data.settingKey]
+                    local settings = GetInventorySettings()
+                    if not settings then
+                        return true
+                    end
+                    local val = settings[data.settingKey]
                     if data.id == "seals" or data.id == "tomepoints" then
                         return val ~= true
                     else
@@ -314,12 +359,17 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
                     end
                 end,
                 getFunc = function()
-                    if not BETTERUI.Settings.Modules["Inventory"] then return data.defaultOrder end
-                    return (BETTERUI.Settings.Modules["Inventory"][data.orderKey] or data.defaultOrder)
+                    local settings = GetInventorySettings()
+                    if not settings then return data.defaultOrder end
+                    return (settings[data.orderKey] or data.defaultOrder)
                 end,
                 setFunc = function(value)
-                    BETTERUI.Settings.Modules["Inventory"][data.orderKey] = value
-                    BETTERUI.Settings.Modules["Inventory"].currencyPreset = "custom"
+                    local settings = EnsureInventorySettings()
+                    if not settings then
+                        return
+                    end
+                    settings[data.orderKey] = value
+                    settings.currencyPreset = "custom"
                     RecomputeCurrencyOrderString()
                     SafeRefresh(true)
                 end,
@@ -339,7 +389,10 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
         tooltip = GetString(SI_BETTERUI_CURRENCY_RESET_TOOLTIP),
         func = function()
             BETTERUI.ApplyCurrencyPreset("default")
-            BETTERUI.Settings.Modules["Inventory"].currencyPreset = "default"
+            local settings = EnsureInventorySettings()
+            if settings then
+                settings.currencyPreset = "default"
+            end
             RecomputeCurrencyOrderString()
             SafeRefresh(true)
         end,
@@ -350,6 +403,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
         type = "submenu",
         name = GetString(SI_BETTERUI_CURRENCY_SUBMENU),
         reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
+        disableAutoSort = true,
         controls = controls,
     }
 end

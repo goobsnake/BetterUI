@@ -170,8 +170,13 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "PvP重点")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "工匠重点")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "活动重点")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "自定义")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "重置货币显示与顺序设置")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP", "将所有货币显示和顺序设置重置为默认值。")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING",
+    "已达到可见货币上限（<<1>>）。请先关闭一个货币再启用其他货币。")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "重置常规设置")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET_TOOLTIP",
+    "将此“常规”分组中的所有设置重置为默认值。")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "第1")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "第2")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_3", "第3")
@@ -214,14 +219,18 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "增强名牌")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "自定义玩家和NPC名牌的字体、样式和大小。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "启用增强名牌")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "切换增强名牌功能。启用后，自定义字体设置将应用于所有名牌。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "名牌字体")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "字体")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "从ESO内置字体中选择名牌字体。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "选择名牌文字的样式效果（轮廓、阴影等）。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "字体大小")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "大小")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "调整名牌文字的大小。默认值为16。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "重置名牌设置")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置重置为默认值。")
+
+-- Inventory General Settings
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "常规")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "配置物品栏的核心行为，包括导航、保护和交互选项。")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
@@ -234,7 +243,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "字体")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "选择物品名称的字体。")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "大小")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "选择物品名称的字体大小。")
-ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "选择物品名称的字体样式。")
 
 -- Inventory Column Font Settings (Type, Trait, Stat, Value)
@@ -243,8 +252,12 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "字体")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "选择列数据（类型、特性、属性、价值）的字体。")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "大小")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据的字体大小。")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
+
+-- Banking General Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "常规")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "配置银行的核心行为，包括导航和交互选项。")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "字体自定义")
@@ -257,7 +270,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "字体")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "选择物品名称的字体。")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "大小")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "选择物品名称的字体大小。")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "选择物品名称的字体样式。")
 
 -- Banking Column Font Settings (Type, Trait, Stat, Value)
@@ -266,13 +279,13 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "字体")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "选择列数据（类型、特性、属性、价值）的字体。")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "大小")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "选择列数据的字体大小。")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "样式")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "字体样式")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据的字体样式。")
 
 -- Individual Reset Strings
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "重置名称列字体设置")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "将名称字体设置重置为默认值。")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "重置为默认")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "重置其他列字体设置")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "将列字体设置重置为默认值。")
 
 -- Orb Text Settings
@@ -292,9 +305,11 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "护盾文字大小")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "调整护盾文字的字体大小")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "护盾文字颜色")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "调整护盾文字的颜色")
+ZO_CreateStringId("SI_BETTERUI_ORB_VISUALS_HEADER", "法球外观")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "法球文本")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "资源球框架")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "常规")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "缩放")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "框架的整体大小。")
@@ -304,7 +319,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "使用
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
     "启用此选项以使用 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' 中的纹理。您必须将自己的纹理放置在那里，并使用正确的文件名。")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "恢复默认")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "重置常规设置")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "将此部分的设置恢复为默认值。")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "隐藏左侧装饰")
@@ -329,6 +344,25 @@ ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "字体缩放")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "字体颜色")
 
 -- General Interface Settings
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "常规")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "配置界面的核心行为、提示信息整合和体验优化选项。")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "增强提示")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "自定义增强提示行为，包括风格/特性信息和字体大小。")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "重置提示设置")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "将此“增强提示”分组中的所有设置重置为默认值。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "市场价格整合")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "配置背包与银行价值列使用的市场价格来源和相关选项。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "重置市场设置")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "将此“市场价格整合”分组中的所有设置重置为默认值。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "市场价格来源优先级")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
+    "选择用于替换背包与银行价值列的来源顺序。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "公会商店错误抑制")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "移除由 MM 或 ATT 引起的公会商店错误消息")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -337,11 +371,12 @@ ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION", "Master Merchant 整合")
 ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP", "将 Master Merchant 整合到物品提示中")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION", "Tamriel Trade Centre 整合")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "将 TTC 价格信息整合到物品提示中")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "显示物品风格和特性知识")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "在物品上显示物品的风格以及特性是否可研究")
+ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "未检测到插件：<<1>>。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "提示 - 风格与特性信息")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "在增强提示中显示物品风格和可研究特性详情。此功能与物品列表图标独立。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "聊天窗口历史记录大小")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "更改聊天缓存中存储的行数，默认=200")
-ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "删除邮件时移除确认屏幕")
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "跳过邮件删除确认")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "左手提示上的鼠标滚动速度")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "更改按扳机键时菜单跳过的速度。")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "扳机键跳过的行数")
@@ -361,6 +396,10 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "副手栏外观")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "副手栏不透明度")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP", "调整副手栏图标的变暗程度。较低的值会使副手栏不太明显。")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "重置技能栏设置")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "重置球体设置")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "重置经验条设置")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "重置施法条设置")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "重置坐骑条设置")
 
 -- XP Bar Settings
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "启用经验条")
@@ -395,6 +434,21 @@ ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT", "物品图标 - 附魔")
 ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP", "在附魔物品后显示图标。")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR", "物品图标 - 套装装备")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "在套装装备后显示图标。")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT", "物品图标 - 可研究特性")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT_TOOLTIP",
+    "在可研究特性的物品后显示图标。")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE", "物品图标 - 未知配方")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE_TOOLTIP",
+    "在尚未学习的配方物品后显示图标。")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK", "物品图标 - 未知书籍")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP",
+    "在尚未学习的书籍或传说书后显示图标。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "物品图标自定义")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "配置显示在物品名称旁边的状态图标。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
+    "选择在背包与银行列表中显示哪些物品状态图标。图标会随名称列字体大小缩放，并可单独开关。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "重置物品图标设置")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "将物品图标自定义设置重置为默认值。")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "启用快速销毁功能")
@@ -402,7 +456,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**请谨慎使用** 快�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "使用扳机键移动到下一个物品类型")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键移动到下一个物品类型，而不是跳过一定数量的物品（默认全局行为）")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "将\"价值\"替换为市场价格")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将物品\"价值\"替换为 MM、ATT 或 TTC 的平均价格")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将背包和银行中的“价值”列在可用时替换为 MM、ATT 或 TTC 的市场价格。")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "在装备绑定物品之前显示对话框")
 
@@ -412,7 +466,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "显示活动门票
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "活动门票位置")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "资源球框架")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "常规")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "启用|c0066FF资源球框架|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "启用资源球框架模块。")
 
@@ -512,3 +566,5 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")
+
+

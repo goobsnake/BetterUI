@@ -22,13 +22,43 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
     local function RefreshBankingWindowList()
+        if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsBankingSceneShowing then
+            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                return
+            end
+        end
+
         local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
         if bankingWindow and bankingWindow.RefreshList then
             bankingWindow:RefreshList()
         end
     end
 
+    local function ResetBankingGeneralSettings()
+        if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
+            BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Banking", "general")
+        else
+            BETTERUI.Banking.SetSetting("enableCarousel", true)
+        end
+
+        local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
+        if bankingWindow and bankingWindow.RebuildHeaderCategories then
+            bankingWindow:RebuildHeaderCategories()
+        end
+        RefreshBankingWindowList()
+    end
+
     local optionsTable = {
+        {
+            type = "header",
+            name = GetString(SI_BETTERUI_BANK_GENERAL_HEADER),
+            width = "full",
+        },
+        {
+            type = "description",
+            text = GetString(SI_BETTERUI_BANK_GENERAL_DESC),
+            width = "full",
+        },
         -- Carousel Navigation
         {
             type = "checkbox",
@@ -45,6 +75,15 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                 end
             end,
             width = "full",
+        },
+        {
+            type = "button",
+            name = GetString(SI_BETTERUI_GENERAL_RESET),
+            tooltip = GetString(SI_BETTERUI_GENERAL_RESET_TOOLTIP),
+            func = function()
+                ResetBankingGeneralSettings()
+            end,
+            width = "half",
         },
         -- Icon Visibility (using shared CIM factory)
     }
@@ -92,6 +131,11 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     )
     for _, opt in ipairs(fontOptions) do
         table.insert(optionsTable, opt)
+    end
+
+    -- Alphabetize top-level General settings and all submenu settings.
+    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
     end
 
     LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)

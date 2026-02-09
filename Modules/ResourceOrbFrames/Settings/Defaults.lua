@@ -12,8 +12,8 @@ BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 local function GetDefaults()
     return {
         m_enabled = true,
-        scale = 1.15,
-        offsetY = 80,
+        scale = 1.0,
+        offsetY = 0,
         useCustomTextures = false,
         centerBarType = "XP",
         healthTextSize = 20,

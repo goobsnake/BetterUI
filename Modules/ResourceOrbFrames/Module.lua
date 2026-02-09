@@ -8,6 +8,99 @@ Last Modified: 2026-02-08
 
 local LAM = LibAddonMenu2
 
+local function NormalizeSectionSortName(name)
+    if type(name) ~= "string" then
+        return ""
+    end
+
+    local normalized = name
+    normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
+    normalized = normalized:gsub("|r", "")
+    normalized = normalized:gsub("|t[^|]+|t", "")
+    normalized = normalized:gsub("%s+", " ")
+    normalized = normalized:gsub("^%s+", "")
+    normalized = normalized:gsub("%s+$", "")
+
+    if zo_strlower then
+        return zo_strlower(normalized)
+    end
+    return string.lower(normalized)
+end
+
+local function SortSubmenuHeaderSectionsAlphabetically(controls)
+    if type(controls) ~= "table" then
+        return
+    end
+
+    local trailingButtons = {}
+    while #controls > 0 do
+        local lastControl = controls[#controls]
+        if type(lastControl) == "table" and lastControl.type == "button" then
+            table.insert(trailingButtons, 1, lastControl)
+            table.remove(controls, #controls)
+        else
+            break
+        end
+    end
+
+    local sections = {}
+    local currentSection = nil
+
+    for _, control in ipairs(controls) do
+        local isHeader = type(control) == "table" and control.type == "header" and type(control.name) == "string"
+        if isHeader then
+            currentSection = { control }
+            table.insert(sections, currentSection)
+        elseif currentSection then
+            table.insert(currentSection, control)
+        end
+    end
+
+    table.sort(sections, function(leftSection, rightSection)
+        local leftHeader = leftSection[1]
+        local rightHeader = rightSection[1]
+        local leftKey = NormalizeSectionSortName(leftHeader and leftHeader.name)
+        local rightKey = NormalizeSectionSortName(rightHeader and rightHeader.name)
+        if leftKey == rightKey then
+            return tostring(leftHeader and leftHeader.name) < tostring(rightHeader and rightHeader.name)
+        end
+        return leftKey < rightKey
+    end)
+
+    local rebuilt = {}
+    for _, section in ipairs(sections) do
+        for _, control in ipairs(section) do
+            table.insert(rebuilt, control)
+        end
+    end
+    for _, control in ipairs(trailingButtons) do
+        table.insert(rebuilt, control)
+    end
+
+    for i = 1, #controls do
+        controls[i] = nil
+    end
+    for i = 1, #rebuilt do
+        controls[i] = rebuilt[i]
+    end
+end
+
+local function ApplySubmenuSectionOrdering(optionsTable)
+    if type(optionsTable) ~= "table" then
+        return
+    end
+
+    local skillBarsSubmenuName = GetString(SI_BETTERUI_SKILL_BARS_SUBMENU)
+    for _, option in ipairs(optionsTable) do
+        if type(option) == "table"
+            and option.type == "submenu"
+            and option.name == skillBarsSubmenuName
+            and type(option.controls) == "table" then
+            SortSubmenuHeaderSectionsAlphabetically(option.controls)
+        end
+    end
+end
+
 --- Initializes the settings panel for Resource Orb Frames.
 ---
 --- Purpose: Creates a LibAddonMenu panel with all configurable options.
@@ -38,6 +131,25 @@ local function Init(mId, moduleName)
             return fallback
         end
         return value
+    end
+
+    local function GetResourceOrbSettings()
+        local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+        if not modules then
+            return nil
+        end
+        return modules["ResourceOrbFrames"]
+    end
+
+    local function EnsureResourceOrbSettings()
+        if not BETTERUI or not BETTERUI.Settings then
+            return nil
+        end
+        BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
+        if type(BETTERUI.Settings.Modules["ResourceOrbFrames"]) ~= "table" then
+            BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
+        end
+        return BETTERUI.Settings.Modules["ResourceOrbFrames"]
     end
 
     local function CloneColor(value, fallback)
@@ -148,6 +260,7 @@ local function Init(mId, moduleName)
             type = "checkbox",
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
             tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
+            sortAlwaysLast = true,
             getFunc = getCustomTex,
             setFunc = setCustomTex,
             width = "full",
@@ -159,18 +272,13 @@ local function Init(mId, moduleName)
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
             tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
             func = function()
-                local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                local settings = EnsureResourceOrbSettings()
+                if not settings then
+                    return
+                end
                 settings.scale = Default("scale", 1)
                 settings.offsetY = Default("offsetY", 0)
                 settings.useCustomTextures = Default("useCustomTextures", false)
-                settings.cooldownTextSize = Default("cooldownTextSize", 27)
-                settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 })
-                settings.quickslotTextSize = Default("quickslotTextSize", 27)
-                settings.quickslotTextColor = CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 })
-                settings.hideLeftOrnament = Default("hideLeftOrnament", false)
-                settings.hideRightOrnament = Default("hideRightOrnament", false)
-                settings.leftOrbSizeScale = Default("leftOrbSizeScale", 1.0)
-                settings.rightOrbSizeScale = Default("rightOrbSizeScale", 1.0)
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
@@ -294,7 +402,7 @@ local function Init(mId, moduleName)
                     getFunc = getUltSize,
                     setFunc = setUltSize,
                     disabled = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = GetResourceOrbSettings()
                         return not settings or not settings.showUltimateNumber
                     end,
                     width = "full",
@@ -306,7 +414,7 @@ local function Init(mId, moduleName)
                     getFunc = getUltColor,
                     setFunc = setUltColor,
                     disabled = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = GetResourceOrbSettings()
                         return not settings or not settings.showUltimateNumber
                     end,
                     width = "full",
@@ -334,7 +442,7 @@ local function Init(mId, moduleName)
                     getFunc = getGlowColor,
                     setFunc = setGlowColor,
                     disabled = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = GetResourceOrbSettings()
                         return not settings or not settings.showCombatGlow
                     end,
                     width = "full",
@@ -359,7 +467,10 @@ local function Init(mId, moduleName)
                     type = "button",
                     name = GetString(SI_BETTERUI_RESET_SKILL_BAR),
                     func = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = EnsureResourceOrbSettings()
+                        if not settings then
+                            return
+                        end
                         settings.cooldownTextSize = Default("cooldownTextSize", 27)
                         settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 })
                         settings.quickslotTextSize = Default("quickslotTextSize", 27)
@@ -389,6 +500,10 @@ local function Init(mId, moduleName)
             type = "submenu",
             name = GetString(SI_BETTERUI_ORB_TEXT_SUBMENU),
             controls = {
+                {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_ORB_VISUALS_HEADER),
+                },
                 {
                     type = "checkbox",
                     name = GetString(SI_BETTERUI_ROF_SWIRL_EFFECT),
@@ -420,8 +535,9 @@ local function Init(mId, moduleName)
                     setFunc = setLeftSize,
                     -- Only enabled when left ornament is hidden
                     disabled = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") or not settings.hideLeftOrnament
+                        local settings = GetResourceOrbSettings()
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                            or not (settings and settings.hideLeftOrnament)
                     end,
                     width = "full",
                 },
@@ -446,10 +562,15 @@ local function Init(mId, moduleName)
                     setFunc = setRightSize,
                     -- Only enabled when right ornament is hidden
                     disabled = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") or not settings.hideRightOrnament
+                        local settings = GetResourceOrbSettings()
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                            or not (settings and settings.hideRightOrnament)
                     end,
                     width = "full",
+                },
+                {
+                    type = "header",
+                    name = GetString(SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER),
                 },
                 -- Health Text Settings
                 {
@@ -533,10 +654,13 @@ local function Init(mId, moduleName)
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    name = GetString(SI_BETTERUI_ORB_TEXT_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = EnsureResourceOrbSettings()
+                        if not settings then
+                            return
+                        end
                         -- Ornament visibility and orb scaling
                         settings.hideLeftOrnament = Default("hideLeftOrnament", false)
                         settings.hideRightOrnament = Default("hideRightOrnament", false)
@@ -569,6 +693,7 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = GetString(SI_BETTERUI_XP_BAR_ENABLED),
                     tooltip = GetString(SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP),
+                    sortAlwaysFirst = true,
                     getFunc = getXpEnabled,
                     setFunc = setXpEnabled,
                     width = "full",
@@ -582,7 +707,10 @@ local function Init(mId, moduleName)
                     step = 1,
                     getFunc = getXpSize,
                     setFunc = setXpSize,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.xpBarEnabled == true)
+                    end,
                     width = "full",
                 },
                 {
@@ -591,15 +719,21 @@ local function Init(mId, moduleName)
                     tooltip = GetString(SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP),
                     getFunc = getXpColor,
                     setFunc = setXpColor,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.xpBarEnabled == true)
+                    end,
                     width = "full",
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    name = GetString(SI_BETTERUI_XP_BAR_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = EnsureResourceOrbSettings()
+                        if not settings then
+                            return
+                        end
                         settings.xpBarTextSize = Default("xpBarTextSize", 16)
                         settings.xpBarTextColor = CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 })
 
@@ -608,7 +742,10 @@ local function Init(mId, moduleName)
                         end
                     end,
                     -- Check for both overall enabled and specific feature enabled
-                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].xpBarEnabled) end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.xpBarEnabled == true)
+                    end,
                     width = "half",
                 },
             },
@@ -621,6 +758,7 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = GetString(SI_BETTERUI_CAST_BAR_ENABLED),
                     tooltip = GetString(SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP),
+                    sortAlwaysFirst = true,
                     getFunc = getCastEnabled,
                     setFunc = setCastEnabled,
                     width = "full",
@@ -631,7 +769,10 @@ local function Init(mId, moduleName)
                     tooltip = GetString(SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP),
                     getFunc = getCastAlways,
                     setFunc = setCastAlways,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.castBarEnabled == true)
+                    end,
                     width = "full",
                 },
                 {
@@ -643,7 +784,10 @@ local function Init(mId, moduleName)
                     step = 1,
                     getFunc = getCastSize,
                     setFunc = setCastSize,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.castBarEnabled == true)
+                    end,
                     width = "full",
                 },
                 {
@@ -652,15 +796,21 @@ local function Init(mId, moduleName)
                     tooltip = GetString(SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP),
                     getFunc = getCastColor,
                     setFunc = setCastColor,
-                    disabled = function() return not BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.castBarEnabled == true)
+                    end,
                     width = "full",
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    name = GetString(SI_BETTERUI_CAST_BAR_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = EnsureResourceOrbSettings()
+                        if not settings then
+                            return
+                        end
                         settings.castBarTextSize = Default("castBarTextSize", 16)
                         settings.castBarTextColor = CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 })
 
@@ -668,7 +818,10 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].castBarEnabled) end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.castBarEnabled == true)
+                    end,
                     width = "half",
                 },
             },
@@ -681,6 +834,7 @@ local function Init(mId, moduleName)
                     type = "checkbox",
                     name = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED),
                     tooltip = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP),
+                    sortAlwaysFirst = true,
                     getFunc = getMountEnabled,
                     setFunc = setMountEnabled,
                     width = "full",
@@ -695,8 +849,8 @@ local function Init(mId, moduleName)
                     getFunc = getMountSize,
                     setFunc = setMountSize,
                     disabled = function()
-                        return not BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                            .mountStaminaBarEnabled
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.mountStaminaBarEnabled == true)
                     end,
                     width = "full",
                 },
@@ -707,17 +861,20 @@ local function Init(mId, moduleName)
                     getFunc = getMountColor,
                     setFunc = setMountColor,
                     disabled = function()
-                        return not BETTERUI.Settings.Modules["ResourceOrbFrames"]
-                            .mountStaminaBarEnabled
+                        local settings = GetResourceOrbSettings()
+                        return not (settings and settings.mountStaminaBarEnabled == true)
                     end,
                     width = "full",
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
+                    name = GetString(SI_BETTERUI_MOUNT_STAMINA_BAR_RESET),
                     tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
                     func = function()
-                        local settings = BETTERUI.Settings.Modules["ResourceOrbFrames"]
+                        local settings = EnsureResourceOrbSettings()
+                        if not settings then
+                            return
+                        end
                         settings.mountStaminaBarTextSize = Default("mountStaminaBarTextSize", 16)
                         settings.mountStaminaBarTextColor = CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 })
 
@@ -725,12 +882,29 @@ local function Init(mId, moduleName)
                             BETTERUI.ResourceOrbFrames.ApplySettings()
                         end
                     end,
-                    disabled = function() return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.Settings.Modules["ResourceOrbFrames"].mountStaminaBarEnabled) end,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.mountStaminaBarEnabled == true)
+                    end,
                     width = "half",
                 },
             },
         },
     }
+
+    -- Reorder section groups inside targeted submenus (e.g., Skill Bars) by header name.
+    ApplySubmenuSectionOrdering(optionsTable)
+
+    -- Alphabetize top-level submenu rows, then alphabetize settings inside each section/submenu.
+    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically then
+        BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsTable)
+    end
+
+    -- Alphabetize top-level General settings and all submenu settings.
+    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
+    end
+
     LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
     LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
 end

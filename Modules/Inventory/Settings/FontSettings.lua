@@ -14,9 +14,55 @@ BETTERUI.Inventory.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
 BETTERUI.Inventory.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Inventory.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
+local function GetInventorySettings()
+    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+    if not modules then
+        return nil
+    end
+    if type(modules["Inventory"]) ~= "table" then
+        modules["Inventory"] = {}
+    end
+    return modules["Inventory"]
+end
+
+local function IsCIMEnabled()
+    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+    local cimSettings = modules and modules["CIM"]
+    return cimSettings and cimSettings.m_enabled == true
+end
+
 local function RefreshInventoryList()
     local inv = GAMEPAD_INVENTORY
-    if inv and inv.RefreshItemList then
+    if not inv or not inv.RefreshItemList then
+        return
+    end
+
+    if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsInventorySceneShowing then
+        if not BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+            return
+        end
+    elseif inv.scene and inv.scene.IsShowing and not inv.scene:IsShowing() then
+        return
+    end
+
+    if inv.itemList == nil or inv.categoryList == nil then
+        return
+    end
+
+    if inv.categoryList.IsEmpty and inv.categoryList:IsEmpty() then
+        return
+    end
+
+    local targetCategoryData = inv.categoryList.selectedData or inv.categoryList.targetData
+    if not targetCategoryData then
+        return
+    end
+
+    if inv.itemList.SetNoItemText == nil then
+        return
+    end
+
+    if inv.RefreshItemList then
         inv:RefreshItemList()
     end
 end
@@ -62,17 +108,20 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
-                        if not BETTERUI.Settings.Modules["Inventory"] then
+                        local settings = GetInventorySettings()
+                        if not settings then
                             return BETTERUI.Inventory.DEFAULTS.nameFont
                         end
-                        return BETTERUI.Settings.Modules["Inventory"].nameFont or
-                            BETTERUI.Inventory.DEFAULTS.nameFont
+                        return settings.nameFont or BETTERUI.Inventory.DEFAULTS.nameFont
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].nameFont = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.nameFont = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     scrollable = true,
                     default = BETTERUI.Inventory.DEFAULTS.nameFont,
@@ -85,7 +134,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     max = 48,
                     step = 1,
                     getFunc = function()
-                        local settings = BETTERUI.Settings.Modules["Inventory"]
+                        local settings = GetInventorySettings()
                         local val = BETTERUI.Inventory.DEFAULTS.nameFontSize
                         if settings then
                             val = settings.nameFontSize or val
@@ -93,10 +142,13 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         return val
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].nameFontSize = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.nameFontSize = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     default = BETTERUI.Inventory.DEFAULTS.nameFontSize,
                 },
@@ -107,14 +159,20 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
-                        return BETTERUI.Settings.Modules["Inventory"].nameFontStyle or
-                            BETTERUI.Inventory.DEFAULTS.nameFontStyle
+                        local settings = GetInventorySettings()
+                        if not settings then
+                            return BETTERUI.Inventory.DEFAULTS.nameFontStyle
+                        end
+                        return settings.nameFontStyle or BETTERUI.Inventory.DEFAULTS.nameFontStyle
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].nameFontStyle = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.nameFontStyle = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     default = BETTERUI.Inventory.DEFAULTS.nameFontStyle,
                 },
@@ -124,13 +182,16 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     tooltip = GetString(SI_BETTERUI_NAME_FONT_RESET_TOOLTIP),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
-                        local s = BETTERUI.Settings.Modules["Inventory"]
+                        local s = GetInventorySettings()
+                        if not s then
+                            return
+                        end
                         s.nameFont = d.nameFont
                         s.nameFontSize = d.nameFontSize
                         s.nameFontStyle = d.nameFontStyle
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "half",
                 },
             },
@@ -146,14 +207,20 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
-                        return BETTERUI.Settings.Modules["Inventory"].columnFont or
-                            BETTERUI.Inventory.DEFAULTS.columnFont
+                        local settings = GetInventorySettings()
+                        if not settings then
+                            return BETTERUI.Inventory.DEFAULTS.columnFont
+                        end
+                        return settings.columnFont or BETTERUI.Inventory.DEFAULTS.columnFont
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].columnFont = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.columnFont = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     scrollable = true,
                     default = BETTERUI.Inventory.DEFAULTS.columnFont,
@@ -166,7 +233,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     max = 48,
                     step = 1,
                     getFunc = function()
-                        local settings = BETTERUI.Settings.Modules["Inventory"]
+                        local settings = GetInventorySettings()
                         local val = BETTERUI.Inventory.DEFAULTS.columnFontSize
                         if settings then
                             val = settings.columnFontSize or val
@@ -174,10 +241,13 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         return val
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].columnFontSize = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.columnFontSize = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     default = BETTERUI.Inventory.DEFAULTS.columnFontSize,
                 },
@@ -188,14 +258,20 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
-                        return BETTERUI.Settings.Modules["Inventory"].columnFontStyle or
-                            BETTERUI.Inventory.DEFAULTS.columnFontStyle
+                        local settings = GetInventorySettings()
+                        if not settings then
+                            return BETTERUI.Inventory.DEFAULTS.columnFontStyle
+                        end
+                        return settings.columnFontStyle or BETTERUI.Inventory.DEFAULTS.columnFontStyle
                     end,
                     setFunc = function(value)
-                        BETTERUI.Settings.Modules["Inventory"].columnFontStyle = value
+                        local settings = GetInventorySettings()
+                        if settings then
+                            settings.columnFontStyle = value
+                        end
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "full",
                     default = BETTERUI.Inventory.DEFAULTS.columnFontStyle,
                 },
@@ -205,13 +281,16 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     tooltip = GetString(SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
-                        local s = BETTERUI.Settings.Modules["Inventory"]
+                        local s = GetInventorySettings()
+                        if not s then
+                            return
+                        end
                         s.columnFont = d.columnFont
                         s.columnFontSize = d.columnFontSize
                         s.columnFontStyle = d.columnFontStyle
                         RefreshInventoryList()
                     end,
-                    disabled = function() return not BETTERUI.Settings.Modules["CIM"].m_enabled end,
+                    disabled = function() return not IsCIMEnabled() end,
                     width = "half",
                 },
             },

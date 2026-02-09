@@ -171,8 +171,13 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_PVP", "PvPフォーカス")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CRAFTER", "クラフターフォーカス")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_EVENTS", "イベントフォーカス")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_PRESET_CUSTOM", "カスタム")
-ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET", "通貨表示と並び順の設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_RESET_TOOLTIP", "すべての通貨表示と順序設定をデフォルト値にリセットします。")
+ZO_CreateStringId("SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING",
+    "表示できる通貨の上限 (<<1>>) に達しました。別の通貨を有効化する前に1つ無効化してください。")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET", "一般設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_RESET_TOOLTIP",
+    "この一般セクションの設定をすべてデフォルト値に戻します。")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_1", "1番目")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_2", "2番目")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_POS_3", "3番目")
@@ -215,14 +220,18 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_HEADER", "ネームプレート強化"
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_DESC", "プレイヤーとNPCのネームプレートのフォント、スタイル、サイズをカスタマイズします。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED", "ネームプレート強化を有効にする")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP", "ネームプレート強化機能を切り替えます。有効にすると、カスタムフォント設定がすべてのネームプレートに適用されます。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "ネームプレートフォント")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT", "フォント")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "ネームプレートに使用するフォントをESOの組み込みフォントから選択します。")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP", "ネームプレートテキストのスタイル効果（アウトライン、影など）を選択します。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "フォントサイズ")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE", "サイズ")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP", "ネームプレートテキストのサイズを調整します。デフォルトは16です。")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET", "ネームプレート設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネームプレート設定をデフォルト値にリセットします。")
+
+-- Inventory General Settings
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "一般")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "インベントリの基本動作を設定します。ナビゲーション、保護、操作に関するオプションを調整できます。")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "フォントカスタマイズ")
@@ -235,7 +244,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT", "フォント")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_TOOLTIP", "アイテム名のフォントを選択します。")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE", "サイズ")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP", "アイテム名のフォントサイズを選択します。")
-ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP", "アイテム名のフォントスタイルを選択します。")
 
 -- Inventory Column Font Settings (Type, Trait, Stat, Value)
@@ -244,8 +253,12 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT", "フォント")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "列データ（タイプ、特性、ステータス、価値）のフォントを選択します。")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE", "サイズ")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "列データのフォントサイズを選択します。")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "列データのフォントスタイルを選択します。")
+
+-- Banking General Settings
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "一般")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "銀行の基本動作を設定します。ナビゲーションと操作に関するオプションを調整できます。")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "フォントカスタマイズ")
@@ -258,7 +271,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT", "フォント")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_TOOLTIP", "アイテム名のフォントを選択します。")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE", "サイズ")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP", "アイテム名のフォントサイズを選択します。")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP", "アイテム名のフォントスタイルを選択します。")
 
 -- Banking Column Font Settings (Type, Trait, Stat, Value)
@@ -267,13 +280,13 @@ ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT", "フォント")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "列データ（タイプ、特性、ステータス、価値）のフォントを選択します。")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE", "サイズ")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "列データのフォントサイズを選択します。")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "スタイル")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE", "フォントスタイル")
 ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "列データのフォントスタイルを選択します。")
 
 -- Individual Reset Strings
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET", "名前列フォント設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "名前フォント設定をデフォルトにリセットします。")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET", "その他列フォント設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "列フォント設定をデフォルトにリセットします。")
 
 -- Orb Text Settings
@@ -293,9 +306,11 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE", "シールドテキスト�
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP", "シールドテキストのフォントサイズを調整")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR", "シールドテキスト色")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP", "シールドテキストの色を調整")
+ZO_CreateStringId("SI_BETTERUI_ORB_VISUALS_HEADER", "オーブ表示")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "オーブテキスト")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Resource Orb Frames")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "一般")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "スケール")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "フレーム全体のサイズ。")
@@ -305,7 +320,7 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "カス
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
     "これを有効にすると、'BetterUI/Modules/GeneralInterface/CustomOrbTextures' のテクスチャが使用されます。正しいファイル名で独自のテクスチャをそこに配置する必要があります。")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "デフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "一般設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP", "このセクションの設定をデフォルト値にリセットします。")
 
 ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT", "左オーナメントを非表示")
@@ -330,6 +345,25 @@ ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "フォントスケール")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "フォントカラー")
 
 -- General Interface Settings
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "一般")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "インターフェースの基本動作、ツールチップ連携、利便性オプションを設定します。")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "強化ツールチップ")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "スタイル/特性情報やフォントサイズを含む、強化ツールチップの動作をカスタマイズします。")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "ツールチップ設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "この強化ツールチップセクションの設定をすべてデフォルト値に戻します。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "マーケット価格連携")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "所持品と銀行の価値列に使うマーケット価格の取得元と表示オプションを設定します。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "マーケット設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "このマーケット価格連携セクションの設定をすべてデフォルト値に戻します。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "マーケット価格ソースの優先順位")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
+    "インベントリと銀行の価値列を置き換える際に使用するソース順を選択します。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "ギルドストアエラー抑制")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "MMまたはATTによって引き起こされるギルドストアエラーメッセージを削除します")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -338,11 +372,12 @@ ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION", "Master Merchant統合")
 ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP", "Master Merchant情報をアイテムツールチップに表示")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION", "Tamriel Trade Centre統合")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "TTC価格情報をアイテムツールチップに表示")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "スタイルと特性の知識を表示")
-ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "アイテムのスタイルと特性の研究状況を表示します")
+ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "アドオンが検出されません: <<1>>。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "ツールチップ - スタイルと特性情報")
+ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "強化ツールチップにアイテムのスタイルと研究可能な特性情報を表示します。アイテム一覧アイコンとは別機能です。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "チャットウィンドウ履歴サイズ")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "チャットバッファに保存する行数を変更、デフォルト=200")
-ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "メール削除時の確認画面を削除")
+ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "メール削除確認を省略")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED", "左手ツールチップのマウススクロール速度")
 ZO_CreateStringId("SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP", "トリガーを押したときのメニュースキップ速度を変更します。")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP", "トリガーごとのスキップ行数")
@@ -362,6 +397,10 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "バックバーの外観")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "バックバーの不透明度")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP", "バックバーアイコンの暗さを調整します。低い値ほど目立たなくなります。")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "スキルバー設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "オーブ設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "EXPバー設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_RESET", "キャストバー設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "マウントバー設定をリセット")
 
 -- XP Bar Settings
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_ENABLED", "経験値バーを有効化")
@@ -396,6 +435,21 @@ ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT", "アイテムアイコン - �
 ZO_CreateStringId("SI_BETTERUI_ICON_ENCHANTMENT_TOOLTIP", "付魔されたアイテムの後にアイコンを表示します。")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR", "アイテムアイコン - セット装備")
 ZO_CreateStringId("SI_BETTERUI_ICON_SET_GEAR_TOOLTIP", "セット装備の後にアイコンを表示します。")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT", "アイテムアイコン - 研究可能な特性")
+ZO_CreateStringId("SI_BETTERUI_ICON_RESEARCHABLE_TRAIT_TOOLTIP",
+    "研究可能な特性を持つアイテムの後にアイコンを表示します。")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE", "アイテムアイコン - 未習得レシピ")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_RECIPE_TOOLTIP",
+    "まだ習得していないレシピアイテムの後にアイコンを表示します。")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK", "アイテムアイコン - 未習得の本")
+ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP",
+    "まだ習得していない本や伝承書の後にアイコンを表示します。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "アイテムアイコンのカスタマイズ")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "アイテム名の横に表示する状態アイコンを設定します。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
+    "インベントリと銀行リストに表示するアイテム状態アイコンを選択します。アイコンは名前列のフォントサイズに合わせて拡大縮小され、個別に切り替えできます。")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "アイテムアイコン設定をリセット")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "アイテムアイコン設定をデフォルト値にリセットします。")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "クイック破棄機能を有効化")
@@ -411,7 +465,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "イベントチケ
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "イベントチケットの位置")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "リソースオーブフレーム")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "一般")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFリソースオーブフレーム|rを有効化")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "リソースオーブフレームモジュールを有効にします。")
 
@@ -485,8 +539,7 @@ ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "引き出す数量は�
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "すべて引き出す")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "すべて預け入れる")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "「価値」をマーケット価格に置換")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
-    "アイテムの「価値」をMM、ATT、またはTTCの平均価格に置き換えます")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "インベントリと銀行の「価値」列を、利用可能な場合は MM・ATT・TTC の相場価格に置き換えます。")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "預入額を選択してください")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "引き出し額を選択してください")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "ソート")
@@ -514,3 +567,5 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "収納する数量を選択")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "取り出す数量を選択")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "スタックを収納")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "スタックを取り出す")
+
+

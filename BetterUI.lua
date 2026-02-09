@@ -105,36 +105,48 @@ function BETTERUI.InitModuleOptions()
 			width = "full",
 			requiresReload = true,
 		},
+	}
+
+	local function NormalizeModuleToggleSortName(name)
+		if type(name) ~= "string" then
+			return ""
+		end
+
+		local normalized = name
+		normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
+		normalized = normalized:gsub("|r", "")
+		normalized = normalized:gsub("|t[^|]+|t", "")
+		normalized = normalized:gsub("^%s+", "")
+		normalized = normalized:gsub("%s+$", "")
+
+		-- Sort by the feature wording after "Enable ..." for consistency.
+		normalized = normalized:gsub("^Enable%s+", "")
+		normalized = normalized:gsub("^Activer%s+", "")
+		normalized = normalized:gsub("^Activar%s+", "")
+		normalized = normalized:gsub("^Aktivieren%s+", "")
+		normalized = normalized:gsub("^Включить%s+", "")
+		normalized = normalized:gsub("^启用", "")
+		normalized = normalized:gsub("^有効にする%s*", "")
+
+		if zo_strlower then
+			return zo_strlower(normalized)
+		end
+		return string.lower(normalized)
+	end
+
+	-- Keep "Use Global Settings" first, then sort module toggles by displayed label content.
+	local moduleToggleOptions = {
 		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
-			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["GeneralInterface"].m_enabled end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["GeneralInterface"].m_enabled = value
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_INVENTORY),
-			tooltip = GetString(SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Inventory"].m_enabled end,
-			setFunc = function(value)
-				BETTERUI.Settings.Modules["Inventory"].m_enabled = value
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
+			sortKey = "Banking",
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_BANKING),
 			tooltip = GetString(SI_BETTERUI_ENABLE_BANKING_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Banking"].m_enabled end,
+			getFunc = function()
+				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+				return modules and modules["Banking"] and modules["Banking"].m_enabled or false
+			end,
 			setFunc = function(value)
+				BETTERUI.Settings.Modules["Banking"] = BETTERUI.Settings.Modules["Banking"] or {}
 				BETTERUI.Settings.Modules["Banking"].m_enabled = value
 				BETTERUI.UpdateCIMState()
 			end,
@@ -142,6 +154,41 @@ function BETTERUI.InitModuleOptions()
 			requiresReload = true,
 		},
 		{
+			sortKey = "General Interface",
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
+			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
+			getFunc = function()
+				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+				return modules and modules["GeneralInterface"] and modules["GeneralInterface"].m_enabled or false
+			end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["GeneralInterface"] = BETTERUI.Settings.Modules["GeneralInterface"] or {}
+				BETTERUI.Settings.Modules["GeneralInterface"].m_enabled = value
+				BETTERUI.UpdateCIMState()
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			sortKey = "Inventory",
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_INVENTORY),
+			tooltip = GetString(SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP),
+			getFunc = function()
+				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+				return modules and modules["Inventory"] and modules["Inventory"].m_enabled or false
+			end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Inventory"] = BETTERUI.Settings.Modules["Inventory"] or {}
+				BETTERUI.Settings.Modules["Inventory"].m_enabled = value
+				BETTERUI.UpdateCIMState()
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			sortKey = "Resource Orb Frames",
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_ORBS),
 			tooltip = GetString(SI_BETTERUI_ENABLE_ORBS_TOOLTIP),
@@ -156,17 +203,41 @@ function BETTERUI.InitModuleOptions()
 			requiresReload = true,
 		},
 		{
+			sortKey = "Writs",
 			type = "checkbox",
 			name = GetString(SI_BETTERUI_ENABLE_WRITS),
 			tooltip = GetString(SI_BETTERUI_ENABLE_WRITS_TOOLTIP),
-			getFunc = function() return BETTERUI.Settings.Modules["Writs"].m_enabled end,
-			setFunc = function(value) BETTERUI.Settings.Modules["Writs"].m_enabled = value end,
+			getFunc = function()
+				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+				return modules and modules["Writs"] and modules["Writs"].m_enabled or false
+			end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Writs"] = BETTERUI.Settings.Modules["Writs"] or {}
+				BETTERUI.Settings.Modules["Writs"].m_enabled = value
+			end,
 			width = "full",
 			requiresReload = true,
 		},
-		-- NOTE: CIM toggle removed in v2.93 - CIM is now auto-managed internally
-		-- based on dependent modules (Inventory, Banking, GeneralInterface)
 	}
+
+	for _, control in ipairs(moduleToggleOptions) do
+		control.sortKey = NormalizeModuleToggleSortName(control.name)
+	end
+
+	table.sort(moduleToggleOptions, function(left, right)
+		if left.sortKey == right.sortKey then
+			return tostring(left.name) < tostring(right.name)
+		end
+		return left.sortKey < right.sortKey
+	end)
+
+	for _, control in ipairs(moduleToggleOptions) do
+		control.sortKey = nil
+		table.insert(optionsTable, control)
+	end
+
+	-- NOTE: CIM toggle removed in v2.93 - CIM is now auto-managed internally
+	-- based on dependent modules (Inventory, Banking, GeneralInterface)
 
 	-- Developer-only feature flag controls (hidden for normal users)
 	local showDeveloperSettings = BETTERUI.CIM

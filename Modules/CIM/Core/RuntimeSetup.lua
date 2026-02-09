@@ -223,6 +223,33 @@ local function RunSettingsMigrations(settings)
             modSettings.enabled = nil
         end
     end
+
+    -- Migration 3: Move market-price row toggle from Inventory -> GeneralInterface
+    do
+        local generalInterfaceSettings = settings.Modules["GeneralInterface"]
+        local inventorySettings = settings.Modules["Inventory"]
+
+        if type(generalInterfaceSettings) == "table" and generalInterfaceSettings.showMarketPrice == nil then
+            if type(inventorySettings) == "table" and inventorySettings.showMarketPrice ~= nil then
+                generalInterfaceSettings.showMarketPrice = inventorySettings.showMarketPrice
+            else
+                generalInterfaceSettings.showMarketPrice = true
+            end
+        end
+
+        -- Remove legacy key after migration to avoid split ownership.
+        if type(inventorySettings) == "table" then
+            inventorySettings.showMarketPrice = nil
+        end
+    end
+
+    -- Migration 4: Ensure market source priority setting exists (new configurable order control)
+    do
+        local generalInterfaceSettings = settings.Modules["GeneralInterface"]
+        if type(generalInterfaceSettings) == "table" and generalInterfaceSettings.marketPricePriority == nil then
+            generalInterfaceSettings.marketPricePriority = "mm_att_ttc"
+        end
+    end
 end
 
 -- ============================================================================
