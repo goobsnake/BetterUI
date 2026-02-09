@@ -56,7 +56,14 @@ function Mixin.EnterSelectionMode(self)
 
     -- Auto-select the currently focused item
     local list = self._msConfig.getList(self)
-    local target = list and list.selectedData
+    local target = nil
+    if list then
+        if list.GetSelectedData then
+            target = list:GetSelectedData()
+        else
+            target = list.selectedData
+        end
+    end
     if target then
         self.multiSelectManager:ToggleSelection(target)
     end

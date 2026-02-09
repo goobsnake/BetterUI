@@ -228,15 +228,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             name = GetString(SI_BETTERUI_MULTI_SELECT),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
-                -- Must have items and multi-select manager available
-                -- Hide when already in multi-select mode or batch processing
+                -- Must have items available.
+                -- Hide when already in multi-select mode or batch processing.
+                local managerActive = self.multiSelectManager and self.multiSelectManager:IsActive()
                 return self.list and not self.list:IsEmpty()
-                    and self.multiSelectManager ~= nil
-                    and not self.multiSelectManager:IsActive()
+                    and not managerActive
                     and not self:IsBatchProcessing()
             end,
             callback = function()
-                if self.multiSelectManager and not self.multiSelectManager:IsActive() then
+                if not self:IsBatchProcessing() and not self:IsInSelectionMode() then
                     self:EnterSelectionMode()
                 end
             end,

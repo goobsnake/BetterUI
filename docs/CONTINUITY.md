@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
 > **Last Updated:** 2026-02-09
-> **Provenance:** [TOOL] Wrap-up gate execution confirmed sr-review + verify-integrity pass for settings architecture/defaults hardening and nil-guard safety updates
+> **Provenance:** [TOOL] Commit-level review + remediation completed for Banking multi-select (`9948ca645643407d30acb1e3fe689ef83a2d4961`, `c38d0e6e6f41d8766068df783da112b85d685c19`)
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,19 +28,19 @@
 ## State
 
 **Done (recent ≤7):**
+- [2026-02-09] [CODE] Banking multi-select review/fix pass completed: fixed unreachable entry path in `Modules/Banking/Keybinds/KeybindManager.lua` (Y-hold now works even before manager init), hardened `Modules/CIM/Core/MultiSelectMixin.lua` target resolution (`GetSelectedData` fallback), and revalidated with `luac -p` + `lua tools/tests/run_all_tests.lua` (9/9 PASS)
 - [2026-02-09] [CODE] Added centralized settings metadata registry in `Modules/CIM/Core/SettingsFactory.lua` (schema includes label/tooltip/default/dependency/sortGroup/resetGroup) and replaced duplicated top-level submenu sorting helpers with shared utilities to reduce drift
 - [2026-02-09] [CODE] `IconSettingsFactory` now fully localized: removed remaining hardcoded English names/tooltips/submenu copy; wired icon labels/defaults through metadata registry and added localized keys across `lang/en/de/es/fr/jp/ru/zh.lua`
 - [2026-02-09] [CODE] General Interface `Market Price Integration` now includes configurable source order dropdown (`marketPricePriority`), with `MarketIntegration.lua` honoring selected provider order for `BETTERUI.GetMarketPrice`; defaults/migration added in `DefaultsRegistry` + `RuntimeSetup`
 - [2026-02-09] [CODE] Disabled integration controls now append explicit localized addon-missing reason text in tooltips (`SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP`) and TTC disabled rows now also render `OFF` when addon is unavailable
 - [2026-02-09] [CODE] Added user-facing feedback when currency visibility cap blocks enable action (`SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING`) via chat warning + negative click sound in `CurrencySettings.lua`
 - [2026-02-09] [CODE] Layout/label follow-up: Inventory+Banking font reset labels now use requested wording (`Reset Name Font Settings`, `Reset Other Font Settings`), Currency submenu now opts out of recursive alphabetical sorting to preserve paired visibility/order row layout, Currency reset text shortened to `Reset Currency Settings`, Resource Orb Frames offset label updated to `Offset (Up/Down)`, and settings sorter now supports `sortAlwaysLast` (applied to `Use Custom Textures` so it remains bottom in General)
-- [2026-02-09] [CODE] Resource Orb Frames top-level `Reset General Settings` button now resets only General controls (`scale`, `offsetY`, `useCustomTextures`), no longer resetting orb/skill/text settings
 
 **Now:**
-- Wrap-up quality gates are complete: adhoc sr-review (all 5 reviewer lenses PASS) and verify-integrity checks (tests/debug scan/syntax) passed with no outstanding findings
+- Commit-scope Banking multi-select review is complete for `9948ca6` and `c38d0e6`; critical entry-path regression fixed, CIM extraction verified, and locale-key coverage validated across `lang/en,de,es,fr,jp,ru,zh.lua`
 
 **Next:**
-- User in-game verification pass for settings UX and reset/default parity (Nameplates, Inventory Currency, General Interface numeric editboxes, Resource Orb General defaults, and scene-gated reset stability)
+- In-game validation pass for Banking multi-select UX: Y-hold entry, A-toggle select/deselect, Y batch menu actions, back-to-exit behavior, and Withdraw/Deposit mode switch teardown while selections are active
 
 ---
 
@@ -61,11 +61,12 @@
 ## Working Set (≤12 paths)
 
 - `docs/CONTINUITY.md`
-- `Modules/CIM/Core/IconSettingsFactory.lua`
-- `Modules/Inventory/Settings/FontSettings.lua`
-- `Modules/CIM/Tooltips/Settings.lua`
-- `Modules/Banking/Settings/SettingsPanel.lua`
-- `Modules/CIM/Nameplates/Settings.lua`
+- `Modules/Banking/Keybinds/KeybindManager.lua`
+- `Modules/CIM/Core/MultiSelectMixin.lua`
+- `Modules/Banking/Core/BankingClass.lua`
+- `Modules/Banking/Core/MultiSelectActions.lua`
+- `Modules/Inventory/Core/InventoryClass.lua`
+- `BetterUI.txt`
 - `lang/*.lua`
 
 ---
@@ -74,6 +75,7 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-09 | [TOOL] | Commit review/repair pass for `9948ca645643407d30acb1e3fe689ef83a2d4961` + `c38d0e6e6f41d8766068df783da112b85d685c19`: identified unreachable Banking multi-select entry condition (`multiSelectManager ~= nil` before lazy init), fixed `UI_SHORTCUT_QUINARY` visibility/callback in `Modules/Banking/Keybinds/KeybindManager.lua`, hardened `Modules/CIM/Core/MultiSelectMixin.lua` to resolve selected target via `GetSelectedData()` fallback, verified syntax (`luac -p`) and unit tests (`lua tools/tests/run_all_tests.lua`, 9/9 PASS), and confirmed referenced `SI_BETTERUI_*` keys exist in all locale files |
 | 2026-02-09 | [TOOL] | Wrap-up workflow gate run: `git status --short` baseline + no temporary artifact files, adhoc sr-review-gate completed with PASS across Lua Architect/UI-UX/Code Quality/Sr Dev/QA perspectives, `lua tools/tests/run_all_tests.lua` passed (9/9), debug scan returned clean, Lua syntax validation passed for all changed `.lua` files, and localization key parity check across `lang/en,de,es,fr,jp,ru,zh.lua` reported no missing `SI_BETTERUI_*` keys |
 | 2026-02-09 | [CODE] | Comprehensive settings consistency pass for user-reported review findings: aligned reset/fresh-install defaults for Nameplates (including first-install state) and Resource Orb General (`scale=1.0`, `offsetY=0`), switched Inventory currency seeding to canonical `BETTERUI.CURRENCY_PRESETS.default`, hardened General Interface numeric editboxes with strict integer parsing (chat history/scroll speed/trigger speed), and applied nil-safe module-setting helpers across settings callbacks (`Tooltips`, `Nameplates`, `Inventory Font/Currency`, `ResourceOrbFrames`, `IconSettingsFactory`, `SettingsFactory`, `Master` toggles); validated with `luac -p` on all touched files |
 | 2026-02-09 | [CODE] | Fixed Resource Orb Frames General reset scope in `Modules/ResourceOrbFrames/Module.lua`: top-level reset button now only resets `scale`, `offsetY`, and `useCustomTextures`; removed unintended resets for cooldown/quickslot/orb ornament settings; validated with `luac -p` |
