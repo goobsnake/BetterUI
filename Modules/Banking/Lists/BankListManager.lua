@@ -345,8 +345,9 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
 
-    -- If we're in the middle of a tab selection animation, skip interim refreshes
+    -- If we're in the middle of a tab selection animation or batch processing, skip interim refreshes
     if self._suppressListUpdates then return end
+    if self.isBatchProcessing then return end
     -- Temporarily deactivate to avoid parametric scroll list update races while rebuilding
     local wasActive = self.list:IsActive()
     if wasActive then

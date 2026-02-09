@@ -488,40 +488,55 @@ function BETTERUI.Banking.Class:ExitSelectionMode()
     if not self.isInSelectionMode then return end
 
     self.isInSelectionMode = false
+    self.hadSelections = nil
+    self.selectedCount = 0
     if self.multiSelectManager then
         self.multiSelectManager:ExitSelectionMode()
     end
 
     -- Update keybinds to normal mode
-    if self.RefreshKeybinds then
-        self:RefreshKeybinds()
-    end
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.withdrawDepositKeybinds)
 
     -- Refresh list to remove selection visuals
-    if self.RefreshList then
-        self:RefreshList()
-    end
+    self:RefreshList()
 end
 
 --- Called when the selection count changes.
 --- @param selectedCount number The number of currently selected items
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
+    -- Update title to show selection count if in selection mode
     if self.isInSelectionMode and selectedCount > 0 then
         self.selectedCount = selectedCount
+        self.hadSelections = true -- Track that user has selected at least one item
     else
         self.selectedCount = 0
     end
 
-    -- Refresh keybinds to update Y-button batch actions visibility
-    if self.RefreshKeybinds then
-        self:RefreshKeybinds()
+    -- Auto-exit selection mode when last item is deselected
+    -- Only exit if items were previously selected (hadSelections prevents exit on initial entry
+    -- when MultiSelectManager fires callback(0) before the first ToggleSelection)
+    if self.isInSelectionMode and selectedCount == 0 and self.hadSelections then
+        self.hadSelections = nil
+        self:ExitSelectionMode()
+        return
     end
+
+    -- Refresh keybinds to update Y-button batch actions visibility
+    KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 end
 
 --- Gets whether selection mode is currently active.
 --- @return boolean isActive
 function BETTERUI.Banking.Class:IsInSelectionMode()
     return self.isInSelectionMode or false
+end
+
+--- Checks if batch processing is currently in progress.
+--- Used by refresh functions to skip updates during batch operations.
+--- @return boolean True if batch processing is active
+function BETTERUI.Banking.Class:IsBatchProcessing()
+    return self.isBatchProcessing == true
 end
 
 --- Performs batch withdraw on all selected items.

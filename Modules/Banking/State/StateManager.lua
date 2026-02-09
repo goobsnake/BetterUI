@@ -252,6 +252,12 @@ References: Called by "Y" Keybind (Secondary).
 param: toWithdraw (boolean) - True if switching to Withdraw mode, False for Deposit.
 ]]
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
+    -- Exit multi-select mode when switching between Withdraw/Deposit
+    -- Selections are mode-specific and should not carry over
+    if self.isInSelectionMode then
+        self:ExitSelectionMode()
+    end
+
     self:SaveListPosition()
 
     -- Capture the category KEY from CURRENT mode before switching

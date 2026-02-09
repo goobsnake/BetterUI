@@ -163,22 +163,38 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
             end
         },
-        -- Y-button Actions menu using CIM factory
-        BETTERUI.CIM.Keybinds.CreateActionsKeybind(
-            function()
-                self:SaveListPosition()
-                self:ShowActions()
+        -- Y-button Actions menu (or Batch Actions in multi-select mode)
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = function()
+                -- Always show "Actions" label - selection count is on A button
+                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
-            function()
-                -- Hide Y-button for currency rows - they don't have valid inventory slots
+            keybind = "UI_SHORTCUT_TERTIARY",
+            visible = function()
+                -- In multi-select mode, show when items are selected
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    return self.multiSelectManager:HasSelections()
+                end
+                -- Normal mode: hide for currency rows
                 local selectedData = self:GetList() and self:GetList().selectedData
                 if not selectedData then return false end
                 if ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
                     return false
                 end
                 return self.selectedItemUniqueId ~= nil or selectedData ~= nil
-            end
-        ),
+            end,
+            callback = function()
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    -- Show batch actions dialog in multi-select mode
+                    self:ShowBatchActionsMenu()
+                else
+                    -- Normal Y menu
+                    self:SaveListPosition()
+                    self:ShowActions()
+                end
+            end,
+        },
         -- L-Stick Stack All using custom logic for dual-bank stacking
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -213,9 +229,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 -- Must have items and multi-select manager available
+                -- Hide when already in multi-select mode or batch processing
                 return self.list and not self.list:IsEmpty()
                     and self.multiSelectManager ~= nil
                     and not self.multiSelectManager:IsActive()
+                    and not self:IsBatchProcessing()
             end,
             callback = function()
                 if self.multiSelectManager and not self.multiSelectManager:IsActive() then
@@ -228,12 +246,42 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
             name = function()
+                -- In multi-select mode, show "Deselect" or "Select (count)"
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local target = self.list and self.list:GetSelectedData()
+                    -- Skip currency rows
+                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                        return ""
+                    end
+                    if target and self.multiSelectManager:IsSelected(target) then
+                        return GetString(SI_BETTERUI_DESELECT_ITEM)
+                    else
+                        local count = self.multiSelectManager:GetSelectedCount()
+                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                    end
+                end
+
                 local n = (self.currentMode == LIST_WITHDRAW) and GetString(SI_BETTERUI_BANKING_WITHDRAW) or
                     GetString(SI_BETTERUI_BANKING_DEPOSIT)
                 return n or ""
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
+                -- In multi-select mode, toggle selection
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local target = self.list and self.list:GetSelectedData()
+                    -- Skip currency rows
+                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                        return
+                    end
+                    if target then
+                        self.multiSelectManager:ToggleSelection(target)
+                        self:RefreshList()
+                    end
+                    return
+                end
+
+                -- Normal mode: withdraw/deposit
                 self:SaveListPosition()
                 local selectedData = self.list and self.list:GetSelectedData()
                 if selectedData then
@@ -249,10 +297,23 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
             end,
             visible = function()
+                -- In multi-select mode, hide for currency rows
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local target = self.list and self.list:GetSelectedData()
+                    if target and ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                        return false
+                    end
+                    return target ~= nil
+                end
                 return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and
                     self.list:GetSelectedData().bagId ~= nil
             end,
             enabled = function()
+                -- In multi-select mode, always enabled for valid targets
+                if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    local target = self.list and self.list:GetSelectedData()
+                    return target ~= nil and not ZO_GamepadBanking.IsEntryDataCurrencyRelated(target)
+                end
                 return self.list and not self.list:IsEmpty() and self.list:GetSelectedData() ~= nil and
                     self.list:GetSelectedData().bagId ~= nil
             end,
@@ -329,7 +390,18 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     }
 
 
-    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.coreKeybinds, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
+    -- Custom Back button: Exit multi-select mode first, then normal back behavior
+    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.coreKeybinds, GAME_NAVIGATION_TYPE_BUTTON,
+        function()
+            -- If in multi-select mode, exit that instead of closing the scene
+            if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                self:ExitSelectionMode()
+                return
+            end
+            -- Normal back: cancel withdraw/deposit or close scene
+            self:CancelWithdrawDeposit(self.list)
+        end
+    ) -- "Back"
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON,
         function() self:HideSelector() end)
 
