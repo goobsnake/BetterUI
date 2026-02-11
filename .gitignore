@@ -3,7 +3,6 @@
 /.images/
 /.vscode/
 /.venv/
-/source/
 
 # Ignore the entire esoui directory by default
 /esoui/
