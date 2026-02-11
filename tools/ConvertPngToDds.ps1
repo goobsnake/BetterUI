@@ -25,7 +25,8 @@ If set, applies texconv `-pow2` resize. ESO textures should use power-of-two dim
 Optional explicit path to `texconv.exe`.
 
 .PARAMETER Profile
-Optional named profile. `ResourceOrbFrames` enforces required filenames and exact source dimensions.
+Optional named profile. `ResourceOrbFrames` enforces required filenames with 1024x1024 source PNGs,
+automatically resizing each to the target dimensions defined in Get-ResourceOrbFramesProfileSpec.
 
 .EXAMPLE
 .\ConvertPngToDds.ps1 -InputPath '.\Modules\CIM\Textures' -Format DXT5 -ResizePow2
@@ -53,7 +54,7 @@ param(
     [Parameter(HelpMessage = 'Resize to nearest power-of-2 dimensions')]
     [switch]$ResizePow2,
 
-    [Parameter(HelpMessage = 'Optional conversion profile: ResourceOrbFrames enforces required names and exact dimensions')]
+    [Parameter(HelpMessage = 'Optional conversion profile: ResourceOrbFrames enforces 1024x1024 sources and resizes to per-texture target dimensions')]
     [ValidateSet('None', 'ResourceOrbFrames')]
     [string]$Profile = 'None',
 
@@ -109,18 +110,62 @@ function Get-FormatArgs {
 }
 
 function Get-ResourceOrbFramesProfileSpec {
+    # Source PNGs are 1024x1024. Each texture is resized to its target dimensions below.
     return [ordered]@{
-        'Bar'              = @{ Width = 1024; Height = 512 }
-        'Health'           = @{ Width = 512; Height = 512 }
-        'MagStam'          = @{ Width = 512; Height = 512 }
-        'OrbBorder'        = @{ Width = 512; Height = 512 }
-        'OrbFill'          = @{ Width = 256; Height = 256 }
-        'OrbOverlay_Shield' = @{ Width = 256; Height = 256 }
-        'OrbSplitter'      = @{ Width = 512; Height = 512 }
-        'OrnamentLeft'     = @{ Width = 512; Height = 512 }
-        'OrnamentRight'    = @{ Width = 512; Height = 512 }
-        'Shield'           = @{ Width = 64; Height = 64 }
+        'Bar'               = @{ Width = 512; Height = 512 }
+        'CastBar'           = @{ Width = 512; Height = 512 }
+        'MountBar'          = @{ Width = 512; Height = 512 }
+        'OrbBorder'         = @{ Width = 512; Height = 512 }
+        'OrbFill'           = @{ Width = 256; Height = 256 }
+        'OrbOverlay_Shield' = @{ Width = 512; Height = 512 }
+        'OrbSplitter'       = @{ Width = 512; Height = 512 }
+        'OrnamentLeft'      = @{ Width = 512; Height = 512 }
+        'OrnamentRight'     = @{ Width = 512; Height = 512 }
+        'Shield'            = @{ Width = 512; Height = 512 }
     }
+}
+
+function Test-IsPowerOfTwo {
+    param([int]$Value)
+
+    if ($Value -lt 1) {
+        return $false
+    }
+
+    return (($Value -band ($Value - 1)) -eq 0)
+}
+
+function Test-IsBlockCompatibleDimension {
+    param([int]$Value)
+
+    return ($Value -gt 0) -and (($Value % 4) -eq 0)
+}
+
+function Select-PreferredProfileCandidate {
+    param(
+        [object[]]$Candidates,
+        [string]$LogicalName,
+        [string]$Label
+    )
+
+    if (-not $Candidates -or $Candidates.Count -eq 0) {
+        return $null
+    }
+
+    if ($Candidates.Count -eq 1) {
+        return $Candidates[0]
+    }
+
+    $sorted = @($Candidates | Sort-Object @{
+            Expression = { $_.FullName.Length }
+        }, @{
+            Expression = { $_.FullName.ToLowerInvariant() }
+        })
+
+    $selected = $sorted[0]
+    $ignoredCount = $sorted.Count - 1
+    Write-Host "Profile warning: found $($sorted.Count) $Label sources for '$LogicalName'. Using '$($selected.FullName)' and ignoring $ignoredCount duplicate(s)." -ForegroundColor DarkYellow
+    return $selected
 }
 
 function Get-PngDimensions {
@@ -144,9 +189,9 @@ function Get-PngDimensions {
     [array]::Reverse($heightBytes)
 
     return @{
-        Width = [int][BitConverter]::ToUInt32($widthBytes, 0)
+        Width  = [int][BitConverter]::ToUInt32($widthBytes, 0)
         Height = [int][BitConverter]::ToUInt32($heightBytes, 0)
-        Type = 'PNG'
+        Type   = 'PNG'
     }
 }
 
@@ -164,9 +209,9 @@ function Get-DdsDimensions {
     }
 
     return @{
-        Width = [int][BitConverter]::ToUInt32($bytes, 16)
+        Width  = [int][BitConverter]::ToUInt32($bytes, 16)
         Height = [int][BitConverter]::ToUInt32($bytes, 12)
-        Type = 'DDS'
+        Type   = 'DDS'
     }
 }
 
@@ -191,6 +236,7 @@ function Resolve-ResourceOrbFramesProfileFiles {
         [hashtable]$ProfileSpec
     )
 
+    $baseSize = 1024
     $allFiles = Get-ChildItem -LiteralPath $InputDirectory -Include '*.png', '*.dds' -Recurse -File
     if ($allFiles.Count -eq 0) {
         Write-Host 'ERROR: No PNG/DDS files found for ResourceOrbFrames profile.' -ForegroundColor Red
@@ -201,7 +247,7 @@ function Resolve-ResourceOrbFramesProfileFiles {
     $errors = @()
 
     foreach ($logicalName in $ProfileSpec.Keys) {
-        $expected = $ProfileSpec[$logicalName]
+        $target = $ProfileSpec[$logicalName]
         $candidates = @($allFiles | Where-Object { $_.BaseName -ieq $logicalName })
 
         if ($candidates.Count -eq 0) {
@@ -212,24 +258,18 @@ function Resolve-ResourceOrbFramesProfileFiles {
         $pngCandidates = @($candidates | Where-Object { $_.Extension -ieq '.png' })
         $ddsCandidates = @($candidates | Where-Object { $_.Extension -ieq '.dds' })
 
-        if ($pngCandidates.Count -gt 1) {
-            $errors += "Found multiple PNG sources for '$logicalName'. Keep only one."
-            continue
-        }
-        if ($ddsCandidates.Count -gt 1) {
-            $errors += "Found multiple DDS sources for '$logicalName'. Keep only one."
-            continue
-        }
-
         $selected = $null
-        if ($pngCandidates.Count -eq 1) {
-            $selected = $pngCandidates[0]
-            if ($ddsCandidates.Count -eq 1) {
+        $selectedPng = Select-PreferredProfileCandidate -Candidates $pngCandidates -LogicalName $logicalName -Label 'PNG'
+        $selectedDds = Select-PreferredProfileCandidate -Candidates $ddsCandidates -LogicalName $logicalName -Label 'DDS'
+
+        if ($selectedPng) {
+            $selected = $selectedPng
+            if ($selectedDds) {
                 Write-Host "Profile note: using PNG for '$logicalName' and ignoring DDS source." -ForegroundColor DarkYellow
             }
         }
-        elseif ($ddsCandidates.Count -eq 1) {
-            $selected = $ddsCandidates[0]
+        elseif ($selectedDds) {
+            $selected = $selectedDds
         }
 
         if (-not $selected) {
@@ -243,16 +283,20 @@ function Resolve-ResourceOrbFramesProfileFiles {
             continue
         }
 
-        if (($dims.Width -ne $expected.Width) -or ($dims.Height -ne $expected.Height)) {
-            $errors += "$logicalName size mismatch: got $($dims.Width)x$($dims.Height), expected $($expected.Width)x$($expected.Height)."
+        if (($dims.Width -ne $baseSize) -or ($dims.Height -ne $baseSize)) {
+            $errors += "$logicalName source size mismatch: got $($dims.Width)x$($dims.Height), expected ${baseSize}x${baseSize}."
             continue
         }
 
+        Write-Host "  OK: $logicalName ${baseSize}x${baseSize} -> $($target.Width)x$($target.Height)" -ForegroundColor Gray
+
         $resolved += [PSCustomObject]@{
-            LogicalName = $logicalName
-            File = $selected
-            Width = $dims.Width
-            Height = $dims.Height
+            LogicalName  = $logicalName
+            File         = $selected
+            Width        = $dims.Width
+            Height       = $dims.Height
+            TargetWidth  = $target.Width
+            TargetHeight = $target.Height
         }
     }
 
@@ -291,7 +335,7 @@ function Validate-ProfileOutputDimensions {
     }
 
     if (($dims.Width -ne $expected.Width) -or ($dims.Height -ne $expected.Height)) {
-        Write-Host "  ERROR: Output size mismatch for '$LogicalName': got $($dims.Width)x$($dims.Height), expected $($expected.Width)x$($expected.Height)." -ForegroundColor Red
+        Write-Host "  ERROR: Output size for '$LogicalName' is $($dims.Width)x$($dims.Height); expected $($expected.Width)x$($expected.Height)." -ForegroundColor Red
         return $false
     }
 
@@ -305,7 +349,9 @@ function Convert-TextureToDds {
         [string]$TexconvExe,
         [string]$SelectedFormat,
         [bool]$DisableMipmaps,
-        [bool]$Pow2Resize
+        [bool]$Pow2Resize,
+        [int]$TargetWidth = 0,
+        [int]$TargetHeight = 0
     )
 
     $fileName = [System.IO.Path]::GetFileNameWithoutExtension($InputFile)
@@ -322,7 +368,12 @@ function Convert-TextureToDds {
         $args += '-m', '1'
     }
 
-    if ($Pow2Resize) {
+    if ($TargetWidth -gt 0 -and $TargetHeight -gt 0) {
+        $args += '-w', $TargetWidth.ToString()
+        $args += '-h', $TargetHeight.ToString()
+        Write-Host "  Resizing: 1024x1024 -> ${TargetWidth}x${TargetHeight}" -ForegroundColor Gray
+    }
+    elseif ($Pow2Resize) {
         $args += '-pow2'
         Write-Host '  Resizing to power-of-2 dimensions' -ForegroundColor Gray
     }
@@ -386,6 +437,7 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 
 $files = @()
 $profileSpec = $null
+$profileResolvedByName = @{}
 
 if ($Profile -eq 'ResourceOrbFrames') {
     if (-not (Test-Path -LiteralPath $InputPath -PathType Container)) {
@@ -398,7 +450,7 @@ if ($Profile -eq 'ResourceOrbFrames') {
     }
 
     $profileSpec = Get-ResourceOrbFramesProfileSpec
-    Write-Host "Profile: ResourceOrbFrames ($($profileSpec.Count) required files)" -ForegroundColor Cyan
+    Write-Host "Profile: ResourceOrbFrames ($($profileSpec.Count) required files; 1024x1024 base -> per-texture target resize)" -ForegroundColor Cyan
 
     $resolved = Resolve-ResourceOrbFramesProfileFiles -InputDirectory $InputPath -ProfileSpec $profileSpec
     if (-not $resolved) {
@@ -407,7 +459,7 @@ if ($Profile -eq 'ResourceOrbFrames') {
     }
 
     foreach ($item in $resolved) {
-        Write-Host "  OK: $($item.LogicalName) -> $($item.Width)x$($item.Height) from $($item.File.Name)" -ForegroundColor Gray
+        $profileResolvedByName[$item.LogicalName] = $item
     }
 
     $files = @($resolved | ForEach-Object { $_.File })
@@ -431,18 +483,39 @@ $successCount = 0
 $failCount = 0
 
 foreach ($file in $files) {
+    $targetW = 0
+    $targetH = 0
+    if ($Profile -eq 'ResourceOrbFrames') {
+        $logicalName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
+        $sourceInfo = $profileResolvedByName[$logicalName]
+        if ($sourceInfo) {
+            $targetW = $sourceInfo.TargetWidth
+            $targetH = $sourceInfo.TargetHeight
+        }
+    }
+
     $result = Convert-TextureToDds `
         -InputFile $file.FullName `
         -OutputDirectory $OutputDir `
         -TexconvExe $texconv `
         -SelectedFormat $Format `
         -DisableMipmaps $SkipMipmaps `
-        -Pow2Resize $ResizePow2
+        -Pow2Resize $ResizePow2 `
+        -TargetWidth $targetW `
+        -TargetHeight $targetH
 
     if ($result -and $Profile -eq 'ResourceOrbFrames') {
-        $logicalName = [System.IO.Path]::GetFileNameWithoutExtension($file.Name)
         $outputFile = Join-Path $OutputDir "$logicalName.dds"
-        $result = Validate-ProfileOutputDimensions -OutputFile $outputFile -LogicalName $logicalName -ProfileSpec $profileSpec
+        if (-not $sourceInfo) {
+            Write-Host "  ERROR: Missing resolved profile metadata for '$logicalName'." -ForegroundColor Red
+            $result = $false
+        }
+        else {
+            $result = Validate-ProfileOutputDimensions `
+                -OutputFile $outputFile `
+                -LogicalName $logicalName `
+                -ProfileSpec $profileSpec
+        }
     }
 
     if ($result) {
