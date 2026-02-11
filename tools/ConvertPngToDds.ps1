@@ -116,7 +116,7 @@ function Get-ResourceOrbFramesProfileSpec {
         'CastBar'           = @{ Width = 512; Height = 512 }
         'MountBar'          = @{ Width = 512; Height = 512 }
         'OrbBorder'         = @{ Width = 512; Height = 512 }
-        'OrbFill'           = @{ Width = 256; Height = 256 }
+        'OrbFill'           = @{ Width = 512; Height = 512 }
         'OrbOverlay_Shield' = @{ Width = 512; Height = 512 }
         'OrbSplitter'       = @{ Width = 512; Height = 512 }
         'OrnamentLeft'      = @{ Width = 512; Height = 512 }

@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/OrbBars.lua
 Purpose: Implements rectangular bar frames (XP, Cast, Mount Stamina).
          Contains BetterUIBarFrame and its subclasses.
-Last Modified: 2026-02-08
+Last Modified: 2026-02-11
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -41,9 +41,12 @@ function BetterUIBarFrame:New(control)
     return obj
 end
 
-function BetterUIBarFrame:Initialize(name, parent)
+function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, backdropTextureBounds, fillRegion)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
+    self.backdropTextureFile = backdropTextureFile or "Bar.dds"
+    self.backdropTextureBounds = backdropTextureBounds
+    self.fillRegion = fillRegion
 
     local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
     fill:SetTexture(BETTERUI_BAR_FILL_TEXTURE or "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds")
@@ -51,7 +54,7 @@ function BetterUIBarFrame:Initialize(name, parent)
     self.fill = fill
 
     local backdrop = WINDOW_MANAGER:CreateControl(name .. "Backdrop", control, CT_TEXTURE)
-    backdrop:SetTexture(ResolveTexturePath("Bar.dds"))
+    backdrop:SetTexture(ResolveTexturePath(self.backdropTextureFile))
     backdrop:SetAnchor(CENTER, control, CENTER, 0, 0)
     self.backdrop = backdrop
 
@@ -70,23 +73,70 @@ function BetterUIBarFrame:SetColor(r, g, b, a)
     if self.fill then self.fill:SetColor(r, g, b, a) end
 end
 
+local function IsValidRegion(region)
+    return type(region) == "table"
+        and type(region.left) == "number"
+        and type(region.right) == "number"
+        and type(region.top) == "number"
+        and type(region.bottom) == "number"
+end
+
+function BetterUIBarFrame:GetLabelAnchorOffsets(barWidth, barHeight, extraOffsetX, extraOffsetY)
+    local offsetX = extraOffsetX or 0
+    local offsetY = extraOffsetY or 0
+
+    if IsValidRegion(self.fillRegion) then
+        local regionCenterX = (self.fillRegion.left + self.fillRegion.right) * 0.5
+        local regionCenterY = (self.fillRegion.top + self.fillRegion.bottom) * 0.5
+        offsetX = offsetX + ((regionCenterX - 0.5) * barWidth)
+        offsetY = offsetY + ((regionCenterY - 0.5) * barHeight)
+    end
+
+    return offsetX, offsetY
+end
+
 function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
     if not self.control or self.control:IsHidden() then return end
 
     if self.backdrop then
         -- Keep backdrop texture in sync with live "Use Custom Textures" toggles.
-        self.backdrop:SetTexture(ResolveTexturePath("Bar.dds"))
+        self.backdrop:SetTexture(ResolveTexturePath(self.backdropTextureFile))
         self.backdrop:SetDimensions(barWidth, barHeight)
+        if IsValidRegion(self.backdropTextureBounds) then
+            self.backdrop:SetTextureCoords(
+                self.backdropTextureBounds.left,
+                self.backdropTextureBounds.right,
+                self.backdropTextureBounds.top,
+                self.backdropTextureBounds.bottom)
+        else
+            self.backdrop:SetTextureCoords(0, 1, 0, 1)
+        end
     end
 
     if self.fill and max > 0 then
         local percent = math.min(1, math.max(0, current / max))
-        local fillMaxWidth = barWidth - (2 * insetX)
-        local fillHeight = barHeight - (2 * insetY)
+        local fillX, fillY
+        local fillMaxWidth, fillHeight
+
+        if IsValidRegion(self.fillRegion) then
+            local left = barWidth * self.fillRegion.left
+            local right = barWidth * self.fillRegion.right
+            local top = barHeight * self.fillRegion.top
+            local bottom = barHeight * self.fillRegion.bottom
+            fillX = left
+            fillY = top
+            fillMaxWidth = math.max(1, right - left)
+            fillHeight = math.max(1, bottom - top)
+            self.fill:ClearAnchors()
+            self.fill:SetAnchor(TOPLEFT, self.control, TOPLEFT, fillX, fillY)
+        else
+            fillMaxWidth = barWidth - (2 * insetX)
+            fillHeight = barHeight - (2 * insetY)
+            self.fill:ClearAnchors()
+            self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
+        end
 
         self.fill:SetDimensions(fillMaxWidth * percent, fillHeight)
-        self.fill:ClearAnchors()
-        self.fill:SetAnchor(LEFT, self.control, LEFT, insetX, 0)
         self.fill:SetTextureCoords(0, percent, 0, 1)
     end
 end
@@ -103,7 +153,8 @@ function CastBar:New(parent)
 end
 
 function CastBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent)
+    BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent, "CastBar.dds", BETTERUI_CAST_BAR_TEXTURE_BOUNDS,
+        BETTERUI_CAST_BAR_FILL_REGION)
     self.isCasting = false
     self.duration = 0
     self.startTime = 0
@@ -185,8 +236,11 @@ function CastBar:Update()
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", castTextSize))
     self.label:SetColor(unpack(castTextColor))
 
+    local castLabelOffsetX, castLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
+        BETTERUI_CAST_BAR_LABEL_OFFSET_X or 0,
+        BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
+    self.label:SetAnchor(CENTER, self.control, CENTER, castLabelOffsetX, castLabelOffsetY)
 
     if self.isCasting then
         self.control:SetHidden(false)
@@ -230,7 +284,8 @@ function ExperienceBar:New(parent)
 end
 
 function ExperienceBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent)
+    BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent, "Bar.dds", BETTERUI_XP_BAR_TEXTURE_BOUNDS,
+        BETTERUI_XP_BAR_FILL_REGION)
     self:SetColor(0.1, 0.85, 0.8, 1)
 end
 
@@ -271,9 +326,6 @@ function ExperienceBar:Update()
     self.label:SetColor(unpack(color))
     self.label:SetText(labelText)
 
-    self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)
-
     local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
     local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
     local w = BETTERUI_XP_BAR_WIDTH or 250
@@ -281,6 +333,13 @@ function ExperienceBar:Update()
 
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
+
+    local xpLabelOffsetX, xpLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
+        BETTERUI_XP_BAR_LABEL_OFFSET_X or 0,
+        BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)
+    self.label:ClearAnchors()
+    self.label:SetAnchor(CENTER, self.control, CENTER, xpLabelOffsetX, xpLabelOffsetY)
+
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
 
@@ -296,7 +355,8 @@ function MountStaminaBar:New(parent)
 end
 
 function MountStaminaBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent)
+    BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent, "MountBar.dds",
+        BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS, BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION)
     self:SetColor(0, 0.8, 0.2, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
 
@@ -353,8 +413,11 @@ function MountStaminaBar:Update()
     local color = settings.mountStaminaBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))
+    local mountLabelOffsetX, mountLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
+        BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X or 0,
+        BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
-    self.label:SetAnchor(CENTER, self.control, CENTER, 0, BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
+    self.label:SetAnchor(CENTER, self.control, CENTER, mountLabelOffsetX, mountLabelOffsetY)
 
     if IsMounted() then
         local current = self.currentValue or 0

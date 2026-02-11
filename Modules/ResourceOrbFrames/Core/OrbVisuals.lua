@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/OrbVisuals.lua
 Purpose: Handles the creation, layout, and maintenance of Resource Orbs (Health, Magicka, Stamina).
          Contains the BetterUIOrbBar and BetterUIShieldBar classes.
-Last Modified: 2026-01-23
+Last Modified: 2026-02-11
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -367,23 +367,72 @@ function Visuals.ApplyThemeVisuals(rootFrame)
 end
 
 -- Layout Calculation Helpers
+local function ScaleForBorder(value, borderSize, baseBorderSize)
+    if type(value) ~= "number" then
+        return 0
+    end
+    if type(baseBorderSize) ~= "number" or baseBorderSize <= 0 then
+        return value
+    end
+    return value * (borderSize / baseBorderSize)
+end
+
 local function CalculateBorderSizes(cfg, settings)
     local hideLeft = settings.hideLeftOrnament or false
     local hideRight = settings.hideRightOrnament or false
     local leftSize = cfg.orbs.left.borderSize
     local rightSize = cfg.orbs.right.borderSize
-    if hideLeft then leftSize = leftSize * (settings.leftOrbSizeScale or 1.0) end
-    if hideRight then rightSize = rightSize * (settings.rightOrbSizeScale or 1.0) end
-    return leftSize, rightSize
+    local leftVisibleScale = cfg.orbs.left.visibleScale or 1.0
+    local rightVisibleScale = cfg.orbs.right.visibleScale or 1.0
+
+    if hideLeft then
+        leftSize = leftSize * (settings.leftOrbSizeScale or 1.0)
+    else
+        leftSize = leftSize * leftVisibleScale
+    end
+
+    if hideRight then
+        rightSize = rightSize * (settings.rightOrbSizeScale or 1.0)
+    else
+        rightSize = rightSize * rightVisibleScale
+    end
+
+    return leftSize, rightSize, leftVisibleScale, rightVisibleScale
 end
 
 local function CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
+    local leftBaseSize = cfg.orbs.left.borderSize or leftBorderSize
+    local rightBaseSize = cfg.orbs.right.borderSize or rightBorderSize
+
     return {
-        health = { width = math.min(leftBorderSize * cfg.fills.health.scaleW, leftBorderSize), height = math.min(leftBorderSize * cfg.fills.health.scaleH, leftBorderSize), x = cfg.fills.health.x, y = cfg.fills.health.y },
-        shield = { width = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize), height = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize), x = cfg.fills.shield.x, y = cfg.fills.shield.y },
-        magicka = { width = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize), height = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize), x = cfg.fills.magicka.x, y = cfg.fills.magicka.y },
-        stamina = { width = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize), height = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize), x = cfg.fills.stamina.x, y = cfg.fills.stamina.y },
-        resource = { width = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize), height = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize) }
+        health = {
+            width = math.min(leftBorderSize * cfg.fills.health.scaleW, leftBorderSize),
+            height = math.min(leftBorderSize * cfg.fills.health.scaleH, leftBorderSize),
+            x = ScaleForBorder(cfg.fills.health.x, leftBorderSize, leftBaseSize),
+            y = ScaleForBorder(cfg.fills.health.y, leftBorderSize, leftBaseSize)
+        },
+        shield = {
+            width = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize),
+            height = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize),
+            x = ScaleForBorder(cfg.fills.shield.x, leftBorderSize, leftBaseSize),
+            y = ScaleForBorder(cfg.fills.shield.y, leftBorderSize, leftBaseSize)
+        },
+        magicka = {
+            width = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize),
+            x = ScaleForBorder(cfg.fills.magicka.x, rightBorderSize, rightBaseSize),
+            y = ScaleForBorder(cfg.fills.magicka.y, rightBorderSize, rightBaseSize)
+        },
+        stamina = {
+            width = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize),
+            x = ScaleForBorder(cfg.fills.stamina.x, rightBorderSize, rightBaseSize),
+            y = ScaleForBorder(cfg.fills.stamina.y, rightBorderSize, rightBaseSize)
+        },
+        resource = {
+            width = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize),
+            height = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize)
+        }
     }
 end
 
@@ -394,7 +443,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     local cfg = BETTERUI_ORB_FRAMES
     local settings = GetModuleSettings()
 
-    local leftBorderSize, rightBorderSize = CalculateBorderSizes(cfg, settings)
+    local leftBorderSize, rightBorderSize, leftVisibleScale, rightVisibleScale = CalculateBorderSizes(cfg, settings)
     local fillParams = CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
 
     local leftOrnament = FindControl(rootFrame, 'OrnamentLeft')
@@ -423,7 +472,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 (cfg.ornaments.left.y + cfg.orbs.left.y)
             leftOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif leftOrnament then
-            leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x, cfg.orbs.left.y)
+            leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x * leftVisibleScale,
+                cfg.orbs.left.y * leftVisibleScale)
         end
         leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
         local border = FindControl(leftOrb, 'Border')
@@ -440,7 +490,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 (cfg.ornaments.right.y + cfg.orbs.right.y)
             rightOrb:SetAnchor(CENTER, bgMiddle, CENTER, nx, ny)
         elseif rightOrnament then
-            rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x, cfg.orbs.right.y)
+            rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x * rightVisibleScale,
+                cfg.orbs.right.y * rightVisibleScale)
         end
         rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
 
@@ -454,8 +505,14 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 if b then b:SetDimensions(rightBorderSize, rightBorderSize) end
                 local div = FindControl(cont, 'Divide')
                 if div then
-                    div:SetDimensions(cfg.splitter.width, rightBorderSize * cfg.splitter.heightScale)
-                    div:SetAnchor(CENTER, cont, CENTER, cfg.splitter.x, cfg.splitter.y)
+                    local rightBaseSize = cfg.orbs.right.borderSize or rightBorderSize
+                    local splitterWidth = math.min(
+                        ScaleForBorder(cfg.splitter.width, rightBorderSize, rightBaseSize),
+                        rightBorderSize)
+                    local splitterOffsetX = ScaleForBorder(cfg.splitter.x, rightBorderSize, rightBaseSize)
+                    local splitterOffsetY = ScaleForBorder(cfg.splitter.y, rightBorderSize, rightBaseSize)
+                    div:SetDimensions(splitterWidth, rightBorderSize * cfg.splitter.heightScale)
+                    div:SetAnchor(CENTER, cont, CENTER, splitterOffsetX, splitterOffsetY)
                 end
             end
         end
@@ -485,7 +542,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             if pools[POWERTYPE_HEALTH].label then
                 pools[POWERTYPE_HEALTH].label:ClearAnchors()
                 pools[POWERTYPE_HEALTH].label:SetAnchor(CENTER, pools[POWERTYPE_HEALTH].control, CENTER,
-                    cfg.labels.health.x, cfg.labels.health.y)
+                    ScaleForBorder(cfg.labels.health.x, leftBorderSize, cfg.orbs.left.borderSize),
+                    ScaleForBorder(cfg.labels.health.y, leftBorderSize, cfg.orbs.left.borderSize))
             end
         end
         if pools[POWERTYPE_MAGICKA] then
@@ -496,7 +554,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             if pools[POWERTYPE_MAGICKA].label then
                 pools[POWERTYPE_MAGICKA].label:ClearAnchors()
                 pools[POWERTYPE_MAGICKA].label:SetAnchor(CENTER, pools[POWERTYPE_MAGICKA].control, CENTER,
-                    cfg.labels.magicka.x, cfg.labels.magicka.y)
+                    ScaleForBorder(cfg.labels.magicka.x, rightBorderSize, cfg.orbs.right.borderSize),
+                    ScaleForBorder(cfg.labels.magicka.y, rightBorderSize, cfg.orbs.right.borderSize))
             end
         end
         if pools[POWERTYPE_STAMINA] then
@@ -507,7 +566,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             if pools[POWERTYPE_STAMINA].label then
                 pools[POWERTYPE_STAMINA].label:ClearAnchors()
                 pools[POWERTYPE_STAMINA].label:SetAnchor(CENTER, pools[POWERTYPE_STAMINA].control, CENTER,
-                    cfg.labels.stamina.x, cfg.labels.stamina.y)
+                    ScaleForBorder(cfg.labels.stamina.x, rightBorderSize, cfg.orbs.right.borderSize),
+                    ScaleForBorder(cfg.labels.stamina.y, rightBorderSize, cfg.orbs.right.borderSize))
             end
         end
     end
@@ -519,7 +579,11 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             sOrb:SetDimensions(size, size)
             sOrb:SetAnchor(CENTER, leftOrb, CENTER, 0, 0)
             local lbl = FindControl(sOrb, 'Label')
-            if lbl then lbl:SetAnchor(CENTER, leftOrb, CENTER, cfg.labels.shield.x, cfg.labels.shield.y) end
+            if lbl then
+                lbl:SetAnchor(CENTER, leftOrb, CENTER,
+                    ScaleForBorder(cfg.labels.shield.x, leftBorderSize, cfg.orbs.left.borderSize),
+                    ScaleForBorder(cfg.labels.shield.y, leftBorderSize, cfg.orbs.left.borderSize))
+            end
         end
 
         shieldBar.fillWidth = fillParams.shield.width
