@@ -72,11 +72,11 @@ local function RefreshAllData()
     if m_shieldBar then
         local healthMax = m_pools[POWERTYPE_HEALTH] and m_pools[POWERTYPE_HEALTH]:GetMax() or 1
         m_shieldBar:SetRange(0, healthMax)
-        m_shieldBar:UpdateValue(0) -- Reset visual, will be updated by event if active
-        -- Ideally we check current shield value here?
-        local currentShield = GetUnitAttributeVisualizerEffectInfo(MSG_VISUAL_SHIELD) or 0
-        -- ESO API for shield is complex, usually event driven.
-        -- We'll rely on events.
+        if BETTERUI_SHIELD_DEBUG then
+            m_shieldBar:UpdateValue(math.floor(healthMax * 0.65)) -- Debug: show 65% shield for visual tuning
+        else
+            m_shieldBar:UpdateValue(0) -- Reset visual, will be updated by event if active
+        end
     end
 
     if m_foodTracker then m_foodTracker:Update() end

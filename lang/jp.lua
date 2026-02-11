@@ -342,6 +342,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "従来のタブバ
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "フォントスケール")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "文字サイズ")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "フォントカラー")
 
 -- General Interface Settings
@@ -527,9 +528,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "武器切り替えアニメーションを有効化")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "メインと予備の武器バー間で切り替える際にスライドアニメーションを再生します。")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "渦巻きエフェクトを有効化")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "オーブの充填テクスチャをゆっくり回転させ、穏やかな渦巻きエフェクトを作成します。")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "オーブアニメーションを有効化")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "オーブ要素に繊細なアニメーションを追加します。リソースの充填がゆるやかに揺れ、シールドオーバーレイがゆっくり回転します。")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "UI再読み込みが必要")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "クイックスロット数量を表示")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",

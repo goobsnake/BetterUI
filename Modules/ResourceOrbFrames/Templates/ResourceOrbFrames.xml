@@ -216,14 +216,6 @@ Purpose: Main TopLevelControl for the Resource Orb Frames feature.
                             <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
                                 offsetX="12" offsetY="25" />
                         </Label>
-                        <Texture name="$(parent)ShieldIcon"
-                            textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/Shield.dds"
-                            tier="HIGH"
-                            layer="1" level="21">
-                            <Dimensions x="32" y="32" />
-                            <Anchor point="RIGHT" relativeTo="$(parent)Label" relativePoint="LEFT"
-                                offsetX="3" offsetY="-3" />
-                        </Texture>
                     </Controls>
                 </Control>
 

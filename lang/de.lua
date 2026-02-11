@@ -373,6 +373,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Schriftskalierung")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Textgröße")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Schriftfarbe")
 
 -- General Interface Settings
@@ -573,9 +574,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Waffenwechsel-Animation aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "Spielt eine Gleitanimation beim Wechseln zwischen Haupt- und Ersatzwaffenleiste ab.")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Wirbeleffekt aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Dreht die Kugelfülltextur langsam und erzeugt einen sanften Wirbeleffekt.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Orb-Animationen aktivieren")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "F\195\188gt den Orb-Elementen dezente Animationen hinzu. Ressourcenf\195\188llungen schwingen sanft, und die Schild\195\188berlagerung dreht sich langsam.")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Erfordert UI-Neuladen")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Schnellzugriff-Anzahl anzeigen")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",

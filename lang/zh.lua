@@ -341,6 +341,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "使用现代旋转
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "字体缩放")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "文字大小")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "字体颜色")
 
 -- General Interface Settings
@@ -528,9 +529,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "启用武器切换动画")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "在主手和副手武器栏之间切换时播放滑动动画。")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "启用漩涡效果")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "缓慢旋转球体填充纹理，创建柔和的漩涡效果。")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "启用宝珠动画")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "为宝珠元素添加细微动画效果。资源填充轻柔地摆动，护盾覆盖层缓慢旋转。")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "需要重载UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "显示快捷栏数量")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",

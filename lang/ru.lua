@@ -363,6 +363,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Размер шрифта")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Размер текста")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Цвет шрифта")
 
 -- General Interface Settings
@@ -571,9 +572,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Включить анимацию смены оружия")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "Воспроизводит анимацию скольжения при переключении между основным и резервным наборами оружия.")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Включить эффект вращения")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Медленно вращает текстуру заполнения сферы, создавая легкий эффект вращения.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Включить анимации сфер")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "Добавляет тонкие анимации элементам сфер. Заполнение ресурсов мягко колеблется, а наложение щита медленно вращается.")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Требуется перезагрузка UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Показать количество на быстром слоте")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",

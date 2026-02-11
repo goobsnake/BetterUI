@@ -334,6 +334,12 @@ function ExperienceBar:Update()
     self.control:SetDimensions(w, h)
     self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
 
+    if self.backdrop then
+        self.backdrop:SetDimensions(w, h)
+        self.backdrop:ClearAnchors()
+        self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
+    end
+
     local xpLabelOffsetX, xpLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
         BETTERUI_XP_BAR_LABEL_OFFSET_X or 0,
         BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)

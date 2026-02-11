@@ -412,6 +412,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Font Scale")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Font Color")
 
 -- General Interface Settings
@@ -499,9 +500,9 @@ ZO_CreateStringId("SI_BETTERUI_MOUNT_STAMINA_BAR_RESET", "Reset Mount Bar Settin
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Enable Weapon Swap Animation")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "Plays a slide animation when switching between main and backup weapon bars.")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Enable Swirl Effect")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Slowly rotates the orb fill texture, creating a gentle swirling effect.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Enable Orb Animations")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "Adds subtle animations to orb elements. Resource fills gently oscillate, and the shield overlay slowly rotates.")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")
 
 -- Ultimate Number Display Settings

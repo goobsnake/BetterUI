@@ -347,6 +347,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Escala de fuente")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Tamaño de texto")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Color de fuente")
 
 -- General Interface Settings
@@ -588,9 +589,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Activar animación de cambio de arma")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "Reproduce una animación deslizante al cambiar entre barras de armas principal y de respaldo.")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Activar efecto de remolino")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Rota lentamente la textura de relleno del orbe, creando un suave efecto de remolino.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Activar animaciones de orbes")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "A\195\177ade animaciones sutiles a los elementos del orbe. Los rellenos de recursos oscilan suavemente, y la superposici\195\179n de escudo rota lentamente.")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requiere recargar UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Mostrar cantidad de acceso rápido")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",

@@ -362,6 +362,11 @@ local function UpdateFrontBarLayout(rootFrame)
         if bgMiddle then
             qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
         end
+
+        local flipCard = qsBtn:GetNamedChild("FlipCard")
+        if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
+        local icon = qsBtn:GetNamedChild("Icon")
+        if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
     end
 
     local compBtn = FindControl(frontBarContainer, 'CompanionButton')
@@ -378,6 +383,11 @@ local function UpdateFrontBarLayout(rootFrame)
         if bgMiddle then
             compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
         end
+
+        local flipCard = compBtn:GetNamedChild("FlipCard")
+        if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
+        local icon = compBtn:GetNamedChild("Icon")
+        if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
     end
 
     local barOffsetX = frontBarCfg.offsetX or 0
@@ -442,6 +452,13 @@ local function UpdateFrontBarCompanion(rootFrame)
 
     local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
     if companionActive then
+        -- Hide ultimate fill animations before showing button - these are visible by default
+        -- from the inherited UltimateTemplate but have no companion meter management code
+        local fillLeft = compBtn:GetNamedChild("FillAnimationLeft")
+        local fillRight = compBtn:GetNamedChild("FillAnimationRight")
+        if fillLeft then fillLeft:SetHidden(true) end
+        if fillRight then fillRight:SetHidden(true) end
+
         compBtn:SetHidden(false)
         local slotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1
         local icon = GetSlotTexture(slotIndex, HOTBAR_CATEGORY_COMPANION)
@@ -527,6 +544,11 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     local cacheKey = mapping.slot .. "_" .. (mapping.category or 0)
                     m_effectDurationCache[cacheKey] = nil
                 end
+            end
+
+            -- Respect showQuickslotCooldown setting
+            if mapping.buttonName == "QuickslotButton" and not settings.showQuickslotCooldown then
+                showCooldown = false
             end
 
             -- Use cached children (fall back to GetNamedChild only if cache miss)

@@ -236,11 +236,16 @@ function BetterUIShieldBar:New(...)
     return obj
 end
 
+-- Shield overlay is always static (no animation)
+function BetterUIShieldBar:UpdateAnimation() end
+
 function BetterUIShieldBar:RefreshVisuals()
     if not self.fog then return end
 
     if self.currentValue <= 0 then
-        self.fog:SetHidden(true)
+        if not BETTERUI_SHIELD_DEBUG then
+            self.fog:SetHidden(true)
+        end
         return
     end
     self.fog:SetHidden(false)
@@ -361,8 +366,6 @@ function Visuals.ApplyThemeVisuals(rootFrame)
     if shieldOrb then
         local fog = FindControl(shieldOrb, 'Fog')
         if fog then fog:SetTexture(ResolveTexturePath('OrbOverlay_Shield.dds')) end
-        local shieldIcon = FindControl(shieldOrb, 'ShieldIcon')
-        if shieldIcon then shieldIcon:SetTexture(ResolveTexturePath('Shield.dds')) end
     end
 end
 
@@ -411,12 +414,15 @@ local function CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
             x = ScaleForBorder(cfg.fills.health.x, leftBorderSize, leftBaseSize),
             y = ScaleForBorder(cfg.fills.health.y, leftBorderSize, leftBaseSize)
         },
-        shield = {
-            width = math.min(leftBorderSize * cfg.fills.shield.scaleW, leftBorderSize),
-            height = math.min(leftBorderSize * cfg.fills.shield.scaleH, leftBorderSize),
-            x = ScaleForBorder(cfg.fills.shield.x, leftBorderSize, leftBaseSize),
-            y = ScaleForBorder(cfg.fills.shield.y, leftBorderSize, leftBaseSize)
-        },
+        shield = (function()
+            local ringSize = leftBorderSize * (cfg.fills.shield.ringScale or 1.2)
+            return {
+                width = math.min(ringSize * cfg.fills.shield.scaleW, ringSize),
+                height = math.min(ringSize * cfg.fills.shield.scaleH, ringSize),
+                x = ScaleForBorder(cfg.fills.shield.x, leftBorderSize, leftBaseSize),
+                y = ScaleForBorder(cfg.fills.shield.y, leftBorderSize, leftBaseSize)
+            }
+        end)(),
         magicka = {
             width = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize),
             height = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize),
@@ -534,16 +540,30 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     UpdateOverlaySize(rightOrb, 'magStam', rightBorderSize)
 
     if pools then
+        -- Refresh label font/color from current settings (enables realtime updates)
+        local fontSettings = {
+            [POWERTYPE_HEALTH]  = { size = settings.healthTextSize or 20,  color = settings.healthTextColor or { 1, 1, 1, 1 } },
+            [POWERTYPE_MAGICKA] = { size = settings.magickaTextSize or 20, color = settings.magickaTextColor or { 1, 1, 1, 1 } },
+            [POWERTYPE_STAMINA] = { size = settings.staminaTextSize or 20, color = settings.staminaTextColor or { 1, 1, 1, 1 } },
+        }
+
+        -- Original orb control size from XML (used to scale baseAnchorX)
+        local BASE_ORB_CONTROL_SIZE = 150
+
         if pools[POWERTYPE_HEALTH] then
             pools[POWERTYPE_HEALTH].fillWidth = fillParams.health.width
             pools[POWERTYPE_HEALTH].fillHeight = fillParams.health.height
             pools[POWERTYPE_HEALTH].fillOffsetX = fillParams.health.x
             pools[POWERTYPE_HEALTH].fillOffsetY = fillParams.health.y
+            pools[POWERTYPE_HEALTH].baseAnchorX = ORB_CONFIG[POWERTYPE_HEALTH][3] * (leftBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_HEALTH].label then
                 pools[POWERTYPE_HEALTH].label:ClearAnchors()
                 pools[POWERTYPE_HEALTH].label:SetAnchor(CENTER, pools[POWERTYPE_HEALTH].control, CENTER,
                     ScaleForBorder(cfg.labels.health.x, leftBorderSize, cfg.orbs.left.borderSize),
                     ScaleForBorder(cfg.labels.health.y, leftBorderSize, cfg.orbs.left.borderSize))
+                local fs = fontSettings[POWERTYPE_HEALTH]
+                pools[POWERTYPE_HEALTH].label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", fs.size))
+                pools[POWERTYPE_HEALTH].label:SetColor(unpack(fs.color))
             end
         end
         if pools[POWERTYPE_MAGICKA] then
@@ -551,11 +571,15 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_MAGICKA].fillHeight = fillParams.magicka.height
             pools[POWERTYPE_MAGICKA].fillOffsetX = fillParams.magicka.x
             pools[POWERTYPE_MAGICKA].fillOffsetY = fillParams.magicka.y
+            pools[POWERTYPE_MAGICKA].baseAnchorX = ORB_CONFIG[POWERTYPE_MAGICKA][3] * (rightBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_MAGICKA].label then
                 pools[POWERTYPE_MAGICKA].label:ClearAnchors()
                 pools[POWERTYPE_MAGICKA].label:SetAnchor(CENTER, pools[POWERTYPE_MAGICKA].control, CENTER,
                     ScaleForBorder(cfg.labels.magicka.x, rightBorderSize, cfg.orbs.right.borderSize),
                     ScaleForBorder(cfg.labels.magicka.y, rightBorderSize, cfg.orbs.right.borderSize))
+                local fs = fontSettings[POWERTYPE_MAGICKA]
+                pools[POWERTYPE_MAGICKA].label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", fs.size))
+                pools[POWERTYPE_MAGICKA].label:SetColor(unpack(fs.color))
             end
         end
         if pools[POWERTYPE_STAMINA] then
@@ -563,11 +587,15 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_STAMINA].fillHeight = fillParams.stamina.height
             pools[POWERTYPE_STAMINA].fillOffsetX = fillParams.stamina.x
             pools[POWERTYPE_STAMINA].fillOffsetY = fillParams.stamina.y
+            pools[POWERTYPE_STAMINA].baseAnchorX = ORB_CONFIG[POWERTYPE_STAMINA][3] * (rightBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_STAMINA].label then
                 pools[POWERTYPE_STAMINA].label:ClearAnchors()
                 pools[POWERTYPE_STAMINA].label:SetAnchor(CENTER, pools[POWERTYPE_STAMINA].control, CENTER,
                     ScaleForBorder(cfg.labels.stamina.x, rightBorderSize, cfg.orbs.right.borderSize),
                     ScaleForBorder(cfg.labels.stamina.y, rightBorderSize, cfg.orbs.right.borderSize))
+                local fs = fontSettings[POWERTYPE_STAMINA]
+                pools[POWERTYPE_STAMINA].label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", fs.size))
+                pools[POWERTYPE_STAMINA].label:SetColor(unpack(fs.color))
             end
         end
     end
@@ -583,6 +611,10 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                 lbl:SetAnchor(CENTER, leftOrb, CENTER,
                     ScaleForBorder(cfg.labels.shield.x, leftBorderSize, cfg.orbs.left.borderSize),
                     ScaleForBorder(cfg.labels.shield.y, leftBorderSize, cfg.orbs.left.borderSize))
+                local shieldTextSize = settings.shieldTextSize or 20
+                local shieldTextColor = settings.shieldTextColor or { 0, 1, 1, 1 }
+                lbl:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
+                lbl:SetColor(unpack(shieldTextColor))
             end
         end
 
@@ -604,6 +636,21 @@ function Visuals.SetupPowerPools(rootFrame)
         [POWERTYPE_MAGICKA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbMagicka'), POWERTYPE_MAGICKA),
         [POWERTYPE_STAMINA] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbStamina'), POWERTYPE_STAMINA),
     }
+
+    -- Apply font and color settings to resource labels (same style as shield: bold + thick-outline)
+    local settings = GetModuleSettings()
+    local fontSettings = {
+        [POWERTYPE_HEALTH]  = { size = settings.healthTextSize or 20,  color = settings.healthTextColor or { 1, 1, 1, 1 } },
+        [POWERTYPE_MAGICKA] = { size = settings.magickaTextSize or 20, color = settings.magickaTextColor or { 1, 1, 1, 1 } },
+        [POWERTYPE_STAMINA] = { size = settings.staminaTextSize or 20, color = settings.staminaTextColor or { 1, 1, 1, 1 } },
+    }
+    for powerType, fontCfg in pairs(fontSettings) do
+        local label = pools[powerType] and pools[powerType].label
+        if label then
+            label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", fontCfg.size))
+            label:SetColor(unpack(fontCfg.color))
+        end
+    end
 
     local function AddOrbTooltip(control, powerType)
         if not control then return end
@@ -670,11 +717,6 @@ function Visuals.SetupShieldBar(rootFrame, pools)
         shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
         shieldBar.label:SetColor(unpack(shieldTextColor))
 
-        local shieldIcon = FindControl(shieldBar.control, 'ShieldIcon')
-        if shieldIcon then
-            local iconSize = math.floor(shieldTextSize * 1.25)
-            shieldIcon:SetDimensions(iconSize, iconSize)
-        end
     end
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldAdded",

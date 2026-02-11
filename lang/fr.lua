@@ -374,6 +374,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
 
 -- Generic / Shared Settings
 ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Échelle de la police")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Taille du texte")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Couleur de la police")
 
 -- General Interface Settings
@@ -582,9 +583,9 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Activer l'animation de changement d'arme")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
     "Joue une animation de glissement lors du changement entre les barres d'armes principale et de secours.")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT", "Activer l'effet tourbillon")
-ZO_CreateStringId("SI_BETTERUI_ROF_SWIRL_EFFECT_TOOLTIP",
-    "Fait tourner lentement la texture de remplissage de l'orbe, créant un léger effet tourbillonnant.")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Activer les animations d'orbes")
+ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
+    "Ajoute des animations subtiles aux \195\169l\195\169ments d'orbe. Les remplissages de ressources oscillent doucement, et la superposition de bouclier tourne lentement.")
 ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Nécessite un rechargement de l'interface")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Afficher la quantité du raccourci")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
