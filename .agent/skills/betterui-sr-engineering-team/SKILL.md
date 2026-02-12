@@ -18,6 +18,7 @@ The BetterUI Sr. Engineering Team is a panel of 5 senior developers who review w
 - Review only the active diff/plan scope unless the user asks for full-module review.
 - Report blockers first; avoid long narrative when there are no findings.
 - Reuse prior unresolved findings instead of re-reviewing already accepted areas.
+- Use continuity as read-only context during review loops; do not write `docs/CONTINUITY.md` for each gate pass/fail cycle.
 
 ---
 

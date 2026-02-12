@@ -30,6 +30,7 @@ $changedFiles
 If empty, stop: there is nothing to verify.
 
 If stale-risk is present and `$changedFiles` conflicts with continuity `Working set`, resolve the mismatch before running checks.
+Prefer re-anchoring scope over writing continuity; do not edit `docs/CONTINUITY.md` solely to satisfy this verification step.
 
 Use existing files only for file-content checks:
 

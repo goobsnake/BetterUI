@@ -11,6 +11,7 @@ Use this gate for quality decisions, not ceremony.
 - Review active diff or active plan scope only.
 - Reuse unresolved findings; do not re-review already accepted areas.
 - Keep verdicts compact unless blockers exist.
+- Treat `docs/CONTINUITY.md` as read-only during gate loops; do not write continuity per verdict cycle.
 
 ## Modes
 
@@ -87,6 +88,7 @@ If any FAIL:
 - `default`: continue current task.
 - `--plan-review`: start implementation.
 - `--phase-review`: continue to next phase or wrap-up.
+- If a completed phase introduced durable addon-state changes, perform at most one batched continuity update after the gate loop is clean.
 
 ## Invocation
 

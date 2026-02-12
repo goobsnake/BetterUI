@@ -88,7 +88,7 @@ Report:
 - Removed count
 - Priority changes
 
-Update `docs/CONTINUITY.md` only if this materially affects addon roadmap execution.
+Update `docs/CONTINUITY.md` only if this materially affects addon roadmap execution, and batch into one milestone entry (not per scan iteration).
 
 ## Invocation
 

@@ -30,8 +30,17 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 - At the start of each assistant turn: read `docs/CONTINUITY.md` before acting.
 - Per-turn minimum read (quota-efficient): `State (Done/Now/Next)`, `Open Questions`, and `Working Set`.
 - Full-file continuity re-read is required on session start, stale-risk states, workflow switches, or before major phase transitions.
+- Continuity is milestone-oriented, not message-oriented.
 - Update `docs/CONTINUITY.md` only when there is a meaningful delta in: Goal/success criteria, Invariants/constraints, Decisions, State (Done/Now/Next), Open questions, Working set, or important tool outcomes.
+- Batch continuity writes: make at most one continuity edit per major phase/decision boundary unless the user explicitly requests denser logging.
 - Do **not** update `docs/CONTINUITY.md` or other `docs/` files for agent-infrastructure-only changes (for example: `.agent/*`, `.claude/*`, `AGENTS.md`, `CLAUDE.md`) unless those changes materially affect BetterUI addon behavior or development outcomes.
+
+### Write Cadence (Troubleshooting + Trial/Error)
+- Keep continuity read-only during active debugging/trial-and-error loops.
+- Do not update continuity for each attempt, failed command, temporary hypothesis, or intermediate rollback.
+- Use chat checkpoints (`Done / Now / Next`) for interim progress.
+- Write continuity only on durable milestones: validated fix/decision, phase completion, workflow handoff, or session closeout.
+- When multiple milestones occur close together, batch them into one concise continuity update.
 
 ### Keep It Bounded (Anti-Bloat)
 - Keep `docs/CONTINUITY.md` short and high-signal:
@@ -104,7 +113,7 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
   3. **Load**: read only required workflow/skill docs for the current step (lazy-load, do not preload all workflows).
   4. **Execute**: make scoped changes or analysis.
   5. **Verify**: run smallest sufficient checks first; escalate only when risk demands.
-  6. **Checkpoint**: emit `Done / Now / Next`; update continuity only for meaningful addon-state deltas.
+  6. **Checkpoint**: emit `Done / Now / Next` each major step; update continuity only on durable milestones with meaningful addon-state deltas.
 - For long sessions, repeat **Anchor + Scope** before each major phase or after idle gaps.
 - If stale-risk is high, run `tools/context_health_check.ps1` once per major phase (not every turn).
 

@@ -58,7 +58,8 @@ Remove temporary workflow artifacts if present:
 
 If this was a long session and `docs/CONTINUITY.md` is in play, apply AGENTS Continuity Health Check caps before finishing.
 
-Update docs only when required by AGENTS policy.
+For troubleshooting-heavy sessions, do not backfill trial/error attempts into continuity.
+If continuity needs updates per AGENTS policy, do one batched edit in this step.
 
 ## Step 5: Commit
 

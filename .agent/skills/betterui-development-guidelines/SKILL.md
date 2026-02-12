@@ -38,6 +38,7 @@ description: Use ONLY when working on the BetterUI project. Ensures compliance w
 - Prefer targeted `rg -n` queries over whole-file or whole-module reads.
 - Do not perform repo-wide style rewrites when implementing focused fixes.
 - Keep comments and docs concise; avoid boilerplate text that adds noise.
+- Treat `docs/CONTINUITY.md` as read-first during active troubleshooting; defer writes until a durable milestone is validated.
 
 ---
 
@@ -170,4 +171,4 @@ When a task concludes:
 1. ☐ Run `/verify-integrity`
 2. ☐ Run `/sr-review-gate --phase-review` for multi-step or high-risk work
 3. ☐ Run `/update-tribal-knowledge` only if durable new learnings emerged
-4. ☐ Update `docs/CONTINUITY.md` only when addon development state meaningfully changed
+4. ☐ Update `docs/CONTINUITY.md` only when addon development state meaningfully changed, and batch that update once per milestone (not per troubleshooting attempt)

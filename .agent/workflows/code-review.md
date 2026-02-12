@@ -11,6 +11,7 @@ Critical review workflow with low-quota defaults and optional deep-audit expansi
 - Scope default: active diff (`git diff --name-only HEAD`).
 - Output default: actionable findings in chat (no file artifacts).
 - Escalate to full-module/full-repo review only when requested or risk demands it.
+- Continuity default: read-only during review; avoid `docs/CONTINUITY.md` edits for intermediate findings.
 
 ## Scope Modes
 
@@ -119,6 +120,7 @@ If no findings: explicitly state that and list residual test/coverage gaps.
 3. Implement fixes in phases.
 4. Run `/sr-review-gate --phase-review` after each phase.
 5. Run `/verify-integrity`.
+6. If accepted fixes materially changed addon state, do one batched continuity update after the action loop (not per phase iteration).
 
 ## Step 5: Artifact Policy
 
