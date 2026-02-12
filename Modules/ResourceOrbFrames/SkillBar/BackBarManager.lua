@@ -23,6 +23,8 @@ end
 -- Cached control references (populated by CacheBackBarControls during addon init)
 local m_backBarButtonCache = {}
 local m_backBarContainer = nil
+local m_backBarEffectDurationCache = {}
+local m_backBarCooldownVisualState = {}
 
 --[[
 Function: CacheBackBarControls
@@ -53,6 +55,92 @@ end
 --- Helper to get cached back bar button
 local function GetCachedBackBarButton(index)
     return m_backBarButtonCache[index]
+end
+
+local function ResetSmoothedCooldownRemaining(stateKey)
+    if stateKey then
+        m_backBarCooldownVisualState[stateKey] = nil
+    end
+end
+
+local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
+    if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
+        return remainMs
+    end
+
+    local nowMs = GetGameTimeMilliseconds()
+    local state = m_backBarCooldownVisualState[stateKey]
+    if not state
+        or state.durationMs ~= durationMs
+        or remainMs > ((state.lastReportedRemainMs or remainMs) + 100) then
+        m_backBarCooldownVisualState[stateKey] = {
+            durationMs = durationMs,
+            lastReportedRemainMs = remainMs,
+            smoothedRemainMs = remainMs,
+            lastUpdateMs = nowMs,
+        }
+        return remainMs
+    end
+
+    local elapsedMs = nowMs - (state.lastUpdateMs or nowMs)
+    if elapsedMs < 0 then
+        elapsedMs = 0
+    end
+
+    local smoothedRemainMs = (state.smoothedRemainMs or remainMs) - elapsedMs
+    if smoothedRemainMs < 0 then
+        smoothedRemainMs = 0
+    end
+    if smoothedRemainMs > remainMs then
+        smoothedRemainMs = remainMs
+    end
+
+    state.lastReportedRemainMs = remainMs
+    state.smoothedRemainMs = smoothedRemainMs
+    state.lastUpdateMs = nowMs
+    return smoothedRemainMs
+end
+
+local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
+    if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+
+    local revealWidth = revealControl.cooldownRevealWidth
+    local revealHeight = revealControl.cooldownRevealHeight
+    if not revealWidth or not revealHeight then
+        revealWidth, revealHeight = revealControl:GetDimensions()
+    end
+    if revealWidth <= 0 or revealHeight <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+
+    local percentComplete = 1 - (remainMs / durationMs)
+    if percentComplete < 0 then percentComplete = 0 end
+    if percentComplete > 1 then percentComplete = 1 end
+
+    local edgeOffsetY = (1 - percentComplete) * revealHeight
+
+    cooldownEdge:ClearAnchors()
+    cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
+    cooldownEdge:SetWidth(revealWidth)
+    cooldownEdge:SetHidden(false)
+    cooldownEdge:SetDrawLayer(DL_OVERLAY)
+
+    if cooldownOverlay then
+        local unrevealedHeight = (1 - percentComplete) * revealHeight
+        cooldownOverlay:ClearAnchors()
+        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
+        cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
+        cooldownOverlay:SetHidden(false)
+        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+    end
+
+    return percentComplete
 end
 
 local function UpdateBackBar(rootFrame)
@@ -125,6 +213,8 @@ local function UpdateBackBarLayout(rootFrame)
         local btn = FindControl(backBarContainer, 'Button' .. i)
         if btn then
             btn:SetDimensions(buttonSize, buttonSize)
+            btn.cooldownRevealWidth = buttonSize
+            btn.cooldownRevealHeight = buttonSize
             btn:ClearAnchors()
             if i == 1 then
                 btn:SetAnchor(LEFT, backBarContainer, CENTER, -halfWidth, 0)
@@ -160,6 +250,8 @@ local function UpdateBackBarLayout(rootFrame)
         local ultOffsetY = (backBarCfg and backBarCfg.ultimate and backBarCfg.ultimate.offsetY) or 0
 
         ultBtn:SetDimensions(ultimateSize, ultimateSize)
+        ultBtn.cooldownRevealWidth = ultimateSize
+        ultBtn.cooldownRevealHeight = ultimateSize
         ultBtn:ClearAnchors()
         ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + BETTERUI_ORB_FRAMES.bars.backUltimateOffsetX + ultOffsetX,
             ultOffsetY)
@@ -208,46 +300,86 @@ local function UpdateBackBarCooldowns(rootFrame)
     if not backBarContainer then return end
 
     local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local isGamePad = IsInGamepadPreferredMode()
+    local cooldownSize = settings.cooldownTextSize or 27
+    local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
     local slots = { 3, 4, 5, 6, 7, 8 }
     for i, slotIndex in ipairs(slots) do
-        local btn = FindControl(backBarContainer, 'Button' .. i)
+        local cached = GetCachedBackBarButton(i)
+        local btn = (cached and cached.control) or FindControl(backBarContainer, 'Button' .. i)
         if btn then
-            local cooldownOverlay = btn:GetNamedChild("CooldownOverlay")
-            local cooldownText = btn:GetNamedChild("CooldownText")
-            local icon = btn:GetNamedChild("Icon")
+            local children = cached and cached.children or {}
+            local cooldownOverlay = children.CooldownOverlay or btn:GetNamedChild("CooldownOverlay")
+            local cooldownEdge = children.CooldownEdge or btn:GetNamedChild("CooldownEdge")
+            local cooldownText = children.CooldownText or btn:GetNamedChild("CooldownText")
+            local icon = children.Icon or btn:GetNamedChild("Icon")
+
+            local remainMs = 0
+            local durationMs = 0
+            local showCooldown = false
+            local stateKey = string.format("%d_%d", slotIndex, backBarCategory)
+            local effectCacheKey = stateKey
 
             local abilityId = GetSlotBoundId(slotIndex, backBarCategory)
-            local remaining = 0
-            local showCooldown = false
-
             if abilityId and abilityId > 0 then
                 local remMs, durMs = GetSlotCooldownInfo(slotIndex, backBarCategory)
                 if remMs and remMs > 0 and durMs and durMs > 1500 then
-                    remaining = remMs / 1000
+                    remainMs = remMs
+                    durationMs = durMs
                     showCooldown = true
                 end
+
                 if not showCooldown then
                     local effectRemaining = GetActionSlotEffectTimeRemaining(slotIndex, backBarCategory)
                     if effectRemaining and effectRemaining > 0 then
-                        remaining = effectRemaining / 1000
+                        remainMs = effectRemaining
+                        if not m_backBarEffectDurationCache[effectCacheKey]
+                            or m_backBarEffectDurationCache[effectCacheKey] < effectRemaining then
+                            m_backBarEffectDurationCache[effectCacheKey] = effectRemaining
+                        end
+                        durationMs = m_backBarEffectDurationCache[effectCacheKey]
                         showCooldown = true
+                    else
+                        m_backBarEffectDurationCache[effectCacheKey] = nil
                     end
                 end
+            else
+                m_backBarEffectDurationCache[effectCacheKey] = nil
             end
 
             if cooldownOverlay and cooldownText then
-                if showCooldown and remaining > 0.1 then
-                    cooldownOverlay:SetHidden(false)
-                    if icon then icon:SetDesaturation(1) end
-                    cooldownText:SetHidden(false)
-                    cooldownText:SetText(string.format("%.1f", remaining))
+                if showCooldown and remainMs > 0 and durationMs > 0 then
+                    local visualRemainMs = GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
 
-                    local size = settings.cooldownTextSize or 27
-                    local color = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
-                    cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
-                    cooldownText:SetColor(unpack(color))
+                    if isGamePad then
+                        local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs,
+                            durationMs)
+                        if icon then
+                            if percentComplete ~= nil then
+                                icon:SetDesaturation(1 - percentComplete)
+                            else
+                                icon:SetDesaturation(1)
+                            end
+                        end
+                    else
+                        if cooldownEdge then cooldownEdge:SetHidden(true) end
+                        if cooldownOverlay then
+                            cooldownOverlay:ClearAnchors()
+                            cooldownOverlay:SetAnchor(TOPLEFT, btn, TOPLEFT, 0, 0)
+                            cooldownOverlay:SetAnchor(BOTTOMRIGHT, btn, BOTTOMRIGHT, 0, 0)
+                            cooldownOverlay:SetHidden(false)
+                        end
+                        if icon then icon:SetDesaturation(1) end
+                    end
+
+                    cooldownText:SetHidden(false)
+                    cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
+                    cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
+                    cooldownText:SetColor(unpack(cooldownColor))
                 else
+                    ResetSmoothedCooldownRemaining(stateKey)
                     cooldownOverlay:SetHidden(true)
+                    if cooldownEdge then cooldownEdge:SetHidden(true) end
                     cooldownText:SetHidden(true)
                     if icon then icon:SetDesaturation(0) end
                 end

@@ -11,6 +11,7 @@ if not BETTERUI.ResourceOrbFrames.Visuals then BETTERUI.ResourceOrbFrames.Visual
 local Visuals = BETTERUI.ResourceOrbFrames.Visuals
 local Animations = BETTERUI.ResourceOrbFrames.Animations
 local NAME = "ResourceOrbFrames"
+local DEFAULT_SHIELD_ELECTRIC_COLOR = { 0.4, 0.9, 1, 1 }
 
 -- TODO(doc): Document ORB_CONFIG table structure - indexes and {r, g, b, icon_path} format unclear
 -- Constants
@@ -365,7 +366,10 @@ function Visuals.ApplyThemeVisuals(rootFrame)
     local shieldOrb = FindControl(rootFrame, 'OrbShield')
     if shieldOrb then
         local fog = FindControl(shieldOrb, 'Fog')
-        if fog then fog:SetTexture(ResolveTexturePath('OrbOverlay_Shield.dds')) end
+        if fog then
+            fog:SetTexture(ResolveTexturePath('OrbOverlay_Shield.dds'))
+            fog:SetColor(unpack(DEFAULT_SHIELD_ELECTRIC_COLOR))
+        end
     end
 end
 
@@ -612,7 +616,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
                     ScaleForBorder(cfg.labels.shield.x, leftBorderSize, cfg.orbs.left.borderSize),
                     ScaleForBorder(cfg.labels.shield.y, leftBorderSize, cfg.orbs.left.borderSize))
                 local shieldTextSize = settings.shieldTextSize or 20
-                local shieldTextColor = settings.shieldTextColor or { 0, 1, 1, 1 }
+                local shieldTextColor = settings.shieldTextColor or DEFAULT_SHIELD_ELECTRIC_COLOR
                 lbl:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
                 lbl:SetColor(unpack(shieldTextColor))
             end
@@ -713,10 +717,12 @@ function Visuals.SetupShieldBar(rootFrame, pools)
     if shieldBar.label then
         local settings = GetModuleSettings()
         local shieldTextSize = settings.shieldTextSize or 20
-        local shieldTextColor = settings.shieldTextColor or { 0, 1, 1, 1 }
+        local shieldTextColor = settings.shieldTextColor or DEFAULT_SHIELD_ELECTRIC_COLOR
         shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))
         shieldBar.label:SetColor(unpack(shieldTextColor))
-
+        if shieldBar.fog then
+            shieldBar.fog:SetColor(unpack(DEFAULT_SHIELD_ELECTRIC_COLOR))
+        end
     end
 
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_ShieldAdded",

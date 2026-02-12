@@ -16,6 +16,25 @@ local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end
 
+local function GetNamedChildDirect(parent, name)
+    if parent and parent.GetNamedChild then
+        return parent:GetNamedChild(name)
+    end
+    return nil
+end
+
+local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
+    if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
+        return GetNamedChildDirect(rootFrame, buttonName)
+            or GetNamedChildDirect(frontBarContainer, buttonName)
+            or FindControl(rootFrame, buttonName)
+            or FindControl(frontBarContainer, buttonName)
+    end
+
+    return GetNamedChildDirect(frontBarContainer, buttonName)
+        or FindControl(frontBarContainer, buttonName)
+end
+
 -- Cached control references (populated by CacheControls during addon init)
 local m_buttonCache = {}        -- Cache of button controls and their children
 local m_frontBarContainer = nil -- Cached reference to the front bar container
@@ -23,6 +42,9 @@ local m_quickslotBtn = nil      -- Cached reference to quickslot button
 local m_companionBtn = nil      -- Cached reference to companion button
 local m_bgMiddle = nil          -- Cached reference to BgMiddle control
 local m_effectDurationCache = {} -- Cache of initial effect durations for cooldown percentage calculation
+local m_cooldownVisualState = {} -- Lightweight per-slot interpolation cache for smoother reveal animation
+
+local QUICKSLOT_COUNT_OFFSET_Y = 1
 
 --[[
 Function: CacheFrontBarControls
@@ -73,6 +95,151 @@ end
 --- Helper to get cached button and its children
 local function GetCachedButton(buttonName)
     return m_buttonCache[buttonName]
+end
+
+local function AnchorQuickslotCountText(buttonControl, countText)
+    if not buttonControl then
+        return
+    end
+
+    local label = countText or buttonControl:GetNamedChild("CountText")
+    if not label then
+        return
+    end
+
+    label:ClearAnchors()
+    label:SetAnchor(TOP, buttonControl, BOTTOM, 0, QUICKSLOT_COUNT_OFFSET_Y)
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_TOP)
+end
+
+local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settings, slotIndex, hotbarCategory)
+    if not buttonControl then
+        return false
+    end
+
+    local slotType = GetSlotType(slotIndex, hotbarCategory)
+    local isItemSlot = slotType == ACTION_TYPE_ITEM
+    local count = nil
+    if isItemSlot then
+        count = GetSlotItemCount(slotIndex, hotbarCategory) or 0
+    end
+
+    local showCount = settings.showQuickslotCount ~= false
+    local quickslotTextSize = settings.quickslotTextSize or 27
+    local quickslotTextColor = settings.quickslotTextColor or { 1, 1, 1, 1 }
+    local countText = (children and children.CountText) or buttonControl:GetNamedChild("CountText")
+    if countText then
+        countText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", quickslotTextSize))
+        countText:SetColor(unpack(quickslotTextColor))
+        AnchorQuickslotCountText(buttonControl, countText)
+        if showCount and isItemSlot and count ~= nil then
+            countText:SetText(count)
+            countText:SetHidden(false)
+        else
+            countText:SetHidden(true)
+        end
+    end
+
+    local isEmpty = isItemSlot and (count or 0) <= 0
+    local unusableOverlay = (children and children.UnusableOverlay) or buttonControl:GetNamedChild("UnusableOverlay")
+    if unusableOverlay then
+        unusableOverlay:SetHidden(not isEmpty)
+    end
+
+    buttonControl.quickslotCount = count
+    buttonControl.quickslotEmpty = isEmpty
+    return isEmpty
+end
+
+local function ResetSmoothedCooldownRemaining(stateKey)
+    if stateKey then
+        m_cooldownVisualState[stateKey] = nil
+    end
+end
+
+local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
+    if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
+        return remainMs
+    end
+
+    local nowMs = GetGameTimeMilliseconds()
+    local state = m_cooldownVisualState[stateKey]
+    if not state
+        or state.durationMs ~= durationMs
+        or remainMs > ((state.lastReportedRemainMs or remainMs) + 100) then
+        m_cooldownVisualState[stateKey] = {
+            durationMs = durationMs,
+            lastReportedRemainMs = remainMs,
+            smoothedRemainMs = remainMs,
+            lastUpdateMs = nowMs,
+        }
+        return remainMs
+    end
+
+    local elapsedMs = nowMs - (state.lastUpdateMs or nowMs)
+    if elapsedMs < 0 then
+        elapsedMs = 0
+    end
+
+    local smoothedRemainMs = (state.smoothedRemainMs or remainMs) - elapsedMs
+    if smoothedRemainMs < 0 then
+        smoothedRemainMs = 0
+    end
+    if smoothedRemainMs > remainMs then
+        smoothedRemainMs = remainMs
+    end
+
+    state.lastReportedRemainMs = remainMs
+    state.smoothedRemainMs = smoothedRemainMs
+    state.lastUpdateMs = nowMs
+    return smoothedRemainMs
+end
+
+local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
+    if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+
+    local revealWidth = revealControl.cooldownRevealWidth
+    local revealHeight = revealControl.cooldownRevealHeight
+    if not revealWidth or not revealHeight then
+        revealWidth, revealHeight = revealControl:GetDimensions()
+    end
+    if revealWidth <= 0 or revealHeight <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+
+    if cooldownOverlay then
+        cooldownOverlay:SetHidden(true)
+    end
+
+    local percentComplete = 1 - (remainMs / durationMs)
+    if percentComplete < 0 then percentComplete = 0 end
+    if percentComplete > 1 then percentComplete = 1 end
+
+    local edgeOffsetY = (1 - percentComplete) * revealHeight
+
+    cooldownEdge:ClearAnchors()
+    cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
+    cooldownEdge:SetWidth(revealWidth)
+    cooldownEdge:SetHidden(false)
+    cooldownEdge:SetDrawLayer(DL_OVERLAY)
+
+    if cooldownOverlay then
+        local unrevealedHeight = (1 - percentComplete) * revealHeight
+        cooldownOverlay:ClearAnchors()
+        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
+        cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
+        cooldownOverlay:SetHidden(false)
+        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+    end
+
+    return percentComplete
 end
 
 local function HideNativeActionBar()
@@ -239,7 +406,7 @@ local function SetupFrontBarKeybinds(rootFrame)
         if r then r:SetHidden(not isGamepad) end
     end
 
-    local qsBtn = FindControl(rootFrame, 'QuickslotButton') or FindControl(frontBarContainer, 'QuickslotButton')
+    local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
         local buttonText = qsBtn:GetNamedChild("ButtonText")
         if buttonText then
@@ -248,24 +415,22 @@ local function SetupFrontBarKeybinds(rootFrame)
         end
         local countText = qsBtn:GetNamedChild("CountText")
         if countText then
-            countText:ClearAnchors()
-            countText:SetAnchor(BOTTOM, qsBtn, BOTTOM, 0, -4)
-            countText:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+            AnchorQuickslotCountText(qsBtn, countText)
         end
 
         local timerText = qsBtn:GetNamedChild("TimerText")
         if timerText then
             timerText:ClearAnchors()
-            timerText:SetAnchor(TOP, qsBtn, TOP, 0, 4)
+            timerText:SetAnchor(CENTER, qsBtn, CENTER, 0, 4)
         end
         local cdText = qsBtn:GetNamedChild("CooldownText")
         if cdText then
             cdText:ClearAnchors()
-            cdText:SetAnchor(TOP, qsBtn, TOP, 0, 4)
+            cdText:SetAnchor(CENTER, qsBtn, CENTER, 0, 0)
         end
     end
 
-    local compBtn = FindControl(rootFrame, 'CompanionButton') or FindControl(frontBarContainer, 'CompanionButton')
+    local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")
     if compBtn then
         local buttonText = compBtn:GetNamedChild("ButtonText")
         if buttonText then
@@ -308,6 +473,8 @@ local function UpdateFrontBarLayout(rootFrame)
         local btn = FindControl(frontBarContainer, 'Button' .. i)
         if btn then
             btn:SetDimensions(buttonSize, buttonSize)
+            btn.cooldownRevealWidth = buttonSize
+            btn.cooldownRevealHeight = buttonSize
             btn:ClearAnchors()
             if i == 1 then
                 btn:SetAnchor(LEFT, frontBarContainer, CENTER, -halfWidth, 0)
@@ -330,6 +497,8 @@ local function UpdateFrontBarLayout(rootFrame)
         local ultOffsetY = frontBarCfg.ultimate.offsetY or 0
 
         ultBtn:SetDimensions(ultimateSize, ultimateSize)
+        ultBtn.cooldownRevealWidth = ultimateSize
+        ultBtn.cooldownRevealHeight = ultimateSize
         ultBtn:ClearAnchors()
         ultBtn:SetAnchor(LEFT, btn5, RIGHT, ultimateGap + ultOffsetX, ultOffsetY)
 
@@ -348,7 +517,7 @@ local function UpdateFrontBarLayout(rootFrame)
         if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
     end
 
-    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
         local quickslotCfg = frontBarCfg.quickslotButton
         local baseX = BETTERUI_ORB_FRAMES.bars.quickslot.x
@@ -358,6 +527,8 @@ local function UpdateFrontBarLayout(rootFrame)
         local bgMiddle = FindControl(rootFrame, 'BgMiddle')
 
         qsBtn:SetDimensions(buttonSize, buttonSize)
+        qsBtn.cooldownRevealWidth = buttonSize
+        qsBtn.cooldownRevealHeight = buttonSize
         qsBtn:ClearAnchors()
         if bgMiddle then
             qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
@@ -367,9 +538,10 @@ local function UpdateFrontBarLayout(rootFrame)
         if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
         local icon = qsBtn:GetNamedChild("Icon")
         if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
+        AnchorQuickslotCountText(qsBtn, qsBtn:GetNamedChild("CountText"))
     end
 
-    local compBtn = FindControl(frontBarContainer, 'CompanionButton')
+    local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")
     if compBtn then
         local companionCfg = frontBarCfg.companionButton
         local baseX = BETTERUI_ORB_FRAMES.bars.companionUltimate.x
@@ -379,6 +551,8 @@ local function UpdateFrontBarLayout(rootFrame)
         local bgMiddle = FindControl(rootFrame, 'BgMiddle')
 
         compBtn:SetDimensions(ultimateSize, ultimateSize)
+        compBtn.cooldownRevealWidth = ultimateSize
+        compBtn.cooldownRevealHeight = ultimateSize
         compBtn:ClearAnchors()
         if bgMiddle then
             compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
@@ -403,7 +577,7 @@ local function UpdateFrontBarQuickslot(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
-    local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
+    local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if not qsBtn then return end
 
     local slotIndex = GetCurrentQuickslot()
@@ -418,21 +592,8 @@ local function UpdateFrontBarQuickslot(rootFrame)
         end
     end
 
-    local countText = qsBtn:GetNamedChild("CountText")
-    if countText then
-        local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
-        local count = GetSlotItemCount(slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-
-        -- Default to true if nil (legacy support)
-        local showCount = (settings.showQuickslotCount ~= false)
-
-        if showCount and count and count > 0 then
-            countText:SetText(count)
-            countText:SetHidden(false)
-        else
-            countText:SetHidden(true)
-        end
-    end
+    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    UpdateQuickslotCountAndEmptyState(qsBtn, nil, settings, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
     qsBtn.slotIndex = slotIndex
     qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
 
@@ -443,12 +604,11 @@ local function UpdateFrontBarQuickslot(rootFrame)
 end
 
 local function UpdateFrontBarCompanion(rootFrame)
-    local compBtn = FindControl(rootFrame, 'CompanionButton')
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")
     if not compBtn then
-        local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
-        if frontBarContainer then compBtn = FindControl(frontBarContainer, 'CompanionButton') end
+        return
     end
-    if not compBtn then return end
 
     local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
     if companionActive then
@@ -507,19 +667,22 @@ local function UpdateFrontBarCooldowns(rootFrame)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
 
     for _, mapping in ipairs(slotMapping) do
-        local btn = FindControl(frontBarContainer, mapping.buttonName)
-        -- Quickslot and Companion might be direct children of rootFrame in some layouts
-        if not btn and mapping.buttonName == "QuickslotButton" then
-            btn = FindControl(rootFrame, 'QuickslotButton')
-        end
-        if not btn and mapping.buttonName == "CompanionButton" then
-            btn = FindControl(rootFrame, 'CompanionButton')
-        end
+        local btn = GetFrontBarButtonControl(rootFrame, frontBarContainer, mapping.buttonName)
+        local cooldownStateKey = string.format("%s_%d_%d", mapping.buttonName, mapping.slot or -1, mapping.category or -1)
 
         if btn and not btn:IsHidden() then -- Only update if visible
             -- Get cached children for this button
             local cachedBtn = GetCachedButton(mapping.buttonName)
             local children = cachedBtn and cachedBtn.children or {}
+            local baseDesaturation = 0
+
+            if mapping.buttonName == "QuickslotButton" then
+                local isQuickslotEmpty = UpdateQuickslotCountAndEmptyState(btn, children, settings, mapping.slot,
+                    mapping.category)
+                if isQuickslotEmpty then
+                    baseDesaturation = 1
+                end
+            end
 
             local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, mapping.category)
             -- Use BackBar logic: stricter duration filter (1500) and ignore isGlobal
@@ -560,26 +723,26 @@ local function UpdateFrontBarCooldowns(rootFrame)
             local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
 
             if showCooldown then
-                if iconControl then iconControl:SetDesaturation(1) end
-                if cooldownOverlay then cooldownOverlay:SetHidden(false) end
-
+                local visualRemainMs = GetSmoothedCooldownRemaining(cooldownStateKey, remainMs, durationMs)
                 if isGamepad then
                     if cooldown then cooldown:SetHidden(true) end
-                    if cooldownEdge and iconControl and durationMs and durationMs > 0 then
-                        local percentComplete = 1 - (remainMs / durationMs)
-                        if percentComplete < 0 then percentComplete = 0 end
-                        if percentComplete > 1 then percentComplete = 1 end
-
-                        local _, iconHeight = iconControl:GetDimensions()
-                        local offsetY = (1 - percentComplete) * iconHeight
-                        cooldownEdge:ClearAnchors()
-                        cooldownEdge:SetAnchor(TOPLEFT, iconControl, TOPLEFT, 0, offsetY)
-                        cooldownEdge:SetWidth(iconControl:GetWidth())
-                        cooldownEdge:SetHidden(false)
-                        cooldownEdge:SetDrawLayer(DL_OVERLAY)
+                    local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs,
+                        durationMs)
+                    if iconControl then
+                        if percentComplete ~= nil then
+                            local cooldownDesaturation = 1 - percentComplete
+                            if cooldownDesaturation < baseDesaturation then
+                                cooldownDesaturation = baseDesaturation
+                            end
+                            iconControl:SetDesaturation(cooldownDesaturation)
+                        else
+                            iconControl:SetDesaturation(math.max(1, baseDesaturation))
+                        end
                     end
                 else
+                    if iconControl then iconControl:SetDesaturation(math.max(1, baseDesaturation)) end
                     if cooldownEdge then cooldownEdge:SetHidden(true) end
+                    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
                     if cooldown then
                         cooldown:StartCooldown(remainMs, durationMs, CD_TYPE_RADIAL, nil, false)
                         cooldown:SetHidden(false)
@@ -587,45 +750,11 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 end
 
                 -- Text Logic
-                local textToSet = string.format("%.1f", remainMs / 1000)
+                local textToSet = string.format("%.1f", visualRemainMs / 1000)
                 if timerText then
                     timerText:SetText(textToSet)
                     timerText:SetHidden(false)
                     timerText:SetDrawLayer(DL_OVERLAY)
-
-                    -- Special handling for QuickslotButton per user requirements
-                    if mapping.buttonName == "QuickslotButton" then
-                        timerText:ClearAnchors()
-                        timerText:SetAnchor(BOTTOM, btn, BOTTOM, 0, -4)
-
-                        if cooldownEdge and iconControl and durationMs and durationMs > 0 then
-                            local percentComplete = 1 - (remainMs / durationMs)
-                            if percentComplete < 0 then percentComplete = 0 end
-                            if percentComplete > 1 then percentComplete = 1 end
-
-                            local iconWidth, iconHeight = iconControl:GetDimensions()
-                            local maxY = iconHeight - 3
-                            local offsetY = (1 - percentComplete) * maxY
-
-                            cooldownEdge:ClearAnchors()
-                            cooldownEdge:SetAnchor(TOP, iconControl, TOP, 0, offsetY)
-                            cooldownEdge:SetWidth(iconWidth - 6)
-                            cooldownEdge:SetHidden(false)
-                            cooldownEdge:SetDrawLayer(DL_OVERLAY)
-
-                            if cooldownOverlay then
-                                local overlayHeight = offsetY
-                                cooldownOverlay:ClearAnchors()
-                                cooldownOverlay:SetAnchor(TOP, iconControl, TOP, 0, 0)
-                                cooldownOverlay:SetDimensions(iconWidth, overlayHeight)
-                                cooldownOverlay:SetHidden(false)
-                            end
-
-                            if iconControl then
-                                iconControl:SetDesaturation(1 - percentComplete)
-                            end
-                        end
-                    end
 
                     timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     timerText:SetColor(unpack(cooldownColor))
@@ -635,7 +764,8 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     altTimerText:SetColor(unpack(cooldownColor))
                 end
             else
-                if iconControl then iconControl:SetDesaturation(0) end
+                ResetSmoothedCooldownRemaining(cooldownStateKey)
+                if iconControl then iconControl:SetDesaturation(baseDesaturation) end
                 if cooldownOverlay then cooldownOverlay:SetHidden(true) end
                 if cooldown then cooldown:SetHidden(true) end
                 if cooldownEdge then cooldownEdge:SetHidden(true) end

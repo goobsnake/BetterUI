@@ -10,6 +10,31 @@ if not BETTERUI.ResourceOrbFrames.Bars then BETTERUI.ResourceOrbFrames.Bars = {}
 
 local Bars = BETTERUI.ResourceOrbFrames.Bars
 local NAME = "ResourceOrbFrames"
+local COST_TYPE_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH or POWERTYPE_HEALTH
+local COST_TYPE_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or POWERTYPE_MAGICKA
+local COST_TYPE_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or POWERTYPE_STAMINA
+local COST_TYPE_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE or POWERTYPE_ULTIMATE
+
+local DEFAULT_CAST_BAR_FILL_STYLE = {
+    fill = { 1, 1, 0.4, 1 },
+    depth = { 0.45, 0.45, 0.18, 1 },
+}
+local CAST_BAR_ORB_FILL_STYLES = {
+    -- Matches orb Fog/Fog2 colors in ResourceOrbFrames.xml
+    health = {
+        fill = { 1, 0, 0, 1 },      -- Fog color="ff0000"
+        depth = { 0.30196, 0, 0, 1 } -- Fog2 color="4d0000"
+    },
+    magicka = {
+        fill = { 0, 0.4, 1, 1 },    -- Fog color="0066ff"
+        depth = { 0, 0, 0.2, 1 }    -- Fog2 color="000033"
+    },
+    stamina = {
+        fill = { 0, 1, 0, 1 },      -- Fog color="00ff00"
+        depth = { 0, 0.30196, 0, 1 } -- Fog2 color="004d00"
+    },
+}
+local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
 
 -- Local helpers
 local function FindControl(parent, name)
@@ -30,6 +55,139 @@ local function ResolveTexturePath(filename)
     return string.format("%s/%s", path, filename)
 end
 
+local function ResolveBarTexturePath(textureFile)
+    if not textureFile then return nil end
+    if string.find(textureFile, "/", 1, true) or string.find(textureFile, "\\", 1, true) then
+        return textureFile
+    end
+    return ResolveTexturePath(textureFile)
+end
+
+local function CloneColor(color)
+    if type(color) ~= "table" then
+        return nil
+    end
+    return {
+        color[1] or 1,
+        color[2] or 1,
+        color[3] or 1,
+        color[4] or 1,
+    }
+end
+
+local function GetCastBarFillStyle(styleKey)
+    local style = CAST_BAR_ORB_FILL_STYLES[styleKey]
+    if not style then
+        style = DEFAULT_CAST_BAR_FILL_STYLE
+    end
+    return CloneColor(style.fill), CloneColor(style.depth)
+end
+
+local function GetAbilityCostForType(abilityId, costType)
+    if type(abilityId) ~= "number" or abilityId <= 0 or type(costType) ~= "number" then
+        return 0
+    end
+    local cost = GetAbilityCost(abilityId, costType, nil, "player")
+    if type(cost) ~= "number" then
+        return 0
+    end
+    return cost
+end
+
+local function GetSlotCostForType(slotIndex, costType, hotbar)
+    if type(slotIndex) ~= "number" or type(costType) ~= "number" then
+        return 0
+    end
+    local cost = GetSlotAbilityCost(slotIndex, costType, hotbar)
+    if type(cost) ~= "number" then
+        return 0
+    end
+    return cost
+end
+
+local function ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
+    if type(slotIndex) ~= "number" then
+        return GetCastBarFillStyle(nil)
+    end
+
+    if ACTION_BAR_ULTIMATE_SLOT_INDEX and slotIndex == (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) then
+        return GetCastBarFillStyle(nil)
+    end
+
+    if type(abilityId) ~= "number" or abilityId <= 0 then
+        return GetCastBarFillStyle(nil)
+    end
+
+    -- Match ESOUI tooltip cost classification behavior:
+    -- 1) resolve current chained ability id
+    -- 2) read mechanic flags via GetAbilityBaseCostInfo
+    local costAbilityId = abilityId
+    if GetCurrentChainedAbility then
+        local chained = GetCurrentChainedAbility(abilityId)
+        if type(chained) == "number" and chained > 0 then
+            costAbilityId = chained
+        end
+    end
+
+    local _, mechanicFlags = GetAbilityBaseCostInfo(costAbilityId, nil, "player")
+    if type(mechanicFlags) == "number" and mechanicFlags > 0 and ZO_FlagHelpers and ZO_FlagHelpers.MaskHasFlag then
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_ULTIMATE) then
+            return GetCastBarFillStyle(nil)
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_STAMINA) then
+            return GetCastBarFillStyle("stamina")
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_MAGICKA) then
+            return GetCastBarFillStyle("magicka")
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_HEALTH) then
+            return GetCastBarFillStyle("health")
+        end
+    end
+
+    -- Fallback chain for edge cases where mechanicFlags are unavailable.
+    if GetSlotCostForType(slotIndex, COST_TYPE_ULTIMATE, hotbar) > 0 then
+        return GetCastBarFillStyle(nil)
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_STAMINA, hotbar) > 0 then
+        return GetCastBarFillStyle("stamina")
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_MAGICKA, hotbar) > 0 then
+        return GetCastBarFillStyle("magicka")
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_HEALTH, hotbar) > 0 then
+        return GetCastBarFillStyle("health")
+    end
+
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_ULTIMATE) > 0 then
+        return GetCastBarFillStyle(nil)
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_STAMINA) > 0 then
+        return GetCastBarFillStyle("stamina")
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_MAGICKA) > 0 then
+        return GetCastBarFillStyle("magicka")
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_HEALTH) > 0 then
+        return GetCastBarFillStyle("health")
+    end
+
+    return GetCastBarFillStyle(nil)
+end
+
+local function ResolveCastBarFillColorByPowerType(powerType)
+    if powerType == COST_TYPE_STAMINA then
+        return GetCastBarFillStyle("stamina")
+    end
+    if powerType == COST_TYPE_MAGICKA then
+        return GetCastBarFillStyle("magicka")
+    end
+    if powerType == COST_TYPE_HEALTH then
+        return GetCastBarFillStyle("health")
+    end
+    return nil, nil
+end
+
 -------------------------------------------------------------------------------------------------
 -- BetterUIBarFrame Class (Base)
 -------------------------------------------------------------------------------------------------
@@ -41,20 +199,22 @@ function BetterUIBarFrame:New(control)
     return obj
 end
 
-function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, backdropTextureBounds, fillRegion)
+function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillTextureFile, backdropTextureBounds, fillRegion)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
     self.backdropTextureFile = backdropTextureFile or "Bar.dds"
+    self.fillTextureFile = fillTextureFile or BETTERUI_BAR_FILL_TEXTURE or
+        "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds"
     self.backdropTextureBounds = backdropTextureBounds
     self.fillRegion = fillRegion
 
     local fill = WINDOW_MANAGER:CreateControl(name .. "Fill", control, CT_TEXTURE)
-    fill:SetTexture(BETTERUI_BAR_FILL_TEXTURE or "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds")
+    fill:SetTexture(ResolveBarTexturePath(self.fillTextureFile))
     fill:SetAnchor(LEFT, control, LEFT, 0, 0)
     self.fill = fill
 
     local backdrop = WINDOW_MANAGER:CreateControl(name .. "Backdrop", control, CT_TEXTURE)
-    backdrop:SetTexture(ResolveTexturePath(self.backdropTextureFile))
+    backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
     backdrop:SetAnchor(CENTER, control, CENTER, 0, 0)
     self.backdrop = backdrop
 
@@ -100,7 +260,7 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
 
     if self.backdrop then
         -- Keep backdrop texture in sync with live "Use Custom Textures" toggles.
-        self.backdrop:SetTexture(ResolveTexturePath(self.backdropTextureFile))
+        self.backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
         self.backdrop:SetDimensions(barWidth, barHeight)
         if IsValidRegion(self.backdropTextureBounds) then
             self.backdrop:SetTextureCoords(
@@ -114,6 +274,8 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     end
 
     if self.fill and max > 0 then
+        self.fill:SetTexture(ResolveBarTexturePath(self.fillTextureFile))
+
         local percent = math.min(1, math.max(0, current / max))
         local fillX, fillY
         local fillMaxWidth, fillHeight
@@ -153,12 +315,27 @@ function CastBar:New(parent)
 end
 
 function CastBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent, "CastBar.dds", BETTERUI_CAST_BAR_TEXTURE_BOUNDS,
+    BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent,
+        BETTERUI_CAST_BAR_BACKDROP_TEXTURE or "CastBar.dds",
+        BETTERUI_CAST_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
+        BETTERUI_CAST_BAR_TEXTURE_BOUNDS,
         BETTERUI_CAST_BAR_FILL_REGION)
     self.isCasting = false
     self.duration = 0
+    self.postCastHold = 0.5
+    self.showCountdown = false
+    self.isChanneled = false
     self.startTime = 0
-    self:SetColor(1, 1, 0.4, 1)
+    self.defaultFillColor, self.defaultDepthColor = GetCastBarFillStyle(nil)
+    self.currentFillColor = CloneColor(self.defaultFillColor) or { 1, 1, 0.4, 1 }
+    self.currentDepthColor = CloneColor(self.defaultDepthColor) or { 0.45, 0.45, 0.18, 1 }
+    self.pendingPowerProbeStartMs = 0
+    self.lastKnownPowerValues = {
+        [COST_TYPE_HEALTH] = select(1, GetUnitPower("player", COST_TYPE_HEALTH)) or 0,
+        [COST_TYPE_MAGICKA] = select(1, GetUnitPower("player", COST_TYPE_MAGICKA)) or 0,
+        [COST_TYPE_STAMINA] = select(1, GetUnitPower("player", COST_TYPE_STAMINA)) or 0,
+    }
+    self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
 
     -- Note: EVENT_SPELL_CASTING_START/STOP don't exist in ESO API.
@@ -178,34 +355,128 @@ function CastBar:Initialize(parent)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "HideDefaultCast", EVENT_PLAYER_ACTIVATED,
         HideDefaultCastBar)
 
+    local function ResolveCastDisplayData(slotIndex, hotbar)
+        local abilityId = GetSlotBoundId(slotIndex, hotbar)
+        local abilityName = nil
+        local isChanneled = false
+        local castDurationMs = 0
+        local showCountdown = false
+        local castFillColor = nil
+        local castDepthColor = nil
+
+        if abilityId and abilityId > 0 then
+            local castTime, channelTime
+            isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
+            castDurationMs = math.max(castTime or 0, channelTime or 0)
+            abilityName = GetAbilityName(abilityId)
+            showCountdown = castDurationMs > 0
+            castFillColor, castDepthColor = ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
+        end
+
+        if not abilityName or abilityName == "" then
+            abilityName = GetSlotName(slotIndex, hotbar)
+        end
+        if not abilityName or abilityName == "" then
+            return nil
+        end
+
+        if castDurationMs <= 0 then
+            castDurationMs = BETTERUI_CAST_BAR_INSTANT_DISPLAY_MS or 850
+        end
+
+        return abilityName, castDurationMs, isChanneled, showCountdown, castFillColor, castDepthColor
+    end
+
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "SlotAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+            if not slotIndex then return end
             local hotbar = GetActiveHotbarCategory()
-            local abilityId = GetSlotBoundId(slotIndex, hotbar)
-            if not abilityId or abilityId == 0 then return end
-            if IsSlotToggled(slotIndex) then return end
-            local isChanneled, castTime, channelTime = GetAbilityCastInfo(abilityId)
-            local duration = math.max(castTime or 0, channelTime or 0)
-            if duration <= 0 then return end
-            local name = GetAbilityName(abilityId)
-            self:OnCastStart("player", name, duration, isChanneled)
+            local name, duration, isChanneled, showCountdown, castFillColor, castDepthColor = ResolveCastDisplayData(slotIndex, hotbar)
+            if not name or duration <= 0 then return end
+            self:OnCastStart("player", name, duration, isChanneled, showCountdown, castFillColor, castDepthColor)
+        end, REGISTER_FILTER_UNIT_TAG, "player")
+
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "CastColorPowerProbe",
+        EVENT_POWER_UPDATE, function(_, unitTag, powerPoolIndex, powerType, powerValue)
+            if unitTag ~= "player" then return end
+            if powerType ~= COST_TYPE_HEALTH and powerType ~= COST_TYPE_MAGICKA and powerType ~= COST_TYPE_STAMINA then
+                return
+            end
+
+            local previous = self.lastKnownPowerValues and self.lastKnownPowerValues[powerType]
+            if self.lastKnownPowerValues then
+                self.lastKnownPowerValues[powerType] = powerValue
+            end
+
+            if not self.isCasting then return end
+            if type(previous) ~= "number" or type(powerValue) ~= "number" then return end
+            if previous <= powerValue then return end
+
+            local probeStart = self.pendingPowerProbeStartMs or 0
+            if probeStart <= 0 then return end
+
+            local elapsedMs = GetFrameTimeMilliseconds() - probeStart
+            if elapsedMs < 0 or elapsedMs > CAST_BAR_POWER_PROBE_WINDOW_MS then
+                self.pendingPowerProbeStartMs = 0
+                return
+            end
+
+            local sampledColor, sampledDepthColor = ResolveCastBarFillColorByPowerType(powerType)
+            if sampledColor then
+                self.currentFillColor = sampledColor
+                self.currentDepthColor = sampledDepthColor or self.defaultDepthColor
+                self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
+            end
+            self.pendingPowerProbeStartMs = 0
         end, REGISTER_FILTER_UNIT_TAG, "player")
 
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
-function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled)
+function CastBar:ApplyFillStyle(fillColor, depthColor)
+    self.currentFillColor = fillColor or self.defaultFillColor
+    self.currentDepthColor = depthColor or self.defaultDepthColor
+
+    if not self.fill then return end
+
+    self.fill:SetColor(unpack(self.currentFillColor))
+    self.fill:SetGradientColors(
+        ORIENTATION_VERTICAL,
+        self.currentDepthColor[1] or 0,
+        self.currentDepthColor[2] or 0,
+        self.currentDepthColor[3] or 0,
+        self.currentDepthColor[4] or 1,
+        self.currentFillColor[1] or 1,
+        self.currentFillColor[2] or 1,
+        self.currentFillColor[3] or 1,
+        self.currentFillColor[4] or 1
+    )
+end
+
+function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, showCountdown, castFillColor, castDepthColor)
     if unitTag ~= "player" then return end
+    local durationSeconds = (castDuration or 0) / 1000
+    if durationSeconds <= 0 then return end
+
     self.isCasting = true
-    self.duration = castDuration / 1000
+    self.duration = durationSeconds
+    self.postCastHold = showCountdown and 0.5 or 0
+    self.showCountdown = showCountdown == true
+    self.isChanneled = isChanneled == true
     self.startTime = GetFrameTimeSeconds()
     self.abilityName = abilityName
+    self.pendingPowerProbeStartMs = GetFrameTimeMilliseconds()
+    self:ApplyFillStyle(castFillColor or self.defaultFillColor, castDepthColor or self.defaultDepthColor)
     self.control:SetHidden(false)
+    if self.fill then self.fill:SetHidden(false) end
 end
 
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
+    self.showCountdown = false
+    self.isChanneled = false
+    self.pendingPowerProbeStartMs = 0
     self:Update()
 end
 
@@ -251,16 +522,22 @@ function CastBar:Update()
         local remaining = math.max(0, self.duration - elapsed)
 
         current = remaining
-        max = self.duration
+        max = math.max(self.duration, 0.001)
 
         if current < 0 then current = 0 end
         if current > max then current = max end
-        self.label:SetText(string.format("%s (%.1fs)", self.abilityName or "Casting", remaining))
+        local fallbackLabel = GetString(SI_BETTERUI_LABEL_CAST_BAR)
+        if self.showCountdown then
+            self.label:SetText(string.format("%s (%.1fs)", self.abilityName or fallbackLabel, remaining))
+        else
+            self.label:SetText(self.abilityName or fallbackLabel)
+        end
 
-        if elapsed > self.duration + 0.5 then
+        if elapsed > self.duration + (self.postCastHold or 0.5) then
             self:OnCastStop("player", false)
         end
         self:UpdateVisuals(current, max, insetX, insetY, w, h)
+        self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
     else
         if settings.castBarAlwaysShow then
             self.control:SetHidden(false)
@@ -284,7 +561,10 @@ function ExperienceBar:New(parent)
 end
 
 function ExperienceBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent, "Bar.dds", BETTERUI_XP_BAR_TEXTURE_BOUNDS,
+    BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent,
+        BETTERUI_XP_BAR_BACKDROP_TEXTURE or "Bar.dds",
+        BETTERUI_XP_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
+        BETTERUI_XP_BAR_TEXTURE_BOUNDS,
         BETTERUI_XP_BAR_FILL_REGION)
     self:SetColor(0.1, 0.85, 0.8, 1)
 end
@@ -361,7 +641,9 @@ function MountStaminaBar:New(parent)
 end
 
 function MountStaminaBar:Initialize(parent)
-    BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent, "MountBar.dds",
+    BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent,
+        BETTERUI_MOUNT_STAMINA_BAR_BACKDROP_TEXTURE or "MountBar.dds",
+        BETTERUI_MOUNT_STAMINA_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
         BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS, BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION)
     self:SetColor(0, 0.8, 0.2, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))

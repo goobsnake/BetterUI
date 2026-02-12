@@ -23,7 +23,7 @@ local function GetDefaults()
         staminaTextSize = 20,
         staminaTextColor = { 1, 1, 1, 1 },
         shieldTextSize = 20,
-        shieldTextColor = { 0, 1, 1, 1 },
+        shieldTextColor = { 0.4, 0.9, 1, 1 },
         xpBarEnabled = true, -- CHANGED: Showcase for new users
         xpBarTextSize = 16,
         xpBarTextColor = { 1, 1, 1, 1 },
@@ -43,7 +43,7 @@ local function GetDefaults()
         showUltimateNumber = true,  -- CHANGED: Showcase for new users
         ultimateTextSize = 27,
         ultimateTextColor = { 1, 1, 1, 1 },
-        showQuickslotCooldown = false,
+        showQuickslotCooldown = true, -- CHANGED: Showcase for new users
         showQuickslotCount = true,
         showCombatGlow = false,
         combatGlowColor = { 1, 0.3, 0.1, 0.8 },

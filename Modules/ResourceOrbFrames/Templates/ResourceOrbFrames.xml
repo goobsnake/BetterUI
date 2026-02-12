@@ -204,14 +204,14 @@ Purpose: Main TopLevelControl for the Resource Orb Frames feature.
                     <Dimensions x="150" y="150" />
                     <Anchor point="CENTER" relativeTo="$(parent)OrbHealth" relativePoint="CENTER" />
                     <Controls>
-                        <Texture name="$(parent)Fog" color="00ffff"
+                        <Texture name="$(parent)Fog" color="66e6ff"
                             textureFile="BetterUI/Modules/ResourceOrbFrames/Textures/OrbOverlay_Shield.dds"
                             layer="1" level="6">
                             <AnchorFill />
                             <Dimensions x="150" y="150" />
                         </Texture>
                         <Label name="$(parent)Label" font="ZoFontGame" layer="1"
-                            level="20" color="00ffff"
+                            level="20" color="66e6ff"
                             verticalAlignment="1" horizontalAlignment="1">
                             <Anchor point="CENTER" relativeTo="$(parent)" relativePoint="CENTER"
                                 offsetX="12" offsetY="25" />

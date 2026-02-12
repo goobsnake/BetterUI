@@ -11,6 +11,8 @@ local Events = BETTERUI.ResourceOrbFrames.Events
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local Visuals = BETTERUI.ResourceOrbFrames.Visuals -- If needed
 local NAME = "ResourceOrbFrames"
+local COOLDOWN_VISUAL_TICK_MS = 16
+local CORE_STATUS_TICK_MS = 100
 
 local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
@@ -116,18 +118,26 @@ end
 --- @param pools table<number, OrbPool> The power type pools
 --- @param shieldBar table|nil The shield bar control
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
-    -- Back Bar Cooldown Tick (100ms)
-    local function CooldownTick()
-        SkillBar.UpdateBackBarCooldowns(rootFrame)
+    -- Core status tick (100ms): usability and ultimate meters/text.
+    local function CoreStatusTick()
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
-            SkillBar.UpdateFrontBarCooldowns(rootFrame)
             SkillBar.UpdateFrontBarUsability(rootFrame)
             SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
             SkillBar.UpdateFrontBarUltimateNumber(rootFrame)
         end
     end
-    EVENT_MANAGER:RegisterForUpdate(NAME .. "BackBarCooldown", 100, CooldownTick)
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "CoreStatus", CORE_STATUS_TICK_MS, CoreStatusTick)
+
+    -- Cooldown visual tick (16ms): smoother reveal animation for front/back bars.
+    local function CooldownVisualTick()
+        SkillBar.UpdateBackBarCooldowns(rootFrame)
+        local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        if frontBarCfg and frontBarCfg.m_enabled then
+            SkillBar.UpdateFrontBarCooldowns(rootFrame)
+        end
+    end
+    EVENT_MANAGER:RegisterForUpdate(NAME .. "CooldownVisuals", COOLDOWN_VISUAL_TICK_MS, CooldownVisualTick)
 
     -- Animation Tick (33ms = 30fps)
     local lastAnimTime = GetGameTimeMilliseconds()

@@ -306,89 +306,138 @@ BETTERUI_ORB_FRAMES = {
 -- ============================================================================
 
 -- TODO(refactor): Namespace bar config globals (BETTERUI_XP_BAR_*, BETTERUI_CAST_BAR_*, BETTERUI_MOUNT_STAMINA_BAR_*) under BETTERUI.ResourceOrbFrames.CONST.BARS
+-- Fill tuning quick guide (applies to XP/Cast/Mount bars):
+-- 1) Shrink/stretch fill track width with *_FILL_WIDTH_SCALE (1.0 = full bar width).
+-- 2) Shrink/stretch fill track height with *_FILL_HEIGHT_SCALE (1.0 = full bar height).
+-- 3) Move fill right/left with *_FILL_OFFSET_X (+ right, - left).
+-- 4) Move fill down/up with *_FILL_OFFSET_Y (+ down, - up).
+-- 5) Label anchors auto-center on the fill track; use *_BAR_LABEL_OFFSET_X/Y for final text nudges.
+
+-- ============================================================================
+-- RECTANGULAR BAR GRAPHICS
+-- Backdrop textures are module-local DDS files (resolved from Textures/CustomTextures).
+-- Fill textures can be an ESO full path or a module-local DDS filename.
+-- ============================================================================
+BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds"
+
+BETTERUI_XP_BAR_BACKDROP_TEXTURE = "Bar.dds"
+BETTERUI_XP_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
+
+BETTERUI_CAST_BAR_BACKDROP_TEXTURE = "CastBar.dds"
+BETTERUI_CAST_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
+
+BETTERUI_MOUNT_STAMINA_BAR_BACKDROP_TEXTURE = "MountBar.dds"
+BETTERUI_MOUNT_STAMINA_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
+
+local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fillHeightScale, fillOffsetX, fillOffsetY)
+    local halfWidth = (fillWidthScale or 1) * 0.5
+    local halfHeight = (fillHeightScale or 1) * 0.5
+    local centerX = 0.5 + ((fillOffsetX or 0) / barWidth)
+    local centerY = 0.5 + ((fillOffsetY or 0) / barHeight)
+
+    return {
+        left = centerX - halfWidth,
+        right = centerX + halfWidth,
+        top = centerY - halfHeight,
+        bottom = centerY + halfHeight,
+    }
+end
+
 -- Experience/Champion Bar positioning (Below left ornament)
-BETTERUI_XP_BAR_SCALE = 1.0        -- Scale multiplier for XP bar
-BETTERUI_XP_BAR_OFFSET_X = 0       -- X offset from center (positive = right)
-BETTERUI_XP_BAR_OFFSET_Y = -85     -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_XP_BAR_FILL_INSET_X = 20  -- Horizontal inset for fill bar within frame
-BETTERUI_XP_BAR_FILL_INSET_Y = 4   -- Vertical inset for fill bar within frame
-BETTERUI_XP_BAR_WIDTH = 215        -- Width of the XP bar in pixels
-BETTERUI_XP_BAR_HEIGHT = 190       -- Height of the XP bar in pixels
-BETTERUI_XP_BAR_LABEL_OFFSET_X = 0 -- Horizontal offset for text label (from fill-region center)
-BETTERUI_XP_BAR_LABEL_OFFSET_Y = 4 -- Vertical offset for text label (from fill-region center)
+BETTERUI_XP_BAR_SCALE = 1.0         -- Scale multiplier for XP bar
+BETTERUI_XP_BAR_OFFSET_X = 0        -- X offset from center (positive = right)
+BETTERUI_XP_BAR_OFFSET_Y = -85      -- Y offset from BgMiddle bottom (negative = up)
+BETTERUI_XP_BAR_WIDTH = 215         -- Width of the XP bar in pixels
+BETTERUI_XP_BAR_HEIGHT = 190        -- Height of the XP bar in pixels
+BETTERUI_XP_BAR_LABEL_OFFSET_X = -2 -- Horizontal offset for text label (from fill-region center)
+BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from fill-region center)
 BETTERUI_XP_BAR_TEXTURE_BOUNDS = {
-    left = 0,                      -- Full texture (recalibrate once DDS artwork margins are known)
+    left = 0,                       -- Full texture (recalibrate once DDS artwork margins are known)
     right = 1,
     top = 0,
     bottom = 1,
 }
-BETTERUI_XP_BAR_FILL_REGION = {
-    left = 0.18,   -- Left edge of internal open area (fraction of control width)
-    right = 0.82,  -- Right edge of internal open area
-    top = 0.43,    -- Top edge of fill strip (narrow band in center)
-    bottom = 0.57, -- Bottom edge of fill strip
-}
+BETTERUI_XP_BAR_FILL_WIDTH_SCALE = 0.58  -- Fill width as fraction of bar width (1.0 = full width)
+BETTERUI_XP_BAR_FILL_HEIGHT_SCALE = 0.15 -- Fill height as fraction of bar height (1.0 = full height)
+BETTERUI_XP_BAR_FILL_OFFSET_X = 0        -- Fill track horizontal offset (+ right, - left)
+BETTERUI_XP_BAR_FILL_OFFSET_Y = 2        -- Fill track vertical offset (+ down, - up)
+BETTERUI_XP_BAR_FILL_INSET_X = 20        -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_XP_BAR_FILL_INSET_Y = 4         -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_XP_BAR_FILL_REGION = BuildBarFillRegionFromBox(
+    BETTERUI_XP_BAR_WIDTH,
+    BETTERUI_XP_BAR_HEIGHT,
+    BETTERUI_XP_BAR_FILL_WIDTH_SCALE,
+    BETTERUI_XP_BAR_FILL_HEIGHT_SCALE,
+    BETTERUI_XP_BAR_FILL_OFFSET_X,
+    BETTERUI_XP_BAR_FILL_OFFSET_Y
+)
 -- XP Bar positioning when Left Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X = -423 -- X offset from BgMiddle center (negative = left)
 BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 108  -- Y offset from BgMiddle center (negative = up)
 
 -- Cast Bar positioning (centered above top/back bar)
-BETTERUI_CAST_BAR_SCALE = 1.0          -- Scale multiplier for Cast bar
-BETTERUI_CAST_BAR_OFFSET_X = -30       -- X offset from center (negative = left)
-BETTERUI_CAST_BAR_OFFSET_Y = 110       -- Y offset from back bar top (positive = down, closer to bar)
-BETTERUI_CAST_BAR_FILL_INSET_X = 45    -- Horizontal inset for fill bar within frame
-BETTERUI_CAST_BAR_FILL_INSET_Y = 59    -- Vertical inset for fill bar within frame
-BETTERUI_CAST_BAR_WIDTH = 300          -- Width of the cast bar in pixels
-BETTERUI_CAST_BAR_HEIGHT = 275         -- Height of the cast bar in pixels
-BETTERUI_CAST_BAR_LABEL_OFFSET_X = -3  -- Horizontal offset for text label (from fill-region center)
-BETTERUI_CAST_BAR_LABEL_OFFSET_Y = -33 -- Vertical offset for text label (from fill-region center)
+BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
+BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
+BETTERUI_CAST_BAR_OFFSET_Y = 110           -- Y offset from back bar top (positive = down, closer to bar)
+BETTERUI_CAST_BAR_INSTANT_DISPLAY_MS = 850 -- Preview duration for instant skills (milliseconds)
+BETTERUI_CAST_BAR_WIDTH = 300              -- Width of the cast bar in pixels
+BETTERUI_CAST_BAR_HEIGHT = 275             -- Height of the cast bar in pixels
+BETTERUI_CAST_BAR_LABEL_OFFSET_X = -3      -- Horizontal offset for text label (from fill-region center)
+BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from fill-region center)
 BETTERUI_CAST_BAR_TEXTURE_BOUNDS = {
-    left = 0,                          -- Full texture (recalibrate once DDS artwork margins are known)
+    left = 0,                              -- Full texture (recalibrate once DDS artwork margins are known)
     right = 1,
     top = 0,
     bottom = 1,
 }
-BETTERUI_CAST_BAR_FILL_REGION = {
-    left = 0.253669,  -- Within texture-bounds crop
-    right = 0.815514, -- Within texture-bounds crop
-    top = 0.470588,   -- Within texture-bounds crop
-    bottom = 0.764706 -- Within texture-bounds crop
-}
+BETTERUI_CAST_BAR_FILL_WIDTH_SCALE = 0.58  -- Fill width as fraction of bar width (1.0 = full width)
+BETTERUI_CAST_BAR_FILL_HEIGHT_SCALE = 0.10 -- Fill height as fraction of bar height (1.0 = full height)
+BETTERUI_CAST_BAR_FILL_OFFSET_X = 10       -- Fill track horizontal offset (+ right, - left)
+BETTERUI_CAST_BAR_FILL_OFFSET_Y = -2       -- Fill track vertical offset (+ down, - up)
+BETTERUI_CAST_BAR_FILL_INSET_X = 45        -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_CAST_BAR_FILL_INSET_Y = 59        -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_CAST_BAR_FILL_REGION = BuildBarFillRegionFromBox(
+    BETTERUI_CAST_BAR_WIDTH,
+    BETTERUI_CAST_BAR_HEIGHT,
+    BETTERUI_CAST_BAR_FILL_WIDTH_SCALE,
+    BETTERUI_CAST_BAR_FILL_HEIGHT_SCALE,
+    BETTERUI_CAST_BAR_FILL_OFFSET_X,
+    BETTERUI_CAST_BAR_FILL_OFFSET_Y
+)
 
 -- Mount Stamina Bar positioning (under right ornament when mounted)
-BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0         -- Scale multiplier for mount stamina bar
-BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0        -- X offset from center (positive = right)
-BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -85      -- Y offset from ornament bottom (negative = up)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 45   -- Horizontal inset for fill bar within frame
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 59   -- Vertical inset for fill bar within frame
-BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 220         -- Width of the mount stamina bar in pixels
-BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 185        -- Height of the mount stamina bar in pixels
-BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X = 0  -- Horizontal offset for text label (from fill-region center)
-BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = -2 -- Vertical offset for text label (from fill-region center)
+BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0        -- Scale multiplier for mount stamina bar
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0       -- X offset from center (positive = right)
+BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -85     -- Y offset from ornament bottom (negative = up)
+BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 220        -- Width of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 185       -- Height of the mount stamina bar in pixels
+BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X = 0 -- Horizontal offset for text label (from fill-region center)
+BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2 -- Vertical offset for text label (from fill-region center)
 BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS = {
-    left = 0,                                  -- Full texture (recalibrate once DDS artwork margins are known)
+    left = 0,                                 -- Full texture (recalibrate once DDS artwork margins are known)
     right = 1,
     top = 0,
     bottom = 1,
 }
-BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION = {
-    left = 0.225000,  -- Within texture-bounds crop
-    right = 0.775000, -- Within texture-bounds crop
-    top = 0.240000,   -- Within texture-bounds crop
-    bottom = 0.800000 -- Within texture-bounds crop
-}
+BETTERUI_MOUNT_STAMINA_BAR_FILL_WIDTH_SCALE = 0.55  -- Fill width as fraction of bar width (1.0 = full width)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_HEIGHT_SCALE = 0.15 -- Fill height as fraction of bar height (1.0 = full height)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_X = 0        -- Fill track horizontal offset (+ right, - left)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_Y = 0        -- Fill track vertical offset (+ down, - up)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 45        -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 59        -- Legacy fallback only (used only if fill-region config is invalid)
+BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION = BuildBarFillRegionFromBox(
+    BETTERUI_MOUNT_STAMINA_BAR_WIDTH,
+    BETTERUI_MOUNT_STAMINA_BAR_HEIGHT,
+    BETTERUI_MOUNT_STAMINA_BAR_FILL_WIDTH_SCALE,
+    BETTERUI_MOUNT_STAMINA_BAR_FILL_HEIGHT_SCALE,
+    BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_X,
+    BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_Y
+)
 -- Mount Stamina Bar positioning when Right Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X = 424 -- X offset from BgMiddle center (positive = right)
 BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 110 -- Y offset from BgMiddle center (negative = up)
-
--- ============================================================================
--- RECTANGULAR BAR FILL TEXTURES
--- These textures are used for the XP, Cast, and Mount Stamina bars
--- ============================================================================
-
-BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds"
 
 -- ============================================================================
 -- DEBUG FLAGS
