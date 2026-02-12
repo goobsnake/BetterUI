@@ -51,9 +51,9 @@ Description: Search bar positioning constants for Banking module.
 Used By: Banking.lua
 ]]
 BETTERUI.Banking.CONST.SEARCH = {
-    X_OFFSET = searchConst.X_OFFSET,
-    Y_OFFSET = searchConst.Y_OFFSET,
-    RIGHT_INSET = searchConst.RIGHT_INSET,
+    X_OFFSET = searchConst.X_OFFSET,    -- Horizontal position from header left (+ right, - left).
+    Y_OFFSET = searchConst.Y_OFFSET,    -- Vertical drop from header anchor (+ down, - up).
+    RIGHT_INSET = searchConst.RIGHT_INSET, -- Right-edge inset for width (- left = narrower box).
 }
 
 -- DEPRECATED(v3.1): Use BETTERUI.Banking.CONST.SEARCH.* instead
@@ -88,6 +88,8 @@ BETTERUI.Banking.CONST.CURRENCY_TEXTURES = {
 --[[
 Constant: BETTERUI_BANK_LIST_MAX_OFFSET
 Description: Maximum vertical offset for the banking list.
+Direction: Positive (+) moves the list DOWN from its base anchor.
+Visual Effect: Increasing this allows more downward drift before clamp; decreasing keeps list tighter to header.
 Used By: Banking.lua
 ]]
 BETTERUI_BANK_LIST_MAX_OFFSET = 30
@@ -95,6 +97,7 @@ BETTERUI_BANK_LIST_MAX_OFFSET = 30
 --[[
 Constant: BETTERUI_BANK_HEADER_PADDING_SCALE
 Description: Scale factor for header padding to align with list.
+Visual Effect: >1 increases header side padding (content pulls inward), <1 reduces padding (content stretches outward).
 Used By: Banking.lua
 ]]
 BETTERUI_BANK_HEADER_PADDING_SCALE = 0.75

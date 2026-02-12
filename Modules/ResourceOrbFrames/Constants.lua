@@ -18,19 +18,19 @@ Last Modified: 2026-02-11
 BETTERUI_MIN_COOLDOWN_DISPLAY_MS = 1500
 
 -- Default text size used for ultimate number and quickslot displays
-BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27
+BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27 -- Baseline font size for quickslot/ultimate text; increase improves readability but can overlap button glyphs.
 
 -- Quickslot count text anchor offsets.
 -- Keybind offsets are used when the quickslot button has a ButtonText keybind label.
-BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 0
-BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = -2
-BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 0
-BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 1
+BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 0 -- Count-text X nudge from keybind label center (+ right, - left).
+BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = -2 -- Count-text Y nudge from keybind label center (+ down, - up).
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 0 -- Count-text X nudge when anchored directly to quickslot button (+ right, - left).
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 1 -- Count-text Y nudge when anchored directly to button (+ down, - up).
 
 -- Ultimate number text anchor and dimensions.
-BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X = 0
-BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_Y = -5
-BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32
+BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X = 0 -- Ultimate value X nudge from bottom-center anchor (+ right, - left).
+BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_Y = -5 -- Ultimate value Y nudge from bottom-center anchor (+ down, - up).
+BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32 -- Label box height; increase gives more vertical room for larger fonts.
 
 -- ============================================================================
 -- LAYOUT CONFIGURATION
@@ -40,12 +40,12 @@ BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32
 -- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
 LAYOUT_CONFIG = {
     GAMEPAD = {
-        abilitySlotWidth = 67,
-        abilitySlotOffsetX = 10
+        abilitySlotWidth = 67,   -- Gamepad action-slot width; higher values enlarge slot boxes.
+        abilitySlotOffsetX = 10, -- Global gamepad slot X nudge (+ right, - left) when skinning native controls.
     },
     KEYBOARD = {
-        abilitySlotWidth = 50,
-        abilitySlotOffsetX = 2
+        abilitySlotWidth = 50,  -- Keyboard action-slot width; keeps keyboard profile compact.
+        abilitySlotOffsetX = 2, -- Global keyboard slot X nudge (+ right, - left) when skinning native controls.
     }
 }
 
@@ -63,12 +63,12 @@ LAYOUT_CONFIG = {
 --- Rationale: Centralizing these values allows for easier UI scaling and theme support.
 if not BETTERUI.CONST.ORBS then BETTERUI.CONST.ORBS = {} end
 BETTERUI.CONST.ORBS.DIMENSIONS = {
-    GAMEPAD_FRAME_WIDTH = 600,
-    GAMEPAD_FRAME_HEIGHT = 256,
-    KEYBOARD_FRAME_WIDTH = 550,
-    ORNAMENT_SIZE = 465,
-    ORB_TEXTURE_SIZE = 240,
-    FILL_TEXTURE_SIZE = 256,
+    GAMEPAD_FRAME_WIDTH = 600,  -- Root frame width in gamepad mode (wider to fit custom bars).
+    GAMEPAD_FRAME_HEIGHT = 256, -- Root frame height in gamepad mode.
+    KEYBOARD_FRAME_WIDTH = 550, -- Root frame width in keyboard mode.
+    ORNAMENT_SIZE = 465,        -- Shared square texture size for left/right ornament art.
+    ORB_TEXTURE_SIZE = 240,     -- Base orb mask/border texture dimensions.
+    FILL_TEXTURE_SIZE = 256,    -- Fill texture canvas size before per-orb scaling/cropping.
 }
 
 --- Configuration table for the Resource Orb Frames (Health/Magicka/Stamina orbs).
@@ -297,18 +297,19 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     -- CUSTOM OVERLAYS
     -- Optional images displayed when Ornaments are hidden (e.g., Health.dds)
-    -- NOTE: Offset directions are user-calibrated for these specific textures.
+    -- NOTE: These are raw SetAnchor(CENTER, ..., x, y) offsets:
+    --       +X moves RIGHT, -X moves LEFT, +Y moves DOWN, -Y moves UP.
     -- =======================================================================
     overlays = {
         health = {
             scale = 0.835, -- Size multiplier relative to border size
-            x = 1,         -- Horizontal offset from center (+ left, - right)
-            y = 1          -- Vertical offset from center (+ up, - down)
+            x = 1,         -- Horizontal offset from center (+ right, - left)
+            y = 1          -- Vertical offset from center (+ down, - up)
         },
         magStam = {
             scale = 0.83, -- Size multiplier relative to border size
-            x = 4,        -- Horizontal offset from center (+ left, - right)
-            y = -1        -- Vertical offset from center (+ up, - down)
+            x = 4,        -- Horizontal offset from center (+ right, - left)
+            y = -1        -- Vertical offset from center (+ down, - up)
         },
     },
 }
@@ -342,6 +343,7 @@ BETTERUI_MOUNT_STAMINA_BAR_BACKDROP_TEXTURE = "MountBar.dds"
 BETTERUI_MOUNT_STAMINA_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
 
 local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fillHeightScale, fillOffsetX, fillOffsetY)
+    -- Converts developer-friendly scale/offset values into normalized UV-like region bounds [0..1].
     local halfWidth = (fillWidthScale or 1) * 0.5
     local halfHeight = (fillHeightScale or 1) * 0.5
     local centerX = 0.5 + ((fillOffsetX or 0) / barWidth)
@@ -386,7 +388,7 @@ BETTERUI_XP_BAR_FILL_REGION = BuildBarFillRegionFromBox(
 -- XP Bar positioning when Left Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X = -423 -- X offset from BgMiddle center (negative = left)
-BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 108  -- Y offset from BgMiddle center (negative = up)
+BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 108  -- Y offset from BgMiddle center (+ down, - up)
 
 -- Cast Bar positioning (centered above top/back bar)
 BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
@@ -449,7 +451,7 @@ BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION = BuildBarFillRegionFromBox(
 -- Mount Stamina Bar positioning when Right Ornament is hidden (relative to BgMiddle center)
 -- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
 BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X = 424 -- X offset from BgMiddle center (positive = right)
-BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 110 -- Y offset from BgMiddle center (negative = up)
+BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 110 -- Y offset from BgMiddle center (+ down, - up)
 
 -- ============================================================================
 -- DEBUG FLAGS

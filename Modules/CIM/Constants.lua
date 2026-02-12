@@ -212,9 +212,9 @@ BETTERUI.CIM.CONST.SEARCH_BAR = {
     },
     -- Banking-specific overrides (different header layout)
     BANKING = {
-        X_OFFSET = 55,
-        Y_OFFSET = 15,
-        RIGHT_INSET = -8,
+        X_OFFSET = 55,    -- Horizontal anchor shift from left edge (+ right, - left)
+        Y_OFFSET = 15,    -- Vertical push below banking header (+ down, - up)
+        RIGHT_INSET = -8, -- Width trim from right edge (- left = narrower search box)
     },
 }
 
@@ -397,30 +397,33 @@ BETTERUI.CIM.CONST.CAROUSEL = {
 -- HEADER GEOMETRY (Used in GenericHeader.xml)
 -- ============================================================================
 
-BETTERUI_DIVIDER_HEIGHT = 8
-BETTERUI_HEADER_TABBAR_Y_OFFSET = 25
-BETTERUI_HEADER_TABBAR_HEIGHT = 100
-BETTERUI_HEADER_Y_OFFSET = 26
-BETTERUI_HEADER_TABBAR_LIST_Y_OFFSET = 75
-BETTERUI_HEADER_SELECTED_BG_WIDTH = 50
-BETTERUI_HEADER_SELECTED_BG_HEIGHT = 25
-BETTERUI_HEADER_SELECTED_BG_Y_OFFSET = 32
-BETTERUI_HEADER_BUMPER_ICON_SIZE = 60
-BETTERUI_HEADER_BUMPER_ICON_Y_OFFSET = 5
-BETTERUI_HEADER_EQUIP_ROW_Y_OFFSET = -5
-BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET = 95
-BETTERUI_HEADER_DIVIDER_OFFSET_Y = 77
-BETTERUI_HEADER_DIVIDER_OFFSET_Y_SPACED = 81
-BETTERUI_HEADER_BOTTOM_DIVIDER_Y_OFFSET = 110
+-- Tuning guidance:
+-- * Positive Y offsets move controls DOWN from anchor; negative values move UP.
+-- * Increasing heights/size values expands visual footprint and can push nearby rows.
+BETTERUI_DIVIDER_HEIGHT = 8               -- Divider thickness; increase for bolder separator lines.
+BETTERUI_HEADER_TABBAR_Y_OFFSET = 25      -- Tab bar vertical offset from header root (+ down, - up).
+BETTERUI_HEADER_TABBAR_HEIGHT = 100       -- Tab bar strip height; larger values push list start lower.
+BETTERUI_HEADER_Y_OFFSET = 26             -- Global header block offset from scene anchor (+ down, - up).
+BETTERUI_HEADER_TABBAR_LIST_Y_OFFSET = 75 -- Gap between tab bar and list region; larger = more breathing room.
+BETTERUI_HEADER_SELECTED_BG_WIDTH = 50    -- Width of selected tab highlight background.
+BETTERUI_HEADER_SELECTED_BG_HEIGHT = 25   -- Height of selected tab highlight background.
+BETTERUI_HEADER_SELECTED_BG_Y_OFFSET = 32 -- Selected background alignment relative to tab labels (+ down, - up).
+BETTERUI_HEADER_BUMPER_ICON_SIZE = 60     -- LB/RB bumper icon size (square dimensions).
+BETTERUI_HEADER_BUMPER_ICON_Y_OFFSET = 5  -- Bumper icon vertical alignment (+ down, - up).
+BETTERUI_HEADER_EQUIP_ROW_Y_OFFSET = -5   -- Equip icon row nudge (+ down, - up); more negative raises row.
+BETTERUI_HEADER_COLUMN_HEADER_Y_OFFSET = 95 -- Column label baseline position from tab bar anchor (+ down, - up).
+BETTERUI_HEADER_DIVIDER_OFFSET_Y = 77     -- First divider Y position below header (+ down, - up).
+BETTERUI_HEADER_DIVIDER_OFFSET_Y_SPACED = 81 -- Second divider Y position; larger value increases divider gap.
+BETTERUI_HEADER_BOTTOM_DIVIDER_Y_OFFSET = 110 -- Bottom divider position before list body begins (+ down, - up).
 
 -- ============================================================================
 -- FOOTER GEOMETRY (Used in GenericFooter.xml and GenericFooter.lua)
 -- ============================================================================
 
-BETTERUI_FOOTER_START_X = 190
-BETTERUI_FOOTER_RIGHT_PADDING = 50
-BETTERUI_FOOTER_BOTTOM_OFFSET_Y = -195
-BETTERUI_FOOTER_DIVIDER_OFFSET_Y = 15
+BETTERUI_FOOTER_START_X = 190      -- First footer currency column X origin (+ right, - left).
+BETTERUI_FOOTER_RIGHT_PADDING = 50 -- Right-side inset for footer content; larger = pulls columns left.
+BETTERUI_FOOTER_BOTTOM_OFFSET_Y = -195 -- Footer vertical offset from bottom anchor (+ down, - up).
+BETTERUI_FOOTER_DIVIDER_OFFSET_Y = 15  -- Divider offset inside footer container (+ down, - up).
 
 -- ============================================================================
 -- TOOLTIP LAYOUT CONSTANTS
@@ -482,9 +485,9 @@ Description: Panel width configurations for inventory/banking screens.
 Used By: XML templates and list managers.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.PANEL = {
-    WIDTH = 1350,
-    ZO_WIDTH = 470,
-    CONTAINER_WIDTH = 1325,
+    WIDTH = 1350,          -- Full custom panel width; larger values widen list/currency real estate.
+    ZO_WIDTH = 470,        -- Native ZO panel width used when a vanilla-width container is required.
+    CONTAINER_WIDTH = 1325, -- Inner content frame width; lower values add side gutters.
 }
 
 --[[
@@ -505,8 +508,8 @@ Description: List positioning and icon sizing.
 Used By: Inventory and Banking list templates.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.LIST = {
-    SCREEN_X_OFFSET = 90,
-    ICON_WIDTH = 50,
+    SCREEN_X_OFFSET = 90, -- List container X offset from panel left (+ right, - left).
+    ICON_WIDTH = 50,      -- Base list-entry icon size (icon height follows this width in templates).
     --[[
     Constant: CONTAINER
     Description: Offsets for list container anchoring relative to header/footer.
@@ -514,12 +517,12 @@ BETTERUI.CIM.CONST.LAYOUT.LIST = {
     Used By: Banking.lua, WindowClass.lua
     ]]
     CONTAINER = {
-        HEADER_X_OFFSET = 0,  -- Indent left from header (shift row data left/right)
-        HEADER_Y_OFFSET = 17, -- Push list below header column bar/dividers
-        FOOTER_Y_OFFSET = 10, -- Padding above footer
+        HEADER_X_OFFSET = 0,  -- Horizontal list nudge from header anchor (+ right, - left).
+        HEADER_Y_OFFSET = 17, -- Vertical distance below header dividers (+ down, - up).
+        FOOTER_Y_OFFSET = 10, -- Bottom padding above footer (+ down = less visible list space).
         -- Fixed offset for column headers (decoupled from list position)
         -- Calculation: entry_padding(36) + fine_tune(-35) = +1
-        COLUMN_HEADER_X_ADJUST = 1,
+        COLUMN_HEADER_X_ADJUST = 1, -- Fine horizontal alignment for header labels vs row columns.
     },
 }
 
@@ -537,7 +540,13 @@ Description: Column widths for header hit regions used in sorting.
 Used By: WindowClass.lua AddColumn method
 Layout: { NAME, TYPE, TRAIT, STAT, VALUE }
 ]]
-BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS = { 540, 250, 180, 130, 100 }
+BETTERUI.CIM.CONST.LAYOUT.COLUMN_WIDTHS = {
+    540, -- NAME header hit width (longest text + icons).
+    250, -- TYPE header hit width.
+    180, -- TRAIT header hit width.
+    130, -- STAT header hit width.
+    100, -- VALUE header hit width.
+}
 
 --[[
 Table: BETTERUI.CIM.CONST.LAYOUT.COLUMNS
@@ -546,11 +555,11 @@ Direction: OFFSET_X is Positive (+) moving RIGHT from the left edge of the list 
 Used By: Inventory list templates.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.COLUMNS = {
-    SUBMENU = { OFFSET_X = 70, WIDTH = 500 },   -- Constrained to not overlap TYPE at 513
-    TYPE    = { OFFSET_X = 513, WIDTH = 250 },  -- Shifted left 12px to align with header
-    TRAIT   = { OFFSET_X = 773, WIDTH = 180 },  -- Shifted left 12px to align with header
-    STAT    = { OFFSET_X = 963, WIDTH = 130 },  -- Shifted left 12px to align with header
-    VALUE   = { OFFSET_X = 1113, WIDTH = 100 }, -- Shifted left 12px to align with header
+    SUBMENU = { OFFSET_X = 70, WIDTH = 500 },    -- Name/submenu column start (+ right) and width budget.
+    TYPE    = { OFFSET_X = 513, WIDTH = 250 },   -- Item type column start (+ right) and width budget.
+    TRAIT   = { OFFSET_X = 773, WIDTH = 180 },   -- Trait column start (+ right) and width budget.
+    STAT    = { OFFSET_X = 963, WIDTH = 130 },   -- Stat column start (+ right) and width budget.
+    VALUE   = { OFFSET_X = 1113, WIDTH = 100 },  -- Value column start (+ right) and width budget.
 }
 
 --[[
@@ -559,17 +568,17 @@ Description: Tooltip positioning offsets for enhanced tooltips.
 Used By: CIM tooltip layout.
 ]]
 BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
-    STATUS_LABEL_OFFSET_Y = 60,
-    BODY_OFFSET_Y_ENHANCED = 50,
-    PRICE_LABEL_HEIGHT = 32,
-    PRICE_LABEL_OFFSET_Y = 5,
+    STATUS_LABEL_OFFSET_Y = 60, -- Status text vertical offset in enhanced tooltip (+ down, - up).
+    BODY_OFFSET_Y_ENHANCED = 50, -- Body block offset when enhanced sections are visible (+ down, - up).
+    PRICE_LABEL_HEIGHT = 32, -- Price label row height; increase creates taller price lane.
+    PRICE_LABEL_OFFSET_Y = 5, -- Price label vertical nudge inside tooltip footer (+ down, - up).
 }
 
 -- TODO(cleanup): Audit XML templates for BETTERUI_GAMEPAD_* usage — remove aliases whose XML consumers have been migrated
 -- Backward Compatibility Aliases (XML Support) - PANEL
-BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH
-BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH
-BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.CONTAINER_WIDTH
+BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH -- Mirrors custom panel width.
+BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH -- Mirrors native-width panel mode.
+BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.CONTAINER_WIDTH -- Mirrors inner panel width.
 
 -- Backward Compatibility Aliases (XML Support) - PADDING
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
@@ -580,37 +589,39 @@ BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ = BETTERUI.CIM.CONST.LAYOUT.PADDING.SCR
     BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
 
 -- Backward Compatibility Aliases (XML Support) - LIST
-BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET = BETTERUI.CIM.CONST.LAYOUT.LIST.SCREEN_X_OFFSET
-BETTERUI_TABBAR_ICON_WIDTH = BETTERUI.CIM.CONST.LAYOUT.LIST.ICON_WIDTH
+BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET = BETTERUI.CIM.CONST.LAYOUT.LIST.SCREEN_X_OFFSET -- + right, - left list shift.
+BETTERUI_TABBAR_ICON_WIDTH = BETTERUI.CIM.CONST.LAYOUT.LIST.ICON_WIDTH -- Shared tab/list icon width.
 
 -- Backward Compatibility Aliases (XML Support) - LIST ENTRY DIMENSIONS
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH -
-    (2 * BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING)
+    (2 * BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING) -- Full row width after left/right panel padding.
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH -
-    BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
-BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET = -20
+    BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING -- Half-width helper used by some templates.
+BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_ICON_X_OFFSET = -20 -- Icon anchor nudge inside list row (+ right, - left).
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT = BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET -
-    BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ
+    BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ -- Horizontal data indent from left edge (+ right, - left).
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT = BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH -
-    BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT
+    BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT -- Effective row width after icon/data indent.
 
 -- Backward Compatibility Aliases (XML Support) - HEADER
-BETTERUI_SEARCH_BAR_SPACING_Y = 8
+BETTERUI_SEARCH_BAR_SPACING_Y = 8 -- Vertical gap between header rows and search bar (+ down, - up).
 
 -- Backward Compatibility Aliases (XML Support) - POSITIONING
-BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING
+BETTERUI_GAMEPAD_QUADRANT_1_LEFT = BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING -- Left boundary for quadrant-1 anchored controls.
 
 -- Backward Compatibility Aliases (XML Support) - COLUMNS
-BETTERUI_SUBMENU_LABEL_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.OFFSET_X
-BETTERUI_SUBMENU_LABEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.WIDTH
-BETTERUI_ITEM_TYPE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TYPE.OFFSET_X
-BETTERUI_ITEM_TYPE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TYPE.WIDTH
-BETTERUI_TRAIT_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TRAIT.OFFSET_X
-BETTERUI_TRAIT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TRAIT.WIDTH
-BETTERUI_STAT_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.OFFSET_X
-BETTERUI_STAT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.WIDTH
-BETTERUI_VALUE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.OFFSET_X
-BETTERUI_VALUE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.WIDTH
+-- These aliases mirror canonical values in BETTERUI.CIM.CONST.LAYOUT.COLUMNS.
+-- Tune the canonical table above; aliases are kept for XML/backward compatibility only.
+BETTERUI_SUBMENU_LABEL_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.OFFSET_X -- + right, - left.
+BETTERUI_SUBMENU_LABEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.WIDTH -- Column width budget.
+BETTERUI_ITEM_TYPE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TYPE.OFFSET_X -- + right, - left.
+BETTERUI_ITEM_TYPE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TYPE.WIDTH -- Column width budget.
+BETTERUI_TRAIT_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TRAIT.OFFSET_X -- + right, - left.
+BETTERUI_TRAIT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TRAIT.WIDTH -- Column width budget.
+BETTERUI_STAT_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.OFFSET_X -- + right, - left.
+BETTERUI_STAT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.WIDTH -- Column width budget.
+BETTERUI_VALUE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.OFFSET_X -- + right, - left.
+BETTERUI_VALUE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.WIDTH -- Column width budget.
 
 -- ============================================================================
 -- COLORS (Migrated from BetterUI.CONST.lua)
@@ -735,7 +746,7 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
         Used By: GenericHeader.xml
         ]]
         OFFSET_Y = 77,
-        SPACING = 4,
+        SPACING = 4, -- Gap between the first and second divider lines; larger value increases separation.
     },
     --[[
     Constant: COLUMNS
@@ -761,7 +772,7 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
         Used By: GenericHeader.xml
         ]]
         BACKUP_X = -210,
-        ICON_GAP_X = 45,
+        ICON_GAP_X = 45, -- Horizontal gap from Equip text to icon anchor (+ right, - left).
     },
     OFFSETS = {
         --[[
