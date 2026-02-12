@@ -85,6 +85,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
         BETTERUI.Inventory.FONT_CHOICES,
         BETTERUI.Inventory.FONT_VALUES
     )
+    local minFontSize = BETTERUI.CIM.Font.SIZE_MIN or 12
+    local maxFontSize = BETTERUI.CIM.Font.SIZE_MAX or 48
 
     return {
         {
@@ -130,8 +132,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     type = "slider",
                     name = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE),
                     tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 48,
+                    min = minFontSize,
+                    max = maxFontSize,
                     step = 1,
                     getFunc = function()
                         local settings = GetInventorySettings()
@@ -139,7 +141,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         if settings then
                             val = settings.nameFontSize or val
                         end
-                        return val
+                        return BETTERUI.CIM.Font.GetSizeValue(val)
                     end,
                     setFunc = function(value)
                         local settings = GetInventorySettings()
@@ -229,8 +231,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     type = "slider",
                     name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE),
                     tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 48,
+                    min = minFontSize,
+                    max = maxFontSize,
                     step = 1,
                     getFunc = function()
                         local settings = GetInventorySettings()
@@ -238,7 +240,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         if settings then
                             val = settings.columnFontSize or val
                         end
-                        return val
+                        return BETTERUI.CIM.Font.GetSizeValue(val)
                     end,
                     setFunc = function(value)
                         local settings = GetInventorySettings()

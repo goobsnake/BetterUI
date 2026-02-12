@@ -611,7 +611,7 @@ param: refreshFn (function|nil) - Optional live refresh callback
 return: table - Array of LAM options (header, description, 2 submenus)
 ]]
 function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fontChoices, fontValues, styleChoices,
-                                                        styleValues, strings, refreshFn)
+                                                         styleValues, strings, refreshFn)
     -- Apply language-based font filtering (non-English users only see compatible fonts)
     local Localization = BETTERUI.CIM.Font.Localization
     local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(fontChoices, fontValues)
@@ -644,6 +644,9 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
             and BETTERUI.Settings.Modules["CIM"].m_enabled
         )
     end
+
+    local minFontSize = BETTERUI.CIM.Font.SIZE_MIN or 12
+    local maxFontSize = BETTERUI.CIM.Font.SIZE_MAX or 48
 
     local options = {
         -- Font Customization Header
@@ -687,12 +690,12 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     type = "slider",
                     name = GetString(strings.nameFontSize),
                     tooltip = GetString(strings.nameFontSizeTooltip),
-                    min = 12,
-                    max = 48,
+                    min = minFontSize,
+                    max = maxFontSize,
                     step = 1,
                     getFunc = function()
                         local s = getSettings()
-                        return (s and s.nameFontSize) or defaults.nameFontSize
+                        return BETTERUI.CIM.Font.GetSizeValue((s and s.nameFontSize) or defaults.nameFontSize)
                     end,
                     setFunc = function(value)
                         local s = ensureSettings()
@@ -771,12 +774,12 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
                     type = "slider",
                     name = GetString(strings.columnFontSize),
                     tooltip = GetString(strings.columnFontSizeTooltip),
-                    min = 12,
-                    max = 48,
+                    min = minFontSize,
+                    max = maxFontSize,
                     step = 1,
                     getFunc = function()
                         local s = getSettings()
-                        return (s and s.columnFontSize) or defaults.columnFontSize
+                        return BETTERUI.CIM.Font.GetSizeValue((s and s.columnFontSize) or defaults.columnFontSize)
                     end,
                     setFunc = function(value)
                         local s = ensureSettings()

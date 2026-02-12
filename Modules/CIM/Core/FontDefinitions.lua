@@ -104,6 +104,28 @@ BETTERUI.CIM.Font.DEFAULTS = {
     columnFontStyle = "",
 }
 
+BETTERUI.CIM.Font.SIZE_MIN = 12
+BETTERUI.CIM.Font.SIZE_MAX = 48
+
+local function ClampFontSize(sizeValue, fallback)
+    local numeric = tonumber(sizeValue)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    local minValue = BETTERUI.CIM.Font.SIZE_MIN
+    local maxValue = BETTERUI.CIM.Font.SIZE_MAX
+
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
+
 -------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
 -------------------------------------------------------------------------------------------------
@@ -119,10 +141,26 @@ return: number - The font size in pixels.
 --- @param sizeValue string|number The size setting value
 --- @return number fontSize The font size in pixels
 function BETTERUI.CIM.Font.GetSizeValue(sizeValue)
-    if type(sizeValue) == "number" then
-        return sizeValue
+    return ClampFontSize(sizeValue, BETTERUI.CIM.Font.DEFAULTS.nameFontSize)
+end
+
+--- Normalizes shared module font sizes to the active slider bounds.
+--- @param m_options table Module settings table
+--- @param defaults table|nil Optional module defaults table
+--- @return table m_options The normalized settings table
+function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
+    if type(m_options) ~= "table" then
+        return m_options
     end
-    return 24
+
+    local moduleDefaults = defaults or BETTERUI.CIM.Font.DEFAULTS
+    local defaultNameSize = BETTERUI.CIM.Font.GetSizeValue(moduleDefaults and moduleDefaults.nameFontSize)
+    local defaultColumnSize = BETTERUI.CIM.Font.GetSizeValue(moduleDefaults and moduleDefaults.columnFontSize)
+
+    m_options.nameFontSize = ClampFontSize(m_options.nameFontSize, defaultNameSize)
+    m_options.columnFontSize = ClampFontSize(m_options.columnFontSize, defaultColumnSize)
+
+    return m_options
 end
 
 --[[

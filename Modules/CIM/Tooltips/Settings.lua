@@ -585,8 +585,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             type = "slider",
             name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
             tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
-            min = 12,
-            max = 48,
+            min = BETTERUI.CIM.Font.SIZE_MIN or 12,
+            max = BETTERUI.CIM.Font.SIZE_MAX or 48,
             step = 1,
             getFunc = function()
                 local settings = GetModuleSettings("CIM")
@@ -595,6 +595,9 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     val = settings.tooltipSize or val
                 end
 
+                if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.GetSizeValue then
+                    return BETTERUI.CIM.Font.GetSizeValue(val)
+                end
                 return val
             end,
             setFunc = function(value)

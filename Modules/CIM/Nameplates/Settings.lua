@@ -8,6 +8,24 @@ if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.Nameplates == nil then BETTERUI.Nameplates = {} end
 
 local LAM = LibAddonMenu2
+local NAMEPLATE_SIZE_MIN = 8
+local NAMEPLATE_SIZE_MAX = 64
+
+local function ClampInteger(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
 
 local function GetNameplateSettings()
     local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
@@ -123,13 +141,14 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             type = "slider",
             name = GetString(SI_BETTERUI_NAMEPLATES_SIZE),
             tooltip = GetString(SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP),
-            min = 8,
-            max = 64,
+            min = NAMEPLATE_SIZE_MIN,
+            max = NAMEPLATE_SIZE_MAX,
             step = 1,
             default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.size or 16,
             getFunc = function()
                 local settings = GetNameplateSettings()
-                return (settings and settings.size) or 16
+                local defaultSize = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS and BETTERUI.Nameplates.DEFAULTS.size or 16
+                return ClampInteger(settings and settings.size, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, defaultSize)
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
@@ -184,6 +203,7 @@ function BETTERUI.Nameplates.InitModule(m_options)
     if m_options.font == nil then m_options.font = defaults.font end
     if m_options.style == nil then m_options.style = defaults.style end
     if m_options.size == nil then m_options.size = defaults.size end
+    m_options.size = ClampInteger(m_options.size, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, defaults.size)
 
     -- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
     -- Only migrate non-English users; English users keep their font selections

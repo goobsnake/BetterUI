@@ -160,6 +160,11 @@ function BETTERUI.Banking.InitModule(m_options)
 		end
 	end
 
+	-- Persisted font sizes may exceed current slider caps from prior versions.
+	if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then
+		BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
+	end
+
 	return m_options
 end
 

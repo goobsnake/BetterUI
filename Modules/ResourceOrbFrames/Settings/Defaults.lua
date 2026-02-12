@@ -83,10 +83,40 @@ local function ClampInteger(value, minValue, maxValue, fallback)
     return rounded
 end
 
-local function NormalizeTextSizeSettings(m_options, defaults)
+local function ClampNumber(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    if numeric < minValue then
+        return minValue
+    end
+    if numeric > maxValue then
+        return maxValue
+    end
+    return numeric
+end
+
+local function NormalizeNumericSettings(m_options, defaults)
     if type(m_options) ~= "table" then
         return
     end
+
+    -- General frame controls.
+    m_options.scale = ClampNumber(m_options.scale, 0.75, 1.75, defaults.scale or 1.0)
+    m_options.offsetY = ClampInteger(m_options.offsetY, -300, 300, defaults.offsetY or 0)
+
+    -- Skill/orb sliders with decimal ranges.
+    m_options.backBarOpacity = ClampNumber(m_options.backBarOpacity, 0.3, 1.0, defaults.backBarOpacity or 1)
+    m_options.leftOrbSizeScale = ClampNumber(m_options.leftOrbSizeScale, 1.0, 1.2, defaults.leftOrbSizeScale or 1.0)
+    m_options.rightOrbSizeScale = ClampNumber(m_options.rightOrbSizeScale, 1.0, 1.2, defaults.rightOrbSizeScale or 1.0)
+
+    -- Orb value text: enforce 12-26.
+    m_options.healthTextSize = ClampInteger(m_options.healthTextSize, 12, 26, defaults.healthTextSize or 20)
+    m_options.magickaTextSize = ClampInteger(m_options.magickaTextSize, 12, 26, defaults.magickaTextSize or 20)
+    m_options.staminaTextSize = ClampInteger(m_options.staminaTextSize, 12, 26, defaults.staminaTextSize or 20)
+    m_options.shieldTextSize = ClampInteger(m_options.shieldTextSize, 12, 26, defaults.shieldTextSize or 20)
 
     -- Bars: enforce 5-20.
     m_options.xpBarTextSize = ClampInteger(m_options.xpBarTextSize, 5, 20, defaults.xpBarTextSize or 16)
@@ -134,8 +164,8 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         if cfb.keyboard == nil then cfb.keyboard = d_cfb.keyboard end
     end
 
-    -- Migration/sanitization: normalize persisted text sizes to current slider limits.
-    NormalizeTextSizeSettings(m_options, defaults)
+    -- Migration/sanitization: normalize persisted numeric settings to current slider limits.
+    NormalizeNumericSettings(m_options, defaults)
 
     return m_options
 end

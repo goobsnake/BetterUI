@@ -375,5 +375,10 @@ function BETTERUI.Inventory.InitModule(m_options)
 		m_options["currencyOrder"] = string.gsub(m_options["currencyOrder"], "tickets", "tradebars")
 	end
 
+	-- Persisted font sizes may exceed current slider caps from prior versions.
+	if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then
+		BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, funcDefaults)
+	end
+
 	return m_options
 end
