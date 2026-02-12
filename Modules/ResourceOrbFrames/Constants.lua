@@ -20,6 +20,18 @@ BETTERUI_MIN_COOLDOWN_DISPLAY_MS = 1500
 -- Default text size used for ultimate number and quickslot displays
 BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27
 
+-- Quickslot count text anchor offsets.
+-- Keybind offsets are used when the quickslot button has a ButtonText keybind label.
+BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 0
+BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = -2
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 0
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 1
+
+-- Ultimate number text anchor and dimensions.
+BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X = 0
+BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_Y = -5
+BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32
+
 -- ============================================================================
 -- LAYOUT CONFIGURATION
 -- Defines the ability slot dimensions and offsets for main bar skinning.
@@ -257,7 +269,7 @@ BETTERUI_ORB_FRAMES = {
         magicka = { scaleW = 0.38, scaleH = 0.695, x = -19, y = 0 },
         stamina = { scaleW = 0.38, scaleH = 0.695, x = -93, y = 1 },
         resource = { scaleW = 0.75, scaleH = 0.695, x = 0, y = 0 },
-        shield = { scaleW = 1.0, scaleH = 1.0, x = 0, y = -2, ringScale = 0.65 }, -- scaleW/scaleH relative to ring size (borderSize * ringScale)
+        shield = { scaleW = 1.0, scaleH = 1.0, x = -3, y = 3, ringScale = 0.73 }, -- scaleW/scaleH relative to ring size (borderSize * ringScale)
     },
 
     -- =======================================================================
@@ -265,8 +277,8 @@ BETTERUI_ORB_FRAMES = {
     -- Vertical line separating the two resource pools
     -- =======================================================================
     splitter = {
-        width = 200,        -- Line width in pixels
-        heightScale = 0.66, -- Height as fraction of borderSize (0.81 = 81%)
+        width = 225,        -- Line width in pixels
+        heightScale = 0.64, -- Height as fraction of borderSize (0.81 = 81%)
         x = -2,             -- Horizontal offset (+ right, - left)
         y = -3,             -- Vertical offset (+ down, - up)
     },
@@ -384,17 +396,17 @@ BETTERUI_CAST_BAR_INSTANT_DISPLAY_MS = 850 -- Preview duration for instant skill
 BETTERUI_CAST_BAR_WIDTH = 300              -- Width of the cast bar in pixels
 BETTERUI_CAST_BAR_HEIGHT = 275             -- Height of the cast bar in pixels
 BETTERUI_CAST_BAR_LABEL_OFFSET_X = -3      -- Horizontal offset for text label (from fill-region center)
-BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 2       -- Vertical offset for text label (from fill-region center)
+BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 0       -- Vertical offset for text label (from fill-region center)
 BETTERUI_CAST_BAR_TEXTURE_BOUNDS = {
     left = 0,                              -- Full texture (recalibrate once DDS artwork margins are known)
     right = 1,
     top = 0,
     bottom = 1,
 }
-BETTERUI_CAST_BAR_FILL_WIDTH_SCALE = 0.58  -- Fill width as fraction of bar width (1.0 = full width)
+BETTERUI_CAST_BAR_FILL_WIDTH_SCALE = 0.59  -- Fill width as fraction of bar width (1.0 = full width)
 BETTERUI_CAST_BAR_FILL_HEIGHT_SCALE = 0.10 -- Fill height as fraction of bar height (1.0 = full height)
 BETTERUI_CAST_BAR_FILL_OFFSET_X = 10       -- Fill track horizontal offset (+ right, - left)
-BETTERUI_CAST_BAR_FILL_OFFSET_Y = -2       -- Fill track vertical offset (+ down, - up)
+BETTERUI_CAST_BAR_FILL_OFFSET_Y = 0        -- Fill track vertical offset (+ down, - up)
 BETTERUI_CAST_BAR_FILL_INSET_X = 45        -- Legacy fallback only (used only if fill-region config is invalid)
 BETTERUI_CAST_BAR_FILL_INSET_Y = 59        -- Legacy fallback only (used only if fill-region config is invalid)
 BETTERUI_CAST_BAR_FILL_REGION = BuildBarFillRegionFromBox(
@@ -413,7 +425,7 @@ BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -85     -- Y offset from ornament bottom (
 BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 220        -- Width of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 185       -- Height of the mount stamina bar in pixels
 BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X = 0 -- Horizontal offset for text label (from fill-region center)
-BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 2 -- Vertical offset for text label (from fill-region center)
+BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 1 -- Vertical offset for text label (from fill-region center)
 BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS = {
     left = 0,                                 -- Full texture (recalibrate once DDS artwork margins are known)
     right = 1,

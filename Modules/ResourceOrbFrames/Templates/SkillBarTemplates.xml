@@ -31,13 +31,13 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                     textureFile="EsoUI/Art/ActionBar/actionBar_mouseOver.dds">
                     <AnchorFill />
                 </Texture>
-                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="LOW"
                     textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
                     <AnchorFill />
                 </Texture>
                 <Texture name="$(parent)CooldownEdge"
                     textureFile="EsoUI/Art/ActionBar/Gamepad/gp_QuickslotFill.dds"
-                    layer="2" hidden="true">
+                    layer="2" tier="LOW" hidden="true">
                     <Dimensions y="8" />
                 </Texture>
                 <Label name="$(parent)CooldownText" hidden="true" font="ZoFontGamepad27"
@@ -124,7 +124,7 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                 </Cooldown>
                 <Texture name="$(parent)CooldownEdge"
                     textureFile="EsoUI/Art/ActionBar/Gamepad/gp_QuickslotFill.dds"
-                    layer="2" hidden="true">
+                    layer="2" tier="LOW" hidden="true">
                     <Dimensions y="8" />
                 </Texture>
                 <Texture name="$(parent)CooldownCompleteAnimation"
@@ -155,7 +155,7 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                     <Dimensions x="0" y="24" />
                     <Anchor point="TOP" relativePoint="BOTTOM" />
                 </Label>
-                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="HIGH"
+                <Texture name="$(parent)CooldownOverlay" hidden="true" tier="LOW"
                     textureFile="esoui/art/actionbar/abilityInset.dds" color="000000" alpha="0.7">
                     <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
@@ -235,8 +235,9 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                         offsetY="19" />
                 </Texture>
                 <Label name="$(parent)UltimateText" hidden="true" font="ZoFontGamepad27"
-                    tier="HIGH" verticalAlignment="CENTER" horizontalAlignment="CENTER">
-                    <Anchor point="CENTER" offsetY="0" />
+                    tier="HIGH" verticalAlignment="BOTTOM" horizontalAlignment="CENTER">
+                    <Dimensions x="0" y="32" />
+                    <Anchor point="BOTTOM" relativePoint="BOTTOM" offsetY="-20" />
                 </Label>
             </Controls>
         </Control>

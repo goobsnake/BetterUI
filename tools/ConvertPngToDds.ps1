@@ -121,7 +121,6 @@ function Get-ResourceOrbFramesProfileSpec {
         'OrbSplitter'       = @{ Width = 512; Height = 512 }
         'OrnamentLeft'      = @{ Width = 512; Height = 512 }
         'OrnamentRight'     = @{ Width = 512; Height = 512 }
-        'Shield'            = @{ Width = 512; Height = 512 }
     }
 }
 

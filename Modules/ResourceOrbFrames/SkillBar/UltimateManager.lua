@@ -12,6 +12,40 @@ local function FindControl(parent, name)
     return BETTERUI.ControlUtils.FindControl(parent, name)
 end
 
+local ULTIMATE_TEXT_SIZE_MIN = 12
+local ULTIMATE_TEXT_SIZE_MAX = 30
+
+local function ClampTextSize(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
+
+local function ApplyUltimateTextAnchor(ultimateButtonControl, ultimateTextControl)
+    if not ultimateButtonControl or not ultimateTextControl then
+        return
+    end
+
+    local offsetX = BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X or 0
+    local offsetY = BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_Y or -20
+    local textHeight = BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT or 32
+
+    ultimateTextControl:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    ultimateTextControl:SetVerticalAlignment(TEXT_ALIGN_BOTTOM)
+    ultimateTextControl:SetDimensions(0, textHeight)
+    ultimateTextControl:ClearAnchors()
+    ultimateTextControl:SetAnchor(BOTTOM, ultimateButtonControl, BOTTOM, offsetX, offsetY)
+end
+
 local function PlayUltimateReadyAnimations(btn)
     local readyBurst = btn.readyBurst
     local readyLoop = btn.readyLoop
@@ -148,8 +182,9 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
                 local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
                 countText:SetText(currentUltimate)
                 countText:SetHidden(false)
+                ApplyUltimateTextAnchor(ultBtn, countText)
 
-                local size = settings.ultimateTextSize or 27
+                local size = ClampTextSize(settings.ultimateTextSize, ULTIMATE_TEXT_SIZE_MIN, ULTIMATE_TEXT_SIZE_MAX, 27)
                 local color = settings.ultimateTextColor or { 1, 1, 1, 1 }
                 -- Standardize font string format
                 countText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))

@@ -23,8 +23,37 @@ end
 -- Cached control references (populated by CacheBackBarControls during addon init)
 local m_backBarButtonCache = {}
 local m_backBarContainer = nil
-local m_backBarEffectDurationCache = {}
-local m_backBarCooldownVisualState = {}
+local sharedCooldownCaches = SkillBar.SharedCooldownCaches
+if not sharedCooldownCaches then
+    sharedCooldownCaches = {
+        effectDurationBySlotCategory = {},
+        smoothedRemainBySlotCategory = {},
+    }
+    SkillBar.SharedCooldownCaches = sharedCooldownCaches
+end
+local m_backBarEffectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
+local m_backBarCooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
+local SKILL_TEXT_SIZE_MIN = 12
+local SKILL_TEXT_SIZE_MAX = 30
+
+local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
+
+local function ClampTextSize(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
 
 --[[
 Function: CacheBackBarControls
@@ -130,6 +159,8 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
     cooldownEdge:SetWidth(revealWidth)
     cooldownEdge:SetHidden(false)
     cooldownEdge:SetDrawLayer(DL_OVERLAY)
+    cooldownEdge:SetDrawTier(DT_LOW)
+    cooldownEdge:SetDrawLevel(1)
 
     if cooldownOverlay then
         local unrevealedHeight = (1 - percentComplete) * revealHeight
@@ -138,6 +169,8 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
         cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
         cooldownOverlay:SetHidden(false)
         cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+        cooldownOverlay:SetDrawTier(DT_LOW)
+        cooldownOverlay:SetDrawLevel(0)
     end
 
     return percentComplete
@@ -301,7 +334,7 @@ local function UpdateBackBarCooldowns(rootFrame)
 
     local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
     local isGamePad = IsInGamepadPreferredMode()
-    local cooldownSize = settings.cooldownTextSize or 27
+    local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
     local slots = { 3, 4, 5, 6, 7, 8 }
     for i, slotIndex in ipairs(slots) do
@@ -317,7 +350,7 @@ local function UpdateBackBarCooldowns(rootFrame)
             local remainMs = 0
             local durationMs = 0
             local showCooldown = false
-            local stateKey = string.format("%d_%d", slotIndex, backBarCategory)
+            local stateKey = BuildCooldownStateKey(slotIndex, backBarCategory)
             local effectCacheKey = stateKey
 
             local abilityId = GetSlotBoundId(slotIndex, backBarCategory)
@@ -374,6 +407,9 @@ local function UpdateBackBarCooldowns(rootFrame)
 
                     cooldownText:SetHidden(false)
                     cooldownText:SetText(string.format("%.1f", visualRemainMs / 1000))
+                    cooldownText:SetDrawLayer(DL_OVERLAY)
+                    cooldownText:SetDrawTier(DT_HIGH)
+                    cooldownText:SetDrawLevel(10)
                     cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     cooldownText:SetColor(unpack(cooldownColor))
                 else

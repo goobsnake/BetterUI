@@ -35,6 +35,23 @@ local CAST_BAR_ORB_FILL_STYLES = {
     },
 }
 local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
+local BAR_TEXT_SIZE_MIN = 5
+local BAR_TEXT_SIZE_MAX = 20
+
+local function ClampTextSize(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
 
 -- Local helpers
 local function FindControl(parent, name)
@@ -502,7 +519,7 @@ function CastBar:Update()
     local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
     local current, max = 0, 1
 
-    local castTextSize = settings.castBarTextSize or 16
+    local castTextSize = ClampTextSize(settings.castBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
     local castTextColor = settings.castBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", castTextSize))
     self.label:SetColor(unpack(castTextColor))
@@ -600,7 +617,7 @@ function ExperienceBar:Update()
         effectiveMax = max
     end
 
-    local size = settings.xpBarTextSize or 16
+    local size = ClampTextSize(settings.xpBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
     local color = settings.xpBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))
@@ -697,7 +714,7 @@ function MountStaminaBar:Update()
         self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
     end
 
-    local size = settings.mountStaminaBarTextSize or 16
+    local size = ClampTextSize(settings.mountStaminaBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
     local color = settings.mountStaminaBarTextColor or { 1, 1, 1, 1 }
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))

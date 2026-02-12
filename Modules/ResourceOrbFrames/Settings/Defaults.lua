@@ -67,6 +67,39 @@ local function GetDefaults()
     }
 end
 
+local function ClampInteger(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
+
+local function NormalizeTextSizeSettings(m_options, defaults)
+    if type(m_options) ~= "table" then
+        return
+    end
+
+    -- Bars: enforce 5-20.
+    m_options.xpBarTextSize = ClampInteger(m_options.xpBarTextSize, 5, 20, defaults.xpBarTextSize or 16)
+    m_options.castBarTextSize = ClampInteger(m_options.castBarTextSize, 5, 20, defaults.castBarTextSize or 16)
+    m_options.mountStaminaBarTextSize = ClampInteger(m_options.mountStaminaBarTextSize, 5, 20,
+        defaults.mountStaminaBarTextSize or 16)
+
+    -- Skill text: enforce 12-30.
+    m_options.cooldownTextSize = ClampInteger(m_options.cooldownTextSize, 12, 30, defaults.cooldownTextSize or 27)
+    m_options.quickslotTextSize = ClampInteger(m_options.quickslotTextSize, 12, 30, defaults.quickslotTextSize or 27)
+    m_options.ultimateTextSize = ClampInteger(m_options.ultimateTextSize, 12, 30, defaults.ultimateTextSize or 27)
+end
+
 --- Initializes ResourceOrbFrames default settings.
 ---
 --- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
@@ -100,6 +133,10 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
         if cfb.gamepad == nil then cfb.gamepad = d_cfb.gamepad end
         if cfb.keyboard == nil then cfb.keyboard = d_cfb.keyboard end
     end
+
+    -- Migration/sanitization: normalize persisted text sizes to current slider limits.
+    NormalizeTextSizeSettings(m_options, defaults)
+
     return m_options
 end
 

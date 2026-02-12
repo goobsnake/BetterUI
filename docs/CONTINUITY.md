@@ -1,7 +1,7 @@
 # BetterUI Continuity Ledger
 
 > **Last Updated:** 2026-02-12
-> **Provenance:** [CODE] ResourceOrbFrames cooldown visuals now run on a shared high-frequency loop for both front and back bars, with per-slot remaining-time interpolation and linear reveal-edge animation applied across quickslot, ultimates, companion ultimate, and back-bar skills
+> **Provenance:** [CODE] ResourceOrbFrames skill text positioning and text-size migration pass now exposes constants for quickslot/ultimate text anchors and normalizes pre-existing saved text sizes above current slider caps down to new max bounds on module init
 
 **Reference:** For ESO API quirks, patterns, and lessons learned see [TRIBAL_KNOWLEDGE.md](TRIBAL_KNOWLEDGE.md).
 
@@ -28,6 +28,8 @@
 ## State
 
 **Done (recent ≤12):**
+- [2026-02-12] [CODE] Resource Orb Frames text-size + text-anchor constants pass: `Modules/ResourceOrbFrames/Constants.lua` now declares quickslot count and ultimate number text positioning constants (`BETTERUI_QUICKSLOT_COUNT_TEXT_*`, `BETTERUI_ULTIMATE_NUMBER_TEXT_*`), `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` now anchors quickslot count labels using those constants, `Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua` now applies ultimate-number anchor/dimensions from constants, and `Modules/ResourceOrbFrames/Settings/Defaults.lua` now normalizes persisted text sizes to active slider bounds during `InitModule` (XP/Cast/Mount `5-20`, cooldown/quickslot/ultimate `12-30`)
+- [2026-02-12] [CODE] Resource Orb Frames quickslot/cooldown continuity pass: `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` now anchors quickslot `CountText` below `ButtonText` (LB glyph line) to avoid overlap clipping, elevates cooldown/stack text draw tier above cooldown overlays, normalizes cooldown state keys to `slot/category`, and uses shared cooldown caches (`SkillBar.SharedCooldownCaches`) so front/back bar transitions reuse existing remain/duration state; `Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua` now uses the same shared caches/state-key format and explicit cooldown-text draw priority; `Modules/ResourceOrbFrames/Templates/SkillBarTemplates.xml` now lowers cooldown overlay/edge tiers so countdown text renders fully opaque above the darkening layer and positions `UltimateText` as a bottom-aligned label box (`Dimensions y=32`, `BOTTOM` to parent `BOTTOM`, `offsetY -20`) so the number sits just above `LB+RB`
 - [2026-02-12] [CODE] Resource Orb Frames cooldown smoothing coverage pass: `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` now interpolates cooldown remain time per slot for smoother edge motion (`m_cooldownVisualState`), keeps icon desaturation clamped to empty-state when quickslot count reaches `0`, and updates quickslot count text through a shared helper that now shows `0` for item slots with no remaining quantity; `Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua` now applies the same per-slot remain interpolation + linear reveal-edge overlay behavior for back-bar slots including back-bar ultimate; `Modules/ResourceOrbFrames/Core/OrbEvents.lua` now runs cooldown updates for both bars on a shared `16ms` loop while leaving core status updates on `100ms`; `Modules/ResourceOrbFrames/Templates/SkillBarTemplates.xml` now defines `CooldownEdge` for back-bar buttons to render the reveal line
 - [2026-02-11] [CODE] Resource Orb Frames cast-bar resource tint pass: `Modules/ResourceOrbFrames/Core/OrbBars.lua` now resolves cast-fill color using ESOUI-style cost mechanics (`GetAbilityBaseCostInfo` + `mechanicFlags` on bound/chained ability ID) and a short post-cast `EVENT_POWER_UPDATE` probe window (`450ms`) to sample actual health/magicka/stamina spend when metadata is ambiguous; cast fill now applies orb-matched two-tone styling (Fog + Fog2 equivalents from `Templates/ResourceOrbFrames.xml`: `health ff0000/4d0000`, `magicka 0066ff/000033`, `stamina 00ff00/004d00`) with default fallback for ultimate/non-resource casts
 - [2026-02-11] [CODE] Resource Orb Frames cooldown reveal correction pass: `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` now resolves front-bar button controls directly (root child first for quickslot/companion) before fallback search, applies gamepad reveal using a native-style top-left `CooldownEdge` anchor with width tied to logical button dimensions (`cooldownRevealWidth/Height`) set during layout, drives `CooldownOverlay` height from unrevealed percent to enforce visible greyed-out state at cooldown start, and progressively restores icon saturation as cooldown completes; `Modules/ResourceOrbFrames/ResourceOrbFrames.lua` now invalidates `ControlUtils` lookup cache immediately after quickslot/companion reparent to prevent stale control bindings
@@ -38,14 +40,12 @@
 - [2026-02-11] [CODE] Resource Orb Frames follow-up tuning: raised mount bar toward ornament (`BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y -55 -> -85`), expanded XP/mount fill regions + slightly raised label anchors inside each bar window (`BETTERUI_XP_BAR_FILL_REGION`, `BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION`, label Y `-1`), and increased ornament-visible orb border scale (`visibleScale 0.75 -> 0.80`) to better fill ornament sockets
 - [2026-02-11] [CODE] Resource Orb Frames bar-layout refresh: ornaments increased by ~10% (`left 293`, `right 309`), XP/Cast/Mount bar dimensions + anchor offsets updated for current art (`55/62/62` heights; visible-mode offsets `-52 / 89 / -55`), and `Modules/ResourceOrbFrames/Core/OrbBars.lua` now applies per-bar texture crop bounds + fill regions + fill-centered label anchors (`BETTERUI_*_BAR_TEXTURE_BOUNDS`, `BETTERUI_*_BAR_FILL_REGION`) so frame/fill/text align with the new DDS assets
 - [2026-02-11] [CODE] Resource Orb Frames ornament fit follow-up: ornament sizes reduced by ~25% (`left 266`, `right 281`) and `Modules/ResourceOrbFrames/Core/OrbVisuals.lua` now scales ornament-visible orb border size/anchor offsets/fill offsets/splitter offsets (plus orb label offsets) via `visibleScale`, keeping `OrbBorder.dds` aligned within ornament sockets while preserving hidden-ornament sizing behavior
-- [2026-02-11] [CODE] Resource Orb Frames graphics alignment pass: `Modules/ResourceOrbFrames/Core/OrbBars.lua` now uses per-bar backdrop textures (`Bar.dds` for XP, `CastBar.dds` for cast, `MountBar.dds` for mount), and `Modules/ResourceOrbFrames/Constants.lua` ornament defaults were tuned (smaller + raised) to reduce bottom clipping with the updated ornament art
-- [2026-02-09] [CODE] Resource Orb Frames custom-texture workflow hardened: `Modules/ResourceOrbFrames/Core/OrbVisuals.lua` now applies custom `Shield.dds` at runtime, `tools/ConvertPngToDds.ps1` gained `-Profile ResourceOrbFrames` (required filename + exact size enforcement + post-convert size checks), and `Modules/ResourceOrbFrames/CustomTextures/README.md` was expanded with AI-ready generation contract, layer diagrams, and OrbBorder glass-lens transparency requirements
 
 **Now:**
-- Resource Orb Frames cooldown reveal and cast-bar resource-tint updates are code-complete; pending in-game validation for edge motion smoothness across normal/backbar/ultimate/companion paths and cast-fill color mapping across stamina/magicka/health versus default fallback paths
+- Resource Orb Frames text-size/anchor-constant updates are code-complete; pending in-game validation for new saved-var normalization behavior and constant-driven quickslot/ultimate text placement in live HUD
 
 **Next:**
-- In-game validation pass: confirm both bars keep button-width reveal edges with smooth bottom-to-top sweep (including ultimate + companion ultimate), quickslot count shows `0` when depleted, depleted quickslot icon remains greyed out, and cast-fill color now switches off yellow for stamina/magicka/health abilities while staying default for ultimate/non-resource casts
+- In-game validation pass: confirm quickslot count and ultimate number anchors respect new constants, prior saved text sizes above max are automatically reset to new max on load, and slider/runtime caps remain XP/Cast/Mount `5-20` plus cooldown/quickslot/ultimate `12-30`
 
 ---
 
@@ -66,17 +66,13 @@
 ## Working Set (≤12 paths)
 
 - `docs/CONTINUITY.md`
-- `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua`
-- `Modules/ResourceOrbFrames/Templates/SkillBarTemplates.xml`
-- `Modules/ResourceOrbFrames/Core/OrbVisuals.lua`
-- `Modules/ResourceOrbFrames/Templates/ResourceOrbFrames.xml`
-- `Modules/ResourceOrbFrames/Core/OrbBars.lua`
-- `Modules/ResourceOrbFrames/Constants.lua`
 - `Modules/ResourceOrbFrames/Module.lua`
+- `Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua`
+- `Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua`
 - `Modules/ResourceOrbFrames/Settings/Defaults.lua`
-- `Modules/ResourceOrbFrames/ResourceOrbFrames.lua`
+- `Modules/ResourceOrbFrames/Templates/SkillBarTemplates.xml`
+- `Modules/ResourceOrbFrames/Constants.lua`
 - `Modules/ResourceOrbFrames/Core/OrbEvents.lua`
-- `Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua`
 
 ---
 
@@ -84,6 +80,8 @@
 
 | Date | Provenance | Entry |
 |------|------------|-------|
+| 2026-02-12 | [TOOL] | Text-size migration/anchor-constant validation: `luac -p Modules/ResourceOrbFrames/Constants.lua` PASS, `luac -p Modules/ResourceOrbFrames/Settings/Defaults.lua` PASS, `luac -p Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` PASS, `luac -p Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua` PASS, and `lua tools/tests/run_all_tests.lua` PASS (9/9) after adding quickslot/ultimate text-position constants and normalizing persisted text-size saved vars to current slider caps during `InitModule` |
+| 2026-02-12 | [TOOL] | Quickslot/cooldown continuity validation: `luac -p Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` PASS, `luac -p Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua` PASS, and `lua tools/tests/run_all_tests.lua` PASS (9/9) after re-anchoring quickslot count below keybind glyphs, lowering cooldown overlay tier under text, sharing cooldown smoothing/effect-duration caches across front/back bars, and finalizing `UltimateText` to a bottom-aligned anchor model (`y=32`, `BOTTOM` to `BOTTOM`, `offsetY -20`) |
 | 2026-02-12 | [TOOL] | Cooldown smoothing coverage validation: `luac -p Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` PASS, `luac -p Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua` PASS, `luac -p Modules/ResourceOrbFrames/Core/OrbEvents.lua` PASS, and `lua tools/tests/run_all_tests.lua` PASS (9/9) after extending remain-time interpolation + linear reveal-edge cooldown visuals to both bars and moving both cooldown loops to shared 16ms updates |
 | 2026-02-11 | [TOOL] | Cast-bar resource-tint validation: `luac -p Modules/ResourceOrbFrames/Core/OrbBars.lua` PASS and `lua tools/tests/run_all_tests.lua` PASS (9/9) after aligning cast-fill classification to ESOUI cost-mechanic flags (`GetAbilityBaseCostInfo`) plus power-drop probe fallback and orb-matched two-tone fill shading, while preserving ultimate/non-resource default fallback |
 | 2026-02-11 | [TOOL] | Cooldown reveal correction validation: `luac -p Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua` PASS, `luac -p Modules/ResourceOrbFrames/ResourceOrbFrames.lua` PASS, and `lua tools/tests/run_all_tests.lua` PASS (9/9) after direct button-resolution + native-style gamepad edge reveal update with layout-driven logical button dimensions and overlay-driven unrevealed-state darkening |
@@ -102,6 +100,4 @@
 | 2026-02-09 | [CODE] | Settings consistency hardening: aligned defaults/resets, strict integer editbox parsing, and nil-safe settings callbacks across affected modules (`luac -p` validated) |
 | 2026-02-09 | [CODE] | Resource Orb General reset scope corrected in `Modules/ResourceOrbFrames/Module.lua` to only `scale`, `offsetY`, and `useCustomTextures` (`luac -p`) |
 | 2026-02-09 | [CODE] | Naming/layout pass: `disableAutoSort` for Inventory Currency, `sortAlwaysLast` for `Use Custom Textures`, and requested EN label updates (`luac -p`) |
-| 2026-02-09 | [CODE] | Reset UX/stability pass: icon submenu reset wiring, scene-gated refresh helpers, and reset label localization updates across all locales (`luac -p`) |
-| 2026-02-09 | [CODE] | Regression fixes: Inventory reset crash, `sortAlwaysFirst` dependency ordering, Nameplates button width, and Market/Tooltips reset defaults + locale keys (`luac -p`) |
 

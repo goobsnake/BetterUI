@@ -41,10 +41,46 @@ local m_frontBarContainer = nil -- Cached reference to the front bar container
 local m_quickslotBtn = nil      -- Cached reference to quickslot button
 local m_companionBtn = nil      -- Cached reference to companion button
 local m_bgMiddle = nil          -- Cached reference to BgMiddle control
-local m_effectDurationCache = {} -- Cache of initial effect durations for cooldown percentage calculation
-local m_cooldownVisualState = {} -- Lightweight per-slot interpolation cache for smoother reveal animation
+local sharedCooldownCaches = SkillBar.SharedCooldownCaches
+if not sharedCooldownCaches then
+    sharedCooldownCaches = {
+        effectDurationBySlotCategory = {},
+        smoothedRemainBySlotCategory = {},
+    }
+    SkillBar.SharedCooldownCaches = sharedCooldownCaches
+end
+local m_effectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
+local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
 
-local QUICKSLOT_COUNT_OFFSET_Y = 1
+local SKILL_TEXT_SIZE_MIN = 12
+local SKILL_TEXT_SIZE_MAX = 30
+
+local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
+
+local function GetQuickslotCountAnchorOffsets()
+    local keybindOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X or 0
+    local keybindOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y or -2
+    local buttonOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X or 0
+    local buttonOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y or 1
+    return keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY
+end
+
+local function ClampTextSize(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end
 
 --[[
 Function: CacheFrontBarControls
@@ -107,8 +143,15 @@ local function AnchorQuickslotCountText(buttonControl, countText)
         return
     end
 
+    local buttonText = buttonControl:GetNamedChild("ButtonText")
+    local keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY = GetQuickslotCountAnchorOffsets()
     label:ClearAnchors()
-    label:SetAnchor(TOP, buttonControl, BOTTOM, 0, QUICKSLOT_COUNT_OFFSET_Y)
+    if buttonText then
+        -- Keep count below the LB/RB glyph text block so numbers do not clip into the keybind icon.
+        label:SetAnchor(TOP, buttonText, BOTTOM, keybindOffsetX, keybindOffsetY)
+    else
+        label:SetAnchor(TOP, buttonControl, BOTTOM, buttonOffsetX, buttonOffsetY)
+    end
     label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
     label:SetVerticalAlignment(TEXT_ALIGN_TOP)
 end
@@ -126,7 +169,7 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     end
 
     local showCount = settings.showQuickslotCount ~= false
-    local quickslotTextSize = settings.quickslotTextSize or 27
+    local quickslotTextSize = ClampTextSize(settings.quickslotTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local quickslotTextColor = settings.quickslotTextColor or { 1, 1, 1, 1 }
     local countText = (children and children.CountText) or buttonControl:GetNamedChild("CountText")
     if countText then
@@ -229,6 +272,8 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
     cooldownEdge:SetWidth(revealWidth)
     cooldownEdge:SetHidden(false)
     cooldownEdge:SetDrawLayer(DL_OVERLAY)
+    cooldownEdge:SetDrawTier(DT_LOW)
+    cooldownEdge:SetDrawLevel(1)
 
     if cooldownOverlay then
         local unrevealedHeight = (1 - percentComplete) * revealHeight
@@ -237,6 +282,8 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
         cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
         cooldownOverlay:SetHidden(false)
         cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+        cooldownOverlay:SetDrawTier(DT_LOW)
+        cooldownOverlay:SetDrawLevel(0)
     end
 
     return percentComplete
@@ -663,12 +710,12 @@ local function UpdateFrontBarCooldowns(rootFrame)
     }
 
     local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
-    local cooldownSize = settings.cooldownTextSize or 27
+    local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
 
     for _, mapping in ipairs(slotMapping) do
         local btn = GetFrontBarButtonControl(rootFrame, frontBarContainer, mapping.buttonName)
-        local cooldownStateKey = string.format("%s_%d_%d", mapping.buttonName, mapping.slot or -1, mapping.category or -1)
+        local cooldownStateKey = BuildCooldownStateKey(mapping.slot, mapping.category)
 
         if btn and not btn:IsHidden() then -- Only update if visible
             -- Get cached children for this button
@@ -696,7 +743,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 if effectRemaining and effectRemaining > 0 then
                     remainMs = effectRemaining
                     -- Cache the initial duration when effect first appears for accurate percentage calculation
-                    local cacheKey = mapping.slot .. "_" .. (mapping.category or 0)
+                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
                     if not m_effectDurationCache[cacheKey] or m_effectDurationCache[cacheKey] < effectRemaining then
                         m_effectDurationCache[cacheKey] = effectRemaining
                     end
@@ -704,7 +751,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     showCooldown = true
                 else
                     -- Effect ended, clear cache
-                    local cacheKey = mapping.slot .. "_" .. (mapping.category or 0)
+                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
                     m_effectDurationCache[cacheKey] = nil
                 end
             end
@@ -755,12 +802,17 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     timerText:SetText(textToSet)
                     timerText:SetHidden(false)
                     timerText:SetDrawLayer(DL_OVERLAY)
+                    timerText:SetDrawTier(DT_HIGH)
+                    timerText:SetDrawLevel(10)
 
                     timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     timerText:SetColor(unpack(cooldownColor))
                 elseif altTimerText then
                     altTimerText:SetText(textToSet)
                     altTimerText:SetHidden(false)
+                    altTimerText:SetDrawLayer(DL_OVERLAY)
+                    altTimerText:SetDrawTier(DT_HIGH)
+                    altTimerText:SetDrawLevel(10)
                     altTimerText:SetColor(unpack(cooldownColor))
                 end
             else
@@ -780,6 +832,8 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     stackCountText:SetText(stackCount)
                     stackCountText:SetHidden(false)
                     stackCountText:SetDrawLayer(DL_OVERLAY)
+                    stackCountText:SetDrawTier(DT_HIGH)
+                    stackCountText:SetDrawLevel(10)
                 else
                     stackCountText:SetHidden(true)
                 end
