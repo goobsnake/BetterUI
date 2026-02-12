@@ -87,3 +87,7 @@
 [COLOR="darkorange"][SIZE=3][B]DONATIONS:[/B][/SIZE][/COLOR]
 
 [URL="https://www.paypal.me/goobsnake"][IMG]https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-medium.png[/IMG][/URL]
+
+[COLOR="darkorange"][SIZE=3][B]OFFICIAL ADD-ON DISCLOSURE:[/B][/SIZE][/COLOR]
+
+[INDENT]This Add-on is not created by, affiliated with or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls® and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.[/INDENT]
