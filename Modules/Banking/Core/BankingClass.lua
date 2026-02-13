@@ -459,6 +459,10 @@ function BETTERUI.Banking.Class:InitializeMultiSelectManager()
     MSMixin.Apply(self, {
         getList = function(s) return s.list end,
         refreshList = function(s) s:RefreshList() end,
+        isSceneShowing = function(s) return s:IsSceneShowing() end,
+        getSceneExitLabel = function()
+            return GetString(SI_BETTERUI_SCENE_BANKING)
+        end,
         refreshKeybinds = function(s)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(s.coreKeybinds)
             if s.withdrawDepositKeybinds then
@@ -476,6 +480,13 @@ local MSMixin = BETTERUI.CIM.MultiSelectMixin
 function BETTERUI.Banking.Class:EnterSelectionMode()
     -- Lazy-initialize manager on first use
     self:InitializeMultiSelectManager()
+
+    local target = self.list and self.list.GetSelectedData and self.list:GetSelectedData() or nil
+    if not target or ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+        return
+    end
+
+    self:SaveListPosition()
     MSMixin.EnterSelectionMode(self)
 end
 
@@ -495,8 +506,16 @@ function BETTERUI.Banking.Class:IsBatchProcessing()
     return MSMixin.IsBatchProcessing(self)
 end
 
-function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName)
-    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName)
+function BETTERUI.Banking.Class:CanAbortBatch()
+    return MSMixin.CanAbortBatch(self)
+end
+
+function BETTERUI.Banking.Class:RequestBatchAbort()
+    return MSMixin.RequestBatchAbort(self)
+end
+
+function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
+    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
 function BETTERUI.Banking.Class:BatchLock()

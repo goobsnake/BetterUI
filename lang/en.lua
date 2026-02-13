@@ -158,8 +158,17 @@ ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Processing <<1>> items. Estimated time: <<2>>.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Still Processing - <<1>> out of <<2>>")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Aborted. Processed <<1>> of <<2>> items.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> exited. Aborted. Processed <<2>> of <<3>> items.")
+ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Banking")
+ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Inventory")
+ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Abort Action")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_SECONDS", "<<1>>sec")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS", "<<1>>min <<2>>sec")
 
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_HEADER", "Master Settings")
 ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "Master Addon Settings")
@@ -380,10 +389,6 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Overall size
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Offset (Up/Down)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Move the frame up/down. Positive moves up; negative moves down.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Use Custom Textures")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
-    "Use textures from 'BetterUI/Modules/ResourceOrbFrames/CustomTextures'. Place your own files there using the same filenames as the default texture set.")
-
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset General Settings")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Reset settings in this section to their default values.")

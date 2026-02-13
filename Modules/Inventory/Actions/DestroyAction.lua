@@ -17,8 +17,9 @@ local BLOCK_TABBAR_CALLBACK = true
 --- 1. Checks if item is Junk or `force` flag is true.
 --- 2. If so, destroys immediately (fixing sound and refreshing cache).
 --- 3. Returns true if destroyed, false if confirmation (UI) is needed.
+--- @param suppressUiRefresh boolean? When true, skips immediate cache/UI refresh work.
 --- References: Called by Hooked Destroy and Action Dialog.
-function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
+function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh)
     if not bagId or not slotIndex then
         return false
     end
@@ -28,24 +29,28 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force)
         -- Direct engine destroy path (matches the original working hook behavior)
         SetCursorItemSoundsEnabled(false)
         DestroyItem(bagId, slotIndex)
-        -- Proactively refresh inventory caches to reflect removal
-        if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
-            SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
-        end
-        -- UI refreshes (safe if scene present)
-        BETTERUI.Inventory.Tasks:Schedule("destroyItemRefresh", 80, function()
-            if GAMEPAD_INVENTORY then
-                if GAMEPAD_INVENTORY.RefreshItemList then
-                    GAMEPAD_INVENTORY:RefreshItemList()
-                end
-                if GAMEPAD_INVENTORY.RefreshCategoryList then
-                    GAMEPAD_INVENTORY:RefreshCategoryList()
-                end
-                if GAMEPAD_INVENTORY.RefreshHeader then
-                    GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK)
-                end
+
+        if not suppressUiRefresh then
+            -- Proactively refresh inventory caches to reflect removal
+            if SHARED_INVENTORY and SHARED_INVENTORY.PerformFullUpdateOnBagCache then
+                SHARED_INVENTORY:PerformFullUpdateOnBagCache(bagId)
             end
-        end)
+            -- UI refreshes (safe if scene present)
+            BETTERUI.Inventory.Tasks:Schedule("destroyItemRefresh", 80, function()
+                if GAMEPAD_INVENTORY then
+                    if GAMEPAD_INVENTORY.RefreshItemList then
+                        GAMEPAD_INVENTORY:RefreshItemList()
+                    end
+                    if GAMEPAD_INVENTORY.RefreshCategoryList then
+                        GAMEPAD_INVENTORY:RefreshCategoryList()
+                    end
+                    if GAMEPAD_INVENTORY.RefreshHeader then
+                        GAMEPAD_INVENTORY:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                    end
+                end
+            end)
+        end
+
         return true
     end
     return false

@@ -576,6 +576,17 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 end
 
 --[[
+Function: BETTERUI.Banking.Class:OnSceneHiding
+Description: Scene hiding handler called by SceneLifecycleManager.
+Rationale: Abort any in-flight batch before cleanup to prevent background processing.
+]]
+function BETTERUI.Banking.Class:OnSceneHiding()
+    if self:IsBatchProcessing() then
+        self:RequestBatchAbort()
+    end
+end
+
+--[[
 Function: BETTERUI.Banking.Class:OnSceneHidden
 Description: Scene hidden handler called by SceneLifecycleManager.
 Rationale: Uses shared CIM.SceneCleanup helpers for consistent cleanup.

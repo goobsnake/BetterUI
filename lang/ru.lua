@@ -331,10 +331,6 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Общий �
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Вертикальное смещение (Вверх/Вниз)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Переместить рамку вверх/вниз. Положительное значение перемещает вверх, отрицательное - вниз.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Использовать свои текстуры")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
-    "Включите, чтобы использовать текстуры из 'BetterUI/Modules/GeneralInterface/CustomOrbTextures'. Вы должны поместить туда свои текстуры с правильными именами файлов.")
-
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить общие настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Сбросить настройки в этом разделе к значениям по умолчанию.")
@@ -605,6 +601,15 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Обработка <<1>> предметов. Примерное время: <<2>>.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Обработка продолжается - <<1>> из <<2>>")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Прервано. Обработано <<1>> из <<2>> предметов.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "Выход из <<1>>. Прервано. Обработано <<2>> из <<3>> предметов.")
+ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Банк")
+ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Инвентарь")
+ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Прервать действие")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_SECONDS", "<<1>> сек")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS", "<<1>> мин <<2>> сек")
 ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Сколько убрать?")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Сколько достать?")
 ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Выберите количество для хранения")

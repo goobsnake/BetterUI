@@ -94,6 +94,53 @@ local function GetXButtonActionContext(self)
     }
 end
 
+--- Returns the active list that drives the Y-button actions dialog.
+--- @param self table Inventory instance
+--- @return table|nil list
+local function GetActionsTargetList(self)
+    if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+        return self.craftBagList
+    end
+    if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+        return self.itemList
+    end
+    return nil
+end
+
+--- Validates that the current actions target is in a stable selected state.
+--- Prevents ShowActions() while parametric lists are temporarily at selectedIndex 0
+--- during rapid refresh/abort transitions.
+--- @param self table Inventory instance
+--- @return boolean valid
+local function HasStableActionsTarget(self)
+    local targetList = GetActionsTargetList(self)
+    if not targetList then
+        return false
+    end
+
+    local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(targetList)
+    if not targetData then
+        return false
+    end
+
+    local innerList = targetList.list or (targetList.GetParametricList and targetList:GetParametricList()) or targetList
+    if not innerList then
+        return false
+    end
+
+    local selectedIndex = innerList.selectedIndex
+    if type(selectedIndex) ~= "number" or selectedIndex < 1 then
+        return false
+    end
+
+    local dataList = innerList.dataList
+    if dataList and selectedIndex > #dataList then
+        return false
+    end
+
+    return true
+end
+
 --------------------------------------------------------------------------------
 -- KEYBIND INITIALIZATION
 --------------------------------------------------------------------------------
@@ -119,10 +166,28 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         BETTERUI.CIM.MultiSelectMixin.Apply(self, {
             getList = function(s) return s.itemList end,
             refreshList = function(s) s:RefreshItemList() end,
+            isSceneShowing = function()
+                return BETTERUI.CIM.Utils.IsInventorySceneShowing()
+            end,
+            getSceneExitLabel = function()
+                return GetString(SI_BETTERUI_SCENE_INVENTORY)
+            end,
             refreshKeybinds = function(s)
-                if not s.isInHeaderSortMode then
-                    s:RefreshKeybinds()
+                if s.isInHeaderSortMode then
+                    return
                 end
+
+                -- During batch execution, the Inventory refresh guard intentionally
+                -- skips full keybind rebuilds. We still need immediate label updates
+                -- (e.g., Y -> Abort Action), so update the active group directly.
+                if s:IsBatchProcessing() then
+                    if s.mainKeybindStripDescriptor then
+                        KEYBIND_STRIP:UpdateKeybindButtonGroup(s.mainKeybindStripDescriptor)
+                    end
+                    return
+                end
+
+                s:RefreshKeybinds()
             end,
         })
     end
@@ -386,11 +451,19 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
+                if self:IsBatchProcessing() then
+                    return GetString(SI_BETTERUI_ABORT_ACTION)
+                end
+
                 -- Always show "Actions" - the selected count is now on the A button
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
+                if self:IsBatchProcessing() then
+                    return true
+                end
+
                 -- Check craftbag multi-select manager first
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
                     return self.craftBagMultiSelectManager:HasSelections()
@@ -398,18 +471,15 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     return self.multiSelectManager:HasSelections()
                 end
-                if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-                    return self.selectedItemUniqueId ~= nil or
-                        self.currentlySelectedData ~= nil or
-                        BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
-                elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                    return self.selectedItemUniqueId ~= nil or
-                        self.currentlySelectedData ~= nil or
-                        BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil
-                end
-                return false
+
+                return HasStableActionsTarget(self)
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    self:RequestBatchAbort()
+                    return
+                end
+
                 -- Check craftbag multi-select manager first
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
                     self:ShowCraftBagBatchActionsMenu()
@@ -419,6 +489,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     -- Show batch actions dialog
                     self:ShowBatchActionsMenu()
                 else
+                    if not HasStableActionsTarget(self) then
+                        return
+                    end
+
                     -- Normal Y menu
                     self:SaveListPosition()
                     self:ShowActions()

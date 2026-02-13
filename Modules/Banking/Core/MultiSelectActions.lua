@@ -15,6 +15,63 @@ local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
+
+local function ExtractSlot(itemData)
+    local rawData = itemData.dataSource or itemData
+    return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
+end
+
+local function HasItemAtSlot(bagId, slotIndex)
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
+    return (stackCount or 0) > 0
+end
+
+local function ResolveStackCount(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
+end
+
+local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
+    return CROWN_GEMIFICATION_MANAGER
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bagId), tonumber(slotIndex))
+end
+
+local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
+    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
+        return false
+    end
+
+    if targetBankBag == FURNITURE_VAULT_BAG_ID and IsFurnitureVaultGemmableItem(bagId, slotIndex) then
+        return false
+    end
+
+    return true
+end
+
+local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
+    local targetBankBag = currentUsedBank or BAG_BANK
+    if targetBankBag == BAG_BANK then
+        if DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex) then
+            return BAG_BANK
+        end
+        if IsESOPlusSubscriber() and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bagId, slotIndex) then
+            return BAG_SUBSCRIBER_BANK
+        end
+        return nil
+    end
+
+    if DoesBagHaveSpaceFor(targetBankBag, bagId, slotIndex) then
+        return targetBankBag
+    end
+    return nil
+end
 
 -------------------------------------------------------------------------------------------------
 -- BANKING-SPECIFIC BATCH OPERATIONS
@@ -24,71 +81,51 @@ local MSMixin = BETTERUI.CIM.MultiSelectMixin
 --- Moves items between bank and backpack based on current mode.
 function BETTERUI.Banking.Class:BatchTransfer()
     if not self.multiSelectManager then return end
-    local items = self.multiSelectManager:GetSelectedItems()
-    if not items or #items == 0 then return end
+    local selectedItems = self.multiSelectManager:GetSelectedItems()
+    if not selectedItems or #selectedItems == 0 then return end
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
     local actionName = isWithdraw
         and GetString(SI_BETTERUI_BANKING_WITHDRAW)
         or GetString(SI_BETTERUI_BANKING_DEPOSIT)
 
+    local items = {}
+    for _, itemData in ipairs(selectedItems) do
+        local bagId, slotIndex = ExtractSlot(itemData)
+        if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
+            if isWithdraw or IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
+                items[#items + 1] = itemData
+            end
+        end
+    end
+    if #items == 0 then return end
+
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        local rawData = itemData.dataSource or itemData
-        local stackCount = rawData.stackCount or itemData.stackCount or 1
+        if not HasItemAtSlot(bagId, slotIndex) then
+            return true
+        end
+
+        local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
+        if not stackCount then
+            return true
+        end
 
         if isWithdraw then
             -- Withdraw: move from bank to backpack
             if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-                local itemLink = GetItemLink(bagId, slotIndex)
-                local stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(BAG_BACKPACK, itemLink)
-                if not stackSlot then
-                    return false -- Bag full, stop processing
-                end
+                return false -- Bag full, stop processing
             end
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, nil, stackCount)
         else
-            -- Deposit: move from backpack to bank
-            local targetBag, targetSlot
-            local currentUsedBank = BETTERUI.Banking.currentUsedBank
-            if currentUsedBank == BAG_BANK then
-                targetSlot = FindFirstEmptySlotInBag(BAG_BANK)
-                if targetSlot then
-                    targetBag = BAG_BANK
-                elseif IsESOPlusSubscriber() then
-                    targetSlot = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
-                    if targetSlot then
-                        targetBag = BAG_SUBSCRIBER_BANK
-                    end
-                end
-            else
-                targetSlot = FindFirstEmptySlotInBag(currentUsedBank)
-                if targetSlot then
-                    targetBag = currentUsedBank
-                end
+            if not IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
+                return true
             end
 
+            -- Deposit: move from backpack to bank
+            local targetBag = ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
             if not targetBag then
-                -- Try finding a stackable slot
-                local itemLink = GetItemLink(bagId, slotIndex)
-                if currentUsedBank == BAG_BANK then
-                    local stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(BAG_BANK, itemLink)
-                    if stackSlot then
-                        targetBag = BAG_BANK
-                    else
-                        stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(BAG_SUBSCRIBER_BANK, itemLink)
-                        if stackSlot then
-                            targetBag = BAG_SUBSCRIBER_BANK
-                        end
-                    end
-                else
-                    local stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(currentUsedBank, itemLink)
-                    if stackSlot then
-                        targetBag = currentUsedBank
-                    end
-                end
-                if not targetBag then
-                    return false -- Bank full, stop processing
-                end
+                return false -- Bank full, stop processing
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, nil, stackCount)
@@ -96,7 +133,9 @@ function BETTERUI.Banking.Class:BatchTransfer()
         return true
     end, function()
         self:ExitSelectionMode()
-    end, actionName)
+    end, actionName, {
+        serverBound = true,
+    })
 end
 
 --- Selects all items in the current list.
@@ -133,6 +172,17 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Use shared mixin to analyze selected items
     local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local transferCount = 0
+
+    for _, itemData in ipairs(selectedItems) do
+        local bagId, slotIndex = ExtractSlot(itemData)
+        if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
+            if not isDepositMode or IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
+                transferCount = transferCount + 1
+            end
+        end
+    end
 
     -- If in withdraw mode, suppress junk actions (bank items can't be junked)
     if not isDepositMode then
@@ -197,13 +247,15 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     ))
 
     -- Withdraw/Deposit All (primary banking action)
-    local transferName = isDepositMode
-        and GetString(SI_BETTERUI_BANKING_DEPOSIT)
-        or GetString(SI_BETTERUI_BANKING_WITHDRAW)
-    table.insert(parametricList, MSMixin.CreateDialogEntry(
-        zo_strformat("<<1>> (<<2>>)", transferName, selectedCount),
-        function() self:BatchTransfer() end
-    ))
+    if transferCount > 0 then
+        local transferName = isDepositMode
+            and GetString(SI_BETTERUI_BANKING_DEPOSIT)
+            or GetString(SI_BETTERUI_BANKING_WITHDRAW)
+        table.insert(parametricList, MSMixin.CreateDialogEntry(
+            zo_strformat("<<1>> (<<2>>)", transferName, transferCount),
+            function() self:BatchTransfer() end
+        ))
+    end
 
     -- Append common batch entries (Lock, Unlock, Mark/Unmark Junk) from mixin
     MSMixin.AppendCommonBatchEntries(parametricList, counts, self)

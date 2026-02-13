@@ -167,11 +167,19 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
+                if self:IsBatchProcessing() then
+                    return GetString(SI_BETTERUI_ABORT_ACTION)
+                end
+
                 -- Always show "Actions" label - selection count is on A button
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
+                if self:IsBatchProcessing() then
+                    return true
+                end
+
                 -- In multi-select mode, show when items are selected
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     return self.multiSelectManager:HasSelections()
@@ -185,6 +193,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 return self.selectedItemUniqueId ~= nil or selectedData ~= nil
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    self:RequestBatchAbort()
+                    return
+                end
+
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     -- Show batch actions dialog in multi-select mode
                     self:ShowBatchActionsMenu()
@@ -230,6 +243,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             visible = function()
                 -- Must have items available.
                 -- Hide when already in multi-select mode or batch processing.
+                local selectedData = self.list and self.list:GetSelectedData()
+                if not selectedData or ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
+                    return false
+                end
+
                 local managerActive = self.multiSelectManager and self.multiSelectManager:IsActive()
                 return self.list and not self.list:IsEmpty()
                     and not managerActive
@@ -237,6 +255,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
             callback = function()
                 if not self:IsBatchProcessing() and not self:IsInSelectionMode() then
+                    local target = self.list and self.list:GetSelectedData()
+                    if not target or ZO_GamepadBanking.IsEntryDataCurrencyRelated(target) then
+                        return
+                    end
+                    self:SaveListPosition()
                     self:EnterSelectionMode()
                 end
             end,
@@ -275,6 +298,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                         return
                     end
                     if target then
+                        self:SaveListPosition()
                         self.multiSelectManager:ToggleSelection(target)
                         self:RefreshList()
                     end

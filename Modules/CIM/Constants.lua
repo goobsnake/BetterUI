@@ -111,12 +111,26 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Prevents rate-limit kicks when processing many items at once
     -- ========================================================================
 
-    -- Delay between each item action during batch operations (ms)
-    -- Lower = faster but risks rate-limit kick; Higher = slower but safer
-    BATCH_ACTION_DELAY_MS = 75,
+    -- Estimated-time display threshold (item count)
+    -- ETA messaging is shown for large batches where completion may take noticeable time
+    BATCH_ETA_THRESHOLD = 50,
 
-    -- Minimum items before showing progress dialog
-    -- Small batches process silently; larger batches show progress UI
+    -- Delay/profile tiers for batch actions
+    -- Ordered highest->lowest threshold; first match wins.
+    -- Tuned for readability + responsiveness while preserving flood protection.
+    BATCH_ACTION_THROTTLE_TIERS = {
+        { MIN_ITEMS = 50, DELAY_MS = 125, SHOW_PROGRESS = true },
+        { MIN_ITEMS = 10, DELAY_MS = 100, SHOW_PROGRESS = true },
+        { MIN_ITEMS = 0,  DELAY_MS = 75, SHOW_PROGRESS = false },
+    },
+
+    -- Server-bound batch pacing guard:
+    -- add a fixed cooldown pause every N processed items.
+    BATCH_SERVER_COOLDOWN_EVERY = 20,
+    BATCH_SERVER_COOLDOWN_MS = 500,
+
+    -- Legacy aliases kept for compatibility with older callers.
+    BATCH_ACTION_DELAY_MS = 100,
     BATCH_PROGRESS_THRESHOLD = 10,
 }
 

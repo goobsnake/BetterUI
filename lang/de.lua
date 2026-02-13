@@ -341,10 +341,6 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröß
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz (Auf/Ab)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES", "Benutzerdefinierte Texturen verwenden")
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP",
-    "Aktivieren, um Texturen aus 'BetterUI/Modules/GeneralInterface/CustomOrbTextures' zu verwenden. Sie müssen Ihre eigenen Texturen dort mit den korrekten Dateinamen platzieren.")
-
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Allgemeine Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
@@ -607,6 +603,15 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ Diese Schriftart zeigt russische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Für Sammlung binden")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll! <<1>> von <<2>> Gegenständen verarbeitet.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Verarbeite <<1>> Gegenstände. Geschätzte Zeit: <<2>>.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Weiter in Bearbeitung - <<1>> von <<2>>")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Abgebrochen. <<1>> von <<2>> Gegenständen verarbeitet.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> verlassen. Abgebrochen. <<2>> von <<3>> Gegenständen verarbeitet.")
+ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Bank")
+ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Inventar")
+ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Aktion abbrechen")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_SECONDS", "<<1>> Sek.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS", "<<1>> Min. <<2>> Sek.")
 ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Wie viele verstauen?")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_QUANTITY", "Wie viele entnehmen?")
 ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Wähle die Menge zum Verstauen")

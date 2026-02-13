@@ -601,6 +601,14 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
     if self.isInHeaderSortMode then
         return
     end
+
+    -- While in multi-select mode, keep currency transfer controls disabled.
+    -- Currency rows remain navigable, but A-button select/toggle is hidden for them.
+    local selectionModeActive = self.multiSelectManager and self.multiSelectManager:IsActive()
+    if selectionModeActive then
+        isCurrencyRow = false
+    end
+
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     if isCurrencyRow then

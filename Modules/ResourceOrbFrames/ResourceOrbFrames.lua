@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/ResourceOrbFrames.lua
 Purpose: Core Orchestrator for the Resource Orb Frames module.
          Coordinates Visuals, Bars, Skills, and Events.
-Last Modified: 2026-01-23
+Last Modified: 2026-02-13
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -43,7 +43,6 @@ local DEFAULTS = {
     m_enabled = true,
     scale = 1.0,
     offsetY = 0,
-    useCustomTextures = false,
     showQuickslotCount = true,
     -- (Other defaults handled in GetModuleSettings or specific components)
 }
@@ -241,6 +240,9 @@ local function SetupModule(control)
     -- 5. Setup Event Loops
     Events.SetupLoopEvents(control, m_pools, m_shieldBar, m_castBar)
     Events.SetupSceneHandlers(control)
+    if Events.SetupCombatIndicators then
+        Events.SetupCombatIndicators(control)
+    end
 
     m_isInitialized = true
 
@@ -248,6 +250,9 @@ local function SetupModule(control)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
         if not SkillBar.IsWeaponSwapAnimating() then
             ApplyFullLayout()
+            if Events.RefreshCombatIndicators then
+                Events.RefreshCombatIndicators(control)
+            end
         end
     end)
 
@@ -306,6 +311,9 @@ local function SetupModule(control)
                 end
                 ApplyFullLayout()
                 RefreshAllData()
+                if Events.RefreshCombatIndicators then
+                    Events.RefreshCombatIndicators(control)
+                end
             end)
         end)
 end
@@ -342,6 +350,9 @@ function ResourceOrbFrames.Initialize(control)
             end
             ApplyFullLayout()
             RefreshAllData()
+            if Events.RefreshCombatIndicators then
+                Events.RefreshCombatIndicators(control)
+            end
         end)
     end)
 end
@@ -357,6 +368,9 @@ function ResourceOrbFrames.ApplySettings()
         m_rootFrame:SetHidden(false)
         ApplyFullLayout()
         RefreshAllData()
+        if Events.RefreshCombatIndicators then
+            Events.RefreshCombatIndicators(m_rootFrame)
+        end
     else
         m_rootFrame:SetHidden(true)
         -- Restore Default UI is handled by reload/re-login mostly,

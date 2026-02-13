@@ -169,6 +169,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- search is handled via hold callbacks on X/Y; no separate A-based keybind group required
 	elseif newState == SCENE_HIDING then
 		ZO_InventorySlot_SetUpdateCallback(nil)
+		if self:IsBatchProcessing() then
+			self:RequestBatchAbort()
+		end
 		self:Deactivate()
 		self:DeactivateHeader()
 
@@ -410,6 +413,12 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 			self.nextUpdateTimeSeconds = GetFrameTimeSeconds() + 0.05
 		else
 			self.nextUpdateTimeSeconds = nil
+		end
+
+		-- Batch destroy can trigger one slot-update callback per item. During that flow,
+		-- skip per-item UI refresh churn and rely on the final post-batch refresh.
+		if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+			return
 		end
 
 		local currentList = self:GetCurrentList()

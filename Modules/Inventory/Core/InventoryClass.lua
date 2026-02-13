@@ -776,6 +776,7 @@ end
 -- Multi-select lifecycle delegates to CIM.MultiSelectMixin.
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
 local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local CanDestroyInventoryItem
 
 function BETTERUI.Inventory.Class:EnterSelectionMode()
     MSMixin.EnterSelectionMode(self)
@@ -810,16 +811,26 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     -- Analyze selected items using shared mixin (lock/unlock/junk counts)
     local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
 
-    -- Inventory-specific: count stow-eligible items
+    -- Inventory-specific: count stow/destroy-eligible items
     local canStowCount = 0
+    local canDestroyCount = 0
     for _, itemData in ipairs(selectedItems) do
         local rawData = itemData.dataSource or itemData
         local bagId = rawData.bagId or itemData.bagId
         local slotIndex = rawData.slotIndex or itemData.slotIndex
         if bagId and slotIndex then
-            if HasCraftBagAccess() and CanItemBeVirtual(bagId, slotIndex) and not IsItemStolen(bagId, slotIndex) then
+            local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+            if stackCount > 0
+                and HasCraftBagAccess()
+                and CanItemBeVirtual(bagId, slotIndex)
+                and not IsItemStolen(bagId, slotIndex)
+            then
                 canStowCount = canStowCount + 1
             end
+        end
+
+        if CanDestroyInventoryItem(itemData) then
+            canDestroyCount = canDestroyCount + 1
         end
     end
 
@@ -887,10 +898,10 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     -- Common batch entries from mixin (Lock, Unlock, Mark/Unmark Junk)
     MSMixin.AppendCommonBatchEntries(parametricList, counts, self)
 
-    -- Destroy (only if unlocked items exist) - Inventory-specific
-    if counts.unlockedCount > 0 then
+    -- Destroy (only if destroyable items exist) - Inventory-specific
+    if canDestroyCount > 0 then
         table.insert(parametricList, MSMixin.CreateDialogEntry(
-            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), counts.unlockedCount),
+            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), canDestroyCount),
             function() self:BatchDestroy() end
         ))
     end
@@ -942,7 +953,7 @@ function BETTERUI.Inventory.Class:OnCraftBagSelectionCountChanged(selectedCount)
     end
 
     -- Refresh keybinds to update Y-button batch actions visibility
-    if not self.isInHeaderSortMode then
+    if not self.isInHeaderSortMode and BETTERUI.CIM.Utils.IsInventorySceneShowing() then
         self:RefreshKeybinds()
     end
 end
@@ -981,13 +992,15 @@ function BETTERUI.Inventory.Class:ExitCraftBagSelectionMode()
         self.craftBagMultiSelectManager:ExitSelectionMode()
     end
 
-    -- Update keybinds to normal mode
-    if not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
-    end
+    if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+        -- Update keybinds to normal mode
+        if not self.isInHeaderSortMode then
+            self:RefreshKeybinds()
+        end
 
-    -- Refresh list to remove selection visuals
-    self:RefreshCraftBagList()
+        -- Refresh list to remove selection visuals
+        self:RefreshCraftBagList()
+    end
 end
 
 --- Shows the batch actions menu for multi-selected craftbag items.
@@ -1123,32 +1136,144 @@ function BETTERUI.Inventory.Class:SelectAllCraftBagItems()
     end, 100)
 end
 
+local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
+
+local function ExtractSlot(itemData)
+    local rawData = itemData.dataSource or itemData
+    return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
+end
+
+local function HasItemAtSlot(bagId, slotIndex)
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
+    return (stackCount or 0) > 0
+end
+
+local function ResolveStackCount(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
+end
+
+local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
+    return CROWN_GEMIFICATION_MANAGER
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bagId), tonumber(slotIndex))
+end
+
+local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
+    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
+        return false
+    end
+
+    if targetBankBag == FURNITURE_VAULT_BAG_ID and IsFurnitureVaultGemmableItem(bagId, slotIndex) then
+        return false
+    end
+
+    return true
+end
+
+local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
+    local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+    if targetBankBag == BAG_BANK then
+        if DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex) then
+            return BAG_BANK
+        end
+        if IsESOPlusSubscriber() and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bagId, slotIndex) then
+            return BAG_SUBSCRIBER_BANK
+        end
+        return nil
+    end
+
+    if DoesBagHaveSpaceFor(targetBankBag, bagId, slotIndex) then
+        return targetBankBag
+    end
+    return nil
+end
+
+CanDestroyInventoryItem = function(itemData)
+    if not itemData then
+        return false
+    end
+
+    local rawData = itemData.dataSource or itemData
+    local bagId = rawData.bagId or itemData.bagId
+    local slotIndex = rawData.slotIndex or itemData.slotIndex
+    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
+        return false
+    end
+
+    if IsItemPlayerLocked(bagId, slotIndex) then
+        return false
+    end
+
+    -- Mirror ESO's native destroy gate when slotType is available.
+    if ZO_InventorySlot_CanDestroyItem and (rawData.slotType or itemData.slotType) then
+        local destroyProbe = {
+            slotType = rawData.slotType or itemData.slotType,
+            bagId = bagId,
+            slotIndex = slotIndex,
+        }
+        return ZO_InventorySlot_CanDestroyItem(destroyProbe) == true
+    end
+
+    return true
+end
+
 --- Performs batch retrieve on all selected craftbag items (throttled).
 --- Moves items from craftbag to player inventory (full stacks).
 function BETTERUI.Inventory.Class:BatchRetrieve()
     if not self.craftBagMultiSelectManager then return end
-    local items = self.craftBagMultiSelectManager:GetSelectedItems()
-    if not items or #items == 0 then return end
+    local selectedItems = self.craftBagMultiSelectManager:GetSelectedItems()
+    if not selectedItems or #selectedItems == 0 then return end
+
+    local items = {}
+    for _, itemData in ipairs(selectedItems) do
+        local bagId, slotIndex = ExtractSlot(itemData)
+        if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
+            items[#items + 1] = itemData
+        end
+    end
+    if #items == 0 then return end
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
+        if not HasItemAtSlot(bagId, slotIndex) then
+            return true
+        end
+
         -- Check if there's space in backpack before attempting transfer
         if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
             -- Return false to signal "stop processing" - bag is full
             return false
         end
-        -- Get full stack count (capped by max stack size for the move)
-        local stackSize, maxStackSize = GetSlotStackSize(bagId, slotIndex)
-        if stackSize >= maxStackSize then
-            stackSize = maxStackSize
+
+        local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
+        if not stackSize then
+            return true
         end
-        -- Find an empty slot and transfer
-        local emptySlotIndex = FindFirstEmptySlotInBag(BAG_BACKPACK)
+
+        local targetSlot = FindFirstEmptySlotInBag(BAG_BACKPACK)
+        if not targetSlot then
+            local itemLink = GetItemLink(bagId, slotIndex)
+            if itemLink then
+                targetSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(BAG_BACKPACK, itemLink)
+            end
+        end
+        if not targetSlot then
+            return false
+        end
+
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
-        CallSecureProtected("PlaceInInventory", BAG_BACKPACK, emptySlotIndex)
+        CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
         return true
     end, function()
         self:ExitCraftBagSelectionMode()
-    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
+    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), {
+        serverBound = true,
+    })
 end
 
 --- Performs batch stow on all selected inventory items (throttled).
@@ -1161,31 +1286,41 @@ function BETTERUI.Inventory.Class:BatchStow()
     -- Pre-filter to only craftbag-eligible items
     local items = {}
     for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex then
-            if HasCraftBagAccess() and CanItemBeVirtual(bagId, slotIndex) and not IsItemStolen(bagId, slotIndex) then
-                table.insert(items, itemData)
-            end
+        local bagId, slotIndex = ExtractSlot(itemData)
+        if bagId and slotIndex
+            and HasItemAtSlot(bagId, slotIndex)
+            and HasCraftBagAccess()
+            and CanItemBeVirtual(bagId, slotIndex)
+            and not IsItemStolen(bagId, slotIndex)
+        then
+            table.insert(items, itemData)
         end
     end
 
     if #items == 0 then return end
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
-        -- Get full stack count (capped by max stack size for the move)
-        local stackSize, maxStackSize = GetSlotStackSize(bagId, slotIndex)
-        if stackSize >= maxStackSize then
-            stackSize = maxStackSize
+        if not HasItemAtSlot(bagId, slotIndex) then
+            return true
         end
+        if not HasCraftBagAccess() or not CanItemBeVirtual(bagId, slotIndex) or IsItemStolen(bagId, slotIndex) then
+            return true
+        end
+
+        local stackSize = ResolveStackCount(itemData, bagId, slotIndex)
+        if not stackSize then
+            return true
+        end
+
         -- Transfer to craft bag (slot 0 for virtual bag)
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
         CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
         return true
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
+    end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), {
+        serverBound = true,
+    })
 end
 
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
@@ -1195,8 +1330,16 @@ function BETTERUI.Inventory.Class:IsBatchProcessing()
     return MSMixin.IsBatchProcessing(self)
 end
 
-function BETTERUI.Inventory.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName)
-    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName)
+function BETTERUI.Inventory.Class:CanAbortBatch()
+    return MSMixin.CanAbortBatch(self)
+end
+
+function BETTERUI.Inventory.Class:RequestBatchAbort()
+    return MSMixin.RequestBatchAbort(self)
+end
+
+function BETTERUI.Inventory.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
+    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
 -- ============================================================================
@@ -1206,16 +1349,49 @@ end
 --- Performs batch deposit on all selected items (throttled).
 function BETTERUI.Inventory.Class:BatchDeposit()
     if not self.multiSelectManager then return end
-    local items = self.multiSelectManager:GetSelectedItems()
-    if not items then return end
+    local selectedItems = self.multiSelectManager:GetSelectedItems()
+    if not selectedItems or #selectedItems == 0 then return end
+
+    local items = {}
+    for _, itemData in ipairs(selectedItems) do
+        local bagId, slotIndex = ExtractSlot(itemData)
+        if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
+            local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+            if IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then
+                items[#items + 1] = itemData
+            end
+        end
+    end
+    if #items == 0 then return end
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
+        if not HasItemAtSlot(bagId, slotIndex) then
+            return true
+        end
+
+        local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+        if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then
+            return true
+        end
+
+        local destinationBag = ResolveInventoryDepositTargetBag(bagId, slotIndex)
+        if not destinationBag then
+            return false -- Bank full, stop processing
+        end
+
+        local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
+        if not stackCount then
+            return true
+        end
+
         -- Request bank transfer
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BANK, nil,
-            itemData.stackCount or 1)
+        CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, nil, stackCount)
+        return true
     end, function()
         self:ExitSelectionMode()
-    end, "Depositing")
+    end, "Depositing", {
+        serverBound = true,
+    })
 end
 
 -- Common batch operations delegate to CIM.MultiSelectMixin
@@ -1236,7 +1412,7 @@ function BETTERUI.Inventory.Class:BatchUnmarkAsJunk()
 end
 
 --- Performs batch destroy on all selected items (with confirmation).
---- Pre-filters to only include unlocked items.
+--- Pre-filters to only include destroyable items.
 --- Always shows confirmation dialog for multi-select (quickDestroy setting is ignored for safety).
 function BETTERUI.Inventory.Class:BatchDestroy()
     if not self.multiSelectManager then return end
@@ -1244,14 +1420,16 @@ function BETTERUI.Inventory.Class:BatchDestroy()
     local allItems = self.multiSelectManager:GetSelectedItems()
     if #allItems == 0 then return end
 
-    -- Build list of items to destroy (only unlocked items)
+    -- Build list of items to destroy (only destroyable items)
     local itemsToDestroy = {}
     for _, itemData in ipairs(allItems) do
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        if bagId and slotIndex and not IsItemPlayerLocked(bagId, slotIndex) then
-            table.insert(itemsToDestroy, { bagId = bagId, slotIndex = slotIndex })
+        if CanDestroyInventoryItem(itemData) then
+            local rawData = itemData.dataSource or itemData
+            table.insert(itemsToDestroy, {
+                bagId = rawData.bagId or itemData.bagId,
+                slotIndex = rawData.slotIndex or itemData.slotIndex,
+                slotType = rawData.slotType or itemData.slotType,
+            })
         end
     end
 
@@ -1320,25 +1498,25 @@ function BETTERUI.Inventory.Class:InitializeBatchDestroyDialog()
                 callback = function(dialog)
                     local d = dialog and dialog.data
                     if d and d.itemsToDestroy and d.inventoryInstance then
-                        -- Use throttled processing to prevent rate-limit kicks
-                        local index = 0
                         local items = d.itemsToDestroy
                         local inventoryInstance = d.inventoryInstance
-                        local DELAY_MS = 50
 
-                        local function processNext()
-                            index = index + 1
-                            if index > #items then
-                                inventoryInstance:ExitSelectionMode()
-                                return
+                        inventoryInstance:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
+                            if not CanDestroyInventoryItem(itemData) then
+                                return true
                             end
 
-                            local item = items[index]
-                            BETTERUI.Inventory.TryDestroyItem(item.bagId, item.slotIndex, true)
-                            zo_callLater(processNext, DELAY_MS)
-                        end
-
-                        processNext()
+                            BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
+                            return true
+                        end, function()
+                            inventoryInstance:ExitSelectionMode()
+                            if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+                                inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+                            end
+                        end, GetString(SI_ITEM_ACTION_DESTROY), {
+                            serverBound = true,
+                            suppressUiUpdates = true,
+                        })
                     end
                     ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_DESTROY_DIALOG")
                 end,
