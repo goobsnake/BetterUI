@@ -11,6 +11,13 @@ Dead code and orphan detection with conservative defaults.
 - Scope default: `--core` (CIM first).
 - Mode default: report only.
 - Never delete anything without explicit validation.
+- Prefer evidence-first reporting before planning removals.
+
+## Stop Conditions
+
+- No high-confidence dead/orphan candidates found.
+- Findings are low-confidence and need product/user clarification.
+- Cleanup scope conflicts with active feature delivery priorities.
 
 ## Modes
 
@@ -69,6 +76,15 @@ Classify each finding with:
 ## Step 5: Verify and Commit
 
 Run `/verify-integrity` before commit.
+
+## Output Contract
+
+Return:
+
+- `Findings`: grouped by confidence/risk
+- `Actionable`: items safe for implementation planning
+- `Deferred`: items needing more evidence or user decision
+- `Validation`: checks run (or skipped with reason)
 
 ## Invocation
 

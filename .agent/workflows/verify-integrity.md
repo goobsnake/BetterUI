@@ -6,11 +6,17 @@ description: Pre-flight integrity check before committing - runs tests, scans fo
 
 Fast, reliable pre-commit checks with changed-file scope by default.
 
-## Efficiency Defaults
+## Defaults
 
 - Determine changed files once; reuse that list for all checks.
 - Run full test suite only when runtime addon paths changed.
 - Validate only changed Lua/XML files, not entire directories.
+
+## Stop Conditions
+
+- No changed files were found after staged/working-tree detection.
+- Required verification tool is unavailable in the environment (report and escalate).
+- Scope mismatch remains unresolved after stale-context re-anchor.
 
 ## Stale-Context Guard (when needed)
 
@@ -97,6 +103,15 @@ Report pass/fail for:
 - Debug scan
 - XML validation
 - Lua syntax
+
+## Output Contract
+
+Return:
+
+- `Scope`: files verified and mode (`default`, `--quick`, `--full`)
+- `Checks`: unit tests, debug scan, XML validation, Lua syntax (PASS/FAIL/SKIPPED with reason)
+- `Blockers`: failures that must be fixed before commit
+- `Notes`: skipped checks and rationale
 
 ## Invocation
 

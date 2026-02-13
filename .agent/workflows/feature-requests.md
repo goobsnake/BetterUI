@@ -12,6 +12,12 @@ Targeted `esoui/` gap scan for BetterUI roadmap updates.
 - Output default: update `docs/FEATURE_REQUESTS.md`.
 - Use `--comprehensive` only for roadmap cycles.
 
+## Stop Conditions
+
+- No meaningful net-new gaps are found for the chosen scope.
+- Existing backlog already covers discovered opportunities.
+- Requested scope exceeds available evidence quality for prioritization.
+
 ## Scope Modes
 
 | Scope | Coverage | Use When |
@@ -89,6 +95,14 @@ Report:
 - Priority changes
 
 Update `docs/CONTINUITY.md` only if this materially affects addon roadmap execution, and batch into one milestone entry (not per scan iteration).
+
+## Output Contract
+
+Return:
+
+- `Added`, `Updated`, `Removed` counts
+- top priority shifts with rationale
+- evidence pointers to `esoui/` references for each net-new item
 
 ## Invocation
 

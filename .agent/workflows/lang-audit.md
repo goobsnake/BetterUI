@@ -6,12 +6,23 @@ description: Audit and sync language files - removes unused strings, syncs keys 
 
 Audit localization with changed-file fast path first, full sweep second.
 
+## Defaults
+
+- Default mode is `--changed-only`.
+- Do not touch locale files outside the impacted key set unless `--full` is requested.
+- Never ship English placeholders in non-English locales.
+
 ## Modes
 
 | Mode | Use When | Default |
 |------|----------|---------|
 | `--changed-only` | Normal feature work touching a subset of locale keys | Yes |
 | `--full` | Release prep or broad localization refactor | No |
+
+## Stop Conditions
+
+- No locale files changed and `--full` is not requested.
+- Required translations are unavailable for new keys (escalate instead of placeholder fallback).
 
 ## Step 0: Detect Scope
 
@@ -62,6 +73,15 @@ Expected: no missing keys and no unintended untranslated additions.
 git add lang/
 git commit -m "chore(lang): sync locale keys and translations"
 ```
+
+## Output Contract
+
+Return:
+
+- `Mode`: `--changed-only` or `--full`
+- `Delta`: keys added/updated/removed
+- `Parity`: missing-key status across locales
+- `Risks`: untranslated or uncertain entries requiring user decision
 
 ## Invocation
 

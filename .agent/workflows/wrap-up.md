@@ -6,11 +6,17 @@ description: End-of-session closeout workflow that enforces AGENTS compliance, z
 
 End-of-session closeout with mandatory review and integrity checks.
 
-## Rules
+## Defaults and Gate Rules
 
 1. No deferrals for blocking findings.
 2. No commit until review + integrity are clean.
 3. Keep scope limited to active changes.
+
+## Stop Conditions
+
+- Any mandatory gate remains BLOCKED/FAILED.
+- Active change scope is unclear after baseline + re-anchor checks.
+- Required cleanup cannot be completed safely in current workspace state.
 
 ## Step 0: Baseline
 
@@ -77,6 +83,15 @@ Provide:
 - Verify Integrity: PASS/FAIL
 - Deferrals: None
 - Commit: `<hash> <message>`
+
+## Output Contract
+
+Return:
+
+- gate statuses: AGENTS compliance, Sr review, integrity
+- cleanup status for temporary artifacts
+- commit result (`hash` + message) or explicit reason commit was not created
+- any unresolved blockers requiring user decision
 
 ## Invocation
 

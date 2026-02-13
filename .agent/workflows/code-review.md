@@ -30,6 +30,12 @@ Critical review workflow with low-quota defaults and optional deep-audit expansi
 | `--action` | explicit | Implement fixes now via plan + gates |
 | `--persist-artifacts` | optional | Write `critical_code_review.md` / `implementation_plan.md` when needed |
 
+## Stop Conditions
+
+- `--diff` scope resolves to no reviewable files.
+- Recovered state and requested review scope conflict and user confirmation is unavailable.
+- `--comprehensive` was not explicitly requested and no elevated risk justifies full-repo expansion.
+
 ## Step 0: Resume Guard (if state is stale)
 
 Use AGENTS Context Freshness Protocol:
@@ -141,6 +147,15 @@ If no findings: explicitly state that and list residual test/coverage gaps.
 
 - Do not create review artifacts unless `--persist-artifacts` is requested or work spans multiple phases.
 - Remove temporary artifacts before commit.
+
+## Output Contract
+
+Return:
+
+- `Findings`: grouped by severity with file references
+- `Residual Risks`: explicit unverified assumptions or coverage gaps
+- `Scope`: mode used (`--diff`, `--module`, `--comprehensive`)
+- `Next Action`: report-only, TODO tagging, or action path selection
 
 ## Invocation
 

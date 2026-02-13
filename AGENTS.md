@@ -154,18 +154,28 @@ Maintain a single continuity file for this workspace: `docs/CONTINUITY.md`.
 
 ## Skills Reference
 
+Only skills shipped in this repository should be referenced by workflows and prompts.
+
 | Skill | When to Use |
 |-------|-------------|
 | `betterui-development-guidelines` | **Always** - Lua/XML standards, documentation, verification |
 | `betterui-sr-engineering-team` | Before executing plans, after each phase, quality gates |
 
-**Global skills** (from user's skill library):
-| Skill | When to Use |
-|-------|-------------|
-| `brainstorming` | Before creating new features |
-| `writing-plans` | Before touching code on multi-step tasks |
-| `verification-before-completion` | Before claiming any task is complete |
-| `systematic-debugging` | When encountering bugs or test failures |
+### Skill/Workflow Authoring Standard (Claude-Guide Aligned)
+
+- Use explicit trigger intent in frontmatter `description` (what to use it for and when not to use it).
+- Keep `SKILL.md` concise and deterministic:
+  - `Trigger Phrases`
+  - `Do Not Trigger`
+  - `Required Context` (progressive disclosure; load minimum first)
+  - `Output Contract` (stable response shape)
+  - `Troubleshooting` (stale-context or ambiguity handling)
+- Keep workflow prompts compact and execution-focused:
+  - Defaults first (diff-first, changed-file scope)
+  - Early stop conditions (no-op paths)
+  - Explicit output contract (what to return)
+- Prefer local references over duplicated long examples; move heavy examples to project docs when possible.
+- Never reference non-repo skills in workflows or prompts.
 
 ---
 
@@ -199,12 +209,6 @@ For Claude/Codex compatibility when following `.agent/` workflows:
 | `grep_search` | `rg` content search (preferred) |
 | `view_file` / `view_file_outline` | file read / outline scan |
 | `replace_file_content` / `multi_replace_file_content` | file edit / patch |
-
-### Global Skills Availability
-
-Some global skills may not be mounted in all IDEs (`brainstorming`, `writing-plans`, `verification-before-completion`, `systematic-debugging`).
-
-When unavailable, apply equivalent reasoning directly and continue with the workflow.
 
 ---
 

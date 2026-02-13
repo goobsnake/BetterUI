@@ -4,22 +4,23 @@ description: Update docs/ChangeLog.txt for the upcoming release by auditing all 
 
 # Update ChangeLog Workflow
 
-Use this workflow to keep `docs/ChangeLog.txt` accurate for the **next upcoming release**.
+Keep `docs/ChangeLog.txt` accurate for the next upcoming release with commit-backed, user-facing notes only.
 
-## Prerequisites
+## Defaults
 
-See `AGENTS.md` for project context and `docs/CONTINUITY.md` for session state.
-If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Required)**, **Context Freshness Protocol**, and **Quota Efficiency Defaults** first.
+- Review full commit range from last changelog edit to `HEAD`.
+- Keep only user-facing runtime changes.
+- Collapse in-cycle introduce/fix churn into final behavior statements.
 
----
+## Stop Conditions
 
-## Goal
+- No commits since the last changelog anchor.
+- Changes in range are docs/agent-only and contain no runtime-impact items.
+- User asks to defer release-note curation.
 
-1. Review **all commits** from the commit where `docs/ChangeLog.txt` was last changed through `HEAD` on the current branch.
-2. Update `docs/ChangeLog.txt` to reflect final, user-facing release notes.
-3. Exclude internal stabilization churn (fixes for bugs introduced and resolved during the same unreleased cycle).
+## Step 0: Context Guard
 
----
+If session context may be stale (resume/compaction/long gap), run AGENTS Session Compaction Recovery Tier 1 first.
 
 ## Step 1: Determine Audit Range
 
@@ -36,7 +37,7 @@ Write-Host "Range: $range"
 Write-Host "Commits in range: $commitCount"
 ```
 
-If `commitCount` is `0`, stop: no changelog update is needed.
+If `commitCount` is `0`, stop.
 
 ---
 
@@ -129,8 +130,6 @@ git diff -- docs/ChangeLog.txt
 git log --reverse --oneline $range
 ```
 
----
-
 ## Step 7: Optional Gate + Commit
 
 For major changelog rewrites, optionally run:
@@ -146,9 +145,16 @@ git add docs/ChangeLog.txt
 git commit -m "docs(changelog): update notes for upcoming release"
 ```
 
----
+## Output Contract
 
-## Quick Invocation
+Return:
+
+- `Range`: anchor commit, range string, commit count
+- `Included`: user-facing bullets kept/added
+- `Excluded`: churn/noise categories removed (with reason)
+- `Validation`: mapping confirmation that each bullet is backed by runtime-path commits
+
+## Invocation
 
 ```text
 /update-changelog

@@ -12,6 +12,12 @@ If resumed/compacted, execute `AGENTS.md` → **Session Compaction Recovery (Req
 - Start with `Modules/` and active diff files before widening scope.
 - Keep output to top N actionable items; avoid dumping full raw search output.
 
+## Stop Conditions
+
+- No TODO/FIXME/HACK/XXX entries found in scoped files.
+- Findings are stale/already-resolved and require confirmation before action.
+- `--plan` requested but no actionable TODOs remain after ranking.
+
 ## Parameters
 
 - **Count**: Number of top TODOs to surface (default: 10)
@@ -76,7 +82,7 @@ Output the top **{COUNT}** TODOs ranked by benefit-to-effort ratio:
 
 For the top TODOs from Step 3:
 
-1. Use the `writing-plans` skill to create an implementation plan for the prioritized TODO(s)
+1. Create a concise implementation plan inline (or in `implementation_plan.md` only if work is truly multi-phase)
 2. Group related TODOs together where it makes sense
 3. **Before executing**, invoke the review gate:
 
