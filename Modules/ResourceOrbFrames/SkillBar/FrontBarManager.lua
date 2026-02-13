@@ -54,6 +54,10 @@ local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
 
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
+local TARGET_FAILURE_CAST_HOLD_MS = 200
+local NON_COST_FAILURE_CAST_HOLD_MS = 250
+local m_targetFailureLastSeenMsBySlotCategory = {}
+local m_nonCostFailureLastSeenMsBySlotCategory = {}
 
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
     return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
@@ -80,6 +84,71 @@ local function ClampTextSize(value, minValue, maxValue, fallback)
         return maxValue
     end
     return rounded
+end
+
+local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
+    local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
+    local hasRangeFailure = ActionSlotHasRangeFailure and ActionSlotHasRangeFailure(slotIndex, hotbarCategory) or false
+    return hasTargetFailure or hasRangeFailure
+end
+
+local function ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeFailure, isCasting, nowMs)
+    if hasTargetOrRangeFailure then
+        m_targetFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
+        return true
+    end
+
+    local lastSeenMs = m_targetFailureLastSeenMsBySlotCategory[slotStateKey]
+    if isCasting and lastSeenMs and (nowMs - lastSeenMs) <= TARGET_FAILURE_CAST_HOLD_MS then
+        return true
+    end
+
+    m_targetFailureLastSeenMsBySlotCategory[slotStateKey] = nil
+    return false
+end
+
+local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure, isCasting, nowMs)
+    if hasStateFailure then
+        m_nonCostFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
+        return true
+    end
+
+    local lastSeenMs = m_nonCostFailureLastSeenMsBySlotCategory[slotStateKey]
+    if isCasting and lastSeenMs and (nowMs - lastSeenMs) <= NON_COST_FAILURE_CAST_HOLD_MS then
+        return true
+    end
+
+    m_nonCostFailureLastSeenMsBySlotCategory[slotStateKey] = nil
+    return false
+end
+
+local function HasInsufficientUltimate(slotIndex, hotbarCategory)
+    local ultimateSlotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
+    if slotIndex ~= ultimateSlotIndex then
+        return false
+    end
+
+    local abilityCost = GetSlotAbilityCost(slotIndex, hotbarCategory)
+    if type(abilityCost) ~= "number" or abilityCost <= 0 then
+        return false
+    end
+
+    local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+    if type(currentUltimate) ~= "number" then
+        return false
+    end
+
+    return currentUltimate < abilityCost
+end
+
+local function ShouldSuppressUnusableOverlayForCooldown(slotIndex, hotbarCategory)
+    local remainMs, durationMs, isGlobalCooldown = GetSlotCooldownInfo(slotIndex, hotbarCategory)
+    if remainMs and remainMs > 0 and durationMs and durationMs > 1500 and not isGlobalCooldown then
+        return true
+    end
+
+    local effectRemaining = GetActionSlotEffectTimeRemaining(slotIndex, hotbarCategory)
+    return effectRemaining and effectRemaining > 0
 end
 
 --[[
@@ -351,9 +420,9 @@ end
 local function UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
-    if isCasting then return end
 
     local activeCategory = GetActiveHotbarCategory()
+    local nowMs = GetGameTimeMilliseconds()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
@@ -373,12 +442,19 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
             local unusableOverlay = btn:GetNamedChild("UnusableOverlay")
 
             if iconControl and not iconControl:IsHidden() then
+                local slotStateKey = BuildCooldownStateKey(mapping.slot, activeCategory)
                 local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
                 local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
-                local unusable = hasCostFailure or hasStateFailure
+                local hasLatchedStateFailure = ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure,
+                    isCasting, nowMs)
+                local hasTargetOrRangeFailure = GetTargetOrRangeFailure(mapping.slot, activeCategory)
+                local hasLatchedTargetFailure = ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeFailure,
+                    isCasting, nowMs)
+                local hasInsufficientUltimate = HasInsufficientUltimate(mapping.slot, activeCategory)
+                local unusable = hasCostFailure or hasLatchedStateFailure or hasLatchedTargetFailure or
+                    hasInsufficientUltimate
 
-                local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, activeCategory)
-                local hasActiveCooldown = remainMs and durationMs and remainMs > 0 and durationMs > 0
+                local hasActiveCooldown = ShouldSuppressUnusableOverlayForCooldown(mapping.slot, activeCategory)
 
                 if unusableOverlay then
                     unusableOverlay:SetHidden(not (unusable and not hasActiveCooldown))

@@ -607,12 +607,14 @@ end
 --- @param rootFrame Control The root control frame
 --- @param pools table<number, OrbPool> The power type pools
 --- @param shieldBar table|nil The shield bar control
-function Events.SetupLoopEvents(rootFrame, pools, shieldBar)
+--- @param castBar table|nil The cast bar control object
+function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     -- Core status tick (100ms): usability and ultimate meters/text.
     local function CoreStatusTick()
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
-            SkillBar.UpdateFrontBarUsability(rootFrame)
+            local isCasting = castBar and castBar.isCasting or false
+            SkillBar.UpdateFrontBarUsability(rootFrame, isCasting)
             SkillBar.UpdateFrontBarUltimateMeter(rootFrame)
             SkillBar.UpdateFrontBarUltimateNumber(rootFrame)
         end

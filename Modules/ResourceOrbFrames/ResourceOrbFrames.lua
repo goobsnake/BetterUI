@@ -239,7 +239,7 @@ local function SetupModule(control)
     RefreshAllData()
 
     -- 5. Setup Event Loops
-    Events.SetupLoopEvents(control, m_pools, m_shieldBar)
+    Events.SetupLoopEvents(control, m_pools, m_shieldBar, m_castBar)
     Events.SetupSceneHandlers(control)
 
     m_isInitialized = true
