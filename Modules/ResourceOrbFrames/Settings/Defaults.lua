@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/Settings/Defaults.lua
 Purpose: Default settings for Resource Orb Frames module.
 Author: BetterUI Team
-Last Modified: 2026-02-08
+Last Modified: 2026-02-13
 ]]
 
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
@@ -14,7 +14,6 @@ local function GetDefaults()
         m_enabled = true,
         scale = 1.0,
         offsetY = 0,
-        useCustomTextures = false,
         centerBarType = "XP",
         healthTextSize = 20,
         healthTextColor = { 1, 1, 1, 1 },
@@ -139,6 +138,9 @@ end
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = GetDefaults()
+
+    -- Retire legacy setting now that custom texture switching is removed.
+    m_options.useCustomTextures = nil
 
     -- Apply simple defaults
     for key, value in pairs(defaults) do

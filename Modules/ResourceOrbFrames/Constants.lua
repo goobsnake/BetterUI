@@ -340,7 +340,7 @@ BETTERUI_ORB_FRAMES = {
 
 -- ============================================================================
 -- RECTANGULAR BAR GRAPHICS
--- Backdrop textures are module-local DDS files (resolved from Textures/CustomTextures).
+-- Backdrop textures are module-local DDS files (resolved from Textures).
 -- Fill textures can be an ESO full path or a module-local DDS filename.
 -- ============================================================================
 BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds"

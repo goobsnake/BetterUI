@@ -123,7 +123,6 @@ BETTERUI.Defaults.Modules = {
         -- Core Settings
         scale = 1.0,
         offsetY = 0,
-        useCustomTextures = false,
 
         -- Showcase Features (ON by default for great first impression)
         showUltimateNumber = true,     -- Show ultimate % on action bar

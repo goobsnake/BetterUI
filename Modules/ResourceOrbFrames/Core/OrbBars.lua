@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/OrbBars.lua
 Purpose: Implements rectangular bar frames (XP, Cast, Mount Stamina).
          Contains BetterUIBarFrame and its subclasses.
-Last Modified: 2026-02-11
+Last Modified: 2026-02-13
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -63,13 +63,7 @@ local function GetModuleSettings()
 end
 
 local function ResolveTexturePath(filename)
-    -- Check custom texture setting
-    local settings = GetModuleSettings()
-    local path = "BetterUI/Modules/ResourceOrbFrames/Textures"
-    if settings.useCustomTextures then
-        path = "BetterUI/Modules/ResourceOrbFrames/CustomTextures"
-    end
-    return string.format("%s/%s", path, filename)
+    return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
 end
 
 local function ResolveBarTexturePath(textureFile)
@@ -276,7 +270,6 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     if not self.control or self.control:IsHidden() then return end
 
     if self.backdrop then
-        -- Keep backdrop texture in sync with live "Use Custom Textures" toggles.
         self.backdrop:SetTexture(ResolveBarTexturePath(self.backdropTextureFile))
         self.backdrop:SetDimensions(barWidth, barHeight)
         if IsValidRegion(self.backdropTextureBounds) then

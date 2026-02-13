@@ -2,7 +2,7 @@
 File: Modules/ResourceOrbFrames/OrbVisuals.lua
 Purpose: Handles the creation, layout, and maintenance of Resource Orbs (Health, Magicka, Stamina).
          Contains the BetterUIOrbBar and BetterUIShieldBar classes.
-Last Modified: 2026-02-11
+Last Modified: 2026-02-13
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
@@ -32,10 +32,6 @@ local function GetModuleSettings()
 end
 
 local function GetTextureRootPath()
-    local settings = GetModuleSettings()
-    if settings.useCustomTextures then
-        return "BetterUI/Modules/ResourceOrbFrames/CustomTextures"
-    end
     return "BetterUI/Modules/ResourceOrbFrames/Textures"
 end
 

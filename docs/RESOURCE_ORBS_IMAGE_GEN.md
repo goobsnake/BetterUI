@@ -1,11 +1,11 @@
-# ResourceOrbFrames Custom Texture Spec (AI-Ready)
+# ResourceOrbFrames Texture Notes
 
-This folder is used when `Resource Orb Frames -> General -> Use Custom Textures` is enabled.
+This document describes how to author/refresh the shipped ResourceOrbFrames textures.
 
 Runtime lookup path:
-`BetterUI/Modules/ResourceOrbFrames/CustomTextures`
+`BetterUI/Modules/ResourceOrbFrames/Textures`
 
-If custom textures are enabled, BetterUI resolves orb and bar art from this folder.
+BetterUI always resolves orb and bar art from this folder.
 
 ## 1) Required files (exact names)
 
@@ -27,10 +27,10 @@ If custom textures are enabled, BetterUI resolves orb and bar art from this fold
 3. Convert with profile enforcement:
 
 ```powershell
-.\tools\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\CustomTextures' -Profile ResourceOrbFrames -Format DXT5
+.\tools\ConvertPngToDds.ps1 -InputPath '.\Modules\ResourceOrbFrames\Textures' -Profile ResourceOrbFrames -Format DXT5
 ```
 
-4. Enable `Use Custom Textures` in Resource Orb Frames settings.
+4. Reload UI and validate in-game.
 5. Validate both ornament modes:
    `Hide Left Ornament = OFF/ON`
    `Hide Right Ornament = OFF/ON`

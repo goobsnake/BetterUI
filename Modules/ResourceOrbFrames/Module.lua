@@ -3,7 +3,7 @@ File: Modules/ResourceOrbFrames/Module.lua
 Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
 Author: BetterUI Team
-Last Modified: 2026-02-08
+Last Modified: 2026-02-13
 ]]
 
 local LAM = LibAddonMenu2
@@ -174,7 +174,6 @@ local function Init(mId, moduleName)
 
     local getScale, setScale = GetSet("scale", Default("scale", 1))
     local getOffset, setOffset = GetSet("offsetY", Default("offsetY", 0))
-    local getCustomTex, setCustomTex = GetSet("useCustomTextures", Default("useCustomTextures", false))
 
     local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize", Default("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE))
     local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor", CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 }))
@@ -255,16 +254,6 @@ local function Init(mId, moduleName)
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             default = Default("offsetY", 0),
         },
-        {
-            type = "checkbox",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_USE_CUSTOM_TEXTURES_TOOLTIP),
-            sortAlwaysLast = true,
-            getFunc = getCustomTex,
-            setFunc = setCustomTex,
-            width = "full",
-            default = Default("useCustomTextures", false),
-        },
         -- TODO(refactor): Extract reset settings pattern to single ResetSettings() function - duplicated at lines 332, 509, 689
         {
             type = "button",
@@ -277,7 +266,6 @@ local function Init(mId, moduleName)
                 end
                 settings.scale = Default("scale", 1)
                 settings.offsetY = Default("offsetY", 0)
-                settings.useCustomTextures = Default("useCustomTextures", false)
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                     BETTERUI.ResourceOrbFrames.ApplySettings()
