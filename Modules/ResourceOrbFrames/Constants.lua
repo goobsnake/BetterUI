@@ -3,7 +3,7 @@ File: Modules/ResourceOrbFrames/Constants.lua
 Purpose: Defines all static constants for the ResourceOrbFrames module.
          Centralizes layout dimensions, positioning offsets, and configuration values.
 Author: BetterUI Team
-Last Modified: 2026-02-11
+Last Modified: 2026-02-12
 ]]
 
 
@@ -22,15 +22,27 @@ BETTERUI_DEFAULT_SKILL_TEXT_SIZE = 27 -- Baseline font size for quickslot/ultima
 
 -- Quickslot count text anchor offsets.
 -- Keybind offsets are used when the quickslot button has a ButtonText keybind label.
-BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 0 -- Count-text X nudge from keybind label center (+ right, - left).
+BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 0  -- Count-text X nudge from keybind label center (+ right, - left).
 BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = -2 -- Count-text Y nudge from keybind label center (+ down, - up).
-BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 0 -- Count-text X nudge when anchored directly to quickslot button (+ right, - left).
-BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 1 -- Count-text Y nudge when anchored directly to button (+ down, - up).
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 0   -- Count-text X nudge when anchored directly to quickslot button (+ right, - left).
+BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 1   -- Count-text Y nudge when anchored directly to button (+ down, - up).
 
 -- Ultimate number text anchor and dimensions.
-BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X = 0 -- Ultimate value X nudge from bottom-center anchor (+ right, - left).
+BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_X = 0  -- Ultimate value X nudge from bottom-center anchor (+ right, - left).
 BETTERUI_ULTIMATE_NUMBER_TEXT_OFFSET_Y = -5 -- Ultimate value Y nudge from bottom-center anchor (+ down, - up).
-BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32 -- Label box height; increase gives more vertical room for larger fonts.
+BETTERUI_ULTIMATE_NUMBER_TEXT_HEIGHT = 32   -- Label box height; increase gives more vertical room for larger fonts.
+
+-- Combat icon placement (relative to quickslot button by default).
+BETTERUI_COMBAT_ICON_TEXTURE = "EsoUI/Art/Options/Gamepad/gp_options_combat.dds" -- In-combat indicator texture path
+BETTERUI_COMBAT_ICON_SIZE = 46                                                   -- Square icon size in pixels.
+BETTERUI_COMBAT_ICON_OFFSET_X = 0                                                -- Horizontal nudge from quickslot anchor (+ right, - left).
+BETTERUI_COMBAT_ICON_OFFSET_Y = -8                                               -- Vertical nudge from quickslot anchor (+ down, - up).
+BETTERUI_COMBAT_ICON_TINT_R = 1.0                                                -- Red pulse tint R channel.
+BETTERUI_COMBAT_ICON_TINT_G = 0.20                                               -- Red pulse tint G channel.
+BETTERUI_COMBAT_ICON_TINT_B = 0.20                                               -- Red pulse tint B channel.
+BETTERUI_COMBAT_ICON_PULSE_MIN_ALPHA = 0.45                                      -- Pulse low alpha floor.
+BETTERUI_COMBAT_ICON_PULSE_MAX_ALPHA = 1.0                                       -- Pulse high alpha ceiling.
+BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                     -- One-way pulse duration in milliseconds.
 
 -- ============================================================================
 -- LAYOUT CONFIGURATION
@@ -359,9 +371,9 @@ end
 
 -- Experience/Champion Bar positioning (Below left ornament)
 BETTERUI_XP_BAR_SCALE = 1.0         -- Scale multiplier for XP bar
-BETTERUI_XP_BAR_OFFSET_X = 0        -- X offset from center (positive = right)
+BETTERUI_XP_BAR_OFFSET_X = 5        -- X offset from center (positive = right)
 BETTERUI_XP_BAR_OFFSET_Y = -85      -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_XP_BAR_WIDTH = 215         -- Width of the XP bar in pixels
+BETTERUI_XP_BAR_WIDTH = 228         -- Width of the XP bar in pixels
 BETTERUI_XP_BAR_HEIGHT = 190        -- Height of the XP bar in pixels
 BETTERUI_XP_BAR_LABEL_OFFSET_X = -2 -- Horizontal offset for text label (from fill-region center)
 BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from fill-region center)
