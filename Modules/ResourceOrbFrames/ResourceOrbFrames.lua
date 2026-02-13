@@ -229,6 +229,9 @@ local function SetupModule(control)
         if SkillBar.SetupFrontBarKeybinds then
             SkillBar.SetupFrontBarKeybinds(control)
         end
+        if SkillBar.SetupFrontBarPressFeedbackHooks then
+            SkillBar.SetupFrontBarPressFeedbackHooks(control)
+        end
         if SkillBar.SetupFrontBarTooltips then
             SkillBar.SetupFrontBarTooltips(control)
         end
@@ -298,6 +301,22 @@ local function SetupModule(control)
                 SkillBar.UpdateFrontBarQuickslot(control)
             end
         end)
+
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
+        EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+            if not slotIndex then
+                return
+            end
+
+            local frontBarSettings = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
+            if not frontBarSettings or not frontBarSettings.m_enabled then
+                return
+            end
+
+            if SkillBar.PlayFrontBarPressFeedbackForSlot then
+                SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex)
+            end
+        end, REGISTER_FILTER_UNIT_TAG, "player")
 
 
 

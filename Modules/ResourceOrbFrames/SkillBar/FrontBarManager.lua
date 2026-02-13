@@ -56,8 +56,19 @@ local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
 local TARGET_FAILURE_CAST_HOLD_MS = 200
 local NON_COST_FAILURE_CAST_HOLD_MS = 250
+local PRESS_FEEDBACK_DEDUPE_WINDOW_MS = 140
+local PRESS_FEEDBACK_EDGE_FLASH_MS = 95
+local PRESS_FEEDBACK_EDGE_FLASH_ALPHA = 0.95
+local BOUNCE_SHRINK_SCALE = 0.9
+local BOUNCE_ICON_SHRINK_SCALE = 0.8
+local BOUNCE_GROW_SCALE = 1.1
+local BOUNCE_FRAME_RESET_TIME_MS = 167
+local BOUNCE_ICON_RESET_TIME_MS = 100
 local m_targetFailureLastSeenMsBySlotCategory = {}
 local m_nonCostFailureLastSeenMsBySlotCategory = {}
+local m_pressFeedbackHooksInstalled = false
+local m_pressFeedbackRootFrame = nil
+local m_pressFeedbackLastPlayedMsByButton = {}
 
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
     return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
@@ -84,6 +95,261 @@ local function ClampTextSize(value, minValue, maxValue, fallback)
         return maxValue
     end
     return rounded
+end
+
+local function ResolvePressFeedbackButtonName(slotIndex, hotbarCategory)
+    if hotbarCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
+        return "QuickslotButton"
+    end
+
+    if hotbarCategory == HOTBAR_CATEGORY_COMPANION then
+        return "CompanionButton"
+    end
+
+    local ultimateSlot = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or 8
+    if slotIndex == ultimateSlot then
+        return "UltimateButton"
+    end
+
+    local numericSlot = tonumber(slotIndex)
+    if numericSlot and numericSlot >= 3 and numericSlot <= 7 then
+        return "Button" .. tostring(numericSlot - 2)
+    end
+
+    if numericSlot and numericSlot == GetCurrentQuickslot() then
+        return "QuickslotButton"
+    end
+
+    return nil
+end
+
+local function ConfigureBounceTimelineSize(timeline, width, height, shrinkScale, resetDurationMs)
+    if not timeline then
+        return
+    end
+
+    local shrink = timeline:GetAnimation(1)
+    local grow = timeline:GetAnimation(2)
+    local reset = timeline:GetAnimation(3)
+    if not shrink or not grow or not reset then
+        return
+    end
+
+    shrink:SetStartAndEndWidth(width, width * shrinkScale)
+    shrink:SetStartAndEndHeight(height, height * shrinkScale)
+
+    grow:SetStartAndEndWidth(width * shrinkScale, width * BOUNCE_GROW_SCALE)
+    grow:SetStartAndEndHeight(height * shrinkScale, height * BOUNCE_GROW_SCALE)
+
+    reset:SetStartAndEndWidth(width * BOUNCE_GROW_SCALE, width)
+    reset:SetStartAndEndHeight(height * BOUNCE_GROW_SCALE, height)
+    reset:SetDuration(resetDurationMs)
+end
+
+local function SetPressFeedbackBaseSize(buttonControl, frameWidth, frameHeight, iconWidth, iconHeight)
+    if not buttonControl then
+        return
+    end
+
+    buttonControl.betterUIPressFeedbackBaseFrameWidth = frameWidth
+    buttonControl.betterUIPressFeedbackBaseFrameHeight = frameHeight
+    buttonControl.betterUIPressFeedbackBaseIconWidth = iconWidth
+    buttonControl.betterUIPressFeedbackBaseIconHeight = iconHeight
+end
+
+local function EnsurePressFeedbackState(buttonControl, children)
+    if not buttonControl then
+        return nil
+    end
+
+    local state = buttonControl.betterUIPressFeedback
+    if not state then
+        state = {}
+        buttonControl.betterUIPressFeedback = state
+    end
+
+    state.flipCard = (children and children.FlipCard) or buttonControl:GetNamedChild("FlipCard")
+    state.icon = (children and children.Icon) or buttonControl:GetNamedChild("Icon")
+    state.pressHighlight = (children and children.PressHighlight) or buttonControl:GetNamedChild("PressHighlight")
+
+    if state.flipCard and not state.bounceAnimation then
+        state.bounceAnimation = ANIMATION_MANAGER:CreateTimelineFromVirtual("ActionSlotBounceAnimation", state.flipCard)
+    end
+    if state.icon and not state.iconBounceAnimation then
+        state.iconBounceAnimation = ANIMATION_MANAGER:CreateTimelineFromVirtual("ActionSlotBounceAnimation", state.icon)
+    end
+    if state.pressHighlight and not state.pressHighlightAnimation then
+        state.pressHighlightAnimation = ZO_AlphaAnimation:New(state.pressHighlight)
+    end
+
+    local frameWidth = tonumber(buttonControl.betterUIPressFeedbackBaseFrameWidth)
+    local frameHeight = tonumber(buttonControl.betterUIPressFeedbackBaseFrameHeight)
+    if (not frameWidth or frameWidth <= 0) and state.lastFrameWidth and state.lastFrameWidth > 0 then
+        frameWidth = state.lastFrameWidth
+    end
+    if (not frameHeight or frameHeight <= 0) and state.lastFrameHeight and state.lastFrameHeight > 0 then
+        frameHeight = state.lastFrameHeight
+    end
+    if (not frameWidth or frameWidth <= 0) and state.flipCard and state.flipCard.GetDimensions then
+        frameWidth = select(1, state.flipCard:GetDimensions())
+    end
+    if (not frameHeight or frameHeight <= 0) and state.flipCard and state.flipCard.GetDimensions then
+        frameHeight = select(2, state.flipCard:GetDimensions())
+    end
+    if (not frameWidth or frameWidth <= 0) or (not frameHeight or frameHeight <= 0) then
+        frameWidth, frameHeight = buttonControl:GetDimensions()
+    end
+    frameWidth = (frameWidth and frameWidth > 0) and frameWidth or (ZO_GAMEPAD_ACTION_BUTTON_SIZE or 64)
+    frameHeight = (frameHeight and frameHeight > 0) and frameHeight or frameWidth
+    local isFrameBouncePlaying = state.bounceAnimation and state.bounceAnimation.IsPlaying and state.bounceAnimation:IsPlaying()
+    if (not isFrameBouncePlaying) and (state.lastFrameWidth ~= frameWidth or state.lastFrameHeight ~= frameHeight) then
+        ConfigureBounceTimelineSize(state.bounceAnimation, frameWidth, frameHeight, BOUNCE_SHRINK_SCALE,
+            BOUNCE_FRAME_RESET_TIME_MS)
+        state.lastFrameWidth = frameWidth
+        state.lastFrameHeight = frameHeight
+    end
+    state.resolvedFrameWidth = frameWidth
+    state.resolvedFrameHeight = frameHeight
+
+    local iconWidth = tonumber(buttonControl.betterUIPressFeedbackBaseIconWidth)
+    local iconHeight = tonumber(buttonControl.betterUIPressFeedbackBaseIconHeight)
+    if (not iconWidth or iconWidth <= 0) and state.lastIconWidth and state.lastIconWidth > 0 then
+        iconWidth = state.lastIconWidth
+    end
+    if (not iconHeight or iconHeight <= 0) and state.lastIconHeight and state.lastIconHeight > 0 then
+        iconHeight = state.lastIconHeight
+    end
+    if (not iconWidth or iconWidth <= 0) and state.icon and state.icon.GetDimensions then
+        iconWidth = select(1, state.icon:GetDimensions())
+    end
+    if (not iconHeight or iconHeight <= 0) and state.icon and state.icon.GetDimensions then
+        iconHeight = select(2, state.icon:GetDimensions())
+    end
+    if (not iconWidth or iconWidth <= 0) or (not iconHeight or iconHeight <= 0) then
+        iconWidth = frameWidth
+        iconHeight = frameHeight
+    end
+    local isIconBouncePlaying = state.iconBounceAnimation and state.iconBounceAnimation.IsPlaying and
+        state.iconBounceAnimation:IsPlaying()
+    if (not isIconBouncePlaying) and (state.lastIconWidth ~= iconWidth or state.lastIconHeight ~= iconHeight) then
+        ConfigureBounceTimelineSize(state.iconBounceAnimation, iconWidth, iconHeight, BOUNCE_ICON_SHRINK_SCALE,
+            BOUNCE_ICON_RESET_TIME_MS)
+        state.lastIconWidth = iconWidth
+        state.lastIconHeight = iconHeight
+    end
+    state.resolvedIconWidth = iconWidth
+    state.resolvedIconHeight = iconHeight
+
+    return state
+end
+
+local function PlayButtonPressFeedback(buttonControl, children, buttonName)
+    if not buttonControl then
+        return
+    end
+
+    local nowMs = GetGameTimeMilliseconds()
+    local lastPlayedMs = m_pressFeedbackLastPlayedMsByButton[buttonName]
+    if lastPlayedMs and (nowMs - lastPlayedMs) <= PRESS_FEEDBACK_DEDUPE_WINDOW_MS then
+        return
+    end
+    m_pressFeedbackLastPlayedMsByButton[buttonName] = nowMs
+
+    local state = EnsurePressFeedbackState(buttonControl, children)
+    if not state then
+        return
+    end
+
+    if state.flipCard and state.resolvedFrameWidth and state.resolvedFrameHeight then
+        state.flipCard:SetDimensions(state.resolvedFrameWidth, state.resolvedFrameHeight)
+    end
+    if state.icon and state.resolvedIconWidth and state.resolvedIconHeight then
+        state.icon:SetDimensions(state.resolvedIconWidth, state.resolvedIconHeight)
+    end
+
+    if state.bounceAnimation and (not state.bounceAnimation:IsPlaying()) then
+        state.bounceAnimation:PlayFromStart()
+    end
+    if state.iconBounceAnimation and (not state.iconBounceAnimation:IsPlaying()) then
+        state.iconBounceAnimation:PlayFromStart()
+    end
+
+    local pressHighlight = state.pressHighlight
+    local pressHighlightAnimation = state.pressHighlightAnimation
+    if pressHighlight and pressHighlightAnimation then
+        pressHighlightAnimation:Stop()
+        pressHighlight:SetAlpha(0)
+        pressHighlight:SetHidden(false)
+        pressHighlightAnimation:PingPong(0, PRESS_FEEDBACK_EDGE_FLASH_ALPHA, PRESS_FEEDBACK_EDGE_FLASH_MS, 1, function()
+            if pressHighlight and pressHighlight.SetHidden then
+                pressHighlight:SetHidden(true)
+                pressHighlight:SetAlpha(0)
+            end
+        end)
+    end
+end
+
+local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory)
+    local frontBarCfg = GetModuleSettings().customFrontBar
+    if not frontBarCfg or not frontBarCfg.m_enabled then
+        return
+    end
+
+    local resolvedRootFrame = rootFrame or m_pressFeedbackRootFrame
+    if not resolvedRootFrame then
+        return
+    end
+
+    if not m_frontBarContainer or m_frontBarContainer:IsHidden() then
+        m_frontBarContainer = FindControl(resolvedRootFrame, 'FrontBarContainer')
+    end
+
+    local activeCategory = GetActiveHotbarCategory()
+    local resolvedCategory = hotbarCategory or activeCategory
+    local isPrimaryCategory = resolvedCategory == activeCategory
+    local isQuickslot = resolvedCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+    local isCompanion = resolvedCategory == HOTBAR_CATEGORY_COMPANION
+    if not (isPrimaryCategory or isQuickslot or isCompanion) then
+        return
+    end
+
+    local buttonName = ResolvePressFeedbackButtonName(slotIndex, resolvedCategory)
+    if not buttonName then
+        return
+    end
+
+    local frontBarContainer = m_frontBarContainer or FindControl(resolvedRootFrame, 'FrontBarContainer')
+    local buttonControl = GetFrontBarButtonControl(resolvedRootFrame, frontBarContainer, buttonName)
+    if not buttonControl or buttonControl:IsHidden() then
+        return
+    end
+
+    local cachedButton = m_buttonCache and m_buttonCache[buttonName] or nil
+    local children = cachedButton and cachedButton.children or nil
+    local iconControl = (children and children.Icon) or buttonControl:GetNamedChild("Icon")
+    if iconControl and iconControl:IsHidden() then
+        return
+    end
+
+    PlayButtonPressFeedback(buttonControl, children, buttonName)
+end
+
+local function SetupFrontBarPressFeedbackHooks(rootFrame)
+    m_pressFeedbackRootFrame = rootFrame or m_pressFeedbackRootFrame
+
+    if m_pressFeedbackHooksInstalled then
+        return
+    end
+
+    if type(ZO_PreHook) ~= "function" then
+        return
+    end
+
+    ZO_PreHook("ZO_ActionBar_OnActionButtonUp", function(slotNum, hotbarCategory)
+        PlayFrontBarPressFeedbackForSlot(m_pressFeedbackRootFrame, slotNum, hotbarCategory)
+    end)
+
+    m_pressFeedbackHooksInstalled = true
 end
 
 local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
@@ -610,6 +876,7 @@ local function UpdateFrontBarLayout(rootFrame)
             if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
             local icon = btn:GetNamedChild("Icon")
             if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
+            SetPressFeedbackBaseSize(btn, buttonSize - 3, buttonSize - 3, buttonSize - 3, buttonSize - 3)
         end
     end
 
@@ -638,6 +905,7 @@ local function UpdateFrontBarLayout(rootFrame)
         if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
         local icon = ultBtn:GetNamedChild("Icon")
         if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
+        SetPressFeedbackBaseSize(ultBtn, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3)
     end
 
     local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
@@ -661,6 +929,7 @@ local function UpdateFrontBarLayout(rootFrame)
         if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
         local icon = qsBtn:GetNamedChild("Icon")
         if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
+        SetPressFeedbackBaseSize(qsBtn, buttonSize - 3, buttonSize - 3, buttonSize - 3, buttonSize - 3)
         AnchorQuickslotCountText(qsBtn, qsBtn:GetNamedChild("CountText"))
     end
 
@@ -685,6 +954,7 @@ local function UpdateFrontBarLayout(rootFrame)
         if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
         local icon = compBtn:GetNamedChild("Icon")
         if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
+        SetPressFeedbackBaseSize(compBtn, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3)
     end
 
     local barOffsetX = frontBarCfg.offsetX or 0
@@ -931,3 +1201,5 @@ SkillBar.UpdateFrontBarLayout = UpdateFrontBarLayout
 SkillBar.UpdateFrontBarQuickslot = UpdateFrontBarQuickslot
 SkillBar.UpdateFrontBarCompanion = UpdateFrontBarCompanion
 SkillBar.UpdateFrontBarCooldowns = UpdateFrontBarCooldowns
+SkillBar.SetupFrontBarPressFeedbackHooks = SetupFrontBarPressFeedbackHooks
+SkillBar.PlayFrontBarPressFeedbackForSlot = PlayFrontBarPressFeedbackForSlot

@@ -85,6 +85,11 @@ Purpose: Defines skill bar button templates for the Resource Orb Frames module.
                     <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
                     <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
                 </Texture>
+                <Texture name="$(parent)PressHighlight" layer="2" hidden="true" blendMode="ADD" alpha="0"
+                    textureFile="EsoUI/Art/ActionBar/actionBar_mouseOver.dds">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
+                    <Anchor point="BOTTOMRIGHT" relativeTo="$(parent)FlipCard" />
+                </Texture>
                 <Texture name="$(parent)CooldownIcon" hidden="true" layer="1">
                     <TextureCoords left="0" right="1" top="0" bottom="0" />
                     <Anchor point="TOPLEFT" relativeTo="$(parent)FlipCard" />
