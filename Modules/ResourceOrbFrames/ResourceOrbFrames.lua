@@ -314,7 +314,7 @@ local function SetupModule(control)
             end
 
             if SkillBar.PlayFrontBarPressFeedbackForSlot then
-                SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex)
+                SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex, nil, true)
             end
         end, REGISTER_FILTER_UNIT_TAG, "player")
 

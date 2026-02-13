@@ -289,7 +289,61 @@ local function PlayButtonPressFeedback(buttonControl, children, buttonName)
     end
 end
 
-local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory)
+local function GetNativeActionBarUsableState(slotIndex, hotbarCategory)
+    if type(slotIndex) ~= "number" or type(hotbarCategory) ~= "number" then
+        return nil
+    end
+    if type(ZO_ActionBar_GetButton) ~= "function" then
+        return nil
+    end
+
+    local nativeButton = ZO_ActionBar_GetButton(slotIndex, hotbarCategory)
+    if not nativeButton then
+        return nil
+    end
+
+    if nativeButton.usable ~= nil then
+        return nativeButton.usable
+    end
+
+    return nil
+end
+
+local function HasFallbackPressUseFailure(slotIndex, hotbarCategory)
+    if type(slotIndex) ~= "number" or type(hotbarCategory) ~= "number" then
+        return true
+    end
+
+    local slotType = GetSlotType(slotIndex, hotbarCategory)
+    if slotType == ACTION_TYPE_NOTHING then
+        return true
+    end
+
+    local hasItemCountFailure = false
+    if slotType == ACTION_TYPE_ITEM then
+        hasItemCountFailure = (GetSlotItemCount(slotIndex, hotbarCategory) or 0) <= 0
+    end
+
+    local hasCostFailure = ActionSlotHasCostFailure and ActionSlotHasCostFailure(slotIndex, hotbarCategory) or false
+    local hasStateFailure = ActionSlotHasNonCostStateFailure and ActionSlotHasNonCostStateFailure(slotIndex, hotbarCategory)
+        or false
+    local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
+    local hasRangeFailure = ActionSlotHasRangeFailure and ActionSlotHasRangeFailure(slotIndex, hotbarCategory) or false
+
+    local hasInsufficientUltimate = false
+    local ultimateSlot = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
+    if ultimateSlot and slotIndex == ultimateSlot then
+        local requiredUltimate = GetSlotAbilityCost(slotIndex, hotbarCategory)
+        local currentUltimate = GetUnitPower("player", POWERTYPE_ULTIMATE)
+        hasInsufficientUltimate = type(requiredUltimate) == "number" and requiredUltimate > 0 and
+            type(currentUltimate) == "number" and currentUltimate < requiredUltimate
+    end
+
+    return hasItemCountFailure or hasCostFailure or hasStateFailure or hasTargetFailure or hasRangeFailure or
+        hasInsufficientUltimate
+end
+
+local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
     local frontBarCfg = GetModuleSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then
         return
@@ -318,6 +372,17 @@ local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCate
         return
     end
 
+    if not bypassUsableGate then
+        local nativeUsable = GetNativeActionBarUsableState(slotIndex, resolvedCategory)
+        if nativeUsable == false then
+            return
+        end
+
+        if HasFallbackPressUseFailure(slotIndex, resolvedCategory) then
+            return
+        end
+    end
+
     local frontBarContainer = m_frontBarContainer or FindControl(resolvedRootFrame, 'FrontBarContainer')
     local buttonControl = GetFrontBarButtonControl(resolvedRootFrame, frontBarContainer, buttonName)
     if not buttonControl or buttonControl:IsHidden() then
@@ -329,6 +394,12 @@ local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCate
     local iconControl = (children and children.Icon) or buttonControl:GetNamedChild("Icon")
     if iconControl and iconControl:IsHidden() then
         return
+    end
+    if not bypassUsableGate then
+        local unusableOverlay = (children and children.UnusableOverlay) or buttonControl:GetNamedChild("UnusableOverlay")
+        if unusableOverlay and not unusableOverlay:IsHidden() then
+            return
+        end
     end
 
     PlayButtonPressFeedback(buttonControl, children, buttonName)
