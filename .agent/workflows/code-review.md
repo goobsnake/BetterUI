@@ -19,7 +19,7 @@ Critical review workflow with low-quota defaults and optional deep-audit expansi
 |-------|---------|-------------|
 | `--diff` (default) | no scope flag | Normal PR/task review |
 | `--module <name>` | targeted | Focused module health check |
-| `--comprehensive` | explicit | Release-level or architecture audit |
+| `--comprehensive` | explicit | Exhaustive full-repo audit (every non-ignored file) |
 
 ## Output Modes
 
@@ -51,8 +51,13 @@ git diff --name-only HEAD
 For comprehensive scope:
 
 ```powershell
-rg --files Modules -g "*.lua" -g "*.xml"
+$allFiles = git ls-files --cached --others --exclude-standard
+$allFiles = $allFiles | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
 ```
+
+Comprehensive requirement:
+- Examine **every** file in `$allFiles` (no sampling, no module-only narrowing).
+- `.gitignore` is the default exclusion boundary.
 
 ## Step 2: Run Critical Review
 
@@ -78,12 +83,22 @@ if ($changed) {
 }
 ```
 
-For `--module` or `--comprehensive`, use broader scans:
+For `--module`, use module scans:
 
 ```powershell
 rg -n "d\\(" Modules
 rg -n "TODO|FIXME|HACK|XXX" Modules
 rg -n "pcall|xpcall|SafeExecute" Modules
+```
+
+For `--comprehensive`, run full-repo scans against all non-ignored files:
+
+```powershell
+if ($allFiles) {
+    rg -n "d\\(" -- $allFiles
+    rg -n "TODO|FIXME|HACK|XXX" -- $allFiles
+    rg -n "pcall|xpcall|SafeExecute" -- $allFiles
+}
 ```
 
 ## Step 3: Report Findings
