@@ -45,10 +45,9 @@ local function GetDefaults()
         ultimateTextColor = { 1, 1, 1, 1 },
         showQuickslotCooldown = true, -- CHANGED: Showcase for new users
         showQuickslotCount = true,
-        showCombatGlow = false,
-        combatGlowColor = { 1, 0.3, 0.1, 0.8 },
-        showCombatIcon = false,
-        playCombatAudio = false,
+        showCombatGlow = true,
+        showCombatIcon = true,
+        playCombatAudio = true,
         backBarOpacity = 1,
         hideLeftOrnament = false,
         hideRightOrnament = false,

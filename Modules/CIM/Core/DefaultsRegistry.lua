@@ -133,10 +133,10 @@ BETTERUI.Defaults.Modules = {
         weaponSwapAnimation = true,    -- Animate weapon swap
         showQuickslotCount = true,     -- Show quickslot item count
 
-        -- Combat Indicators (OFF - can be distracting)
-        showCombatGlow = false,
-        showCombatIcon = false,
-        playCombatAudio = false,
+        -- Combat Indicators (ON by default)
+        showCombatGlow = true,
+        showCombatIcon = true,
+        playCombatAudio = true,
 
         -- Quickslot Settings
         showQuickslotCooldown = false, -- Personal preference
@@ -165,9 +165,6 @@ BETTERUI.Defaults.Modules = {
         quickslotTextColor = { 1, 1, 1, 1 },
         ultimateTextSize = 27,
         ultimateTextColor = { 1, 1, 1, 1 },
-
-        -- Combat Glow
-        combatGlowColor = { 1, 0.3, 0.1, 0.8 },
 
         -- Bar Settings
         backBarOpacity = 1,

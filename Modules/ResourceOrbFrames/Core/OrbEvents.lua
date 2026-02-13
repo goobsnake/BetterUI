@@ -420,11 +420,6 @@ local function ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
         and isInCombat
         and not IsUnitDead("player")
 
-    local color = settings and settings.combatGlowColor or DEFAULT_COMBAT_GLOW_COLOR
-    if type(color) ~= "table" then
-        color = DEFAULT_COMBAT_GLOW_COLOR
-    end
-
     if not canRenderIndicators then
         HideAllCombatGlows()
         if glow then
@@ -440,7 +435,8 @@ local function ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
     end
 
     if settings.showCombatGlow then
-        ApplyCombatGlow(rootFrame, color)
+        -- Combat glow color is intentionally fixed to red and not user-configurable.
+        ApplyCombatGlow(rootFrame, DEFAULT_COMBAT_GLOW_COLOR)
         if glow then
             glow:SetHidden(true)
         end

@@ -190,10 +190,9 @@ local function Init(mId, moduleName)
     local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", Default("showQuickslotCooldown", true))
     local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", Default("showQuickslotCount", true))
 
-    local getShowGlow, setShowGlow = GetSet("showCombatGlow", Default("showCombatGlow", false))
-    local getGlowColor, setGlowColor = GetColorSet("combatGlowColor", CloneColor(Default("combatGlowColor", nil), { 1, 0.3, 0.1, 0.8 }))
-    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", Default("showCombatIcon", false))
-    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", Default("playCombatAudio", false))
+    local getShowGlow, setShowGlow = GetSet("showCombatGlow", Default("showCombatGlow", true))
+    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", Default("showCombatIcon", true))
+    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", Default("playCombatAudio", true))
 
     local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", Default("orbAnimFlow", false))
     local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", Default("hideLeftOrnament", false))
@@ -436,18 +435,6 @@ local function Init(mId, moduleName)
                     width = "full",
                 },
                 {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_COMBAT_GLOW_COLOR),
-                    tooltip = GetString(SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP),
-                    getFunc = getGlowColor,
-                    setFunc = setGlowColor,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not settings or not settings.showCombatGlow
-                    end,
-                    width = "full",
-                },
-                {
                     type = "checkbox",
                     name = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED),
                     tooltip = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP),
@@ -482,10 +469,9 @@ local function Init(mId, moduleName)
                         settings.ultimateTextColor = CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 })
                         settings.showQuickslotCooldown = Default("showQuickslotCooldown", true)
                         settings.showQuickslotCount = Default("showQuickslotCount", true)
-                        settings.showCombatGlow = Default("showCombatGlow", false)
-                        settings.showCombatIcon = Default("showCombatIcon", false)
-                        settings.playCombatAudio = Default("playCombatAudio", false)
-                        settings.combatGlowColor = CloneColor(Default("combatGlowColor", nil), { 1, 0.3, 0.1, 0.8 })
+                        settings.showCombatGlow = Default("showCombatGlow", true)
+                        settings.showCombatIcon = Default("showCombatIcon", true)
+                        settings.playCombatAudio = Default("playCombatAudio", true)
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()
