@@ -45,6 +45,7 @@ function BETTERUI.Writs.Get(qId)
 	local writLines = {}
 	local writConcate = ''
 	for lineId = 1, GetJournalQuestNumConditions(qId, 1) do
+		-- TODO(bug): 'complete' (5th return) is captured but never used; current==maximum is wrong for edge cases (fail conditions, multi-step). Use 'complete' flag per ESO reference code. Also: isFailCondition (4th) and isVisible (7th) are not checked, so fail/hidden conditions display incorrectly
 		local writLine, current, maximum, _, complete = GetJournalQuestConditionInfo(qId, 1, lineId)
 		local colour
 		if writLine ~= '' then
@@ -56,6 +57,7 @@ function BETTERUI.Writs.Get(qId)
 			writLines[lineId] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
 		end
 	end
+	-- TODO(bug): pairs() on sparse numeric table produces non-deterministic iteration order; writ objectives may appear in random order. Use sequential insertion (writLines[#writLines+1]) and ipairs()
 	for key, line in pairs(writLines) do
 		writConcate = zo_strformat("<<1>><<2>>\n", writConcate, line.line)
 	end

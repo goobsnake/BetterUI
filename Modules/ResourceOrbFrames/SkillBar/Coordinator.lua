@@ -78,11 +78,13 @@ local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     local template = isGamePad and 'ResourceOrbFrames_Double_Gamepad' or 'ResourceOrbFrames_Double_Keyboard'
 
+    -- TODO(fragile): ZO_ActionBar1WeaponSwap and ZO_ActionBar1KeybindBG accessed without nil guards; will crash if ESO renames these controls
     ZO_ActionBar1WeaponSwap:SetHidden(true)
     ZO_ActionBar1KeybindBG:SetHidden(true)
     ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
 
     if not isGamePad then
+        -- TODO(bug): BETTERUI.ResourceOrbFrames.Tasks is nil (see ResourceOrbFrames.lua ROFTasks local); this line crashes in keyboard mode
         BETTERUI.ResourceOrbFrames.Tasks:Schedule("hideButtonText", 150, function()
             for i = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1 do
                 local btn = ZO_ActionBar_GetButton(i)

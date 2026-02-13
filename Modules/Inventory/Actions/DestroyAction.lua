@@ -27,6 +27,8 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
     -- Junk items still get the confirmation dialog for safety
     if force then
         -- Direct engine destroy path (matches the original working hook behavior)
+        -- TODO(bug): SetCursorItemSoundsEnabled(false) is never restored to true after DestroyItem; sounds stay disabled for rest of session if destroy fails
+        -- TODO(fragile): DestroyItem is a protected API called without CallSecureProtected; may fail silently from deferred timer contexts (batch destroy via ProcessBatchThrottled)
         SetCursorItemSoundsEnabled(false)
         DestroyItem(bagId, slotIndex)
 

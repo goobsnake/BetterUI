@@ -51,14 +51,16 @@ Description: Search bar positioning constants for Banking module.
 Used By: Banking.lua
 ]]
 BETTERUI.Banking.CONST.SEARCH = {
-    X_OFFSET = searchConst.X_OFFSET,    -- Horizontal position from header left (+ right, - left).
-    Y_OFFSET = searchConst.Y_OFFSET,    -- Vertical drop from header anchor (+ down, - up).
+    X_OFFSET = searchConst.X_OFFSET,       -- Horizontal position from header left (+ right, - left).
+    Y_OFFSET = searchConst.Y_OFFSET,       -- Vertical drop from header anchor (+ down, - up).
     RIGHT_INSET = searchConst.RIGHT_INSET, -- Right-edge inset for width (- left = narrower box).
 }
 
 -- DEPRECATED(v3.1): Use BETTERUI.Banking.CONST.SEARCH.* instead
 -- TODO(cleanup): Remove BETTERUI_BANK_SEARCH_* deprecated global aliases after v3.1 migration complete
--- Backward compatibility aliases (global constants for existing code)
+-- Backward compatibility aliases
+-- TODO(fix): Namespace global constants to BETTERUI.Banking.CONST to prevent collisions
+-- Global constants for search UI positioning (used by XML)
 BETTERUI_BANK_SEARCH_X_OFFSET = searchConst.X_OFFSET
 BETTERUI_BANK_SEARCH_Y_OFFSET = searchConst.Y_OFFSET
 BETTERUI_BANK_SEARCH_RIGHT_INSET = searchConst.RIGHT_INSET

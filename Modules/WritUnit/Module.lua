@@ -75,12 +75,15 @@ end
 --- References: Called from `BetterUI.lua` during addon initialization.
 ---
 function BETTERUI.Writs.Setup()
+    -- TODO(bug): "BETTERUI_TLW" is dangerously generic; rename to "BETTERUI_Writs_TLW" to avoid global control name collision
     local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_TLW")
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")
 
+    -- TODO(bug): Bare BETTERUI.name namespace risks collision if any other module registers for these events with the same namespace; use BETTERUI.name .. "_Writs"
     EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFTING_STATION_INTERACT, OnCraftStation)
     EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_END_CRAFTING_STATION_INTERACT, OnCloseCraftStation)
     EVENT_MANAGER:RegisterForEvent(BETTERUI.name, EVENT_CRAFT_COMPLETED, OnCraftItem)
 
+    -- TODO(bug): CacheControls() is never called; m_writNameLabel/m_writDescLabel/m_writsPanel remain nil, making Show() silently skip all panel rendering. The entire module is functionally inert at runtime
     BETTERUI_WP:SetHidden(true)
 end

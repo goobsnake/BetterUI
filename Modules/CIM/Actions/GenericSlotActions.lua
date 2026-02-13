@@ -372,6 +372,7 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     local INDEX_ACTION_CALLBACK = 2
     for i, action in ipairs(slotActions.m_slotActions) do
         local actionName = action[1]
+        -- TODO(localization): Hardcoded English string "Open Skills" breaks non-English clients; use GetString(SI_ITEM_ACTION_*) or equivalent
         if actionName == "Open Skills" then
             local wrappedCallback = function()
                 if inventorySlot then

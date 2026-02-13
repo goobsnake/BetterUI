@@ -57,6 +57,8 @@ BETTERUI.CIM.DeprecationRegistry.Register(
 -- Note: We keep the direct assignments (not shims) because these are simple
 -- string constants accessed frequently in hot paths. The deprecation warning
 -- is available via /script BETTERUI.CIM.DeprecationRegistry.GetAll()
+-- TODO(cleanup): Remove global compatibility aliases after migration to BETTERUI.Inventory.CONST.LIST_TYPES
+-- Global backward compatibility aliases
 INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
 INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
@@ -107,23 +109,23 @@ BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET = searchConst.RIGHT_INSET
 -- Used in InventoryList.lua for dynamic icon sizing based on font settings
 -- ============================================================================
 
-BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE = 24 -- Baseline row text size; larger values make rows feel denser/taller.
-BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE = 34 -- Icon size paired with base font size; increase for larger row icons.
-BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET = -42 -- Icon X anchor offset in row (+ right, - left).
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE = 24      -- Baseline row text size; larger values make rows feel denser/taller.
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE = 34      -- Icon size paired with base font size; increase for larger row icons.
+BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_OFFSET = -42   -- Icon X anchor offset in row (+ right, - left).
 BETTERUI.Inventory.CONST.LIST_ENTRY_ICON_OFFSET_FACTOR = 0.4 -- Extra icon X shift per font-size step (higher = icon drifts right faster).
 
 -- Status & Equipment Indicator Offsets
 BETTERUI.Inventory.CONST.STATUS_INDICATOR_OFFSET_X = -2 -- Status marker X nudge relative to icon (+ right, - left).
-BETTERUI.Inventory.CONST.EQUIPPED_ICON_OFFSET_X = -2 -- Equipped marker X nudge relative to icon (+ right, - left).
+BETTERUI.Inventory.CONST.EQUIPPED_ICON_OFFSET_X = -2    -- Equipped marker X nudge relative to icon (+ right, - left).
 
 -- Standard Icon Sizes
-BETTERUI.Inventory.CONST.ICON_SIZE_SMALL = 16 -- Utility icon size for compact indicators.
+BETTERUI.Inventory.CONST.ICON_SIZE_SMALL = 16  -- Utility icon size for compact indicators.
 BETTERUI.Inventory.CONST.ICON_SIZE_MEDIUM = 24 -- Mid-size icon for common row badges.
-BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34 -- Large icon size matching default list entry icon target.
+BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34  -- Large icon size matching default list entry icon target.
 
 -- Equipment Icon Base Dimensions (for scaling calculations)
 -- Used in InventoryList.lua to scale equip icons proportionally with font size
-BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH = 28 -- Base equipped-icon width before runtime scaling.
+BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH = 28  -- Base equipped-icon width before runtime scaling.
 BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_HEIGHT = 24 -- Base equipped-icon height before runtime scaling.
 
 -- ============================================================================

@@ -36,6 +36,7 @@ local m_foodTracker = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
+-- TODO(bug): ROFTasks is local-only but never published to BETTERUI.ResourceOrbFrames.Tasks; Coordinator.lua:86 references Tasks:Schedule() on the namespace and crashes in keyboard mode
 local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 -- Defaults

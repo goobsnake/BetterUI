@@ -36,7 +36,8 @@ local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 -- Global dialog name
-BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_PROMPT"
+-- TODO(fix): Namespace global dialog name to BETTERUI.Inventory.Dialogs.EQUIP_SLOT
+BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_DIALOG"
 
 --------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCH

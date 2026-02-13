@@ -238,6 +238,7 @@ function BETTERUI.Inventory.HookActionDialog()
                         return
                     end
                     -- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
+                    -- TODO(bug): 'self' is not in scope here -- this is a bare function(dialog) callback, not a method. self.actionMode/self.itemList/self.craftBagList/self.categoryList all crash with "attempt to index a nil value" when triggered from non-BetterUI scenes
                     if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
                         -- Check if the selected row is a BetterUI Destroy entry
                         local selectedRow = dialog.entryList and

@@ -84,6 +84,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                             CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
                         else
                             -- Retrieve: Craft Bag -> Inventory
+                            -- TODO(bug): DoesBagHaveSpaceFor returns true for stackable items even when bag has no empty slots; FindFirstEmptySlotInBag then returns nil, causing PlaceInInventory(BAG_BACKPACK, nil) which may leave item on cursor (item loss risk)
                             if DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
                                 local emptySlotIndex = FindFirstEmptySlotInBag(BAG_BACKPACK)
                                 CallSecureProtected("PickupInventoryItem", bagId, slotIndex, quantity)

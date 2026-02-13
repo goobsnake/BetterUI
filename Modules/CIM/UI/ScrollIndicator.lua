@@ -298,6 +298,7 @@ local function SetupThumbDragHandlers(instance)
     EVENT_MANAGER:RegisterForEvent(updateName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
 
     -- Store for cleanup
+    -- TODO(leak): EVENT_GLOBAL_MOUSE_UP is registered but never unregistered; add a destroy/cleanup method that calls EVENT_MANAGER:UnregisterForEvent
     instance.globalMouseUpHandler = OnGlobalMouseUp
     instance.globalMouseUpEventName = updateName
 end

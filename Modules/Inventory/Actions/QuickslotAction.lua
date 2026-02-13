@@ -209,6 +209,7 @@ function BETTERUI.Inventory.Class:InitializeQuickslotAssignDialog()
                     local target = dialog.data and dialog.data.target
                     if target and target.bagId and target.slotIndex then
                         local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                        -- TODO(bug): SafeGetTargetData is not a global; must be BETTERUI.Inventory.Utils.SafeGetTargetData -- crashes with "attempt to call a nil value" when standalone quickslot dialog confirm is pressed
                         local selected = dialog.entryList
                             and dialog.entryList.GetTargetData
                             and SafeGetTargetData(dialog.entryList)

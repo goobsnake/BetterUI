@@ -206,6 +206,7 @@ BetterUIBarFrame = ZO_Object:Subclass()
 
 function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
+    -- TODO(bug): Assigns to self (class prototype) instead of obj (instance); all instances share the last-assigned control. Currently masked because only one FoodBuffTracker instance uses this constructor; subclasses override via Initialize()
     self.control = control
     return obj
 end

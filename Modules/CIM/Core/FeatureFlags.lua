@@ -49,6 +49,8 @@ local FLAG_DEFINITIONS = {
         defaultEnabled = false,
         version = "3.0",
     },
+    -- TODO(bug): Duplicate PERFORMANCE_METRICS key was here -- second definition silently overwrote the first in Lua; removed the duplicate
+    -- TODO(feature): Add SHIELD_DEBUG flag definition for visual debugging of shield overlays
 }
 
 -- Runtime flag state cache

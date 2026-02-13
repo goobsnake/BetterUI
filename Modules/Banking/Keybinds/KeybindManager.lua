@@ -137,6 +137,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         {
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()
+                -- TODO(bug): GetNextBankUpgradePrice() may return nil when all upgrades purchased; name() is evaluated before visible() check, causing crash in ZO_CurrencyControl_FormatCurrency(nil)
                 local cost = GetNextBankUpgradePrice()
                 local text
                 if GetCarriedCurrencyAmount(CURT_MONEY) >= cost then

@@ -314,6 +314,7 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         -- The tabBar will be activated by scene handlers (OnSceneShowing/ActivateHeader).
         control.tabBar.hideUnselectedControls = false
 
+        -- TODO(bug): MenuEntryTemplateEquality is an undefined global (nil); should be BETTERUI.CIM.MenuEntryTemplateEquality from GenericListManager.lua
         control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup,
             ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
     end

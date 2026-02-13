@@ -10,6 +10,7 @@ FEATURES:
 3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
 ]]
 
+-- TODO(bug): gsErrorSuppress pollutes _G namespace and is written from EnhancementModule.lua without declaration; move into BETTERUI.CIM._gsErrorSuppress
 _G.gsErrorSuppress = 0 -- Global flag for guild store error suppression
 
 -------------------------------------------------------------------------------------------------

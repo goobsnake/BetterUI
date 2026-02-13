@@ -121,6 +121,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
             -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
             local function UnmarkAsJunk()
+                -- TODO(bug): Missing nil guard on target -- unlike MarkAsJunk() which guards with "if not target then return end", this crashes on target.bagId when SafeGetTargetData returns nil
                 local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
                 -- SetItemIsJunk is ASYNCHRONOUS (see MarkAsJunk comment).
                 -- Category list refresh is handled by OnInventoryUpdated coalesced timer.

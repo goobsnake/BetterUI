@@ -116,6 +116,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
             if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
                 return false -- Bag full, stop processing
             end
+            -- TODO(bug): nil destination slot index has no precedent in ESO reference code; should resolve via FindFirstEmptySlotInBag like the single-item MoveItem path does
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, nil, stackCount)
         else
             if not IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
@@ -128,6 +129,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
                 return false -- Bank full, stop processing
             end
 
+            -- TODO(bug): Same nil destination slot concern as withdraw path above
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, nil, stackCount)
         end
         return true

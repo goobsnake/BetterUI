@@ -50,6 +50,7 @@ BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                    
 -- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
 -- ============================================================================
 -- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
+-- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
 LAYOUT_CONFIG = {
     GAMEPAD = {
         abilitySlotWidth = 67,   -- Gamepad action-slot width; higher values enlarge slot boxes.
@@ -470,5 +471,6 @@ BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 110 -- Y offset from BgMiddle 
 -- ============================================================================
 
 -- TODO(cleanup): Migrate BETTERUI_SHIELD_DEBUG to CIM FeatureFlags system instead of bare global
--- Set to true to show the shield overlay ring for visual debugging
-BETTERUI_SHIELD_DEBUG = true
+-- TODO(cleanup): Migrate BETTERUI_SHIELD_DEBUG to CIM FeatureFlags system instead of bare global
+-- Set to true to show the shield overlay ring for visual debugging (MUST default to false for production)
+BETTERUI_SHIELD_DEBUG = false
