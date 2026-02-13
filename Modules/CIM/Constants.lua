@@ -126,8 +126,8 @@ BETTERUI.CIM.CONST.TIMING = {
 
     -- Server-bound batch pacing guard:
     -- add a fixed cooldown pause every N processed items.
-    BATCH_SERVER_COOLDOWN_EVERY = 20,
-    BATCH_SERVER_COOLDOWN_MS = 500,
+    BATCH_SERVER_COOLDOWN_EVERY = 25,
+    BATCH_SERVER_COOLDOWN_MS = 1100,
 
     -- Legacy aliases kept for compatibility with older callers.
     BATCH_ACTION_DELAY_MS = 100,
