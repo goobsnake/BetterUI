@@ -34,18 +34,13 @@ $excludeItems = @(
     '.images',
     '.vscode',
     '.venv',
-    '.agent',
-    '.claude',
-    'esoui',
     'tmp',
     'tools',
     'Source',
     'docs',
     'README.md',
     'LICENSE.md',
-    '.luarc.json',
-    'AGENTS.md',
-    'CLAUDE.md'
+    '.luarc.json'
 )
 
 if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
