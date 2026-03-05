@@ -176,6 +176,42 @@ function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
 end
 
 --[[
+Function: BETTERUI.CIM.Utils.ResolveMoveDestinationSlot
+Description: Resolves an explicit destination slot for inventory moves.
+Rationale: Batch RequestMoveItem calls must provide concrete destination slots to
+           avoid nil-slot transfer behavior under throttled processing.
+Mechanism:
+  1) Prefer first empty slot in destination bag.
+  2) If none, try stackable slot matching source item link.
+References: Used by Banking/Inventory multi-select batch move paths.
+param: fromBagId (number) - Source bag id.
+param: fromSlotIndex (number) - Source slot index.
+param: toBagId (number) - Destination bag id.
+return: number|nil - Destination slot index or nil when unresolved.
+]]
+--- @param fromBagId number Source bag id
+--- @param fromSlotIndex number Source slot index
+--- @param toBagId number Destination bag id
+--- @return number|nil slotIndex Destination slot index or nil
+function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex, toBagId)
+    if not fromBagId or not fromSlotIndex or not toBagId then
+        return nil
+    end
+
+    local emptySlotIndex = FindFirstEmptySlotInBag(toBagId)
+    if emptySlotIndex ~= nil then
+        return emptySlotIndex
+    end
+
+    local itemLink = GetItemLink(fromBagId, fromSlotIndex)
+    if not itemLink or itemLink == "" then
+        return nil
+    end
+
+    return BETTERUI.CIM.Utils.FindStackableSlotInBag(toBagId, itemLink)
+end
+
+--[[
 Function: BETTERUI.CIM.Utils.SetExternalToolbarHidden
 Description: Toggles visibility of external addon toolbars (e.g., wykkydsToolbar).
 Rationale: Centralized helper to avoid duplicating toolbar visibility toggles across modules.

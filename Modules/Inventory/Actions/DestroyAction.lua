@@ -10,6 +10,29 @@ Purpose: Handles item destruction logic, offering a safer replacement for the en
 
 local BLOCK_TABBAR_CALLBACK = true
 
+local function ForceDestroyItemSafely(bagId, slotIndex)
+    if SetCursorItemSoundsEnabled then
+        SetCursorItemSoundsEnabled(false)
+    end
+
+    local ok, err = pcall(function()
+        DestroyItem(bagId, slotIndex)
+    end)
+
+    if SetCursorItemSoundsEnabled then
+        SetCursorItemSoundsEnabled(true)
+    end
+
+    if not ok then
+        if BETTERUI and BETTERUI.Debug then
+            BETTERUI.Debug(string.format("DestroyItem failed for %s:%s (%s)", tostring(bagId), tostring(slotIndex), tostring(err)))
+        end
+        return false
+    end
+
+    return true
+end
+
 --- Attempts to destroy an item, dealing with junk status and user confirmation settings.
 ---
 --- Purpose: Safer replacement for `DestroyItem`.
@@ -27,10 +50,9 @@ function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRe
     -- Junk items still get the confirmation dialog for safety
     if force then
         -- Direct engine destroy path (matches the original working hook behavior)
-        -- TODO(bug): SetCursorItemSoundsEnabled(false) is never restored to true after DestroyItem; sounds stay disabled for rest of session if destroy fails
-        -- TODO(fragile): DestroyItem is a protected API called without CallSecureProtected; may fail silently from deferred timer contexts (batch destroy via ProcessBatchThrottled)
-        SetCursorItemSoundsEnabled(false)
-        DestroyItem(bagId, slotIndex)
+        if not ForceDestroyItemSafely(bagId, slotIndex) then
+            return false
+        end
 
         if not suppressUiRefresh then
             -- Proactively refresh inventory caches to reflect removal

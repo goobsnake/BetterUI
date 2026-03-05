@@ -87,6 +87,10 @@ end
 
 --- Refreshes the Craft Bag list content.
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
+    if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
+        return
+    end
+
     -- we need to pass in our current filterType, as refreshing the craft bag list is distinct from the item list's methods (only slightly)
     local craftCategoryTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
     local craftFilter = craftCategoryTarget and craftCategoryTarget.filterType or nil

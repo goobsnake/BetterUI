@@ -32,6 +32,7 @@ local DEFAULT_SERVER_COOLDOWN_EVERY = 25
 local DEFAULT_SERVER_COOLDOWN_MS = 1100
 local SERVER_COOLDOWN_EVERY = BETTERUI.CIM.CONST.TIMING.BATCH_SERVER_COOLDOWN_EVERY or DEFAULT_SERVER_COOLDOWN_EVERY
 local SERVER_COOLDOWN_MS = BETTERUI.CIM.CONST.TIMING.BATCH_SERVER_COOLDOWN_MS or DEFAULT_SERVER_COOLDOWN_MS
+local DEFAULT_ACTION_COST_UNITS = 1
 
 local function ResolveTierByItemCount(totalItems, tiers, fallback)
     for i = 1, #tiers do
@@ -116,10 +117,12 @@ local function NormalizeBatchItems(items)
     return normalized
 end
 
-local function EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs)
-    local estimateMs = zo_max(totalItems, 0) * zo_max(delayMs or 0, 0)
-    if totalItems > 1 and cooldownEvery and cooldownEvery > 0 and cooldownMs and cooldownMs > 0 then
-        local cooldownCount = zo_floor((totalItems - 1) / cooldownEvery)
+local function EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs, totalCostUnits)
+    local itemCount = zo_max(totalItems, 0)
+    local estimateMs = itemCount * zo_max(delayMs or 0, 0)
+    if itemCount > 1 and cooldownEvery and cooldownEvery > 0 and cooldownMs and cooldownMs > 0 then
+        local cooldownUnits = zo_max(totalCostUnits or itemCount, 0)
+        local cooldownCount = zo_floor(zo_max(cooldownUnits - 1, 0) / cooldownEvery)
         estimateMs = estimateMs + (cooldownCount * cooldownMs)
     end
     return estimateMs / 1000
@@ -501,6 +504,7 @@ end
 ---   serverBound (boolean): apply fixed server cooldown pacing
 ---   suppressUiUpdates (boolean): expose `self.batchSuppressUiUpdates` for module callbacks
 ---   sceneExitLabel (string): explicit label used when scene-exit abort happens
+---   costPerItem (number): server cooldown units consumed per item when `serverBound` is true
 function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
     items = NormalizeBatchItems(items or {})
     local totalItems = #items
@@ -508,9 +512,13 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         if onComplete then onComplete() end
         return
     end
+    if self.isBatchProcessing then
+        return
+    end
 
     local index = 0
     local processedCount = 0
+    local processedCost = 0
     local stopReason = nil
     local throttleProfile = ResolveBatchThrottleProfile(totalItems)
     local batchDelayMs = throttleProfile.DELAY_MS or 75
@@ -522,10 +530,20 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local sceneExitLabel = ResolveSceneExitLabel(self, options)
     local cooldownEvery = 0
     local cooldownMs = 0
+    local actionCost = DEFAULT_ACTION_COST_UNITS
+    local requestedCost = tonumber(options.costPerItem)
+    if requestedCost and requestedCost > 0 then
+        actionCost = zo_max(DEFAULT_ACTION_COST_UNITS, zo_ceil(requestedCost))
+    end
+    local totalCostUnits = totalItems * actionCost
+    local nextCooldownAt = nil
 
     if isServerBound then
         cooldownEvery = SERVER_COOLDOWN_EVERY
         cooldownMs = SERVER_COOLDOWN_MS
+        if cooldownEvery > 0 then
+            nextCooldownAt = cooldownEvery
+        end
     end
 
     local effectiveDelayMs = zo_max(0, batchDelayMs)
@@ -560,7 +578,13 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     if showProgress then
         local bodyText
         if showEta then
-            local estimatedSeconds = EstimateBatchDurationSeconds(totalItems, effectiveDelayMs, cooldownEvery, cooldownMs)
+            local estimatedSeconds = EstimateBatchDurationSeconds(
+                totalItems,
+                effectiveDelayMs,
+                cooldownEvery,
+                cooldownMs,
+                totalCostUnits
+            )
             bodyText = zo_strformat(
                 GetString(SI_BETTERUI_BATCH_PROCESSING_START_ETA),
                 totalItems,
@@ -666,8 +690,11 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             local result = actionFn(bagId, slotIndex, itemData)
             if result == false then
                 stopReason = "bagFull"
+            elseif type(result) == "string" and result ~= "" then
+                stopReason = result
             else
                 processedCount = processedCount + 1
+                processedCost = processedCost + actionCost
             end
         end
 
@@ -681,13 +708,15 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
         local nextDelayMs = effectiveDelayMs
         if processedCount < totalItems
-            and processedCount > 0
-            and cooldownEvery > 0
             and cooldownMs > 0
-            and (processedCount % cooldownEvery) == 0
+            and nextCooldownAt
+            and processedCost >= nextCooldownAt
         then
             nextDelayMs = nextDelayMs + cooldownMs
             announceAfterCooldown = true
+            while nextCooldownAt and processedCost >= nextCooldownAt do
+                nextCooldownAt = nextCooldownAt + cooldownEvery
+            end
         end
 
         zo_callLater(processNext, nextDelayMs)

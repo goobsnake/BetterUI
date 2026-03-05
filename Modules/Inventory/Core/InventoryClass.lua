@@ -1273,6 +1273,8 @@ function BETTERUI.Inventory.Class:BatchRetrieve()
         self:ExitCraftBagSelectionMode()
     end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), {
         serverBound = true,
+        suppressUiUpdates = true,
+        costPerItem = 2,
     })
 end
 
@@ -1320,6 +1322,7 @@ function BETTERUI.Inventory.Class:BatchStow()
         self:ExitSelectionMode()
     end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), {
         serverBound = true,
+        costPerItem = 2,
     })
 end
 
@@ -1384,8 +1387,13 @@ function BETTERUI.Inventory.Class:BatchDeposit()
             return true
         end
 
+        local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, destinationBag)
+        if destinationSlot == nil then
+            return false
+        end
+
         -- Request bank transfer
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, nil, stackCount)
+        CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
         return true
     end, function()
         self:ExitSelectionMode()
@@ -1506,7 +1514,10 @@ function BETTERUI.Inventory.Class:InitializeBatchDestroyDialog()
                                 return true
                             end
 
-                            BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
+                            local destroyed = BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, true, true)
+                            if not destroyed then
+                                return "aborted"
+                            end
                             return true
                         end, function()
                             inventoryInstance:ExitSelectionMode()
