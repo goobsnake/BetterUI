@@ -1,1 +1,0 @@
-../../.agent/workflows/sr-review-gate.md
