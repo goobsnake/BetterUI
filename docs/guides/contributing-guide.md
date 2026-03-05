@@ -4,7 +4,7 @@
 
 ## Getting Started
 
-1. **Read the Architecture**: Review [ARCHITECTURE.md](docs/ARCHITECTURE.md) before making changes.
+1. **Read the Architecture**: Review [architecture.md](../reference/architecture.md) before making changes.
 2. **Check Existing Code**: Follow established patterns in the files you're modifying.
 3. **Use Local Variables**: Never add unintentional globals; use `local` for file-level variables.
 

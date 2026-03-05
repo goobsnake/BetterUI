@@ -1,0 +1,88 @@
+[SIZE="4"][B][COLOR="darkorange"]BetterUI - Gamepad Interface Overhaul[/COLOR][/B][/SIZE]
+
+BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades for Inventory, Banking, and Resource Orb Frames.
+
+[COLOR="darkorange"][SIZE="3"][B]What's New in v3.00 (Major Update)[/B][/SIZE][/COLOR]
+[LIST]
+[*]Complete visual overhaul and major system refactor around the Resource Orb Frames feature
+[*]New high-fidelity scroll indicators and cleaner full-row selection visibility
+[*]Unified header-sort behavior with clearer sort indicators and Y-menu sort actions
+[*]Banking and Craft Bag multi-select batch workflows (including quantity dialogs)
+[*]Currency refresh for PTS v11.3.0: Trade Bars naming update, Seals of Endeavor, and Tome Points support
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Requirements[/B][/SIZE][/COLOR]
+[LIST=1]
+[*][URL="https://esoui.com/downloads/info7-LibAddonMenu.html"]LibAddonMenu-2.0[/URL] is required for BetterUI to load and expose settings.
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Localization[/B][/SIZE][/COLOR]
+[INDENT]English, German, Spanish, French, Russian, Japanese, Chinese[/INDENT]
+
+[COLOR="darkorange"][SIZE="3"][B]General Interface Highlights[/B][/SIZE][/COLOR]
+[LIST]
+[*]Optional market pricing in tooltips via [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]ATT[/URL], [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL], and [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]TTC[/URL]
+[*]Trait/style research indicators directly in item tooltips
+[*]Tooltip state indicators for collection binding and junk status
+[*]Tooltip font scaling and multiple readability options
+[*]Configurable input scroll speed controls
+[*]Account-wide or character-specific settings mode
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Resource Orb Frames[/B][/SIZE][/COLOR]
+[LIST]
+[*]Optional ARPG-style orb interface for Health, Magicka, and Stamina
+[*]Toggleable XP/Champion bar, Cast bar, and Mount stamina bar
+[*]Dual weapon-bar presentation with back-bar dimming support
+[*]Cooldown visibility and companion ultimate placement improvements
+[*]Per-element size, color, scale, and offset controls
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Enhanced Nameplates[/B][/SIZE][/COLOR]
+[LIST]
+[*]Custom font family, style, and size controls
+[*]Independent tuning for player and NPC readability
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Inventory[/B][/SIZE][/COLOR]
+[LIST]
+[*]Expanded category model (All, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk, Stolen)
+[*]ESO+ Craft Bag support with category navigation
+[*]Craft Bag multi-select retrieve/stow workflows with partial-stack quantity dialogs
+[*]Companion-item compatibility for supported actions
+[*]Persistent currency footer with visibility toggles and ordering
+[*]Currency presets (Default, PvP Focus, Crafter Focus, Events Focus)
+[*]Quickslot assignment directly from Inventory
+[*]Safer deletion flow with side-panel confirmation and optional quick-destroy mode
+[*]Search filtering, item icon enhancements, and carousel category navigation
+[*]Filter-type category cycle keybinds and clearer search behavior
+[*]Configurable fonts for item and column text
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Banking[/B][/SIZE][/COLOR]
+[LIST]
+[*]Enhanced personal bank and home storage workflows
+[*]Banking multi-select support for batch withdraw/deposit actions
+[*]Deposit/withdraw flows with category-aware navigation
+[*]Persistent category behavior between bank interaction modes
+[*]Search filtering and known/unknown recipe or motif cues
+[*]Inventory-matched category model and configurable fonts
+[*]Carousel-style category navigation
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Daily Writ Integration[/B][/SIZE][/COLOR]
+[LIST]
+[*]Shows daily writ objectives and progress at crafting stations
+[/LIST]
+
+[COLOR="darkorange"][SIZE="3"][B]Project Links[/B][/SIZE][/COLOR]
+[INDENT][URL]https://github.com/goobsnake/BetterUI[/URL][/INDENT]
+
+[COLOR="darkorange"][SIZE="3"][B]Credits[/B][/SIZE][/COLOR]
+[INDENT]BetterUI continues the original work from Prasoc and RockingDice. Community feedback and pull requests are welcome.[/INDENT]
+
+[COLOR="darkorange"][SIZE="3"][B]Donations[/B][/SIZE][/COLOR]
+[URL="https://www.paypal.me/goobsnake"][IMG]https://www.paypalobjects.com/webstatic/en_US/i/buttons/pp-acceptance-medium.png[/IMG][/URL]
+
+[COLOR="darkorange"][SIZE="3"][B]Official Add-On Disclosure[/B][/SIZE][/COLOR]
+[INDENT]This Add-on is not created by, affiliated with, or sponsored by ZeniMax Media Inc. or its affiliates. The Elder Scrolls and related logos are registered trademarks or trademarks of ZeniMax Media Inc. in the United States and/or other countries. All rights reserved.[/INDENT]
