@@ -73,6 +73,21 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     return nil
 end
 
+local BANK_TRANSFER_BATCH_OPTIONS = {
+    serverBound = true,
+    awaitInventoryAck = true,
+    minServerDelayMs = 145,
+    maxServerDelayMs = 330,
+    cooldownEvery = 18,
+    cooldownMs = 1200,
+    chunkCostUnits = 32,
+    chunkPauseMs = 1000,
+    adaptiveDelay = true,
+    adaptiveThreshold = 6,
+    adaptiveStepMs = 16,
+    jitterMs = 18,
+}
+
 -------------------------------------------------------------------------------------------------
 -- BANKING-SPECIFIC BATCH OPERATIONS
 -------------------------------------------------------------------------------------------------
@@ -141,12 +156,10 @@ function BETTERUI.Banking.Class:BatchTransfer()
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)
         end
-        return true
+        return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, actionName, {
-        serverBound = true,
-    })
+    end, actionName, BANK_TRANSFER_BATCH_OPTIONS)
 end
 
 --- Selects all items in the current list.

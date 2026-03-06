@@ -258,6 +258,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             visible = function()
+                if self:IsBatchProcessing() then
+                    return false
+                end
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
@@ -285,6 +288,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
+
                 -- Check craftbag multi-select first
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
                     local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
@@ -370,6 +377,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             keybind = "UI_SHORTCUT_SECONDARY",
             -- (no hold callbacks here; tap behavior preserved)
             visible = function()
+                if self:IsBatchProcessing() then
+                    return false
+                end
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     if self.itemList.selectedData then
                         local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(
@@ -389,6 +399,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
+
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     --bag mode
                     local target = self.itemList.selectedData
@@ -504,6 +518,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             BAG_BACKPACK,
             function()
                 return self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                    and not self:IsBatchProcessing()
             end
         ),
         --R Stick for Switching Bags
@@ -521,7 +536,13 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             alignment = KEYBIND_STRIP_ALIGN_RIGHT,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             disabledDuringSceneHiding = true,
+            visible = function()
+                return not self:IsBatchProcessing()
+            end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
                 self:Switch()
             end,
         },
@@ -559,6 +580,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             name = GetString(SI_BETTERUI_MULTI_SELECT),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
+                if self:IsBatchProcessing() then
+                    return false
+                end
                 -- Visible in item list mode with items
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     -- Hide for quest category (quest items can't be batch-operated)
@@ -579,6 +603,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return false
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
                 -- Enter appropriate selection mode based on current list
                 if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     if self.craftBagMultiSelectManager and not self.craftBagMultiSelectManager:IsActive() then

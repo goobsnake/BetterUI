@@ -1194,6 +1194,70 @@ local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
     return nil
 end
 
+local CRAFT_BAG_RETRIEVE_BATCH_OPTIONS = {
+    serverBound = true,
+    suppressUiUpdates = true,
+    costPerItem = 2,
+    awaitInventoryAck = true,
+    minServerDelayMs = 150,
+    maxServerDelayMs = 340,
+    cooldownEvery = 18,
+    cooldownMs = 1250,
+    chunkCostUnits = 30,
+    chunkPauseMs = 1050,
+    adaptiveDelay = true,
+    adaptiveThreshold = 6,
+    adaptiveStepMs = 18,
+    jitterMs = 20,
+}
+
+local CRAFT_BAG_STOW_BATCH_OPTIONS = {
+    serverBound = true,
+    costPerItem = 2,
+    awaitInventoryAck = true,
+    minServerDelayMs = 145,
+    maxServerDelayMs = 330,
+    cooldownEvery = 18,
+    cooldownMs = 1200,
+    chunkCostUnits = 30,
+    chunkPauseMs = 1000,
+    adaptiveDelay = true,
+    adaptiveThreshold = 6,
+    adaptiveStepMs = 16,
+    jitterMs = 20,
+}
+
+local BANK_DEPOSIT_BATCH_OPTIONS = {
+    serverBound = true,
+    awaitInventoryAck = true,
+    minServerDelayMs = 145,
+    maxServerDelayMs = 330,
+    cooldownEvery = 18,
+    cooldownMs = 1200,
+    chunkCostUnits = 32,
+    chunkPauseMs = 1000,
+    adaptiveDelay = true,
+    adaptiveThreshold = 6,
+    adaptiveStepMs = 16,
+    jitterMs = 18,
+}
+
+local DESTROY_BATCH_OPTIONS = {
+    serverBound = true,
+    suppressUiUpdates = true,
+    awaitInventoryAck = true,
+    minServerDelayMs = 165,
+    maxServerDelayMs = 360,
+    cooldownEvery = 14,
+    cooldownMs = 1400,
+    chunkCostUnits = 24,
+    chunkPauseMs = 1150,
+    adaptiveDelay = true,
+    adaptiveThreshold = 5,
+    adaptiveStepMs = 20,
+    jitterMs = 20,
+}
+
 CanDestroyInventoryItem = function(itemData)
     if not itemData then
         return false
@@ -1255,27 +1319,17 @@ function BETTERUI.Inventory.Class:BatchRetrieve()
             return true
         end
 
-        local targetSlot = FindFirstEmptySlotInBag(BAG_BACKPACK)
-        if not targetSlot then
-            local itemLink = GetItemLink(bagId, slotIndex)
-            if itemLink then
-                targetSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(BAG_BACKPACK, itemLink)
-            end
-        end
-        if not targetSlot then
+        local targetSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
+        if targetSlot == nil then
             return false
         end
 
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
         CallSecureProtected("PlaceInInventory", BAG_BACKPACK, targetSlot)
-        return true
+        return "queued"
     end, function()
         self:ExitCraftBagSelectionMode()
-    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), {
-        serverBound = true,
-        suppressUiUpdates = true,
-        costPerItem = 2,
-    })
+    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
 end
 
 --- Performs batch stow on all selected inventory items (throttled).
@@ -1317,13 +1371,10 @@ function BETTERUI.Inventory.Class:BatchStow()
         -- Transfer to craft bag (slot 0 for virtual bag)
         CallSecureProtected("PickupInventoryItem", bagId, slotIndex, stackSize)
         CallSecureProtected("PlaceInInventory", BAG_VIRTUAL, 0)
-        return true
+        return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), {
-        serverBound = true,
-        costPerItem = 2,
-    })
+    end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), CRAFT_BAG_STOW_BATCH_OPTIONS)
 end
 
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
@@ -1394,12 +1445,10 @@ function BETTERUI.Inventory.Class:BatchDeposit()
 
         -- Request bank transfer
         CallSecureProtected("RequestMoveItem", bagId, slotIndex, destinationBag, destinationSlot, stackCount)
-        return true
+        return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, "Depositing", {
-        serverBound = true,
-    })
+    end, "Depositing", BANK_DEPOSIT_BATCH_OPTIONS)
 end
 
 -- Common batch operations delegate to CIM.MultiSelectMixin
@@ -1518,16 +1567,13 @@ function BETTERUI.Inventory.Class:InitializeBatchDestroyDialog()
                             if not destroyed then
                                 return "aborted"
                             end
-                            return true
+                            return "queued"
                         end, function()
                             inventoryInstance:ExitSelectionMode()
                             if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
                                 inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                             end
-                        end, GetString(SI_ITEM_ACTION_DESTROY), {
-                            serverBound = true,
-                            suppressUiUpdates = true,
-                        })
+                        end, GetString(SI_ITEM_ACTION_DESTROY), DESTROY_BATCH_OPTIONS)
                     end
                     ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_DESTROY_DIALOG")
                 end,

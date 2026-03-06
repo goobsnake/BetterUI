@@ -272,9 +272,13 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
 
     if targetBag ~= BAG_VIRTUAL then
         if DoesBagHaveSpaceFor(targetBag, bag, index) then
-            local emptySlotIndex = FindFirstEmptySlotInBag(targetBag)
+            local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bag, index, targetBag)
+            if destinationSlot == nil then
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+                return
+            end
             CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
-            CallSecureProtected("PlaceInInventory", targetBag, emptySlotIndex)
+            CallSecureProtected("PlaceInInventory", targetBag, destinationSlot)
         else
             ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
         end

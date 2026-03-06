@@ -100,10 +100,13 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             name = GetString(SI_BETTERUI_BANKING_TOGGLE_LIST),
             keybind = "UI_SHORTCUT_SECONDARY",
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
                 self:ToggleList(self.currentMode == LIST_DEPOSIT)
             end,
             visible = function()
-                return true
+                return not self:IsBatchProcessing()
             end,
             enabled = true,
         },
@@ -137,8 +140,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         {
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()
-                -- TODO(bug): GetNextBankUpgradePrice() may return nil when all upgrades purchased; name() is evaluated before visible() check, causing crash in ZO_CurrencyControl_FormatCurrency(nil)
                 local cost = GetNextBankUpgradePrice()
+                if not cost or cost <= 0 then
+                    return ""
+                end
                 local text
                 if GetCarriedCurrencyAmount(CURT_MONEY) >= cost then
                     text = zo_strformat(SI_BANK_UPGRADE_TEXT, ZO_CurrencyControl_FormatCurrency(cost),
@@ -150,13 +155,21 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 return text or ""
             end,
             visible = function()
-                return IsBankUpgradeAvailable()
+                return IsBankUpgradeAvailable() and not self:IsBatchProcessing()
             end,
             enabled = function()
-                return GetCarriedCurrencyAmount(CURT_MONEY) >= GetNextBankUpgradePrice()
+                local cost = GetNextBankUpgradePrice()
+                return cost ~= nil and GetCarriedCurrencyAmount(CURT_MONEY) >= cost
             end,
             callback = function()
-                if GetNextBankUpgradePrice() > GetCarriedCurrencyAmount(CURT_MONEY) then
+                if self:IsBatchProcessing() then
+                    return
+                end
+                local cost = GetNextBankUpgradePrice()
+                if not cost or cost <= 0 then
+                    return
+                end
+                if cost > GetCarriedCurrencyAmount(CURT_MONEY) then
                     ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_BUY_BANK_SPACE_CANNOT_AFFORD))
                 else
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
@@ -217,9 +230,12 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             order = 1500,
             disabledDuringSceneHiding = true,
             visible = function()
-                return self.list and not self.list:IsEmpty()
+                return self.list and not self.list:IsEmpty() and not self:IsBatchProcessing()
             end,
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
                 local currentUsedBank = BETTERUI.Banking.currentUsedBank
                 if self.currentMode == LIST_WITHDRAW then
                     if currentUsedBank == BAG_BANK then
@@ -291,6 +307,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
+                if self:IsBatchProcessing() then
+                    return
+                end
+
                 -- In multi-select mode, toggle selection
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     local target = self.list and self.list:GetSelectedData()
@@ -322,6 +342,9 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 end
             end,
             visible = function()
+                if self:IsBatchProcessing() then
+                    return false
+                end
                 -- In multi-select mode, hide for currency rows
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     local target = self.list and self.list:GetSelectedData()
@@ -334,6 +357,9 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     self.list:GetSelectedData().bagId ~= nil
             end,
             enabled = function()
+                if self:IsBatchProcessing() then
+                    return false
+                end
                 -- In multi-select mode, always enabled for valid targets
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     local target = self.list and self.list:GetSelectedData()
