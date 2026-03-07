@@ -63,7 +63,8 @@ end
 --- Unregister all events for a specific module.
 --- Call this when a module is disabled or its scene is hidden.
 --- @param moduleName string Module identifier to clean up
-function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName)
+--- @param suppressLog boolean|nil When true, skip debug/chat output for this cleanup
+function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName, suppressLog)
     local moduleRegs = registrations[moduleName]
     if not moduleRegs then return end
 
@@ -75,7 +76,9 @@ function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName)
 
     registrations[moduleName] = nil
 
-    BETTERUI.Debug(string.format("[EventRegistry] Unregistered all events for module: %s", moduleName))
+    if not suppressLog then
+        BETTERUI.Debug(string.format("[EventRegistry] Unregistered all events for module: %s", moduleName))
+    end
 end
 
 --- Unregister a specific event for a module.

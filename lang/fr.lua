@@ -137,6 +137,9 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Redéfinit complètemen
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Activer |c0066FFModule de commandes|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Affiche les commandes journalières et leur progression à chaque station d'artisanat")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Réinitialiser tout par défaut")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
+    "Réinitialise TOUS les paramètres de BetterUI à leurs valeurs par défaut. Rechargez l'interface ensuite pour appliquer complètement les valeurs restaurées.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Active des fonctionnalités supplémentaires pour les interfaces \"Améliorées\"!")
 
@@ -596,7 +599,6 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Trier")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Tout désélectionner")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> sélectionnés")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Actions groupées")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Traitement de <<1>> objets. Veuillez patienter...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> objets traités.")
 -- Added from en.lua
 ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Assigner raccourcis")
@@ -612,8 +614,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ Cette police peut ne pas afficher correctement les caractères russes. Envisagez d'utiliser une option de police localisée.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Lier pour la collection")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Sac plein ! <<1>> sur <<2>> objets traités.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Traitement de <<1>> objets. Temps estimé : <<2>>.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Toujours en traitement - <<1>> sur <<2>>")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Annulé. <<1>> objets sur <<2>> traités.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> quitté. Annulé. <<2>> objets sur <<3>> traités.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Banque")

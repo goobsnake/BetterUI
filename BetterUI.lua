@@ -292,6 +292,22 @@ function BETTERUI.InitModuleOptions()
 		end
 	end
 
+	table.insert(optionsTable, {
+		type = "divider",
+		width = "full",
+	})
+	table.insert(optionsTable, {
+		type = "button",
+		name = GetString(SI_BETTERUI_MASTER_RESET_ALL),
+		tooltip = GetString(SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP),
+		func = function()
+			if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetAllSettingsToDefaults then
+				BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
+			end
+		end,
+		width = "full",
+	})
+
 	LAM:RegisterAddonPanel("BETTERUI_" .. "Modules", panelData)
 	LAM:RegisterOptionControls("BETTERUI_" .. "Modules", optionsTable)
 end

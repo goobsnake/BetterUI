@@ -132,6 +132,9 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "|c0066FF拡張バンキング|r
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "ゲームパッドの銀行インターフェースを完全に再設計")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FFデイリークラフト依頼|rを有効化")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "各クラフトステーションでデイリー依頼と進捗を表示")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "すべてをデフォルトにリセット")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
+    "BetterUI のすべての設定を既定値に戻します。復元した既定値を完全に適用するには、その後 UI を再読み込みしてください。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "完全に再設計された\"拡張\"インターフェースに追加機能を有効化！")
 
 ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "北")
@@ -543,7 +546,6 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "ソート")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "すべて選択解除")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>>個選択中")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "一括操作")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "<<1>>個のアイテムを処理中。お待ちください...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>>個のアイテムを処理しました。")
 -- Added from en.lua
 ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "クイックスロット割り当て")
@@ -558,8 +560,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ このフォントはロシア語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "コレクションのためにバインド")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です！<<1>>個中<<2>>個を処理しました。")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "<<1>>個のアイテムを処理中。推定時間: <<2>>。")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "処理を継続中 - <<2>>個中<<1>>個")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "中止しました。<<2>>個中<<1>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>>を終了したため中止しました。<<3>>個中<<2>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "銀行")

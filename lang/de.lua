@@ -138,6 +138,9 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Gestaltet die Gamepad-B
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FFTägliche Schriebe|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Zeigt die täglichen Schriebe und Fortschritt an jeder Handwerksstation")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Alles auf Standard zurücksetzen")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
+    "Setzt ALLE BetterUI-Einstellungen auf ihre Standardwerte zurück. Lade die UI anschließend neu, damit die wiederhergestellten Standardwerte vollständig angewendet werden.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Aktiviert zusätzliche Funktionen für die komplett neu gestalteten \"Verbesserten\" Oberflächen!")
 
@@ -587,7 +590,6 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sortieren")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Alle abwählen")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> ausgewählt")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Stapelaktionen")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Verarbeite <<1>> Gegenstände. Bitte warten...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> Gegenstände verarbeitet.")
 -- Added from en.lua
 ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Schnellzugriff zuweisen")
@@ -603,8 +605,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ Diese Schriftart zeigt russische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Für Sammlung binden")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll! <<1>> von <<2>> Gegenständen verarbeitet.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Verarbeite <<1>> Gegenstände. Geschätzte Zeit: <<2>>.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Weiter in Bearbeitung - <<1>> von <<2>>")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Abgebrochen. <<1>> von <<2>> Gegenständen verarbeitet.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> verlassen. Abgebrochen. <<2>> von <<3>> Gegenständen verarbeitet.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Bank")

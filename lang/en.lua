@@ -157,10 +157,7 @@ ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> Selected")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Batch Actions")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Choose an action to apply to applicable selected items. Locked items may not be compatible with certain actions.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Processing <<1>> items. Please wait...")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Processing <<1>> items. Estimated time: <<2>>.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processed.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Still Processing - <<1>> out of <<2>>")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag full! Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Aborted. Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> exited. Aborted. Processed <<2>> of <<3>> items.")
@@ -183,6 +180,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the gamepad's banking interface")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
+    "Enables additional features for the completely redesigned \"Enhanced\" interfaces!")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Reset All To Defaults")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
+    "Reset ALL BetterUI settings to their default values. Reload the UI afterward to fully apply the restored defaults.")
 
 -- Feature Flags Settings
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")

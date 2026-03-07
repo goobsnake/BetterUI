@@ -119,6 +119,27 @@ local function GetSettings()
     return BETTERUI.Nameplates.DEFAULTS
 end
 
+local originalKeyboardFont = nil
+local originalKeyboardStyle = nil
+local originalGamepadFont = nil
+local originalGamepadStyle = nil
+local originalFontsCaptured = false
+
+local function CaptureOriginalNameplateFonts()
+    if originalFontsCaptured then
+        return
+    end
+
+    if type(GetNameplateKeyboardFont) == "function" then
+        originalKeyboardFont, originalKeyboardStyle = GetNameplateKeyboardFont()
+    end
+    if type(GetNameplateGamepadFont) == "function" then
+        originalGamepadFont, originalGamepadStyle = GetNameplateGamepadFont()
+    end
+
+    originalFontsCaptured = originalKeyboardFont ~= nil or originalGamepadFont ~= nil
+end
+
 -- Applies font settings to keyboard and gamepad nameplates.
 ---
 --- Purpose: Commits configuration to the ESO API.
@@ -134,6 +155,7 @@ end
 --- @param size number The font size.
 local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then return end
+    CaptureOriginalNameplateFonts()
     style = NormalizeStyleValue(style)
     local fontString = font .. "|" .. tostring(size)
     SetNameplateKeyboardFont(fontString, style)
@@ -150,7 +172,8 @@ end
 --- References: Called by Setup and OnEnabledChanged.
 ---
 --- @param enabled boolean Whether to register (true) or unregister (false) events
-local function SetupEvents(enabled)
+--- @param suppressCleanupLog boolean|nil When true, suppress event cleanup debug output
+local function SetupEvents(enabled, suppressCleanupLog)
     if enabled then
         BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
             local settings = GetSettings()
@@ -167,7 +190,7 @@ local function SetupEvents(enabled)
                 end
             end)
     else
-        BETTERUI.CIM.EventRegistry.UnregisterAll("Nameplates")
+        BETTERUI.CIM.EventRegistry.UnregisterAll("Nameplates", suppressCleanupLog)
     end
 end
 
@@ -180,6 +203,16 @@ end
 ---
 --- References: Called by OnEnabledChanged(false).
 local function ResetToDefaults()
+    if originalFontsCaptured then
+        if originalKeyboardFont ~= nil then
+            SetNameplateKeyboardFont(originalKeyboardFont, originalKeyboardStyle)
+        end
+        if originalGamepadFont ~= nil then
+            SetNameplateGamepadFont(originalGamepadFont, originalGamepadStyle)
+        end
+        return
+    end
+
     local defaults = BETTERUI.Nameplates.DEFAULTS
     ApplyNameplateFont(defaults.font, defaults.style, defaults.size)
 end
@@ -205,8 +238,9 @@ end
 --- - If disabled: Unregister events, reset to defaults.
 ---
 --- @param m_enabled boolean The new m_enabled state.
-function BETTERUI.Nameplates.OnEnabledChanged(m_enabled)
-    SetupEvents(m_enabled)
+--- @param suppressCleanupLog boolean|nil When true, suppress reset-triggered cleanup debug output
+function BETTERUI.Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
+    SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
         local settings = GetSettings()
         ApplyNameplateFont(settings.font, settings.style, settings.size)

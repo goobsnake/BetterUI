@@ -136,6 +136,9 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Полностью пе
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Включить |c0066FFежедневные заказы|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Сбросить всё к значениям по умолчанию")
+ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
+    "Сбрасывает ВСЕ настройки BetterUI к значениям по умолчанию. После этого перезагрузите интерфейс, чтобы полностью применить восстановленные значения по умолчанию.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Включает дополнительные функции для полностью переработанных \"улучшенных\" интерфейсов!")
 
@@ -585,7 +588,6 @@ ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Сортировка")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ALL", "Снять выбор")
 ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> выбрано")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Групповые действия")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START", "Обработка <<1>> предметов. Пожалуйста, подождите...")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> предметов обработано.")
 -- Added from en.lua
 ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Назначить быстрые слоты")
@@ -601,8 +603,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "⚠️ Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_START_ETA", "Обработка <<1>> предметов. Примерное время: <<2>>.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_STILL", "Обработка продолжается - <<1>> из <<2>>")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Прервано. Обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "Выход из <<1>>. Прервано. Обработано <<2>> из <<3>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Банк")
