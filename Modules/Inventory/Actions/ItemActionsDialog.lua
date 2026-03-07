@@ -50,17 +50,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
     local function ActionDialogSetup(dialog, data)
         if self.scene:IsShowing() then
-            -- If invoked for quickslot assignment, render the wheel options inside this proven parametric dialog
-            if data and data.quickslotAssign and data.target then
-                -- Use shared CIM utility for quickslot dialog entry building
-                local target = data.target
-                local quickslotInfo = BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
 
-                dialog.quickslotTarget = target
-                dialog:setupFunc()
-                BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
-                return
-            end
 
             -- Default actions list setup
             -- Title provided via dialog's dynamic title function; avoid overriding here
@@ -486,40 +476,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             end
         end
 
-        -- Handle embedded quickslot assignment mode
-        if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
-            local target = dialog.data.target or dialog.quickslotTarget
-            if target then
-                local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-                local selected = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-                if selected and selected.isUnassign then
-                    local assigned = FindActionSlotMatchingItem and
-                        FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
-                    if assigned then
-                        CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
-                        if SOUNDS and PlaySound then
-                            PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-                        end
-                    end
-                else
-                    local wheelSlotIndex = (selected and selected.slotIndex) or 4
-                    CallSecureProtected("SelectSlotItem", target.bagId, target.slotIndex, wheelSlotIndex, quickslot_wheel)
-                    if SOUNDS and PlaySound then
-                        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-                    end
-                end
-                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                BETTERUI.Inventory.Tasks:Schedule("quickslotAssignRefresh", 150, function()
-                    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshItemList then
-                        GAMEPAD_INVENTORY:RefreshItemList()
-                    end
-                end)
-            end
-            return
-        end
+        -- Resolve the selected action from the dialog's parametric list
+        local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
 
         -- Handle "Sort" entry to enter header sort mode
-        local selectedRow = dialog.entryList and BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
         if selectedRow and selectedRow.isSortAction then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             -- Use stored sortContext (could be Inventory or Banking class)
@@ -533,6 +493,7 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         -- Handle "Stow Stack" action
         if selectedRow and selectedRow.isStowStackAction then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+
             local itemTarget = selectedRow.itemTarget
             if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.StowFullStack then
                 BETTERUI.Inventory.Dialogs.StowFullStack(itemTarget)

@@ -174,6 +174,10 @@ function BETTERUI.Inventory.Class:Initialize(control)
         BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 
+    if BETTERUI.Inventory.InitializeSecureWheelHooks then
+        BETTERUI.Inventory.InitializeSecureWheelHooks()
+    end
+
     -- Initialize the actions object (using BetterUI custom subclass if available)
     if self.InitializeItemActions then
         self:InitializeItemActions()

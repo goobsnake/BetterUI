@@ -96,41 +96,6 @@ function BETTERUI.Inventory.HookActionDialog()
             elsewhere as it will overwrite this registration and break scene detection.
         ]]
         setup = function(dialog, data)
-            -- Always handle our embedded quickslot mode here for robustness
-            if data and data.quickslotAssign and data.target then
-                -- Title provided via dialog's dynamic title function; avoid overriding here
-                local parametricList = dialog.info.parametricList
-
-                local hasUnassign = BETTERUI.Inventory.PopulateQuickslotDialogEntries(parametricList, data.target)
-
-                dialog.quickslotTarget = data.target
-                dialog:setupFunc()
-                if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
-                    local offset = hasUnassign and 1 or 0
-                    -- Preselect currently assigned slot
-                    local assignedIndex = nil
-                    if FindActionSlotMatchingItem then
-                        assignedIndex = FindActionSlotMatchingItem(data.target.bagId, data.target.slotIndex,
-                            HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
-                    end
-
-                    if assignedIndex then
-                        -- We need to find which parametric list entry corresponds to assignedIndex
-                        local foundParametricIndex = 1
-                        for i, entry in ipairs(parametricList) do
-                            if entry.entryData.slotIndex == assignedIndex then
-                                foundParametricIndex = i
-                                break
-                            end
-                        end
-                        dialog.entryList:SetSelectedIndexWithoutAnimation(foundParametricIndex, true, false)
-                    else
-                        dialog.entryList:SetSelectedIndexWithoutAnimation(hasUnassign and 2 or 1, true, false)
-                    end
-                end
-                return
-            end
-
             -- Normal BetterUI override path when enabled/visible
             -- Check both Inventory and Banking scenes with proper nil guards
             local invShowing = BETTERUI.Settings.Modules["Inventory"].m_enabled
@@ -149,12 +114,10 @@ function BETTERUI.Inventory.HookActionDialog()
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = {
             text = function(dialog)
-                if dialog and dialog.data and dialog.data.quickslotAssign then
-                    return GetString(SI_BETTERUI_ASSIGN_QUICKSLOTS)
-                end
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
         },
+
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback = function(dialog)
             if
@@ -187,43 +150,6 @@ function BETTERUI.Inventory.HookActionDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(SI_GAMEPAD_SELECT_OPTION),
                 callback = function(dialog)
-                    -- Handle embedded quickslot mode regardless of BetterUI override gating
-                    if dialog and dialog.data and dialog.data.quickslotAssign and dialog.entryList then
-                        local target = dialog.data.target or dialog.quickslotTarget
-                        if target then
-                            local quickslot_wheel = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
-                            local selected = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-                            if selected and selected.isUnassign then
-                                local assigned = FindActionSlotMatchingItem
-                                    and FindActionSlotMatchingItem(target.bagId, target.slotIndex, quickslot_wheel)
-                                if assigned then
-                                    CallSecureProtected("ClearSlot", assigned, quickslot_wheel)
-                                    if SOUNDS and PlaySound then
-                                        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-                                    end
-                                end
-                            else
-                                local wheelSlotIndex = (selected and selected.slotIndex) or 4
-                                CallSecureProtected(
-                                    "SelectSlotItem",
-                                    target.bagId,
-                                    target.slotIndex,
-                                    wheelSlotIndex,
-                                    quickslot_wheel
-                                )
-                                if SOUNDS and PlaySound then
-                                    PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-                                end
-                            end
-                            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                            BETTERUI.Inventory.Tasks:Schedule("quickslotHookRefresh", 150, function()
-                                if GAMEPAD_INVENTORY then
-                                    GAMEPAD_INVENTORY:RefreshItemList()
-                                end
-                            end)
-                        end
-                        return
-                    end
                     if
                         (
                             BETTERUI.Settings.Modules["Inventory"].m_enabled
@@ -237,6 +163,7 @@ function BETTERUI.Inventory.HookActionDialog()
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
                         return
                     end
+
                     -- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
                     -- TODO(bug): 'self' is not in scope here -- this is a bare function(dialog) callback, not a method. self.actionMode/self.itemList/self.craftBagList/self.categoryList all crash with "attempt to index a nil value" when triggered from non-BetterUI scenes
                     if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then

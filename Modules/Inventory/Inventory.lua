@@ -9,8 +9,8 @@ Purpose: Orchestration layer for BetterUI Inventory system.
          - Lists/CraftBagListManager.lua - Craft bag logic
          - Lists/CategoryListManager.lua - Category tabs
          - Actions/EquipAction.lua - TryEquipItem, equip dialogs
-         - Actions/QuickslotAction.lua - Quickslot assignment
          - Actions/ItemActionsDialog.lua - Y-menu customization
+
          - Keybinds/InventoryKeybinds.lua - Keybind strip
          - State/PositionManager.lua - Position save/restore
          - State/ListStateManager.lua - SwitchActiveList
@@ -51,8 +51,49 @@ local COMPANION_EQUIP_PATCH_RETRY_MS = 400
 local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
+--------------------------------------------------------------------------------
+-- SECURE SYSTEM HOOKS
+--------------------------------------------------------------------------------
+local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
+-- Globally hooks the assignable utility wheel to ensure untrusted callstacks
+-- from our add-on keybinds don't crash when they reach protected assignment CAPI.
+function BETTERUI.Inventory.InitializeSecureWheelHooks()
+	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
+		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
+			local selectedEntry = self:GetSelectedRadialEntry()
+			local pendingSlotData = self.pendingSlotData
+			if self.radialMenu:IsShown() and pendingSlotData and selectedEntry then
+				local actionSlotIndex = selectedEntry.data.slotIndex
+				local hotbarCategory = self:GetHotbarCategory()
+				if pendingSlotData.actionId then
+					CallSecureProtected("SelectSlotSimpleAction", pendingSlotData.slotType, pendingSlotData.actionId,
+						actionSlotIndex, hotbarCategory)
+				elseif pendingSlotData.bagId and pendingSlotData.itemSlotIndex then
+					CallSecureProtected("SelectSlotItem", pendingSlotData.bagId, pendingSlotData.itemSlotIndex,
+						actionSlotIndex, hotbarCategory)
+				end
 
+				if clearPending then
+					self.pendingSlotData = nil
+				end
+				if SOUNDS and PlaySound then
+					PlaySound(SOUNDS.RADIAL_MENU_SELECTION)
+				end
 
+				if self.data and self.data.customNarrationObjectName and SCREEN_NARRATION_MANAGER then
+					SCREEN_NARRATION_MANAGER:QueueCustomEntry(self.data.customNarrationObjectName)
+				end
+
+				if self.data and self.data.showPendingIcon then
+					self:RefreshPendingIcon()
+				end
+			end
+			-- Always return true to cancel the original unprotected native execution
+			return true
+		end)
+		BETTERUI._secureWheelHooked = true
+	end
+end
 
 -- GetEquipSlotForEquipType extracted to Core/InventoryClass.lua
 -- GetCategoryKey, FindCategoryIndexByKey extracted to State/PositionManager.lua
@@ -81,9 +122,8 @@ end
 -- UpdateItemLeftTooltip, UpdateRightTooltip, InitializeItemList extracted to Lists/ItemListManager.lua
 -- InitializeCraftBagList extracted to Lists/CraftBagListManager.lua
 -- InitializeItemActions, InitializeActionsDialog extracted to Actions/ItemActionsDialog.lua
-
--- InitializeQuickslotAssignDialog, ShowQuickslotAssignDialog extracted to Actions/QuickslotAction.lua
 -- TryDestroyItem, HookDestroyItem, HookActionDialog extracted to Actions/ItemActionsDialog.lua
+
 
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
@@ -341,7 +381,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
 	self:InitializeItemActions()
 	self:InitializeActionsDialog()
-	self:InitializeQuickslotAssignDialog()
+
 
 	-- Initialize Footer using shared GenericFooter
 	if BETTERUI.GenericFooter then

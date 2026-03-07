@@ -17,6 +17,17 @@ Last Modified: 2026-01-28
 -- HELPER FUNCTIONS
 --------------------------------------------------------------------------------
 
+local GetItemLinkItemType = GetItemLinkItemType
+local GetItemLinkSetInfo = GetItemLinkSetInfo
+local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
+local IsItemBound = IsItemBound
+local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
+local GetItemFont = BETTERUI.Inventory.CONST.GetItemFont
+local WouldEquipmentBeHidden = WouldEquipmentBeHidden
+local FindActionSlotMatchingItem = FindActionSlotMatchingItem
+local FindActionSlotMatchingSimpleAction = FindActionSlotMatchingSimpleAction
+local ACTION_TYPE_QUEST_ITEM = ACTION_TYPE_QUEST_ITEM
+
 --[[
 Function: IsQuickslottable
 Description: Checks if an item can be assigned to a quickslot.
@@ -34,20 +45,19 @@ local function IsQuickslottable(sd)
     if FindActionSlotMatchingItem and FindActionSlotMatchingItem(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
         return true
     end
-    -- Exclude quest items explicitly
-    if
-        ZO_InventoryUtils_DoesNewItemMatchFilterType
-        and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUEST)
-    then
-        return false
+    -- Accept both standard quickslot items and quest quickslot items
+    -- (matches ESO's native ZO_InventorySlot_CanQuickslotItem eligibility)
+    if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUICKSLOT) then
+            return true
+        end
+        if ITEMFILTERTYPE_QUEST_QUICKSLOT
+            and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUEST_QUICKSLOT)
+        then
+            return true
+        end
     end
-    -- Prefer the UI's own quickslot filter (captures true quickslottables reliably)
-    if
-        ZO_InventoryUtils_DoesNewItemMatchFilterType
-        and ZO_InventoryUtils_DoesNewItemMatchFilterType(sd, ITEMFILTERTYPE_QUICKSLOT)
-    then
-        return true
-    end
+
     -- Engine validation as a secondary check
     if IsValidItemForSlot and IsValidItemForSlot(bag, slot, HOTBAR_CATEGORY_QUICKSLOT_WHEEL) then
         return true
@@ -352,8 +362,28 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
                         or nil
                     if IsQuickslottable(target) then
-                        --assign
-                        n = GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+                        local hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                        local slotNum = nil
+                        if isQuestItem then
+                            local questItemId
+                            if target.toolIndex then
+                                questItemId = GetQuestToolQuestItemId(target.questIndex, target.toolIndex)
+                            else
+                                questItemId = GetQuestConditionQuestItemId(target.questIndex, target.stepIndex,
+                                    target.conditionIndex)
+                            end
+                            slotNum = FindActionSlotMatchingSimpleAction(ACTION_TYPE_QUEST_ITEM, questItemId,
+                                hotbarCategory)
+                        else
+                            slotNum = FindActionSlotMatchingItem(target.bagId, target.slotIndex, hotbarCategory)
+                        end
+                        if slotNum then
+                            -- Already slotted, label as "Unassign"
+                            n = GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN)
+                        else
+                            -- Not slotted, label as "Assign"
+                            n = GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+                        end
                     elseif
                         not isQuestItem
                         and (ft == ITEMFILTERTYPE_WEAPONS or ft == ITEMFILTERTYPE_ARMOR or ft == ITEMFILTERTYPE_JEWELRY)
@@ -410,8 +440,47 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         and GetItemFilterTypeInfo(target.bagId, target.slotIndex)
                         or nil
                     if IsQuickslottable(target) then
-                        -- Open BetterUI quickslot assignment dialog to let user pick the wheel slot visually
-                        self:ShowQuickslotAssignDialog(target.bagId, target.slotIndex)
+                        local hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL
+                        local slotNum = nil
+
+                        if ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
+                            local questItemId
+                            if target.toolIndex then
+                                questItemId = GetQuestToolQuestItemId(target.questIndex, target.toolIndex)
+                            else
+                                questItemId = GetQuestConditionQuestItemId(target.questIndex, target.stepIndex,
+                                    target.conditionIndex)
+                            end
+                            slotNum = FindActionSlotMatchingSimpleAction(ACTION_TYPE_QUEST_ITEM, questItemId,
+                                hotbarCategory)
+                        else
+                            slotNum = FindActionSlotMatchingItem(target.bagId, target.slotIndex, hotbarCategory)
+                        end
+
+                        if slotNum then
+                            -- Quick Unassign: clear the slot securely without opening the wheel
+                            CallSecureProtected("ClearSlot", slotNum, hotbarCategory)
+                            if SOUNDS and PlaySound then
+                                PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+                            end
+                            -- Capture unique id to ensure we re-select the same item after the list rebuilds
+                            local preserveId = target and target.uniqueId
+
+                            -- Refresh the keybind label and list visual state (Delayed to allow native state to update)
+                            zo_callLater(function()
+                                if self.RefreshKeybinds and self.itemList then
+                                    if preserveId then
+                                        self._preserveUniqueId = preserveId
+                                    end
+                                    self:RefreshKeybinds()
+                                    self:RefreshItemList()
+                                end
+                            end, 100)
+                        else
+                            -- Not slotted, open the native quickslot wheel
+                            -- Must use zo_callLater to break the callstack
+                            zo_callLater(function() self:ShowQuickslot() end, 50)
+                        end
                     else
                         -- If it's gear categories, toggle compare; otherwise link to chat
                         if

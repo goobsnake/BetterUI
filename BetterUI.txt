@@ -135,8 +135,8 @@ Modules\Inventory\Core\HeaderManager.lua
 Modules\Inventory\Actions\ActionDialogHooks.lua
 Modules\Inventory\Actions\DestroyAction.lua
 Modules\Inventory\Actions\EquipAction.lua
-Modules\Inventory\Actions\QuickslotAction.lua
 Modules\Inventory\Actions\ItemActionsDialog.lua
+
 Modules\Inventory\Lists\ItemListManager.lua
 Modules\Inventory\Lists\CraftBagListManager.lua
 Modules\Inventory\Lists\CategoryListManager.lua
