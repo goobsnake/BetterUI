@@ -77,8 +77,6 @@ local SERVER_RATE_MAX_ACTIONS = TIMING.BATCH_SERVER_RATE_MAX_ACTIONS or DEFAULT_
 local DEFAULT_ACTION_COST_UNITS = 1
 local SERVER_BATCH_RECOVERY_STATE = {
     cooldownUntilMs = 0,
-    lastBatchCost = 0,
-    lastBatchEndedAtMs = 0,
     serverActionTimes = {},
 }
 
@@ -1257,13 +1255,9 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     -- Set batch processing flag to suppress refreshes
     self.isBatchProcessing = true
     self.batchAbortRequested = false
-    self.batchRemainingCount = totalItems
-    self.batchTotalCount = totalItems
-    self.batchProcessedCount = 0
     self.batchSuppressUiUpdates = suppressUiUpdates and true or nil
 
     local displayName = actionName or GetString(SI_BETTERUI_BATCH_ACTIONS)
-    self.batchActionName = displayName
 
     if self._msConfig and self._msConfig.refreshKeybinds then
         self._msConfig.refreshKeybinds(self)
@@ -1293,10 +1287,6 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
         -- Clear batch processing flag first so normal keybind labels restore
         self_ref.isBatchProcessing = false
-
-        local remainingCount = zo_max(totalItems - processedCount, 0)
-        self_ref.batchProcessedCount = processedCount
-        self_ref.batchRemainingCount = remainingCount
 
         if IsBatchSceneShowing(self_ref) and self_ref._msConfig and self_ref._msConfig.refreshKeybinds then
             self_ref._msConfig.refreshKeybinds(self_ref)
@@ -1337,15 +1327,9 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
                 SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs =
                     zo_max(SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs or 0, nowMs + postBatchCooldownMs)
             end
-            SERVER_BATCH_RECOVERY_STATE.lastBatchCost = processedCost
-            SERVER_BATCH_RECOVERY_STATE.lastBatchEndedAtMs = nowMs
         end
 
         self_ref.batchAbortRequested = nil
-        self_ref.batchRemainingCount = nil
-        self_ref.batchTotalCount = nil
-        self_ref.batchProcessedCount = nil
-        self_ref.batchActionName = nil
         self_ref.batchSuppressUiUpdates = nil
         self_ref._msBatchWakeHandler = nil
         stillProcessingWaitUntilMs = 0
@@ -1511,9 +1495,6 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         else
             consecutiveQueuedActions = 0
         end
-
-        self_ref.batchProcessedCount = processedCount
-        self_ref.batchRemainingCount = zo_max(totalItems - processedCount, 0)
 
         if stopReason then
             finishBatch()
