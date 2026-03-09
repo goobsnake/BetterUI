@@ -23,7 +23,7 @@ local Mixin = BETTERUI.CIM.MultiSelectMixin
 local DEFAULT_BATCH_THROTTLE_TIERS = {
     { MIN_ITEMS = 50, DELAY_MS = 125, SHOW_PROGRESS = true },
     { MIN_ITEMS = 10, DELAY_MS = 100, SHOW_PROGRESS = true },
-    { MIN_ITEMS = 0,  DELAY_MS = 75, SHOW_PROGRESS = false },
+    { MIN_ITEMS = 0,  DELAY_MS = 75,  SHOW_PROGRESS = false },
 }
 
 local TIMING = BETTERUI.CIM.CONST.TIMING or {}
@@ -251,7 +251,8 @@ local function NormalizeBatchItems(items)
     return normalized
 end
 
-local function EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs, totalCostUnits, chunkCostUnits, chunkPauseMs, initialDelayMs)
+local function EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs, totalCostUnits,
+                                            chunkCostUnits, chunkPauseMs, initialDelayMs)
     local itemCount = zo_max(totalItems, 0)
     local estimateMs = itemCount * zo_max(delayMs or 0, 0)
     local cooldownUnits = zo_max(totalCostUnits or itemCount, 0)
@@ -1297,16 +1298,20 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
         -- Show completion notification
         if showProgress or stopReason then
-            local completeText
+            local successCountText = zo_strformat("<<1>> / <<2>>", processedCount, totalItems)
+            local completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PROCESSING_COMPLETE), processedCount)
+
             if stopReason == "bagFull" then
                 completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_BAG_FULL), processedCount, totalItems)
             elseif stopReason == "sceneExit" then
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT), sceneExitLabel, processedCount, totalItems)
+                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT), sceneExitLabel or "Scene",
+                    processedCount, totalItems)
             elseif stopReason == "aborted" then
                 completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_ABORTED_COMPLETE), processedCount, totalItems)
-            else
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PROCESSING_COMPLETE), totalItems)
+            elseif processedCount < totalItems then
+                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PARTIAL_SUCCESS), processedCount, totalItems)
             end
+
             ShowBatchStatusOverlay(displayName, completeText)
             HideBatchStatusOverlay((stopReason and 4000) or 2000)
         else
@@ -1433,72 +1438,86 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     processNext = function()
-        if not IsBatchSceneShowing(self_ref) then
-            stopReason = "sceneExit"
-            finishBatch()
-            return
-        end
-
-        if self_ref.batchAbortRequested then
-            stopReason = "aborted"
-            finishBatch()
-            return
-        end
-
-        if announceAfterCooldown then
-            announceAfterCooldown = false
-            ShowStillProcessingAnnouncement()
-        end
-
-        if isServerBound and enforceRateWindow then
-            local rateWindowDelayMs = ComputeServerActionDelayMs(GetNowMs(), rateLimitWindowMs, rateLimitMaxActions)
-            if rateWindowDelayMs > 0 then
-                ShowStillProcessingAnnouncement(rateWindowDelayMs)
-                ScheduleContinuation(rateWindowDelayMs, processNext)
+        local actionQueued = false
+        local bagId = nil
+        local slotIndex = nil
+        while true do
+            if not IsBatchSceneShowing(self_ref) then
+                stopReason = "sceneExit"
+                finishBatch()
                 return
             end
-        end
 
-        index = index + 1
+            if self_ref.batchAbortRequested then
+                stopReason = "aborted"
+                finishBatch()
+                return
+            end
 
-        if index > totalItems then
-            finishBatch()
-            return
-        end
+            if announceAfterCooldown then
+                announceAfterCooldown = false
+                ShowStillProcessingAnnouncement()
+            end
 
-        local itemData = items[index]
-        local rawData = itemData.dataSource or itemData
-        local bagId = rawData.bagId or itemData.bagId
-        local slotIndex = rawData.slotIndex or itemData.slotIndex
-        local actionQueued = false
-
-        if bagId and slotIndex then
-            local result = actionFn(bagId, slotIndex, itemData)
-            if result == false then
-                stopReason = "bagFull"
-            elseif type(result) == "string" and result ~= "" and result ~= "queued" then
-                stopReason = result
-            else
-                processedCount = processedCount + 1
-                processedCost = processedCost + actionCost
-                actionQueued = (result == "queued")
-                if actionQueued then
-                    consecutiveQueuedActions = consecutiveQueuedActions + 1
-                else
-                    consecutiveQueuedActions = 0
-                end
-
-                if isServerBound and enforceRateWindow and (actionQueued or countTowardRateOnSuccess) then
-                    RecordServerAction(GetNowMs(), rateLimitWindowMs)
+            if isServerBound and enforceRateWindow then
+                local rateWindowDelayMs = ComputeServerActionDelayMs(GetNowMs(), rateLimitWindowMs, rateLimitMaxActions)
+                if rateWindowDelayMs > 0 then
+                    ShowStillProcessingAnnouncement(rateWindowDelayMs)
+                    ScheduleContinuation(rateWindowDelayMs, processNext)
+                    return
                 end
             end
-        else
-            consecutiveQueuedActions = 0
-        end
 
-        if stopReason then
-            finishBatch()
-            return
+            index = index + 1
+
+            if index > totalItems then
+                finishBatch()
+                return
+            end
+
+            local itemData = items[index]
+            local rawData = itemData.dataSource or itemData
+            bagId = rawData.bagId or itemData.bagId
+            slotIndex = rawData.slotIndex or itemData.slotIndex
+            actionQueued = false
+            local skipToNext = false
+
+            if bagId and slotIndex then
+                local result = actionFn(bagId, slotIndex, itemData)
+                if result == false then
+                    stopReason = "bagFull"
+                elseif result == "skip" then
+                    -- Process next item immediately without advancing standard delay progression
+                    consecutiveQueuedActions = 0
+                    skipToNext = true
+                elseif type(result) == "string" and result ~= "" and result ~= "queued" then
+                    stopReason = result
+                else
+                    processedCount = processedCount + 1
+                    processedCost = processedCost + actionCost
+                    actionQueued = (result == "queued")
+                    if actionQueued then
+                        consecutiveQueuedActions = consecutiveQueuedActions + 1
+                    else
+                        consecutiveQueuedActions = 0
+                    end
+
+                    if isServerBound and enforceRateWindow and (actionQueued or countTowardRateOnSuccess) then
+                        RecordServerAction(GetNowMs(), rateLimitWindowMs)
+                    end
+                end
+            else
+                consecutiveQueuedActions = 0
+            end
+
+            if stopReason then
+                finishBatch()
+                return
+            end
+
+            if not skipToNext then
+                break
+            end
         end
 
         local baseDelayMs = effectiveDelayMs
@@ -1508,7 +1527,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             if adaptiveDelay and actionQueued and adaptiveStepMs > 0 and maxServerDelayMs > minServerDelayMs then
                 local queuedOverThreshold = zo_max(consecutiveQueuedActions - adaptiveThreshold, 0)
                 if queuedOverThreshold > 0 then
-                    local adaptiveBonus = zo_min(queuedOverThreshold * adaptiveStepMs, maxServerDelayMs - minServerDelayMs)
+                    local adaptiveBonus = zo_min(queuedOverThreshold * adaptiveStepMs,
+                        maxServerDelayMs - minServerDelayMs)
                     baseDelayMs = zo_min(maxServerDelayMs, baseDelayMs + adaptiveBonus)
                 end
             end

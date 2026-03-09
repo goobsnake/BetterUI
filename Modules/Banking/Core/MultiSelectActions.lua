@@ -11,10 +11,49 @@ Last Modified: 2026-02-09
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
 -------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
-local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local MSMixin                = BETTERUI.CIM.MultiSelectMixin
+local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
+
+local function ExtractSlot(itemData)
+    local rawData = itemData.dataSource or itemData
+    return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
+end
+
+local function HasItemAtSlot(bagId, slotIndex)
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
+    return (stackCount or 0) > 0
+end
+
+local function ResolveStackCount(itemData, bagId, slotIndex)
+    local rawData = itemData.dataSource or itemData
+    local requestedStack = rawData.stackCount or itemData.stackCount or 1
+    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    if liveStack <= 0 then
+        return nil
+    end
+    return zo_clamp(requestedStack, 1, liveStack)
+end
+
+--[[
+File: Modules/Banking/Core/MultiSelectActions.lua
+Purpose: Banking-specific multi-select batch operations.
+         BatchTransfer (withdraw/deposit), ShowBatchActionsMenu, and SelectAllItems.
+         Common operations (lock, unlock, junk, throttled processing) are provided
+         by CIM.MultiSelectMixin via BankingClass.lua delegates.
+Author: BetterUI Team
+Last Modified: 2026-02-09
+]]
+
+-------------------------------------------------------------------------------------------------
+-- SHARED CONSTANTS
+-------------------------------------------------------------------------------------------------
+local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
+local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
+
+local MSMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
 local function ExtractSlot(itemData)
@@ -52,25 +91,82 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         return false
     end
 
+    -- We can use DoesBagHaveSpaceFor as a reliable oracle for bankability IF the
+    -- bank has at least one completely empty slot. If there is an empty slot, but
+    -- DoesBagHaveSpaceFor still returns false, the item is inherently unbankable
+    -- (e.g., character bound, quest item, or otherwise natively restricted).
+    local freeSlots = 0
+    if targetBankBag == BAG_BANK then
+        freeSlots = GetBagUseableSize(BAG_BANK) - GetNumBagUsedSlots(BAG_BANK)
+        if IsESOPlusSubscriber() then
+            freeSlots = freeSlots + (GetBagUseableSize(BAG_SUBSCRIBER_BANK) - GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK))
+        end
+    else
+        freeSlots = GetBagUseableSize(targetBankBag) - GetNumBagUsedSlots(targetBankBag)
+    end
+
+    if freeSlots > 0 then
+        if targetBankBag == BAG_BANK then
+            local unbankable = not DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex)
+            if unbankable and IsESOPlusSubscriber() then
+                unbankable = not DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bagId, slotIndex)
+            end
+            if unbankable then
+                return false
+            end
+        else
+            if not DoesBagHaveSpaceFor(targetBankBag, bagId, slotIndex) then
+                return false
+            end
+        end
+    else
+        -- Fallback: If there are exactly 0 free slots, DoesBagHaveSpaceFor will return
+        -- false for anything that doesn't stack, so we can't tell if it's unbankable
+        -- or just blocked by capacity. We fallback to explicit bind type checks.
+        local bindType = GetItemBindType and GetItemBindType(bagId, slotIndex)
+        if bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
+            return false
+        end
+    end
+
     return true
 end
 
 local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     local targetBankBag = currentUsedBank or BAG_BANK
+
     if targetBankBag == BAG_BANK then
-        if DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex) then
+        -- DoesBagHaveSpaceFor(BAG_BANK) natively returns true if BAG_SUBSCRIBER_BANK has space,
+        -- even if BAG_BANK is completely full. We must explicitly verify a slot resolves.
+        if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BANK) then
             return BAG_BANK
         end
-        if IsESOPlusSubscriber() and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bagId, slotIndex) then
+        if IsESOPlusSubscriber() and BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_SUBSCRIBER_BANK) then
             return BAG_SUBSCRIBER_BANK
         end
-        return nil
+
+        -- Check if it's an unbankable item or genuinely out of space
+        local freeSlots = (GetBagUseableSize(BAG_BANK) - GetNumBagUsedSlots(BAG_BANK))
+        if IsESOPlusSubscriber() then
+            freeSlots = freeSlots + (GetBagUseableSize(BAG_SUBSCRIBER_BANK) - GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK))
+        end
+        if freeSlots > 0 then
+            return "unbankable"
+        end
+
+        return "skip"
     end
 
-    if DoesBagHaveSpaceFor(targetBankBag, bagId, slotIndex) then
+    if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBankBag) then
         return targetBankBag
     end
-    return nil
+
+    local freeSlots = GetBagUseableSize(targetBankBag) - GetNumBagUsedSlots(targetBankBag)
+    if freeSlots > 0 then
+        return "unbankable"
+    end
+
+    return "skip"
 end
 
 local BANK_TRANSFER_BATCH_OPTIONS = {
@@ -123,35 +219,37 @@ function BETTERUI.Banking.Class:BatchTransfer()
 
         local stackCount = ResolveStackCount(itemData, bagId, slotIndex)
         if not stackCount then
-            return true
+            return "skip"
         end
-
         if isWithdraw then
             -- Withdraw: move from bank to backpack
             if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-                return false -- Bag full, stop processing
+                return false -- Backpack full, abort processing
             end
 
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
             if destinationSlot == nil then
-                return false
+                return "skip"
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
         else
             if not IsDepositSupportedForBank(bagId, slotIndex, currentUsedBank) then
-                return true
+                return "skip"
             end
 
             -- Deposit: move from backpack to bank
             local targetBag = ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
-            if not targetBag then
-                return false -- Bank full, stop processing
+            if not targetBag or targetBag == "skip" then
+                return false -- Bank full, abort batch
+            end
+            if targetBag == "unbankable" then
+                return "skip" -- Item unbankable, skip this item, do not abort
             end
 
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)
             if destinationSlot == nil then
-                return false
+                return "skip"
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, targetBag, destinationSlot, stackCount)

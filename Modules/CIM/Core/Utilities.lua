@@ -198,17 +198,15 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex,
         return nil
     end
 
-    local emptySlotIndex = FindFirstEmptySlotInBag(toBagId)
-    if emptySlotIndex ~= nil then
-        return emptySlotIndex
-    end
-
     local itemLink = GetItemLink(fromBagId, fromSlotIndex)
-    if not itemLink or itemLink == "" then
-        return nil
+    if itemLink and itemLink ~= "" then
+        local stackSlot = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBagId, itemLink)
+        if stackSlot ~= nil then
+            return stackSlot
+        end
     end
 
-    return BETTERUI.CIM.Utils.FindStackableSlotInBag(toBagId, itemLink)
+    return FindFirstEmptySlotInBag(toBagId)
 end
 
 --[[
