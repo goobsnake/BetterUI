@@ -67,36 +67,54 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
                 end
             end,
         },
-        -- D-pad navigation keybinds (ethereal = hidden from UI)
-        -- Note: Uses keybinds instead of DIRECTIONAL_INPUT to avoid
-        -- protected function errors with IsKeyDown
+        -- LB: Navigate to previous column (visible on keybind strip)
         {
-            keybind = "UI_SHORTCUT_LEFT_STICK_LEFT",
-            ethereal = true,
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            name = function()
+                local idx = controller:GetCurrentColumnIndex()
+                if idx > 1 then
+                    local col = controller.columns[idx - 1]
+                    return col and (col.originalText or col.name) or ""
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+            visible = function()
+                return controller:IsActive() and controller:GetCurrentColumnIndex() > 1
+            end,
             callback = function()
                 if controller:IsActive() and controller:NavigateLeft() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
             end,
         },
+        -- RB: Navigate to next column (visible on keybind strip)
         {
-            keybind = "UI_SHORTCUT_LEFT_STICK_RIGHT",
-            ethereal = true,
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            name = function()
+                local idx = controller:GetCurrentColumnIndex()
+                local count = #controller.columns
+                if idx < count then
+                    local col = controller.columns[idx + 1]
+                    return col and (col.originalText or col.name) or ""
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+            visible = function()
+                return controller:IsActive() and controller:GetCurrentColumnIndex() < #controller.columns
+            end,
             callback = function()
                 if controller:IsActive() and controller:NavigateRight() then
                     PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
             end,
         },
-        {
-            keybind = "UI_SHORTCUT_LEFT_STICK_DOWN",
-            ethereal = true,
-            callback = function()
-                if onExitCallback then
-                    onExitCallback()
-                end
-            end,
-        },
+        -- NOTE: Stick-direction keybinds (UI_SHORTCUT_LEFT_STICK_*) do not work in
+        -- header sort mode because DIRECTIONAL_INPUT routes stick input to the game
+        -- world when no list is actively consuming it. B button is the reliable exit.
     }
 end
 

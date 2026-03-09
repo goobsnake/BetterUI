@@ -474,7 +474,7 @@ end
 --[[
 Function: HeaderSortController:CreateKeybindDescriptor
 Description: Creates a keybind descriptor for header sort mode.
-             Includes A to toggle sort, B to exit, and hidden L/R/Down/Up for navigation.
+              Includes A to toggle sort, B to exit, LB/RB for column navigation, and hidden Down/Up for D-pad exit/search.
              Centralizes keybind creation to avoid duplication in Inventory/Banking.
 param: exitCallback (function) - Called when user presses B or Down to exit header mode.
 param: navigateUpCallback (function, optional) - Called when user presses Up to navigate to search.
@@ -503,6 +503,52 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = exitCallback,
         },
+        -- LB: Navigate to previous column (visible on keybind strip)
+        -- Shows the previous column name for discoverability
+        {
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            name = function()
+                local idx = controller.currentColumnIndex
+                if idx > 1 then
+                    local col = controller.columns[idx - 1]
+                    return col and (col.originalText or col.name) or ""
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+            visible = function()
+                return controller.currentColumnIndex > 1
+            end,
+            callback = function()
+                if controller:NavigateLeft() then
+                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
+        -- RB: Navigate to next column (visible on keybind strip)
+        -- Shows the next column name for discoverability
+        {
+            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            name = function()
+                local idx = controller.currentColumnIndex
+                if idx < #controller.columns then
+                    local col = controller.columns[idx + 1]
+                    return col and (col.originalText or col.name) or ""
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+            visible = function()
+                return controller.currentColumnIndex < #controller.columns
+            end,
+            callback = function()
+                if controller:NavigateRight() then
+                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
         -- Y button: Already in header mode, show current state (no-op)
         -- This prevents Y from being "lost" when main keybinds are removed
         {
@@ -514,42 +560,9 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
                 -- This captures the Y press to prevent it from falling through
             end,
         },
-        -- D-pad navigation keybinds (ethereal = hidden from UI)
-        -- Note: Uses keybinds instead of DIRECTIONAL_INPUT to avoid
-        -- protected function errors with IsKeyDown
-        {
-            keybind = "UI_SHORTCUT_LEFT_STICK_LEFT",
-            ethereal = true,
-            callback = function()
-                if controller:NavigateLeft() then
-                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                end
-            end,
-        },
-        {
-            keybind = "UI_SHORTCUT_LEFT_STICK_RIGHT",
-            ethereal = true,
-            callback = function()
-                if controller:NavigateRight() then
-                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                end
-            end,
-        },
-        {
-            keybind = "UI_SHORTCUT_LEFT_STICK_DOWN",
-            ethereal = true,
-            callback = exitCallback,
-        },
-        -- D-pad UP: Navigate to search box (if callback provided)
-        {
-            keybind = "UI_SHORTCUT_LEFT_STICK_UP",
-            ethereal = true,
-            callback = function()
-                if navigateUpCallback then
-                    navigateUpCallback()
-                end
-            end,
-        },
+        -- NOTE: Stick-direction keybinds (UI_SHORTCUT_LEFT_STICK_*) do not work in
+        -- header sort mode because DIRECTIONAL_INPUT routes stick input to the game
+        -- world when no list is actively consuming it. B button is the reliable exit.
     }
 end
 
