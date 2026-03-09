@@ -1,6 +1,6 @@
 param(
-    [string]$ContinuityPath = "docs/CONTINUITY.md",
-    [string]$CoverageRegex = "^(Modules/|lang/|BetterUI\.lua$|BetterUI\.txt$|docs/CONTINUITY\.md$)",
+    [string]$ContinuityPath = "docs/planning/continuity-ledger.md",
+    [string]$CoverageRegex = "^(Modules/|lang/|BetterUI\.lua$|BetterUI\.txt$|docs/planning/continuity-ledger\.md$)",
     [int]$DoneCap = 12,
     [int]$WorkingSetCap = 12,
     [int]$ReceiptsCap = 20,

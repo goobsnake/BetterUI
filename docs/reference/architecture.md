@@ -36,7 +36,7 @@
 │  ├── Constants.lua + Module.lua (Root - minimal entry points)           │
 │  ├── Core/       (39 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
 │  ├── UI/         (GenericHeader, GenericFooter)                         │
-│  ├── Lists/      (10 files: BatchProcessor, GenericListManager, etc.)   │
+│  ├── Lists/      (7 files: ItemDataProcessor, ListRefreshManager, etc.) │
 │  ├── Tooltips/   (Enhanced item tooltip rendering)                      │
 │  ├── Nameplates/ (Font customization)                                   │
 │  ├── Actions/    (GenericSlotActions, ActionDialogUtils)                │
@@ -96,7 +96,7 @@ CIM/
 │   ├── Utilities.lua      # General helpers (SafeIcon, Debug)
 │   └── ...                # HookFactory, SettingsFactory, etc.
 ├── UI/                    # GenericHeader.lua, GenericFooter.lua
-├── Lists/                 # 9 files: BatchProcessor, GenericListManager, etc.
+├── Lists/                 # 7 files: ItemDataProcessor, ListRefreshManager, etc.
 ├── Tooltips/              # Tooltip enhancement logic
 ├── Nameplates/            # Font customization
 ├── Actions/               # GenericSlotActions.lua, ActionDialogUtils.lua
@@ -379,7 +379,7 @@ BetterUI includes a centralized **Feature Flag System** (`Modules/CIM/Core/Featu
 local BATCH_FLAG = BETTERUI.CIM.FeatureFlags.FLAGS.BATCH_PROCESSING
 
 if BETTERUI.CIM.FeatureFlags.IsEnabled(BATCH_FLAG) then
-    self.batchProcessor:Process(data)
+    ProcessBatch(data)
 else
     self:LoadAllAtOnce(data)
 end
