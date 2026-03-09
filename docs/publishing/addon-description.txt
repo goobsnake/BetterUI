@@ -23,22 +23,25 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 
 [COLOR="darkorange"][SIZE="3"][B]General Interface Highlights[/B][/SIZE][/COLOR]
 [LIST]
-[*]Optional market pricing in tooltips via [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]ATT[/URL], [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL], and [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]TTC[/URL]
-[*]Trait/style research indicators directly in item tooltips
-[*]Tooltip state indicators for collection binding and junk status
+[*]Optional market pricing in tooltips via [URL="https://esoui.com/downloads/info1752-ArkadiusTradeTools.html"]ATT[/URL], [URL="https://esoui.com/downloads/info928-MasterMerchant.html"]Master Merchant[/URL], and [URL="https://esoui.com/downloads/info1245-TamrielTradeCentre.html"]TTC[/URL] with per-addon toggles, priority ordering, and guild store error suppression
+[*]Enhanced tooltips with master toggle, trait/style research indicators, and collection binding and junk status
 [*]Tooltip font scaling and multiple readability options
-[*]Configurable input scroll speed controls
+[*]Configurable input scroll speed and trigger skip controls
+[*]Extended chat history buffer (up to 5,000 lines)
+[*]Optional skip for mail deletion confirmation dialog
 [*]Account-wide or character-specific settings mode
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Resource Orb Frames[/B][/SIZE][/COLOR]
 [LIST]
-[*]Optional ARPG-style orb interface for Health, Magicka, and Stamina
-[*]Toggleable XP/Champion bar, Cast bar, and Mount stamina bar
-[*]Dual weapon-bar presentation with back-bar dimming support
-[*]Smooth orb resource fill animations and refined texture visuals
-[*]Comprehensive combat indicator suite for ultimate readiness and feedback
-[*]Cooldown visibility and companion ultimate placement improvements
+[*]Optional ARPG-style orb interface for Health, Magicka, Stamina, and Damage Shields
+[*]Toggleable XP/Champion bar, Cast bar (with always-show mode), and Mount stamina bar
+[*]Dual weapon-bar presentation with back-bar opacity control and weapon swap animation
+[*]Smooth orb resource fill animations with configurable flow toggle
+[*]Removable side ornaments with independent orb size scaling
+[*]Comprehensive combat indicator suite with visual glow, icon overlay, and audio cues
+[*]Quickslot cooldown and quantity display toggles
+[*]Ultimate readiness number display with companion ultimate placement
 [*]Per-element size, color, scale, and offset controls
 [/LIST]
 
@@ -54,8 +57,12 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [*]ESO+ Craft Bag support with multi-select retrieve/stow workflows and partial-stack quantity dialogs
 [*]Persistent currency footer with 12-slot support, visibility toggles, and preset profiles (PvP, Crafter, Events)
 [*]Quickslot wheel assignment directly from our Inventory
-[*]Safer deletion flow with side-panel confirmation and optional quick-destroy mode
-[*]Search filtering, item icon enhancements, and continuous category cycle keybinds
+[*]Safer deletion flow with side-panel confirmation, optional quick-destroy mode, and opt-in batch destroy for multi-selected items
+[*]Bind-on-Equip protection warning before equipping tradeable items
+[*]Companion item junk marking via Y-menu for quick companion gear cleanup
+[*]Configurable trigger behavior: page scroll or category jump mode
+[*]Item icon customization submenu with toggleable indicators for unbound items, enchantments, set gear, researchable traits, unknown recipes, and unknown books/motifs
+[*]Search filtering, continuous category cycle keybinds, and carousel navigation toggle
 [*]Unified header-sort controllers matching all other lists
 [*]Configurable language-aware fonts for item and column text
 [/LIST]
@@ -65,8 +72,9 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [*]Enhanced personal bank and home storage workflows
 [*]Banking multi-select support for batch withdraw/deposit actions
 [*]Persistent category behavior and layout matching the Inventory model
+[*]Item icon customization submenu matching Inventory with toggleable status indicators
 [*]Search filtering and clear indicators for known/unknown recipes and motifs
-[*]Unified header-sort controllers matching all other lists
+[*]Carousel navigation toggle and unified header-sort controllers
 [*]Configurable language-aware fonts for item and column text
 [/LIST]
 
