@@ -91,42 +91,9 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         return false
     end
 
-    -- We can use DoesBagHaveSpaceFor as a reliable oracle for bankability IF the
-    -- bank has at least one completely empty slot. If there is an empty slot, but
-    -- DoesBagHaveSpaceFor still returns false, the item is inherently unbankable
-    -- (e.g., character bound, quest item, or otherwise natively restricted).
-    local freeSlots = 0
-    if targetBankBag == BAG_BANK then
-        freeSlots = GetBagUseableSize(BAG_BANK) - GetNumBagUsedSlots(BAG_BANK)
-        if IsESOPlusSubscriber() then
-            freeSlots = freeSlots + (GetBagUseableSize(BAG_SUBSCRIBER_BANK) - GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK))
-        end
-    else
-        freeSlots = GetBagUseableSize(targetBankBag) - GetNumBagUsedSlots(targetBankBag)
-    end
-
-    if freeSlots > 0 then
-        if targetBankBag == BAG_BANK then
-            local unbankable = not DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex)
-            if unbankable and IsESOPlusSubscriber() then
-                unbankable = not DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bagId, slotIndex)
-            end
-            if unbankable then
-                return false
-            end
-        else
-            if not DoesBagHaveSpaceFor(targetBankBag, bagId, slotIndex) then
-                return false
-            end
-        end
-    else
-        -- Fallback: If there are exactly 0 free slots, DoesBagHaveSpaceFor will return
-        -- false for anything that doesn't stack, so we can't tell if it's unbankable
-        -- or just blocked by capacity. We fallback to explicit bind type checks.
-        local bindType = GetItemBindType and GetItemBindType(bagId, slotIndex)
-        if bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
-            return false
-        end
+    local bindType = GetItemBindType and GetItemBindType(bagId, slotIndex)
+    if bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
+        return false
     end
 
     return true
@@ -223,13 +190,13 @@ function BETTERUI.Banking.Class:BatchTransfer()
         end
         if isWithdraw then
             -- Withdraw: move from bank to backpack
-            if not DoesBagHaveSpaceFor(BAG_BACKPACK, bagId, slotIndex) then
-                return false -- Backpack full, abort processing
-            end
-
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
             if destinationSlot == nil then
-                return "skip"
+                local freeSlots = GetBagUseableSize(BAG_BACKPACK) - GetNumBagUsedSlots(BAG_BACKPACK)
+                if freeSlots == 0 then
+                    return false -- Backpack full, abort processing
+                end
+                return "skip"    -- Item cannot be moved (e.g., restricted)
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
