@@ -76,6 +76,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Inventory", "general")
 		else
 			BETTERUI.Inventory.SetSetting("quickDestroy", false)
+			BETTERUI.Inventory.SetSetting("enableBatchDestroy", false)
 			BETTERUI.Inventory.SetSetting("enableCarousel", true)
 			BETTERUI.Inventory.SetSetting("useTriggersForSkip", false)
 			BETTERUI.Inventory.SetSetting("bindOnEquipProtection", true)
@@ -121,6 +122,18 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				return BETTERUI.Inventory.GetSetting("quickDestroy")
 			end,
 			setFunc = function(value) BETTERUI.Inventory.SetSetting("quickDestroy", value) end,
+			width = "full",
+		},
+		-- Batch Destroy (multi-select)
+		{
+			type = "checkbox",
+			name = "⚠️ " .. GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY),
+			tooltip = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP),
+			warning = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING),
+			getFunc = function()
+				return BETTERUI.Inventory.GetSetting("enableBatchDestroy")
+			end,
+			setFunc = function(value) BETTERUI.Inventory.SetSetting("enableBatchDestroy", value) end,
 			width = "full",
 		},
 		{

@@ -386,19 +386,26 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Tooltip-Einstellungen 
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Setzt alle Einstellungen in diesem Bereich »Erweiterte Tooltips« auf Standardwerte zurück.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Marktpreis-Integration")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Konfiguriere Marktpreisquellen und Optionen für die Wert-Spalten in Inventar und Bank.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
+    "Konfiguriere Marktpreisquellen und Optionen für die Wert-Spalten in Inventar und Bank.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Markt-Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Setzt alle Einstellungen in diesem Bereich »Marktpreis-Integration« auf Standardwerte zurück.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Priorität der Marktpreisquelle")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "Wähle die Quellenreihenfolge für das Ersetzen der Wert-Spalte in Inventar und Bank.")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Gildenladen-Fehler unterdrücken")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
     "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
@@ -489,11 +496,13 @@ ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK", "Gegenstandssymbol - Unbekann
 ZO_CreateStringId("SI_BETTERUI_ICON_UNKNOWN_BOOK_TOOLTIP",
     "Zeige ein Symbol nach Büchern oder Lorebooks, die noch nicht gelernt wurden.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_HEADER", "Gegenstandssymbol-Anpassung")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "Konfiguriere, welche Statussymbole neben Gegenstandsnamen angezeigt werden.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
+    "Konfiguriere, welche Statussymbole neben Gegenstandsnamen angezeigt werden.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
     "Wähle, welche Gegenstandsstatus-Symbole in Inventar- und Banklisten angezeigt werden. Symbole skalieren mit der Schriftgröße der Namensspalte und können einzeln umgeschaltet werden.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Gegenstandssymbol-Einstellungen zurücksetzen")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Setzt die Gegenstandssymbol-Anpassung auf Standardwerte zurück.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
+    "Setzt die Gegenstandssymbol-Anpassung auf Standardwerte zurück.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Schnellzerstörungsfunktion aktivieren")
@@ -503,13 +512,13 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger verwenden, um zum n�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu überspringen (Standardverhalten), springt dies zum nächsten Elementtyp")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "\"Wert\" durch Marktpreis ersetzen")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Ersetzt die Wert-Spalte in Inventar und Bank, sofern verfügbar, durch Marktpreise aus MM, ATT oder TTC.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
+    "Ersetzt die Wert-Spalte in Inventar und Bank, sofern verfügbar, durch Marktpreise aus MM, ATT oder TTC.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bindung-beim-Ausrüsten Schutz")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Zeige einen Dialog vor dem Ausrüsten von Bindung-beim-Ausrüsten Gegenständen")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Allgemein")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFRessourcen-Kugel-Rahmen|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Aktiviert das Ressourcen-Kugel-Rahmen Modul.")
 
@@ -568,6 +577,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Aktiviert benutzerdefinierte Verbesserungen, Schriftskalierung und zusätzliche Infos im Tooltip-Header. Bei Deaktivierung wird die native UI mit nur Marktpreis verwendet.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNUNG: Gegenstände werden OHNE Bestätigung zerstört. Dies kann zu permanentem Gegenstandsverlust führen.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Mehrfachauswahl-Zerstörung aktivieren")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "Wenn aktiviert, erscheint die Zerstören-Aktion im Mehrfachauswahl-Stapelaktionsmenü. Dies hat KEINEN Einfluss auf die normale Einzelgegenstand-Zerstörung.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "WARNUNG: BetterUI übernimmt keine Verantwortung für versehentlich zerstörte Gegenstände. Stapelzerstörung ist unwiderruflich. Mit Vorsicht verwenden.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "WARNUNG: Post wird OHNE Bestätigung gelöscht. Angehängte Gegenstände können verloren gehen.")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Waffenwechsel-Animation aktivieren")
@@ -606,7 +620,8 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Für Sammlung binden")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll! <<1>> von <<2>> Gegenständen verarbeitet.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Abgebrochen. <<1>> von <<2>> Gegenständen verarbeitet.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>> verlassen. Abgebrochen. <<2>> von <<3>> Gegenständen verarbeitet.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT",
+    "<<1>> verlassen. Abgebrochen. <<2>> von <<3>> Gegenständen verarbeitet.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Bank")
 ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Inventar")
 ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Aktion abbrechen")
@@ -620,18 +635,33 @@ ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stapel verstauen")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Stapel entnehmen")
 
 
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Zeige einen Dialog an, bevor Gegenstände mit Bindung beim Anlegen ausgerüstet werden")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Ändert, wie viele Zeilen im Chat-Puffer gespeichert werden, Standard=200")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Spielt beim Betreten und Verlassen des Kampfes einen Ton ab.")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Möchtest du <<1>> wirklich zerstören? Dies kann nicht rückgängig gemacht werden.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Umfangreiche Verbesserungen der Tooltips und Benutzeroberfläche im Spiel")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Zeigt die täglichen Schriebe und den Fortschritt an jeder Handwerksstation an")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Blendet das dekorative Ornament um die linke (Gesundheits-)Kugel aus")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP", "Zeigt eine Reittier-Ausdauerleiste unter dem rechten Ornament an")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Wähle die Schriftart für Namensschilder aus den integrierten ESO-Schriftarten.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Setzt alle Namensschild-Einstellungen auf die Standardwerte zurück.")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Erlaubt dir, mehr oder weniger Gegenstandsinformationen gleichzeitig in Tooltips zu sehen")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
+    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
+    "Zeige einen Dialog an, bevor Gegenstände mit Bindung beim Anlegen ausgerüstet werden")
+ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
+    "Ändert, wie viele Zeilen im Chat-Puffer gespeichert werden, Standard=200")
+ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP",
+    "Spielt beim Betreten und Verlassen des Kampfes einen Ton ab.")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
+    "Möchtest du <<1>> wirklich zerstören? Dies kann nicht rückgängig gemacht werden.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP",
+    "Umfangreiche Verbesserungen der Tooltips und Benutzeroberfläche im Spiel")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
+    "Zeigt die täglichen Schriebe und den Fortschritt an jeder Handwerksstation an")
+ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
+    "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
+    "Blendet das dekorative Ornament um die linke (Gesundheits-)Kugel aus")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
+    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON",
+    "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
+    "Zeigt eine Reittier-Ausdauerleiste unter dem rechten Ornament an")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
+    "Wähle die Schriftart für Namensschilder aus den integrierten ESO-Schriftarten.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
+    "Setzt alle Namensschild-Einstellungen auf die Standardwerte zurück.")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
+    "Erlaubt dir, mehr oder weniger Gegenstandsinformationen gleichzeitig in Tooltips zu sehen")

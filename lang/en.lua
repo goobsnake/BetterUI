@@ -433,19 +433,26 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Reset Tooltip Settings
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Reset all settings in this Enhanced Tooltips section to their default values.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Market Price Integration")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Configure item market-value sources and controls for Inventory and Banking value columns.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
+    "Configure item market-value sources and controls for Inventory and Banking value columns.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Reset Market Settings")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Reset all settings in this Market Price Integration section to their default values.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Market Price Source Priority")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "Choose the source order used when replacing Value in Inventory and Banking.")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Guild Store Error Suppression")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Removes guild store error messages caused by MM or ATT")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -477,10 +484,14 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
 -- Destructive Settings Warnings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Enable multi-select destroy")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "When enabled, the Destroy action appears in the multi-select batch actions menu. This does NOT affect regular single-item destroy.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "WARNING: BetterUI is not responsible for any accidentally destroyed items. Batch destroy is irreversible. Proceed with caution.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "WARNING: Mail will be deleted WITHOUT confirmation. Attached items may be lost.")
 
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "General")
 
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
@@ -591,7 +602,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "Configure which status ic
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
     "Choose which item-state icons to display in Inventory and Banking lists. Icons scale with Name column font size and can be toggled individually.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Reset Item Icon Settings")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Reset item icon customization settings to their default values.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
+    "Reset item icon customization settings to their default values.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Enable quick destroy functionality")
@@ -601,7 +613,8 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Replace \"Value\" with the market's price")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
+    "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Bind on Equip Protection")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Show a dialog before equipping Bind on Equip items")
 
@@ -630,5 +643,3 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack")
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
-
-

@@ -376,19 +376,26 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Сбросить на�
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Сбрасывает все параметры в этом разделе «Улучшенные подсказки» к значениям по умолчанию.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Интеграция рыночных цен")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Настройка источников и параметров рыночной цены для столбца стоимости в инвентаре и банке.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
+    "Настройка источников и параметров рыночной цены для столбца стоимости в инвентаре и банке.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Сбросить настройки рынка")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Сбрасывает все параметры в этом разделе «Интеграция рыночных цен» к значениям по умолчанию.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Приоритет источника рыночной цены")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "Выберите порядок источников, используемый для замены столбца «Стоимость» в инвентаре и банке.")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Скрытие ошибок в магазине гильдии")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
     "Убирает сообщения об ошибках в магазине гильдии, вызванные MM или ATT")
@@ -487,7 +494,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
     "Выберите, какие иконки состояния предметов показывать в списках инвентаря и банка. Иконки масштабируются по размеру шрифта столбца названия и переключаются по отдельности.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Сбросить настройки иконок предметов")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Сбрасывает настройки иконок предметов к значениям по умолчанию.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
+    "Сбрасывает настройки иконок предметов к значениям по умолчанию.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Включить функцию быстрого уничтожения")
@@ -497,7 +505,8 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Использовать т�
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Вместо пропуска определенного количества предметов при каждом нажатии триггера (поведение по умолчанию), это переведет к следующему типу предметов")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Заменить \"Стоимость\" на рыночную цену")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Заменяет столбец «Стоимость» в инвентаре и банке рыночной ценой из MM, ATT или TTC (если доступно).")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
+    "Заменяет столбец «Стоимость» в инвентаре и банке рыночной ценой из MM, ATT или TTC (если доступно).")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Защита привязки при экипировке")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
@@ -508,7 +517,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Показать �
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Позиция билетов")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Общие")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Включить |c0066FFРамки сфер ресурсов|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Включает модуль рамок сфер ресурсов.")
 
@@ -566,6 +574,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Включает пользовательские улучшения, масштабирование шрифта и дополнительную информацию в заголовке подсказки. При отключении возвращается к нативному интерфейсу только с рыночной ценой.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ВНИМАНИЕ: Предметы будут уничтожены БЕЗ подтверждения. Это может привести к безвозвратной потере предметов.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Включить уничтожение при множественном выборе")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "При включении действие «Уничтожить» появляется в меню групповых действий множественного выбора. Это НЕ влияет на обычное уничтожение отдельного предмета.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "ВНИМАНИЕ: BetterUI не несёт ответственности за случайно уничтоженные предметы. Групповое уничтожение необратимо. Используйте с осторожностью.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "ВНИМАНИЕ: Почта будет удалена БЕЗ подтверждения. Прикрепленные предметы могут быть потеряны.")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Включить анимацию смены оружия")
@@ -604,7 +617,8 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Прервано. Обработано <<1>> из <<2>> предметов.")
-ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "Выход из <<1>>. Прервано. Обработано <<2>> из <<3>> предметов.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT",
+    "Выход из <<1>>. Прервано. Обработано <<2>> из <<3>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Банк")
 ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Инвентарь")
 ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Прервать действие")
@@ -619,15 +633,24 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Достать стак")
 
 
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION_TOOLTIP", "Добавляет данные цен ATT во всплывающие подсказки предметов")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Показывает диалог перед экипировкой предметов с привязкой при экипировке")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Изменяет количество строк, сохраняемых в буфере чата, по умолчанию=200")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Вы уверены, что хотите уничтожить <<1>>? Это действие необратимо.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Убирает сообщения об ошибках магазина гильдии, вызванные MM или ATT")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP", "Скрывает декоративный орнамент вокруг левой (здоровье) сферы")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "Настраивает, какие значки состояния отображаются рядом с названиями предметов.")
-ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP", "Добавляет данные Master Merchant во всплывающие подсказки предметов")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
+    "Показывает диалог перед экипировкой предметов с привязкой при экипировке")
+ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
+    "Изменяет количество строк, сохраняемых в буфере чата, по умолчанию=200")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
+    "Вы уверены, что хотите уничтожить <<1>>? Это действие необратимо.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
+    "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
+ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
+    "Убирает сообщения об ошибках магазина гильдии, вызванные MM или ATT")
+ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
+    "Скрывает декоративный орнамент вокруг левой (здоровье) сферы")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
+    "Настраивает, какие значки состояния отображаются рядом с названиями предметов.")
+ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP",
+    "Добавляет данные Master Merchant во всплывающие подсказки предметов")
 ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP", "Отображает полосу выносливости маунта под правым орнаментом")
 ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Экипировка <<t:1>> привяжет его к вам. Продолжить?")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Позволяет видеть больше или меньше информации о предмете в подсказках одновременно")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
+    "Позволяет видеть больше или меньше информации о предмете в подсказках одновременно")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Добавляет данные цен TTC во всплывающие подсказки предметов")

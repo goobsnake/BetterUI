@@ -357,12 +357,18 @@ ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "将此“市�
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "市场价格来源优先级")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "选择用于替换背包与银行价值列的来源顺序。")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "公会商店错误抑制")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "移除由 MM 或 ATT 引起的公会商店错误消息")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -466,7 +472,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "显示活动门票
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "活动门票位置")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "常规")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "启用|c0066FF资源球框架|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "启用资源球框架模块。")
 
@@ -523,6 +528,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "启用自定义改进、字体缩放和提示标题中的额外信息。禁用后将恢复为仅添加市场价格的原生UI。")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：物品将在没有确认的情况下销毁。这可能导致永久性物品丢失。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "启用多选销毁")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "启用后，销毁操作将出现在多选批量操作菜单中。这不会影响常规的单个物品销毁。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "警告：BetterUI不对任何意外销毁的物品承担责任。批量销毁是不可逆的。请谨慎操作。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "警告：邮件将在没有确认的情况下删除。附件物品可能会丢失。")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "启用武器切换动画")
@@ -572,5 +582,3 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")
-
-

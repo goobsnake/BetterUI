@@ -42,7 +42,7 @@ BETTERUI.Defaults.Modules = {
     -- ========================================================================
     Inventory = {
         -- Display Features (showcase for new users)
-        enableCarousel = true,  -- Modern tab navigation
+        enableCarousel = true, -- Modern tab navigation
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,
@@ -56,7 +56,8 @@ BETTERUI.Defaults.Modules = {
         bindOnEquipProtection = true, -- Warn before equipping BoE items
 
         -- Destructive Features (OFF by default)
-        quickDestroy = false, -- DESTRUCTIVE: skip destroy confirmation
+        quickDestroy = false,       -- DESTRUCTIVE: skip destroy confirmation
+        enableBatchDestroy = false, -- DESTRUCTIVE: allow destroy in multi-select mode
 
         -- Optional Features
         useTriggersForSkip = false,  -- Personal preference
@@ -205,6 +206,7 @@ BETTERUI.Defaults.Modules = {
 
 BETTERUI.Defaults.DestructiveSettings = {
     ["Inventory.quickDestroy"] = true,
+    ["Inventory.enableBatchDestroy"] = true,
     ["GeneralInterface.removeDeleteDialog"] = true,
 }
 

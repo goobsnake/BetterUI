@@ -387,19 +387,26 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "Réinitialiser les par
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Réinitialise tous les paramètres de cette section Infobulles améliorées à leurs valeurs par défaut.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Intégration des prix du marché")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "Configurez les sources et options de prix du marché pour les colonnes de valeur de l'inventaire et de la banque.")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
+    "Configurez les sources et options de prix du marché pour les colonnes de valeur de l'inventaire et de la banque.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Réinitialiser les paramètres du marché")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Réinitialise tous les paramètres de cette section Intégration des prix du marché à leurs valeurs par défaut.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "Priorité de source des prix du marché")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "Choisissez l'ordre des sources utilisé pour remplacer la colonne Valeur dans l'inventaire et la banque.")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "Suppression des erreurs du magasin de guilde")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
     "Supprime les messages d'erreur du magasin de guilde causés par MM ou ATT")
@@ -498,7 +505,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_DESC",
     "Choisissez quelles icônes d'état d'objet afficher dans les listes d'inventaire et de banque. Les icônes s'adaptent à la taille de police de la colonne Nom et peuvent être activées individuellement.")
 ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET", "Réinitialiser les paramètres des icônes d'objet")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "Réinitialise les paramètres des icônes d'objet à leurs valeurs par défaut.")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
+    "Réinitialise les paramètres des icônes d'objet à leurs valeurs par défaut.")
 
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Activer la destruction rapide")
@@ -508,7 +516,8 @@ ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les gâchettes pour
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
     "Plutôt que de sauter un certain nombre d'éléments à chaque pression sur la gâchette (comportement global par défaut), cela passera au type d'élément suivant")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du marché")
-ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "Remplace la colonne \"Valeur\" dans l'inventaire et la banque par les prix du marché MM, ATT ou TTC lorsqu'ils sont disponibles.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
+    "Remplace la colonne \"Valeur\" dans l'inventaire et la banque par les prix du marché MM, ATT ou TTC lorsqu'ils sont disponibles.")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "Protection Lier à l'équipement")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Afficher un dialogue avant d'équiper des objets Lier à l'équipement")
@@ -519,7 +528,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Afficher les ticke
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Position tickets d'événement")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Général")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Activer |c0066FFCadres des Orbes de Ressources|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Active le module Cadres des Orbes de Ressources.")
 
@@ -577,6 +585,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "Active les améliorations personnalisées, le redimensionnement de police et les infos supplémentaires dans l'en-tête de l'infobulle. Si désactivé, revient à l'interface native avec seulement le prix du marché.")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ATTENTION : Les objets seront détruits SANS confirmation. Cela peut entraîner une perte permanente d'objets.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Activer la destruction en sélection multiple")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "Lorsqu'activé, l'action Détruire apparaît dans le menu d'actions groupées de sélection multiple. Cela N'AFFECTE PAS la destruction normale d'un seul objet.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "ATTENTION : BetterUI n'est pas responsable des objets accidentellement détruits. La destruction groupée est irréversible. Utilisez avec prudence.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "ATTENTION : Le courrier sera supprimé SANS confirmation. Les objets joints peuvent être perdus.")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "Activer l'animation de changement d'arme")
@@ -629,26 +642,48 @@ ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Ranger la pile")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Récupérer la pile")
 
 
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP", "Sélectionnez la taille de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP", "Sélectionnez le style de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP", "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Affiche un dialogue avant d'équiper des objets Liés quand équipés")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP", "Affiche une barre de lancement au-dessus de la barre de compétences supérieure")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Modifie le nombre de lignes stockées dans le tampon de chat, défaut=200")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Réinitialise les paramètres de police des colonnes par défaut.")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT", "Êtes-vous sûr de vouloir détruire <<1>> ? Cette action est irréversible.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Affiche les commandes quotidiennes et la progression à chaque station d'artisanat")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "Supprime les messages d'erreur de boutique de guilde causés par MM ou ATT")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP", "Configurez quelles icônes d'état apparaissent à côté des noms d'objet.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP", "Sélectionnez la taille de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Sélectionnez le style de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP", "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON", "Voulez-vous équiper <<t:1>> dans la barre d'armes |cFF6600<<2>>|r ?")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING", "Voulez-vous équiper <<t:1>> dans le premier ou le second emplacement d'anneau ?")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP", "Affiche une barre d'endurance de monture sous l'ornement droit")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP", "Ajustez la taille de la police du texte d'endurance de monture")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP",
+    "Sélectionnez la taille de police pour les données de colonnes.")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP",
+    "Sélectionnez le style de police pour les données de colonnes.")
+ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
+    "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
+ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
+    "Affiche un dialogue avant d'équiper des objets Liés quand équipés")
+ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP",
+    "Affiche une barre de lancement au-dessus de la barre de compétences supérieure")
+ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
+    "Modifie le nombre de lignes stockées dans le tampon de chat, défaut=200")
+ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP",
+    "Réinitialise les paramètres de police des colonnes par défaut.")
+ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
+    "Êtes-vous sûr de vouloir détruire <<1>> ? Cette action est irréversible.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
+    "Affiche les commandes quotidiennes et la progression à chaque station d'artisanat")
+ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
+    "Supprime les messages d'erreur de boutique de guilde causés par MM ou ATT")
+ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
+    "Configurez quelles icônes d'état apparaissent à côté des noms d'objet.")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP",
+    "Sélectionnez la taille de police pour les données de colonnes.")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP",
+    "Sélectionnez le style de police pour les données de colonnes.")
+ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
+    "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON",
+    "Voulez-vous équiper <<t:1>> dans la barre d'armes |cFF6600<<2>>|r ?")
+ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING",
+    "Voulez-vous équiper <<t:1>> dans le premier ou le second emplacement d'anneau ?")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
+    "Affiche une barre d'endurance de monture sous l'ornement droit")
+ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP",
+    "Ajustez la taille de la police du texte d'endurance de monture")
 ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Réinitialise les paramètres de police des noms par défaut.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP", "Sélectionnez la police des plaques de nom parmi les polices intégrées d'ESO.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Réinitialise tous les paramètres de plaques de nom à leurs valeurs par défaut.")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP", "Permet d'afficher plus ou moins d'informations d'objet à la fois dans les infobulles")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP", "Modifie la vitesse à laquelle le menu saute lors de l'appui sur les gâchettes.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
+    "Sélectionnez la police des plaques de nom parmi les polices intégrées d'ESO.")
+ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
+    "Réinitialise tous les paramètres de plaques de nom à leurs valeurs par défaut.")
+ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
+    "Permet d'afficher plus ou moins d'informations d'objet à la fois dans les infobulles")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP",
+    "Modifie la vitesse à laquelle le menu saute lors de l'appui sur les gâchettes.")

@@ -902,8 +902,9 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
     -- Common batch entries from mixin (Lock, Unlock, Mark/Unmark Junk)
     MSMixin.AppendCommonBatchEntries(parametricList, counts, self)
 
-    -- Destroy (only if destroyable items exist) - Inventory-specific
-    if canDestroyCount > 0 then
+    -- Destroy (only if setting enabled AND destroyable items exist) - Inventory-specific
+    local batchDestroyEnabled = BETTERUI.Inventory.GetSetting("enableBatchDestroy") == true
+    if batchDestroyEnabled and canDestroyCount > 0 then
         table.insert(parametricList, MSMixin.CreateDialogEntry(
             zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), canDestroyCount),
             function() self:BatchDestroy() end

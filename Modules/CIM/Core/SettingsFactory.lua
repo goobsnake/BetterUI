@@ -78,6 +78,14 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "general",
             resetGroup = "general",
         },
+        enableBatchDestroy = {
+            labelStringId = SI_BETTERUI_ENABLE_BATCH_DESTROY,
+            tooltipStringId = SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP,
+            defaultValue = false,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         enableCarousel = {
             labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
             tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
@@ -453,7 +461,7 @@ local function NormalizeSettingSortName(name)
     local normalized = name
     normalized = normalized:gsub("|c%x%x%x%x%x%x", "") -- Color tags
     normalized = normalized:gsub("|r", "")
-    normalized = normalized:gsub("|t[^|]+|t", "")       -- Texture tags
+    normalized = normalized:gsub("|t[^|]+|t", "")      -- Texture tags
     normalized = normalized:gsub("^%s*⚠️%s*", "")
     normalized = normalized:gsub("^%s*⚠%s*", "")
     normalized = normalized:gsub("%s+", " ")
@@ -611,7 +619,7 @@ param: refreshFn (function|nil) - Optional live refresh callback
 return: table - Array of LAM options (header, description, 2 submenus)
 ]]
 function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fontChoices, fontValues, styleChoices,
-                                                         styleValues, strings, refreshFn)
+                                                        styleValues, strings, refreshFn)
     -- Apply language-based font filtering (non-English users only see compatible fonts)
     local Localization = BETTERUI.CIM.Font.Localization
     local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(fontChoices, fontValues)

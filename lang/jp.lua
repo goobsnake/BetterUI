@@ -358,12 +358,18 @@ ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "このマー�
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "マーケット価格ソースの優先順位")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP",
     "インベントリと銀行の価値列を置き換える際に使用するソース順を選択します。")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC", "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT", "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC", "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM", "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT", "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM", "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_ATT_TTC",
+    "Master Merchant > Arkadius Trade Tools > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_MM_TTC_ATT",
+    "Master Merchant > Tamriel Trade Centre > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_MM_TTC",
+    "Arkadius Trade Tools > Master Merchant > Tamriel Trade Centre")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_ATT_TTC_MM",
+    "Arkadius Trade Tools > Tamriel Trade Centre > Master Merchant")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_MM_ATT",
+    "Tamriel Trade Centre > Master Merchant > Arkadius Trade Tools")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRIORITY_TTC_ATT_MM",
+    "Tamriel Trade Centre > Arkadius Trade Tools > Master Merchant")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS", "ギルドストアエラー抑制")
 ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP", "MMまたはATTによって引き起こされるギルドストアエラーメッセージを削除します")
 ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION", "Arkadius Trade Tools")
@@ -465,7 +471,6 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "イベントチケ
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "イベントチケットの位置")
 
 -- Resource Orb Frames
-ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "一般")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFリソースオーブフレーム|rを有効化")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "リソースオーブフレームモジュールを有効にします。")
 
@@ -522,6 +527,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP",
     "カスタム改善、フォントスケーリング、ツールチップヘッダーへの追加情報を有効にします。無効にすると、マーケット価格のみ追加されたネイティブUIに戻ります。")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：アイテムは確認なしで破棄されます。永久的なアイテム損失につながる可能性があります。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "複数選択での破棄を有効にする")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
+    "有効にすると、複数選択の一括アクションメニューに破棄アクションが表示されます。通常の単一アイテム破棄には影響しません。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
+    "警告：BetterUIは誤って破棄されたアイテムについて責任を負いません。一括破棄は元に戻せません。慎重に使用してください。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
     "警告：メールは確認なしで削除されます。添付アイテムが失われる可能性があります。")
 ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION", "武器切り替えアニメーションを有効化")
@@ -573,5 +583,3 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "収納する数量を選択")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "取り出す数量を選択")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "スタックを収納")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "スタックを取り出す")
-
-
