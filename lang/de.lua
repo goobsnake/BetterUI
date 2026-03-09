@@ -579,7 +579,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNUNG: Gegenstände werden OHNE Bestätigung zerstört. Dies kann zu permanentem Gegenstandsverlust führen.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Mehrfachauswahl-Zerstörung aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "Wenn aktiviert, erscheint die Zerstören-Aktion im Mehrfachauswahl-Stapelaktionsmenü. Dies hat KEINEN Einfluss auf die normale Einzelgegenstand-Zerstörung.")
+    "**USE WITH CAUTION** Wenn aktiviert, erscheint die Zerstören-Aktion im Mehrfachauswahl-Stapelaktionsmenü. Dies hat KEINEN Einfluss auf die normale Einzelgegenstand-Zerstörung.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "WARNUNG: BetterUI übernimmt keine Verantwortung für versehentlich zerstörte Gegenstände. Stapelzerstörung ist unwiderruflich. Mit Vorsicht verwenden.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -614,9 +614,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Alle auswählen")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Wähle eine Aktion für die ausgewählten Gegenstände. Gesperrte Gegenstände sind möglicherweise nicht mit bestimmten Aktionen kompatibel.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ Diese Schriftart zeigt chinesische/japanische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Diese Schriftart zeigt chinesische/japanische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ Diese Schriftart zeigt russische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Diese Schriftart zeigt russische Zeichen möglicherweise nicht korrekt an. Erwäge eine lokalisierte Schriftartoption.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Für Sammlung binden")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll! <<1>> von <<2>> Gegenständen verarbeitet.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Abgebrochen. <<1>> von <<2>> Gegenständen verarbeitet.")
@@ -665,3 +665,4 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
     "Setzt alle Namensschild-Einstellungen auf die Standardwerte zurück.")
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
     "Erlaubt dir, mehr oder weniger Gegenstandsinformationen gleichzeitig in Tooltips zu sehen")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

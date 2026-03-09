@@ -593,7 +593,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ADVERTENCIA: Los objetos se destruirán SIN confirmación. Esto puede causar pérdida permanente de objetos.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Activar destrucción en selección múltiple")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "Cuando está activado, la acción Destruir aparece en el menú de acciones en lote de selección múltiple. Esto NO afecta la destrucción normal de un solo objeto.")
+    "**USE WITH CAUTION** Cuando está activado, la acción Destruir aparece en el menú de acciones en lote de selección múltiple. Esto NO afecta la destrucción normal de un solo objeto.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ADVERTENCIA: BetterUI no se hace responsable de los objetos destruidos accidentalmente. La destrucción en lote es irreversible. Úsalo con precaución.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -628,9 +628,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Seleccionar todo")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Elige una acción para aplicar a los objetos seleccionados. Los objetos bloqueados pueden no ser compatibles con ciertas acciones.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ Esta fuente puede no mostrar correctamente caracteres chinos/japoneses. Considera usar una opción de fuente localizada.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Esta fuente puede no mostrar correctamente caracteres chinos/japoneses. Considera usar una opción de fuente localizada.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ Esta fuente puede no mostrar correctamente caracteres rusos. Considera usar una opción de fuente localizada.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Esta fuente puede no mostrar correctamente caracteres rusos. Considera usar una opción de fuente localizada.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Vincular para colección")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "¡Bolsa llena! Se procesaron <<1>> de <<2>> objetos.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Cancelado. Se procesaron <<1>> de <<2>> objetos.")
@@ -702,3 +702,4 @@ ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP",
     "Integra la información de precios de TTC en las descripciones de objetos")
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP",
     "Tamaño de fuente para la visualización del número de definitiva.")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

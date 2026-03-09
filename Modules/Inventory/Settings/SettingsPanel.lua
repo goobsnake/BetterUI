@@ -115,7 +115,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		-- Quick Destroy
 		{
 			type = "checkbox",
-			name = "⚠️ " .. GetString(SI_BETTERUI_QUICK_DESTROY),
+			name = "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t " .. GetString(SI_BETTERUI_QUICK_DESTROY),
 			tooltip = GetString(SI_BETTERUI_QUICK_DESTROY_TOOLTIP),
 			warning = GetString(SI_BETTERUI_QUICK_DESTROY_WARNING),
 			getFunc = function()
@@ -127,7 +127,8 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 		-- Batch Destroy (multi-select)
 		{
 			type = "checkbox",
-			name = "⚠️ " .. GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY),
+			name = "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t " ..
+			GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY),
 			tooltip = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP),
 			warning = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING),
 			getFunc = function()

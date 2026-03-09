@@ -576,7 +576,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ВНИМАНИЕ: Предметы будут уничтожены БЕЗ подтверждения. Это может привести к безвозвратной потере предметов.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Включить уничтожение при множественном выборе")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "При включении действие «Уничтожить» появляется в меню групповых действий множественного выбора. Это НЕ влияет на обычное уничтожение отдельного предмета.")
+    "**USE WITH CAUTION** При включении действие «Уничтожить» появляется в меню групповых действий множественного выбора. Это НЕ влияет на обычное уничтожение отдельного предмета.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ВНИМАНИЕ: BetterUI не несёт ответственности за случайно уничтоженные предметы. Групповое уничтожение необратимо. Используйте с осторожностью.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -611,9 +611,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Выбрать всё")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Выберите действие для применения к выбранным предметам. Заблокированные предметы могут быть несовместимы с некоторыми действиями.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ Этот шрифт может некорректно отображать китайские/японские символы. Рассмотрите использование локализованного варианта шрифта.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Этот шрифт может некорректно отображать китайские/японские символы. Рассмотрите использование локализованного варианта шрифта.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Прервано. Обработано <<1>> из <<2>> предметов.")
@@ -654,3 +654,4 @@ ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Экипиров�
 ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
     "Позволяет видеть больше или меньше информации о предмете в подсказках одновременно")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Добавляет данные цен TTC во всплывающие подсказки предметов")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

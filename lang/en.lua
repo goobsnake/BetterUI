@@ -355,9 +355,9 @@ ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP", "Reset column font se
 
 -- Font Localization Warnings
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t This font may not display Chinese/Japanese characters correctly. Consider using a localized font option.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ This font may not display Russian characters correctly. Consider using a localized font option.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t This font may not display Russian characters correctly. Consider using a localized font option.")
 
 -- Tooltip Strings
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Bind for Collection")
@@ -486,7 +486,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNING: Items will be destroyed WITHOUT confirmation. This can result in permanent item loss.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Enable multi-select destroy")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "When enabled, the Destroy action appears in the multi-select batch actions menu. This does NOT affect regular single-item destroy.")
+    "**USE WITH CAUTION** When enabled, the Destroy action appears in the multi-select batch actions menu. This does NOT affect regular single-item destroy.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "WARNING: BetterUI is not responsible for any accidentally destroyed items. Batch destroy is irreversible. Proceed with caution.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -643,3 +643,4 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack")
 -- Imagery strings moved from Globals.lua
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

@@ -529,7 +529,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：アイテムは確認なしで破棄されます。永久的なアイテム損失につながる可能性があります。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "複数選択での破棄を有効にする")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "有効にすると、複数選択の一括アクションメニューに破棄アクションが表示されます。通常の単一アイテム破棄には影響しません。")
+    "**USE WITH CAUTION** 有効にすると、複数選択の一括アクションメニューに破棄アクションが表示されます。通常の単一アイテム破棄には影響しません。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "警告：BetterUIは誤って破棄されたアイテムについて責任を負いません。一括破棄は元に戻せません。慎重に使用してください。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -565,9 +565,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "選択 (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "すべて選択")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "選択したアイテムに適用するアクションを選択してください。ロックされたアイテムは特定のアクションに対応していない場合があります。")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ このフォントは中国語/日本語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t このフォントは中国語/日本語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ このフォントはロシア語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t このフォントはロシア語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "コレクションのためにバインド")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です！<<1>>個中<<2>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "中止しました。<<2>>個中<<1>>個を処理しました。")
@@ -583,3 +583,4 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "収納する数量を選択")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "取り出す数量を選択")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "スタックを収納")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "スタックを取り出す")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

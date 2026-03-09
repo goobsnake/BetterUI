@@ -587,7 +587,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ATTENTION : Les objets seront détruits SANS confirmation. Cela peut entraîner une perte permanente d'objets.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Activer la destruction en sélection multiple")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "Lorsqu'activé, l'action Détruire apparaît dans le menu d'actions groupées de sélection multiple. Cela N'AFFECTE PAS la destruction normale d'un seul objet.")
+    "**USE WITH CAUTION** Lorsqu'activé, l'action Détruire apparaît dans le menu d'actions groupées de sélection multiple. Cela N'AFFECTE PAS la destruction normale d'un seul objet.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ATTENTION : BetterUI n'est pas responsable des objets accidentellement détruits. La destruction groupée est irréversible. Utilisez avec prudence.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -622,9 +622,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "Tout sélectionner")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC",
     "Choisissez une action à appliquer aux objets sélectionnés. Les objets verrouillés peuvent ne pas être compatibles avec certaines actions.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ Cette police peut ne pas afficher correctement les caractères chinois/japonais. Envisagez d'utiliser une option de police localisée.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Cette police peut ne pas afficher correctement les caractères chinois/japonais. Envisagez d'utiliser une option de police localisée.")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ Cette police peut ne pas afficher correctement les caractères russes. Envisagez d'utiliser une option de police localisée.")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Cette police peut ne pas afficher correctement les caractères russes. Envisagez d'utiliser une option de police localisée.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Lier pour la collection")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Sac plein ! <<1>> sur <<2>> objets traités.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Annulé. <<1>> objets sur <<2>> traités.")
@@ -687,3 +687,4 @@ ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
     "Permet d'afficher plus ou moins d'informations d'objet à la fois dans les infobulles")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP",
     "Modifie la vitesse à laquelle le menu saute lors de l'appui sur les gâchettes.")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")

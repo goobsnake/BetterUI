@@ -530,7 +530,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：物品将在没有确认的情况下销毁。这可能导致永久性物品丢失。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "启用多选销毁")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "启用后，销毁操作将出现在多选批量操作菜单中。这不会影响常规的单个物品销毁。")
+    "**USE WITH CAUTION** 启用后，销毁操作将出现在多选批量操作菜单中。这不会影响常规的单个物品销毁。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "警告：BetterUI不对任何意外销毁的物品承担责任。批量销毁是不可逆的。请谨慎操作。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
@@ -564,9 +564,9 @@ ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "选择 (<<1>>)")
 ZO_CreateStringId("SI_BETTERUI_SELECT_ALL", "全选")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS_DESC", "选择要应用于所选物品的操作。锁定的物品可能与某些操作不兼容。")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
-    "⚠️ 此字体可能无法正确显示中文/日文字符。请考虑使用本地化字体选项。")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t 此字体可能无法正确显示中文/日文字符。请考虑使用本地化字体选项。")
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
-    "⚠️ 此字体可能无法正确显示俄文字符。请考虑使用本地化字体选项。")
+    "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t 此字体可能无法正确显示俄文字符。请考虑使用本地化字体选项。")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "绑定以收藏")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "背包已满！已处理<<1>>个中的<<2>>个物品。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "已中止。已处理 <<2>> 个中的 <<1>> 个物品。")
@@ -582,3 +582,4 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
