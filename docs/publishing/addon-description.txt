@@ -1,15 +1,14 @@
 [SIZE="4"][B][COLOR="darkorange"]BetterUI - Gamepad Interface Overhaul[/COLOR][/B][/SIZE]
 
-BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades for Inventory, Banking, and Resource Orb Frames.
+BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, configurable layouts, and high-impact quality-of-life upgrades for Inventory, Banking, and Resource Frames.
 
 [COLOR="darkorange"][SIZE="3"][B]What's New in v3.00 (Major Update)[/B][/SIZE][/COLOR]
 [LIST]
-[*]Major system architecture migration offering snappier UI performance and rock-solid stability
+[*]Major system architecture migration offering increased UI performance and error handling
 [*]Complete modernization of Resource Orb Frames with new high-res textures, fluid animations, and combat indicators
 [*]New high-fidelity scroll indicators and gradient selection highlights for precise, full-row visibility
 [*]Unified header-sort controllers with intuitive visual indicators and convenient Y-menu sort actions
-[*]Banking and Craft Bag multi-select batch workflows with smart quantity dialogs and capacity monitoring
-[*]Revamped tooltips featuring a pristine layout, "Collection Binding" tags, and optimized MM/TTC/ATT market pricing displays
+[*]Inventory, Craft Bag and Banking multi-select actions with smart quantity dialogs and capacity monitoring
 [*]Language-aware font system preserving localized text behavior across multiple languages
 [*]Currency refresh: Trade Bars terminology update, Seals of Endeavor, and Tome Points support
 [/LIST]
@@ -53,9 +52,8 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [LIST]
 [*]Expanded category model (All, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk, Stolen)
 [*]ESO+ Craft Bag support with multi-select retrieve/stow workflows and partial-stack quantity dialogs
-[*]Companion-item compatibility for supported actions
 [*]Persistent currency footer with 12-slot support, visibility toggles, and preset profiles (PvP, Crafter, Events)
-[*]Quickslot assignment directly from Inventory
+[*]Quickslot wheel assignment directly from our Inventory
 [*]Safer deletion flow with side-panel confirmation and optional quick-destroy mode
 [*]Search filtering, item icon enhancements, and continuous category cycle keybinds
 [*]Unified header-sort controllers matching all other lists
