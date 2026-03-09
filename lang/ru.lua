@@ -142,14 +142,6 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Включает дополнительные функции для полностью переработанных \"улучшенных\" интерфейсов!")
 
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "Север")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "Северо-запад")
-ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "Запад")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHWEST", "Юго-запад")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTH", "Юг")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHEAST", "Юго-восток")
-ZO_CreateStringId("SI_BETTERUI_DIR_EAST", "Восток")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "Северо-восток")
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Краденое")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Стилевой материал")
@@ -361,8 +353,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
     "Использовать современную навигацию в стиле карусели вместо классической панели вкладок.")
 
 -- Generic / Shared Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Размер шрифта")
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Размер текста")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Цвет шрифта")
 
 -- General Interface Settings
@@ -540,8 +530,6 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Индикаторы 
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Включить свечение боя")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
     "Отображает пульсирующее красно-оранжевое свечение вокруг панели умений в бою.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Цвет свечения боя")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Цвет эффекта свечения боя.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Включить иконку боя")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Отображает иконку скрещённых мечей в бою.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Включить звуковой сигнал боя")
@@ -587,7 +575,6 @@ ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Включить анимации сфер")
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
     "Добавляет тонкие анимации элементам сфер. Заполнение ресурсов мягко колеблется, а наложение щита медленно вращается.")
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Требуется перезагрузка UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Показать количество на быстром слоте")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
     "Отображает количество предметов для текущего быстрого слота.")
@@ -603,7 +590,6 @@ ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> выбрано")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Групповые действия")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> предметов обработано.")
 -- Added from en.lua
-ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Назначить быстрые слоты")
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Множественный выбор")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Снять выбор")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Выбрать (<<1>>)")
@@ -615,7 +601,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Этот шрифт может некорректно отображать русские символы. Рассмотрите использование локализованного варианта шрифта.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Привязать для коллекции")
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна! Обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Прервано. Обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT",
     "Выход из <<1>>. Прервано. Обработано <<2>> из <<3>> предметов.")
@@ -655,3 +640,9 @@ ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
     "Позволяет видеть больше или меньше информации о предмете в подсказках одновременно")
 ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Добавляет данные цен TTC во всплывающие подсказки предметов")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна: обработано <<1>> из <<2>> предметов.")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate

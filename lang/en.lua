@@ -104,7 +104,6 @@ ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP", "Off Hand")
 ZO_CreateStringId("SI_BETTERUI_INV_SWITCH_EQUIPSLOT", "Switch Weapons")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN", "Assign Quickslot")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN", "Unassign Quickslot")
-ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Assign Quickslots")
 
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIPSLOT_BACKUP", "Backup")
 ZO_CreateStringId("SI_BETTERUI_BANKING_WITHDRAW", "WITHDRAW")
@@ -161,6 +160,7 @@ ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> items processe
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Aborted: Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "Aborted (Interrupted): Processed <<2>> of <<3>> items.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Bag Full: Processed <<1>> of <<2>> items.")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "Banking")
 ZO_CreateStringId("SI_BETTERUI_SCENE_INVENTORY", "Inventory")
 ZO_CreateStringId("SI_BETTERUI_ABORT_ACTION", "Abort Action")
@@ -180,8 +180,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the gamepad's banking interface")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Enables additional features for the completely redesigned \"Enhanced\" interfaces!")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Reset All To Defaults")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Reset ALL BetterUI settings to their default values. Reload the UI afterward to fully apply the restored defaults.")
@@ -190,15 +188,6 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_HEADER", "Feature Flags")
 ZO_CreateStringId("SI_BETTERUI_FEATURE_FLAGS_DESC",
     "Toggle experimental or optional features. Some changes may require a /reloadui.")
-
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "North")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "Northwest")
-ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "West")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHWEST", "Southwest")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTH", "South")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHEAST", "Southeast")
-ZO_CreateStringId("SI_BETTERUI_DIR_EAST", "East")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "Northeast")
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Stolen")
 
@@ -418,7 +407,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
     "Use the modern carousel style navigation instead of the classic tab bar.")
 
 -- Generic / Shared Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Font Scale")
 ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Font Color")
 
@@ -521,7 +509,6 @@ ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Enable Orb Animations")
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
     "Adds subtle animations to orb elements. Resource fills gently oscillate, and the shield overlay slowly rotates.")
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requires Reload UI")
 
 -- Ultimate Number Display Settings
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_DISPLAY_HEADER", "Ultimate Number Display")
@@ -546,8 +533,6 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Combat Indicators")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Enable Combat Glow")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
     "Display a pulsing red/orange glow around the skill bar when in combat.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Combat Glow Color")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color for the combat glow effect.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Enable Combat Icon")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Display a crossed swords icon when in combat.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Enable Combat Audio Cue")

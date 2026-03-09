@@ -137,14 +137,6 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "BetterUI のすべての設定を既定値に戻します。復元した既定値を完全に適用するには、その後 UI を再読み込みしてください。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "完全に再設計された\"拡張\"インターフェースに追加機能を有効化！")
 
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "北")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "北西")
-ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "西")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHWEST", "南西")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTH", "南")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHEAST", "南東")
-ZO_CreateStringId("SI_BETTERUI_DIR_EAST", "東")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "北東")
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "盗品")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "スタイル素材")
@@ -340,8 +332,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "カルーセルナビゲ�
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "従来のタブバーの代わりに、モダンなカルーセルスタイルのナビゲーションを使用します。")
 
 -- Generic / Shared Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "フォントスケール")
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "文字サイズ")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "フォントカラー")
 
 -- General Interface Settings
@@ -494,8 +484,6 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "戦闘インジケー
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "戦闘グローを有効化")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
     "戦闘中にスキルバーの周りに赤/オレンジの脈動するグローを表示します。")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "戦闘グローの色")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "戦闘グロー効果の色。")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "戦闘アイコンを有効化")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "戦闘中に交差した剣のアイコンを表示します。")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "戦闘音声キューを有効化")
@@ -540,7 +528,6 @@ ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "オーブアニメーションを有効化")
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
     "オーブ要素に繊細なアニメーションを追加します。リソースの充填がゆるやかに揺れ、シールドオーバーレイがゆっくり回転します。")
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "UI再読み込みが必要")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "クイックスロット数量を表示")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
     "現在のクイックスロットアイテムの数量を表示します。")
@@ -558,7 +545,6 @@ ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>>個選択中")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "一括操作")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>>個のアイテムを処理しました。")
 -- Added from en.lua
-ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "クイックスロット割り当て")
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "複数選択")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "選択解除")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "選択 (<<1>>)")
@@ -569,7 +555,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t このフォントはロシア語の文字を正しく表示できない場合があります。ローカライズされたフォントオプションの使用を検討してください。")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "コレクションのためにバインド")
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です！<<1>>個中<<2>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "中止しました。<<2>>個中<<1>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "<<1>>を終了したため中止しました。<<3>>個中<<2>>個を処理しました。")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "銀行")
@@ -584,3 +569,9 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "取り出す数量を選択")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "スタックを収納")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "スタックを取り出す")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です: 選ばれた<<2>>個中の<<1>>個を処理しました。")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate

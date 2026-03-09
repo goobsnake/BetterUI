@@ -136,14 +136,6 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "将 BetterUI 的所有设置重置为默认值。之后请重新加载界面，以完整应用恢复后的默认设置。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "为完全重新设计的\"增强\"界面启用额外功能！")
 
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "北")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "西北")
-ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "西")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHWEST", "西南")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTH", "南")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHEAST", "东南")
-ZO_CreateStringId("SI_BETTERUI_DIR_EAST", "东")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "东北")
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "偶窃")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "风格材料")
@@ -339,8 +331,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV", "启用旋转导航")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP", "使用现代旋转样式的导航替代经典标签栏。")
 
 -- Generic / Shared Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "字体缩放")
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "文字大小")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "字体颜色")
 
 -- General Interface Settings
@@ -495,8 +485,6 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "战斗指示器")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "启用战斗光效")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
     "战斗时在技能栏周围显示红/橙色脉动光效。")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "战斗光效颜色")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "战斗光效的颜色。")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "启用战斗图标")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "战斗时显示交叉剑图标。")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "启用战斗音效提示")
@@ -541,7 +529,6 @@ ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "启用宝珠动画")
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
     "为宝珠元素添加细微动画效果。资源填充轻柔地摆动，护盾覆盖层缓慢旋转。")
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "需要重载UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "显示快捷栏数量")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
     "显示当前快捷栏物品的数量。")
@@ -557,7 +544,6 @@ ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "已选择 <<1>> 个")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "批量操作")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "已处理 <<1>> 个物品。")
 -- Added from en.lua
-ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "分配快捷栏")
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "多选")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "取消选择")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "选择 (<<1>>)")
@@ -568,7 +554,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t 此字体可能无法正确显示俄文字符。请考虑使用本地化字体选项。")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "绑定以收藏")
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "背包已满！已处理<<1>>个中的<<2>>个物品。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "已中止。已处理 <<2>> 个中的 <<1>> 个物品。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT", "已离开<<1>>，操作已中止。已处理 <<2>> / <<3>> 个物品。")
 ZO_CreateStringId("SI_BETTERUI_SCENE_BANKING", "银行")
@@ -583,3 +568,9 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "背包已满：已处理 <<1>>/<<2>> 个物品。")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate

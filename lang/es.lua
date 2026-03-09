@@ -342,8 +342,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP",
     "Usa la navegación moderna estilo carrusel en lugar de la barra de pestañas clásica.")
 
 -- Generic / Shared Settings
-ZO_CreateStringId("SI_BETTERUI_FONT_SCALE", "Escala de fuente")
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Tamaño de texto")
 ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Color de fuente")
 
 -- General Interface Settings
@@ -514,14 +512,6 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
     "Activa funcionalidades adicionales para las interfaces \\\"Mejoradas\\\"!")
 
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTH", "Norte")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHWEST", "Noroeste")
-ZO_CreateStringId("SI_BETTERUI_DIR_WEST", "Oeste")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHWEST", "Suroeste")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTH", "Sur")
-ZO_CreateStringId("SI_BETTERUI_DIR_SOUTHEAST", "Sureste")
-ZO_CreateStringId("SI_BETTERUI_DIR_EAST", "Este")
-ZO_CreateStringId("SI_BETTERUI_DIR_NORTHEAST", "Noreste")
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Robado")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Material de estilo")
@@ -558,8 +548,6 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_INDICATORS_HEADER", "Indicadores de combat
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED", "Activar resplandor de combate")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP",
     "Muestra un resplandor pulsante rojo/naranja alrededor de la barra de habilidades en combate.")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR", "Color del resplandor de combate")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_GLOW_COLOR_TOOLTIP", "Color para el efecto de resplandor de combate.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED", "Activar icono de combate")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP", "Muestra un icono de espadas cruzadas en combate.")
 ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED", "Activar señal de audio de combate")
@@ -604,7 +592,6 @@ ZO_CreateStringId("SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS", "Activar animaciones de orbes")
 ZO_CreateStringId("SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP",
     "A\195\177ade animaciones sutiles a los elementos del orbe. Los rellenos de recursos oscilan suavemente, y la superposici\195\179n de escudo rota lentamente.")
-ZO_CreateStringId("SI_BETTERUI_ROF_REQUIRES_RELOAD", "Requiere recargar UI")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY", "Mostrar cantidad de acceso rápido")
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP",
     "Muestra la cantidad del objeto actual en el acceso rápido.")
@@ -620,7 +607,6 @@ ZO_CreateStringId("SI_BETTERUI_SELECTED_COUNT", "<<1>> seleccionados")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ACTIONS", "Acciones en lote")
 ZO_CreateStringId("SI_BETTERUI_BATCH_PROCESSING_COMPLETE", "<<1>> objetos procesados.")
 -- Added from en.lua
-ZO_CreateStringId("SI_BETTERUI_ASSIGN_QUICKSLOTS", "Asignar ranuras rápidas")
 ZO_CreateStringId("SI_BETTERUI_MULTI_SELECT", "Selección múltiple")
 ZO_CreateStringId("SI_BETTERUI_DESELECT_ITEM", "Deseleccionar")
 ZO_CreateStringId("SI_BETTERUI_SELECT_WITH_COUNT", "Seleccionar (<<1>>)")
@@ -632,7 +618,6 @@ ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CJK",
 ZO_CreateStringId("SI_BETTERUI_FONT_WARNING_CYRILLIC",
     "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t Esta fuente puede no mostrar correctamente caracteres rusos. Considera usar una opción de fuente localizada.")
 ZO_CreateStringId("SI_BETTERUI_BIND_FOR_COLLECTION", "Vincular para colección")
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "¡Bolsa llena! Se procesaron <<1>> de <<2>> objetos.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_COMPLETE", "Cancelado. Se procesaron <<1>> de <<2>> objetos.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT",
     "Se salió de <<1>>. Cancelado. Se procesaron <<2>> de <<3>> objetos.")
@@ -703,3 +688,9 @@ ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP",
     "Tamaño de fuente para la visualización del número de definitiva.")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Inventario lleno: <<1>> de <<2>> objetos procesados.")
+-- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
