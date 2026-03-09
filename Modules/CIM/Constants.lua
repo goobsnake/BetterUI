@@ -145,9 +145,6 @@ BETTERUI.CIM.CONST.TIMING = {
     BATCH_SERVER_RATE_WINDOW_MS = 60000,
     BATCH_SERVER_RATE_MAX_ACTIONS = 125,
 
-    -- Legacy aliases kept for compatibility with older callers.
-    BATCH_ACTION_DELAY_MS = 100,
-    BATCH_PROGRESS_THRESHOLD = 10,
 }
 
 
@@ -607,10 +604,12 @@ BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
 -- TODO(cleanup): Audit XML templates for BETTERUI_GAMEPAD_* usage — remove aliases whose XML consumers have been migrated
 -- TODO(cleanup): Remove backward compatibility aliases after v3.2 migration
 -- Backward Compatibility Aliases (XML Support) - PANEL
-BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH                     -- Mirrors custom panel width.
-BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH               -- Mirrors native-width panel mode.
+BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
+.WIDTH                                                                             -- Mirrors custom panel width.
+BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
+.ZO_WIDTH                                                                          -- Mirrors native-width panel mode.
 BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
-.CONTAINER_WIDTH                                                                                 -- Mirrors inner panel width.
+    .CONTAINER_WIDTH                                                               -- Mirrors inner panel width.
 
 -- Backward Compatibility Aliases (XML Support) - PADDING
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
@@ -640,7 +639,7 @@ BETTERUI_SEARCH_BAR_SPACING_Y = 8 -- Vertical gap between header rows and search
 
 -- Backward Compatibility Aliases (XML Support) - POSITIONING
 BETTERUI_GAMEPAD_QUADRANT_1_LEFT =
-BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING                                    -- Left boundary for quadrant-1 anchored controls.
+    BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING -- Left boundary for quadrant-1 anchored controls.
 
 -- Backward Compatibility Aliases (XML Support) - COLUMNS
 -- These aliases mirror canonical values in BETTERUI.CIM.CONST.LAYOUT.COLUMNS.

@@ -238,16 +238,6 @@ function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
     return true
 end
 
---[[
-Function: BETTERUI.Inventory.Categories.GetCategoryIcon
-Description: Returns the icon path for a category by key.
-param: categoryKey (string) - The category key (e.g., "weapons", "all").
-return: string - The icon path, or nil if not found.
-]]
--- TODO(bug): GetCategoryIcon references BankIcons table that was removed (see line 104); always returns nil. Fix to use iconFile field from category definitions, or remove this dead function
-function BETTERUI.Inventory.Categories.GetCategoryIcon(categoryKey)
-    return BETTERUI.Inventory.Categories.BankIcons[categoryKey]
-end
 
 -------------------------------------------------------------------------------------------------
 -- SHARED ITEM CATEGORIZATION HELPERS

@@ -138,9 +138,9 @@ function BETTERUI.Banking.Class:PositionSearchControl()
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
         -- Search bar position configured in BetterUI.CONST.lua
-        local xOffset = BETTERUI_BANK_SEARCH_X_OFFSET
-        local yOffset = BETTERUI_BANK_SEARCH_Y_OFFSET
-        local rightInset = BETTERUI_BANK_SEARCH_RIGHT_INSET
+        local xOffset = BETTERUI.Banking.CONST.SEARCH.X_OFFSET
+        local yOffset = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
+        local rightInset = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
         -- Anchor left with an X offset, and inset the right anchor slightly so control width remains reasonable
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)

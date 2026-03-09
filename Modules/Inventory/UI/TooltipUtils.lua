@@ -10,7 +10,6 @@ if BETTERUI == nil then BETTERUI = {} end
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 -- Dependencies (ensure these globals are available)
-local LAM = LibAddonMenu2 -- Unused here but good for consistency if needed
 
 --[[
 Function: BETTERUI.Inventory.ApplyTooltipStyles
@@ -355,7 +354,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 if isStolen then
                     stolenString = GetString(SI_GAMEPAD_ITEM_STOLEN_LABEL) -- "Stolen"
                     stolenIcon = "|t" ..
-                    denseIconSizeFmt .. ":EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
+                        denseIconSizeFmt .. ":EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
                 end
 
                 -- E3. Junk Status
