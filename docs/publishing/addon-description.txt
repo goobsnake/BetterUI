@@ -4,11 +4,14 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 
 [COLOR="darkorange"][SIZE="3"][B]What's New in v3.00 (Major Update)[/B][/SIZE][/COLOR]
 [LIST]
-[*]Complete visual overhaul and major system refactor around the Resource Orb Frames feature
-[*]New high-fidelity scroll indicators and cleaner full-row selection visibility
-[*]Unified header-sort behavior with clearer sort indicators and Y-menu sort actions
-[*]Banking and Craft Bag multi-select batch workflows (including quantity dialogs)
-[*]Currency refresh for PTS v11.3.0: Trade Bars naming update, Seals of Endeavor, and Tome Points support
+[*]Major system architecture migration offering snappier UI performance and rock-solid stability
+[*]Complete modernization of Resource Orb Frames with new high-res textures, fluid animations, and combat indicators
+[*]New high-fidelity scroll indicators and gradient selection highlights for precise, full-row visibility
+[*]Unified header-sort controllers with intuitive visual indicators and convenient Y-menu sort actions
+[*]Banking and Craft Bag multi-select batch workflows with smart quantity dialogs and capacity monitoring
+[*]Revamped tooltips featuring a pristine layout, "Collection Binding" tags, and optimized MM/TTC/ATT market pricing displays
+[*]Language-aware font system preserving localized text behavior across multiple languages
+[*]Currency refresh: Trade Bars terminology update, Seals of Endeavor, and Tome Points support
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Requirements[/B][/SIZE][/COLOR]
@@ -34,6 +37,8 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [*]Optional ARPG-style orb interface for Health, Magicka, and Stamina
 [*]Toggleable XP/Champion bar, Cast bar, and Mount stamina bar
 [*]Dual weapon-bar presentation with back-bar dimming support
+[*]Smooth orb resource fill animations and refined texture visuals
+[*]Comprehensive combat indicator suite for ultimate readiness and feedback
 [*]Cooldown visibility and companion ultimate placement improvements
 [*]Per-element size, color, scale, and offset controls
 [/LIST]
@@ -47,27 +52,24 @@ BetterUI modernizes ESO's gamepad UI with cleaner navigation, richer tooltips, c
 [COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Inventory[/B][/SIZE][/COLOR]
 [LIST]
 [*]Expanded category model (All, Equipped, Weapons, Apparel, Jewelry, Consumables, Materials, Furnishings, Junk, Stolen)
-[*]ESO+ Craft Bag support with category navigation
-[*]Craft Bag multi-select retrieve/stow workflows with partial-stack quantity dialogs
+[*]ESO+ Craft Bag support with multi-select retrieve/stow workflows and partial-stack quantity dialogs
 [*]Companion-item compatibility for supported actions
-[*]Persistent currency footer with visibility toggles and ordering
-[*]Currency presets (Default, PvP Focus, Crafter Focus, Events Focus)
+[*]Persistent currency footer with 12-slot support, visibility toggles, and preset profiles (PvP, Crafter, Events)
 [*]Quickslot assignment directly from Inventory
 [*]Safer deletion flow with side-panel confirmation and optional quick-destroy mode
-[*]Search filtering, item icon enhancements, and carousel category navigation
-[*]Filter-type category cycle keybinds and clearer search behavior
-[*]Configurable fonts for item and column text
+[*]Search filtering, item icon enhancements, and continuous category cycle keybinds
+[*]Unified header-sort controllers matching all other lists
+[*]Configurable language-aware fonts for item and column text
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Revamped Gamepad Banking[/B][/SIZE][/COLOR]
 [LIST]
 [*]Enhanced personal bank and home storage workflows
 [*]Banking multi-select support for batch withdraw/deposit actions
-[*]Deposit/withdraw flows with category-aware navigation
-[*]Persistent category behavior between bank interaction modes
-[*]Search filtering and known/unknown recipe or motif cues
-[*]Inventory-matched category model and configurable fonts
-[*]Carousel-style category navigation
+[*]Persistent category behavior and layout matching the Inventory model
+[*]Search filtering and clear indicators for known/unknown recipes and motifs
+[*]Unified header-sort controllers matching all other lists
+[*]Configurable language-aware fonts for item and column text
 [/LIST]
 
 [COLOR="darkorange"][SIZE="3"][B]Daily Writ Integration[/B][/SIZE][/COLOR]

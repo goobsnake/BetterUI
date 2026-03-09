@@ -5,82 +5,76 @@ Current Release - v3.00 Changes:
 [INDENT]FOUNDATION & UI OVERHAUL:
 1. Changed: Completed a major architecture migration to a shared Common Interface Module (CIM) for Inventory, Banking, Tooltips, Nameplates, and Orb systems
 2. Added: New high-fidelity scroll indicator bars for Inventory, Craft Bag, and Banking with track/thumb/arrows
-3. Improved: Scroll indicator precision now correctly maps to selectable rows and reaches list ends reliably
+3. Added: Quickslots now uses the default in-game "Wheel" for assigning quickslot items from inventory
 4. Added: Gradient selection highlight bar with improved full-row visibility
-5. Added: Unified header-sort controller with clearer visual sort indicators and improved controller navigation
+5. Added: Multi-select actions for Inventory, Craft Bag, and Banking
 6. Added: Sort actions in the Y-menu for both Inventory and Banking
-7. Improved: Category tabs now support stronger controller + mouse interaction with cleaner non-carousel alignment behavior
+7. Added: Enchanced Tooltip system with additional information and functionality - Toggle to use default tooltips is available in settings
 8. Added: Unified footer framework across Inventory and Banking with mode-aware display behavior
 9. Improved: Footer currency alignment and spacing for a cleaner justified layout
 
 RESOURCE ORB FRAMES & GRAPHICS:
-10. Added: Full Resource Orb Frames module extraction and modernization as a standalone system
-11. Added: New orb/skillbar texture and source art refresh (orb fills, borders, overlays, ornaments, cast/mount bar assets)
-12. Added: Smooth orb resource fill animation for Health, Magicka, and Stamina
-13. Added: Vertical weapon swap animation and improved bar transition behavior
-14. Added: Ultimate Number display and expanded ultimate text/anchor controls
-15. Added: Quickslot cooldown visuals with front/back bar smoothing improvements
-16. Added: Quickslot hover tooltips plus skill tooltip progression routing improvements
-17. Added: Combat indicator suite (icon/glow/audio) integrated with the Orb skill bar
-18. Added: Ultimate Ready visual effects and improved hover/press feedback effects
-19. Improved: Combat indicator defaults and behavior were finalized for consistency and clarity
-20. Improved: Cast-bar coloring now better reflects resource mechanics and orb theme coloring
+10. Added: New orb/skillbar texture and source art refresh (orb fills, borders, overlays, ornaments, cast/mount bar assets)
+11. Added: Smooth orb resource fill animation for Health, Magicka, and Stamina
+12. Added: Vertical weapon swap animation and improved bar transition behavior
+13. Added: Ultimate Number display and expanded ultimate text/anchor controls
+14. Added: Quickslot cooldown visuals with front/back bar smoothing improvements
+15. Added: Quickslot hover tooltips plus skill tooltip progression routing improvements
+16. Added: Combat indicator suite (icon/glow/audio) integrated with the Orb skill bar
+17. Added: Ultimate Ready visual effects and improved hover/press feedback effects
+18. Improved: Combat indicator defaults and behavior were finalized for consistency and clarity
+19. Improved: Cast-bar coloring now better reflects resource mechanics and orb theme coloring
 
 INVENTORY & BANKING FEATURES:
-21. Added: Banking multi-select support for withdraw/deposit lists with batch actions
-22. Added: Craft Bag multi-select actions for retrieve/stow with batch workflows
-23. Added: Craft Bag quantity dialogs for partial stack retrieval/stow operations
-24. Added: Craft Bag category item count badges in tab headers
-25. Added: Batch status feedback via center-screen notifications, including early-stop messaging
-26. Added: Batch bag-space monitoring and smarter transfer pre-check behavior
-27. Improved: Primary action discovery now adapts more reliably to context actions (equip/use/retrieve/etc.)
-28. Improved: Position persistence across categories/scenes/actions is more reliable and more consistent
-29. Improved: Action/keybind recovery after equip, junk, lock/unlock, and multi-select operations
-30. Improved: Banking category filtering and localization behavior
-31. Improved: Column header alignment and sorting parity across Inventory, Banking, and Craft Bag views
-32. Improved: Banking equipped-status indicators for item rows
-33. Changed: Withdraw/Deposit icon mapping now follows corrected direction cues for clearer banking UX
-34. Added: Filter-type category cycle keybinds and clearer search/control behavior across Inventory, Banking, and Craft Bag flows
-35. Improved: Banking currency selector pulse feedback and bank-upgrade tooltip polish
-36. Added: WritUnit integration refinements including explicit module enable/disable support in settings
+20. Added: Banking multi-select support for withdraw/deposit lists with batch actions
+21. Added: Craft Bag multi-select actions for retrieve/stow with batch workflows
+22. Added: Craft Bag quantity dialogs for partial stack retrieval/stow operations
+23. Added: Craft Bag category item count badges in tab headers
+24. Added: Batch status feedback via center-screen notifications, including early-stop messaging to prevent logouts
+25. Added: Batch bag-space monitoring and smarter transfer pre-check behavior
+26. Improved: Primary action discovery now adapts more reliably to context actions (equip/use/retrieve/etc.)
+27. Improved: Position persistence across categories/scenes/actions is more reliable and more consistent
+28. Improved: Action/keybind recovery after equip, junk, lock/unlock, and multi-select operations
+29. Improved: Column header alignment and sorting parity across Inventory, Banking, and Craft Bag views
+30. Improved: Banking equipped-status indicators for item rows
+31. Changed: Withdraw/Deposit icon mapping now follows corrected direction cues for clearer banking UX
+32. Added: Filter-type category cycle keybinds and clearer search/control behavior across Inventory, Banking, and Craft Bag flows
+33. Improved: Banking currency selector pulse feedback and bank-upgrade tooltip polish
+34. Added: WritUnit integration refinements including explicit module enable/disable support in settings
 
-TOOLTIPS & PRICE INTEGRATION:
-37. Improved: Equipped tooltip header redesign with cleaner Gold/White layout and updated icon sizing
-38. Added: "Bind for Collection" state display with icon support
-39. Added: Junk status icon support in enhanced item tooltips
-40. Improved: MM/TTC tooltip output now supports clearer multi-price display behavior
-41. Changed: Market price icon scaling tuned for cleaner visual balance
-42. Fixed: Tooltip text overlap and anchor conflicts in multiple layouts
-43. Fixed: BetterUI tooltip style settings no longer bleed into unrelated UI elements
-44. Fixed: Native tooltip compatibility/layout regressions were resolved in common gamepad flows
-45. Improved: Hardcoded market tooltip strings were localized for TTC/MM/ATT scenarios
+ENHANCED TOOLTIPS & PRICE INTEGRATION:
+35. Improved: Equipped tooltip header redesign with cleaner Gold/White layout and updated icon sizing
+36. Added: "Bind for Collection" state display with icon support
+37. Added: Junk status icon support in enhanced item tooltips
+38. Improved: MM/TTC tooltip output now supports clearer multi-price display behavior
+39. Changed: Market price icon scaling tuned for cleaner visual balance
+40. Fixed: Tooltip text overlap and anchor conflicts in multiple layouts
+41. Fixed: BetterUI tooltip style settings no longer bleed into unrelated UI elements
+42. Fixed: Native tooltip compatibility/layout regressions were resolved in common gamepad flows
+43. Improved: Hardcoded market tooltip strings were localized for TTC/MM/ATT scenarios
 
 FONTS, LOCALIZATION & SETTINGS:
-46. Added: Language-aware font localization system with migration support for existing saved settings
-47. Improved: Localized/default font behavior for non-Latin locales and legacy profiles
-48. Improved: Expanded cross-locale string coverage for v3.00 features (de, en, es, fr, jp, ru, zh)
-49. Improved: Settings consistency across modules (sorting defaults, resets, and live-apply behavior)
-50. Improved: Numeric setting safety with clamping/migration to active slider limits
+44. Added: Language-aware font localization system with migration support for existing saved settings
+45. Improved: Localized/default font behavior for non-Latin locales and legacy profiles
+46. Improved: Expanded cross-locale string coverage for v3.00 features (de, en, es, fr, jp, ru, zh)
+47. Improved: Settings consistency across modules (sorting defaults, resets, and live-apply behavior)
+48. Improved: Numeric setting safety with clamping/migration to active slider limits
 
 CURRENCY SYSTEM (PTS v11.3.0):
-51. Changed: "Event Tickets" renamed to "Trade Bars" to align with official ESO terminology
-52. Added: Seals of Endeavor currency support
-53. Added: Tome Points (Endless Archive) currency support
-54. Improved: Footer currency positioning supports up to 12 slots (with 10-item display cap)
-55. Improved: Added clearer ZO_Alert behavior when attempting to exceed enabled currency limits
+49. Changed: "Event Tickets" renamed to "Trade Bars" to align with official ESO terminology
+50. Added: Seals of Endeavor currency support
+51. Added: Tome Points (Endless Archive) currency support
+52. Improved: Footer currency positioning supports up to 12 slots
 
 STABILITY, QUALITY & OPTIMIZATION:
-56. Fixed: "Junk" Banking category no longer appears when empty
-57. Fixed: Inventory junk category tabs now update immediately after mark/unmark actions
-58. Fixed: Empty quickslot slots now use the correct ESO empty-slot texture
-59. Fixed: "All Items" sorting consistency and priority behavior
-60. Fixed: Quest item usage and container flows now preserve/restore list position more reliably
-61. Fixed: Resource Orb Frames health/cast/combat visual stability issues and skill-dim flicker cases
-62. Fixed: Multi-select and scene transition cleanup now better prevents stale UI/input states
-63. Improved: Event-driven research trait caching and broader list-refresh/performance behavior
-64. Fixed: Gamepad directional-input lockups during inventory/banking scene transitions and startup registration timing
-65. Improved: Module initialization resilience now better prevents cascading failures from a single module error
-66. Fixed: Empty-search and no-results handling now reports consistently across Inventory, Banking, and Craft Bag flows
+53. Fixed: "Junk" Banking category no longer appears when empty
+54. Fixed: Inventory junk category tabs now update immediately after mark/unmark actions
+55. Fixed: Quest item usage and container flows now preserve/restore list position more reliably
+56. Fixed: Resource Orb Frames health/cast/combat visual stability issues and skill-dim flicker cases
+57. Improved: Event-driven research trait caching and broader list-refresh/performance behavior
+58. Fixed: Gamepad directional-input lockups during inventory/banking scene transitions and startup registration timing
+59. Improved: Module initialization resilience now better prevents cascading failures from a single module error
+60. Fixed: Empty-search and no-results handling now reports consistently across Inventory, Banking, and Craft Bag flows
 [/INDENT]
 
 
