@@ -9,7 +9,6 @@ if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
 local ResourceOrbFrames = BETTERUI.ResourceOrbFrames
 
 -- Sub-modules
-local Animations = nil -- Loaded on demand or assumed loaded
 local Visuals = nil
 local Bars = nil
 local SkillBar = nil
@@ -179,7 +178,6 @@ local function SetupModule(control)
     m_rootFrame = control
 
     -- 1. Load Sub-modules (ensure they are ready)
-    Animations = BETTERUI.ResourceOrbFrames.Animations
     Visuals = BETTERUI.ResourceOrbFrames.Visuals
     Bars = BETTERUI.ResourceOrbFrames.Bars
     SkillBar = BETTERUI.ResourceOrbFrames.SkillBar

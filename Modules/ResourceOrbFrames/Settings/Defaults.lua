@@ -33,7 +33,7 @@ local function GetDefaults()
         mountStaminaBarEnabled = true, -- CHANGED: Showcase for new users
         mountStaminaBarTextSize = 16,
         mountStaminaBarTextColor = { 1, 1, 1, 1 },
-        orbAnimFlow = false,
+        orbAnimFlow = true, -- CHANGED: Showcase for new users
         cooldownTextSize = 27,
         cooldownTextColor = { 0.86, 0.84, 0.13, 1 },
         quickslotTextSize = 27,

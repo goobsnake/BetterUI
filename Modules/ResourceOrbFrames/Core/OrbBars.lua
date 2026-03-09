@@ -22,15 +22,15 @@ local DEFAULT_CAST_BAR_FILL_STYLE = {
 local CAST_BAR_ORB_FILL_STYLES = {
     -- Matches orb Fog/Fog2 colors in ResourceOrbFrames.xml
     health = {
-        fill = { 1, 0, 0, 1 },      -- Fog color="ff0000"
+        fill = { 1, 0, 0, 1 },       -- Fog color="ff0000"
         depth = { 0.30196, 0, 0, 1 } -- Fog2 color="4d0000"
     },
     magicka = {
-        fill = { 0, 0.4, 1, 1 },    -- Fog color="0066ff"
-        depth = { 0, 0, 0.2, 1 }    -- Fog2 color="000033"
+        fill = { 0, 0.4, 1, 1 }, -- Fog color="0066ff"
+        depth = { 0, 0, 0.2, 1 } -- Fog2 color="000033"
     },
     stamina = {
-        fill = { 0, 1, 0, 1 },      -- Fog color="00ff00"
+        fill = { 0, 1, 0, 1 },       -- Fog color="00ff00"
         depth = { 0, 0.30196, 0, 1 } -- Fog2 color="004d00"
     },
 }
@@ -38,29 +38,10 @@ local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
 local BAR_TEXT_SIZE_MIN = 5
 local BAR_TEXT_SIZE_MAX = 20
 
-local function ClampTextSize(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < minValue then
-        return minValue
-    end
-    if rounded > maxValue then
-        return maxValue
-    end
-    return rounded
-end
-
--- Local helpers
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
-
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local Utils = BETTERUI.ResourceOrbFrames.Utils
+local ClampTextSize = Utils.ClampTextSize
+local FindControl = Utils.FindControl
+local GetModuleSettings = Utils.GetModuleSettings
 
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
@@ -211,7 +192,8 @@ function BetterUIBarFrame:New(control)
     return obj
 end
 
-function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillTextureFile, backdropTextureBounds, fillRegion)
+function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillTextureFile, backdropTextureBounds,
+                                     fillRegion)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
     self.backdropTextureFile = backdropTextureFile or "Bar.dds"
@@ -402,7 +384,8 @@ function CastBar:Initialize(parent)
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
             if not slotIndex then return end
             local hotbar = GetActiveHotbarCategory()
-            local name, duration, isChanneled, showCountdown, castFillColor, castDepthColor = ResolveCastDisplayData(slotIndex, hotbar)
+            local name, duration, isChanneled, showCountdown, castFillColor, castDepthColor = ResolveCastDisplayData(
+            slotIndex, hotbar)
             if not name or duration <= 0 then return end
             self:OnCastStart("player", name, duration, isChanneled, showCountdown, castFillColor, castDepthColor)
         end, REGISTER_FILTER_UNIT_TAG, "player")
@@ -464,7 +447,8 @@ function CastBar:ApplyFillStyle(fillColor, depthColor)
     )
 end
 
-function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, showCountdown, castFillColor, castDepthColor)
+function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, showCountdown, castFillColor,
+                             castDepthColor)
     if unitTag ~= "player" then return end
     local durationSeconds = (castDuration or 0) / 1000
     if durationSeconds <= 0 then return end

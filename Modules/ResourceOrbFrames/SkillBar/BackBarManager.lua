@@ -8,13 +8,10 @@ Last Modified: 2026-01-29
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
-
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local Utils = BETTERUI.ResourceOrbFrames.Utils
+local FindControl = Utils.FindControl
+local GetModuleSettings = Utils.GetModuleSettings
+local ClampTextSize = Utils.ClampTextSize
 
 local function CanUseBackupBar()
     return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
@@ -40,20 +37,6 @@ local function BuildCooldownStateKey(slotIndex, hotbarCategory)
     return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
 end
 
-local function ClampTextSize(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < minValue then
-        return minValue
-    end
-    if rounded > maxValue then
-        return maxValue
-    end
-    return rounded
-end
 
 --[[
 Function: CacheBackBarControls
@@ -385,7 +368,8 @@ local function UpdateBackBarCooldowns(rootFrame)
                     local visualRemainMs = GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
 
                     if isGamePad then
-                        local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs,
+                        local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn,
+                            visualRemainMs,
                             durationMs)
                         if icon then
                             if percentComplete ~= nil then

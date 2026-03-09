@@ -175,16 +175,20 @@ local function Init(mId, moduleName)
     local getScale, setScale = GetSet("scale", Default("scale", 1))
     local getOffset, setOffset = GetSet("offsetY", Default("offsetY", 0))
 
-    local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize", Default("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE))
-    local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor", CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 }))
+    local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize",
+        Default("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE))
+    local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor",
+        CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 }))
     local getQuickslotSize, setQuickslotSize = GetSet("quickslotTextSize", Default("quickslotTextSize", 27))
-    local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor", CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 }))
+    local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor",
+        CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 }))
     local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", Default("backBarOpacity", 1))
     local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", Default("weaponSwapAnimation", true))
 
     local getShowUlt, setShowUlt = GetSet("showUltimateNumber", Default("showUltimateNumber", true))
     local getUltSize, setUltSize = GetSet("ultimateTextSize", Default("ultimateTextSize", 27))
-    local getUltColor, setUltColor = GetColorSet("ultimateTextColor", CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 }))
+    local getUltColor, setUltColor = GetColorSet("ultimateTextColor",
+        CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 }))
 
     local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", Default("showQuickslotCooldown", true))
     local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", Default("showQuickslotCount", true))
@@ -193,34 +197,41 @@ local function Init(mId, moduleName)
     local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", Default("showCombatIcon", true))
     local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", Default("playCombatAudio", true))
 
-    local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", Default("orbAnimFlow", false))
+    local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", Default("orbAnimFlow", true))
     local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", Default("hideLeftOrnament", false))
     local getLeftSize, setLeftSize = GetSet("leftOrbSizeScale", Default("leftOrbSizeScale", 1.0))
     local getHideRight, setHideRight = GetSet("hideRightOrnament", Default("hideRightOrnament", false))
     local getRightSize, setRightSize = GetSet("rightOrbSizeScale", Default("rightOrbSizeScale", 1.0))
 
     local getHealthSize, setHealthSize = GetSet("healthTextSize", Default("healthTextSize", 20))
-    local getHealthColor, setHealthColor = GetColorSet("healthTextColor", CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 }))
+    local getHealthColor, setHealthColor = GetColorSet("healthTextColor",
+        CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 }))
     -- TODO(cleanup): Rename getMagsize to getMagSize for consistent getter/setter casing
     local getMagsize, setMagSize = GetSet("magickaTextSize", Default("magickaTextSize", 20))
-    local getMagColor, setMagColor = GetColorSet("magickaTextColor", CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 }))
+    local getMagColor, setMagColor = GetColorSet("magickaTextColor",
+        CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 }))
     local getStamSize, setStamSize = GetSet("staminaTextSize", Default("staminaTextSize", 20))
-    local getStamColor, setStamColor = GetColorSet("staminaTextColor", CloneColor(Default("staminaTextColor", nil), { 1, 1, 1, 1 }))
+    local getStamColor, setStamColor = GetColorSet("staminaTextColor",
+        CloneColor(Default("staminaTextColor", nil), { 1, 1, 1, 1 }))
     local getShieldSize, setShieldSize = GetSet("shieldTextSize", Default("shieldTextSize", 20))
-    local getShieldColor, setShieldColor = GetColorSet("shieldTextColor", CloneColor(Default("shieldTextColor", nil), { 0.4, 0.9, 1, 1 }))
+    local getShieldColor, setShieldColor = GetColorSet("shieldTextColor",
+        CloneColor(Default("shieldTextColor", nil), { 0.4, 0.9, 1, 1 }))
 
     local getXpEnabled, setXpEnabled = GetSet("xpBarEnabled", Default("xpBarEnabled", true))
     local getXpSize, setXpSize = GetSet("xpBarTextSize", Default("xpBarTextSize", 16))
-    local getXpColor, setXpColor = GetColorSet("xpBarTextColor", CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 }))
+    local getXpColor, setXpColor = GetColorSet("xpBarTextColor",
+        CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 }))
 
     local getCastEnabled, setCastEnabled = GetSet("castBarEnabled", Default("castBarEnabled", true))
     local getCastAlways, setCastAlways = GetSet("castBarAlwaysShow", Default("castBarAlwaysShow", false))
     local getCastSize, setCastSize = GetSet("castBarTextSize", Default("castBarTextSize", 16))
-    local getCastColor, setCastColor = GetColorSet("castBarTextColor", CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 }))
+    local getCastColor, setCastColor = GetColorSet("castBarTextColor",
+        CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 }))
 
     local getMountEnabled, setMountEnabled = GetSet("mountStaminaBarEnabled", Default("mountStaminaBarEnabled", true))
     local getMountSize, setMountSize = GetSet("mountStaminaBarTextSize", Default("mountStaminaBarTextSize", 16))
-    local getMountColor, setMountColor = GetColorSet("mountStaminaBarTextColor", CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 }))
+    local getMountColor, setMountColor = GetColorSet("mountStaminaBarTextColor",
+        CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 }))
 
     local optionsTable = {
         {
@@ -447,7 +458,8 @@ local function Init(mId, moduleName)
                             return
                         end
                         settings.cooldownTextSize = Default("cooldownTextSize", 27)
-                        settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 })
+                        settings.cooldownTextColor = CloneColor(Default("cooldownTextColor", nil),
+                            { 0.86, 0.84, 0.13, 1 })
                         settings.quickslotTextSize = Default("quickslotTextSize", 27)
                         settings.quickslotTextColor = CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 })
                         settings.backBarOpacity = Default("backBarOpacity", 1)
@@ -555,7 +567,9 @@ local function Init(mId, moduleName)
                     max = 26,
                     step = 1,
                     getFunc = getHealthSize,
-                    setFunc = function(value) setHealthSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(value)
+                        setHealthSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 {
@@ -563,7 +577,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP),
                     getFunc = getHealthColor,
-                    setFunc = function(r, g, b, a) setHealthColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(r, g, b, a)
+                        setHealthColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 -- Magicka Text Settings
@@ -575,7 +591,9 @@ local function Init(mId, moduleName)
                     max = 26,
                     step = 1,
                     getFunc = getMagsize,
-                    setFunc = function(value) setMagSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(value)
+                        setMagSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 {
@@ -583,7 +601,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP),
                     getFunc = getMagColor,
-                    setFunc = function(r, g, b, a) setMagColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(r, g, b, a)
+                        setMagColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 -- Stamina Text Settings
@@ -595,7 +615,9 @@ local function Init(mId, moduleName)
                     max = 26,
                     step = 1,
                     getFunc = getStamSize,
-                    setFunc = function(value) setStamSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(value)
+                        setStamSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 {
@@ -603,7 +625,9 @@ local function Init(mId, moduleName)
                     name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR),
                     tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP),
                     getFunc = getStamColor,
-                    setFunc = function(r, g, b, a) setStamColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(r, g, b, a)
+                        setStamColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 -- Shield Text Settings
@@ -615,7 +639,9 @@ local function Init(mId, moduleName)
                     max = 26,
                     step = 1,
                     getFunc = getShieldSize,
-                    setFunc = function(value) setShieldSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end,
+                    setFunc = function(value)
+                        setShieldSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+                    end,
                     width = "full",
                 },
                 {
@@ -850,7 +876,8 @@ local function Init(mId, moduleName)
                             return
                         end
                         settings.mountStaminaBarTextSize = Default("mountStaminaBarTextSize", 16)
-                        settings.mountStaminaBarTextColor = CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 })
+                        settings.mountStaminaBarTextColor = CloneColor(Default("mountStaminaBarTextColor", nil),
+                            { 1, 1, 1, 1 })
 
                         if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
                             BETTERUI.ResourceOrbFrames.ApplySettings()

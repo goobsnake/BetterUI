@@ -8,27 +8,13 @@ Last Modified: 2026-01-29
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
+local Utils = BETTERUI.ResourceOrbFrames.Utils
+local FindControl = Utils.FindControl
+local ClampTextSize = Utils.ClampTextSize
 
 local ULTIMATE_TEXT_SIZE_MIN = 12
 local ULTIMATE_TEXT_SIZE_MAX = 30
 
-local function ClampTextSize(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < minValue then
-        return minValue
-    end
-    if rounded > maxValue then
-        return maxValue
-    end
-    return rounded
-end
 
 local function ApplyUltimateTextAnchor(ultimateButtonControl, ultimateTextControl)
     if not ultimateButtonControl or not ultimateTextControl then
