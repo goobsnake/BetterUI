@@ -94,18 +94,6 @@ function BETTERUI.CIM.Profiler.EndTiming(name)
 end
 
 --[[
-Function: BETTERUI.CIM.Profiler.IncrementCounter
-Description: Increments a named counter.
-Rationale: Track how often specific operations occur.
-]]
---- @param name string The counter identifier
---- @param amount? number Amount to increment (default 1)
-function BETTERUI.CIM.Profiler.IncrementCounter(name, amount)
-    if not profilerEnabled then return end
-    counters[name] = (counters[name] or 0) + (amount or 1)
-end
-
---[[
 Function: BETTERUI.CIM.Profiler.GetTimings
 Description: Returns all accumulated timing data.
 ]]

@@ -124,22 +124,3 @@ function BETTERUI.CIM.EventRegistry.GetRegistrationCount(moduleName)
     return count
 end
 
---- Get all registered module names.
---- @return string[] modules List of module names with registrations
-function BETTERUI.CIM.EventRegistry.GetRegisteredModules()
-    local modules = {}
-    for moduleName, _ in pairs(registrations) do
-        table.insert(modules, moduleName)
-    end
-    return modules
-end
-
---- Check if a specific event is registered for a module.
---- @param moduleName string Module identifier
---- @param eventId number Event ID to check
---- @return boolean registered True if at least one registration exists
-function BETTERUI.CIM.EventRegistry.IsRegistered(moduleName, eventId)
-    local moduleRegs = registrations[moduleName]
-    if not moduleRegs or not moduleRegs[eventId] then return false end
-    return #moduleRegs[eventId] > 0
-end

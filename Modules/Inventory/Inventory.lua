@@ -45,12 +45,6 @@ BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_DIALOG"
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
 -- NOTE: EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
 
-local CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
-local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
-local COMPANION_EQUIP_PATCH_RETRY_MS = 400
-local companionEquipPatchQueued = false
-local companionEquipPatchRetryPending = false
-
 --------------------------------------------------------------------------------
 -- SECURE SYSTEM HOOKS
 --------------------------------------------------------------------------------

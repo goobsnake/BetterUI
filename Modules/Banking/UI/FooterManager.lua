@@ -10,7 +10,6 @@ Last Modified: 2026-01-24
 -- SHARED CONSTANTS & STATE
 -------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 --[[
 Function: BETTERUI.Banking.Class:RefreshFooter

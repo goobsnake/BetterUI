@@ -89,27 +89,3 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
     end)
 end
 
---[[
-Function: BETTERUI.CIM.SceneLifecycle.RegisterFragment
-Description: Registers lifecycle handlers for a scene fragment.
-Rationale: ResourceOrbFrames uses fragments instead of full scenes;
-           this provides consistent lifecycle management for fragments.
-param: fragment (table) - The fragment to register.
-param: config (table) - Configuration with onShow/onHide callbacks.
-]]
---- @param fragment table The fragment to register
---- @param config table Configuration with onShow/onHide callbacks
-function BETTERUI.CIM.SceneLifecycle.RegisterFragment(fragment, config)
-    if not fragment then
-        BETTERUI.Debug("[SceneLifecycle] No fragment provided")
-        return
-    end
-
-    fragment:RegisterCallback("StateChange", function(oldState, newState)
-        if newState == SCENE_FRAGMENT_SHOWING and config.onShow then
-            BETTERUI.CIM.SafeExecute("SceneLifecycle:fragment:onShow", config.onShow)
-        elseif newState == SCENE_FRAGMENT_HIDDEN and config.onHide then
-            BETTERUI.CIM.SafeExecute("SceneLifecycle:fragment:onHide", config.onHide)
-        end
-    end)
-end

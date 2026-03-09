@@ -98,22 +98,6 @@ function BETTERUI.Banking.Class:SetupUnifiedFooter()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:RefreshFooter
-Description: Refreshes the footer display.
-Rationale: Overrides GenericWindow placeholder to use UnifiedFooter.
-]]
-function BETTERUI.Banking.Class:RefreshFooter()
-    if self.unifiedFooterController then
-        self.unifiedFooterController:Refresh()
-    else
-        -- Fallback to legacy GenericFooter if unified footer not available
-        if BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh then
-            BETTERUI.GenericFooter:Refresh()
-        end
-    end
-end
-
 --------------------------------------------------------------------------------
 -- HEADER SORT MODE
 --------------------------------------------------------------------------------

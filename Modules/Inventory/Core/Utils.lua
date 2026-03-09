@@ -9,24 +9,6 @@ Last Modified: 2026-01-28
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Utils = {}
 
---[[
-Function: BETTERUI.Inventory.Utils.WrapValue
-Description: Wraps a value around min/max bounds for circular navigation.
-Rationale: Delegates to CIM.Utils.WrapValue for shared implementation.
-]]
---- @param newValue number The value to wrap
---- @param maxValue number The maximum value
---- @return number wrappedValue The wrapped value
-function BETTERUI.Inventory.Utils.WrapValue(newValue, maxValue)
-    return BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
-end
-
---- Checks if the player has unlocked weapon swap (requires level 15).
---- @return boolean True if player can use backup bar
-function BETTERUI.Inventory.Utils.CanUseBackupBar()
-    return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
-end
-
 --- Callback for Right Bumper (Next) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
