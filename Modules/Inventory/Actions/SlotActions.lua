@@ -234,6 +234,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         [SI_ITEM_ACTION_BANK_DEPOSIT] = true,
         [SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG] = true,
         [SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG] = true,
+        [SI_ITEM_ACTION_SHOW_MAP] = true,
+        [SI_ITEM_ACTION_START_SKILL_RESPEC] = true,
+        [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
     }
 
     -- Build a name-based lookup table for O(1) access
@@ -303,6 +306,15 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 end, inventorySlot)
             -- NOTE: Split Stack is NOT added here because it's handled by _betterui_primaryOverride
             -- in PrimaryCommandActivate. Adding it here would cause double invocation.
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SHOW_MAP) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_SHOW_MAP, function(...) TryUseItem(inventorySlot) end,
+                inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_SKILL_RESPEC) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_START_SKILL_RESPEC, function(...) TryUseItem(inventorySlot) end,
+                inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC,
+                function(...) TryUseItem(inventorySlot) end, inventorySlot)
         end
 
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
@@ -438,7 +450,10 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_UNEQUIP) or
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_WITHDRAW) or
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_BANK_DEPOSIT) or
-                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SHOW_MAP) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_START_SKILL_RESPEC) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
             -- NOTE: Split Stack is NOT handled here - _betterui_primaryOverride above already sets it up

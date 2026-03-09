@@ -50,8 +50,6 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
 
     local function ActionDialogSetup(dialog, data)
         if self.scene:IsShowing() then
-
-
             -- Default actions list setup
             -- Title provided via dialog's dynamic title function; avoid overriding here
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
@@ -111,8 +109,10 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- Note: Lock/unlock callbacks are wrapped later (engine-provided entries are preserved)
             -- so we no longer inject or maintain synthetic lock/unlock helper functions here.
             local function UnmarkAsJunk()
-                -- TODO(bug): Missing nil guard on target -- unlike MarkAsJunk() which guards with "if not target then return end", this crashes on target.bagId when SafeGetTargetData returns nil
                 local target = BETTERUI.Inventory.Utils.SafeGetTargetData(GAMEPAD_INVENTORY.itemList)
+                if not target then
+                    return
+                end
                 -- SetItemIsJunk is ASYNCHRONOUS (see MarkAsJunk comment).
                 -- Category list refresh is handled by OnInventoryUpdated coalesced timer.
                 SetItemIsJunk(target.bagId, target.slotIndex, false)
@@ -620,6 +620,41 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                 -- Call TryEquipItem with fresh data, passing true for isCallingFromActionDialog
                 self:TryEquipItem(targetData, true)
+            end
+            return
+        end
+
+        -- Y-MENU SECURE USE FIX: Intercept Use-related actions that require a trusted callstack.
+        -- Bypasses the insecure ZOS proxy function to execute safely.
+        if selectedActionName == GetString(SI_ITEM_ACTION_USE)
+            or selectedActionName == GetString(SI_ITEM_ACTION_SHOW_MAP)
+            or selectedActionName == GetString(SI_ITEM_ACTION_START_SKILL_RESPEC)
+            or selectedActionName == GetString(SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
+            end
+
+            if targetData then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                local ds = targetData.dataSource or targetData
+                local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType and
+                    ZO_InventoryUtils_DoesNewItemMatchFilterType(targetData, ITEMFILTERTYPE_QUEST)
+                if isQuestItem and ds.toolIndex then
+                    UseQuestTool(ds.questIndex, ds.toolIndex)
+                elseif isQuestItem and ds.stepIndex and ds.conditionIndex then
+                    UseQuestItem(ds.questIndex, ds.stepIndex, ds.conditionIndex)
+                else
+                    local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+                    if bag and slot then
+                        CallSecureProtected("UseItem", bag, slot)
+                    end
+                end
             end
             return
         end

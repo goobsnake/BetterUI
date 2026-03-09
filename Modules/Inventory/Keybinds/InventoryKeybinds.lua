@@ -319,9 +319,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         self:RefreshItemList()
                     end
                 else
-                    -- FLICKER FIX: Clear stale action name BEFORE executing action
+                    -- FLICKER FIX: Save and clear stale action name BEFORE executing action
                     -- This prevents fallback logic from showing incorrect text (e.g. "Use" instead of "Unequip")
+                    local actionName
                     if self.itemActions then
+                        actionName = self.itemActions.actionName
                         self.itemActions.actionName = nil
                     end
 
@@ -330,6 +332,32 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         local slotActions = self.itemActions.slotActions
                         if slotActions._betterui_primaryOverride then
                             slotActions._betterui_primaryOverride()
+                        elseif actionName == GetString(SI_ITEM_ACTION_USE)
+                            or actionName == GetString(SI_ITEM_ACTION_SHOW_MAP)
+                            or actionName == GetString(SI_ITEM_ACTION_START_SKILL_RESPEC)
+                            or actionName == GetString(SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+                            local target
+                            if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                                target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                            elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                                target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+                            end
+
+                            if target then
+                                local ds = target.dataSource or target
+                                local isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType and
+                                ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+                                if isQuestItem and ds.toolIndex then
+                                    UseQuestTool(ds.questIndex, ds.toolIndex)
+                                elseif isQuestItem and ds.stepIndex and ds.conditionIndex then
+                                    UseQuestItem(ds.questIndex, ds.stepIndex, ds.conditionIndex)
+                                else
+                                    local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+                                    if bag and slot then
+                                        CallSecureProtected("UseItem", bag, slot)
+                                    end
+                                end
+                            end
                         else
                             slotActions:DoPrimaryAction()
                         end
