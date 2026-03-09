@@ -199,9 +199,10 @@ function HeaderSortIntegration.ExitHeaderMode(integration, options)
     integration.isActive = false
     integration.controller:ExitHeaderMode()
 
-    -- Restore list's directional input
+    -- Restore list's directional input flag directly (not via SetDirectionalInputEnabled)
+    -- to avoid double-registering with DIRECTIONAL_INPUT (same fix as mixin ExitHeaderSortMode)
     if integration.originalDirectionalInput ~= nil then
-        integration.list:SetDirectionalInputEnabled(integration.originalDirectionalInput)
+        integration.list.directionalInputEnabled = integration.originalDirectionalInput
         integration.originalDirectionalInput = nil
     end
 
@@ -329,9 +330,12 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         -- Reactivate the item list
         local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
         if list then
-            if list.SetDirectionalInputEnabled then
-                list:SetDirectionalInputEnabled(true)
-            end
+            -- CRITICAL: Set the field directly instead of calling SetDirectionalInputEnabled(true).
+            -- SetDirectionalInputEnabled(true) calls DIRECTIONAL_INPUT:Activate() unconditionally,
+            -- and Activate() below calls it again via SetActive(true). ESO's DIRECTIONAL_INPUT
+            -- does NOT deduplicate — it blindly inserts, while Deactivate removes only one entry.
+            -- This would leave a ghost entry that consumes joystick input after scene exit.
+            list.directionalInputEnabled = true
             if list.Activate then
                 list:Activate()
             end

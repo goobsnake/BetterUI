@@ -439,7 +439,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             end
 
             local currentUsedBank = BETTERUI.Banking.currentUsedBank
-            local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+            local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or
+            nil
             local showingCurrencyRows = (currentUsedBank == BAG_BANK)
                 and (not activeCategoryForHeader or activeCategoryForHeader.key == "all")
 
@@ -616,6 +617,7 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
     end
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
 

@@ -22,17 +22,17 @@ Returns: void
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if not screen then return end
 
-    -- 1. Exit header sort mode if active
-    -- Header sort mode deactivates the list and swaps keybinds - must exit cleanly
-    if screen.isInHeaderSortMode then
-        if screen.ExitHeaderSortMode then
-            screen:ExitHeaderSortMode()
-        else
-            screen.isInHeaderSortMode = false
-            if screen.headerSortController and screen.headerSortController.ExitHeaderMode then
-                screen.headerSortController:ExitHeaderMode()
-            end
-        end
+    -- 1. Force-clear header sort mode unconditionally
+    -- Mirrors the d403eeaa pattern: always clear state, don't rely on flag checks.
+    -- We do NOT call ExitHeaderSortMode() because it re-activates the list,
+    -- which is immediately undone by the subsequent DeactivateLists() call.
+    screen.isInHeaderSortMode = false
+    if screen.headerSortController and screen.headerSortController.ExitHeaderMode then
+        screen.headerSortController:ExitHeaderMode()
+    end
+    -- Remove sort keybinds if they were added (safety net)
+    if screen.headerSortKeybindDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.headerSortKeybindDescriptor)
     end
 
     -- 2. Exit selection mode if active
