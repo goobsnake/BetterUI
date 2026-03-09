@@ -588,8 +588,9 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 
     -- Use the list's custom sort function if set, otherwise fall back to default
     -- This allows header sort to override the default sorting
-    -- self.currentSortComparator is set by OnHeaderSortChanged when user sorts by header column
-    local sortFunc = self.currentSortComparator or BETTERUI.Inventory.DefaultSortComparator
+    -- self.currentSortComparators["itemList"] is set by OnHeaderSortChanged when user sorts by header column
+    local sortFunc = (self.currentSortComparators and self.currentSortComparators["itemList"]) or
+    BETTERUI.Inventory.DefaultSortComparator
 
     -- If the list is small enough, process synchronously (prevents flickering on small lists)
     if #filteredDataTable <= BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL then

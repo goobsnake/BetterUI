@@ -440,7 +440,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
             local currentUsedBank = BETTERUI.Banking.currentUsedBank
             local activeCategoryForHeader = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or
-            nil
+                nil
             local showingCurrencyRows = (currentUsedBank == BAG_BANK)
                 and (not activeCategoryForHeader or activeCategoryForHeader.key == "all")
 
@@ -573,7 +573,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     self._inventorySingleSlotCallback = OnInventoryUpdated
     SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
     SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
-    self:RefreshList()
 end
 
 --[[
@@ -617,6 +616,10 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        if self._activeHeaderSortKeybindDescriptor then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
+            self._activeHeaderSortKeybindDescriptor = nil
+        end
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
     end
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
@@ -633,20 +636,6 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         self._inventorySingleSlotCallback = nil
     end
 
-    -- Unregister action dialog callbacks to prevent accumulation
-    if self._actionDialogSetupCallback then
-        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", self._actionDialogSetupCallback)
-        self._actionDialogSetupCallback = nil
-    end
-    if self._actionDialogFinishCallback then
-        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", self._actionDialogFinishCallback)
-        self._actionDialogFinishCallback = nil
-    end
-    if self._actionDialogButtonConfirmCallback then
-        CALLBACK_MANAGER:UnregisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM",
-            self._actionDialogButtonConfirmCallback)
-        self._actionDialogButtonConfirmCallback = nil
-    end
 
     -- Clear search state using shared helper
     BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
@@ -858,11 +847,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)
-
-    -- Store callbacks for unregistration in OnSceneHidden
-    self._actionDialogSetupCallback = ActionDialogSetup
-    self._actionDialogFinishCallback = ActionDialogFinish
-    self._actionDialogButtonConfirmCallback = ActionDialogButtonConfirm
 end
 
 -- NOTE: ActivateSpinner and DeactivateSpinner have been removed.

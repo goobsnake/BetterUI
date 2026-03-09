@@ -202,6 +202,11 @@ local function SwitchActiveList(self, listDescriptor)
                 self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
             end
         end
+
+        if self.headerSortControllers and self.headerSortControllers[self.currentListType] then
+            self.headerSortControllers[self.currentListType]:UpdateVisuals()
+        end
+
         -- RefreshKeybinds() is protected by InventoryClass override
         self:RefreshKeybinds()
     else

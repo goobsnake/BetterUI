@@ -51,6 +51,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
                     if onSortCallback then
                         onSortCallback()
                     end
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
             end,
         },
@@ -67,9 +68,28 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
                 end
             end,
         },
+        -- X Button - Clear Sort
+        {
+            ---@diagnostic disable-next-line: undefined-global
+            name = GetString(SI_BETTERUI_CLEAR_SORT),
+            keybind = "UI_SHORTCUT_SECONDARY",
+            visible = function()
+                if not controller:IsActive() then return false end
+                local currentDirection = controller.sortDirections[controller:GetCurrentColumnIndex()]
+                return currentDirection and currentDirection ~= BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.NONE
+            end,
+            callback = function()
+                if controller:ClearSort() then
+                    if onSortCallback then
+                        onSortCallback()
+                    end
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
         -- LB: Navigate to previous column (visible on keybind strip)
         {
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            order = 40,
             name = function()
                 local idx = controller:GetCurrentColumnIndex()
                 if idx > 1 then
@@ -91,7 +111,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
         },
         -- RB: Navigate to next column (visible on keybind strip)
         {
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            order = 50,
             name = function()
                 local idx = controller:GetCurrentColumnIndex()
                 local count = #controller.columns
@@ -187,12 +207,6 @@ function HeaderSortIntegration.EnterHeaderMode(integration, options)
     integration.isActive = true
     integration.controller:EnterHeaderMode()
 
-    -- Deactivate list's directional input to prevent scrolling
-    if integration.list.directionalInputEnabled ~= nil then
-        integration.originalDirectionalInput = integration.list.directionalInputEnabled
-        integration.list:SetDirectionalInputEnabled(false)
-    end
-
     -- Swap keybind strip (navigation is now handled via ethereal keybinds)
     if options.keybindStrip and options.mainKeybindDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(options.mainKeybindDescriptor)
@@ -217,22 +231,10 @@ function HeaderSortIntegration.ExitHeaderMode(integration, options)
     integration.isActive = false
     integration.controller:ExitHeaderMode()
 
-    -- Restore list's directional input flag directly (not via SetDirectionalInputEnabled)
-    -- to avoid double-registering with DIRECTIONAL_INPUT (same fix as mixin ExitHeaderSortMode)
-    if integration.originalDirectionalInput ~= nil then
-        integration.list.directionalInputEnabled = integration.originalDirectionalInput
-        integration.originalDirectionalInput = nil
-    end
-
     -- Swap keybind strip back
     if options.keybindStrip and options.mainKeybindDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(integration.headerModeKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(options.mainKeybindDescriptor)
-    end
-
-    -- Re-activate list
-    if integration.list.Activate then
-        integration.list:Activate()
     end
 
     -- Callback
@@ -291,15 +293,6 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
 
         self.isInHeaderSortMode = true
 
-        -- Deactivate the item list (stop list directional input)
-        if list.Deactivate then
-            list:Deactivate()
-        end
-        -- Also disable directional input for proper greying out
-        if list.SetDirectionalInputEnabled then
-            list:SetDirectionalInputEnabled(false)
-        end
-
         -- Enter header mode on controller
         controller:EnterHeaderMode()
 
@@ -312,12 +305,14 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
 
         -- Create header mode keybinds via shared CIM factory
-        if not self.headerSortKeybindDescriptor then
-            self.headerSortKeybindDescriptor = controller:CreateKeybindDescriptor(
+        -- Cache descriptor on the controller itself to support multiple independent lists (Inventory/CraftBag)
+        if not controller._headerSortKeybindDescriptor then
+            controller._headerSortKeybindDescriptor = controller:CreateKeybindDescriptor(
                 function() self:ExitHeaderSortMode() end
             )
         end
-        KEYBIND_STRIP:AddKeybindButtonGroup(self.headerSortKeybindDescriptor)
+        self._activeHeaderSortKeybindDescriptor = controller._headerSortKeybindDescriptor
+        KEYBIND_STRIP:AddKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
     end
 
     --- Exits header sort navigation mode.
@@ -336,27 +331,22 @@ function HeaderSortIntegration.ApplyMixin(instance, config)
         PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
 
         -- Restore keybinds
-        if self.headerSortKeybindDescriptor then
+        if self._activeHeaderSortKeybindDescriptor then
+            KEYBIND_STRIP:RemoveKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
+            self._activeHeaderSortKeybindDescriptor = nil
+        elseif self.headerSortKeybindDescriptor then
             KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
         end
 
         local mainKeybinds = config.keybindDescriptor or self.mainKeybindStripDescriptor or self.coreKeybinds
         if mainKeybinds then
             KEYBIND_STRIP:AddKeybindButtonGroup(mainKeybinds)
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(mainKeybinds)
         end
 
-        -- Reactivate the item list
-        local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
-        if list then
-            -- CRITICAL: Set the field directly instead of calling SetDirectionalInputEnabled(true).
-            -- SetDirectionalInputEnabled(true) calls DIRECTIONAL_INPUT:Activate() unconditionally,
-            -- and Activate() below calls it again via SetActive(true). ESO's DIRECTIONAL_INPUT
-            -- does NOT deduplicate — it blindly inserts, while Deactivate removes only one entry.
-            -- This would leave a ghost entry that consumes joystick input after scene exit.
-            list.directionalInputEnabled = true
-            if list.Activate then
-                list:Activate()
-            end
+        local instanceObj = self
+        if instanceObj.EnsureHeaderKeybindsActive then
+            instanceObj:EnsureHeaderKeybindsActive()
         end
     end
 end

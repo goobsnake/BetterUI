@@ -30,7 +30,18 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if screen.headerSortController and screen.headerSortController.ExitHeaderMode then
         screen.headerSortController:ExitHeaderMode()
     end
+    if screen.headerSortControllers then
+        for _, controller in pairs(screen.headerSortControllers) do
+            if controller and controller.ExitHeaderMode then
+                controller:ExitHeaderMode()
+            end
+        end
+    end
     -- Remove sort keybinds if they were added (safety net)
+    if screen._activeHeaderSortKeybindDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(screen._activeHeaderSortKeybindDescriptor)
+        screen._activeHeaderSortKeybindDescriptor = nil
+    end
     if screen.headerSortKeybindDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.headerSortKeybindDescriptor)
     end

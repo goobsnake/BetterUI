@@ -143,7 +143,9 @@ local function GetTraitSortValue(data)
     if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and traitType ~= 0 then
         local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
         if traitName and traitName ~= "" then
-            return traitName:upper() -- Normalize to uppercase
+            local result = traitName:upper() -- Normalize to uppercase
+            itemData.cached_traitName = result
+            return result
         end
     end
 
@@ -187,19 +189,29 @@ end
 local function GetValueSortValue(data)
     if not data then return 0 end
 
+    local itemData = data.dataSource or data
+
+    if itemData.cached_marketPrice then
+        return itemData.cached_marketPrice
+    end
+
     -- Try to get market price first
     if BETTERUI.GetMarketPrice then
-        local itemLink = data.itemLink or (data.bagId and data.slotIndex and GetItemLink(data.bagId, data.slotIndex))
+        local itemLink = itemData.itemLink or itemData.cached_itemLink or
+        (itemData.bagId and itemData.slotIndex and GetItemLink(itemData.bagId, itemData.slotIndex))
         if itemLink then
-            local marketPrice = BETTERUI.GetMarketPrice(itemLink, data.stackCount or 1)
+            local marketPrice = BETTERUI.GetMarketPrice(itemLink, itemData.stackCount or 1)
             if marketPrice and marketPrice > 0 then
+                itemData.cached_marketPrice = marketPrice
                 return marketPrice
             end
         end
     end
 
     -- Fall back to vendor price
-    return data.stackSellPrice or 0
+    local vendorPrice = itemData.stackSellPrice or 0
+    itemData.cached_marketPrice = vendorPrice
+    return vendorPrice
 end
 
 --- Creates sort comparator for a column with the specified direction
@@ -410,11 +422,6 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
     end
     -- NOTE: Keybinds are protected by UpdateActions guard which skips
     -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
-
-    -- Keep list deactivated during header sort mode to prevent scrolling
-    if self.isInHeaderSortMode and self.list and self.list.Deactivate then
-        self.list:Deactivate()
-    end
 end
 
 --- Enters header sort navigation mode.

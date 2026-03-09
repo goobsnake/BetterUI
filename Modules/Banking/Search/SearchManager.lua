@@ -58,12 +58,16 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
 
-
     if self.coreKeybinds then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
     end
     if self.withdrawDepositKeybinds then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
+    end
+
+    -- Ensure we exit header sort mode fully before showing search
+    if self.isInHeaderSortMode and self.ExitHeaderSortMode then
+        self:ExitHeaderSortMode()
     end
 
     if self.textSearchKeybindStripDescriptor then

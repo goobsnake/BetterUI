@@ -208,6 +208,37 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
 end
 
 --[[
+Function: HeaderSortController:ClearSort
+Description: Clears the sort direction for the current column.
+return: boolean - True if sort was cleared.
+]]
+--- @return boolean cleared True if sort was cleared
+function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
+    if #self.columns == 0 then
+        return false
+    end
+
+    local currentDirection = self.sortDirections[self.currentColumnIndex]
+    if currentDirection ~= SORT_DIRECTION.NONE then
+        self.sortDirections[self.currentColumnIndex] = SORT_DIRECTION.NONE
+        local clearedColumn = self.columns[self.currentColumnIndex]
+
+        if self.activeSortColumnIndex == self.currentColumnIndex then
+            self.activeSortColumnIndex = nil
+        end
+
+        self:UpdateVisuals()
+
+        if self.onSortChangedCallback and clearedColumn then
+            self.onSortChangedCallback(clearedColumn.key, SORT_DIRECTION.NONE, clearedColumn.sortFn)
+        end
+        return true
+    end
+
+    return false
+end
+
+--[[
 Function: HeaderSortController:ToggleSortForColumn
 Description: Toggles sort direction for a specific column (used by mouse clicks).
              Cycles: NONE → ASCENDING → DESCENDING → NONE
@@ -495,6 +526,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             callback = function()
                 controller:ToggleSort()
                 PlaySound(SOUNDS.DEFAULT_CLICK)
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
             end,
         },
         -- B button: Exit header mode
@@ -503,10 +535,26 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = exitCallback,
         },
+        -- X button: Clear sort
+        {
+            ---@diagnostic disable-next-line: undefined-global
+            name = GetString(SI_BETTERUI_CLEAR_SORT),
+            keybind = "UI_SHORTCUT_SECONDARY",
+            visible = function()
+                local currentDirection = controller.sortDirections[controller.currentColumnIndex]
+                return currentDirection and currentDirection ~= SORT_DIRECTION.NONE
+            end,
+            callback = function()
+                if controller:ClearSort() then
+                    PlaySound(SOUNDS.DEFAULT_CLICK)
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
         -- LB: Navigate to previous column (visible on keybind strip)
         -- Shows the previous column name for discoverability
         {
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            order = 40,
             name = function()
                 local idx = controller.currentColumnIndex
                 if idx > 1 then
@@ -529,7 +577,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         -- RB: Navigate to next column (visible on keybind strip)
         -- Shows the next column name for discoverability
         {
-            alignment = KEYBIND_STRIP_ALIGN_RIGHT,
+            order = 50,
             name = function()
                 local idx = controller.currentColumnIndex
                 if idx < #controller.columns then

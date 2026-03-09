@@ -470,7 +470,9 @@ local function GetTraitSortValue(data)
     if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE and traitType ~= 0 then
         local traitName = GetString("SI_ITEMTRAITTYPE", traitType)
         if traitName and traitName ~= "" then
-            return traitName:upper() -- Normalize to uppercase
+            local result = traitName:upper() -- Normalize to uppercase
+            itemData.cached_traitName = result
+            return result
         end
     end
 
@@ -514,19 +516,29 @@ end
 local function GetValueSortValue(data)
     if not data then return 0 end
 
+    local itemData = data.dataSource or data
+
+    if itemData.cached_marketPrice then
+        return itemData.cached_marketPrice
+    end
+
     -- Try to get market price first
     if BETTERUI.GetMarketPrice then
-        local itemLink = data.itemLink or (data.bagId and data.slotIndex and GetItemLink(data.bagId, data.slotIndex))
+        local itemLink = itemData.itemLink or itemData.cached_itemLink or
+            (itemData.bagId and itemData.slotIndex and GetItemLink(itemData.bagId, itemData.slotIndex))
         if itemLink then
-            local marketPrice = BETTERUI.GetMarketPrice(itemLink, data.stackCount or 1)
+            local marketPrice = BETTERUI.GetMarketPrice(itemLink, itemData.stackCount or 1)
             if marketPrice and marketPrice > 0 then
+                itemData.cached_marketPrice = marketPrice
                 return marketPrice
             end
         end
     end
 
     -- Fall back to vendor price
-    return data.stackSellPrice or 0
+    local vendorPrice = itemData.stackSellPrice or 0
+    itemData.cached_marketPrice = vendorPrice
+    return vendorPrice
 end
 
 --- Creates sort comparator for a column with the specified direction
@@ -643,17 +655,31 @@ end
 
 --- Initializes the header sort controller for this inventory instance
 function BETTERUI.Inventory.Class:InitializeHeaderSortController()
-    if self.headerSortController then return end
+    if self.headerSortControllers then return end
 
     local controllerClass = BETTERUI.CIM.UI.HeaderSortController
     if not controllerClass then return end
 
-    -- Create controller with column definitions and sort callback
-    self.headerSortController = controllerClass:New(
+    self.headerSortControllers = {}
+
+    local INVENTORY_ITEM_LIST = "itemList"
+    local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
+
+    -- Create controller for itemList
+    self.headerSortControllers[INVENTORY_ITEM_LIST] = controllerClass:New(
         self.itemList,
         INVENTORY_SORT_COLUMNS,
         function(columnKey, direction, sortFn)
-            self:OnHeaderSortChanged(columnKey, direction)
+            self:OnHeaderSortChanged(INVENTORY_ITEM_LIST, columnKey, direction)
+        end
+    )
+
+    -- Create controller for craftBagList
+    self.headerSortControllers[INVENTORY_CRAFT_BAG_LIST] = controllerClass:New(
+        self.craftBagList,
+        INVENTORY_SORT_COLUMNS,
+        function(columnKey, direction, sortFn)
+            self:OnHeaderSortChanged(INVENTORY_CRAFT_BAG_LIST, columnKey, direction)
         end
     )
 
@@ -667,7 +693,10 @@ function BETTERUI.Inventory.Class:InitializeHeaderSortController()
             -- Use a function to get the current list dynamically (supports itemList and craftBagList)
             listFn = function() return self:GetCurrentList() end,
             keybindDescriptor = self.mainKeybindStripDescriptor,
-            headerControllerFn = function() return self.headerSortController end,
+            headerControllerFn = function()
+                local listType = self.currentListType or INVENTORY_ITEM_LIST
+                return self.headerSortControllers[listType]
+            end,
             initControllerFn = function() self:InitializeHeaderSortController() end,
         })
     end
@@ -679,8 +708,12 @@ end
 --- Links column header labels to the sort controller for visual feedback
 --- Inventory uses GetNamedChild since it doesn't call AddColumn like Banking does
 function BETTERUI.Inventory.Class:LinkColumnLabels()
-    if not self.headerSortController then return end
-    if not self.headerSortController.SetColumnLabel then return end
+    if not self.headerSortControllers then return end
+
+    local headerControllerItem = self.headerSortControllers["itemList"]
+    local headerControllerCraft = self.headerSortControllers["craftBagList"]
+
+    if not headerControllerItem.SetColumnLabel then return end
 
     -- Column labels are defined in GenericHeader.xml: Column1Label...Column6Label
     -- Map column index (1-5) to the XML label names
@@ -696,7 +729,8 @@ function BETTERUI.Inventory.Class:LinkColumnLabels()
     if self.header and self.header.columns and #self.header.columns > 0 then
         for i, labelControl in ipairs(self.header.columns) do
             if labelControl then
-                self.headerSortController:SetColumnLabel(i, labelControl)
+                headerControllerItem:SetColumnLabel(i, labelControl)
+                headerControllerCraft:SetColumnLabel(i, labelControl)
             end
         end
         return
@@ -714,16 +748,18 @@ function BETTERUI.Inventory.Class:LinkColumnLabels()
                 labelControl = columnBar:GetNamedChild(labelName)
             end
             if labelControl then
-                self.headerSortController:SetColumnLabel(i, labelControl)
+                headerControllerItem:SetColumnLabel(i, labelControl)
+                headerControllerCraft:SetColumnLabel(i, labelControl)
             end
         end
     end
 end
 
 --- Called when sort direction changes on a column
+--- @param listType string The list type identifier ("itemList" or "craftBagList")
 --- @param columnKey string The column key that changed
 --- @param direction number Sort direction constant
-function BETTERUI.Inventory.Class:OnHeaderSortChanged(columnKey, direction)
+function BETTERUI.Inventory.Class:OnHeaderSortChanged(listType, columnKey, direction)
     local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
 
     -- Find the column definition
@@ -737,31 +773,36 @@ function BETTERUI.Inventory.Class:OnHeaderSortChanged(columnKey, direction)
 
     if not column then return end
 
-    -- Get the current active list (could be itemList or craftBagList)
-    local currentList = self:GetCurrentList()
+    local currentList = listType == "itemList" and self.itemList or self.craftBagList
     if not currentList then return end
+
+    self.currentSortComparators = self.currentSortComparators or {}
 
     -- Update the list sort function
     if direction == SORT_DIRECTION.NONE then
+        self.currentSortComparators[listType] = nil
         -- Reset to default sort (nil lets each list use its own default comparator)
-        self.currentSortComparator = nil
         if currentList.SetSortFunction then
-            currentList:SetSortFunction(nil)
+            if listType == "craftBagList" then
+                currentList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
+            else
+                currentList:SetSortFunction(nil)
+            end
         end
     else
         local ascending = (direction == SORT_DIRECTION.ASCENDING)
-        self.currentSortComparator = CreateColumnSortComparator(column.sortKey, ascending)
+        self.currentSortComparators[listType] = CreateColumnSortComparator(column.sortKey, ascending)
         if currentList.SetSortFunction then
-            currentList:SetSortFunction(self.currentSortComparator)
+            currentList:SetSortFunction(self.currentSortComparators[listType])
         end
     end
 
     -- Refresh the appropriate list to apply new sort
     -- NOTE: Keybinds are protected by SetSelectedInventoryData override which skips
     -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
-    if currentList == self.itemList then
+    if listType == "itemList" then
         self:RefreshItemList()
-    elseif currentList == self.craftBagList then
+    elseif listType == "craftBagList" then
         self:RefreshCraftBagList()
     end
 end

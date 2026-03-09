@@ -85,6 +85,11 @@ local function ActivateHeader(self)
 end
 
 local function OnEnterHeader(self)
+    -- Exit header sort mode cleanly when navigating up to the Search/Header area
+    if self.isInHeaderSortMode and self.ExitHeaderSortMode then
+        self:ExitHeaderSortMode()
+    end
+
     if ZO_GamepadInventory and ZO_GamepadInventory.OnEnterHeader then
         ZO_GamepadInventory.OnEnterHeader(self)
     else
