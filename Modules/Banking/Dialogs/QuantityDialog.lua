@@ -113,9 +113,6 @@ function BETTERUI.Banking.InitializeQuantityDialog()
                     if BETTERUI.Banking.Window and BETTERUI.Banking.Window.MoveItem then
                         BETTERUI.Banking.Window:MoveItem(BETTERUI.Banking.Window.list, quantity)
                     end
-
-                    -- Fire completion callback for list refresh
-                    CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED")
                 end,
             },
         },
@@ -148,6 +145,12 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     end
 
     local itemLink = GetItemLink(targetData.bagId, targetData.slotIndex)
+
+    -- Suppress list updates while the dialog is open so that OnInventoryUpdated
+    -- (fired by the server after the move) does not call RefreshList / list:Deactivate()
+    -- while the dialog is still on screen. The deferred refresh below handles the update
+    -- once the dialog fully closes.
+    self._suppressListUpdates = true
 
     -- ESO's ITEM_SLIDER dialog expects: sliderMin, sliderMax, sliderStartValue, bagId, slotIndex
     ZO_Dialogs_ShowGamepadDialog(BETTERUI_BANK_QUANTITY_DIALOG, {

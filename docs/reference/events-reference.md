@@ -12,19 +12,6 @@ All BetterUI custom events follow the pattern:
 
 ## Item Interaction Events
 
-### BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED
-
-**Purpose**: Signals that the split stack dialog has completed.
-
-**Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
-
-**Consumers**:
-- `Inventory/Inventory.lua` - Refreshes list after split
-
-**Payload**: None
-
----
-
 ### BETTERUI_EVENT_ACTION_DIALOG_SETUP
 
 **Purpose**: Fired when the Y-button action dialog is being initialized.

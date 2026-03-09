@@ -97,7 +97,7 @@ local function GetCurrencyActionFontDescriptor()
     local defaults = BETTERUI.CIM.Font.DEFAULTS
     local fontPath = (moduleSettings and moduleSettings.nameFont) or defaults.nameFont
     local fontSize = BETTERUI.CIM.Font.GetSizeValue((moduleSettings and moduleSettings.nameFontSize) or
-    defaults.nameFontSize)
+        defaults.nameFontSize)
     local fontStyle = (moduleSettings and moduleSettings.nameFontStyle) or defaults.nameFontStyle
 
     return BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize + CURRENCY_ACTION_FONT_SIZE_BONUS, fontStyle)

@@ -74,21 +74,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local toBagStackCount
     local toBagStackCountMax
     local isToBagItemStackable
-    local inSpinner = false
-    if quantity ~= nil then
-        --in spinner
-        inSpinner = true
-    else
-        --not in spinner
-        if (stackCount > 1) then
-            -- display the spinner
-            self:UpdateSpinnerConfirmation(true, self.list)
-            self:SetSpinnerValue(list:GetSelectedData().stackCount, list:GetSelectedData().stackCount)
-            return
-        else
-            --since stackcount = 1
-            quantity = 1
-        end
+    if quantity == nil then
+        quantity = 1
     end
 
     if self.currentMode == LIST_WITHDRAW then
@@ -145,9 +132,11 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     if toBagEmptyIndex ~= nil then
         --good to move
         CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
-        beginCoalescedRefresh(100)
-        if inSpinner then
-            self:UpdateSpinnerConfirmation(false, self.list)
+        -- Only coalesce refresh when NOT inside a dialog callback.
+        -- When called from QuantityDialog, the natural OnInventoryUpdated event
+        -- will handle the refresh after the dialog fully closes.
+        if not ZO_Dialogs_IsShowingDialog() then
+            beginCoalescedRefresh(100)
         end
         -- Accomodates full banks with stackable item slots available
     else
@@ -159,15 +148,11 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             if toBagIndex then
                 --good to move item that already has a non-full stack in the destination bag
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-                beginCoalescedRefresh(100)
-                if inSpinner then
-                    self:UpdateSpinnerConfirmation(false, self.list)
+                if not ZO_Dialogs_IsShowingDialog() then
+                    beginCoalescedRefresh(100)
                 end
             else
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
-                if inSpinner then
-                    self:UpdateSpinnerConfirmation(false, self.list)
-                end
             end
         else
             -- Try to find stackable slot in bank bags
@@ -181,17 +166,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end
             if toBagIndex and toBag then
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
-                beginCoalescedRefresh(100)
-                if inSpinner then
-                    self:UpdateSpinnerConfirmation(false, self.list)
+                if not ZO_Dialogs_IsShowingDialog() then
+                    beginCoalescedRefresh(100)
                 end
             else
                 local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
                     SI_INVENTORY_ERROR_BANK_FULL
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
-                if inSpinner then
-                    self:UpdateSpinnerConfirmation(false, self.list)
-                end
             end
         end
     end

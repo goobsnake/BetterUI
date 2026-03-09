@@ -242,7 +242,6 @@ BETTERUI.CIM.Types = {}
 -- ============================================================================
 
 ---@alias BetterUIEvent
----| "BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED"
 ---| "BETTERUI_EVENT_ACTION_DIALOG_SETUP"
 ---| "BETTERUI_EVENT_ACTION_DIALOG_FINISH"
 ---| "BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM"

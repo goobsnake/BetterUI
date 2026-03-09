@@ -214,16 +214,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- NOTE: List anchoring is handled by the BETTERUI_GenericInterface template in InterfaceLibrary.xml
     -- The template uses offsetX=-50, offsetY=-25 to match Inventory's positioning
 
-    local function CallbackSplitStackFinished()
-        --refresh list
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-            SHARED_INVENTORY:PerformFullUpdateOnBagCache(BETTERUI.Banking.currentUsedBank)
-            self:RefreshList()
-            self:ReturnToSaved()
-        end
-    end
-    CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_SPLIT_STACK_DIALOG_FINISHED", CallbackSplitStackFinished)
-
     self.list.maxOffset = BETTERUI_BANK_LIST_MAX_OFFSET
     self.list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE,
         GAMEPAD_HEADER_SELECTED_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
@@ -573,6 +563,27 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     self._inventorySingleSlotCallback = OnInventoryUpdated
     SHARED_INVENTORY:RegisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
     SHARED_INVENTORY:RegisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
+
+    -- Re-activate list and refresh after any gamepad dialog fully closes.
+    -- The QuantityDialog sets _suppressListUpdates=true before showing, which prevents
+    -- OnInventoryUpdated from triggering a RefreshList (and list:Deactivate) while the
+    -- dialog is still on screen. This callback clears that suppression and schedules
+    -- a deferred refresh so the list is properly updated once dialog teardown is complete.
+    self._onDialogHiddenCallback = function()
+        if BETTERUI.CIM.Utils.IsBankingSceneShowing() and self.list then
+            -- Clear update suppression first
+            self._suppressListUpdates = false
+            -- Schedule a deferred refresh so the dialog fragment has fully hidden
+            -- before we rebuild the list (avoids visual glitches during the slide-out)
+            BETTERUI.Banking.Tasks:Schedule("dialogHiddenRefresh", 50, function()
+                if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                    self.bankCategories = self:ComputeVisibleBankCategories()
+                    self:RefreshList()
+                end
+            end)
+        end
+    end
+    CALLBACK_MANAGER:RegisterCallback("OnGamepadDialogHidden", self._onDialogHiddenCallback)
 end
 
 --[[
@@ -634,6 +645,11 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     if self._inventorySingleSlotCallback then
         SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
         self._inventorySingleSlotCallback = nil
+    end
+    -- Unregister dialog hidden callback
+    if self._onDialogHiddenCallback then
+        CALLBACK_MANAGER:UnregisterCallback("OnGamepadDialogHidden", self._onDialogHiddenCallback)
+        self._onDialogHiddenCallback = nil
     end
 
 
@@ -784,10 +800,6 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             --restore the selected inventory item
 
             self:RefreshItemActions()
-
-            -- refresh so keybinds react to newly selected item
-
-            self:RefreshList()
         end
     end
     local function ActionDialogButtonConfirm(dialog)
