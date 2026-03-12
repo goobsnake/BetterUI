@@ -140,12 +140,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
 
-    -- Check Setting
+    -- Check Setting (consistent pattern: nil/missing → true, explicit false → false)
     local settings = BETTERUI.Settings.Modules["CIM"]
-    local enhancementsEnabled = true -- Default to true
-    if settings and settings.enableTooltipEnhancements ~= nil then
-        enhancementsEnabled = settings.enableTooltipEnhancements
-    end
+    local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
 
     -- Force 'false' default handled by Settings defaults, but variable initialization logic is sound.
 

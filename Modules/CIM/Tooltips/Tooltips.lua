@@ -278,13 +278,14 @@ end
 --- References: Called by Setup.
 ---
 --- @param tooltipControl object The tooltip control to hook.
+--- @param _tooltipType any Tooltip type constant (reserved for future use).
 --- @param method string The method name to hook/override.
 --- @param linkFunc function Function to retrieve item link.
 --- @param method2 string Secondary method to hook (typically for bag/slot retrieval).
 --- @param linkFunc2 function Secondary link function.
 --- @param method3 string Tertiary method to hook (for store search).
 --- @param linkFunc3 function Tertiary link function.
-function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
+function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local newMethod = tooltipControl[method]
     local newMethod2 = tooltipControl[method2]
     local newMethod3 = tooltipControl[method3]
@@ -330,10 +331,7 @@ function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, m
 
         -- 2. Get Settings
         local settings = BETTERUI.Settings.Modules["CIM"]
-        local enhancementsEnabled = true
-        if settings and settings.enableTooltipEnhancements ~= nil then
-            enhancementsEnabled = settings.enableTooltipEnhancements
-        end
+        local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
 
         local fontSize = BETTERUI.GetTooltipFontSize()
         local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
@@ -344,18 +342,31 @@ function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, m
             if child and child:GetType() == CT_LABEL then
                 child:SetFont(fontStr)
 
+                -- When BetterUI enhancements are active, hide duplicate price lines
+                -- that trading addons (TTC, MM, ATT) inject natively into the tooltip body.
+                -- BetterUI already displays this data in the enhanced status header above.
                 if enhancementsEnabled then
-                    local text = child:GetText() or ""
-                    -- Hide raw addon injections so they don't duplicate the BetterUI enhanced header versions
-                    if text:find("TTC:") or text:find("Tamriel Trade Centre") or text:find("M%.M%.") or text:find("Master Merchant") or text:find("ATT:") or string.find(text, "Arkadius") then
-                        child:SetHidden(true)
-                        child:SetHeight(0)
-                        
-                        -- Attempt to hide the preceding divider if any
-                        local prevChild = self:GetChild(i - 1)
-                        if prevChild and prevChild:GetType() == CT_TEXTURE then
-                            prevChild:SetHidden(true)
-                            prevChild:SetHeight(0)
+                    local text = child:GetText()
+                    if text then
+                        -- Match known addon label prefixes to avoid false positives on item names
+                        local isDuplicateAddonLine = (text:find("^TTC:") ~= nil)
+                            or (text:find("^Tamriel Trade Centre") ~= nil)
+                            or (text:find("^M%.M%.") ~= nil)
+                            or (text:find("^Master Merchant") ~= nil)
+                            or (text:find("^ATT:") ~= nil)
+                            or (text:find("^Arkadius' Trade Tools") ~= nil)
+                        if isDuplicateAddonLine then
+                            child:SetHidden(true)
+                            child:SetHeight(0)
+
+                            -- Also hide the preceding divider texture if present
+                            if i > 1 then
+                                local prevChild = self:GetChild(i - 1)
+                                if prevChild and prevChild:GetType() == CT_TEXTURE then
+                                    prevChild:SetHidden(true)
+                                    prevChild:SetHeight(0)
+                                end
+                            end
                         end
                     end
                 end
