@@ -176,7 +176,6 @@ local function UpdateBackBar(rootFrame)
 
     local activePair = GetActiveWeaponPairInfo()
     local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
-    local settings = GetModuleSettings()
     local backBarOpacity = settings.backBarOpacity or 1
 
     local slots = { 3, 4, 5, 6, 7, 8 }
