@@ -195,6 +195,22 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
         return true -- Default: always enabled if no getter
     end
 
+    local function GetSelectedIndex(list)
+        if type(list.targetSelectedIndex) == "number" and list.targetSelectedIndex >= 1 then
+            return list.targetSelectedIndex
+        end
+        if type(list.selectedIndex) == "number" and list.selectedIndex >= 1 then
+            return list.selectedIndex
+        end
+        if list.GetSelectedIndex then
+            local selectedIndex = list:GetSelectedIndex()
+            if type(selectedIndex) == "number" and selectedIndex >= 1 then
+                return selectedIndex
+            end
+        end
+        return 1
+    end
+
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         ethereal = true,
@@ -202,7 +218,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
             if not IsEnabled() then return end
             local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             local list = GetActualList(rawList)
-            if list then
+            if list and (not list.IsActive or list:IsActive()) then
                 local jumpByCategory = false
                 if type(useCategoryJumpGetter) == "function" then
                     jumpByCategory = useCategoryJumpGetter()
@@ -214,7 +230,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
                     list:JumpToPreviousHeader()
                 elseif not list:IsEmpty() then
                     local speed = GetSpeed()
-                    list:SetSelectedIndex(list.selectedIndex - speed)
+                    list:SetSelectedIndex(GetSelectedIndex(list) - speed)
                 end
             end
         end
@@ -226,7 +242,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
             if not IsEnabled() then return end
             local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             local list = GetActualList(rawList)
-            if list then
+            if list and (not list.IsActive or list:IsActive()) then
                 local jumpByCategory = false
                 if type(useCategoryJumpGetter) == "function" then
                     jumpByCategory = useCategoryJumpGetter()
@@ -238,7 +254,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
                     list:JumpToNextHeader()
                 elseif not list:IsEmpty() then
                     local speed = GetSpeed()
-                    list:SetSelectedIndex(list.selectedIndex + speed)
+                    list:SetSelectedIndex(GetSelectedIndex(list) + speed)
                 end
             end
         end,

@@ -715,5 +715,19 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         },
     }
 
+    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
+        function()
+            local currentList = self:GetCurrentList()
+            if currentList == self.itemList or currentList == self.craftBagList then
+                return currentList
+            end
+        end,
+        nil,
+        function() return BETTERUI.Inventory.GetSetting("triggerSpeed") end,
+        function() return BETTERUI.Inventory.GetSetting("useTriggersForSkip") end
+    )
+    table.insert(self.mainKeybindStripDescriptor, leftTrigger)
+    table.insert(self.mainKeybindStripDescriptor, rightTrigger)
+
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON)
 end

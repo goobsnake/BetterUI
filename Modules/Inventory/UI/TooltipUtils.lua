@@ -108,8 +108,22 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
 
     if container then
         local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+        local scrollTooltip = container:GetNamedChild("Tip")
         if bottomRail then
             bottomRail:SetHidden(true)
+        end
+        if container._betterUiNativePriceLabel then
+            container._betterUiNativePriceLabel:SetHidden(true)
+            container._betterUiNativePriceLabel:SetText("")
+        end
+        if scrollTooltip then
+            scrollTooltip:ClearAnchors()
+            if bottomRail then
+                scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
+            else
+                scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
+            end
+            scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
         end
     end
 
@@ -120,6 +134,10 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         tooltip._betterui_itemLink = nil
         tooltip._betterui_bagId = nil
         tooltip._betterui_slotIndex = nil
+        tooltip._betterui_storeStackCount = nil
+    end
+    if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
+        GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
     end
 end
 
@@ -148,6 +166,22 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
     local fontSize = BETTERUI.GetTooltipFontSize()
     local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
+    local scrollTooltip = container and container:GetNamedChild("Tip")
+    local nativeBottomRail = container and (container.bottomRail or container:GetNamedChild("BottomRail"))
+
+    if enhancementsEnabled and container and container._betterUiNativePriceLabel then
+        container._betterUiNativePriceLabel:SetHidden(true)
+        container._betterUiNativePriceLabel:SetText("")
+    end
+    if enhancementsEnabled and scrollTooltip then
+        scrollTooltip:ClearAnchors()
+        if nativeBottomRail then
+            scrollTooltip:SetAnchor(TOPLEFT, nativeBottomRail, BOTTOMLEFT, 0, 0)
+        else
+            scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0, BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
+        end
+        scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+    end
 
     -- 1. Get BetterUI Info (Price/Trait)
     local extraText = ""

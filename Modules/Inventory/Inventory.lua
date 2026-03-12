@@ -348,9 +348,9 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.savedVars = ZO_SavedVars:NewAccountWide("ZO_Ingame_SavedVariables", 2, "GamepadInventory", SAVED_VAR_DEFAULTS)
 	self.switchInfo = false
 
-	-- Apply saved trigger setting (defaults to false if not set)
-	local useTriggers = BETTERUI.Inventory.GetSetting("useTriggersForSkip") == true
-	self:SetListsUseTriggerKeybinds(useTriggers)
+	-- Inventory uses custom trigger keybinds on the active list instead of
+	-- the screen-level native header-jump triggers.
+	self:SetListsUseTriggerKeybinds(false)
 
 	self.categoryPositions = {}
 	self.categoryCraftPositions = {}
