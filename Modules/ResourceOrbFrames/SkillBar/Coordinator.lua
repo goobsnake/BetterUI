@@ -113,7 +113,7 @@ local function WeaponSwapAnimation(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
 
-    if not settings.weaponSwapAnimation or not backBarContainer or not frontBarContainer or not bgMiddle then
+    if not settings.weaponSwapAnimation or settings.hideBackBar or not backBarContainer or not frontBarContainer or not bgMiddle then
         SkillBar.UpdateBackBar(rootFrame)
         SkillBar.UpdateFrontBar(rootFrame)
         return

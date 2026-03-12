@@ -402,6 +402,11 @@ local function Init(mId, moduleName)
                     tooltip = GetString(SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP),
                     getFunc = getWeaponAnim,
                     setFunc = setWeaponAnim,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                            or (settings and settings.hideBackBar)
+                    end,
                     width = "full",
                 },
                 -- ============================================================================
