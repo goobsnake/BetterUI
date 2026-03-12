@@ -600,9 +600,9 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Enable quick destroy functionality")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
     "**USE WITH CAUTION** Quickly destroys items without a confirmation dialog! Does not apply to multi-select mode (batch destroy always requires confirmation).")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next item type")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Use triggers to move to next item")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
-    "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item type")
+    "Rather than skip a certain number of items every trigger press (default global behaviour), this will move to the next item")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Replace \"Value\" with the market's price")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Replaces the Value column in Inventory and Banking with MM, ATT, or TTC market prices when available.")
