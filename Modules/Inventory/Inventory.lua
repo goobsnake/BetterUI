@@ -150,8 +150,11 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- We normally do not want to enter the gamepad inventory on the item list
 		-- the exception is if we are coming back to the inventory, like from looting a container
 		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
+		-- Also detect brief scene detours (container loot, enchanting, etc.) via time-based check
+		local timeSinceHidden = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneHiddenTime or 0)) or 999
+		local isBriefDetour = (timeSinceHidden < 2.0)
 		if
-			listToActivate == INVENTORY_ITEM_LIST and not wasOnStack
+			listToActivate == INVENTORY_ITEM_LIST and not wasOnStack and not isBriefDetour
 		then
 			listToActivate = INVENTORY_CATEGORY_LIST
 		end
@@ -229,11 +232,11 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 
 		local savedListType = self.currentListType
 		self:SwitchActiveList(nil)
-		-- Preserve previousListType when scene is being pushed to stack (enchant, etc.)
-		-- so we can restore to the correct list type on return
-		if SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME) then
-			self.previousListType = savedListType
-		end
+		-- Always preserve previousListType so returning from brief scene detours
+		-- (container loot, enchanting, etc.) restores to the correct list.
+		self.previousListType = savedListType
+		-- Track when scene was hidden for time-based brief-detour detection
+		self._sceneHiddenTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
 		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
 
 		self.listWaitingOnDestroyRequest = nil

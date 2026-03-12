@@ -296,10 +296,16 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
 
     tooltipControl[method2] = function(self, ...)
         bagId, slotIndex = linkFunc2(...)
+        -- Clear store-specific state when navigating to a bag item
+        storeItemLink = nil
+        storeStackCount = nil
         newMethod2(self, ...)
     end
     tooltipControl[method3] = function(self, ...)
         storeItemLink, storeStackCount = linkFunc3(...)
+        -- Clear bag-specific state when navigating to a store item
+        bagId = nil
+        slotIndex = nil
         newMethod3(self, ...)
     end
     tooltipControl[method] = function(self, ...)
@@ -314,6 +320,10 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         self._betterui_bagId = bagId
         self._betterui_slotIndex = slotIndex
         self._betterui_storeStackCount = storeStackCount
+
+        -- Clear consumed store state to prevent it persisting to the next item
+        storeItemLink = nil
+        storeStackCount = nil
 
         -- 1. Draw the standard tooltip first
         newMethod(self, ...)

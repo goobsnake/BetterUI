@@ -486,7 +486,7 @@ function BETTERUI.Banking.Class:RefreshList()
                 itemData.cached_itemType = itemLink and GetItemLinkItemType(itemLink) or nil
                 itemData.cached_setItem = itemLink and GetItemLinkSetInfo(itemLink, false) or nil
                 itemData.cached_hasEnchantment = itemLink and GetItemLinkEnchantInfo(itemLink) or nil
-                itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE) and
+                itemData.cached_isRecipeAndUnknown = (itemData.cached_itemType == ITEMTYPE_RECIPE or itemData.cached_itemType == ITEMTYPE_RACIAL_STYLE_MOTIF) and
                     not (itemLink and IsItemLinkRecipeKnown(itemLink))
                 itemData.cached_isBookKnown = itemLink and IsItemLinkBookKnown(itemLink) or nil
                 itemData.cached_isUnbound = not IsItemBound(itemData.bagId, itemData.slotIndex) and not itemData.stolen and

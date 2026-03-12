@@ -159,14 +159,15 @@ Mechanism: Uses BETTERUI.Settings.Modules["CIM"].triggerSpeed for scroll amount.
 param: list (table) - The parametric scroll list to control.
 return: table, table - Left trigger and right trigger keybind descriptors.
 ]]
---- @param list table The parametric scroll list to control
+--- @param listOrGetter table|function The parametric scroll list, or a function returning it
 --- @return table leftTrigger Left trigger keybind descriptor
 --- @return table rightTrigger Right trigger keybind descriptor
-function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list)
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter)
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         ethereal = true,
         callback = function()
+            local list = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             if list and not list:IsEmpty() then
                 local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
                 list:SetSelectedIndex(list.selectedIndex - speed)
@@ -177,6 +178,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list)
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         ethereal = true,
         callback = function()
+            local list = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             if list and not list:IsEmpty() then
                 local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
                 list:SetSelectedIndex(list.selectedIndex + speed)

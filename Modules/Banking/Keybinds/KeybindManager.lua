@@ -457,7 +457,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         function() self:HideSelector() end)
 
     -- removed unused self.triggerSpinnerBinds placeholder
-    local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(self.list)
+    local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(function() return self.list end)
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
 

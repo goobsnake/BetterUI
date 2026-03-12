@@ -85,7 +85,7 @@ function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slot
         itemData.cached_setItem = GetItemLinkSetInfo(itemLink, false)
         itemData.cached_hasEnchantment = GetItemLinkEnchantInfo(itemLink)
 
-        if itemData.cached_itemType == ITEMTYPE_RECIPE then
+        if itemData.cached_itemType == ITEMTYPE_RECIPE or itemData.cached_itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
             itemData.cached_isRecipeAndUnknown = not IsItemLinkRecipeKnown(itemLink)
         end
 

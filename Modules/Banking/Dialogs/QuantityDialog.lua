@@ -158,7 +158,7 @@ function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
         slotIndex = targetData.slotIndex,
         sliderMin = 1,
         sliderMax = stackCount,
-        sliderStartValue = 1, -- Start with 1 selected to move
+        sliderStartValue = stackCount, -- Default to full stack for convenience
         isDeposit = isDeposit,
         itemLink = itemLink,
         itemName = GetItemName(targetData.bagId, targetData.slotIndex),
