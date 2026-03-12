@@ -13,13 +13,15 @@ local Animations = BETTERUI.ResourceOrbFrames.Animations
 -- State tracking for dimension animation
 local m_dimensionsTimeline = nil
 local m_lastScale = nil
+local m_lastOffsetX = nil
 local m_lastOffsetY = nil
 
---- Animates the root frame's scale and vertical position.
+--- Animates the root frame's scale and position.
 --- @param rootFrame control The root frame control.
 --- @param targetScale number The target scale.
+--- @param targetOffsetX number The target X offset (positive moves right).
 --- @param targetOffsetY number The target Y offset (inverted, positive moves up).
-function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetY)
+function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, targetOffsetY)
     if not rootFrame then return end
     
     -- Stop existing animation
@@ -41,12 +43,13 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetY)
         
         customAnim:SetUpdateFunction(function(anim, progress)
             local currentScale = zo_lerp(anim.startScale, anim.endScale, progress)
+            local currentX = zo_lerp(anim.startX, anim.endX, progress)
             local currentY = zo_lerp(anim.startY, anim.endY, progress)
             
             rootFrame:SetScale(currentScale)
             rootFrame:ClearAnchors()
             -- Invert offsetY: positive settings value means UP, so we used negative anchor Y
-            rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -currentY)
+            rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, currentX, -currentY)
         end)
     end
     
@@ -54,7 +57,14 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetY)
     local customAnim = m_dimensionsTimeline:GetFirstAnimationOfType(ANIMATION_CUSTOM)
     customAnim.startScale = rootFrame:GetScale()
     customAnim.endScale = targetScale
-    -- Check if we have a valid last offset, otherwise try to get from current anchor
+    -- Check if we have valid last offsets, otherwise try to derive from current anchor
+    if m_lastOffsetX then
+        customAnim.startX = m_lastOffsetX
+    else
+        local _, _, _, _, currentAnchorX = rootFrame:GetAnchor(0)
+        customAnim.startX = currentAnchorX or targetOffsetX
+    end
+    customAnim.endX = targetOffsetX
     if m_lastOffsetY then
         customAnim.startY = m_lastOffsetY
     else
@@ -71,18 +81,24 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetY)
     
     -- Update state
     m_lastScale = targetScale
+    m_lastOffsetX = targetOffsetX
     m_lastOffsetY = targetOffsetY
 end
 
 --- Updates state without animating (instant set).
 --- Use this during initialization to sync state.
-function Animations.SetState(scale, offsetY)
+function Animations.SetState(scale, offsetX, offsetY)
     m_lastScale = scale
+    m_lastOffsetX = offsetX
     m_lastOffsetY = offsetY
 end
 
 function Animations.GetLastScale()
     return m_lastScale
+end
+
+function Animations.GetLastOffsetX()
+    return m_lastOffsetX
 end
 
 function Animations.GetLastOffsetY()

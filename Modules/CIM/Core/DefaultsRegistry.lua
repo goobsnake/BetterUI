@@ -61,6 +61,7 @@ BETTERUI.Defaults.Modules = {
 
         -- Optional Features
         useTriggersForSkip = false,  -- Personal preference
+        triggerSpeed = 10,           -- Lines to skip with triggers
         enableCompanionJunk = false, -- Requires FCO Companion addon
     },
 
@@ -78,6 +79,10 @@ BETTERUI.Defaults.Modules = {
         showIconResearchableTrait = true,
         showIconUnknownRecipe = true,
         showIconUnknownBook = true,
+
+        -- Optional Features
+        useTriggersForSkip = false,  -- Personal preference
+        triggerSpeed = 10,           -- Lines to skip with triggers
     },
 
     -- ========================================================================
@@ -110,7 +115,6 @@ BETTERUI.Defaults.Modules = {
     -- CIM (Common Interface Module) CORE SETTINGS
     -- ========================================================================
     CIM = {
-        triggerSpeed = 10,                -- Lines to skip with triggers
         rhScrollSpeed = 50,               -- Right-hand tooltip scroll speed
         tooltipSize = 24,                 -- Tooltip font size
         enableTooltipEnhancements = true, -- Enable enhanced tooltip formatting

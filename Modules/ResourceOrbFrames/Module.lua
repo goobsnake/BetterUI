@@ -173,6 +173,7 @@ local function Init(mId, moduleName)
     local GetColorSet = BETTERUI.CreateColorSettingAccessors("ResourceOrbFrames", Apply)
 
     local getScale, setScale = GetSet("scale", Default("scale", 1))
+    local getOffsetX, setOffsetX = GetSet("offsetX", Default("offsetX", 0))
     local getOffset, setOffset = GetSet("offsetY", Default("offsetY", 0))
 
     local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize",
@@ -183,6 +184,7 @@ local function Init(mId, moduleName)
     local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor",
         CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 }))
     local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", Default("backBarOpacity", 1))
+    local getHideBackBar, setHideBackBar = GetSet("hideBackBar", Default("hideBackBar", false))
     local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", Default("weaponSwapAnimation", true))
 
     local getShowUlt, setShowUlt = GetSet("showUltimateNumber", Default("showUltimateNumber", true))
@@ -265,6 +267,18 @@ local function Init(mId, moduleName)
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             default = Default("offsetY", 0),
         },
+        {
+            type = "slider",
+            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X),
+            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP),
+            min = -500,
+            max = 500,
+            step = 5,
+            getFunc = getOffsetX,
+            setFunc = setOffsetX,
+            disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
+            default = Default("offsetX", 0),
+        },
         -- TODO(refactor): Extract reset settings pattern to single ResetSettings() function - duplicated at lines 332, 509, 689
         {
             type = "button",
@@ -276,6 +290,7 @@ local function Init(mId, moduleName)
                     return
                 end
                 settings.scale = Default("scale", 1)
+                settings.offsetX = Default("offsetX", 0)
                 settings.offsetY = Default("offsetY", 0)
 
                 if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
@@ -365,6 +380,20 @@ local function Init(mId, moduleName)
                     decimals = 2,
                     getFunc = getBackBarOpacity,
                     setFunc = setBackBarOpacity,
+                    disabled = function()
+                        local settings = GetResourceOrbSettings()
+                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
+                            or (settings and settings.hideBackBar)
+                    end,
+                    width = "full",
+                },
+                {
+                    type = "checkbox",
+                    name = GetString(SI_BETTERUI_HIDE_BACK_BAR),
+                    tooltip = GetString(SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP),
+                    getFunc = getHideBackBar,
+                    setFunc = setHideBackBar,
+                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                     width = "full",
                 },
                 {
@@ -463,6 +492,7 @@ local function Init(mId, moduleName)
                         settings.quickslotTextSize = Default("quickslotTextSize", 27)
                         settings.quickslotTextColor = CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 })
                         settings.backBarOpacity = Default("backBarOpacity", 1)
+                        settings.hideBackBar = Default("hideBackBar", false)
                         settings.weaponSwapAnimation = Default("weaponSwapAnimation", true)
                         settings.showUltimateNumber = Default("showUltimateNumber", true)
                         settings.ultimateTextSize = Default("ultimateTextSize", 27)

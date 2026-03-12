@@ -440,6 +440,11 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         end
     end
 
+    -- Capture current active index before clearing as an ultimate fallback
+    if not targetIndex and self.itemList:GetSelectedIndex() then
+        targetIndex = self.itemList:GetSelectedIndex()
+    end
+
     -- Priority fallback: Global preserve index (when item leaves list after equip/consume)
     if not targetIndex and self._preserveIndex then
         targetIndex = self._preserveIndex
@@ -683,7 +688,7 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 
     -- Safety: Ensure BetterUI tooltip properties are set (in case GeneralInterface hooks are disabled)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-    if tooltip and not tooltip._betterui_itemLink and selectedData.bagId then
+    if tooltip and selectedData.bagId then
         tooltip._betterui_bagId = selectedData.bagId
         tooltip._betterui_slotIndex = selectedData.slotIndex
         tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)

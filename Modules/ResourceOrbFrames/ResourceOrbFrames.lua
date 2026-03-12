@@ -21,6 +21,7 @@ local m_updateDeathFragment = nil
 
 -- Cached Control References (avoid repeated FindControl lookups in hot paths)
 local m_bgMiddle = nil
+local m_frontBarContainer = nil
 local m_backBarContainer = nil
 local m_leftOrnament = nil
 local m_rightOrnament = nil
@@ -35,8 +36,8 @@ local m_foodTracker = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
--- TODO(bug): ROFTasks is local-only but never published to BETTERUI.ResourceOrbFrames.Tasks; Coordinator.lua:86 references Tasks:Schedule() on the namespace and crashes in keyboard mode
 local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
+ResourceOrbFrames.Tasks = ROFTasks
 
 -- Defaults
 local DEFAULTS = {
@@ -156,11 +157,16 @@ local function ApplyLayout(updateOrbs, updateSkills)
 
     if m_castBar and m_castBar.control then
         m_castBar.control:ClearAnchors()
-        if m_backBarContainer then
+        if settings.hideBackBar or not m_backBarContainer then
+            -- When back bar is hidden (e.g. Oakensoul builds), anchor cast bar to the front bar instead
+            if m_frontBarContainer then
+                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X, BETTERUI_CAST_BAR_OFFSET_Y)
+            else
+                m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BETTERUI_CAST_BAR_OFFSET_X or 0, -200)
+            end
+        else
             m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X,
                 BETTERUI_CAST_BAR_OFFSET_Y)
-        else
-            m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, 0, -200)
         end
         m_castBar:Update()
     end
@@ -185,6 +191,7 @@ local function SetupModule(control)
 
     -- 2. Cache Control References (avoid repeated FindControl lookups in ApplyLayout)
     m_bgMiddle = FindControl(control, 'BgMiddle')
+    m_frontBarContainer = FindControl(control, 'FrontBarContainer')
     m_backBarContainer = FindControl(control, 'BackBarContainer')
     m_leftOrnament = FindControl(control, 'OrnamentLeft')
     m_rightOrnament = FindControl(control, 'OrnamentRight')

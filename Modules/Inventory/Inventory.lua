@@ -348,8 +348,8 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.savedVars = ZO_SavedVars:NewAccountWide("ZO_Ingame_SavedVariables", 2, "GamepadInventory", SAVED_VAR_DEFAULTS)
 	self.switchInfo = false
 
-	local inventorySettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Inventory"]
-	self:SetListsUseTriggerKeybinds(inventorySettings and inventorySettings.useTriggersForSkip == true)
+	-- Disable native ESO triggers, BetterUI now manages them custom in real-time
+	self:SetListsUseTriggerKeybinds(false)
 
 	self.categoryPositions = {}
 	self.categoryCraftPositions = {}

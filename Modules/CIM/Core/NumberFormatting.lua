@@ -46,7 +46,7 @@ Credits: Bart Kiers
 param: number (number) - The number to format.
 return: string - The formatted string with commas.
 ]]
---- @param number number The number to format
+--- @param number number|string The number to format
 --- @return string formatted The number string with comma separators
 function BETTERUI.DisplayNumber(number)
     local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')

@@ -336,6 +336,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröß
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Vertikaler Versatz (Auf/Ab)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Bewegt den Rahmen nach oben/unten. Positiv bewegt nach oben; negativ bewegt nach unten.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Horizontaler Versatz (Links/Rechts)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
+    "Bewegt den Rahmen nach links/rechts. Negativ bewegt nach links; positiv bewegt nach rechts.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Allgemeine Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Alle Einstellungen in diesem Abschnitt auf Standardwerte zurücksetzen.")
@@ -434,6 +437,9 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Aussehen der Back Bar")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Back Bar Deckkraft")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Passen Sie an, wie gedimmt die Back Bar-Symbole erscheinen. Niedrigere Werte machen die Back Bar weniger auffällig.")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "Back Bar ausblenden")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP",
+    "Blendet die Back Bar (obere Fähigkeitsleiste) vollständig aus. Nützlich für Oakensoul- oder Ein-Leisten-Builds.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Fähigkeitsleisten-Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Kugel-Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "EP-Leisten-Einstellungen zurücksetzen")

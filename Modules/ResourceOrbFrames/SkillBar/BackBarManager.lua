@@ -163,6 +163,12 @@ local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
+    local settings = GetModuleSettings()
+    if settings.hideBackBar then
+        backBarContainer:SetHidden(true)
+        return
+    end
+
     if not CanUseBackupBar() then
         backBarContainer:SetHidden(true)
         return

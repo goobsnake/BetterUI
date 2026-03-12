@@ -326,6 +326,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Общий �
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Вертикальное смещение (Вверх/Вниз)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Переместить рамку вверх/вниз. Положительное значение перемещает вверх, отрицательное - вниз.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Горизонтальное смещение (Влево/Вправо)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
+    "Переместить рамку влево/вправо. Отрицательное значение перемещает влево, положительное - вправо.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Сбросить общие настройки")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Сбросить настройки в этом разделе к значениям по умолчанию.")
@@ -427,6 +430,9 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Внешний вид резе
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Непрозрачность резервной панели")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Настройте, насколько затемненными выглядят иконки резервной панели. Меньшие значения делают её менее заметной.")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "Скрыть резервную панель")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP",
+    "Полностью скрывает резервную панель (верхнюю панель умений). Полезно для Oakensoul и сборок с одной панелью.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Сбросить настройки панели умений")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Сбросить настройки сфер")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Сбросить настройки полосы опыта")

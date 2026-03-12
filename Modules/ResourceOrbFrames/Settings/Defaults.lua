@@ -13,6 +13,7 @@ local function GetDefaults()
     return {
         m_enabled = true,
         scale = 1.0,
+        offsetX = 0,
         offsetY = 0,
         centerBarType = "XP",
         healthTextSize = 20,
@@ -48,6 +49,7 @@ local function GetDefaults()
         showCombatIcon = true,
         playCombatAudio = true,
         backBarOpacity = 1,
+        hideBackBar = false,
         hideLeftOrnament = false,
         hideRightOrnament = false,
         leftOrbSizeScale = 1.0,
@@ -103,6 +105,7 @@ local function NormalizeNumericSettings(m_options, defaults)
 
     -- General frame controls.
     m_options.scale = ClampNumber(m_options.scale, 0.75, 1.75, defaults.scale or 1.0)
+    m_options.offsetX = ClampInteger(m_options.offsetX, -500, 500, defaults.offsetX or 0)
     m_options.offsetY = ClampInteger(m_options.offsetY, -300, 300, defaults.offsetY or 0)
 
     -- Skill/orb sliders with decimal ranges.

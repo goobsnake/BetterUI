@@ -34,12 +34,28 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         end
     end
 
+    local function ApplyTriggerMode(useCategoryJump)
+        local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
+        if not bankingWindow then return end
+
+        if bankingWindow.SetListsUseTriggerKeybinds then
+            bankingWindow:SetListsUseTriggerKeybinds(useCategoryJump)
+        end
+        if bankingWindow.RefreshKeybinds then
+            bankingWindow:RefreshKeybinds()
+        end
+    end
+
     local function ResetBankingGeneralSettings()
         if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
             BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Banking", "general")
         else
             BETTERUI.Banking.SetSetting("enableCarousel", true)
+            BETTERUI.Banking.SetSetting("useTriggersForSkip", false)
+            BETTERUI.Banking.SetSetting("triggerSpeed", 10)
         end
+        
+        ApplyTriggerMode(BETTERUI.Banking.GetSetting("useTriggersForSkip"))
 
         local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
         if bankingWindow and bankingWindow.RebuildHeaderCategories then
@@ -74,6 +90,37 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                     bankingWindow:RebuildHeaderCategories()
                 end
             end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE),
+            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP),
+            getFunc = function()
+                return BETTERUI.Banking.GetSetting("useTriggersForSkip")
+            end,
+            setFunc = function(value)
+                BETTERUI.Banking.SetSetting("useTriggersForSkip", value)
+                ApplyTriggerMode(value)
+            end,
+            width = "full",
+        },
+        {
+            type = "editbox",
+            name = GetString(SI_BETTERUI_TRIGGER_SKIP),
+            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
+            getFunc = function()
+                local value = BETTERUI.Banking.GetSetting("triggerSpeed")
+                return value and tostring(value) or "10"
+            end,
+            setFunc = function(value)
+                local parsedValue = tonumber(value) or 10
+                if parsedValue < 1 then parsedValue = 1 end
+                if parsedValue > 1000 then parsedValue = 1000 end
+                BETTERUI.Banking.SetSetting("triggerSpeed", parsedValue)
+                ApplyTriggerMode(BETTERUI.Banking.GetSetting("useTriggersForSkip"))
+            end,
+            disabled = function() return not BETTERUI.Banking.GetSetting("useTriggersForSkip") end,
             width = "full",
         },
         {

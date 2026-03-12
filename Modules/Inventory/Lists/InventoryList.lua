@@ -223,7 +223,7 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local currentItemType = data.cached_itemType or GetItemLinkItemType(itemData)
         local isRecipeAndUnknown = data.cached_isRecipeAndUnknown
         if isRecipeAndUnknown == nil then
-            isRecipeAndUnknown = (currentItemType == ITEMTYPE_RECIPE or currentItemType == ITEMTYPE_RACIAL_STYLE_MOTIF) and not IsItemLinkRecipeKnown(itemData)
+            isRecipeAndUnknown = (currentItemType == ITEMTYPE_RECIPE) and not IsItemLinkRecipeKnown(itemData)
             data.cached_isRecipeAndUnknown = isRecipeAndUnknown
             dS.cached_isRecipeAndUnknown = isRecipeAndUnknown
         end
@@ -532,14 +532,14 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Set stat information based on item type
     local statText
-    if itemType == ITEMTYPE_RECIPE or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
+    if itemType == ITEMTYPE_RECIPE then
         local isUnknown = data.cached_isRecipeAndUnknown
         if isUnknown == nil then
             isUnknown = not IsItemLinkRecipeKnown(itemLink)
         end
         statText = isUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or
             GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
-    elseif data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK then
+    elseif data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         local isKnown = data.cached_isBookKnown
         if isKnown == nil then
             isKnown = IsItemLinkBookKnown(itemLink)

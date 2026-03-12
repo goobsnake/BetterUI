@@ -284,7 +284,7 @@ end
 --- @param linkFunc2 function Secondary link function.
 --- @param method3 string Tertiary method to hook (for store search).
 --- @param linkFunc3 function Tertiary link function.
-function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
+function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local newMethod = tooltipControl[method]
     local newMethod2 = tooltipControl[method2]
     local newMethod3 = tooltipControl[method3]
@@ -328,14 +328,37 @@ function BETTERUI.InventoryHook(tooltipControl, method, linkFunc, method2, linkF
         -- 1. Draw the standard tooltip first
         newMethod(self, ...)
 
-        -- 2. Scale Fonts
+        -- 2. Get Settings
+        local settings = BETTERUI.Settings.Modules["CIM"]
+        local enhancementsEnabled = true
+        if settings and settings.enableTooltipEnhancements ~= nil then
+            enhancementsEnabled = settings.enableTooltipEnhancements
+        end
+
         local fontSize = BETTERUI.GetTooltipFontSize()
         local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
 
+        -- 3. Scale Fonts & Clean up duplicates
         for i = 1, self:GetNumChildren() do
             local child = self:GetChild(i)
             if child and child:GetType() == CT_LABEL then
                 child:SetFont(fontStr)
+
+                if enhancementsEnabled then
+                    local text = child:GetText() or ""
+                    -- Hide raw addon injections so they don't duplicate the BetterUI enhanced header versions
+                    if text:find("TTC:") or text:find("Tamriel Trade Centre") or text:find("M%.M%.") or text:find("Master Merchant") or text:find("ATT:") or string.find(text, "Arkadius") then
+                        child:SetHidden(true)
+                        child:SetHeight(0)
+                        
+                        -- Attempt to hide the preceding divider if any
+                        local prevChild = self:GetChild(i - 1)
+                        if prevChild and prevChild:GetType() == CT_TEXTURE then
+                            prevChild:SetHidden(true)
+                            prevChild:SetHeight(0)
+                        end
+                    end
+                end
             end
         end
     end

@@ -315,6 +315,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Tamaño gene
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Desplazamiento vertical (Arriba/Abajo)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Mueve el marco hacia arriba/abajo. Positivo mueve hacia arriba; negativo hacia abajo.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Desplazamiento horizontal (Izquierda/Derecha)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
+    "Mueve el marco hacia la izquierda/derecha. Negativo hacia la izquierda; positivo hacia la derecha.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Restablecer ajustes generales")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Restablecer todos los ajustes de esta sección a sus valores por defecto.")
@@ -416,6 +419,9 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Apariencia de barra trasera")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Opacidad de barra trasera")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Ajusta qué tan tenues aparecen los iconos de la barra trasera. Valores más bajos la hacen menos notable.")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "Ocultar barra trasera")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP",
+    "Oculta completamente la barra trasera (barra de habilidades superior). Útil para builds Oakensoul o de una sola barra.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Restablecer barra habilidades")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Restablecer ajustes de orbes")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Restablecer ajustes de barra EXP")

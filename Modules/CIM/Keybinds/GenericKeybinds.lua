@@ -160,17 +160,42 @@ param: list (table) - The parametric scroll list to control.
 return: table, table - Left trigger and right trigger keybind descriptors.
 ]]
 --- @param listOrGetter table|function The parametric scroll list, or a function returning it
+--- @param useCategoryJumpGetter function|boolean|nil Optional. Getter function returning boolean if category jump should be used instead of speed skip.
 --- @return table leftTrigger Left trigger keybind descriptor
 --- @return table rightTrigger Right trigger keybind descriptor
-function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter)
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter)
+
+    local function GetActualList(listWrapper)
+        if not listWrapper then return nil end
+        if listWrapper.JumpToPreviousHeader then return listWrapper end
+        if listWrapper.list and listWrapper.list.JumpToPreviousHeader then return listWrapper.list end
+        if listWrapper.GetParametricList then
+            local pList = listWrapper:GetParametricList()
+            if pList and pList.JumpToPreviousHeader then return pList end
+        end
+        return listWrapper
+    end
+
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         ethereal = true,
         callback = function()
-            local list = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
-            if list and not list:IsEmpty() then
-                local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
-                list:SetSelectedIndex(list.selectedIndex - speed)
+            local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
+            local list = GetActualList(rawList)
+            if list then
+                local jumpByCategory = false
+                if type(useCategoryJumpGetter) == "function" then
+                    jumpByCategory = useCategoryJumpGetter()
+                elseif type(useCategoryJumpGetter) == "boolean" then
+                    jumpByCategory = useCategoryJumpGetter
+                end
+
+                if jumpByCategory and list.JumpToPreviousHeader then
+                    list:JumpToPreviousHeader()
+                elseif not list:IsEmpty() then
+                    local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                    list:SetSelectedIndex(list.selectedIndex - speed)
+                end
             end
         end
     }
@@ -178,10 +203,22 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter)
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         ethereal = true,
         callback = function()
-            local list = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
-            if list and not list:IsEmpty() then
-                local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
-                list:SetSelectedIndex(list.selectedIndex + speed)
+            local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
+            local list = GetActualList(rawList)
+            if list then
+                local jumpByCategory = false
+                if type(useCategoryJumpGetter) == "function" then
+                    jumpByCategory = useCategoryJumpGetter()
+                elseif type(useCategoryJumpGetter) == "boolean" then
+                    jumpByCategory = useCategoryJumpGetter
+                end
+
+                if jumpByCategory and list.JumpToNextHeader then
+                    list:JumpToNextHeader()
+                elseif not list:IsEmpty() then
+                    local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                    list:SetSelectedIndex(list.selectedIndex + speed)
+                end
             end
         end,
     }

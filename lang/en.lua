@@ -380,6 +380,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Overall size
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Offset (Up/Down)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Move the frame up/down. Positive moves up; negative moves down.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Offset (Left/Right)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
+    "Move the frame left/right. Negative moves left; positive moves right.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Reset General Settings")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Reset settings in this section to their default values.")
@@ -496,6 +499,9 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Back Bar Appearance")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Back Bar Opacity")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Adjust how dimmed the back bar icons appear. Lower values make the back bar less noticeable.")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "Hide Back Bar")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP",
+    "Completely hides the back bar (top skill bar). Useful for Oakensoul or one-bar builds.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Reset Skill Bar Settings")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Reset Orb Settings")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Reset Exp Bar Settings")

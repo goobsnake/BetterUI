@@ -154,7 +154,6 @@ local function ResetGeneralInterfaceGeneralSettings()
         end
         if cimSettings then
             cimSettings.rhScrollSpeed = 50
-            cimSettings.triggerSpeed = 10
         end
     end
 
@@ -321,26 +320,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             disabled = function() return not IsCIMEnabled() end,
             width = "full",
         },
-        {
-            type = "editbox",
-            name = GetString(SI_BETTERUI_TRIGGER_SKIP),
-            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
-            getFunc = function()
-                local settings = GetModuleSettings("CIM")
-                local value = (settings and settings.triggerSpeed) or GetMetadataDefault("CIM", "triggerSpeed", 10)
-                return tostring(value)
-            end,
-            setFunc = function(value)
-                local settings = EnsureModuleSettings("CIM")
-                if settings then
-                    local defaultValue = GetMetadataDefault("CIM", "triggerSpeed", 10)
-                    local currentValue = tonumber(settings.triggerSpeed) or defaultValue
-                    settings.triggerSpeed = ParseIntegerInput(value, currentValue, 1, 1000)
-                end
-            end,
-            disabled = function() return not IsCIMEnabled() end,
-            width = "full",
-        },
+
         {
             type = "button",
             name = GetString(SI_BETTERUI_GENERAL_RESET),

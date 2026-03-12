@@ -79,6 +79,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			BETTERUI.Inventory.SetSetting("enableBatchDestroy", false)
 			BETTERUI.Inventory.SetSetting("enableCarousel", true)
 			BETTERUI.Inventory.SetSetting("useTriggersForSkip", false)
+			BETTERUI.Inventory.SetSetting("triggerSpeed", 10)
 			BETTERUI.Inventory.SetSetting("bindOnEquipProtection", true)
 			BETTERUI.Inventory.SetSetting("enableCompanionJunk", false)
 		end
@@ -168,6 +169,24 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				BETTERUI.Inventory.SetSetting("useTriggersForSkip", value)
 				ApplyTriggerMode(value)
 			end,
+			width = "full",
+		},
+		{
+			type = "editbox",
+			name = GetString(SI_BETTERUI_TRIGGER_SKIP),
+			tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
+			getFunc = function()
+				local value = BETTERUI.Inventory.GetSetting("triggerSpeed")
+				return value and tostring(value) or "10"
+			end,
+			setFunc = function(value)
+				local parsedValue = tonumber(value) or 10
+				if parsedValue < 1 then parsedValue = 1 end
+				if parsedValue > 1000 then parsedValue = 1000 end
+				BETTERUI.Inventory.SetSetting("triggerSpeed", parsedValue)
+				ApplyTriggerMode(BETTERUI.Inventory.GetSetting("useTriggersForSkip"))
+			end,
+			disabled = function() return not BETTERUI.Inventory.GetSetting("useTriggersForSkip") end,
 			width = "full",
 		},
 		{

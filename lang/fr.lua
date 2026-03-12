@@ -338,6 +338,9 @@ ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Taille globa
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET", "Décalage vertical (Haut/Bras)")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP",
     "Déplace le cadre vers le haut/bas. Positif vers le haut; négatif vers le bas.")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X", "Décalage horizontal (Gauche/Droite)")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP",
+    "Déplace le cadre vers la gauche/droite. Négatif vers la gauche; positif vers la droite.")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET", "Réinitialiser les paramètres généraux")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP",
     "Réinitialiser les paramètres de cette section à leurs valeurs par défaut.")
@@ -436,6 +439,9 @@ ZO_CreateStringId("SI_BETTERUI_BACK_BAR_HEADER", "Apparence de la barre arrière
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY", "Opacité de la barre arrière")
 ZO_CreateStringId("SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP",
     "Ajustez à quel point les icônes de la barre arrière apparaissent estompées. Des valeurs plus basses rendent la barre moins visible.")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR", "Masquer la barre arrière")
+ZO_CreateStringId("SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP",
+    "Masque complètement la barre arrière (barre de compétences supérieure). Utile pour les builds Oakensoul ou à une seule barre.")
 ZO_CreateStringId("SI_BETTERUI_RESET_SKILL_BAR", "Réinitialiser les paramètres de barre de compétences")
 ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_RESET", "Réinitialiser les paramètres des orbes")
 ZO_CreateStringId("SI_BETTERUI_XP_BAR_RESET", "Réinitialiser les paramètres de la barre EXP")

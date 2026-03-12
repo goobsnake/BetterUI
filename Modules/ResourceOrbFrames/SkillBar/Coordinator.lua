@@ -84,7 +84,6 @@ local function ApplyActionBarSkin(rootFrame, layout)
     ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
 
     if not isGamePad then
-        -- TODO(bug): BETTERUI.ResourceOrbFrames.Tasks is nil (see ResourceOrbFrames.lua ROFTasks local); this line crashes in keyboard mode
         BETTERUI.ResourceOrbFrames.Tasks:Schedule("hideButtonText", 150, function()
             for i = ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + 1, ACTION_BAR_FIRST_NORMAL_SLOT_INDEX + ACTION_BAR_SLOTS_PER_PAGE - 1 do
                 local btn = ZO_ActionBar_GetButton(i)

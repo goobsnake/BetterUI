@@ -270,24 +270,30 @@ function Visuals.UpdateFrameDimensions(rootFrame)
     if not rootFrame then return end
     local settings = GetModuleSettings()
     local scale = settings.scale or 1
+    local offsetX = settings.offsetX or 0
     local offsetY = settings.offsetY or 0
 
     -- Check against cached state in Animations to decide if we should animate
     local lastScale = Animations.GetLastScale and Animations.GetLastScale()
+    local lastOffsetX = Animations.GetLastOffsetX and Animations.GetLastOffsetX()
     local lastOffsetY = Animations.GetLastOffsetY and Animations.GetLastOffsetY()
 
     -- Only animate if we have cached state (i.e., after first run) and values changed
-    local hasState = lastScale ~= nil and lastOffsetY ~= nil
-    local changed = hasState and ((math.abs(lastScale - scale) > 0.001) or (math.abs(lastOffsetY - offsetY) > 0.001))
+    local hasState = lastScale ~= nil and lastOffsetX ~= nil and lastOffsetY ~= nil
+    local changed = hasState and (
+        (math.abs(lastScale - scale) > 0.001)
+        or (math.abs(lastOffsetX - offsetX) > 0.001)
+        or (math.abs(lastOffsetY - offsetY) > 0.001)
+    )
 
     if changed then
-        Animations.AnimateDimensions(rootFrame, scale, offsetY)
+        Animations.AnimateDimensions(rootFrame, scale, offsetX, offsetY)
     else
         -- Instant set (initial load or no change)
         rootFrame:SetScale(scale)
         rootFrame:ClearAnchors()
-        rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, 0, -offsetY)
-        Animations.SetState(scale, offsetY)
+        rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, offsetX, -offsetY)
+        Animations.SetState(scale, offsetX, offsetY)
     end
 
     local cfg = BETTERUI_ORB_FRAMES
