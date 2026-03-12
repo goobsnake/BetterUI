@@ -326,7 +326,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         storeItemLink = nil
         storeStackCount = nil
 
-        -- 1. Draw the standard tooltip first
+        -- 1. Draw the standard tooltip first (other addon hooks fire within this call chain)
         newMethod(self, ...)
 
         -- 2. Get Settings
@@ -336,41 +336,54 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         local fontSize = BETTERUI.GetTooltipFontSize()
         local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
 
-        -- 3. Scale Fonts & Clean up duplicates
+        -- 3. Scale Fonts immediately (this is safe to do now)
         for i = 1, self:GetNumChildren() do
             local child = self:GetChild(i)
             if child and child:GetType() == CT_LABEL then
                 child:SetFont(fontStr)
+            end
+        end
 
-                -- When BetterUI enhancements are active, hide duplicate price lines
-                -- that trading addons (TTC, MM, ATT) inject natively into the tooltip body.
-                -- BetterUI already displays this data in the enhanced status header above.
-                if enhancementsEnabled then
-                    local text = child:GetText()
-                    if text then
-                        -- Match known addon label prefixes to avoid false positives on item names
-                        local isDuplicateAddonLine = (text:find("^TTC:") ~= nil)
-                            or (text:find("^Tamriel Trade Centre") ~= nil)
-                            or (text:find("^M%.M%.") ~= nil)
-                            or (text:find("^Master Merchant") ~= nil)
-                            or (text:find("^ATT:") ~= nil)
-                            or (text:find("^Arkadius' Trade Tools") ~= nil)
-                        if isDuplicateAddonLine then
-                            child:SetHidden(true)
-                            child:SetHeight(0)
+        -- 4. Defer duplicate addon label cleanup to next frame
+        -- Trading addons (TTC, MM, ATT) may hook LayoutItem AFTER BetterUI,
+        -- meaning their labels are added after our wrapper returns. By deferring
+        -- the cleanup scan, we ensure all addon hooks have finished.
+        if enhancementsEnabled then
+            local tooltipRef = self
+            zo_callLater(function()
+                if not tooltipRef or tooltipRef:IsHidden() then return end
+                for i = 1, tooltipRef:GetNumChildren() do
+                    local child = tooltipRef:GetChild(i)
+                    if child and child:GetType() == CT_LABEL and not child:IsHidden() then
+                        local text = child:GetText()
+                        if text then
+                            -- Strip ESO color markup (|cXXXXXX ... |r) for matching,
+                            -- since addons may wrap their labels in color codes
+                            local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+                            -- Match known addon label prefixes
+                            local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
+                                or (plainText:find("^Tamriel Trade Centre") ~= nil)
+                                or (plainText:find("^M%.M%.") ~= nil)
+                                or (plainText:find("^Master Merchant") ~= nil)
+                                or (plainText:find("^ATT:") ~= nil)
+                                or (plainText:find("^Arkadius' Trade Tools") ~= nil)
+                            if isDuplicateAddonLine then
+                                child:SetHidden(true)
+                                child:SetHeight(0)
 
-                            -- Also hide the preceding divider texture if present
-                            if i > 1 then
-                                local prevChild = self:GetChild(i - 1)
-                                if prevChild and prevChild:GetType() == CT_TEXTURE then
-                                    prevChild:SetHidden(true)
-                                    prevChild:SetHeight(0)
+                                -- Also hide the preceding divider texture if present
+                                if i > 1 then
+                                    local prevChild = tooltipRef:GetChild(i - 1)
+                                    if prevChild and prevChild:GetType() == CT_TEXTURE then
+                                        prevChild:SetHidden(true)
+                                        prevChild:SetHeight(0)
+                                    end
                                 end
                             end
                         end
                     end
                 end
-            end
+            end, 1) -- 1ms delay = next frame
         end
     end
 end
