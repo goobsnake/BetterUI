@@ -488,9 +488,9 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Activar destrucción rápida")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
     "**USAR CON PRECAUCIÓN** ¡Destruye objetos rápidamente sin diálogo de confirmación!")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Usar gatillos para saltar al siguiente tipo de objeto")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Usar gatillos para saltar al siguiente objeto")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
-    "En lugar de saltar un número de elementos (comportamiento habitual), esto saltará al siguiente tipo de elemento")
+    "En lugar de saltar un número de elementos (comportamiento habitual), esto saltará al siguiente elemento")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Reemplazar \"Valor\" con precio de mercado")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Reemplaza la columna \"Valor\" en Inventario y Banco por precios de mercado de MM, ATT o TTC cuando estén disponibles.")
@@ -515,8 +515,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Restablecer todo a valores predeterminados")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Restablece TODOS los ajustes de BetterUI a sus valores predeterminados. Recarga la interfaz después para aplicar por completo los valores restaurados.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Activa funcionalidades adicionales para las interfaces \\\"Mejoradas\\\"!")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Robado")
@@ -638,65 +636,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Selecciona la cantidad a guardar")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Selecciona la cantidad a recuperar")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Guardar pila")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Recuperar pila")
-
-
-ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION_TOOLTIP",
-    "Integra la información de precios de ATT en las descripciones de objetos")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP",
-    "Selecciona el tamaño de fuente para los datos de columnas.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP",
-    "Selecciona el estilo de fuente para los datos de columnas.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
-    "Selecciona la fuente para los datos de columnas (Tipo, Rasgo, Atributo, Valor).")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_SIZE_TOOLTIP",
-    "Selecciona el tamaño de fuente para los nombres de objetos.")
-ZO_CreateStringId("SI_BETTERUI_BANK_NAME_FONT_STYLE_TOOLTIP",
-    "Selecciona el estilo de fuente para los nombres de objetos.")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
-    "Muestra un diálogo antes de equipar objetos de Vincular al equipar")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP",
-    "Muestra una barra de lanzamiento sobre la barra de habilidades superior")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
-    "Cambia cuántas líneas se guardan en el búfer del chat, predeterminado=200")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP",
-    "Restablece la configuración de fuente de columnas a los valores predeterminados.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
-    "Muestra los encargos diarios y el progreso en cada estación de artesanía")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
-    "Elimina mensajes de error de la tienda de gremio causados por MM o ATT")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
-    "Oculta el adorno decorativo alrededor del orbe izquierdo (salud)")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
-    "Configura qué iconos de estado aparecen junto a los nombres de objetos.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP",
-    "Selecciona el tamaño de fuente para los datos de columnas.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP",
-    "Selecciona el estilo de fuente para los datos de columnas.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
-    "Selecciona la fuente para los datos de columnas (Tipo, Rasgo, Atributo, Valor).")
-ZO_CreateStringId("SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP",
-    "Selecciona el estilo de fuente para los nombres de objetos.")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
-    "Muestra una barra de aguante de montura bajo el ornamento derecho")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP", "Ajusta el tamaño de fuente del texto de aguante de montura")
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP",
-    "Restablece la configuración de fuente de nombres a los valores predeterminados.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
-    "Selecciona la fuente para placas de nombre de las fuentes integradas de ESO.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
-    "Restablece toda la configuración de placas de nombre a sus valores predeterminados.")
-ZO_CreateStringId("SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP",
-    "Ajusta el tamaño de fuente del temporizador de reutilización de habilidades")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
-    "Te permite ver más o menos información de objetos a la vez en las descripciones")
-ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP",
-    "Integra la información de precios de TTC en las descripciones de objetos")
-ZO_CreateStringId("SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP",
-    "Tamaño de fuente para la visualización del número de definitiva.")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Borrar orden")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Completado: <<1>> de <<2>> objetos procesados. Algunos omitidos.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Inventario lleno: <<1>> de <<2>> objetos procesados.")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Tamaño de texto")

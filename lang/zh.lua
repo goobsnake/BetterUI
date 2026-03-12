@@ -134,7 +134,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "在每个制作站显示�
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "全部重置为默认值")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "将 BetterUI 的所有设置重置为默认值。之后请重新加载界面，以完整应用恢复后的默认设置。")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "为完全重新设计的\"增强\"界面启用额外功能！")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "偶窃")
@@ -453,8 +452,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "将物品图标自�
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "启用快速销毁功能")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**请谨慎使用** 快速销毁物品，无确认对话框！")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "使用扳机键移动到下一个物品类型")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键移动到下一个物品类型，而不是跳过一定数量的物品（默认全局行为）")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "使用扳机键移动到下一个物品")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "每次按扳机键移动到下一个物品，而不是跳过一定数量的物品（默认全局行为）")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "将\"价值\"替换为市场价格")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "将背包和银行中的“价值”列在可用时替换为 MM、ATT 或 TTC 的市场价格。")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装备绑定保护")
@@ -571,10 +570,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "选择存入数量")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "选择取出数量")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "存入堆叠")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "取出堆叠")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "清除排序")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "完成：已处理 <<1>>/<<2>> 个物品。部分已跳过。")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "背包已满：已处理 <<1>>/<<2>> 个物品。")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "文字大小")

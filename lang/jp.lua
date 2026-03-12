@@ -135,7 +135,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "各クラフトステー�
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "すべてをデフォルトにリセット")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "BetterUI のすべての設定を既定値に戻します。復元した既定値を完全に適用するには、その後 UI を再読み込みしてください。")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP", "完全に再設計された\"拡張\"インターフェースに追加機能を有効化！")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "盗品")
@@ -454,8 +453,8 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP", "アイテムアイ�
 -- Inventory Specific Settings
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "クイック破棄機能を有効化")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP", "**注意して使用** 確認ダイアログなしでアイテムを素早く破棄します！")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "トリガーで次のアイテムタイプへ移動")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "トリガーを押すたびに一定数のアイテムをスキップする（デフォルトの動作）代わりに、次のアイテムタイプに移動します")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "トリガーで次のアイテムへ移動")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP", "トリガーを押すたびに一定数のアイテムをスキップする（デフォルトの動作）代わりに、次のアイテムに移動します")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION", "装備時バインド保護")
 ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "装備時にバインドされるアイテムを装備する前にダイアログを表示")
 
@@ -572,10 +571,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "収納する数量を選択")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "取り出す数量を選択")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "スタックを収納")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "スタックを取り出す")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です: 選ばれた<<2>>個中の<<1>>個を処理しました。")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "ソートをクリア")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "完了: <<2>>個中<<1>>個を処理しました。一部スキップ。")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "バッグが一杯です: <<2>>個中<<1>>個を処理しました。")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "テキストサイズ")

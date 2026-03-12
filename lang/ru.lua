@@ -139,8 +139,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Сбросить всё к значениям по умолчанию")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Сбрасывает ВСЕ настройки BetterUI к значениям по умолчанию. После этого перезагрузите интерфейс, чтобы полностью применить восстановленные значения по умолчанию.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Включает дополнительные функции для полностью переработанных \"улучшенных\" интерфейсов!")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Краденое")
@@ -497,9 +495,9 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Включить функцию быстрого уничтожения")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
     "**ИСПОЛЬЗУЙТЕ С ОСТОРОЖНОСТЬЮ** Быстро уничтожает предметы без диалогового окна подтверждения!")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Использовать триггеры для перехода к следующему типу предметов")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Использовать триггеры для перехода к следующему предмету")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
-    "Вместо пропуска определенного количества предметов при каждом нажатии триггера (поведение по умолчанию), это переведет к следующему типу предметов")
+    "Вместо пропуска определенного количества предметов при каждом нажатии триггера (поведение по умолчанию), это переведет к следующему предмету")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Заменить \"Стоимость\" на рыночную цену")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Заменяет столбец «Стоимость» в инвентаре и банке рыночной ценой из MM, ATT или TTC (если доступно).")
@@ -621,34 +619,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Выберите количест�
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Выберите количество для извлечения")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Убрать стак")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Достать стак")
-
-
-ZO_CreateStringId("SI_BETTERUI_ATT_INTEGRATION_TOOLTIP", "Добавляет данные цен ATT во всплывающие подсказки предметов")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
-    "Показывает диалог перед экипировкой предметов с привязкой при экипировке")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
-    "Изменяет количество строк, сохраняемых в буфере чата, по умолчанию=200")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
-    "Вы уверены, что хотите уничтожить <<1>>? Это действие необратимо.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
-    "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
-    "Убирает сообщения об ошибках магазина гильдии, вызванные MM или ATT")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
-    "Скрывает декоративный орнамент вокруг левой (здоровье) сферы")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
-    "Настраивает, какие значки состояния отображаются рядом с названиями предметов.")
-ZO_CreateStringId("SI_BETTERUI_MM_INTEGRATION_TOOLTIP",
-    "Добавляет данные Master Merchant во всплывающие подсказки предметов")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP", "Отображает полосу выносливости маунта под правым орнаментом")
-ZO_CreateStringId("SI_BETTERUI_SAVE_EQUIP_CONFIRM_EQUIP_BOE", "Экипировка <<t:1>> привяжет его к вам. Продолжить?")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
-    "Позволяет видеть больше или меньше информации о предмете в подсказках одновременно")
-ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "Добавляет данные цен TTC во всплывающие подсказки предметов")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Сбросить сортировку")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Готово: обработано <<1>> из <<2>> предметов. Некоторые пропущены.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна: обработано <<1>> из <<2>> предметов.")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Размер текста")

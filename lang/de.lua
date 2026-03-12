@@ -141,8 +141,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Alles auf Standard zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Setzt ALLE BetterUI-Einstellungen auf ihre Standardwerte zurück. Lade die UI anschließend neu, damit die wiederhergestellten Standardwerte vollständig angewendet werden.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Aktiviert zusätzliche Funktionen für die komplett neu gestalteten \"Verbesserten\" Oberflächen!")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Gestohlen")
@@ -504,9 +502,9 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Schnellzerstörungsfunktion aktivieren")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
     "**VORSICHTIG VERWENDEN** Zerstört Gegenstände schnell ohne Bestätigungsdialog!")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger verwenden, um zum nächsten Gegenstandstyp zu springen")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Trigger verwenden, um zum nächsten Gegenstand zu springen")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
-    "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu überspringen (Standardverhalten), springt dies zum nächsten Elementtyp")
+    "Anstatt bei jedem Triggerdruck eine bestimmte Anzahl von Elementen zu überspringen (Standardverhalten), springt dies zum nächsten Element")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "\"Wert\" durch Marktpreis ersetzen")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Ersetzt die Wert-Spalte in Inventar und Bank, sofern verfügbar, durch Marktpreise aus MM, ATT oder TTC.")
@@ -624,42 +622,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Wähle die Menge zum Verstauen")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Wähle die Menge zum Entnehmen")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Stapel verstauen")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Stapel entnehmen")
-
-
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
-    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
-    "Zeige einen Dialog an, bevor Gegenstände mit Bindung beim Anlegen ausgerüstet werden")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
-    "Ändert, wie viele Zeilen im Chat-Puffer gespeichert werden, Standard=200")
-ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP",
-    "Spielt beim Betreten und Verlassen des Kampfes einen Ton ab.")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
-    "Möchtest du <<1>> wirklich zerstören? Dies kann nicht rückgängig gemacht werden.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP",
-    "Umfangreiche Verbesserungen der Tooltips und Benutzeroberfläche im Spiel")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
-    "Zeigt die täglichen Schriebe und den Fortschritt an jeder Handwerksstation an")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
-    "Entfernt Gildenladen-Fehlermeldungen, die durch MM oder ATT verursacht werden")
-ZO_CreateStringId("SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP",
-    "Blendet das dekorative Ornament um die linke (Gesundheits-)Kugel aus")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
-    "Wähle die Schriftart für Spaltendaten (Typ, Eigenschaft, Attribut, Wert).")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON",
-    "Möchtest du <<t:1>> in der |cFF6600<<2>>|r Waffenleiste ausrüsten?")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
-    "Zeigt eine Reittier-Ausdauerleiste unter dem rechten Ornament an")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
-    "Wähle die Schriftart für Namensschilder aus den integrierten ESO-Schriftarten.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
-    "Setzt alle Namensschild-Einstellungen auf die Standardwerte zurück.")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
-    "Erlaubt dir, mehr oder weniger Gegenstandsinformationen gleichzeitig in Tooltips zu sehen")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll: <<1>> von <<2>> Elementen verarbeitet.")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Sortierung aufheben")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Abgeschlossen: <<1>> von <<2>> Gegenstände verarbeitet. Einige übersprungen.")
+ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Tasche voll: <<1>> von <<2>> Gegenständen verarbeitet.")
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Textgröße")

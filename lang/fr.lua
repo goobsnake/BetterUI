@@ -140,8 +140,6 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Réinitialiser tout par défaut")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Réinitialise TOUS les paramètres de BetterUI à leurs valeurs par défaut. Rechargez l'interface ensuite pour appliquer complètement les valeurs restaurées.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_CIM_TOOLTIP",
-    "Active des fonctionnalités supplémentaires pour les interfaces \"Améliorées\"!")
 
 
 ZO_CreateStringId("SI_BETTERUI_STOLEN", "Volé")
@@ -508,9 +506,9 @@ ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY", "Activer la destruction rapide")
 ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_TOOLTIP",
     "**UTILISER AVEC PRUDENCE** Détruit rapidement les objets sans boîte de confirmation !")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les gâchettes pour passer au type d'objet suivant")
+ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE", "Utiliser les gâchettes pour passer à l'objet suivant")
 ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP",
-    "Plutôt que de sauter un certain nombre d'éléments à chaque pression sur la gâchette (comportement global par défaut), cela passera au type d'élément suivant")
+    "Plutôt que de sauter un certain nombre d'éléments à chaque pression sur la gâchette (comportement global par défaut), cela passera à l'élément suivant")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "Remplacer \"Valeur\" par le prix du marché")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP",
     "Remplace la colonne \"Valeur\" dans l'inventaire et la banque par les prix du marché MM, ATT ou TTC lorsqu'ils sont disponibles.")
@@ -631,57 +629,7 @@ ZO_CreateStringId("SI_BETTERUI_STOW_PROMPT", "Sélectionnez la quantité à rang
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_PROMPT", "Sélectionnez la quantité à récupérer")
 ZO_CreateStringId("SI_BETTERUI_STOW_STACK", "Ranger la pile")
 ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Récupérer la pile")
-
-
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_SIZE_TOOLTIP",
-    "Sélectionnez la taille de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_STYLE_TOOLTIP",
-    "Sélectionnez le style de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_BANK_COLUMN_FONT_TOOLTIP",
-    "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
-ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
-    "Affiche un dialogue avant d'équiper des objets Liés quand équipés")
-ZO_CreateStringId("SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP",
-    "Affiche une barre de lancement au-dessus de la barre de compétences supérieure")
-ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
-    "Modifie le nombre de lignes stockées dans le tampon de chat, défaut=200")
-ZO_CreateStringId("SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP",
-    "Réinitialise les paramètres de police des colonnes par défaut.")
-ZO_CreateStringId("SI_BETTERUI_DESTROY_CONFIRM_FORMAT",
-    "Êtes-vous sûr de vouloir détruire <<1>> ? Cette action est irréversible.")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
-    "Affiche les commandes quotidiennes et la progression à chaque station d'artisanat")
-ZO_CreateStringId("SI_BETTERUI_GS_ERROR_SUPPRESS_TOOLTIP",
-    "Supprime les messages d'erreur de boutique de guilde causés par MM ou ATT")
-ZO_CreateStringId("SI_BETTERUI_ICON_SUBMENU_TOOLTIP",
-    "Configurez quelles icônes d'état apparaissent à côté des noms d'objet.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP",
-    "Sélectionnez la taille de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP",
-    "Sélectionnez le style de police pour les données de colonnes.")
-ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP",
-    "Sélectionnez la police pour les données de colonnes (Type, Trait, Stat, Valeur).")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_OTHER_WEAPON",
-    "Voulez-vous équiper <<t:1>> dans la barre d'armes |cFF6600<<2>>|r ?")
-ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_RING",
-    "Voulez-vous équiper <<t:1>> dans le premier ou le second emplacement d'anneau ?")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP",
-    "Affiche une barre d'endurance de monture sous l'ornement droit")
-ZO_CreateStringId("SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP",
-    "Ajustez la taille de la police du texte d'endurance de monture")
-ZO_CreateStringId("SI_BETTERUI_NAME_FONT_RESET_TOOLTIP", "Réinitialise les paramètres de police des noms par défaut.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP",
-    "Sélectionnez la police des plaques de nom parmi les polices intégrées d'ESO.")
-ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
-    "Réinitialise tous les paramètres de plaques de nom à leurs valeurs par défaut.")
-ZO_CreateStringId("SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP",
-    "Permet d'afficher plus ou moins d'informations d'objet à la fois dans les infobulles")
-ZO_CreateStringId("SI_BETTERUI_TRIGGER_SKIP_TOOLTIP",
-    "Modifie la vitesse à laquelle le menu saute lors de l'appui sur les gâchettes.")
-ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Complete: Processed <<1>> of <<2>> items. Some skipped.") -- TODO: Translate
--- Added from en.lua (TODO: Translate)
+ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Effacer le tri")
+ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Terminé : <<1>> sur <<2>> objets traités. Certains ignorés.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Sac plein : <<1>> sur <<2>> objets traités.")
--- Added from en.lua (TODO: Translate)
-ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Text Size") -- TODO: Translate
+ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Taille du texte")
