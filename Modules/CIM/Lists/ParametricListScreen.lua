@@ -52,7 +52,7 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
     self.lists = {}
     self:AddList("Main")
     self._currentList = nil
-    self.addListTriggerKeybinds = true
+    self.addListTriggerKeybinds = false
     self.listTriggerKeybinds = nil
     self.listTriggerHeaderComparator = nil
 

@@ -170,7 +170,6 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				ApplyTriggerMode(value)
 			end,
 			width = "full",
-			sortAlwaysFirst = true,
 		},
 		{
 			type = "editbox",

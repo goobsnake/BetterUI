@@ -104,7 +104,6 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                 ApplyTriggerMode(value)
             end,
             width = "full",
-            sortAlwaysFirst = true,
         },
         {
             type = "editbox",
