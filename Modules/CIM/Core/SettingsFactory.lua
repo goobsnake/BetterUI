@@ -102,6 +102,17 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "general",
             resetGroup = "general",
         },
+        triggerSpeed = {
+            labelStringId = SI_BETTERUI_TRIGGER_SKIP,
+            tooltipStringId = SI_BETTERUI_TRIGGER_SKIP_TOOLTIP,
+            defaultValue = 10,
+            dependency = {
+                module = "Inventory",
+                key = "useTriggersForSkip",
+            },
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         bindOnEquipProtection = {
             labelStringId = SI_BETTERUI_BOE_PROTECTION,
             tooltipStringId = SI_BETTERUI_BOE_PROTECTION_TOOLTIP,
@@ -126,6 +137,25 @@ local SETTINGS_METADATA_REGISTRY = {
             tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
             defaultValue = true,
             dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        useTriggersForSkip = {
+            labelStringId = SI_BETTERUI_TRIGGER_SKIP_TYPE,
+            tooltipStringId = SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP,
+            defaultValue = false,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        triggerSpeed = {
+            labelStringId = SI_BETTERUI_TRIGGER_SKIP,
+            tooltipStringId = SI_BETTERUI_TRIGGER_SKIP_TOOLTIP,
+            defaultValue = 10,
+            dependency = {
+                module = "Banking",
+                key = "useTriggersForSkip",
+            },
             sortGroup = "general",
             resetGroup = "general",
         },
