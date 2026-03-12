@@ -1,4 +1,33 @@
-Current Release - v3.00 Changes:
+Current Release - v3.01 Changes:
+
+[INDENT]RESOURCE ORB FRAMES:
+1. Added: Horizontal offset slider for adjustable orb positioning [-500 to 500]
+2. Added: Hide Back Bar option for Oakensoul Ring and one-bar builds
+3. Fixed: Weapon swap animation now correctly disables when back bar is hidden
+4. Fixed: Cast bar properly re-anchors to front bar when back bar is hidden
+5. Fixed: Resolved nil crash in Resource Orb Frames task coordinator on startup
+
+TRIGGERS & NAVIGATION:
+6. Added: Per-module trigger speed settings for both Inventory and Banking
+7. Added: Triggers can now be enabled/disabled in real-time without /reloadui
+8. Fixed: Inventory and Banking trigger speed setting now applies correctly
+
+ENHANCED TOOLTIPS:
+9. Fixed: Market price data from trading addons (TTC/MM/ATT) no longer persists when switching between default and enhanced tooltip modes
+
+INVENTORY & BANKING:
+10. Fixed: Container usage (coffers, reward boxes) no longer resets UI selection on return
+11. Fixed: Motif known/unknown status now displays correctly in Bank UI
+12. Changed: Deposit now transfers max stack by default
+
+LOCALIZATION:
+13. Improved: Trigger skip labels updated from "next item type" to "next item" for accuracy
+14. Improved: Removed duplicate string definitions and orphaned keys across all locale files
+15. Improved: Translated previously untranslated TODO strings (de, es, fr, jp, ru, zh)
+[/INDENT]
+
+
+v3.00 Changes:
 
 *** This is a major update with a complete visual overhaul, major system refactors, and broad stability/performance improvements. ***
 
