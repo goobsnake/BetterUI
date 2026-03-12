@@ -155,15 +155,18 @@ end
 Function: BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds
 Description: Creates LT/RT keybinds for fast scrolling with configurable speed.
 Rationale: Used by Banking/Inventory for trigger-based list navigation.
-Mechanism: Uses BETTERUI.Settings.Modules["CIM"].triggerSpeed for scroll amount.
-param: list (table) - The parametric scroll list to control.
+Mechanism: Uses per-module speedGetter for scroll amount, or falls back to DEFAULT_TRIGGER_SPEED.
+param: listOrGetter (table|function) - The parametric scroll list, or a function returning it.
+param: useCategoryJumpGetter (function|boolean|nil) - Optional. Getter for category jump mode.
+param: speedGetter (function|nil) - Optional. Returns the trigger speed for this module.
 return: table, table - Left trigger and right trigger keybind descriptors.
 ]]
 --- @param listOrGetter table|function The parametric scroll list, or a function returning it
 --- @param useCategoryJumpGetter function|boolean|nil Optional. Getter function returning boolean if category jump should be used instead of speed skip.
+--- @param speedGetter function|nil Optional. Returns the number of lines to skip per trigger press.
 --- @return table leftTrigger Left trigger keybind descriptor
 --- @return table rightTrigger Right trigger keybind descriptor
-function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter)
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter, speedGetter)
 
     local function GetActualList(listWrapper)
         if not listWrapper then return nil end
@@ -174,6 +177,13 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
             if pList and pList.JumpToPreviousHeader then return pList end
         end
         return listWrapper
+    end
+
+    local function GetSpeed()
+        if type(speedGetter) == "function" then
+            return tonumber(speedGetter()) or BETTERUI.CONST.DEFAULT_TRIGGER_SPEED
+        end
+        return BETTERUI.CONST.DEFAULT_TRIGGER_SPEED
     end
 
     local leftTrigger = {
@@ -193,7 +203,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
                 if jumpByCategory and list.JumpToPreviousHeader then
                     list:JumpToPreviousHeader()
                 elseif not list:IsEmpty() then
-                    local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                    local speed = GetSpeed()
                     list:SetSelectedIndex(list.selectedIndex - speed)
                 end
             end
@@ -216,7 +226,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
                 if jumpByCategory and list.JumpToNextHeader then
                     list:JumpToNextHeader()
                 elseif not list:IsEmpty() then
-                    local speed = tonumber(BETTERUI.Settings.Modules["CIM"].triggerSpeed) or 5
+                    local speed = GetSpeed()
                     list:SetSelectedIndex(list.selectedIndex + speed)
                 end
             end

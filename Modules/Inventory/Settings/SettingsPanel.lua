@@ -62,11 +62,11 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 
 	local function ApplyTriggerMode(useCategoryJump)
 		local inv = GetInventoryWindow()
-		if not inv or not IsInventorySceneShowing(inv) then return end
+		if not inv then return end
 		if inv.SetListsUseTriggerKeybinds then
 			inv:SetListsUseTriggerKeybinds(useCategoryJump)
 		end
-		if inv.RefreshKeybinds then
+		if inv.RefreshKeybinds and IsInventorySceneShowing(inv) then
 			inv:RefreshKeybinds()
 		end
 	end

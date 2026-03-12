@@ -220,14 +220,6 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 
     CIM = {
-        triggerSpeed = {
-            labelStringId = SI_BETTERUI_TRIGGER_SKIP,
-            tooltipStringId = SI_BETTERUI_TRIGGER_SKIP_TOOLTIP,
-            defaultValue = 10,
-            dependency = nil,
-            sortGroup = "generalInterfaceGeneral",
-            resetGroup = "generalInterfaceGeneral",
-        },
         rhScrollSpeed = {
             labelStringId = SI_BETTERUI_MOUSE_SCROLL_SPEED,
             tooltipStringId = SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP,

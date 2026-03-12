@@ -714,9 +714,13 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 
-    -- generate the trigger keybinds so we can add/remove them later when necessary
-    self.triggerKeybinds = {}
-    ZO_Gamepad_AddListTriggerKeybindDescriptors(self.triggerKeybinds, self.list)
+    -- Use BetterUI custom trigger keybinds with Inventory-specific speed getter
+    local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
+        self.list, nil, function()
+            return BETTERUI.Inventory.GetSetting("triggerSpeed")
+        end
+    )
+    self.triggerKeybinds = { leftTrigger, rightTrigger }
 
     -- Initialize scroll indicator on the list's internal control
     -- offsetX=5, offsetTopY=-8 (above list top), offsetBottomY=-10 (above footer top)
