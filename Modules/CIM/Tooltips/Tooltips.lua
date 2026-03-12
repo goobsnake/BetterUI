@@ -348,41 +348,57 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         -- Trading addons (TTC, MM, ATT) may hook LayoutItem AFTER BetterUI,
         -- meaning their labels are added after our wrapper returns. By deferring
         -- the cleanup scan, we ensure all addon hooks have finished.
+        -- The scan must be RECURSIVE because addon labels added via
+        -- ZO_Tooltip:AddLine() are nested inside section controls, not direct
+        -- children of the tooltip.
         if enhancementsEnabled then
             local tooltipRef = self
             zo_callLater(function()
                 if not tooltipRef or tooltipRef:IsHidden() then return end
-                for i = 1, tooltipRef:GetNumChildren() do
-                    local child = tooltipRef:GetChild(i)
-                    if child and child:GetType() == CT_LABEL and not child:IsHidden() then
-                        local text = child:GetText()
-                        if text then
-                            -- Strip ESO color markup (|cXXXXXX ... |r) for matching,
-                            -- since addons may wrap their labels in color codes
-                            local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-                            -- Match known addon label prefixes
-                            local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
-                                or (plainText:find("^Tamriel Trade Centre") ~= nil)
-                                or (plainText:find("^M%.M%.") ~= nil)
-                                or (plainText:find("^Master Merchant") ~= nil)
-                                or (plainText:find("^ATT:") ~= nil)
-                                or (plainText:find("^Arkadius' Trade Tools") ~= nil)
-                            if isDuplicateAddonLine then
-                                child:SetHidden(true)
-                                child:SetHeight(0)
 
-                                -- Also hide the preceding divider texture if present
-                                if i > 1 then
-                                    local prevChild = tooltipRef:GetChild(i - 1)
-                                    if prevChild and prevChild:GetType() == CT_TEXTURE then
-                                        prevChild:SetHidden(true)
-                                        prevChild:SetHeight(0)
+                -- Recursive label scan: trading addon labels are nested inside
+                -- ZO_TooltipSection controls (tooltip → contentsSection → subsection → label)
+                local function ScanAndHideAddonLabels(control)
+                    for i = 1, control:GetNumChildren() do
+                        local child = control:GetChild(i)
+                        if child then
+                            if child:GetType() == CT_LABEL and not child:IsHidden() then
+                                local text = child:GetText()
+                                if text then
+                                    -- Strip ESO color markup (|cXXXXXX ... |r) for matching,
+                                    -- since addons may wrap their labels in color codes
+                                    local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+                                    -- Match known addon label prefixes
+                                    local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
+                                        or (plainText:find("^Tamriel Trade Centre") ~= nil)
+                                        or (plainText:find("^M%.M%.") ~= nil)
+                                        or (plainText:find("^Master Merchant") ~= nil)
+                                        or (plainText:find("^ATT:") ~= nil)
+                                        or (plainText:find("^Arkadius' Trade Tools") ~= nil)
+                                    if isDuplicateAddonLine then
+                                        child:SetHidden(true)
+                                        child:SetHeight(0)
+
+                                        -- Also hide the preceding divider texture if present
+                                        if i > 1 then
+                                            local prevChild = control:GetChild(i - 1)
+                                            if prevChild and prevChild:GetType() == CT_TEXTURE then
+                                                prevChild:SetHidden(true)
+                                                prevChild:SetHeight(0)
+                                            end
+                                        end
                                     end
                                 end
+                            end
+                            -- Recurse into child controls (sections, containers)
+                            if child:GetNumChildren() > 0 then
+                                ScanAndHideAddonLabels(child)
                             end
                         end
                     end
                 end
+
+                ScanAndHideAddonLabels(tooltipRef)
             end, 1) -- 1ms delay = next frame
         end
     end
