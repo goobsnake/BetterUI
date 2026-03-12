@@ -170,6 +170,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 				ApplyTriggerMode(value)
 			end,
 			width = "full",
+			sortAlwaysFirst = true,
 		},
 		{
 			type = "editbox",
@@ -188,6 +189,7 @@ function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
 			end,
 			disabled = function() return not BETTERUI.Inventory.GetSetting("useTriggersForSkip") end,
 			width = "full",
+			sortAlwaysLast = true,
 		},
 		{
 			type = "checkbox",

@@ -524,8 +524,23 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                 end
                 if value then
                     ApplyTooltipVisualSettings()
+                    -- Clear all visible tooltips so stale addon labels from default mode
+                    -- are removed. The tooltip will re-layout on next item selection.
+                    local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+                    for _, tooltipType in ipairs(tooltipTypes) do
+                        if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
+                            GAMEPAD_TOOLTIPS:ClearTooltip(tooltipType)
+                        end
+                    end
                 else
                     CleanupTooltipEnhancementArtifacts()
+                    -- Also clear tooltips when disabling to remove BetterUI's enhanced labels
+                    local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+                    for _, tooltipType in ipairs(tooltipTypes) do
+                        if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearTooltip then
+                            GAMEPAD_TOOLTIPS:ClearTooltip(tooltipType)
+                        end
+                    end
                 end
             end,
             width = "full",

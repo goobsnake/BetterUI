@@ -104,6 +104,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
                 ApplyTriggerMode(value)
             end,
             width = "full",
+            sortAlwaysFirst = true,
         },
         {
             type = "editbox",
@@ -122,6 +123,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             end,
             disabled = function() return not BETTERUI.Banking.GetSetting("useTriggersForSkip") end,
             width = "full",
+            sortAlwaysLast = true,
         },
         {
             type = "button",

@@ -159,14 +159,16 @@ Mechanism: Uses per-module speedGetter for scroll amount, or falls back to DEFAU
 param: listOrGetter (table|function) - The parametric scroll list, or a function returning it.
 param: useCategoryJumpGetter (function|boolean|nil) - Optional. Getter for category jump mode.
 param: speedGetter (function|nil) - Optional. Returns the trigger speed for this module.
+param: enabledGetter (function|nil) - Optional. Returns whether triggers are enabled. Nil = always enabled.
 return: table, table - Left trigger and right trigger keybind descriptors.
 ]]
 --- @param listOrGetter table|function The parametric scroll list, or a function returning it
 --- @param useCategoryJumpGetter function|boolean|nil Optional. Getter function returning boolean if category jump should be used instead of speed skip.
 --- @param speedGetter function|nil Optional. Returns the number of lines to skip per trigger press.
+--- @param enabledGetter function|nil Optional. Returns whether triggers are enabled for this module.
 --- @return table leftTrigger Left trigger keybind descriptor
 --- @return table rightTrigger Right trigger keybind descriptor
-function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter, speedGetter)
+function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
 
     local function GetActualList(listWrapper)
         if not listWrapper then return nil end
@@ -186,10 +188,18 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
         return BETTERUI.CONST.DEFAULT_TRIGGER_SPEED
     end
 
+    local function IsEnabled()
+        if type(enabledGetter) == "function" then
+            return enabledGetter() == true
+        end
+        return true -- Default: always enabled if no getter
+    end
+
     local leftTrigger = {
         keybind = "UI_SHORTCUT_LEFT_TRIGGER",
         ethereal = true,
         callback = function()
+            if not IsEnabled() then return end
             local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             local list = GetActualList(rawList)
             if list then
@@ -213,6 +223,7 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
         keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
         ethereal = true,
         callback = function()
+            if not IsEnabled() then return end
             local rawList = type(listOrGetter) == "function" and listOrGetter() or listOrGetter
             local list = GetActualList(rawList)
             if list then

@@ -714,10 +714,12 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     self.list:AddDataTemplateWithHeader("ZO_GamepadItemSubEntryTemplate", ZO_SharedGamepadEntry_OnSetup,
         ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality, "ZO_GamepadMenuEntryHeaderTemplate")
 
-    -- Use BetterUI custom trigger keybinds with Inventory-specific speed getter
+    -- Use BetterUI custom trigger keybinds with Inventory-specific speed and enabled getters
     local leftTrigger, rightTrigger = BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(
         self.list, nil, function()
             return BETTERUI.Inventory.GetSetting("triggerSpeed")
+        end, function()
+            return BETTERUI.Inventory.GetSetting("useTriggersForSkip")
         end
     )
     self.triggerKeybinds = { leftTrigger, rightTrigger }

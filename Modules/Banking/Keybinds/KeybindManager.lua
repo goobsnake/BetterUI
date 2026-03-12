@@ -23,9 +23,11 @@ param: list (table) - The list control.
 return: table, table - Left and Right trigger keybind descriptors.
 ]]
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
-    -- Pass Banking-specific speed getter so the saved triggerSpeed setting is used
+    -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
     return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
         return BETTERUI.Banking.GetSetting("triggerSpeed")
+    end, function()
+        return BETTERUI.Banking.GetSetting("useTriggersForSkip")
     end)
 end
 
