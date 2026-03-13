@@ -343,7 +343,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "スタイル/特性情�
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "ツールチップ設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "この強化ツールチップセクションの設定をすべてデフォルト値に戻します。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "マーケット価格連携")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "所持品と銀行の価値列に使うマーケット価格の取得元と表示オプションを設定します。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "アイテムツールチップのマーケット価格ソースを設定します。価格は所持品・銀行の価値列、デフォルトUIToolTip、およびBetterUI強化ツールチップに表示されます（ギルドストア、商人、アシスタント、他）。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "マーケット設定をリセット")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "このマーケット価格連携セクションの設定をすべてデフォルト値に戻します。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "マーケット価格ソースの優先順位")
@@ -372,6 +372,9 @@ ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "TTC価格情報をア�
 ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "アドオンが検出されません: <<1>>。")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "ツールチップ - スタイルと特性情報")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "強化ツールチップにアイテムのスタイルと研究可能な特性情報を表示します。アイテム一覧アイコンとは別機能です。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "ツールチップ - レシピ・本の知識ステータス")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "強化ツールチップに、レシピ・モチーフ・ロア本が既知かまだ未知かを表示します。すべてのシーンで機能します。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "チャットウィンドウ履歴サイズ")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "チャットバッファに保存する行数を変更、デフォルト=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "メール削除確認を省略")

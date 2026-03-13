@@ -170,7 +170,13 @@ end
 function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCount)
     local lines = {}
     if itemLink then
-        local stackCount = storeStackCount or GetSlotStackSize(bagId, slotIndex)
+        local stackCount = storeStackCount
+        if stackCount == nil and bagId ~= nil and slotIndex ~= nil then
+            stackCount = GetSlotStackSize(bagId, slotIndex)
+        end
+        if stackCount == nil or stackCount < 1 then
+            stackCount = 1
+        end
         local fontSize = BETTERUI.GetTooltipFontSize()
         local iconSize = math.floor(fontSize * 0.7)
 
@@ -231,7 +237,7 @@ end
 --- @return table: List of strings to display
 function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
-    if itemLink and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
+    if itemLink and itemLink ~= "" and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
         local traitString
         local colors = BETTERUI.CIM.CONST.COLORS
 
@@ -265,6 +271,60 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
     end
     return lines
 end
+
+--- Gets knowledge status for learnable items (recipes, motifs/lore books).
+--- Returns a single colored status line: "Not Known" (green) or "Already Known" (grey).
+--- Covers ITEMTYPE_RECIPE (provisioning) and any lore book / motif chapter.
+--- @return table: List of strings to display (empty if item has no knowledge status)
+function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
+    local lines = {}
+    if not itemLink or itemLink == "" then return lines end
+
+    -- Respect the user's setting (default true when not set)
+    local giSettings = BETTERUI.Settings.Modules["GeneralInterface"]
+    if giSettings and giSettings.showKnowledgeStatus == false then return lines end
+
+    local colors = BETTERUI.CIM.CONST.COLORS
+    local icons  = BETTERUI.CIM.CONST.ICONS
+    local fontSize = BETTERUI.GetTooltipFontSize()
+    local iconSize = math.floor(fontSize * 1.0)
+    local iconSizeFmt = iconSize .. ":" .. iconSize
+
+    local itemType = GetItemLinkItemType(itemLink)
+
+    -- A. Provisioning recipe
+    if itemType == ITEMTYPE_RECIPE then
+        local icon = icons.RECIPE_UNKNOWN and ("|t" .. iconSizeFmt .. ":" .. icons.RECIPE_UNKNOWN .. "|t ") or ""
+        if not IsItemLinkRecipeKnown then
+            -- API not available in this context; skip rather than show wrong state
+            return lines
+        end
+        if IsItemLinkRecipeKnown(itemLink) then
+            table.insert(lines, icon .. "|cAAAAAA" .. GetString(SI_RECIPE_ALREADY_KNOWN) .. "|r")
+        else
+            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(SI_USE_TO_LEARN_RECIPE) .. "|r")
+        end
+        return lines
+    end
+
+    -- B. Lore books and motif chapters (both use IsItemLinkBookKnown / IsItemLinkBookPartOfCollection)
+    if IsItemLinkBookPartOfCollection and IsItemLinkBookPartOfCollection(itemLink) then
+        local icon = icons.BOOK_UNKNOWN and ("|t" .. iconSizeFmt .. ":" .. icons.BOOK_UNKNOWN .. "|t ") or ""
+        -- IsItemLinkBookKnown may not be available in all addon contexts
+        if not IsItemLinkBookKnown then
+            return lines
+        end
+        if IsItemLinkBookKnown(itemLink) then
+            table.insert(lines, icon .. "|cAAAAAA" .. GetString(SI_LORE_LIBRARY_IN_LIBRARY) .. "|r")
+        else
+            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(SI_LORE_LIBRARY_USE_TO_LEARN) .. "|r")
+        end
+        return lines
+    end
+
+    return lines
+end
+
 
 --- Hooks tooltip layout methods to inject pricing and research info.
 ---
@@ -317,10 +377,18 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         end
 
         -- Capture current item link for Status Hook/Inventory Update to read
+        local effectiveStoreStackCount = storeStackCount
+        if effectiveStoreStackCount == nil and bagId == nil and slotIndex == nil then
+            effectiveStoreStackCount = self._betterui_storeStackCount
+        end
         self._betterui_itemLink = itemLink
         self._betterui_bagId = bagId
         self._betterui_slotIndex = slotIndex
-        self._betterui_storeStackCount = storeStackCount
+        self._betterui_storeStackCount = effectiveStoreStackCount
+
+        -- Reset price-rendered flag so the deferred injection can fire
+        -- (Inventory/Banking set this to true in UpdateTooltipEquippedText)
+        self._betterui_priceRendered = false
 
         -- Clear consumed store state to prevent it persisting to the next item
         storeItemLink = nil
@@ -344,7 +412,34 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
             end
         end
 
-        -- 4. Defer duplicate addon label cleanup to next frame
+        -- 4. Universal enhanced tooltip header injection
+        -- Deferred by 1 frame so Inventory/Banking's own UpdateTooltipEquippedText call
+        -- gets first priority. If that function runs (setting _betterui_priceRendered),
+        -- the deferred injection skips. For all other scenes (guild store, merchant,
+        -- fence, crafting, companion, etc.), this fires and renders the full enhanced
+        -- header: lock, bound, bind type, traits, stolen, junk, bag/bank/craftbag counts,
+        -- market prices, and research trait info.
+        if itemLink then
+            local tooltipRef = self
+            local capturedTooltipType = _tooltipType
+            local capturedItemLink = itemLink
+
+            zo_callLater(function()
+                -- Skip if tooltip is gone, hidden, or Inventory/Banking already rendered
+                if not tooltipRef or tooltipRef:IsHidden() then return end
+                if tooltipRef._betterui_priceRendered then return end
+
+                -- Skip if user scrolled to a different item since we were scheduled
+                -- (the LayoutItem wrapper updates _betterui_itemLink synchronously)
+                if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
+
+                -- Render full enhanced header (equipSlot=nil for non-equipped items)
+                BETTERUI.Inventory.UpdateTooltipEquippedText(capturedTooltipType, nil)
+            end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
+        end
+
+
+        -- 5. Defer duplicate addon label cleanup to next frame
         -- Trading addons (TTC, MM, ATT) may hook LayoutItem AFTER BetterUI,
         -- meaning their labels are added after our wrapper returns. By deferring
         -- the cleanup scan, we ensure all addon hooks have finished.
@@ -399,7 +494,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
                 end
 
                 ScanAndHideAddonLabels(tooltipRef)
-            end, 1) -- 1ms delay = next frame
+            end, 2) -- 2ms delay: must run AFTER deferred header injection (1ms) to avoid hiding our own price labels
         end
     end
 end

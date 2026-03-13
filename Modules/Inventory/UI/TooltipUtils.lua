@@ -135,6 +135,7 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         tooltip._betterui_bagId = nil
         tooltip._betterui_slotIndex = nil
         tooltip._betterui_storeStackCount = nil
+        tooltip._betterui_priceRendered = nil
     end
     if GAMEPAD_TOOLTIPS and GAMEPAD_TOOLTIPS.ClearStatusLabel then
         GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
@@ -157,6 +158,12 @@ param: equipSlot (number) - The equipment slot index.
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+
+    -- Signal to InventoryHook's deferred price injection that this scene
+    -- handles its own price/trait rendering (prevents double display)
+    if tooltip then
+        tooltip._betterui_priceRendered = true
+    end
 
     -- Check Setting (consistent pattern: nil/missing → true, explicit false → false)
     local settings = BETTERUI.Settings.Modules["CIM"]
@@ -329,7 +336,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- C. Bound Status
                 local boundStringLocal = GetString(SI_ITEM_FORMAT_STR_BOUND)
                 local boundString = ""
-                if IsItemBound(bagId, slotIndex) then
+                if bagId and slotIndex and IsItemBound(bagId, slotIndex) then
                     boundString = boundStringLocal
                 end
 
@@ -401,7 +408,8 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- F. Collected Status
                 local isCollected = false
                 if IsItemSetCollectionPiece and IsItemSetCollectionPieceUnlocked then
-                    if IsItemSetCollectionPiece(itemLink) and IsItemSetCollectionPieceUnlocked(itemLink) then
+                    local itemId = GetItemLinkItemId(itemLink)
+                    if IsItemSetCollectionPiece(itemLink) and itemId and IsItemSetCollectionPieceUnlocked(itemId) then
                         isCollected = true
                     end
                 end
@@ -476,6 +484,13 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- Append if we have anything
                 if infoLine ~= "" then
                     fullText = fullText .. infoLine .. "\n"
+                end
+
+                -- H. Knowledge Status (recipe known, motif/book in library)
+                -- Displayed on its own line below the main info segments
+                local knowledgeLines = BETTERUI.GetInventoryKnowledgeInfo(itemLink)
+                for _, kLine in ipairs(knowledgeLines) do
+                    fullText = fullText .. kLine .. "\n"
                 end
 
                 -- NOTE: Native tooltip labels (bag/bank counts, bound, stolen, set collection)

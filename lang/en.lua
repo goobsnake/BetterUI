@@ -425,7 +425,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Reset all settings in this Enhanced Tooltips section to their default values.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Market Price Integration")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
-    "Configure item market-value sources and controls for Inventory and Banking value columns.")
+    "Configure market-value sources for item tooltips. Prices appear in Inventory and Banking value columns, and in the default UI tooltip and BetterUI enhanced tooltip across all applicable scenes (guild stores, merchants, assistants, and more).")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Reset Market Settings")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Reset all settings in this Market Price Integration section to their default values.")
@@ -456,6 +456,9 @@ ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Addon not detected:
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Tooltip - Style and Trait Knowledge")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
     "Shows an item's style and researchable trait details in the enhanced tooltip. This is separate from item-list icons.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip - Recipe & Book Knowledge Status")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "Shows whether recipes, motifs, and lore books are known or not yet learned in the enhanced tooltip. Appears across all scenes.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chat window history size")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Alters how many lines to store in the chat buffer, default=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Skip Mail Delete Confirmation")

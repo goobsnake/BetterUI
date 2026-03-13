@@ -342,7 +342,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "自定义增强提示�
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "重置提示设置")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP", "将此“增强提示”分组中的所有设置重置为默认值。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "市场价格整合")
-ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "配置背包与银行价值列使用的市场价格来源和相关选项。")
+ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC", "配置物品提示的市场价格来源。价格显示在背包与银行价值列、默认UI提示以及BetterUI增强提示中，适用于所有相关场景（公会商店、商人、助手等）。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "重置市场设置")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP", "将此“市场价格整合”分组中的所有设置重置为默认值。")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_PRIORITY", "市场价格来源优先级")
@@ -371,6 +371,9 @@ ZO_CreateStringId("SI_BETTERUI_TTC_INTEGRATION_TOOLTIP", "将 TTC 价格信息�
 ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "未检测到插件：<<1>>。")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "提示 - 风格与特性信息")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "在增强提示中显示物品风格和可研究特性详情。此功能与物品列表图标独立。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "提示 - 配方与书籍知识状态")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "在增强提示中显示配方、图案和传说书籍是否已学会。适用于所有场景。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "聊天窗口历史记录大小")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "更改聊天缓存中存储的行数，默认=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "跳过邮件删除确认")

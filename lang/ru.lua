@@ -368,7 +368,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Сбрасывает все параметры в этом разделе «Улучшенные подсказки» к значениям по умолчанию.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Интеграция рыночных цен")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
-    "Настройка источников и параметров рыночной цены для столбца стоимости в инвентаре и банке.")
+    "Настройка источников рыночных цен для всплывающих подсказок предметов. Цены отображаются в столбцах стоимости инвентаря и банка, а также в стандартной подсказке UI и расширенной подсказке BetterUI во всех применимых сценах (магазины гильдий, торговцы, помощники и др.).")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Сбросить настройки рынка")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Сбрасывает все параметры в этом разделе «Интеграция рыночных цен» к значениям по умолчанию.")
@@ -403,6 +403,9 @@ ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Аддон не о�
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Подсказка - стиль и черта")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
     "Показывает в расширенной подсказке стиль предмета и сведения об изучаемой черте. Это отдельно от значков в списке предметов.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Подсказка – статус знания рецепта и книги")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "Показывает в расширенной подсказке, изучены ли рецепты, мотивы и лор-книги или ещё нет. Работает во всех сценах.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Размер истории чата")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Изменяет количество строк, сохраняемых в буфере чата (по умолчанию 200)")

@@ -129,6 +129,35 @@ function BETTERUI.GeneralInterface.Setup()
 	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), GAMEPAD_MOVABLE_TOOLTIP, "LayoutItem", BETTERUI.ReturnItemLink,
 		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
 
+	-- Hook LayoutStoreWindowItem on each tooltip control to capture item links
+	-- for merchant/NPC store items. These use LayoutStoreItemFromLink → LayoutItem
+	-- internally, but the item link is not passed through LayoutBagItem, so our
+	-- existing hooks can't capture it. This ensures _betterui_itemLink is set
+	-- before the LayoutItem wrapper fires for merchant items.
+	local storeTooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
+	for _, tooltipType in ipairs(storeTooltipTypes) do
+		local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
+		if tooltipControl and tooltipControl.LayoutStoreWindowItem then
+			local originalLayoutStore = tooltipControl.LayoutStoreWindowItem
+			tooltipControl.LayoutStoreWindowItem = function(self, itemData, ...)
+				-- Capture item link for regular items (collectibles/quest items
+				-- don't route through LayoutItem, so they naturally skip price injection)
+				if itemData and itemData.itemLink then
+					self._betterui_itemLink = itemData.itemLink
+				end
+				self._betterui_storeStackCount = (itemData and (itemData.stackCount or itemData.stack or itemData.quantity)) or 1
+				local result = originalLayoutStore(self, itemData, ...)
+				-- Clear stale bag context AFTER the call: LayoutItem fires synchronously
+				-- inside originalLayoutStore and re-writes stale closure bagId/slotIndex
+				-- onto the tooltip. Clearing here ensures UpdateTooltipEquippedText
+				-- sees nil bag context (correct for store items, which are not owned).
+				self._betterui_bagId = nil
+				self._betterui_slotIndex = nil
+				return result
+			end
+		end
+	end
+
 	-- SUPPRESS NATIVE TOP-SECTION LABELS (bag/bank counts, bound, stolen, set collection)
 	-- When BetterUI tooltip enhancements are enabled, our custom status label in
 	-- UpdateTooltipEquippedText already displays this information.

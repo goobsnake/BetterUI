@@ -378,7 +378,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Setzt alle Einstellungen in diesem Bereich »Erweiterte Tooltips« auf Standardwerte zurück.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Marktpreis-Integration")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
-    "Konfiguriere Marktpreisquellen und Optionen für die Wert-Spalten in Inventar und Bank.")
+    "Konfiguriert Marktpreisquellen für Gegenstandstooltips. Preise erscheinen in den Wert-Spalten von Inventar und Bank sowie im Standard-UI-Tooltip und im erweiterten BetterUI-Tooltip in allen anwendbaren Szenen (Gildenläden, Händler, Assistenten und mehr).")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Markt-Einstellungen zurücksetzen")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Setzt alle Einstellungen in diesem Bereich »Marktpreis-Integration« auf Standardwerte zurück.")
@@ -410,6 +410,9 @@ ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Addon nicht erkannt
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Tooltip - Stil- und Eigenschaftswissen")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
     "Zeigt im erweiterten Tooltip den Stil eines Gegenstands und Informationen zur erforschbaren Eigenschaft an. Unabhängig von den Gegenstandslisten-Symbolen.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip – Rezept- und Buchkenntnisstatus")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "Zeigt im erweiterten Tooltip an, ob Rezepte, Motive und Lore-Bücher bereits bekannt oder noch nicht erlernt sind. Gilt in allen Szenen.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chatfenster-Verlauf Größe")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Ändert, wie viele Zeilen im Chatpuffer gespeichert werden, Standard=200")

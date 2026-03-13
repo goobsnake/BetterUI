@@ -359,7 +359,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Restablece todos los ajustes de esta sección de Tooltips mejorados a sus valores predeterminados.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Integración de precio de mercado")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
-    "Configura las fuentes y opciones de precio de mercado para las columnas de valor en Inventario y Banco.")
+    "Configura las fuentes de precio de mercado para los tooltips de objetos. Los precios aparecen en las columnas de valor del inventario y el banco, y en el tooltip de UI predeterminado y el tooltip mejorado de BetterUI en todas las escenas aplicables (tiendas de clan, mercaderes, asistentes y más).")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Restablecer ajustes de mercado")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Restablece todos los ajustes de esta sección de Integración de precio de mercado a sus valores predeterminados.")
@@ -393,6 +393,9 @@ ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Complemento no dete
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Tooltip - Estilo y rasgo")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
     "Muestra en el tooltip mejorado el estilo del objeto y detalles de rasgos investigables. Es independiente de los iconos de la lista de objetos.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip - Estado de conocimiento de receta y libro")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "Muestra si las recetas, motivos y libros de conocimiento son conocidos o aún no aprendidos en el tooltip mejorado. Disponible en todas las escenas.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Tamaño historial chat")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Cambia cuántas líneas se guardan en el búfer de chat, por defecto=200")

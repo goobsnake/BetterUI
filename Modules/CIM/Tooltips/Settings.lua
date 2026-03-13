@@ -199,6 +199,8 @@ local function ResetEnhancedTooltipSettings()
         if generalInterfaceSettings then
             generalInterfaceSettings.showStyleTrait =
                 GetMetadataDefault("GeneralInterface", "showStyleTrait", true)
+            generalInterfaceSettings.showKnowledgeStatus =
+                GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true)
         end
         if cimSettings then
             cimSettings.enableTooltipEnhancements =
@@ -223,6 +225,10 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
     if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS and BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT then
         styleTraitIcon = zo_iconFormat(BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT, 24, 24) .. " "
+    end
+    local knowledgeStatusIcon = ""
+    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS and BETTERUI.CIM.CONST.ICONS.BOOK_UNKNOWN then
+        knowledgeStatusIcon = zo_iconFormat(BETTERUI.CIM.CONST.ICONS.BOOK_UNKNOWN, 24, 24) .. " "
     end
 
     local marketPriorityChoices = {}
@@ -577,6 +583,36 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             default = GetMetadataDefault("GeneralInterface", "showStyleTrait", true),
         },
         {
+            type = "checkbox",
+            name = knowledgeStatusIcon .. GetString(SI_BETTERUI_SHOW_KNOWLEDGE_STATUS),
+            tooltip = GetString(SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP),
+            getFunc = function()
+                local settings = GetModuleSettings("GeneralInterface")
+                if not settings then
+                    return GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true)
+                end
+                local value = settings.showKnowledgeStatus
+                if value == nil then
+                    return GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true)
+                end
+                return value
+            end,
+            setFunc = function(value)
+                local settings = EnsureModuleSettings("GeneralInterface")
+                if settings then
+                    settings.showKnowledgeStatus = value
+                end
+            end,
+            disabled = function()
+                local cimSettings = GetModuleSettings("CIM")
+                if not cimSettings then return true end
+                if cimSettings.enableTooltipEnhancements == nil then return false end
+                return cimSettings.enableTooltipEnhancements ~= true
+            end,
+            width = "full",
+            default = GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true),
+        },
+        {
             type = "slider",
             name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
             tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
@@ -665,6 +701,7 @@ function BETTERUI.GeneralInterface.InitModule(m_options)
         if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end
         if m_options["marketPricePriority"] == nil then m_options["marketPricePriority"] = "mm_att_ttc" end
         if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
+        if m_options["showKnowledgeStatus"] == nil then m_options["showKnowledgeStatus"] = true end
         if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
         if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = true end
         if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end

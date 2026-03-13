@@ -94,7 +94,8 @@ BETTERUI.Defaults.Modules = {
         marketPricePriority = "mm_att_ttc",
 
         -- Trait & Research
-        showStyleTrait = true, -- Show style/trait info in tooltips
+        showStyleTrait = true,      -- Show style/trait info in tooltips
+        showKnowledgeStatus = true, -- Show recipe/motif/book known status in enhanced tooltip
 
         -- Chat History
         chatHistory = 200, -- Reasonable default

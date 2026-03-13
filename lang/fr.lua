@@ -379,7 +379,7 @@ ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP",
     "Réinitialise tous les paramètres de cette section Infobulles améliorées à leurs valeurs par défaut.")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_HEADER", "Intégration des prix du marché")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_DESC",
-    "Configurez les sources et options de prix du marché pour les colonnes de valeur de l'inventaire et de la banque.")
+    "Configurez les sources de prix du marché pour les infobulles d'objets. Les prix apparaissent dans les colonnes de valeur de l'inventaire et de la banque, ainsi que dans l'infobulle de l'UI par défaut et l'infobulle améliorée BetterUI dans toutes les scènes applicables (boutiques de guilde, marchands, assistants, etc.).")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET", "Réinitialiser les paramètres du marché")
 ZO_CreateStringId("SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP",
     "Réinitialise tous les paramètres de cette section Intégration des prix du marché à leurs valeurs par défaut.")
@@ -411,6 +411,9 @@ ZO_CreateStringId("SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP", "Extension non déte
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT", "Infobulle - Style et traits")
 ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
     "Affiche dans l'infobulle améliorée le style de l'objet et les détails des traits recherchables. Indépendant des icônes de la liste d'objets.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Infobulle – Statut de connaissance recette & livre")
+ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
+    "Indique si les recettes, motifs et livres de lore sont connus ou pas encore appris dans l'infobulle améliorée. Disponible dans toutes les scènes.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Taille de l'historique de chat")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Modifie le nombre de lignes stockées dans le tampon de chat, par défaut=200")
