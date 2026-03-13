@@ -56,7 +56,7 @@ LAYOUT_CONFIG = {
         abilitySlotOffsetX = 10, -- Global gamepad slot X nudge (+ right, - left) when skinning native controls.
     },
     KEYBOARD = {
-        abilitySlotWidth = 50,  -- Keyboard action-slot width; keeps keyboard profile compact.
+        abilitySlotWidth = 67,  -- Matches gamepad for visual parity when switching modes.
         abilitySlotOffsetX = 2, -- Global keyboard slot X nudge (+ right, - left) when skinning native controls.
     }
 }
@@ -115,9 +115,9 @@ BETTERUI_ORB_FRAMES = {
             dualBarOffset = 44, -- Horizontal offset when dual bar is visible
         },
         keyboard = {
-            width = 50,         -- Button size in pixels
-            spacing = 2,        -- Gap between buttons (increase to spread apart)
-            dualBarOffset = 12, -- Horizontal offset when dual bar is visible
+            width = 64,         -- Matches gamepad for visual parity when switching modes
+            spacing = 10,       -- Gap between buttons (increase to spread apart)
+            dualBarOffset = 44, -- Horizontal offset when dual bar is visible
         },
     },
 
@@ -175,9 +175,9 @@ BETTERUI_ORB_FRAMES = {
                 ultimateSize = 70, -- Ultimate button size (larger than skills)
             },
             keyboard = {
-                buttonSize = nil,  -- nil uses slots.keyboard.width
+                buttonSize = nil,  -- nil uses slots.keyboard.width (now matches gamepad)
                 spacing = nil,     -- nil uses slots.keyboard.spacing
-                ultimateSize = 55, -- Ultimate button size (larger than skills)
+                ultimateSize = 70, -- Matches gamepad for visual parity
             },
         },
 

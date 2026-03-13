@@ -522,6 +522,8 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.LoadModules()
 	else
 		BETTERUI._initialized = false
+		-- Keyboard mode: ResourceOrbFrames self-initializes via XML + EVENT_PLAYER_ACTIVATED.
+		-- All other modules remain gamepad-only.
 	end
 	-- Ensure companion equip patch is queued even if modules didn't hook above
 	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
@@ -531,9 +533,15 @@ end
 
 -- Event handlers for initialization and gamepad mode changes
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED, function(...) BETTERUI.Initialize(...) end)
--- TODO(fix): Only call LoadModules() when inGamepad is true to avoid unnecessary execution on keyboard switch
 BETTERUI.EventManager:RegisterForEvent(BETTERUI.name .. "_Gamepad", EVENT_GAMEPAD_PREFERRED_MODE_CHANGED,
-	function(code, inGamepad) BETTERUI.LoadModules() end)
+	function(code, inGamepad)
+		if inGamepad then
+			-- Switching to gamepad: load all modules (idempotent via _initialized guard)
+			BETTERUI.LoadModules()
+		end
+		-- Switching to keyboard: ResourceOrbFrames handles its own mode-change event
+		-- inside SetupModule(). All other modules remain inactive in keyboard mode.
+	end)
 
 -- Debug commands are now in Modules/CIM/Core/DeveloperDebug.lua
 -- Enable debug mode via the DEBUG_LOGGING feature flag or set BETTERUI_DEBUG = true

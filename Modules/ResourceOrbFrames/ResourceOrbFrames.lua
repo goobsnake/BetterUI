@@ -265,9 +265,63 @@ local function SetupModule(control)
         end
     end)
 
-    -- Register Gamepad Switch
+    -- Register Gamepad Switch (dynamic re-skin instead of ReloadUI)
     BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
-        ReloadUI()
+        -- Guard: only act if fully initialized
+        if not m_isInitialized or not m_rootFrame then return end
+
+        -- Stop any in-flight weapon-swap animation to prevent visual corruption
+        -- when ApplyTemplateToControl re-parents controls mid-animation
+        if SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() then
+            SkillBar.WeaponSwapAnimation(m_rootFrame)
+        end
+
+        -- Re-apply mode-specific XML template and action bar skin.
+        -- NOTE: ApplyTemplateToControl can reset OnMouseEnter/script handlers on buttons,
+        -- which is why we must replay the full front-bar setup sequence below.
+        local isGamePad = IsInGamepadPreferredMode()
+        local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
+        SkillBar.ApplyActionBarSkin(m_rootFrame, layout)
+
+        -- Re-read front bar config live (not stale closure from SetupModule time)
+        local liveFrontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        if liveFrontBarCfg and liveFrontBarCfg.m_enabled then
+            -- Replay the post-skin setup sequence from initial SetupModule (lines ~232-243).
+            -- SetParent is intentionally NOT repeated: ApplyTemplateToControl does not
+            -- destroy/recreate controls, so QuickslotButton/CompanionButton parentage is intact.
+            SkillBar.UpdateFrontBar(m_rootFrame)
+            SkillBar.UpdateFrontBarQuickslot(m_rootFrame)
+            SkillBar.UpdateFrontBarCompanion(m_rootFrame)
+            SkillBar.UpdateFrontBarUltimateMeter(m_rootFrame)
+
+            -- Re-register keybind labels (must run after template re-apply since
+            -- ApplyTemplateToControl can overwrite ButtonText script handlers).
+            if SkillBar.SetupFrontBarKeybinds then
+                SkillBar.SetupFrontBarKeybinds(m_rootFrame)
+            end
+            -- Safe to call again: has internal m_pressFeedbackHooksInstalled guard.
+            if SkillBar.SetupFrontBarPressFeedbackHooks then
+                SkillBar.SetupFrontBarPressFeedbackHooks(m_rootFrame)
+            end
+            -- Re-attach OnMouseEnter/Leave tooltip handlers (reset by template re-apply).
+            if SkillBar.SetupFrontBarTooltips then
+                SkillBar.SetupFrontBarTooltips(m_rootFrame)
+            end
+        end
+
+        -- Full layout + data refresh (all layout fns query IsInGamepadPreferredMode() live)
+        ApplyFullLayout()
+        RefreshAllData()
+
+        -- Re-enforce native UI suppression
+        SkillBar.HideNativeActionBar()
+        if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+            PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
+        end
+
+        if Events.RefreshCombatIndicators then
+            Events.RefreshCombatIndicators(m_rootFrame)
+        end
     end)
 
     -- Register Dynamic Bar Updates

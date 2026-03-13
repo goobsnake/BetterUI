@@ -60,11 +60,9 @@ end
 
 local function UpdateMainBarLayout(rootFrame)
     local isGamePad = IsInGamepadPreferredMode()
-    local layout = isGamePad and { abilitySlotWidth = 67, abilitySlotOffsetX = 10 } or
-        { abilitySlotWidth = 50, abilitySlotOffsetX = 2 }
-
-    local width = layout.abilitySlotWidth
-    local offset = layout.abilitySlotOffsetX
+    local slots = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
+    local width = slots.width
+    local offset = slots.spacing
     local totalWidth = (6 * width) + (5 * offset)
 
     local barParent = FindControl(rootFrame, 'ActionBarContainer')
@@ -78,10 +76,13 @@ local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     local template = isGamePad and 'ResourceOrbFrames_Double_Gamepad' or 'ResourceOrbFrames_Double_Keyboard'
 
-    -- TODO(fragile): ZO_ActionBar1WeaponSwap and ZO_ActionBar1KeybindBG accessed without nil guards; will crash if ESO renames these controls
-    ZO_ActionBar1WeaponSwap:SetHidden(true)
-    ZO_ActionBar1KeybindBG:SetHidden(true)
-    ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
+    if ZO_ActionBar1WeaponSwap then
+        ZO_ActionBar1WeaponSwap:SetHidden(true)
+        ZO_WeaponSwap_SetPermanentlyHidden(ZO_ActionBar1WeaponSwap, true)
+    end
+    if ZO_ActionBar1KeybindBG then
+        ZO_ActionBar1KeybindBG:SetHidden(true)
+    end
 
     if not isGamePad then
         BETTERUI.ResourceOrbFrames.Tasks:Schedule("hideButtonText", 150, function()
