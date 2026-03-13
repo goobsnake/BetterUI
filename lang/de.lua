@@ -130,11 +130,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
     "Wenn aktiviert, werden Einstellungen kontoweit statt pro Charakter gespeichert.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "|c0066FFAllgemeine Interface-Verbesserungen|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP",
-    "Umfangreiche Verbesserungen für Tooltips und Benutzeroberfläche")
+    "Umfangreiche Verbesserungen für Tooltips und Benutzeroberfläche (nur Gamepad-UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "|c0066FFVerbessertes Inventar|r aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Gestaltet die Gamepad-Inventaroberfläche komplett neu")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Gestaltet die Inventaroberfläche komplett neu (nur Gamepad-UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "|c0066FFVerbessertes Banking|r aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Gestaltet die Gamepad-Bankoberfläche komplett neu")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Gestaltet die Bankoberfläche komplett neu (nur Gamepad-UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FFTägliche Schriebe|r aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Zeigt die täglichen Schriebe und Fortschritt an jeder Handwerksstation")
@@ -243,7 +243,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "Allgemein")
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
-    "Konfiguriere das grundlegende Verhalten des Inventars, einschließlich Navigation, Schutz und Interaktionsoptionen.")
+    "Konfiguriere das grundlegende Verhalten des Inventars, einschließlich Navigation, Schutz und Interaktionsoptionen. Diese Einstellungen gelten nur für die Gamepad-UI.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Schriftanpassung")
@@ -273,7 +273,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Wähle den Schri
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "Allgemein")
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
-    "Konfiguriere das grundlegende Verhalten der Bank, einschließlich Navigation und Interaktionsoptionen.")
+    "Konfiguriere das grundlegende Verhalten der Bank, einschließlich Navigation und Interaktionsoptionen. Diese Einstellungen gelten nur für die Gamepad-UI.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Schriftanpassung")
@@ -328,6 +328,8 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Orb-Text")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Allgemein")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC",
+    "Konfiguriere das Ressourcen-Kugeln HUD-Overlay. Funktioniert sowohl im Gamepad- als auch im Tastatur-UI-Modus.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Skalierung")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Gesamtgröße des Rahmens.")
@@ -369,7 +371,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Schriftfarbe")
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "Allgemein")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
-    "Konfiguriere grundlegendes Interface-Verhalten, Tooltip-Integrationen und Komfortoptionen.")
+    "Konfiguriere grundlegendes Interface-Verhalten, Tooltip-Integrationen und Komfortoptionen. Diese Einstellungen gelten nur für die Gamepad-UI.")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Erweiterte Tooltips")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
     "Passe das Verhalten erweiterter Tooltips an, einschließlich Stil-/Eigenschaftsdetails und Schriftgröße.")
@@ -517,7 +519,7 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFRessourcen-Kugel-Rahmen|r aktivieren")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Aktiviert das Ressourcen-Kugel-Rahmen Modul.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "ARPG-Stil Ressourcen-Kugeln und Skillleisten-Ersatz (Gamepad- und Tastatur-UI)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Schnellzugriff-Abklingzeit anzeigen")
@@ -574,7 +576,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "WARNUNG: Gegenstände werden OHNE Bestätigung zerstört. Dies kann zu permanentem Gegenstandsverlust führen.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Mehrfachauswahl-Zerstörung aktivieren")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** Wenn aktiviert, erscheint die Zerstören-Aktion im Mehrfachauswahl-Stapelaktionsmenü. Dies hat KEINEN Einfluss auf die normale Einzelgegenstand-Zerstörung.")
+    "**VORSICHTIG VERWENDEN** Wenn aktiviert, erscheint die Zerstören-Aktion im Mehrfachauswahl-Stapelaktionsmenü. Dies hat KEINEN Einfluss auf die normale Einzelgegenstand-Zerstörung.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "WARNUNG: BetterUI übernimmt keine Verantwortung für versehentlich zerstörte Gegenstände. Stapelzerstörung ist unwiderruflich. Mit Vorsicht verwenden.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

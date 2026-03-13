@@ -128,11 +128,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "Использоват�
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
     "При включении настройки будут сохраняться для всего аккаунта, а не для каждого персонажа.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "Включить |c0066FFулучшения интерфейса|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Значительные улучшения для подсказок и интерфейса")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Значительные улучшения для подсказок и интерфейса (только интерфейс геймпада)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Включить |c0066FFулучшенный инвентарь|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Полностью перерабатывает интерфейс инвентаря для геймпада")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Полностью перерабатывает интерфейс инвентаря (только интерфейс геймпада)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Включить |c0066FFулучшенный банк|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Полностью перерабатывает интерфейс банка для геймпада")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Полностью перерабатывает интерфейс банка (только интерфейс геймпада)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Включить |c0066FFежедневные заказы|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Отображает ежедневные заказы и прогресс на каждой ремесленной станции")
@@ -235,7 +235,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Сбросить вс
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "Общие")
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
-    "Настройте основное поведение инвентаря, включая параметры навигации, защиты и взаимодействия.")
+    "Настройте основное поведение инвентаря, включая параметры навигации, защиты и взаимодействия. Эти настройки применяются только к интерфейсу геймпада.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Настройка шрифтов")
@@ -264,7 +264,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Выберите
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "Общие")
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
-    "Настройте основное поведение банка, включая параметры навигации и взаимодействия.")
+    "Настройте основное поведение банка, включая параметры навигации и взаимодействия. Эти настройки применяются только к интерфейсу геймпада.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Настройка шрифтов")
@@ -318,6 +318,8 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Текст орбов
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Общие")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC",
+    "Настройте HUD-оверлей сфер ресурсов. Работает в режимах геймпада и клавиатуры.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Масштаб")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Общий размер рамки.")
@@ -359,7 +361,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Цвет шрифта")
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "Общие")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
-    "Настройте основное поведение интерфейса, интеграции подсказок и параметры удобства.")
+    "Настройте основное поведение интерфейса, интеграции подсказок и параметры удобства. Эти настройки применяются только к интерфейсу геймпада.")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Улучшенные подсказки")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
     "Настройте поведение улучшенных подсказок, включая сведения о стиле/черте и размер шрифта.")
@@ -515,7 +517,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Позиция б
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Включить |c0066FFРамки сфер ресурсов|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Включает модуль рамок сфер ресурсов.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Сферы ресурсов в стиле ARPG и замена панели умений (интерфейс геймпада и клавиатуры)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Показать перезарядку быстрого слота")
@@ -571,7 +573,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ВНИМАНИЕ: Предметы будут уничтожены БЕЗ подтверждения. Это может привести к безвозвратной потере предметов.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Включить уничтожение при множественном выборе")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** При включении действие «Уничтожить» появляется в меню групповых действий множественного выбора. Это НЕ влияет на обычное уничтожение отдельного предмета.")
+    "**ИСПОЛЬЗУЙТЕ С ОСТОРОЖНОСТЬЮ** При включении действие «Уничтожить» появляется в меню групповых действий множественного выбора. Это НЕ влияет на обычное уничтожение отдельного предмета.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ВНИМАНИЕ: BetterUI не несёт ответственности за случайно уничтоженные предметы. Групповое уничтожение необратимо. Используйте с осторожностью.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

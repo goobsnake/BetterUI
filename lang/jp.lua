@@ -125,11 +125,11 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "アドオンマスター
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "グローバル設定を使用")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP", "有効にすると、設定はキャラクターごとではなくアカウント全体で保存されます。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "|c0066FFインターフェース改善|rを有効化")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "ツールチップとUIの大幅な改善")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "ツールチップとUIの大幅な改善 (ゲームパッドUIのみ)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "|c0066FF拡張インベントリ|rを有効化")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "ゲームパッドのインベントリインターフェースを完全に再設計")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "インベントリインターフェースを完全に再設計 (ゲームパッドUIのみ)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "|c0066FF拡張バンキング|rを有効化")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "ゲームパッドの銀行インターフェースを完全に再設計")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "銀行インターフェースを完全に再設計 (ゲームパッドUIのみ)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "|c0066FFデイリークラフト依頼|rを有効化")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "各クラフトステーションでデイリー依頼と進捗を表示")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "すべてをデフォルトにリセット")
@@ -225,7 +225,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "すべてのネーム
 
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "一般")
-ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "インベントリの基本動作を設定します。ナビゲーション、保護、操作に関するオプションを調整できます。")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "インベントリの基本動作を設定します。ナビゲーション、保護、操作に関するオプションを調整できます。これらの設定はゲームパッドUIのみに適用されます。")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "フォントカスタマイズ")
@@ -252,7 +252,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "列データの�
 
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "一般")
-ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "銀行の基本動作を設定します。ナビゲーションと操作に関するオプションを調整できます。")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "銀行の基本動作を設定します。ナビゲーションと操作に関するオプションを調整できます。これらの設定はゲームパッドUIのみに適用されます。")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "フォントカスタマイズ")
@@ -305,6 +305,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "オーブテキスト
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "一般")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "リソースオーブHUDオーバーレイを設定します。ゲームパッドとキーボードUI両方で動作します。")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "スケール")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "フレーム全体のサイズ。")
@@ -337,7 +338,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "フォントカラー")
 
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "一般")
-ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "インターフェースの基本動作、ツールチップ連携、利便性オプションを設定します。")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "インターフェースの基本動作、ツールチップ連携、利便性オプションを設定します。これらの設定はゲームパッドUIのみに適用されます。")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "強化ツールチップ")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "スタイル/特性情報やフォントサイズを含む、強化ツールチップの動作をカスタマイズします。")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "ツールチップ設定をリセット")
@@ -468,7 +469,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "イベントチ�
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "|c0066FFリソースオーブフレーム|rを有効化")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "リソースオーブフレームモジュールを有効にします。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "ARPG風リソースオーブとスキルバー置換 (ゲームパッド＆キーボードUI)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "クイックスロットクールダウンを表示")
@@ -523,7 +524,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：アイテムは確認なしで破棄されます。永久的なアイテム損失につながる可能性があります。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "複数選択での破棄を有効にする")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** 有効にすると、複数選択の一括アクションメニューに破棄アクションが表示されます。通常の単一アイテム破棄には影響しません。")
+    "**注意して使用** 有効にすると、複数選択の一括アクションメニューに破棄アクションが表示されます。通常の単一アイテム破棄には影響しません。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "警告：BetterUIは誤って破棄されたアイテムについて責任を負いません。一括破棄は元に戻せません。慎重に使用してください。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

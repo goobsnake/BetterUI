@@ -215,7 +215,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
-    "Configura el comportamiento principal del inventario, incluidas las opciones de navegación, protección e interacción.")
+    "Configura el comportamiento principal del inventario, incluidas las opciones de navegación, protección e interacción. Estos ajustes solo aplican a la UI de mando.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Personalización de fuentes")
@@ -248,7 +248,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP",
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
-    "Configura el comportamiento principal del banco, incluidas las opciones de navegación e interacción.")
+    "Configura el comportamiento principal del banco, incluidas las opciones de navegación e interacción. Estos ajustes solo aplican a la UI de mando.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Personalización de fuentes")
@@ -309,6 +309,8 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Texto de orbes")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC",
+    "Configura el HUD de Orbes de Recursos. Funciona tanto en modo mando como teclado.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Escala")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Tamaño general del marco.")
@@ -350,7 +352,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Color de fuente")
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
-    "Configura el comportamiento principal de la interfaz, las integraciones de tooltips y opciones de calidad de vida.")
+    "Configura el comportamiento principal de la interfaz, las integraciones de tooltips y opciones de calidad de vida. Estos ajustes solo aplican a la UI de mando.")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Tooltips mejorados")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
     "Personaliza el comportamiento de los tooltips mejorados, incluidos los detalles de estilo/rasgo y el tamaño de fuente.")
@@ -507,11 +509,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "Usar configuración glo
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
     "Cuando está activado, la configuración se guardará para toda la cuenta en lugar de por personaje.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "Activar |c0066FFMejoras de interfaz|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Grandes mejoras en las descripciones e interfaz del juego")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Grandes mejoras en las descripciones e interfaz del juego (solo UI de mando)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Activar |c0066FFInventario mejorado|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Rediseña completamente la interfaz de inventario del mando")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Rediseña completamente la interfaz de inventario (solo UI de mando)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Activar |c0066FFBanco mejorado|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Rediseña completamente la interfaz bancaria del mando")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Rediseña completamente la interfaz bancaria (solo UI de mando)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Activar |c0066FFMódulo de encargos|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Muestra los encargos diarios y progreso en cada estación de artesanía")
@@ -532,7 +534,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Posición entrada
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Activar |c0066FFMarcos de Orbes de Recursos|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Activa el módulo de Marcos de Orbes de Recursos.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Orbes de recursos estilo ARPG y reemplazo de barra de habilidades (UI de mando y teclado)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Mostrar enfriamiento de acceso rápido")
@@ -588,7 +590,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ADVERTENCIA: Los objetos se destruirán SIN confirmación. Esto puede causar pérdida permanente de objetos.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Activar destrucción en selección múltiple")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** Cuando está activado, la acción Destruir aparece en el menú de acciones en lote de selección múltiple. Esto NO afecta la destrucción normal de un solo objeto.")
+    "**USAR CON PRECAUCIÓN** Cuando está activado, la acción Destruir aparece en el menú de acciones en lote de selección múltiple. Esto NO afecta la destrucción normal de un solo objeto.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ADVERTENCIA: BetterUI no se hace responsable de los objetos destruidos accidentalmente. La destrucción en lote es irreversible. Úsalo con precaución.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

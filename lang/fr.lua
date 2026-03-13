@@ -129,11 +129,11 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "Utiliser les paramètre
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
     "Lorsqu'activé, les paramètres seront sauvegardés pour tout le compte au lieu de par personnage.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "Activer |c0066FFAméliorations de l'interface|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Améliorations majeures des infobulles et de l'interface")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Améliorations majeures des infobulles et de l'interface (UI Manette uniquement)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Activer |c0066FFInventaire amélioré|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Redéfinit complètement l'interface d'inventaire manette")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Redéfinit complètement l'interface d'inventaire (UI Manette uniquement)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Activer |c0066FFBanque améliorée|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Redéfinit complètement l'interface bancaire manette")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Redéfinit complètement l'interface bancaire (UI Manette uniquement)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Activer |c0066FFModule de commandes|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP",
     "Affiche les commandes journalières et leur progression à chaque station d'artisanat")
@@ -239,7 +239,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP",
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "Général")
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
-    "Configure le comportement principal de l'inventaire, y compris les options de navigation, de protection et d'interaction.")
+    "Configure le comportement principal de l'inventaire, y compris les options de navigation, de protection et d'interaction. Ces paramètres s'appliquent uniquement à l'UI Manette.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Personnalisation des polices")
@@ -271,7 +271,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP",
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "Général")
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
-    "Configure le comportement principal de la banque, y compris les options de navigation et d'interaction.")
+    "Configure le comportement principal de la banque, y compris les options de navigation et d'interaction. Ces paramètres s'appliquent uniquement à l'UI Manette.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Personnalisation des polices")
@@ -330,6 +330,8 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Texte des orbes")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "Général")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC",
+    "Configurez le HUD des Orbes de Ressources. Fonctionne en modes Manette et Clavier.")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Échelle")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "Taille globale du cadre.")
@@ -370,7 +372,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Couleur de la police")
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "Général")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
-    "Configure le comportement principal de l'interface, les intégrations d'infobulles et les options de confort.")
+    "Configure le comportement principal de l'interface, les intégrations d'infobulles et les options de confort. Ces paramètres s'appliquent uniquement à l'UI Manette.")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Infobulles améliorées")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
     "Personnalisez le comportement des infobulles améliorées, y compris les détails de style/trait et la taille de police.")
@@ -526,7 +528,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Position tickets 
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Activer |c0066FFCadres des Orbes de Ressources|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Active le module Cadres des Orbes de Ressources.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Orbes de ressources et barre de compétences style ARPG (UI Manette et Clavier)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "Afficher le temps de recharge du raccourci")
@@ -582,7 +584,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "ATTENTION : Les objets seront détruits SANS confirmation. Cela peut entraîner une perte permanente d'objets.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "Activer la destruction en sélection multiple")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** Lorsqu'activé, l'action Détruire apparaît dans le menu d'actions groupées de sélection multiple. Cela N'AFFECTE PAS la destruction normale d'un seul objet.")
+    "**UTILISER AVEC PRUDENCE** Lorsqu'activé, l'action Détruire apparaît dans le menu d'actions groupées de sélection multiple. Cela N'AFFECTE PAS la destruction normale d'un seul objet.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "ATTENTION : BetterUI n'est pas responsable des objets accidentellement détruits. La destruction groupée est irréversible. Utilisez avec prudence.")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

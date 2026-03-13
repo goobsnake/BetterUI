@@ -124,11 +124,11 @@ ZO_CreateStringId("SI_BETTERUI_MASTER_SETTINGS_TITLE", "插件主设置")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "使用全局设置")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP", "启用后，设置将保存为账户范围而不是每个角色。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "启用 |c0066FF界面改进|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "大幅改进游戏内提示和UI")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "大幅改进游戏内提示和UI (仅手柄UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "启用 |c0066FF增强背包|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "完全重新设计手柄的背包界面")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "完全重新设计背包界面 (仅手柄UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "启用 |c0066FF增强银行|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "完全重新设计手柄的银行界面")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "完全重新设计银行界面 (仅手柄UI)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "启用 |c0066FF日常委托模块|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "在每个制作站显示日常委托及进度")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "全部重置为默认值")
@@ -224,7 +224,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "将所有名牌设置
 
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "常规")
-ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "配置物品栏的核心行为，包括导航、保护和交互选项。")
+ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC", "配置物品栏的核心行为，包括导航、保护和交互选项。这些设置仅适用于手柄UI。")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "字体自定义")
@@ -251,7 +251,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "选择列数据�
 
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "常规")
-ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "配置银行的核心行为，包括导航和交互选项。")
+ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC", "配置银行的核心行为，包括导航和交互选项。这些设置仅适用于手柄UI。")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "字体自定义")
@@ -304,6 +304,7 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "法球文本")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "常规")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC", "配置资源球HUD覆盖层。支持手柄和键盘UI模式。")
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "缩放")
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP", "框架的整体大小。")
@@ -336,7 +337,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "字体颜色")
 
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "常规")
-ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "配置界面的核心行为、提示信息整合和体验优化选项。")
+ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC", "配置界面的核心行为、提示信息整合和体验优化选项。这些设置仅适用于手柄UI。")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "增强提示")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC", "自定义增强提示行为，包括风格/特性信息和字体大小。")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_RESET", "重置提示设置")
@@ -469,7 +470,7 @@ ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "活动门票位�
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "启用|c0066FF资源球框架|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "启用资源球框架模块。")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "ARPG风格资源球和技能栏替换 (手柄和键盘UI)")
 
 -- Skill Bars Settings
 ZO_CreateStringId("SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN", "显示快捷槽冷却")
@@ -524,7 +525,7 @@ ZO_CreateStringId("SI_BETTERUI_QUICK_DESTROY_WARNING",
     "警告：物品将在没有确认的情况下销毁。这可能导致永久性物品丢失。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY", "启用多选销毁")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP",
-    "**USE WITH CAUTION** 启用后，销毁操作将出现在多选批量操作菜单中。这不会影响常规的单个物品销毁。")
+    "**请谨慎使用** 启用后，销毁操作将出现在多选批量操作菜单中。这不会影响常规的单个物品销毁。")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING",
     "警告：BetterUI不对任何意外销毁的物品承担责任。批量销毁是不可逆的。请谨慎操作。")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",

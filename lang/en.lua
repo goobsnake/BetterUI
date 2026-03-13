@@ -173,13 +173,13 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS", "Use Global Settings")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP",
     "When enabled, settings will be saved account-wide instead of per-character - This requires a reloadui.")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS", "Enable |c0066FFGeneral Interface Improvements|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Vast improvements to the ingame tooltips and UI")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", "Vast improvements to the ingame tooltips and UI (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Enable |c0066FFEnhanced Inventory|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Completely redesigns the gamepad's inventory interface")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Completely redesigns the inventory interface (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the gamepad's banking interface")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the banking interface (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Reset All To Defaults")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP",
     "Reset ALL BetterUI settings to their default values. Reload the UI afterward to fully apply the restored defaults.")
@@ -281,7 +281,7 @@ ZO_CreateStringId("SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP", "Reset all nameplate s
 -- Inventory General Settings
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_INV_GENERAL_DESC",
-    "Configure core inventory behavior, including navigation, protection, and interaction options.")
+    "Configure core inventory behavior, including navigation, protection, and interaction options. These settings apply to the Gamepad UI only.")
 
 -- Inventory Font Settings
 ZO_CreateStringId("SI_BETTERUI_INV_FONT_HEADER", "Font Customization")
@@ -310,7 +310,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP", "Select the font 
 -- Banking General Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_BANK_GENERAL_DESC",
-    "Configure core banking behavior, including navigation and interaction options.")
+    "Configure core banking behavior, including navigation and interaction options. These settings apply to the Gamepad UI only.")
 
 -- Banking Font Settings
 ZO_CreateStringId("SI_BETTERUI_BANK_FONT_HEADER", "Font Customization")
@@ -373,6 +373,8 @@ ZO_CreateStringId("SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER", "Orb Text")
 
 -- Resource Orb Frames
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC",
+    "Configure the Resource Orb Frames HUD overlay, including scale, position, and visual options. Works in both Gamepad and Keyboard UI modes.")
 
 
 ZO_CreateStringId("SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE", "Scale")
@@ -416,7 +418,7 @@ ZO_CreateStringId("SI_BETTERUI_FONT_COLOR", "Font Color")
 -- General Interface Settings
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER", "General")
 ZO_CreateStringId("SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC",
-    "Configure core interface behavior, tooltip integrations, and quality-of-life options.")
+    "Configure core interface behavior, tooltip integrations, and quality-of-life options. These settings apply to the Gamepad UI only.")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER", "Enhanced Tooltips")
 ZO_CreateStringId("SI_BETTERUI_ENHANCED_TOOLTIPS_DESC",
     "Customize enhanced tooltip behavior, including style/trait details and font sizing.")
@@ -488,7 +490,7 @@ ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_WARNING",
 
 
 ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS", "Enable |c0066FFResource Orb Frames|r")
-ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "Enables the Resource Orb Frames module.")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_ORBS_TOOLTIP", "ARPG-style resource orbs and skill bar replacement (Gamepad & Keyboard UI)")
 
 -- Skill Bars Settings (ResourceOrbFrames)
 ZO_CreateStringId("SI_BETTERUI_SKILL_BARS_SUBMENU", "Skill Bars")
