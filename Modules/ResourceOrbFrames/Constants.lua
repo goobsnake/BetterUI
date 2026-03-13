@@ -80,6 +80,15 @@ BETTERUI.CONST.ORBS.DIMENSIONS = {
     ORB_TEXTURE_SIZE = 240,     -- Base orb mask/border texture dimensions.
     FILL_TEXTURE_SIZE = 256,    -- Fill texture canvas size before per-orb scaling/cropping.
 }
+--- Background fill padding. Fog2 (dimmed background) is scaled by this factor
+--- relative to the Fog (resource fill) to fully cover the orb interior and
+--- prevent game-world bleed at the edges when resources drain.
+--- Per-resource values allow independent tuning (health is a full circle, mag/stam are halves).
+BETTERUI.CONST.ORBS.BG_FILL_PADDING = {
+    health  = 1.02, -- 2% larger; full-circle orb shows edges more prominently
+    magicka = 1.04, -- 4% larger; half-texture needs more coverage
+    stamina = 1.04, -- 4% larger; mirrors magicka
+}
 
 --- Configuration table for the Resource Orb Frames (Health/Magicka/Stamina orbs).
 ---

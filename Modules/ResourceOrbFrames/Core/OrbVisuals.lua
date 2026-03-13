@@ -162,7 +162,8 @@ function BetterUIOrbBar:RefreshVisuals()
     end
 
     if self.fog2 ~= nil then
-        self.fog2:SetDimensions(fullWidth, fullHeight)
+        local bgPadding = self.bgPadding or 1.0
+        self.fog2:SetDimensions(fullWidth * bgPadding, fullHeight * bgPadding)
         self.fog2:SetTextureCoords(self.baseCoordLeft, self.baseCoordRight, 0, 1)
         self.fog2:ClearAnchors()
         self.fog2:SetAnchor(CENTER, self.control, CENTER,
@@ -556,11 +557,14 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         -- Original orb control size from XML (used to scale baseAnchorX)
         local BASE_ORB_CONTROL_SIZE = 150
 
+        local bgPad = BETTERUI.CONST.ORBS.BG_FILL_PADDING or {}
+
         if pools[POWERTYPE_HEALTH] then
             pools[POWERTYPE_HEALTH].fillWidth = fillParams.health.width
             pools[POWERTYPE_HEALTH].fillHeight = fillParams.health.height
             pools[POWERTYPE_HEALTH].fillOffsetX = fillParams.health.x
             pools[POWERTYPE_HEALTH].fillOffsetY = fillParams.health.y
+            pools[POWERTYPE_HEALTH].bgPadding = bgPad.health or 1.0
             pools[POWERTYPE_HEALTH].baseAnchorX = ORB_CONFIG[POWERTYPE_HEALTH][3] * (leftBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_HEALTH].label then
                 pools[POWERTYPE_HEALTH].label:ClearAnchors()
@@ -577,6 +581,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_MAGICKA].fillHeight = fillParams.magicka.height
             pools[POWERTYPE_MAGICKA].fillOffsetX = fillParams.magicka.x
             pools[POWERTYPE_MAGICKA].fillOffsetY = fillParams.magicka.y
+            pools[POWERTYPE_MAGICKA].bgPadding = bgPad.magicka or 1.0
             pools[POWERTYPE_MAGICKA].baseAnchorX = ORB_CONFIG[POWERTYPE_MAGICKA][3] * (rightBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_MAGICKA].label then
                 pools[POWERTYPE_MAGICKA].label:ClearAnchors()
@@ -593,6 +598,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
             pools[POWERTYPE_STAMINA].fillHeight = fillParams.stamina.height
             pools[POWERTYPE_STAMINA].fillOffsetX = fillParams.stamina.x
             pools[POWERTYPE_STAMINA].fillOffsetY = fillParams.stamina.y
+            pools[POWERTYPE_STAMINA].bgPadding = bgPad.stamina or 1.0
             pools[POWERTYPE_STAMINA].baseAnchorX = ORB_CONFIG[POWERTYPE_STAMINA][3] * (rightBorderSize / BASE_ORB_CONTROL_SIZE)
             if pools[POWERTYPE_STAMINA].label then
                 pools[POWERTYPE_STAMINA].label:ClearAnchors()

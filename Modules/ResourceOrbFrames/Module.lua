@@ -241,6 +241,11 @@ local function Init(mId, moduleName)
             name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER),
             width = "full",
         },
+        {
+            type = "description",
+            text = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC),
+            width = "full",
+        },
 
         {
             type = "slider",
