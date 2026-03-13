@@ -52,11 +52,9 @@ BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                    
 -- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
 LAYOUT_CONFIG = {
     GAMEPAD = {
-        abilitySlotWidth = 67,   -- Gamepad action-slot width; higher values enlarge slot boxes.
         abilitySlotOffsetX = 10, -- Global gamepad slot X nudge (+ right, - left) when skinning native controls.
     },
     KEYBOARD = {
-        abilitySlotWidth = 67,  -- Matches gamepad for visual parity when switching modes.
         abilitySlotOffsetX = 2, -- Global keyboard slot X nudge (+ right, - left) when skinning native controls.
     }
 }

@@ -272,8 +272,8 @@ local function SetupModule(control)
 
         -- Stop any in-flight weapon-swap animation to prevent visual corruption
         -- when ApplyTemplateToControl re-parents controls mid-animation
-        if SkillBar.IsWeaponSwapAnimating and SkillBar.IsWeaponSwapAnimating() then
-            SkillBar.WeaponSwapAnimation(m_rootFrame)
+        if SkillBar.StopWeaponSwapAnimation then
+            SkillBar.StopWeaponSwapAnimation(m_rootFrame)
         end
 
         -- Re-apply mode-specific XML template and action bar skin.

@@ -108,6 +108,29 @@ local function ApplyActionBarSkin(rootFrame, layout)
     if indicator then indicator:SetHidden(true) end
 end
 
+-- Stops an in-flight weapon-swap animation and resets both bars to their resting positions.
+-- Safe to call when no animation is running (no-op).
+local function StopWeaponSwapAnimation(rootFrame)
+    if not (m_swapTimeline and m_swapTimeline:IsPlaying()) then return end
+    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    if not backBarContainer or not frontBarContainer or not bgMiddle then return end
+
+    m_swapTimeline:Stop()
+    backBarContainer:SetAlpha(1)
+    backBarContainer:ClearAnchors()
+    backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX or 0, m_backBarBaseY or 0)
+    local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    local barOffsetX = frontBarConst and frontBarConst.offsetX or 0
+    local barOffsetY = frontBarConst and frontBarConst.offsetY or 0
+    frontBarContainer:SetAlpha(1)
+    frontBarContainer:ClearAnchors()
+    frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+    SkillBar.UpdateBackBar(rootFrame)
+    SkillBar.UpdateFrontBar(rootFrame)
+end
+
 local function WeaponSwapAnimation(rootFrame)
     local settings = GetModuleSettings()
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -121,20 +144,7 @@ local function WeaponSwapAnimation(rootFrame)
     end
 
     if m_swapTimeline and m_swapTimeline:IsPlaying() then
-        m_swapTimeline:Stop()
-        SkillBar.UpdateBackBar(rootFrame)
-        SkillBar.UpdateFrontBar(rootFrame)
-
-        backBarContainer:SetAlpha(1)
-        backBarContainer:ClearAnchors()
-        backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX or 0, m_backBarBaseY or 0)
-
-        local frontBarConst = BETTERUI_ORB_FRAMES.bars.customFrontBar
-        local barOffsetX = frontBarConst and frontBarConst.offsetX or 0
-        local barOffsetY = frontBarConst and frontBarConst.offsetY or 0
-        frontBarContainer:SetAlpha(1)
-        frontBarContainer:ClearAnchors()
-        frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
+        StopWeaponSwapAnimation(rootFrame)
     end
 
     if not m_swapTimeline then
@@ -201,5 +211,6 @@ end
 SkillBar.UpdateBarPositions = UpdateBarPositions
 SkillBar.UpdateMainBarLayout = UpdateMainBarLayout
 SkillBar.ApplyActionBarSkin = ApplyActionBarSkin
+SkillBar.StopWeaponSwapAnimation = StopWeaponSwapAnimation
 SkillBar.WeaponSwapAnimation = WeaponSwapAnimation
 SkillBar.IsWeaponSwapAnimating = IsWeaponSwapAnimating
