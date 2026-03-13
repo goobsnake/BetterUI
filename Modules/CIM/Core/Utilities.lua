@@ -21,6 +21,9 @@ param: str (string) - The message string to display.
 --- @param str string The message string to display
 --- @return any d() return value
 function BETTERUI.Debug(str)
+    if BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled and not BETTERUI.CIM.Debug.IsEnabled() then
+        return
+    end
     return d("|c0066ff[BETTERUI]|r " .. str)
 end
 

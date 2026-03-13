@@ -358,6 +358,9 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 		return false
 	end
 
+	-- Prevent double Setup (LAM:RegisterAddonPanel will crash with "Duplicate name")
+	if moduleNamespace._setupComplete then return true end
+
 	-- Validate using CIM interface validation if available
 	if BETTERUI.CIM and BETTERUI.CIM.Interfaces and BETTERUI.CIM.Interfaces.ValidateModule then
 		-- Temporarily add name for validation (modules don't store their own name)
@@ -378,6 +381,7 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	-- Module is valid, call Setup
 	-- TODO(bug): Setup() is not wrapped in pcall -- if any module's Setup() throws, all subsequent modules in the init sequence silently fail to load; also return value is ignored by all callers
 	moduleNamespace.Setup()
+	moduleNamespace._setupComplete = true
 	return true
 end
 
@@ -522,8 +526,29 @@ function BETTERUI.Initialize(event, addon)
 		BETTERUI.LoadModules()
 	else
 		BETTERUI._initialized = false
-		-- Keyboard mode: ResourceOrbFrames self-initializes via XML + EVENT_PLAYER_ACTIVATED.
-		-- All other modules remain gamepad-only.
+		-- Keyboard mode: register ALL module settings panels so users on "Automatic"
+		-- input can always access addon configuration regardless of current UI mode.
+		-- NOTE: Only LAM settings panels are registered here. Gameplay hooks (inventory
+		-- destroy/action hooks, etc.) remain in LoadModules() and only activate
+		-- when gamepad mode is entered.
+		if BETTERUI.GetModuleEnabled("Inventory") and BETTERUI.Inventory then
+			ValidateAndSetupModule("Inventory", BETTERUI.Inventory)
+		end
+		if BETTERUI.GetModuleEnabled("Banking") and BETTERUI.Banking then
+			ValidateAndSetupModule("Banking", BETTERUI.Banking)
+		end
+		if BETTERUI.GetModuleEnabled("Writs") and BETTERUI.Writs then
+			ValidateAndSetupModule("Writs", BETTERUI.Writs)
+		end
+		if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GeneralInterface then
+			ValidateAndSetupModule("GeneralInterface", BETTERUI.GeneralInterface)
+		end
+		if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates then
+			ValidateAndSetupModule("Nameplates", BETTERUI.Nameplates)
+		end
+		if BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.ResourceOrbFrames then
+			ValidateAndSetupModule("ResourceOrbFrames", BETTERUI.ResourceOrbFrames)
+		end
 	end
 	-- Ensure companion equip patch is queued even if modules didn't hook above
 	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
