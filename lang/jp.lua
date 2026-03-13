@@ -542,6 +542,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "預け入れる数量は
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "引き出す数量は？")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "すべて引き出す")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "すべて預け入れる")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MIN", "最小")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MAX", "最大")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE", "「価値」をマーケット価格に置換")
 ZO_CreateStringId("SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP", "インベントリと銀行の「価値」列を、利用可能な場合は MM・ATT・TTC の相場価格に置き換えます。")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "預入額を選択してください")

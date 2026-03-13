@@ -706,6 +706,13 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 
 		setup = function(dialog, data)
 			dialog:setupFunc()
+			-- Hide custom slider hint controls from CraftBagQuantityDialog
+			-- Both dialogs share the GAMEPAD_DIALOGS.ITEM_SLIDER template, so
+			-- controls created by SetupSliderKeybindHints persist between uses
+			if dialog._minIconLabel then dialog._minIconLabel:SetHidden(true) end
+			if dialog._maxIconLabel then dialog._maxIconLabel:SetHidden(true) end
+			if dialog._minTextLabel then dialog._minTextLabel:SetHidden(true) end
+			if dialog._maxTextLabel then dialog._maxTextLabel:SetHidden(true) end
 		end,
 
 		title = {

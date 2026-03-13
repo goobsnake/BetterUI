@@ -627,6 +627,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Select the amount to depos
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Select the amount to withdraw")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Withdraw Stack")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Deposit Stack")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MIN", "Min Quantity")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MAX", "Max Quantity")
 
 -- Craft Bag Stow/Retrieve Quantity Dialog
 ZO_CreateStringId("SI_BETTERUI_STOW_QUANTITY", "Stow How Many?")
@@ -640,3 +642,9 @@ ZO_CreateStringId("SI_BETTERUI_RETRIEVE_STACK", "Retrieve Stack")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_HIGHLIGHT", "|cFF6600<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_INV_EQUIP_TEXT_NORMAL", "|cCCCCCC<<1>>|r")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Clear Sort")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_DEPOSIT", "Deposit")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_KEEPS", "Keeps")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_RETRIEVE", "Retrieve")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_STAYS", "Stays")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_STOW", "Stow")
+ZO_CreateStringId("SI_BETTERUI_SLIDER_WITHDRAW", "Withdraw")

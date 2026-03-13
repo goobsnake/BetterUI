@@ -15,9 +15,9 @@ ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "Предметы не най
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: Нет данных о цене")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Avg: <<1>> / Sug: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Avg: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Sug: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Ср: <<1>> / Рек: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Ср: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Рек: <<1>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Цена: <<2>>")
 ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Цена: <<2>>,   Стак(<<3>>): <<4>>")
 
@@ -511,7 +511,7 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP",
     "Показывать диалог перед экипировкой предметов с привязкой при экипировке")
 
 -- Event Tickets
-ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "TICKETS:")
+ZO_CreateStringId("SI_BETTERUI_FOOTER_EVENT_TICKETS_LABEL", "БИЛЕТЫ:")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS", "Показать билеты событий")
 ZO_CreateStringId("SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS", "Позиция билетов")
 
@@ -591,6 +591,8 @@ ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_QUANTITY", "Сколько внес�
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_QUANTITY", "Сколько снять?")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_MAX", "Снять всё")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_MAX", "Внести всё")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MIN", "Мин")
+ZO_CreateStringId("SI_BETTERUI_BANK_SLIDER_MAX", "Макс")
 ZO_CreateStringId("SI_BETTERUI_BANK_DEPOSIT_PROMPT", "Выберите количество для внесения")
 ZO_CreateStringId("SI_BETTERUI_BANK_WITHDRAW_PROMPT", "Выберите количество для снятия")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Сортировка")
