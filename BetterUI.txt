@@ -88,6 +88,7 @@ Modules\CIM\Templates\InterfaceLibrary.xml
 Modules\CIM\Core\KeybindHelpers.lua
 Modules\CIM\Core\TooltipLayout.lua
 Modules\CIM\Core\SearchManager.lua
+Modules\CIM\Core\NarrationHelper.lua
 Modules\CIM\Core\WindowClass.lua
 Modules\CIM\Core\InterfaceLibrary.lua
 Modules\CIM\Core\GenericWindow.lua
@@ -149,6 +150,8 @@ Modules\Inventory\Core\InventoryClass.lua
 Modules\Inventory\Core\InventorySorting.lua
 Modules\Inventory\Core\InventoryBatchOps.lua
 Modules\Inventory\Core\InventoryMultiSelect.lua
+Modules\Inventory\Core\NewItemTracker.lua
+Modules\Inventory\Core\StatComparison.lua
 Modules\Inventory\Core\HeaderManager.lua
 Modules\Inventory\Actions\ActionDialogHooks.lua
 Modules\Inventory\Actions\DestroyAction.lua
@@ -184,6 +187,7 @@ Modules\Banking\Constants.lua
 Modules\Banking\Core\BankingClass.lua
 Modules\Banking\Core\MultiSelectActions.lua
 Modules\Banking\Core\RefreshIntegration.lua
+Modules\Banking\Core\GuildBankAdapter.lua
 Modules\Banking\Lists\BankListManager.lua
 Modules\Banking\Lists\BankRowSetup.lua
 Modules\Banking\Actions\TransferActions.lua
@@ -206,3 +210,30 @@ Modules\WritUnit\Constants.lua
 Modules\WritUnit\Templates\WritsPanel.xml
 Modules\WritUnit\Core\Writ.lua
 Modules\WritUnit\Module.lua
+
+; Module: Trading House (TH-001 scaffold)
+Modules\TradingHouse\Module.lua
+
+; Module: Loot (ECO-001 scaffold)
+Modules\Loot\Module.lua
+
+; Module: Vendor (ECO-002 scaffold)
+Modules\Vendor\Module.lua
+
+; Module: Quickslot (INV-002 scaffold)
+Modules\Quickslot\Module.lua
+
+; Module: Companions (INV-004 scaffold)
+Modules\Companions\Module.lua
+
+; Module: Repair (MNT-001 scaffold)
+Modules\Repair\Module.lua
+
+; Module: Crafting (CFT-001 scaffold)
+Modules\Crafting\Module.lua
+
+; Module: Mail (MAIL-001 scaffold)
+Modules\Mail\Module.lua
+
+; Module: Collections (COL-001 scaffold)
+Modules\Collections\Module.lua
