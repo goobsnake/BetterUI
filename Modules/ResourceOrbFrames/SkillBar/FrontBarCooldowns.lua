@@ -1,0 +1,338 @@
+-- Modules/ResourceOrbFrames/SkillBar/FrontBarCooldowns.lua
+-- Cooldown smoothing, visual cooldown rendering, and per-frame cooldown updates.
+-- Extracted from FrontBarManager.lua for maintainability.
+
+if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
+local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
+
+local Utils = BETTERUI.ResourceOrbFrames.Utils
+local FindControl = Utils.FindControl
+local ClampTextSize = Utils.ClampTextSize
+
+local SKILL_TEXT_SIZE_MIN = 12
+local SKILL_TEXT_SIZE_MAX = 30
+
+-- Access shared caches
+local sharedCooldownCaches = SkillBar.SharedCooldownCaches
+if not sharedCooldownCaches then
+    sharedCooldownCaches = {
+        effectDurationBySlotCategory = {},
+        smoothedRemainBySlotCategory = {},
+    }
+    SkillBar.SharedCooldownCaches = sharedCooldownCaches
+end
+local m_effectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
+local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
+
+local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
+
+local function GetNamedChildDirect(parent, name)
+    if parent and parent.GetNamedChild then
+        return parent:GetNamedChild(name)
+    end
+    return nil
+end
+
+local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
+    if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
+        return GetNamedChildDirect(rootFrame, buttonName)
+            or GetNamedChildDirect(frontBarContainer, buttonName)
+            or FindControl(rootFrame, buttonName)
+            or FindControl(frontBarContainer, buttonName)
+    end
+    return GetNamedChildDirect(frontBarContainer, buttonName)
+        or FindControl(frontBarContainer, buttonName)
+end
+
+--------------------------------------------------------------------------------
+-- QUICKSLOT COUNT + EMPTY STATE
+--------------------------------------------------------------------------------
+
+local function GetQuickslotCountAnchorOffsets()
+    local keybindOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X or 0
+    local keybindOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y or -2
+    local buttonOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X or 0
+    local buttonOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y or 1
+    return keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY
+end
+
+local function AnchorQuickslotCountText(buttonControl, countText)
+    if not buttonControl then return end
+    local label = countText or buttonControl:GetNamedChild("CountText")
+    if not label then return end
+    local buttonText = buttonControl:GetNamedChild("ButtonText")
+    local keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY = GetQuickslotCountAnchorOffsets()
+    label:ClearAnchors()
+    if buttonText then
+        label:SetAnchor(TOP, buttonText, BOTTOM, keybindOffsetX, keybindOffsetY)
+    else
+        label:SetAnchor(TOP, buttonControl, BOTTOM, buttonOffsetX, buttonOffsetY)
+    end
+    label:SetHorizontalAlignment(TEXT_ALIGN_CENTER)
+    label:SetVerticalAlignment(TEXT_ALIGN_TOP)
+end
+
+local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settings, slotIndex, hotbarCategory)
+    if not buttonControl then return false end
+    local slotType = GetSlotType(slotIndex, hotbarCategory)
+    local isItemSlot = slotType == ACTION_TYPE_ITEM
+    local count = nil
+    if isItemSlot then count = GetSlotItemCount(slotIndex, hotbarCategory) or 0 end
+    local showCount = settings.showQuickslotCount ~= false
+    local quickslotTextSize = ClampTextSize(settings.quickslotTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
+    local quickslotTextColor = settings.quickslotTextColor or { 1, 1, 1, 1 }
+    local countText = (children and children.CountText) or buttonControl:GetNamedChild("CountText")
+    if countText then
+        countText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", quickslotTextSize))
+        countText:SetColor(unpack(quickslotTextColor))
+        AnchorQuickslotCountText(buttonControl, countText)
+        if showCount and isItemSlot and count ~= nil then
+            countText:SetText(count)
+            countText:SetHidden(false)
+        else
+            countText:SetHidden(true)
+        end
+    end
+    local isEmpty = isItemSlot and (count or 0) <= 0
+    local unusableOverlay = (children and children.UnusableOverlay) or buttonControl:GetNamedChild("UnusableOverlay")
+    if unusableOverlay then unusableOverlay:SetHidden(not isEmpty) end
+    buttonControl.quickslotCount = count
+    buttonControl.quickslotEmpty = isEmpty
+    return isEmpty
+end
+
+--------------------------------------------------------------------------------
+-- SMOOTHED COOLDOWN
+--------------------------------------------------------------------------------
+
+local function ResetSmoothedCooldownRemaining(stateKey)
+    if stateKey then m_cooldownVisualState[stateKey] = nil end
+end
+
+local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
+    if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
+        return remainMs
+    end
+    local nowMs = GetGameTimeMilliseconds()
+    local state = m_cooldownVisualState[stateKey]
+    if not state or state.durationMs ~= durationMs
+        or remainMs > ((state.lastReportedRemainMs or remainMs) + 100) then
+        m_cooldownVisualState[stateKey] = {
+            durationMs = durationMs,
+            lastReportedRemainMs = remainMs,
+            smoothedRemainMs = remainMs,
+            lastUpdateMs = nowMs,
+        }
+        return remainMs
+    end
+    local elapsedMs = nowMs - (state.lastUpdateMs or nowMs)
+    if elapsedMs < 0 then elapsedMs = 0 end
+    local smoothedRemainMs = (state.smoothedRemainMs or remainMs) - elapsedMs
+    if smoothedRemainMs < 0 then smoothedRemainMs = 0 end
+    if smoothedRemainMs > remainMs then smoothedRemainMs = remainMs end
+    state.lastReportedRemainMs = remainMs
+    state.smoothedRemainMs = smoothedRemainMs
+    state.lastUpdateMs = nowMs
+    return smoothedRemainMs
+end
+
+--------------------------------------------------------------------------------
+-- LINEAR COOLDOWN VISUALS
+--------------------------------------------------------------------------------
+
+local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
+    if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+    local revealWidth = revealControl.cooldownRevealWidth
+    local revealHeight = revealControl.cooldownRevealHeight
+    if not revealWidth or not revealHeight then
+        revealWidth, revealHeight = revealControl:GetDimensions()
+    end
+    if revealWidth <= 0 or revealHeight <= 0 then
+        if cooldownEdge then cooldownEdge:SetHidden(true) end
+        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+        return nil
+    end
+    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+    local percentComplete = 1 - (remainMs / durationMs)
+    if percentComplete < 0 then percentComplete = 0 end
+    if percentComplete > 1 then percentComplete = 1 end
+    local edgeOffsetY = (1 - percentComplete) * revealHeight
+    cooldownEdge:ClearAnchors()
+    cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
+    cooldownEdge:SetWidth(revealWidth)
+    cooldownEdge:SetHidden(false)
+    cooldownEdge:SetDrawLayer(DL_OVERLAY)
+    cooldownEdge:SetDrawTier(DT_LOW)
+    cooldownEdge:SetDrawLevel(1)
+    if cooldownOverlay then
+        local unrevealedHeight = (1 - percentComplete) * revealHeight
+        cooldownOverlay:ClearAnchors()
+        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
+        cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
+        cooldownOverlay:SetHidden(false)
+        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
+        cooldownOverlay:SetDrawTier(DT_LOW)
+        cooldownOverlay:SetDrawLevel(0)
+    end
+    return percentComplete
+end
+
+--------------------------------------------------------------------------------
+-- UPDATE FRONT BAR COOLDOWNS (per-frame)
+--------------------------------------------------------------------------------
+
+local function UpdateFrontBarCooldowns(rootFrame)
+    local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
+    if not frontBarCfg or not frontBarCfg.m_enabled then return end
+    local activeCategory = GetActiveHotbarCategory()
+    local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
+
+    local isGamepad = IsInGamepadPreferredMode()
+    local slotMapping = {
+        { buttonName = "Button1",         slot = 3,                                  category = activeCategory },
+        { buttonName = "Button2",         slot = 4,                                  category = activeCategory },
+        { buttonName = "Button3",         slot = 5,                                  category = activeCategory },
+        { buttonName = "Button4",         slot = 6,                                  category = activeCategory },
+        { buttonName = "Button5",         slot = 7,                                  category = activeCategory },
+        { buttonName = "UltimateButton",  slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = activeCategory },
+        { buttonName = "QuickslotButton", slot = GetCurrentQuickslot(),              category = HOTBAR_CATEGORY_QUICKSLOT_WHEEL },
+        { buttonName = "CompanionButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = HOTBAR_CATEGORY_COMPANION },
+    }
+
+    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
+    local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
+
+    -- Access shared button cache from FrontBarManager
+    local buttonCache = SkillBar._frontBarButtonCache
+
+    for _, mapping in ipairs(slotMapping) do
+        local btn = GetFrontBarButtonControl(rootFrame, frontBarContainer, mapping.buttonName)
+        local cooldownStateKey = BuildCooldownStateKey(mapping.slot, mapping.category)
+
+        if btn and not btn:IsHidden() then
+            local cachedBtn = buttonCache and buttonCache[mapping.buttonName] or nil
+            local children = cachedBtn and cachedBtn.children or {}
+            local baseDesaturation = 0
+
+            if mapping.buttonName == "QuickslotButton" then
+                local isQuickslotEmpty = UpdateQuickslotCountAndEmptyState(btn, children, settings, mapping.slot, mapping.category)
+                if isQuickslotEmpty then baseDesaturation = 1 end
+            end
+
+            local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, mapping.category)
+            local showCooldown = false
+            if remainMs and remainMs > 0 and durationMs and durationMs > 1500 then
+                showCooldown = true
+            end
+
+            if not showCooldown then
+                local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, mapping.category)
+                if effectRemaining and effectRemaining > 0 then
+                    remainMs = effectRemaining
+                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
+                    if not m_effectDurationCache[cacheKey] or m_effectDurationCache[cacheKey] < effectRemaining then
+                        m_effectDurationCache[cacheKey] = effectRemaining
+                    end
+                    durationMs = m_effectDurationCache[cacheKey]
+                    showCooldown = true
+                else
+                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
+                    m_effectDurationCache[cacheKey] = nil
+                end
+            end
+
+            if mapping.buttonName == "QuickslotButton" and not settings.showQuickslotCooldown then
+                showCooldown = false
+            end
+
+            local cooldown = children.Cooldown or btn:GetNamedChild("Cooldown")
+            local cooldownEdge = children.CooldownEdge or btn:GetNamedChild("CooldownEdge")
+            local cooldownOverlay = children.CooldownOverlay or btn:GetNamedChild("CooldownOverlay")
+            local iconControl = children.Icon or btn:GetNamedChild("Icon")
+            local timerText = children.TimerText or btn:GetNamedChild("TimerText")
+            local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
+
+            if showCooldown then
+                local visualRemainMs = GetSmoothedCooldownRemaining(cooldownStateKey, remainMs, durationMs)
+                if isGamepad then
+                    if cooldown then cooldown:SetHidden(true) end
+                    local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs, durationMs)
+                    if iconControl then
+                        if percentComplete ~= nil then
+                            local cooldownDesaturation = 1 - percentComplete
+                            if cooldownDesaturation < baseDesaturation then
+                                cooldownDesaturation = baseDesaturation
+                            end
+                            iconControl:SetDesaturation(cooldownDesaturation)
+                        else
+                            iconControl:SetDesaturation(math.max(1, baseDesaturation))
+                        end
+                    end
+                else
+                    if iconControl then iconControl:SetDesaturation(math.max(1, baseDesaturation)) end
+                    if cooldownEdge then cooldownEdge:SetHidden(true) end
+                    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+                    if cooldown then
+                        cooldown:StartCooldown(remainMs, durationMs, CD_TYPE_RADIAL, nil, false)
+                        cooldown:SetHidden(false)
+                    end
+                end
+
+                local textToSet = string.format("%.1f", visualRemainMs / 1000)
+                if timerText then
+                    timerText:SetText(textToSet)
+                    timerText:SetHidden(false)
+                    timerText:SetDrawLayer(DL_OVERLAY)
+                    timerText:SetDrawTier(DT_HIGH)
+                    timerText:SetDrawLevel(10)
+                    timerText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
+                    timerText:SetColor(unpack(cooldownColor))
+                elseif altTimerText then
+                    altTimerText:SetText(textToSet)
+                    altTimerText:SetHidden(false)
+                    altTimerText:SetDrawLayer(DL_OVERLAY)
+                    altTimerText:SetDrawTier(DT_HIGH)
+                    altTimerText:SetDrawLevel(10)
+                    altTimerText:SetColor(unpack(cooldownColor))
+                end
+            else
+                ResetSmoothedCooldownRemaining(cooldownStateKey)
+                if iconControl then iconControl:SetDesaturation(baseDesaturation) end
+                if cooldownOverlay then cooldownOverlay:SetHidden(true) end
+                if cooldown then cooldown:SetHidden(true) end
+                if cooldownEdge then cooldownEdge:SetHidden(true) end
+                if timerText then timerText:SetHidden(true) end
+                if altTimerText then altTimerText:SetHidden(true) end
+            end
+
+            local stackCountText = children.StackCountText or btn:GetNamedChild("StackCountText")
+            if stackCountText then
+                local stackCount = GetActionSlotEffectStackCount(mapping.slot, mapping.category)
+                if stackCount and stackCount > 0 then
+                    stackCountText:SetText(stackCount)
+                    stackCountText:SetHidden(false)
+                    stackCountText:SetDrawLayer(DL_OVERLAY)
+                    stackCountText:SetDrawTier(DT_HIGH)
+                    stackCountText:SetDrawLevel(10)
+                else
+                    stackCountText:SetHidden(true)
+                end
+            end
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- MODULE EXPORTS
+-------------------------------------------------------------------------------------------------
+SkillBar.UpdateFrontBarCooldowns = UpdateFrontBarCooldowns
+SkillBar.AnchorQuickslotCountText = AnchorQuickslotCountText
+SkillBar.UpdateQuickslotCountAndEmptyState = UpdateQuickslotCountAndEmptyState

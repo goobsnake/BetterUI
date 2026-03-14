@@ -318,601 +318,67 @@ local function Init(mId, moduleName)
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
             width = "half",
         },
-        {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_SKILL_BARS_SUBMENU),
-            controls = {
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_SKILL_COOLDOWN_TIMER_HEADER),
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP),
-                    min = 12,
-                    max = 30,
-                    step = 1,
-                    getFunc = getCooldownSize,
-                    setFunc = setCooldownSize,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_FONT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_SKILL_COOLDOWN_COLOR_TOOLTIP),
-                    getFunc = getCooldownColor,
-                    setFunc = setCooldownColor,
-                    width = "full",
-                },
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_QUICKSLOTS_HEADER),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN),
-                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP),
-                    getFunc = getShowQuickCool,
-                    setFunc = setShowQuickCool,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY),
-                    tooltip = GetString(SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP),
-                    getFunc = getShowQuickCount,
-                    setFunc = setShowQuickCount,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP),
-                    min = 12,
-                    max = 30,
-                    step = 1,
-                    getFunc = getQuickslotSize,
-                    setFunc = setQuickslotSize,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_FONT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP),
-                    getFunc = getQuickslotColor,
-                    setFunc = setQuickslotColor,
-                    width = "full",
-                },
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_BACK_BAR_HEADER),
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_BACK_BAR_OPACITY),
-                    tooltip = GetString(SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP),
-                    min = 0.3,
-                    max = 1.0,
-                    step = 0.05,
-                    decimals = 2,
-                    getFunc = getBackBarOpacity,
-                    setFunc = setBackBarOpacity,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                            or (settings and settings.hideBackBar)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_HIDE_BACK_BAR),
-                    tooltip = GetString(SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP),
-                    getFunc = getHideBackBar,
-                    setFunc = setHideBackBar,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION),
-                    tooltip = GetString(SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP),
-                    getFunc = getWeaponAnim,
-                    setFunc = setWeaponAnim,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                            or (settings and settings.hideBackBar)
-                    end,
-                    width = "full",
-                },
-                -- ============================================================================
-                -- ULTIMATE NUMBER DISPLAY
-                -- ============================================================================
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_ULTIMATE_DISPLAY_HEADER),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_SHOW_ULTIMATE_NUMBER),
-                    tooltip = GetString(SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP),
-                    getFunc = getShowUlt,
-                    setFunc = setShowUlt,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_ULTIMATE_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 30,
-                    step = 1,
-                    getFunc = getUltSize,
-                    setFunc = setUltSize,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not settings or not settings.showUltimateNumber
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_ULTIMATE_TEXT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP),
-                    getFunc = getUltColor,
-                    setFunc = setUltColor,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not settings or not settings.showUltimateNumber
-                    end,
-                    width = "full",
-                },
-
-                -- ============================================================================
-                -- COMBAT INDICATORS
-                -- ============================================================================
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_COMBAT_INDICATORS_HEADER),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_COMBAT_GLOW_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP),
-                    getFunc = getShowGlow,
-                    setFunc = setShowGlow,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP),
-                    getFunc = getShowCombatIcon,
-                    setFunc = setShowCombatIcon,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_COMBAT_AUDIO_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP),
-                    getFunc = getPlayAudio,
-                    setFunc = setPlayAudio,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = GetString(SI_BETTERUI_RESET_SKILL_BAR),
-                    func = function()
-                        ResetSettingsGroup({
-                            { key = "cooldownTextSize", value = 27 },
-                            { key = "cooldownTextColor", isColor = true, colorFallback = { 0.86, 0.84, 0.13, 1 } },
-                            { key = "quickslotTextSize", value = 27 },
-                            { key = "quickslotTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                            { key = "backBarOpacity", value = 1 },
-                            { key = "hideBackBar", value = false },
-                            { key = "weaponSwapAnimation", value = true },
-                            { key = "showUltimateNumber", value = true },
-                            { key = "ultimateTextSize", value = 27 },
-                            { key = "ultimateTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                            { key = "showQuickslotCooldown", value = true },
-                            { key = "showQuickslotCount", value = true },
-                            { key = "showCombatGlow", value = true },
-                            { key = "showCombatIcon", value = true },
-                            { key = "playCombatAudio", value = true },
-                        })
-                    end,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "half",
-                },
-            },
-        },
-        {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_ORB_TEXT_SUBMENU),
-            controls = {
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_ORB_VISUALS_HEADER),
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_ROF_ORB_ANIMATIONS),
-                    tooltip = GetString(SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP),
-                    getFunc = getOrbAnim,
-                    setFunc = setOrbAnim,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "full",
-                },
-                -- Ornament Visibility Settings
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_HIDE_LEFT_ORNAMENT),
-                    tooltip = GetString(SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP),
-                    getFunc = getHideLeft,
-                    setFunc = setHideLeft,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_LEFT_ORB_SIZE),
-                    tooltip = GetString(SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP),
-                    min = 1.0,
-                    max = 1.2,
-                    step = 0.1,
-                    decimals = 1,
-                    getFunc = getLeftSize,
-                    setFunc = setLeftSize,
-                    -- Only enabled when left ornament is hidden
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                            or not (settings and settings.hideLeftOrnament)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_HIDE_RIGHT_ORNAMENT),
-                    tooltip = GetString(SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP),
-                    getFunc = getHideRight,
-                    setFunc = setHideRight,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_RIGHT_ORB_SIZE),
-                    tooltip = GetString(SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP),
-                    min = 1.0,
-                    max = 1.2,
-                    step = 0.1,
-                    decimals = 1,
-                    getFunc = getRightSize,
-                    setFunc = setRightSize,
-                    -- Only enabled when right ornament is hidden
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-                            or not (settings and settings.hideRightOrnament)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "header",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER),
-                },
-                -- Health Text Settings
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_SIZE),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 26,
-                    step = 1,
-                    getFunc = getHealthSize,
-                    setFunc = function(value)
-                        setHealthSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP),
-                    getFunc = getHealthColor,
-                    setFunc = function(r, g, b, a)
-                        setHealthColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                -- Magicka Text Settings
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 26,
-                    step = 1,
-                    getFunc = getMagSize,
-                    setFunc = function(value)
-                        setMagSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP),
-                    getFunc = getMagColor,
-                    setFunc = function(r, g, b, a)
-                        setMagColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                -- Stamina Text Settings
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_SIZE),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 26,
-                    step = 1,
-                    getFunc = getStamSize,
-                    setFunc = function(value)
-                        setStamSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP),
-                    getFunc = getStamColor,
-                    setFunc = function(r, g, b, a)
-                        setStamColor(r, g, b, a); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                -- Shield Text Settings
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_SIZE),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP),
-                    min = 12,
-                    max = 26,
-                    step = 1,
-                    getFunc = getShieldSize,
-                    setFunc = function(value)
-                        setShieldSize(value); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR),
-                    tooltip = GetString(SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP),
-                    getFunc = getShieldColor,
-                    setFunc = setShieldColor,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = GetString(SI_BETTERUI_ORB_TEXT_RESET),
-                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
-                    func = function()
-                        ResetSettingsGroup({
-                            -- Ornament visibility and orb scaling
-                            { key = "hideLeftOrnament", value = false },
-                            { key = "hideRightOrnament", value = false },
-                            { key = "leftOrbSizeScale", value = 1.0 },
-                            { key = "rightOrbSizeScale", value = 1.0 },
-                            -- Text settings
-                            { key = "healthTextSize", value = 20 },
-                            { key = "healthTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                            { key = "magickaTextSize", value = 20 },
-                            { key = "magickaTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                            { key = "staminaTextSize", value = 20 },
-                            { key = "staminaTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                            { key = "shieldTextSize", value = 20 },
-                            { key = "shieldTextColor", isColor = true, colorFallback = { 0.4, 0.9, 1, 1 } },
-                        })
-                    end,
-                    disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-                    width = "half",
-                },
-            },
-        },
-        {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_XP_BAR_SUBMENU),
-            controls = {
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_XP_BAR_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP),
-                    sortAlwaysFirst = true,
-                    getFunc = getXpEnabled,
-                    setFunc = setXpEnabled,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_XP_BAR_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP),
-                    min = 5,
-                    max = 20,
-                    step = 1,
-                    getFunc = getXpSize,
-                    setFunc = setXpSize,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.xpBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_XP_BAR_TEXT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP),
-                    getFunc = getXpColor,
-                    setFunc = setXpColor,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.xpBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = GetString(SI_BETTERUI_XP_BAR_RESET),
-                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
-                    func = function()
-                        ResetSettingsGroup({
-                            { key = "xpBarTextSize", value = 16 },
-                            { key = "xpBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                        })
-                    end,
-                    -- Check for both overall enabled and specific feature enabled
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.xpBarEnabled == true)
-                    end,
-                    width = "half",
-                },
-            },
-        },
-        {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_CAST_BAR_SUBMENU),
-            controls = {
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_CAST_BAR_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP),
-                    sortAlwaysFirst = true,
-                    getFunc = getCastEnabled,
-                    setFunc = setCastEnabled,
-                    width = "full",
-                },
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_CAST_BAR_ALWAYS_SHOW),
-                    tooltip = GetString(SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP),
-                    getFunc = getCastAlways,
-                    setFunc = setCastAlways,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.castBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_CAST_BAR_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP),
-                    min = 5,
-                    max = 20,
-                    step = 1,
-                    getFunc = getCastSize,
-                    setFunc = setCastSize,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.castBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_CAST_BAR_TEXT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP),
-                    getFunc = getCastColor,
-                    setFunc = setCastColor,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.castBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = GetString(SI_BETTERUI_CAST_BAR_RESET),
-                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
-                    func = function()
-                        ResetSettingsGroup({
-                            { key = "castBarTextSize", value = 16 },
-                            { key = "castBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                        })
-                    end,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.castBarEnabled == true)
-                    end,
-                    width = "half",
-                },
-            },
-        },
-        {
-            type = "submenu",
-            name = GetString(SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU),
-            controls = {
-                {
-                    type = "checkbox",
-                    name = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED),
-                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP),
-                    sortAlwaysFirst = true,
-                    getFunc = getMountEnabled,
-                    setFunc = setMountEnabled,
-                    width = "full",
-                },
-                {
-                    type = "slider",
-                    name = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP),
-                    min = 5,
-                    max = 20,
-                    step = 1,
-                    getFunc = getMountSize,
-                    setFunc = setMountSize,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.mountStaminaBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "colorpicker",
-                    name = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_COLOR),
-                    tooltip = GetString(SI_BETTERUI_MOUNT_BAR_TEXT_COLOR_TOOLTIP),
-                    getFunc = getMountColor,
-                    setFunc = setMountColor,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (settings and settings.mountStaminaBarEnabled == true)
-                    end,
-                    width = "full",
-                },
-                {
-                    type = "button",
-                    name = GetString(SI_BETTERUI_MOUNT_STAMINA_BAR_RESET),
-                    tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
-                    func = function()
-                        ResetSettingsGroup({
-                            { key = "mountStaminaBarTextSize", value = 16 },
-                            { key = "mountStaminaBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } },
-                        })
-                    end,
-                    disabled = function()
-                        local settings = GetResourceOrbSettings()
-                        return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and settings and settings.mountStaminaBarEnabled == true)
-                    end,
-                    width = "half",
-                },
-            },
-        },
     }
+
+    -- Submenu definitions extracted to Settings/SettingsSubmenus.lua
+    -- Build them by passing accessor references
+    local BuildSubmenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
+    local submenuAccessors = {
+        -- Settings helpers
+        GetSettings = GetResourceOrbSettings,
+        ResetSettingsGroup = ResetSettingsGroup,
+        -- Skill Bars
+        getCooldownSize = getCooldownSize, setCooldownSize = setCooldownSize,
+        getCooldownColor = getCooldownColor, setCooldownColor = setCooldownColor,
+        getQuickslotSize = getQuickslotSize, setQuickslotSize = setQuickslotSize,
+        getQuickslotColor = getQuickslotColor, setQuickslotColor = setQuickslotColor,
+        getBackBarOpacity = getBackBarOpacity, setBackBarOpacity = setBackBarOpacity,
+        getHideBackBar = getHideBackBar, setHideBackBar = setHideBackBar,
+        getWeaponAnim = getWeaponAnim, setWeaponAnim = setWeaponAnim,
+        getShowUlt = getShowUlt, setShowUlt = setShowUlt,
+        getUltSize = getUltSize, setUltSize = setUltSize,
+        getUltColor = getUltColor, setUltColor = setUltColor,
+        getShowQuickCool = getShowQuickCool, setShowQuickCool = setShowQuickCool,
+        getShowQuickCount = getShowQuickCount, setShowQuickCount = setShowQuickCount,
+        getShowGlow = getShowGlow, setShowGlow = setShowGlow,
+        getShowCombatIcon = getShowCombatIcon, setShowCombatIcon = setShowCombatIcon,
+        getPlayAudio = getPlayAudio, setPlayAudio = setPlayAudio,
+        -- Orb Text
+        getOrbAnim = getOrbAnim, setOrbAnim = setOrbAnim,
+        getHideLeft = getHideLeft, setHideLeft = setHideLeft,
+        getLeftSize = getLeftSize, setLeftSize = setLeftSize,
+        getHideRight = getHideRight, setHideRight = setHideRight,
+        getRightSize = getRightSize, setRightSize = setRightSize,
+        getHealthSize = getHealthSize, setHealthSize = setHealthSize,
+        getHealthColor = getHealthColor, setHealthColor = setHealthColor,
+        getMagSize = getMagSize, setMagSize = setMagSize,
+        getMagColor = getMagColor, setMagColor = setMagColor,
+        getStamSize = getStamSize, setStamSize = setStamSize,
+        getStamColor = getStamColor, setStamColor = setStamColor,
+        getShieldSize = getShieldSize, setShieldSize = setShieldSize,
+        getShieldColor = getShieldColor, setShieldColor = setShieldColor,
+        -- Bar submenus
+        getXpEnabled = getXpEnabled, setXpEnabled = setXpEnabled,
+        getXpSize = getXpSize, setXpSize = setXpSize,
+        getXpColor = getXpColor, setXpColor = setXpColor,
+        getCastEnabled = getCastEnabled, setCastEnabled = setCastEnabled,
+        getCastAlways = getCastAlways, setCastAlways = setCastAlways,
+        getCastSize = getCastSize, setCastSize = setCastSize,
+        getCastColor = getCastColor, setCastColor = setCastColor,
+        getMountEnabled = getMountEnabled, setMountEnabled = setMountEnabled,
+        getMountSize = getMountSize, setMountSize = setMountSize,
+        getMountColor = getMountColor, setMountColor = setMountColor,
+    }
+
+    -- Append all submenu tables from SettingsSubmenus.lua
+    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildSkillBarsSubmenu(submenuAccessors)
+    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildOrbTextSubmenu(submenuAccessors)
+    do
+        local xpSub, castSub, mountSub = BuildSubmenus.BuildBarSubmenus(submenuAccessors)
+        optionsTable[#optionsTable + 1] = xpSub
+        optionsTable[#optionsTable + 1] = castSub
+        optionsTable[#optionsTable + 1] = mountSub
+    end
 
     -- Reorder section groups inside targeted submenus (e.g., Skill Bars) by header name.
     ApplySubmenuSectionOrdering(optionsTable)
