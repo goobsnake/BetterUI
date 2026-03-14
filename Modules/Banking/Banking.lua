@@ -360,7 +360,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             self:RefreshItemActions()
         end
         if selectedControl and selectedControl.bagId then
-            SHARED_INVENTORY:ClearNewStatus(selectedControl.bagId, selectedControl.slotIndex)
+            BETTERUI.Inventory.NewItemTracker.ClearImmediate(selectedControl.bagId, selectedControl.slotIndex)
             self:GetParametricList():RefreshList()
         end
     end
@@ -534,6 +534,21 @@ function BETTERUI.Banking.Init()
 
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
+    -- Register guild bank scene: reuses the same Banking Window but with
+    -- INTERACTION_GUILD_BANK interaction type. GuildBankAdapter handles
+    -- permission checks and bag routing at runtime.
+    BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
+        BETTERUI_GUILD_BANKING_SCENE_NAME,
+        SCENE_MANAGER,
+        BETTERUI.Banking.GUILD_BANK_INTERACTION
+    )
+    -- Share the same fragment so the Banking Window UI is reused
+    local bankingFragment = BETTERUI.Banking.Window.fragment
+    if bankingFragment then
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
+    end
+    SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
+
     -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then
         BETTERUI.Banking.InitializeRefreshManager()
@@ -547,6 +562,22 @@ function BETTERUI.Banking.Init()
 
     -- Install keyboard shortcut interception (from BankingSceneLifecycle.lua)
     BETTERUI.Banking.SetupSceneInterception()
+
+    -- Register narration for Banking and Guild Bank scenes (ACC-001)
+    if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+        -- Personal bank
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_BANKING_SCENE_NAME,
+            function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetParametricList():GetTargetData() end,
+            function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetTitle() end
+        )
+        -- Guild bank
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_GUILD_BANKING_SCENE_NAME,
+            function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetParametricList():GetTargetData() end,
+            function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetTitle() end
+        )
+    end
 
     esoSubscriber = IsESOPlusSubscriber()
 end

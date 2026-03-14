@@ -29,6 +29,17 @@ Rationale: Checks main bank, then subscriber bank, or house bank if active.
 return: number, number - The bag ID and slot index of an empty slot.
 ]]
 local function FindEmptySlotInBank()
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        local targetBag = GuildBank.GetDepositTargetBag()
+        local emptySlotIndex = FindEmptySlotInBag(targetBag)
+        if emptySlotIndex ~= nil then
+            return targetBag, emptySlotIndex
+        else
+            return targetBag, nil
+        end
+    end
+
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if (IsHouseBankBag(GetBankingBag()) == false) then
         local emptySlotIndexBank = FindEmptySlotInBag(BAG_BANK)
@@ -157,6 +168,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         else
             -- Try to find stackable slot in bank bags
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+            local GuildBank = BETTERUI.Banking.GuildBank
+            if GuildBank and GuildBank.IsGuildBankMode() then
+                banks = { GuildBank.GetDepositTargetBag() }
+            elseif IsHouseBankBag(GetBankingBag()) then
+                banks = { BETTERUI.Banking.currentUsedBank }
+            end
+
             for _, bank in ipairs(banks) do
                 toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(bank, fromBagItemLink)
                 if toBagIndex then

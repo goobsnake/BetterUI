@@ -19,6 +19,25 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     end
 
     self:CurrentUsedBank()
+
+    -- Guild bank detection: update title and check permissions
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        self.isGuildBankMode = true
+        self:SetTitle(GuildBank.GetHeaderTitle())
+
+        -- Check base permissions on scene entry
+        local depositDenied = GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_DEPOSIT)
+        local withdrawDenied = GuildBank.GetPermissionDenialReason(BETTERUI.Banking.LIST_WITHDRAW)
+        if depositDenied and withdrawDenied then
+            -- Cannot deposit or withdraw — show warning but allow viewing
+            BETTERUI.CIM.Debug.Log("Guild bank: no deposit or withdraw permission", "GuildBank")
+        end
+    else
+        self.isGuildBankMode = false
+        self:SetTitle("|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r")
+    end
+
     self.bankCategories = self:ComputeVisibleBankCategories()
     self.currentCategoryIndex = 1
     self.lastPositions[self.currentMode] = 1
@@ -42,7 +61,9 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         local currentUsedBank = BETTERUI.Banking.currentUsedBank
         local relevantBags = {}
         if self.currentMode == LIST_WITHDRAW then
-            if currentUsedBank == BAG_BANK then
+            if GuildBank and GuildBank.IsGuildBankMode() then
+                relevantBags = { BAG_GUILDBANK }
+            elseif currentUsedBank == BAG_BANK then
                 relevantBags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
             else
                 relevantBags = { currentUsedBank }

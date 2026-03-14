@@ -100,6 +100,17 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
 end
 
 local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        local targetBag = GuildBank.GetDepositTargetBag()
+        if BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag) then
+            return targetBag
+        end
+        local freeSlots = GetBagUseableSize(targetBag) - GetNumBagUsedSlots(targetBag)
+        if freeSlots > 0 then return "unbankable" end
+        return "skip"
+    end
+
     local targetBankBag = currentUsedBank or BAG_BANK
 
     if targetBankBag == BAG_BANK then
@@ -164,6 +175,10 @@ function BETTERUI.Banking.Class:BatchTransfer()
 
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        currentUsedBank = BAG_GUILDBANK
+    end
     local actionName = isWithdraw
         and GetString(SI_BETTERUI_BANKING_WITHDRAW)
         or GetString(SI_BETTERUI_BANKING_DEPOSIT)
@@ -262,6 +277,10 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        currentUsedBank = BAG_GUILDBANK
+    end
     local transferCount = 0
 
     for _, itemData in ipairs(selectedItems) do

@@ -154,3 +154,20 @@ BETTERUI.Banking.BANKING_INTERACTION = {
     type = "Banking",
     interactTypes = { INTERACTION_BANK },
 }
+
+--[[
+Constant: BETTERUI_GUILD_BANKING_SCENE_NAME
+Description: Scene name used for guild bank interface registration.
+Used By: Banking.lua (Init), GuildBankAdapter.lua
+]]
+BETTERUI_GUILD_BANKING_SCENE_NAME = "BETTERUI_GUILD_BANKING"
+
+--[[
+Table: BETTERUI.Banking.GUILD_BANK_INTERACTION
+Description: Interaction table for creating the guild bank scene.
+Used By: Banking.lua (Init)
+]]
+BETTERUI.Banking.GUILD_BANK_INTERACTION = {
+    type = "GuildBanking",
+    interactTypes = { INTERACTION_GUILD_BANK },
+}
