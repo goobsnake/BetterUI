@@ -49,8 +49,7 @@ BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                    
 -- Defines the ability slot dimensions and offsets for main bar skinning.
 -- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
 -- ============================================================================
--- TODO(fix): Namespace LAYOUT_CONFIG under BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG to prevent global collision
-LAYOUT_CONFIG = {
+BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG = {
     GAMEPAD = {
         abilitySlotOffsetX = 10, -- Global gamepad slot X nudge (+ right, - left) when skinning native controls.
     },
@@ -337,30 +336,7 @@ BETTERUI_ORB_FRAMES = {
 -- CUSTOM BARS
 -- ============================================================================
 
--- TODO(refactor): Namespace bar config globals (BETTERUI_XP_BAR_*, BETTERUI_CAST_BAR_*, BETTERUI_MOUNT_STAMINA_BAR_*) under BETTERUI.ResourceOrbFrames.CONST.BARS
--- Fill tuning quick guide (applies to XP/Cast/Mount bars):
--- 1) Shrink/stretch fill track width with *_FILL_WIDTH_SCALE (1.0 = full bar width).
--- 2) Shrink/stretch fill track height with *_FILL_HEIGHT_SCALE (1.0 = full bar height).
--- 3) Move fill right/left with *_FILL_OFFSET_X (+ right, - left).
--- 4) Move fill down/up with *_FILL_OFFSET_Y (+ down, - up).
--- 5) Label anchors auto-center on the fill track; use *_BAR_LABEL_OFFSET_X/Y for final text nudges.
-
--- ============================================================================
--- RECTANGULAR BAR GRAPHICS
--- Backdrop textures are module-local DDS files (resolved from Textures).
--- Fill textures can be an ESO full path or a module-local DDS filename.
--- ============================================================================
-BETTERUI_BAR_FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds"
-
-BETTERUI_XP_BAR_BACKDROP_TEXTURE = "Bar.dds"
-BETTERUI_XP_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
-
-BETTERUI_CAST_BAR_BACKDROP_TEXTURE = "CastBar.dds"
-BETTERUI_CAST_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
-
-BETTERUI_MOUNT_STAMINA_BAR_BACKDROP_TEXTURE = "MountBar.dds"
-BETTERUI_MOUNT_STAMINA_BAR_FILL_TEXTURE = BETTERUI_BAR_FILL_TEXTURE
-
+-- Namespaced bar configuration (replaces former BETTERUI_*_BAR_* globals)
 local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fillHeightScale, fillOffsetX, fillOffsetY)
     -- Converts developer-friendly scale/offset values into normalized UV-like region bounds [0..1].
     local halfWidth = (fillWidthScale or 1) * 0.5
@@ -376,106 +352,106 @@ local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fi
     }
 end
 
--- Experience/Champion Bar positioning (Below left ornament)
-BETTERUI_XP_BAR_SCALE = 1.0         -- Scale multiplier for XP bar
-BETTERUI_XP_BAR_OFFSET_X = 5        -- X offset from center (positive = right)
-BETTERUI_XP_BAR_OFFSET_Y = -85      -- Y offset from BgMiddle bottom (negative = up)
-BETTERUI_XP_BAR_WIDTH = 228         -- Width of the XP bar in pixels
-BETTERUI_XP_BAR_HEIGHT = 190        -- Height of the XP bar in pixels
-BETTERUI_XP_BAR_LABEL_OFFSET_X = -2 -- Horizontal offset for text label (from fill-region center)
-BETTERUI_XP_BAR_LABEL_OFFSET_Y = 2  -- Vertical offset for text label (from fill-region center)
-BETTERUI_XP_BAR_TEXTURE_BOUNDS = {
-    left = 0,                       -- Full texture (recalibrate once DDS artwork margins are known)
-    right = 1,
-    top = 0,
-    bottom = 1,
-}
-BETTERUI_XP_BAR_FILL_WIDTH_SCALE = 0.58  -- Fill width as fraction of bar width (1.0 = full width)
-BETTERUI_XP_BAR_FILL_HEIGHT_SCALE = 0.15 -- Fill height as fraction of bar height (1.0 = full height)
-BETTERUI_XP_BAR_FILL_OFFSET_X = 0        -- Fill track horizontal offset (+ right, - left)
-BETTERUI_XP_BAR_FILL_OFFSET_Y = 2        -- Fill track vertical offset (+ down, - up)
-BETTERUI_XP_BAR_FILL_INSET_X = 20        -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_XP_BAR_FILL_INSET_Y = 4         -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_XP_BAR_FILL_REGION = BuildBarFillRegionFromBox(
-    BETTERUI_XP_BAR_WIDTH,
-    BETTERUI_XP_BAR_HEIGHT,
-    BETTERUI_XP_BAR_FILL_WIDTH_SCALE,
-    BETTERUI_XP_BAR_FILL_HEIGHT_SCALE,
-    BETTERUI_XP_BAR_FILL_OFFSET_X,
-    BETTERUI_XP_BAR_FILL_OFFSET_Y
-)
--- XP Bar positioning when Left Ornament is hidden (relative to BgMiddle center)
--- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
-BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X = -423 -- X offset from BgMiddle center (negative = left)
-BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y = 108  -- Y offset from BgMiddle center (+ down, - up)
+BETTERUI.ResourceOrbFrames.CONST.BARS = {
+    -- Shared fill texture for all rectangular bars
+    FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
 
--- Cast Bar positioning (centered above top/back bar)
-BETTERUI_CAST_BAR_SCALE = 1.0              -- Scale multiplier for Cast bar
-BETTERUI_CAST_BAR_OFFSET_X = -30           -- X offset from center (negative = left)
-BETTERUI_CAST_BAR_OFFSET_Y = 110           -- Y offset from back bar top (positive = down, closer to bar)
-BETTERUI_CAST_BAR_INSTANT_DISPLAY_MS = 850 -- Preview duration for instant skills (milliseconds)
-BETTERUI_CAST_BAR_WIDTH = 300              -- Width of the cast bar in pixels
-BETTERUI_CAST_BAR_HEIGHT = 275             -- Height of the cast bar in pixels
-BETTERUI_CAST_BAR_LABEL_OFFSET_X = -3      -- Horizontal offset for text label (from fill-region center)
-BETTERUI_CAST_BAR_LABEL_OFFSET_Y = 0       -- Vertical offset for text label (from fill-region center)
-BETTERUI_CAST_BAR_TEXTURE_BOUNDS = {
-    left = 0,                              -- Full texture (recalibrate once DDS artwork margins are known)
-    right = 1,
-    top = 0,
-    bottom = 1,
-}
-BETTERUI_CAST_BAR_FILL_WIDTH_SCALE = 0.59  -- Fill width as fraction of bar width (1.0 = full width)
-BETTERUI_CAST_BAR_FILL_HEIGHT_SCALE = 0.10 -- Fill height as fraction of bar height (1.0 = full height)
-BETTERUI_CAST_BAR_FILL_OFFSET_X = 10       -- Fill track horizontal offset (+ right, - left)
-BETTERUI_CAST_BAR_FILL_OFFSET_Y = 0        -- Fill track vertical offset (+ down, - up)
-BETTERUI_CAST_BAR_FILL_INSET_X = 45        -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_CAST_BAR_FILL_INSET_Y = 59        -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_CAST_BAR_FILL_REGION = BuildBarFillRegionFromBox(
-    BETTERUI_CAST_BAR_WIDTH,
-    BETTERUI_CAST_BAR_HEIGHT,
-    BETTERUI_CAST_BAR_FILL_WIDTH_SCALE,
-    BETTERUI_CAST_BAR_FILL_HEIGHT_SCALE,
-    BETTERUI_CAST_BAR_FILL_OFFSET_X,
-    BETTERUI_CAST_BAR_FILL_OFFSET_Y
-)
+    -- ========================================================================
+    -- Experience/Champion Bar (Below left ornament)
+    -- Fill tuning: *_SCALE = fraction of bar dimension, *_OFFSET = pixel nudge
+    -- ========================================================================
+    XP = {
+        BACKDROP_TEXTURE  = "Bar.dds",
+        FILL_TEXTURE      = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
+        SCALE             = 1.0,          -- Scale multiplier for XP bar
+        OFFSET_X          = 5,            -- X offset from center (+ right, - left)
+        OFFSET_Y          = -85,          -- Y offset from BgMiddle bottom (- up, + down)
+        WIDTH             = 228,          -- Width in pixels
+        HEIGHT            = 190,          -- Height in pixels
+        LABEL_OFFSET_X    = -2,           -- Text nudge from fill-region center (+ right)
+        LABEL_OFFSET_Y    = 2,            -- Text nudge from fill-region center (+ down)
+        TEXTURE_BOUNDS    = { left = 0, right = 1, top = 0, bottom = 1 },
+        FILL_WIDTH_SCALE  = 0.58,         -- Fill width as fraction of bar width (1.0 = full)
+        FILL_HEIGHT_SCALE = 0.15,         -- Fill height as fraction of bar height (1.0 = full)
+        FILL_OFFSET_X     = 0,            -- Fill track horizontal offset (+ right, - left)
+        FILL_OFFSET_Y     = 2,            -- Fill track vertical offset (+ down, - up)
+        FILL_INSET_X      = 20,           -- Legacy fallback (if fill-region invalid)
+        FILL_INSET_Y      = 4,            -- Legacy fallback (if fill-region invalid)
+        -- Positioning when Left Ornament is hidden (DIRECT offsets from BgMiddle center)
+        NO_ORNAMENT_OFFSET_X = -423,      -- (- left, + right)
+        NO_ORNAMENT_OFFSET_Y = 108,       -- (+ down, - up)
+    },
 
--- Mount Stamina Bar positioning (under right ornament when mounted)
-BETTERUI_MOUNT_STAMINA_BAR_SCALE = 1.0        -- Scale multiplier for mount stamina bar
-BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X = 0       -- X offset from center (positive = right)
-BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y = -85     -- Y offset from ornament bottom (negative = up)
-BETTERUI_MOUNT_STAMINA_BAR_WIDTH = 220        -- Width of the mount stamina bar in pixels
-BETTERUI_MOUNT_STAMINA_BAR_HEIGHT = 185       -- Height of the mount stamina bar in pixels
-BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X = 0 -- Horizontal offset for text label (from fill-region center)
-BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y = 1 -- Vertical offset for text label (from fill-region center)
-BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS = {
-    left = 0,                                 -- Full texture (recalibrate once DDS artwork margins are known)
-    right = 1,
-    top = 0,
-    bottom = 1,
+    -- ========================================================================
+    -- Cast Bar (centered above top/back bar)
+    -- ========================================================================
+    CAST = {
+        BACKDROP_TEXTURE   = "CastBar.dds",
+        FILL_TEXTURE       = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
+        SCALE              = 1.0,         -- Scale multiplier for Cast bar
+        OFFSET_X           = -30,         -- X offset from center (- left, + right)
+        OFFSET_Y           = 110,         -- Y offset from back bar top (+ down, closer to bar)
+        INSTANT_DISPLAY_MS = 850,         -- Preview duration for instant skills (ms)
+        WIDTH              = 300,         -- Width in pixels
+        HEIGHT             = 275,         -- Height in pixels
+        LABEL_OFFSET_X     = -3,          -- Text nudge (+ right)
+        LABEL_OFFSET_Y     = 0,           -- Text nudge (+ down)
+        TEXTURE_BOUNDS     = { left = 0, right = 1, top = 0, bottom = 1 },
+        FILL_WIDTH_SCALE   = 0.59,        -- Fill width fraction (1.0 = full)
+        FILL_HEIGHT_SCALE  = 0.10,        -- Fill height fraction (1.0 = full)
+        FILL_OFFSET_X      = 10,          -- Fill track (+ right, - left)
+        FILL_OFFSET_Y      = 0,           -- Fill track (+ down, - up)
+        FILL_INSET_X       = 45,          -- Legacy fallback
+        FILL_INSET_Y       = 59,          -- Legacy fallback
+    },
+
+    -- ========================================================================
+    -- Mount Stamina Bar (under right ornament when mounted)
+    -- ========================================================================
+    MOUNT = {
+        BACKDROP_TEXTURE   = "MountBar.dds",
+        FILL_TEXTURE       = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
+        SCALE              = 1.0,         -- Scale multiplier for mount bar
+        OFFSET_X           = 0,           -- X offset from center (+ right, - left)
+        OFFSET_Y           = -85,         -- Y offset from ornament bottom (- up, + down)
+        WIDTH              = 220,         -- Width in pixels
+        HEIGHT             = 185,         -- Height in pixels
+        LABEL_OFFSET_X     = 0,           -- Text nudge (+ right)
+        LABEL_OFFSET_Y     = 1,           -- Text nudge (+ down)
+        TEXTURE_BOUNDS     = { left = 0, right = 1, top = 0, bottom = 1 },
+        FILL_WIDTH_SCALE   = 0.55,        -- Fill width fraction (1.0 = full)
+        FILL_HEIGHT_SCALE  = 0.15,        -- Fill height fraction (1.0 = full)
+        FILL_OFFSET_X      = 0,           -- Fill track (+ right, - left)
+        FILL_OFFSET_Y      = 0,           -- Fill track (+ down, - up)
+        FILL_INSET_X       = 45,          -- Legacy fallback
+        FILL_INSET_Y       = 59,          -- Legacy fallback
+        -- Positioning when Right Ornament is hidden (DIRECT offsets from BgMiddle center)
+        NO_ORNAMENT_OFFSET_X = 424,       -- (+ right, - left)
+        NO_ORNAMENT_OFFSET_Y = 110,       -- (+ down, - up)
+    },
 }
-BETTERUI_MOUNT_STAMINA_BAR_FILL_WIDTH_SCALE = 0.55  -- Fill width as fraction of bar width (1.0 = full width)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_HEIGHT_SCALE = 0.15 -- Fill height as fraction of bar height (1.0 = full height)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_X = 0        -- Fill track horizontal offset (+ right, - left)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_Y = 0        -- Fill track vertical offset (+ down, - up)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X = 45        -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y = 59        -- Legacy fallback only (used only if fill-region config is invalid)
-BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION = BuildBarFillRegionFromBox(
-    BETTERUI_MOUNT_STAMINA_BAR_WIDTH,
-    BETTERUI_MOUNT_STAMINA_BAR_HEIGHT,
-    BETTERUI_MOUNT_STAMINA_BAR_FILL_WIDTH_SCALE,
-    BETTERUI_MOUNT_STAMINA_BAR_FILL_HEIGHT_SCALE,
-    BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_X,
-    BETTERUI_MOUNT_STAMINA_BAR_FILL_OFFSET_Y
+
+-- Build computed fill regions from the nested config
+local BARS = BETTERUI.ResourceOrbFrames.CONST.BARS
+BARS.XP.FILL_REGION = BuildBarFillRegionFromBox(
+    BARS.XP.WIDTH, BARS.XP.HEIGHT,
+    BARS.XP.FILL_WIDTH_SCALE, BARS.XP.FILL_HEIGHT_SCALE,
+    BARS.XP.FILL_OFFSET_X, BARS.XP.FILL_OFFSET_Y
 )
--- Mount Stamina Bar positioning when Right Ornament is hidden (relative to BgMiddle center)
--- These are DIRECT offsets from CENTER of BgMiddle, adjust to position bar on-screen
-BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X = 424 -- X offset from BgMiddle center (positive = right)
-BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y = 110 -- Y offset from BgMiddle center (+ down, - up)
+BARS.CAST.FILL_REGION = BuildBarFillRegionFromBox(
+    BARS.CAST.WIDTH, BARS.CAST.HEIGHT,
+    BARS.CAST.FILL_WIDTH_SCALE, BARS.CAST.FILL_HEIGHT_SCALE,
+    BARS.CAST.FILL_OFFSET_X, BARS.CAST.FILL_OFFSET_Y
+)
+BARS.MOUNT.FILL_REGION = BuildBarFillRegionFromBox(
+    BARS.MOUNT.WIDTH, BARS.MOUNT.HEIGHT,
+    BARS.MOUNT.FILL_WIDTH_SCALE, BARS.MOUNT.FILL_HEIGHT_SCALE,
+    BARS.MOUNT.FILL_OFFSET_X, BARS.MOUNT.FILL_OFFSET_Y
+)
 
 -- ============================================================================
 -- DEBUG FLAGS
 -- ============================================================================
 
--- TODO(cleanup): Migrate BETTERUI_SHIELD_DEBUG to CIM FeatureFlags system instead of bare global
--- Set to true to show the shield overlay ring for visual debugging (MUST default to false for production)
-BETTERUI_SHIELD_DEBUG = false
+-- Shield debug is now managed via BETTERUI.CIM.FeatureFlags (SHIELD_DEBUG)
+-- and BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY. See DeveloperDebug.lua.

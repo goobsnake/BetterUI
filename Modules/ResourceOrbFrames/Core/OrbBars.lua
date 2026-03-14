@@ -10,6 +10,10 @@ if not BETTERUI.ResourceOrbFrames.Bars then BETTERUI.ResourceOrbFrames.Bars = {}
 
 local Bars = BETTERUI.ResourceOrbFrames.Bars
 local NAME = "ResourceOrbFrames"
+local BARS = BETTERUI.ResourceOrbFrames.CONST.BARS
+local XP = BARS.XP
+local CAST = BARS.CAST
+local MOUNT = BARS.MOUNT
 local COST_TYPE_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH or POWERTYPE_HEALTH
 local COST_TYPE_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA or POWERTYPE_MAGICKA
 local COST_TYPE_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA or POWERTYPE_STAMINA
@@ -187,8 +191,8 @@ BetterUIBarFrame = ZO_Object:Subclass()
 
 function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
-    -- TODO(bug): Assigns to self (class prototype) instead of obj (instance); all instances share the last-assigned control. Currently masked because only one FoodBuffTracker instance uses this constructor; subclasses override via Initialize()
-    self.control = control
+    -- Assign to instance, not class prototype
+    obj.control = control
     return obj
 end
 
@@ -197,7 +201,7 @@ function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillText
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
     self.control = control
     self.backdropTextureFile = backdropTextureFile or "Bar.dds"
-    self.fillTextureFile = fillTextureFile or BETTERUI_BAR_FILL_TEXTURE or
+    self.fillTextureFile = fillTextureFile or BARS.FILL_TEXTURE or
         "esoui/art/miscellaneous/progressbar_genericfill_gloss.dds"
     self.backdropTextureBounds = backdropTextureBounds
     self.fillRegion = fillRegion
@@ -309,10 +313,10 @@ end
 
 function CastBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent,
-        BETTERUI_CAST_BAR_BACKDROP_TEXTURE or "CastBar.dds",
-        BETTERUI_CAST_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
-        BETTERUI_CAST_BAR_TEXTURE_BOUNDS,
-        BETTERUI_CAST_BAR_FILL_REGION)
+        CAST.BACKDROP_TEXTURE or "CastBar.dds",
+        CAST.FILL_TEXTURE or BARS.FILL_TEXTURE,
+        CAST.TEXTURE_BOUNDS,
+        CAST.FILL_REGION)
     self.isCasting = false
     self.duration = 0
     self.postCastHold = 0.5
@@ -374,7 +378,7 @@ function CastBar:Initialize(parent)
         end
 
         if castDurationMs <= 0 then
-            castDurationMs = BETTERUI_CAST_BAR_INSTANT_DISPLAY_MS or 850
+            castDurationMs = CAST.INSTANT_DISPLAY_MS or 850
         end
 
         return abilityName, castDurationMs, isChanneled, showCountdown, castFillColor, castDepthColor
@@ -482,10 +486,10 @@ function CastBar:Update()
         return
     end
 
-    local w = BETTERUI_CAST_BAR_WIDTH or 250
-    local h = BETTERUI_CAST_BAR_HEIGHT or 150
+    local w = CAST.WIDTH or 250
+    local h = CAST.HEIGHT or 150
     self.control:SetDimensions(w, h)
-    self.control:SetScale(BETTERUI_CAST_BAR_SCALE or 1.0)
+    self.control:SetScale(CAST.SCALE or 1.0)
 
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
@@ -493,8 +497,8 @@ function CastBar:Update()
         self.backdrop:SetAnchor(CENTER, self.control, CENTER, 0, 0)
     end
 
-    local insetX = BETTERUI_CAST_BAR_FILL_INSET_X or 40
-    local insetY = BETTERUI_CAST_BAR_FILL_INSET_Y or 55
+    local insetX = CAST.FILL_INSET_X or 40
+    local insetY = CAST.FILL_INSET_Y or 55
     local current, max = 0, 1
 
     local castTextSize = ClampTextSize(settings.castBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
@@ -503,8 +507,8 @@ function CastBar:Update()
     self.label:SetColor(unpack(castTextColor))
 
     local castLabelOffsetX, castLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
-        BETTERUI_CAST_BAR_LABEL_OFFSET_X or 0,
-        BETTERUI_CAST_BAR_LABEL_OFFSET_Y or 0)
+        CAST.LABEL_OFFSET_X or 0,
+        CAST.LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, castLabelOffsetX, castLabelOffsetY)
 
@@ -557,10 +561,10 @@ end
 
 function ExperienceBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent,
-        BETTERUI_XP_BAR_BACKDROP_TEXTURE or "Bar.dds",
-        BETTERUI_XP_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
-        BETTERUI_XP_BAR_TEXTURE_BOUNDS,
-        BETTERUI_XP_BAR_FILL_REGION)
+        XP.BACKDROP_TEXTURE or "Bar.dds",
+        XP.FILL_TEXTURE or BARS.FILL_TEXTURE,
+        XP.TEXTURE_BOUNDS,
+        XP.FILL_REGION)
     self:SetColor(0.1, 0.85, 0.8, 1)
 end
 
@@ -601,13 +605,13 @@ function ExperienceBar:Update()
     self.label:SetColor(unpack(color))
     self.label:SetText(labelText)
 
-    local insetX = BETTERUI_XP_BAR_FILL_INSET_X or 8
-    local insetY = BETTERUI_XP_BAR_FILL_INSET_Y or 4
-    local w = BETTERUI_XP_BAR_WIDTH or 250
-    local h = BETTERUI_XP_BAR_HEIGHT or 150
+    local insetX = XP.FILL_INSET_X or 8
+    local insetY = XP.FILL_INSET_Y or 4
+    local w = XP.WIDTH or 250
+    local h = XP.HEIGHT or 150
 
     self.control:SetDimensions(w, h)
-    self.control:SetScale(BETTERUI_XP_BAR_SCALE or 1.0)
+    self.control:SetScale(XP.SCALE or 1.0)
 
     if self.backdrop then
         self.backdrop:SetDimensions(w, h)
@@ -616,8 +620,8 @@ function ExperienceBar:Update()
     end
 
     local xpLabelOffsetX, xpLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
-        BETTERUI_XP_BAR_LABEL_OFFSET_X or 0,
-        BETTERUI_XP_BAR_LABEL_OFFSET_Y or 0)
+        XP.LABEL_OFFSET_X or 0,
+        XP.LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, xpLabelOffsetX, xpLabelOffsetY)
 
@@ -637,9 +641,9 @@ end
 
 function MountStaminaBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent,
-        BETTERUI_MOUNT_STAMINA_BAR_BACKDROP_TEXTURE or "MountBar.dds",
-        BETTERUI_MOUNT_STAMINA_BAR_FILL_TEXTURE or BETTERUI_BAR_FILL_TEXTURE,
-        BETTERUI_MOUNT_STAMINA_BAR_TEXTURE_BOUNDS, BETTERUI_MOUNT_STAMINA_BAR_FILL_REGION)
+        MOUNT.BACKDROP_TEXTURE or "MountBar.dds",
+        MOUNT.FILL_TEXTURE or BARS.FILL_TEXTURE,
+        MOUNT.TEXTURE_BOUNDS, MOUNT.FILL_REGION)
     self:SetColor(0, 0.8, 0.2, 1)
     self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
 
@@ -680,10 +684,10 @@ function MountStaminaBar:Update()
         return
     end
 
-    local w = BETTERUI_MOUNT_STAMINA_BAR_WIDTH or 250
-    local h = BETTERUI_MOUNT_STAMINA_BAR_HEIGHT or 150
+    local w = MOUNT.WIDTH or 250
+    local h = MOUNT.HEIGHT or 150
     self.control:SetDimensions(w, h)
-    self.control:SetScale(BETTERUI_MOUNT_STAMINA_BAR_SCALE or 1.0)
+    self.control:SetScale(MOUNT.SCALE or 1.0)
     self.control:SetHidden(false)
 
     if self.backdrop then
@@ -697,8 +701,8 @@ function MountStaminaBar:Update()
     self.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", size))
     self.label:SetColor(unpack(color))
     local mountLabelOffsetX, mountLabelOffsetY = self:GetLabelAnchorOffsets(w, h,
-        BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_X or 0,
-        BETTERUI_MOUNT_STAMINA_BAR_LABEL_OFFSET_Y or 0)
+        MOUNT.LABEL_OFFSET_X or 0,
+        MOUNT.LABEL_OFFSET_Y or 0)
     self.label:ClearAnchors()
     self.label:SetAnchor(CENTER, self.control, CENTER, mountLabelOffsetX, mountLabelOffsetY)
 
@@ -709,8 +713,8 @@ function MountStaminaBar:Update()
         local percent = math.floor((current / max) * 100)
         self.label:SetText(string.format("Mount: %d%%", percent))
         if self.fill then self.fill:SetHidden(false) end
-        self:UpdateVisuals(current, max, BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_X or 35,
-            BETTERUI_MOUNT_STAMINA_BAR_FILL_INSET_Y or 55, w, h)
+        self:UpdateVisuals(current, max, MOUNT.FILL_INSET_X or 35,
+            MOUNT.FILL_INSET_Y or 55, w, h)
     else
         self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
         if self.fill then self.fill:SetHidden(true) end

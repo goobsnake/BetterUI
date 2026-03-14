@@ -241,7 +241,7 @@ function BetterUIShieldBar:RefreshVisuals()
     if not self.fog then return end
 
     if self.currentValue <= 0 then
-        if not BETTERUI_SHIELD_DEBUG then
+        if not BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY then
             self.fog:SetHidden(true)
         end
         return
@@ -712,7 +712,7 @@ end
 function Visuals.SetupShieldBar(rootFrame, pools)
     local shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
 
-    local debugShield = BETTERUI_SHIELD_DEBUG or false
+    local debugShield = BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY or false
     if debugShield then
         if shieldBar.control then shieldBar.control:SetHidden(false) end
         if shieldBar.fog then shieldBar.fog:SetHidden(false) end

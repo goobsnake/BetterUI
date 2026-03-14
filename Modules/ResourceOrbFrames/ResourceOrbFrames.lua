@@ -15,6 +15,7 @@ local SkillBar = nil
 local Events = nil
 
 local NAME = "ResourceOrbFrames"
+local BARS  -- resolved after Constants.lua loads (in Initialize)
 local m_rootFrame = nil
 local m_isInitialized = false
 local m_updateDeathFragment = nil
@@ -72,7 +73,7 @@ local function RefreshAllData()
     if m_shieldBar then
         local healthMax = m_pools[POWERTYPE_HEALTH] and m_pools[POWERTYPE_HEALTH]:GetMax() or 1
         m_shieldBar:SetRange(0, healthMax)
-        if BETTERUI_SHIELD_DEBUG then
+        if BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY then
             m_shieldBar:UpdateValue(math.floor(healthMax * 0.65)) -- Debug: show 65% shield for visual tuning
         else
             m_shieldBar:UpdateValue(0) -- Reset visual, will be updated by event if active
@@ -121,16 +122,19 @@ local function ApplyLayout(updateOrbs, updateSkills)
     local settings = GetModuleSettings()
 
 
+    -- Lazily resolve BARS reference (Constants.lua loads before this runs)
+    if not BARS then BARS = BETTERUI.ResourceOrbFrames.CONST.BARS end
+
     if m_experienceBar and m_experienceBar.control then
         m_experienceBar.control:ClearAnchors()
         if settings.hideLeftOrnament then
-            local nx = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_X or -350
-            local ny = BETTERUI_XP_BAR_NO_ORNAMENT_OFFSET_Y or 108
+            local nx = BARS.XP.NO_ORNAMENT_OFFSET_X or -350
+            local ny = BARS.XP.NO_ORNAMENT_OFFSET_Y or 108
             m_experienceBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_leftOrnament then
-                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BETTERUI_XP_BAR_OFFSET_X,
-                    BETTERUI_XP_BAR_OFFSET_Y)
+                m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X,
+                    BARS.XP.OFFSET_Y)
             else
                 m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, -350, -20) -- Fallback
             end
@@ -141,13 +145,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
     if m_mountStaminaBar and m_mountStaminaBar.control then
         m_mountStaminaBar.control:ClearAnchors()
         if settings.hideRightOrnament then
-            local nx = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_X or 375
-            local ny = BETTERUI_MOUNT_STAMINA_BAR_NO_ORNAMENT_OFFSET_Y or 108
+            local nx = BARS.MOUNT.NO_ORNAMENT_OFFSET_X or 375
+            local ny = BARS.MOUNT.NO_ORNAMENT_OFFSET_Y or 108
             m_mountStaminaBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, nx, ny)
         else
             if m_rightOrnament then
-                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BETTERUI_MOUNT_STAMINA_BAR_OFFSET_X,
-                    BETTERUI_MOUNT_STAMINA_BAR_OFFSET_Y)
+                m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X,
+                    BARS.MOUNT.OFFSET_Y)
             else
                 m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, 350, -20)
             end
@@ -160,13 +164,13 @@ local function ApplyLayout(updateOrbs, updateSkills)
         if settings.hideBackBar or not m_backBarContainer then
             -- When back bar is hidden (e.g. Oakensoul builds), anchor cast bar to the front bar instead
             if m_frontBarContainer then
-                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X, BETTERUI_CAST_BAR_OFFSET_Y)
+                m_castBar.control:SetAnchor(BOTTOM, m_frontBarContainer, TOP, BARS.CAST.OFFSET_X, BARS.CAST.OFFSET_Y)
             else
-                m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BETTERUI_CAST_BAR_OFFSET_X or 0, -200)
+                m_castBar.control:SetAnchor(CENTER, m_bgMiddle, CENTER, BARS.CAST.OFFSET_X, -200)
             end
         else
-            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BETTERUI_CAST_BAR_OFFSET_X,
-                BETTERUI_CAST_BAR_OFFSET_Y)
+            m_castBar.control:SetAnchor(BOTTOM, m_backBarContainer, TOP, BARS.CAST.OFFSET_X,
+                BARS.CAST.OFFSET_Y)
         end
         m_castBar:Update()
     end
@@ -210,7 +214,7 @@ local function SetupModule(control)
 
     -- 4. Apply Initial Skin & Layout
     local isGamePad = IsInGamepadPreferredMode()
-    local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
+    local layout = isGamePad and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
     SkillBar.ApplyActionBarSkin(control, layout)
 
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
@@ -280,7 +284,7 @@ local function SetupModule(control)
         -- NOTE: ApplyTemplateToControl can reset OnMouseEnter/script handlers on buttons,
         -- which is why we must replay the full front-bar setup sequence below.
         local isGamePad = IsInGamepadPreferredMode()
-        local layout = isGamePad and LAYOUT_CONFIG.GAMEPAD or LAYOUT_CONFIG.KEYBOARD
+        local layout = isGamePad and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
         SkillBar.ApplyActionBarSkin(m_rootFrame, layout)
 
         -- Re-read front bar config live (not stale closure from SetupModule time)
