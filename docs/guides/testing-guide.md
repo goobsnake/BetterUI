@@ -23,6 +23,11 @@ Located in `tools/tests/`, these test files can be run without ESO:
 | `test_safe_execute.lua` | SafeExecute | Error boundaries, nil handling |
 | `test_utilities.lua` | Utilities | WrapValue, SafeCall, SafeIcon |
 | `test_sort_comparators.lua` | Sort helpers | Multi-key sorting, nil handling |
+| `test_batch_safety.lua` | BatchConfig | Guard-clause validation, batch safety checks |
+| `test_nameplates_reset.lua` | Nameplates | Settings reset, font restoration |
+| `test_settings_group_resets.lua` | SettingsReset | Per-group reset isolation |
+| `test_settings_reset.lua` | SettingsReset | Full reset, partial reset, defaults |
+| `test_tooltip_helpers.lua` | Tooltips | Tooltip formatting, nil handling |
 
 ### Running Tests
 

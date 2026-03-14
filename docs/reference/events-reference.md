@@ -19,7 +19,8 @@ All BetterUI custom events follow the pattern:
 **Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
 
 **Consumers**:
-- `Inventory/Keybinds/InventoryKeybinds.lua` - Registers dialog keybinds
+- `Inventory/Actions/ItemActionHandlers.lua` - Registers inventory dialog keybinds
+- `Banking/Actions/BankingActions.lua` - Registers banking dialog keybinds
 
 **Payload**: `(inventorySlot)` - The slot data for the selected item
 
@@ -32,8 +33,9 @@ All BetterUI custom events follow the pattern:
 **Publisher**: `Inventory/Actions/ItemActionsDialog.lua`
 
 **Consumers**:
-- `Inventory/Keybinds/InventoryKeybinds.lua` - Removes dialog keybinds
+- `Inventory/Actions/ItemActionsDialog.lua` - Removes dialog keybinds
 - `Inventory/Inventory.lua` - Restores main keybinds
+- `Banking/Actions/BankingActions.lua` - Removes banking dialog keybinds
 
 **Payload**: None
 

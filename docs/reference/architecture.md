@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-01-31
+> **Last Updated**: 2026-03-14
 
 ---
 
@@ -27,16 +27,16 @@
 │  ├── Loads SavedVariables (BetterUISavedVars)                           │
 │  └── Calls Module.Setup() for each enabled module                       │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Core Layer                                                             │
-│  ├── Globals.lua          (Namespace init, utility functions)           │
-│  ├── BetterUI.CONST.lua   (UI const, currency config, header layouts)   │
-│  └── BetterUI_Shared.xml  (Shared XML templates & styles)               │
+│  Core Layer (inside CIM module)                                         │
+│  ├── CIM/Constants.lua    (Namespace init, constants, timing)           │
+│  ├── CIM/ConstantsUI.lua  (UI const, currency config, header layouts)   │
+│  └── CIM/Templates/SharedTemplates.xml (Shared XML templates & styles)  │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Common Interface Module (CIM)  [Modules/CIM/]                          │
 │  ├── Constants.lua + Module.lua (Root - minimal entry points)           │
-│  ├── Core/       (39 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
+│  ├── Core/       (47 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
 │  ├── UI/         (GenericHeader, GenericFooter)                         │
-│  ├── Lists/      (7 files: ItemDataProcessor, ListRefreshManager, etc.) │
+│  ├── Lists/      (10 files: ItemDataProcessor, ListRefreshManager, etc.)│
 │  ├── Tooltips/   (Enhanced item tooltip rendering)                      │
 │  ├── Nameplates/ (Font customization)                                   │
 │  ├── Actions/    (GenericSlotActions, ActionDialogUtils)                │
@@ -47,7 +47,9 @@
 │  ├── Inventory/       (Enhanced inventory with categories, search)      │
 │  ├── Banking/         (Bank/Guild Bank/House Bank interface)            │
 │  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs + SkillBar) │
-│  └── WritUnit/        (Writ quest tracking panel)                       │
+│  ├── WritUnit/        (Writ quest tracking panel)                       │
+│  └── Scaffolds/       TradingHouse, Loot, Vendor, Quickslot,            │
+│                        Companions, Repair, Crafting, Mail, Collections  │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -83,8 +85,9 @@ All other files are organized into subfolders by responsibility:
 ```
 CIM/
 ├── Constants.lua          # CIM-specific constants (TIMING, MODULES, SCREEN)
+├── ConstantsUI.lua        # UI layout constants, currency config
 ├── Module.lua             # Entry point
-├── Core/                  # 39 files (see Core Reference below)
+├── Core/                  # 47 files (see Core Reference below)
 │   ├── FeatureFlags.lua   # Runtime feature flag system
 │   ├── ControlCache.lua   # Cached control references
 │   ├── Interfaces.lua     # EmmyLua interface contracts
@@ -94,13 +97,14 @@ CIM/
 │   ├── RuntimeSetup.lua   # API patches, migrations
 │   ├── WindowClass.lua    # Base Window implementation
 │   ├── Utilities.lua      # General helpers (SafeIcon, Debug)
-│   └── ...                # HookFactory, SettingsFactory, etc.
-├── UI/                    # GenericHeader.lua, GenericFooter.lua
-├── Lists/                 # 7 files: ItemDataProcessor, ListRefreshManager, etc.
+│   └── ...                # HookFactory, SettingsFactory, BatchConfig, etc.
+├── UI/                    # GenericHeader.lua, GenericFooter.lua, ScrollIndicator, etc.
+├── Lists/                 # 10 files: ItemDataProcessor, ListRefreshManager, etc.
 ├── Tooltips/              # Tooltip enhancement logic
 ├── Nameplates/            # Font customization
 ├── Actions/               # GenericSlotActions.lua, ActionDialogUtils.lua
 ├── Keybinds/              # Keybind helpers
+├── Dialogs/               # DialogRegistry.lua
 ├── Templates/             # Shared XML templates
 └── Images/                # UI assets
 ```
@@ -112,13 +116,15 @@ Inventory/
 ├── Module.lua             # Entry point
 ├── Inventory.lua          # Main inventory class
 ├── Loader.lua             # Module initialization
-├── Core/                  # Utils.lua, Categories.lua (4 files)
-├── UI/                    # TooltipUtils.lua
-├── Lists/                 # ItemListManager.lua (5 files)
-├── Actions/               # SlotActions.lua, ActionDialogHooks.lua (6 files)
-├── Keybinds/              # InventoryKeybinds.lua
-├── State/                 # ModeManager.lua (2 files)
-├── Settings/              # CurrencySettings.lua, SortSettings.lua (3 files)
+├── Core/                  # InventoryClass, Sorting, BatchOps, MultiSelect, etc. (9 files)
+├── UI/                    # TooltipUtils.lua, TooltipEquipped.lua (2 files)
+├── Lists/                 # ItemListManager, InventoryList, CraftList, etc. (7 files)
+├── Actions/               # SlotActions, ActionDialogHooks, EquipAction, etc. (6 files)
+├── Keybinds/              # InventoryKeybinds.lua, CraftBagKeybinds.lua
+├── State/                 # PositionManager.lua, ListStateManager.lua (2 files)
+├── Dialogs/               # CraftBagQuantityDialog.lua, InventoryDialogs.lua (2 files)
+├── Scene/                 # InventorySceneLifecycle.lua
+├── Settings/              # CurrencySettings, FontSettings, SettingsPanel (3 files)
 └── Templates/             # XML templates
 ```
 
@@ -158,35 +164,33 @@ ResourceOrbFrames/
 The ESO client loads files in the order specified in `BetterUI.txt`. **Order matters** for dependency resolution.
 
 | Load Phase | Files | Purpose |
-|------------|-------|---------|\
-| 1. Globals | `Globals.lua` | Initialize `BETTERUI` namespace |
+|------------|-------|---------|
+| 1. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler |
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
-| 3. Constants | `BetterUI.CONST.lua` | UI dimensions, currency config |
-| 4. Shared XML | `BetterUI_Shared.xml` | Base templates |
-| 5. CIM Module | `Modules/CIM/Constants.lua` → `Core/*` → `UI/*` → ... | Shared UI (starts with RuntimeSetup) |
-| 6. Feature Modules | Inventory, Banking, ResourceOrbFrames, WritUnit | Dependent on CIM |
-| 7. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler |
+| 3. CIM Module | `CIM/Constants.lua` → `CIM/ConstantsUI.lua` → `Core/*` → `UI/*` → ... | Namespace init, shared UI |
+| 4. Feature Modules | ResourceOrbFrames, Inventory, Banking, WritUnit | Dependent on CIM |
+| 5. Scaffold Modules | TradingHouse, Loot, Vendor, Quickslot, Companions, Repair, Crafting, Mail, Collections | Placeholder stubs |
 
-> **Critical**: CIM must load before Inventory/Banking because they inherit from CIM templates.
+> **Critical**: `BetterUI.lua` loads first (contains `EVENT_ADD_ON_LOADED` handler). CIM must load before Inventory/Banking because they inherit from CIM templates.
 
 ---
 
 ## 5. Namespace Structure
 
-All addon code lives under the global `BETTERUI` table, defined in `Globals.lua`.
+All addon code lives under the global `BETTERUI` table, defined in `CIM/Constants.lua`.
 
 ```lua
 BETTERUI = {
     -- Metadata
     name = "BetterUI",
-    version = "2.93",
+    version = "3.02",
 
     -- ESO API Caches
     WindowManager = GetWindowManager(),
     EventManager = GetEventManager(),
 
     -- Core Subsystems
-    CONST = {},              -- Constants (BetterUI.CONST.lua)
+    CONST = {},              -- Constants (CIM/ConstantsUI.lua)
     CIM = {                  -- Common Interface Module
         CONST = {},          -- CIM-specific constants
     },
@@ -229,10 +233,10 @@ BETTERUI = {
 
 | Module | Root Files | Key Subfolders | Dependencies | Purpose |
 |--------|------------|----------------|--------------|---------|
-| **CIM** | Constants, Module | Core (39), UI (10), Lists (10), Tooltips, Actions | None | Shared UI, runtime patches, tooltips, feature flags |
-| **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions (6), State, Settings | CIM | Enhanced inventory with categories |
-| **Banking** | Constants, Module, Banking | Core, UI, Lists, Actions, State, Settings, Search | CIM | Bank/House Bank interface |
-| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | CIM | Custom resource orbs + skill bar |
+| **CIM** | Constants, ConstantsUI, Module | Core (47), UI (13), Lists (10), Tooltips, Actions, Dialogs | None | Shared UI, runtime patches, tooltips, feature flags |
+| **Inventory** | Constants, Module, Inventory, Loader | Core (9), UI (2), Lists (7), Actions (6), State (2), Dialogs (2), Scene, Keybinds, Settings (3) | CIM | Enhanced inventory with categories |
+| **Banking** | Constants, Module, Banking | Core (4), UI (2), Lists (2), Actions (2), State, Settings, Search, Dialogs, Scene | CIM | Bank/House Bank interface |
+| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core (7), SkillBar (7), Settings (2), Templates, Textures | CIM | Custom resource orbs + skill bar |
 | **WritUnit** | Constants, Module | Core, Templates | CIM | Writ quest tracker |
 
 ---
@@ -460,8 +464,8 @@ end
 | File | Location | Purpose |
 |------|----------|---------|
 | `BetterUI.lua` | Root | Entry point, module loading |
-| `Globals.lua` | Root | Namespace, utilities |
-| `BetterUI.CONST.lua` | Root | Constants, currency config |
+| `Constants.lua` | CIM/ | Namespace init, shared constants, timing |
+| `ConstantsUI.lua` | CIM/ | UI constants, currency config |
 | `RuntimeSetup.lua` | CIM/Core/ | API patches, migrations, initialization |
 | `FeatureFlags.lua` | CIM/Core/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |

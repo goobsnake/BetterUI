@@ -7,7 +7,7 @@
 
 ## Last Updated
 
-**2026-02-07**: Added API constant rename compat pattern, `zo_mixin` hook pattern, `SetItemIsJunk` async quirk, and more.
+**2026-03-14**: Refreshed after codebase audit; corrected file references to match current module layout.
 
 ---
 
@@ -28,7 +28,7 @@
 - Global constants like `BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH` exist **only** for XML template support
 - In **Lua code**: Always use `BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH` (canonical)
 - In **XML templates**: Use `BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH` (required)
-- All XML-support globals are defined in `CIM/Constants.lua` and delegate to canonical paths
+- All XML-support globals are defined in `CIM/Constants.lua` and `CIM/ConstantsUI.lua` and delegate to canonical paths
 
 ### Keybind Management
 - Use ethereal keybinds for directional navigation instead of `ZO_DirectionalInput`
