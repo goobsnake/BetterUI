@@ -266,6 +266,29 @@ function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, select
 end
 
 --[[
+Function: ResolveBagsAndSlotType
+Description: Determines which bags to scan and the appropriate slot type
+             based on the current banking mode (withdraw vs deposit).
+Rationale: Extracted from duplicated logic in ComputeVisibleBankCategories and RefreshList.
+param: self (table) - The Banking class instance.
+return: bags (table), slotType (number)
+]]
+local function ResolveBagsAndSlotType(self)
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    if self.currentMode == LIST_WITHDRAW then
+        local bags
+        if currentUsedBank == BAG_BANK then
+            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
+        else
+            bags = { currentUsedBank }
+        end
+        return bags, SLOT_TYPE_BANK_ITEM
+    else
+        return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+    end
+end
+
+--[[
 Function: ComputeVisibleBankCategories
 Description: Compute the subset of categories that actually contain items for the current bank mode.
 ]]
@@ -284,21 +307,8 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     end
     visibility["all"] = true
 
-    -- TODO(refactor): Extract bag setup logic to shared helper - duplicated at line 227
     -- Determine which bags to scan based on mode
-    local bags = {}
-    local slotType
-    if self.currentMode == LIST_WITHDRAW then
-        if currentUsedBank == BAG_BANK then
-            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-        else
-            bags = { currentUsedBank }
-        end
-        slotType = SLOT_TYPE_BANK_ITEM
-    else
-        bags = { BAG_BACKPACK }
-        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-    end
+    local bags, slotType = ResolveBagsAndSlotType(self)
 
     -- Exclude stolen items from banking list per existing behavior
     local function IsNotStolenItem(itemData)
@@ -413,21 +423,7 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end
     end
-    local checking_bags = {}
-    local slotType
-    if (self.currentMode == LIST_WITHDRAW) then
-        if (currentUsedBank == BAG_BANK) then
-            checking_bags[1] = BAG_BANK
-            checking_bags[2] = BAG_SUBSCRIBER_BANK
-            slotType = SLOT_TYPE_BANK_ITEM
-        else
-            checking_bags[1] = currentUsedBank
-            slotType = SLOT_TYPE_BANK_ITEM
-        end
-    else
-        checking_bags[1] = BAG_BACKPACK
-        slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-    end
+    local checking_bags, slotType = ResolveBagsAndSlotType(self)
 
     local function IsNotStolenItem(itemData)
         local isNotStolen = not itemData.stolen
