@@ -87,13 +87,11 @@ end
 -- ============================================================================
 
 BETTERUI.CIM = BETTERUI.CIM or {}
+--- @class BETTERUI.CIM.Utils
+--- Shared utility functions for the BetterUI Common Interface Module.
+--- Provides scene checks, sort comparators, safe accessors, and bag helpers.
+--- All functions below are individually annotated with EmmyLua param/return tags.
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
--- TODO(doc): P3 - Add EmmyLua type annotations to all functions in BETTERUI.CIM.Utils namespace
--- Functions to annotate: IsEnabled, SafeIcon, SafeGetTargetData, SortComparator,
--- FindStackableSlotInBag, CountResearchableInHouseBanks, IsBankingSceneShowing,
--- IsInventorySceneShowing, SafeCall
--- See SafeExecute.lua for the annotation pattern to follow
--- Estimated effort: 2 hours
 
 --[[
 Function: BETTERUI.CIM.Utils.SafeGetTargetData

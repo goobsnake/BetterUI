@@ -13,8 +13,19 @@ local Animations = BETTERUI.ResourceOrbFrames.Animations
 local NAME = "ResourceOrbFrames"
 local DEFAULT_SHIELD_ELECTRIC_COLOR = { 0.4, 0.9, 1, 1 }
 
--- TODO(doc): Document ORB_CONFIG table structure - indexes and {r, g, b, icon_path} format unclear
--- Constants
+--[[
+Table: ORB_CONFIG
+Description: Maps ESO power types to orb rendering parameters.
+Structure: [POWERTYPE_*] = { baseCoordLeft, baseCoordRight, baseAnchorX, iconPath }
+  - baseCoordLeft (number):  Left edge of texture coordinate range (0-1 normalized).
+  - baseCoordRight (number): Right edge of texture coordinate range (0-1 normalized).
+                             A difference of ~0.5 enables half-texture mode (split orb).
+  - baseAnchorX (number):    Horizontal anchor offset from orb center (pixels).
+                             Non-zero values shift the fill texture sideways (e.g., Stamina=75).
+  - iconPath (string|nil):   Optional alchemy icon texture for the power type display.
+                             Nil for shield overlay (no standalone icon).
+Used By: BetterUIOrbBar:Initialize (unpacked into self.baseCoordLeft, baseCoordRight, baseAnchorX).
+]]
 local ORB_CONFIG = {
     [POWERTYPE_HEALTH] = { 0, 1, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds' },
     [POWERTYPE_MAGICKA] = { 0, 0.5, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restoremagicka.dds' },

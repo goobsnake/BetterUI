@@ -134,8 +134,13 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         return
     end
     if self.isBatchProcessing then
+        BETTERUI.CIM.Debug.Log("Batch re-entry rejected: pipeline already active", "Batch")
         return
     end
+
+    -- Pipeline token: monotonically increasing counter that invalidates stale timers
+    self.batchPipelineToken = (self.batchPipelineToken or 0) + 1
+    local pipelineToken = self.batchPipelineToken
 
     local index = 0
     local processedCount = 0
@@ -339,6 +344,19 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         UnregisterInventoryAckCallbacks()
         self_ref.isBatchProcessing = false
 
+        -- Record batch diagnostics summary for debugging via /buibatch
+        local elapsedMs = Cfg.GetNowMs() - batchStartedAtMs
+        self_ref.lastBatchSummary = {
+            action     = displayName,
+            totalItems = totalItems,
+            processed  = processedCount,
+            cost       = processedCost,
+            elapsedMs  = elapsedMs,
+            avgDelayMs = processedCount > 0 and (elapsedMs / processedCount) or 0,
+            abortReason = stopReason,
+            pipelineToken = pipelineToken,
+        }
+
         if Cfg.IsBatchSceneShowing(self_ref) and self_ref._msConfig and self_ref._msConfig.refreshKeybinds then
             self_ref._msConfig.refreshKeybinds(self_ref)
         end
@@ -451,6 +469,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     processNext = function()
+        -- Pipeline token guard: reject stale timer callbacks from previous batch
+        if pipelineToken ~= self_ref.batchPipelineToken then return end
         local actionQueued = false
         local bagId, slotIndex = nil, nil
         while true do

@@ -563,6 +563,34 @@ function BETTERUI.CIM.Debug.RegisterCommands()
         InspectMemory()
     end
 
+    -- Batch diagnostics inspector
+    SLASH_COMMANDS["/buibatch"] = function(args)
+        if not BETTERUI.CIM.Debug.IsEnabled() then
+            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+            return
+        end
+
+        d("|c00ccff[BetterUI Debug]|r Last Batch Summary:")
+        local sources = {
+            { name = "Inventory", ref = BETTERUI.Inventory and BETTERUI.Inventory.Window },
+            { name = "Banking",   ref = BETTERUI.Banking and BETTERUI.Banking.Window },
+        }
+        local found = false
+        for _, src in ipairs(sources) do
+            local summary = src.ref and src.ref.lastBatchSummary
+            if summary then
+                found = true
+                d(string.format("  |cffcc00%s:|r %s", src.name, summary.action or "unknown"))
+                d(string.format("    Items: %d/%d  Cost: %d", summary.processed or 0, summary.totalItems or 0, summary.cost or 0))
+                d(string.format("    Elapsed: %.0fms  Avg: %.0fms/item", summary.elapsedMs or 0, summary.avgDelayMs or 0))
+                d(string.format("    Token: %d  Abort: %s", summary.pipelineToken or 0, tostring(summary.abortReason or "none")))
+            end
+        end
+        if not found then
+            d("  No batch has been executed this session.")
+        end
+    end
+
     -- Help command
     SLASH_COMMANDS["/buihelp"] = function(args)
         d("|c00ccff[BetterUI Debug Commands]|r")
@@ -573,6 +601,7 @@ function BETTERUI.CIM.Debug.RegisterCommands()
         d("  /buievents - List registered events")
         d("  /buisettings - Dump current settings")
         d("  /buimemory - Memory and cache diagnostics")
+        d("  /buibatch - Last batch operation diagnostics")
         d("  /buicontrol <name> - Inspect a control")
         d("  /buiprofile [start|stop|report|reset] - Performance profiler")
         d("  /buiflag [flag] [on|off] - Toggle debug flags")

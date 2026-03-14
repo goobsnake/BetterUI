@@ -386,14 +386,14 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
         keybinds = { self.coreKeybinds },
         taskManager = BETTERUI.CIM.Tasks,
         onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             -- Allow subclasses to extend via OnSceneShowing
             if screen.OnSceneShowing then
                 screen:OnSceneShowing(wasPushed)
             end
         end,
         onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             -- Allow subclasses to extend via OnSceneHiding
             if screen.OnSceneHiding then
                 screen:OnSceneHiding()
