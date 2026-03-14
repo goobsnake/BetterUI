@@ -278,7 +278,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             -- Create the label once per container
             local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
             -- MAXIMIZED WIDTH: 0 padding, user requested 60 spacing
-            local yOffset = BETTERUI.CONST.LAYOUT.TOOLTIP.STATUS_LABEL_OFFSET_Y
+            local yOffset = BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.STATUS_LABEL_OFFSET_Y
             label:SetAnchor(TOPLEFT, container, TOPLEFT, 0, yOffset)
             label:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, yOffset) -- Spacing from top of header
             label:SetMaxLineCount(0)                                   -- Allow unlimited lines
@@ -517,7 +517,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             -- This relies on shifting the internal Tooltip control relative to its ScrollChild parent.
             if tooltip then
                 tooltip:ClearAnchors()
-                tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, BETTERUI.CONST.LAYOUT.TOOLTIP.BODY_OFFSET_Y_ENHANCED)
+                tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.BODY_OFFSET_Y_ENHANCED)
             end
             if bottomRail then
                 bottomRail:ClearAnchors()

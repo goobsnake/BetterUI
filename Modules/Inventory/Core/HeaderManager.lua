@@ -4,6 +4,9 @@ Purpose: Manages the inventory header, tab switches, and search focus integratio
 Author: BetterUI Team
 ]]
 
+local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
+local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
+
 local function InitializeHeader(self)
     local function UpdateTitleText()
         return GetString(

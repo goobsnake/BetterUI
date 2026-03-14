@@ -4,6 +4,11 @@ Purpose: Manages high-level transitions between item lists (Backpack, Craft Bag,
 Author: BetterUI Team
 ]]
 
+-- Local aliases for list type constants (migrated from bare globals)
+local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
+local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
+local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
+
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
 local function SwitchActiveList(self, listDescriptor)

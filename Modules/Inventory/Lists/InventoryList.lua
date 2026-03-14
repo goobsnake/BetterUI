@@ -326,7 +326,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     end
 
     if isItemNew and data.enabled then
-        statusIndicator:SetTexture(BETTERUI.CONST.ICONS.NEW_ITEM)
+        statusIndicator:SetTexture(BETTERUI.CIM.CONST.ICONS.NEW_ITEM)
         statusIndicator:SetHidden(false)
     end
 
@@ -334,12 +334,12 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
         local slotIndex = data.dataSource.slotIndex
         local equipType = data.dataSource.equipType
         if slotIndex == EQUIP_SLOT_BACKUP_MAIN or slotIndex == EQUIP_SLOT_BACKUP_OFF or slotIndex == EQUIP_SLOT_RING2 or slotIndex == EQUIP_SLOT_TRINKET2 or slotIndex == EQUIP_SLOT_BACKUP_POISON then
-            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_BACKUP)
+            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_BACKUP)
         else
-            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_MAIN)
+            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_MAIN)
         end
         if equipType == EQUIP_TYPE_INVALID then
-            equippedIcon:SetTexture(BETTERUI.CONST.ICONS.EQUIP_SLOT)
+            equippedIcon:SetTexture(BETTERUI.CIM.CONST.ICONS.EQUIP_SLOT)
         end
         equippedIcon:SetHidden(false)
     else

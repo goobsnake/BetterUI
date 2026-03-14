@@ -165,81 +165,69 @@ function BETTERUI.Inventory.HookActionDialog()
                     end
 
                     -- Handle BetterUI synthetic Destroy and Link to Chat explicitly even outside BetterUI override
-                    -- TODO(bug): 'self' is not in scope here -- this is a bare function(dialog) callback, not a method. self.actionMode/self.itemList/self.craftBagList/self.categoryList all crash with "attempt to index a nil value" when triggered from non-BetterUI scenes
+                    -- Note: This is a bare function(dialog) callback — no 'self' in scope.
+                    -- All item data must be resolved from the dialog or its attached data.
                     if ZO_InventorySlotActions and dialog and dialog.itemActions and dialog.itemActions.selectedAction then
+                        -- Resolve targetData from dialog-available sources (no inventory instance)
+                        local function ResolveTargetDataFromDialog()
+                            -- 1. Prefer dialog.data.target (companion scene, guild store, etc.)
+                            if dialog.data and dialog.data.target then
+                                return dialog.data.target
+                            end
+                            -- 2. Fall back to dialog's entry list selection
+                            if dialog.entryList and dialog.entryList.GetTargetData then
+                                return BETTERUI.CIM.Utils.SafeGetTargetData(dialog.entryList)
+                            end
+                            return nil
+                        end
+
                         -- Check if the selected row is a BetterUI Destroy entry
                         local selectedRow = dialog.entryList and
-                            BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
+                            BETTERUI.CIM.Utils.SafeGetTargetData(dialog.entryList)
                         if selectedRow and selectedRow.isBetterUIDestroy then
-                            local targetData
-                            local actionMode = self.actionMode
-                            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-                            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
-                            else
-                                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self
-                                    .categoryList))
-                            end
-                            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-                            if bag and slot then
-                                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
-                                local itemLink = GetItemLink(bag, slot)
-                                local quick = BETTERUI
-                                    and BETTERUI.Settings
-                                    and BETTERUI.Settings.Modules
-                                    and BETTERUI.Settings.Modules["Inventory"]
-                                    and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
-                                if quick then
-                                    BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
-                                else
-                                    ZO_Dialogs_ShowDialog(
-                                        "BETTERUI_CONFIRM_DESTROY_DIALOG",
-                                        { bagId = bag, slotIndex = slot, itemLink = itemLink },
-                                        nil,
-                                        true,
-                                        true
-                                    )
+                            local targetData = ResolveTargetDataFromDialog()
+                            if targetData then
+                                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                                if bag and slot then
+                                    ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                                    local itemLink = GetItemLink(bag, slot)
+                                    local quick = BETTERUI
+                                        and BETTERUI.Settings
+                                        and BETTERUI.Settings.Modules
+                                        and BETTERUI.Settings.Modules["Inventory"]
+                                        and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                                    if quick then
+                                        BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+                                    else
+                                        ZO_Dialogs_ShowDialog(
+                                            "BETTERUI_CONFIRM_DESTROY_DIALOG",
+                                            { bagId = bag, slotIndex = slot, itemLink = itemLink },
+                                            nil,
+                                            true,
+                                            true
+                                        )
+                                    end
                                 end
                             end
                             return
                         end
                         local selectedActionName = nil
                         do
-                            local actionController = nil
-                            if dialog and dialog.itemActions then
-                                actionController = dialog.itemActions
-                            elseif self and self.itemActions then
-                                actionController = self.itemActions
-                            end
+                            local actionController = dialog.itemActions
                             if actionController and actionController.selectedAction then
                                 selectedActionName = ZO_InventorySlotActions:GetRawActionName(actionController
                                     .selectedAction)
                             end
                         end
                         if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
-                            local targetData
-                            -- Prefer dialog-local target data when available (companion scene uses dialog-targets)
-                            if dialog.data and dialog.data.target then
-                                targetData = dialog.data.target
-                            elseif dialog.entryList and dialog.entryList.GetTargetData then
-                                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
-                            else
-                                local actionMode = self and self.actionMode or nil
-                                if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE and self and self.itemList then
-                                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
-                                elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE and self and self.craftBagList then
-                                    targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
-                                elseif self and self.categoryList then
-                                    targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(
-                                        self.categoryList))
-                                end
-                            end
-                            local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
-                            if bag and slot then
-                                local itemLink = GetItemLink(bag, slot)
-                                if itemLink then
-                                    ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                            local targetData = ResolveTargetDataFromDialog()
+                            if targetData then
+                                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
+                                if bag and slot then
+                                    local itemLink = GetItemLink(bag, slot)
+                                    if itemLink then
+                                        ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                                    end
                                 end
                             end
                             return
@@ -247,12 +235,7 @@ function BETTERUI.Inventory.HookActionDialog()
                     end
                     --original function
                     do
-                        local actionController = nil
-                        if dialog and dialog.itemActions then
-                            actionController = dialog.itemActions
-                        elseif self and self.itemActions then
-                            actionController = self.itemActions
-                        end
+                        local actionController = dialog.itemActions
                         if actionController and actionController.DoSelectedAction then
                             actionController:DoSelectedAction()
                         end

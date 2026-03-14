@@ -54,14 +54,10 @@ BETTERUI.CIM.DeprecationRegistry.Register(
     "v3.1"
 )
 
--- Note: We keep the direct assignments (not shims) because these are simple
--- string constants accessed frequently in hot paths. The deprecation warning
--- is available via /script BETTERUI.CIM.DeprecationRegistry.GetAll()
--- TODO(cleanup): Remove global compatibility aliases after migration to BETTERUI.Inventory.CONST.LIST_TYPES
--- Global backward compatibility aliases
-INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
-INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
-INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
+-- Note: Global aliases (INVENTORY_CATEGORY_LIST, INVENTORY_ITEM_LIST, INVENTORY_CRAFT_BAG_LIST)
+-- have been removed. All internal consumers now use local aliases pointing to
+-- BETTERUI.Inventory.CONST.LIST_TYPES.*. Deprecation registry entries above remain
+-- so external addons can discover migration paths via /script BETTERUI.CIM.DeprecationRegistry.GetAll()
 
 -- Timing & Batch Constants (delegate to CIM shared values)
 -- Debounce for heavy updates (e.g., full inventory refresh)

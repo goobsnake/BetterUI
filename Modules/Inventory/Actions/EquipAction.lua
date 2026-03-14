@@ -227,7 +227,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         -- Weapons and rings: prompt to choose bar (primary/backup) and, if applicable, hand
         local function showEquipDialog()
             ZO_Dialogs_ShowDialog(
-                BETTERUI_EQUIP_SLOT_DIALOG,
+                BETTERUI.Inventory.Dialogs.EQUIP_SLOT,
                 { inventorySlot, self.isPrimaryWeapon },
                 { mainTextParams = { GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN) } },
                 true
@@ -277,7 +277,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             DoEquipMove(data[1].dataSource.bagId, data[1].dataSource.slotIndex, equipType, mainSlot, data[2])
         end
 
-        ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_EQUIP_SLOT_DIALOG)
+        ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI.Inventory.Dialogs.EQUIP_SLOT)
 
         if
             not bound
@@ -329,7 +329,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         return str
     end
 
-    BETTERUI.CIM.Dialogs.Register(BETTERUI_EQUIP_SLOT_DIALOG, {
+    BETTERUI.CIM.Dialogs.Register(BETTERUI.Inventory.Dialogs.EQUIP_SLOT, {
         blockDialogReleaseOnPress = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.BASIC,
@@ -428,7 +428,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                 alignment = KEYBIND_STRIP_ALIGN_RIGHT,
                 text = SI_DIALOG_CANCEL,
                 callback = function()
-                    ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_EQUIP_SLOT_DIALOG)
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI.Inventory.Dialogs.EQUIP_SLOT)
                 end,
             },
         },

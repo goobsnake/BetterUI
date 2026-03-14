@@ -4,6 +4,9 @@ Purpose: Manages the Category list (tabs) for the Inventory module.
 Author: BetterUI Team
 ]]
 
+local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
+local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
+
 local function SetupCategoryList(list)
     list:AddDataTemplate(
         "BETTERUI_GamepadItemEntryTemplate",

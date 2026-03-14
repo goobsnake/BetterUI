@@ -33,7 +33,7 @@ Last Modified: 2026-01-28
 --   - ResolveCraftBagState: Determines Stow vs Retrieve based on context
 --   - DeduplicateActions: Removes duplicate entries from action list
 --
--- TODO(refactor): Add support for custom actions from other addons
+-- Custom slot actions can be registered by external addons via BETTERUI.Inventory.RegisterSlotAction()
 --------------------------------------------------------------------------------
 
 local ACTION_KEY = 1
@@ -42,6 +42,34 @@ local OPTION_ARG = 5
 
 local INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
 local INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
+
+-- Registry for external addon slot actions
+local m_customActions = {}
+
+--- Registers a custom slot action from an external addon.
+--- Actions appear in the Y-menu when the visibility function returns true.
+---
+--- @param id string Unique identifier for the action (used for dedup/removal).
+--- @param config table Action configuration with fields:
+---   - name (string|function): Display name or function returning name.
+---   - callback (function): Called with (inventorySlot) when activated.
+---   - visibilityFunction (function|nil): Optional. Called with (inventorySlot), returns bool.
+---     If nil, the action is always visible.
+---   - options (any|nil): Optional action options (e.g. "silent").
+function BETTERUI.Inventory.RegisterSlotAction(id, config)
+    if not id or not config or not config.name or not config.callback then
+        BETTERUI.Debug("RegisterSlotAction: missing required id, name, or callback")
+        return false
+    end
+    m_customActions[id] = config
+    return true
+end
+
+--- Unregisters a previously registered custom slot action.
+--- @param id string The unique identifier used during registration.
+function BETTERUI.Inventory.UnregisterSlotAction(id)
+    m_customActions[id] = nil
+end
 
 BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 
@@ -459,7 +487,40 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             -- NOTE: Split Stack is NOT handled here - _betterui_primaryOverride above already sets it up
         end
 
-        -- 4. Deduplicate Action List
+        -- 4. Inject custom registered actions from external addons
+        for actionId, customAction in pairs(m_customActions) do
+            local visible = true
+            if customAction.visibilityFunction then
+                local ok, result = pcall(customAction.visibilityFunction, inventorySlot)
+                visible = ok and result
+            end
+            if visible then
+                local name = customAction.name
+                if type(name) == "function" then
+                    local ok, result = pcall(name, inventorySlot)
+                    name = ok and result or nil
+                end
+                if name then
+                    slotActions:AddSlotAction(
+                        name,
+                        function()
+                            local ok, err = pcall(customAction.callback, inventorySlot)
+                            if not ok then
+                                BETTERUI.Debug("Custom action '" .. tostring(actionId) .. "' error: " .. tostring(err))
+                            end
+                        end,
+                        "secondary",
+                        customAction.visibilityFunction and function()
+                            local ok, result = pcall(customAction.visibilityFunction, inventorySlot)
+                            return ok and result
+                        end or nil,
+                        customAction.options
+                    )
+                end
+            end
+        end
+
+        -- 5. Deduplicate Action List
         DeduplicateActions(slotActions)
     end
 

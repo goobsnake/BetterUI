@@ -35,9 +35,11 @@ local INVENTORY_CATEGORY_LIST = "categoryList"
 local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
--- Global dialog name
--- TODO(fix): Namespace global dialog name to BETTERUI.Inventory.Dialogs.EQUIP_SLOT
-BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_DIALOG"
+-- Dialog names (namespaced to avoid global collision)
+if not BETTERUI.Inventory.Dialogs then BETTERUI.Inventory.Dialogs = {} end
+BETTERUI.Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
+-- Backward compatibility alias
+BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 
 --------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCH
@@ -278,7 +280,7 @@ end
 ---
 --- Purpose: Prompts the user when equipping items where the target slot is ambiguous.
 --- Mechanics:
---- - Registers `BETTERUI_EQUIP_SLOT_DIALOG`.
+--- - Registers `BETTERUI.Inventory.Dialogs.EQUIP_SLOT`.
 --- - Uses `GAMEPAD_DIALOGS.BASIC` style.
 --- - Dynamic Main Text updates based on item type (One-Handed, Ring, etc.).
 --- - Provides two primary buttons (e.g. "Main Hand" / "Off Hand").

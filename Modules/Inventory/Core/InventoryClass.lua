@@ -4,7 +4,6 @@ Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization 
          header management, and high-level caching mechanisms.
 Author: BetterUI Team
 Last Modified: 2026-02-07
-TODO(refactor): P3 - At 1755 LOC, decompose into sub-modules: InventoryCache, InventorySearch, InventoryMultiSelect, InventoryDialogs
 ]]
 
 -- Architecture Note: BetterUI.Inventory subclasses ZO_GamepadInventory directly to:
@@ -213,7 +212,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
             self:OnUpdate()
             if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
                 self:RefreshCategoryList()
-                self:SwitchActiveList(INVENTORY_ITEM_LIST)
+                self:SwitchActiveList(BETTERUI.Inventory.CONST.LIST_TYPES.ITEM)
             end
         end
     end
