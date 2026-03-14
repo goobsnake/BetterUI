@@ -41,6 +41,14 @@ BETTERUI_COMBAT_ICON_PULSE_MAX_ALPHA = 1.0                                      
 BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                     -- One-way pulse duration in milliseconds.
 
 -- ============================================================================
+-- NAMESPACE GUARDS
+-- Constants.lua is the first ResourceOrbFrames file in the manifest load order.
+-- These guards must run before any CONST sub-table assignments below.
+-- ============================================================================
+if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
+if not BETTERUI.ResourceOrbFrames.CONST then BETTERUI.ResourceOrbFrames.CONST = {} end
+
+-- ============================================================================
 -- LAYOUT CONFIGURATION
 -- Defines the ability slot dimensions and offsets for main bar skinning.
 -- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
