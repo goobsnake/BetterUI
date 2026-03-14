@@ -1,5 +1,10 @@
 # Completed Improvements
 
+## [Completed] Guild Bank Validation and Commit (2026-03-14)
+**Summary**: Implemented comprehensive Guild Bank support via UI reuse. Fixed deposit restriction missing check for player-locked items and matched `TransferToGuildBank`/`TransferFromGuildBank` exact argument signatures.
+**Source Issue/Phase**: Guild Bank Integration
+**Related Files/Tests**: `TransferActions.lua`, `GuildBankAdapter.lua`, `MultiSelectActions.lua`, `BankListManager.lua`, `KeybindManager.lua`
+
 ## March 14, 2026
 
 - `BUI-P1-001` / `project-improvements.md` - Complete multi-select anti-spam hardening rollout (Phases 0-5)
