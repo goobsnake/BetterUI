@@ -143,6 +143,7 @@ Modules\ResourceOrbFrames\Module.lua
 
 ; Module: Inventory Enhanced
 Modules\Inventory\Constants.lua
+Modules\Inventory\Core\Utils.lua
 Modules\Inventory\Loader.lua
 Modules\Inventory\Core\MixinLoader.lua
 Modules\Inventory\State\PositionManager.lua
@@ -172,7 +173,6 @@ Modules\Inventory\Lists\InventoryList.lua
 Modules\Inventory\Dialogs\CraftBagQuantityDialog.lua
 Modules\Inventory\Actions\SlotActions.lua
 Modules\Inventory\Lists\CraftList.lua
-Modules\Inventory\Core\Utils.lua
 Modules\Inventory\UI\TooltipEquipped.lua
 Modules\Inventory\UI\TooltipUtils.lua
 Modules\Inventory\Scene\InventorySceneLifecycle.lua
