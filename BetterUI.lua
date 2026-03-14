@@ -8,14 +8,10 @@ Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
 Author: BetterUI Team
 Last Modified: 2026-02-08
 
--- TODO(ARCHITECTURE): Consider adopting a formal module registration pattern.
--- Current approach: Each module is manually listed in LoadModules() and Initialize().
--- Proposed: BETTERUI.RegisterModule(name, namespace, dependencies) that auto-wires:
---   1. Settings initialization
---   2. Setup() call ordering based on dependencies
---   3. Settings panel registration
--- This would reduce boilerplate and ensure consistent module structure.
--- See: WoW's AceAddon or similar patterns for inspiration.
+-- NOTE(ARCHITECTURE): Each module is manually listed in LoadModules() and Initialize().
+-- A formal registration pattern (BETTERUI.RegisterModule) could reduce boilerplate,
+-- but the current approach works reliably. Consider revisiting if module count grows
+-- significantly beyond the current set. See WoW's AceAddon for inspiration.
 ]]
 
 local LAM = LibAddonMenu2
