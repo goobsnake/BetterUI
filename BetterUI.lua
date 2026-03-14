@@ -332,10 +332,12 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 		else
 			local name = moduleName or "unknown"
 			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
-			-- TODO(bug): Auto-disable writes to persistent SavedVars -- a transient init error permanently disables the module with no user notification or recovery path; should skip for current session only without persisting
-			if moduleName and BETTERUI.Settings and BETTERUI.Settings.Modules[moduleName] then
-				BETTERUI.Settings.Modules[moduleName].m_enabled = false
-				BETTERUI.Debug("[Recovery] Auto-disabled module: " .. name)
+			-- Session-only disable: skip module for this session without persisting to SavedVars
+			-- so the module recovers on next /reloadui instead of being permanently broken
+			if moduleName then
+				BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
+				BETTERUI._sessionDisabledModules[moduleName] = true
+				BETTERUI.Debug("[Recovery] Module skipped for this session (will retry on reload): " .. name)
 			end
 			return nil -- Signal to caller that init failed
 		end
@@ -379,8 +381,12 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	end
 
 	-- Module is valid, call Setup
-	-- TODO(bug): Setup() is not wrapped in pcall -- if any module's Setup() throws, all subsequent modules in the init sequence silently fail to load; also return value is ignored by all callers
-	moduleNamespace.Setup()
+	-- Wrap in pcall so one module failure doesn't cascade-kill subsequent modules
+	local success, err = pcall(moduleNamespace.Setup)
+	if not success then
+		BETTERUI.Debug(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(err)))
+		return false
+	end
 	moduleNamespace._setupComplete = true
 	return true
 end
@@ -514,8 +520,8 @@ function BETTERUI.Initialize(event, addon)
 	-- are now handled in Modules/CIM/RuntimeSetup.lua via RuntimeSetup.Apply()
 
 	-- Unregister the initialization event
-	-- TODO(bug): Namespace mismatch - registered as BETTERUI.name ("BetterUI") at line 515 but unregistered as "BetterUIInitialize" here; unregister is a silent no-op, handler leaks for entire session
-	BETTERUI.EventManager:UnregisterForEvent("BetterUIInitialize", EVENT_ADD_ON_LOADED)
+	-- Use the same namespace that was registered at the bottom of this file
+	BETTERUI.EventManager:UnregisterForEvent(BETTERUI.name, EVENT_ADD_ON_LOADED)
 
 	-- Initialize the options panel
 	BETTERUI.InitModuleOptions()
