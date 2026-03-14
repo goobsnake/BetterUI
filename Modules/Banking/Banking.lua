@@ -535,7 +535,7 @@ function BETTERUI.Banking.Init()
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
     -- Register guild bank scene: reuses the same Banking Window but with
-    -- INTERACTION_GUILD_BANK interaction type. GuildBankAdapter handles
+    -- INTERACTION_GUILDBANK interaction type. GuildBankAdapter handles
     -- permission checks and bag routing at runtime.
     BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
         BETTERUI_GUILD_BANKING_SCENE_NAME,
@@ -583,7 +583,43 @@ function BETTERUI.Banking.Init()
         end,
     })
     BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
-    SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
+
+    -- DEFERRED GUILD BANK TAKEOVER
+    -- Vanilla ZO_GuildBank_Gamepad_Initialize() runs on XML OnInitialized (AFTER
+    -- our EVENT_ADD_ON_LOADED). It creates GAMEPAD_GUILD_BANK_SCENE at
+    -- "gamepad_guild_bank" and registers its own EVENT_OPEN_GUILD_BANK handler
+    -- that shows vanilla's scene. We must defer our takeover to
+    -- EVENT_PLAYER_ACTIVATED, which fires after all XML init is complete.
+    local initControl = BETTERUI.Banking.Window.control
+    if initControl then
+        initControl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function()
+            -- Only take over once
+            initControl:UnregisterForEvent(EVENT_PLAYER_ACTIVATED)
+
+            -- 1. Overwrite the scene alias AFTER vanilla has registered it
+            SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
+
+            -- 2. Suppress vanilla's EVENT_OPEN/CLOSE_GUILD_BANK handlers
+            --    Vanilla registers them on ZO_GuildBankTopLevel_Gamepad control
+            local vanillaControl = ZO_GuildBankTopLevel_Gamepad
+            if vanillaControl then
+                vanillaControl:UnregisterForEvent(EVENT_OPEN_GUILD_BANK)
+                vanillaControl:UnregisterForEvent(EVENT_CLOSE_GUILD_BANK)
+            end
+
+            -- 3. Register our own EVENT_OPEN/CLOSE_GUILD_BANK handlers
+            initControl:RegisterForEvent(EVENT_OPEN_GUILD_BANK, function()
+                if IsInGamepadPreferredMode() then
+                    SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
+                end
+            end)
+            initControl:RegisterForEvent(EVENT_CLOSE_GUILD_BANK, function()
+                if IsInGamepadPreferredMode() then
+                    SCENE_MANAGER:Hide(BETTERUI_GUILD_BANKING_SCENE_NAME)
+                end
+            end)
+        end)
+    end
 
     -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then
@@ -613,24 +649,6 @@ function BETTERUI.Banking.Init()
             function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetParametricList():GetTargetData() end,
             function() return BETTERUI.Banking.Window and BETTERUI.Banking.Window:GetTitle() end
         )
-    end
-
-    -- Register EVENT_OPEN_GUILD_BANK / EVENT_CLOSE_GUILD_BANK
-    -- These are the primary mechanism ESO uses to tell the UI to show/hide
-    -- the guild bank scene when the player interacts with a guild banker.
-    -- Without these handlers, the engine falls back to the personal bank scene.
-    local guildBankControl = BETTERUI.Banking.Window.control
-    if guildBankControl then
-        guildBankControl:RegisterForEvent(EVENT_OPEN_GUILD_BANK, function()
-            if IsInGamepadPreferredMode() then
-                SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
-            end
-        end)
-        guildBankControl:RegisterForEvent(EVENT_CLOSE_GUILD_BANK, function()
-            if IsInGamepadPreferredMode() then
-                SCENE_MANAGER:Hide(BETTERUI_GUILD_BANKING_SCENE_NAME)
-            end
-        end)
     end
 
     esoSubscriber = IsESOPlusSubscriber()

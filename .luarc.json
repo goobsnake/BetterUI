@@ -3028,6 +3028,7 @@
             "ZO_GAMEPAD_UNSELECTED_COLOR",
             "ZO_GUILD_SELECTOR_MANAGER",
             "ZO_GamepadBanking",
+            "ZO_GuildBankTopLevel_Gamepad",
             "ZO_GamepadEntryData",
             "ZO_GamepadGenericHeader",
             "ZO_GamepadGenericHeader_Activate",
