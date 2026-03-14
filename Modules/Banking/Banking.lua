@@ -615,5 +615,23 @@ function BETTERUI.Banking.Init()
         )
     end
 
+    -- Register EVENT_OPEN_GUILD_BANK / EVENT_CLOSE_GUILD_BANK
+    -- These are the primary mechanism ESO uses to tell the UI to show/hide
+    -- the guild bank scene when the player interacts with a guild banker.
+    -- Without these handlers, the engine falls back to the personal bank scene.
+    local guildBankControl = BETTERUI.Banking.Window.control
+    if guildBankControl then
+        guildBankControl:RegisterForEvent(EVENT_OPEN_GUILD_BANK, function()
+            if IsInGamepadPreferredMode() then
+                SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
+            end
+        end)
+        guildBankControl:RegisterForEvent(EVENT_CLOSE_GUILD_BANK, function()
+            if IsInGamepadPreferredMode() then
+                SCENE_MANAGER:Hide(BETTERUI_GUILD_BANKING_SCENE_NAME)
+            end
+        end)
+    end
+
     esoSubscriber = IsESOPlusSubscriber()
 end

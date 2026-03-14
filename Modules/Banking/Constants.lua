@@ -169,5 +169,5 @@ Used By: Banking.lua (Init)
 ]]
 BETTERUI.Banking.GUILD_BANK_INTERACTION = {
     type = "GuildBanking",
-    interactTypes = { INTERACTION_GUILD_BANK },
+    interactTypes = { INTERACTION_GUILDBANK },
 }
