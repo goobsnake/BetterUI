@@ -298,7 +298,27 @@ The Banking footer has **two horizontal dividers** with a gap between them:
 2. Explicit anchoring with offsets may return 0 on first frame
 3. Use parent container anchoring instead of calculated offsets
 
-<!-- TODO(doc): Add section for "Edge Cases and Known Gotchas"
-     Include: callback cleanup patterns, ZOS global override risks,
-     and scene lifecycle timing issues discovered in sr_engineering_team_review.md -->
+## Edge Cases and Known Gotchas
 
+### Callback Cleanup Patterns
+- **Always unregister callbacks** in `SCENE_HIDDEN` that were registered in `SCENE_SHOWING` — unbalanced registration causes memory leaks and ghost handlers
+- `SHARED_INVENTORY:RegisterCallback` / `UnregisterCallback` must use the exact same function reference for both calls; anonymous closures cannot be unregistered
+- `zo_callLater` returns a timer name that must be tracked (e.g., `self.callLaterLeftToolTip`) and unregistered via `EVENT_MANAGER:UnregisterForUpdate(name)` on scene exit
+- `ZO_InventorySlot_SetUpdateCallback(nil)` must be called in `SCENE_HIDING` to clear the inventory slot action callback
+
+### ZOS Global Override Risks
+- ESO XML templates can only consume `_G` globals — do NOT remove any `BETTERUI_GAMEPAD_*` or `BETTERUI_*` globals that are referenced in `.xml` files
+- Modifying a ZOS object's methods (e.g., `ZO_Tooltip.SomeMethod`) after `zo_mixin` has run has no effect — see **zo_mixin Copies Methods at Init Time** above
+- `SLASH_COMMANDS["/name"]` is a shared global table — avoid collisions with other addons by using a unique prefix (`/bui*`)
+- Overwriting ZOS constants (e.g., `CURT_*` values) at file scope is safe, but wrapping with `or` (`CURT_NEW or CURT_OLD`) is the canonical compat pattern
+
+### Scene Lifecycle Timing Issues
+- `SCENE_MANAGER:WasSceneOnStack(name)` is only reliable during the `SCENE_SHOWING` transition — using it later may return stale/false results
+- `GetFrameTimeSeconds()` returns `0` on first frame — always guard with `GetFrameTimeSeconds and GetFrameTimeSeconds() or 0`
+- Scene state callbacks fire in order: `SCENE_SHOWING → SCENE_SHOWN → SCENE_HIDING → SCENE_HIDDEN` — input activation should happen in `SHOWING` and cleanup in `HIDDEN`, never the reverse
+- Brief scene detours (container loot, enchanting) can cause rapid `HIDING → SHOWING` cycles — use time-based detection (`< 2.0s` threshold) to distinguish detours from fresh opens
+
+### Batch Operation Gotchas
+- `SetItemIsJunk` is async — `IsItemJunk` returns stale data until `EVENT_INVENTORY_SINGLE_SLOT_UPDATE` fires (see **SetItemIsJunk Is Asynchronous** above)
+- Multi-select batch loops must check `isBatchProcessing` guard to prevent re-entrant pipelines
+- `RequestMoveItem(fromBag, fromSlot, toBag, nil)` with nil destination slot uses engine auto-resolution which is unreliable under throttled batch processing — always resolve explicitly via `BETTERUI.CIM.Utils.ResolveMoveDestinationSlot`
