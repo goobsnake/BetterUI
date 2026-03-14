@@ -1,4 +1,24 @@
-Current Release - v3.01 Changes:
+Current Release - v3.02 Changes:
+
+[INDENT]RESOURCE ORB FRAMES:
+1. Added: Keyboard mode support with dynamic gamepad/keyboard re-skinning — no more /reloadui required when switching input modes
+2. Added: Orb fill background padding adjustments to eliminate visible gaps when resources drain
+3. Fixed: Weapon swap animation now cleanly stops on input mode switch, preventing visual glitches mid-transition
+
+TOOLTIPS:
+4. Added: Known/Not Known status display for recipes, motifs, and lore books with toggleable setting in Enhanced Tooltip settings
+5. Added: Tooltip market pricing is now properly updated and displayed across all scenes (guild store, merchant, guild bank, crafting, etc.)
+
+INVENTORY & BANKING:
+6. Added: Withdraw, Deposit, Stow, and Retrieve quantity dialogs now display contextual slider labels and keybind hints for min/max actions
+7. Fixed: Quantity dialog keybind strip now correctly restores after closing Inventory, Craft Bag, and Banking dialogs
+
+LOCALIZATION:
+8. Improved: Expanded string coverage across all 7 locales with new batch-action, stow/retrieve, and font-warning translations
+[/INDENT]
+
+
+v3.01 Changes:
 
 [INDENT]RESOURCE ORB FRAMES:
 1. Added: Horizontal offset slider for adjustable orb positioning [-500 to 500]
