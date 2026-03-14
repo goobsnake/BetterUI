@@ -78,24 +78,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local stackCount = GetSlotStackSize(fromBag, fromBagIndex)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
-    local toBag
-    local toBagEmptyIndex
-    local toBagIndex
-    local toBagItemLink
-    local toBagStackCount
-    local toBagStackCountMax
-    local isToBagItemStackable
     if quantity == nil then
         quantity = 1
-    end
-
-    if self.currentMode == LIST_WITHDRAW then
-        --we are withdrawing item from bank/subscriber bank bag
-        toBag = BAG_BACKPACK
-        toBagEmptyIndex = FindEmptySlotInBag(toBag)
-    else
-        --we are depositing item to bank/subscriber bank bag
-        toBag, toBagEmptyIndex = FindEmptySlotInBank()
     end
 
     local function beginCoalescedRefresh(delayMs)
@@ -103,7 +87,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         self._moveCoalesceToken = (self._moveCoalesceToken or 0) + 1
         local myToken = self._moveCoalesceToken
         self._suppressListUpdates = true
-        -- Capture the current category KEY before the delayed refresh (categories will change)
         local prevCategoryKey = nil
         if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
             local prevCat = self.bankCategories[self.currentCategoryIndex]
@@ -115,9 +98,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             function()
                 if myToken ~= self._moveCoalesceToken then return end
                 self._suppressListUpdates = false
-                -- Recompute categories and refresh once
                 self.bankCategories = self:ComputeVisibleBankCategories()
-                -- Check if the captured category key still exists in the new list
                 if prevCategoryKey then
                     local categoryStillExists = false
                     for i, cat in ipairs(self.bankCategories) do
@@ -127,11 +108,9 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                         end
                     end
                     if not categoryStillExists then
-                        -- Category became empty, force to All Items
                         self.currentCategoryIndex = 1
                     end
                 end
-                -- Suppress callback during rebuild when category has changed
                 local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
                 state.suppressHeaderCallback = true
                 self:RebuildHeaderCategories()
@@ -140,24 +119,55 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             end)
     end
 
-    if toBagEmptyIndex ~= nil then
-        --good to move
-        CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
-        -- Only coalesce refresh when NOT inside a dialog callback.
-        -- When called from QuantityDialog, the natural OnInventoryUpdated event
-        -- will handle the refresh after the dialog fully closes.
+    -- Guild bank uses dedicated transfer APIs instead of RequestMoveItem
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        if self.currentMode == LIST_WITHDRAW then
+            if GetNumBagFreeSlots(BAG_BACKPACK) > 0 then
+                local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
+                PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
+                TransferFromGuildBank(fromBagIndex)
+            else
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+            end
+        else
+            if GetNumBagUsedSlots(BAG_GUILDBANK) < GetBagSize(BAG_GUILDBANK) then
+                local soundCategory = GetItemSoundCategory(fromBag, fromBagIndex)
+                PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
+                TransferToGuildBank(fromBag, fromBagIndex)
+            else
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_BANK_FULL)
+            end
+        end
         if not ZO_Dialogs_IsShowingDialog() then
             beginCoalescedRefresh(100)
         end
-        -- Accomodates full banks with stackable item slots available
+        return
+    end
+
+    -- Personal/house bank: existing RequestMoveItem logic
+    local toBag
+    local toBagEmptyIndex
+    local toBagIndex
+
+    if self.currentMode == LIST_WITHDRAW then
+        toBag = BAG_BACKPACK
+        toBagEmptyIndex = FindEmptySlotInBag(toBag)
+    else
+        toBag, toBagEmptyIndex = FindEmptySlotInBank()
+    end
+
+    if toBagEmptyIndex ~= nil then
+        CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagEmptyIndex, quantity)
+        if not ZO_Dialogs_IsShowingDialog() then
+            beginCoalescedRefresh(100)
+        end
     else
         if toBag ~= nil then
             local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
                 SI_INVENTORY_ERROR_BANK_FULL
-            -- Use shared CIM helper to find stackable slot
             toBagIndex = BETTERUI.CIM.Utils.FindStackableSlotInBag(toBag, fromBagItemLink)
             if toBagIndex then
-                --good to move item that already has a non-full stack in the destination bag
                 CallSecureProtected("RequestMoveItem", fromBag, fromBagIndex, toBag, toBagIndex, quantity)
                 if not ZO_Dialogs_IsShowingDialog() then
                     beginCoalescedRefresh(100)
@@ -166,12 +176,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
             end
         else
-            -- Try to find stackable slot in bank bags
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-            local GuildBank = BETTERUI.Banking.GuildBank
-            if GuildBank and GuildBank.IsGuildBankMode() then
-                banks = { GuildBank.GetDepositTargetBag() }
-            elseif IsHouseBankBag(GetBankingBag()) then
+            if IsHouseBankBag(GetBankingBag()) then
                 banks = { BETTERUI.Banking.currentUsedBank }
             end
 
@@ -215,15 +221,17 @@ Description: Displays the currency selector for depositing/withdrawing funds.
 ]]
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
 
     if GetMaxCurrencyTransfer then
         local fromLocation
         local toLocation
         if self.currentMode == LIST_DEPOSIT then
             fromLocation = CURRENCY_LOCATION_CHARACTER
-            toLocation = CURRENCY_LOCATION_BANK
+            toLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
         else
-            fromLocation = CURRENCY_LOCATION_BANK
+            fromLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
             toLocation = CURRENCY_LOCATION_CHARACTER
         end
         currency_max = GetMaxCurrencyTransfer(currencyType, fromLocation, toLocation) or 0

@@ -171,3 +171,208 @@ function GuildBank.GetHeaderTitle()
     end
     return "|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r"
 end
+
+-------------------------------------------------------------------------------------------------
+-- LOADING STATE
+-------------------------------------------------------------------------------------------------
+
+local loadingGuildBank = false
+
+--- Returns true while guild bank items are still loading.
+--- @return boolean isLoading
+function GuildBank.IsLoading()
+    return loadingGuildBank
+end
+
+--- Sets the guild bank loading state.
+--- @param loading boolean
+function GuildBank.SetLoading(loading)
+    loadingGuildBank = loading == true
+end
+
+-------------------------------------------------------------------------------------------------
+-- GUILD SELECTION
+-------------------------------------------------------------------------------------------------
+
+--- Switches the active guild bank. Triggers EVENT_GUILD_BANK_SELECTED flow.
+--- @param guildBankId number The guild ID to switch to.
+function GuildBank.ChangeGuildBank(guildBankId)
+    if guildBankId ~= GetSelectedGuildBankId() then
+        loadingGuildBank = true
+        if ZO_GUILD_SELECTOR_MANAGER and ZO_GUILD_SELECTOR_MANAGER.SetSelectedGuildBankId then
+            ZO_GUILD_SELECTOR_MANAGER:SetSelectedGuildBankId(guildBankId)
+        end
+    end
+end
+
+-------------------------------------------------------------------------------------------------
+-- EVENT HANDLERS
+-------------------------------------------------------------------------------------------------
+
+--- Called when a guild bank is selected. Clears items and shows loading state.
+function GuildBank.OnGuildBankSelected()
+    loadingGuildBank = true
+    local window = BETTERUI.Banking.Window
+    if window then
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
+        window._suppressListUpdates = true
+    end
+end
+
+--- Called when a guild bank is deselected. Clears items.
+function GuildBank.OnGuildBankDeselected()
+    local window = BETTERUI.Banking.Window
+    if window and window.list then
+        window.list:Clear()
+        window.list:Commit()
+    end
+end
+
+--- Called when guild bank items are ready. Hides loading and refreshes lists.
+function GuildBank.OnGuildBankReady()
+    loadingGuildBank = false
+    local window = BETTERUI.Banking.Window
+    if window then
+        window._suppressListUpdates = false
+        window.bankCategories = window:ComputeVisibleBankCategories()
+        window:RebuildHeaderCategories()
+        window:RefreshList()
+        if window.coreKeybinds then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+        end
+    end
+end
+
+--- Called when guild bank items are added/removed/updated. Refreshes withdraw list.
+function GuildBank.OnGuildBankUpdated()
+    local window = BETTERUI.Banking.Window
+    if window and not loadingGuildBank then
+        window.bankCategories = window:ComputeVisibleBankCategories()
+        window:RebuildHeaderCategories()
+        window:RefreshList()
+    end
+end
+
+--- Called when guild bank open fails. Clears loading state.
+function GuildBank.OnGuildBankOpenError()
+    loadingGuildBank = false
+    local window = BETTERUI.Banking.Window
+    if window then
+        window._suppressListUpdates = false
+        if window.list then
+            window.list:Clear()
+            window.list:Commit()
+        end
+    end
+end
+
+--- Called when guild banked money is updated. Refreshes footer and lists.
+function GuildBank.OnGuildBankedMoneyUpdate()
+    local window = BETTERUI.Banking.Window
+    if window then
+        window:RefreshList()
+        if window.RefreshFooter then
+            window:RefreshFooter()
+        end
+    end
+end
+
+--- Called when guild ranks change. Refreshes keybinds if it affects the selected guild.
+function GuildBank.OnGuildRanksChanged(_, guildId)
+    if guildId == GetSelectedGuildBankId() then
+        local window = BETTERUI.Banking.Window
+        if window then
+            if window.coreKeybinds then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+            end
+            window:RefreshList()
+        end
+    end
+end
+
+--- Called when a guild member's rank changes. Refreshes if it's the player in the selected guild.
+function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
+    if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
+        local window = BETTERUI.Banking.Window
+        if window then
+            if window.coreKeybinds then
+                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
+            end
+            window:RefreshList()
+        end
+    end
+end
+
+--- Called when player leaves a guild. Releases any open guild selection dialog.
+function GuildBank.OnGuildSelfLeft()
+    ZO_Dialogs_ReleaseAllDialogsOfName("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
+end
+
+-------------------------------------------------------------------------------------------------
+-- GUILD SELECTOR DIALOG
+-------------------------------------------------------------------------------------------------
+
+--- Registers the guild bank selection dialog for switching between guilds.
+function GuildBank.RegisterGuildSelectorDialog()
+    local dialogName = "BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD"
+    if ESO_Dialogs[dialogName] then return end
+
+    ESO_Dialogs[dialogName] = {
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+        },
+        title = {
+            text = GetString(SI_TRADING_HOUSE_GUILD_LABEL),
+        },
+        setup = function(dialog)
+            dialog:setupFunc()
+        end,
+        parametricList = {},
+        buttons = {
+            {
+                keybind = "DIALOG_PRIMARY",
+                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                callback = function(dialog)
+                    local selected = dialog.entryList and dialog.entryList:GetTargetData()
+                    if selected and selected.guildId then
+                        GuildBank.ChangeGuildBank(selected.guildId)
+                        -- Update title immediately
+                        local window = BETTERUI.Banking.Window
+                        if window then
+                            window:SetTitle(GuildBank.GetHeaderTitle())
+                        end
+                    end
+                end,
+            },
+            {
+                keybind = "DIALOG_NEGATIVE",
+                text = GetString(SI_GAMEPAD_BACK_OPTION),
+            },
+        },
+    }
+
+    -- Pre-populate on each show
+    ZO_Dialogs_RegisterCustomDialog(dialogName, ESO_Dialogs[dialogName])
+    -- Override setup to build guild list dynamically
+    local orig = ESO_Dialogs[dialogName]
+    orig.setup = function(dialog)
+        local parametricList = {}
+        local numGuilds = GetNumGuilds()
+        for i = 1, numGuilds do
+            local guildId = GetGuildId(i)
+            local guildName = GetGuildName(guildId)
+            local isSelected = (guildId == GetSelectedGuildBankId())
+            local entryData = ZO_GamepadEntryData:New(guildName)
+            entryData.guildId = guildId
+            if isSelected then
+                entryData:SetNameColors(ZO_SELECTED_TEXT, ZO_SELECTED_TEXT)
+            end
+            table.insert(parametricList, {
+                template = "ZO_GamepadMenuEntryTemplate",
+                entryData = entryData,
+            })
+        end
+        dialog.info.parametricList = parametricList
+        dialog:setupFunc()
+    end
+end

@@ -96,6 +96,19 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         return false
     end
 
+    -- Guild bank rejects bound, BOP-tradeable, and player-locked items
+    if targetBankBag == BAG_GUILDBANK then
+        if IsItemBound and IsItemBound(bagId, slotIndex) then
+            return false
+        end
+        if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then
+            return false
+        end
+        if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
+            return false
+        end
+    end
+
     return true
 end
 
@@ -203,15 +216,36 @@ function BETTERUI.Banking.Class:BatchTransfer()
         if not stackCount then
             return "skip"
         end
+
+        -- Guild bank uses dedicated transfer APIs
+        local GuildBankAdapter = BETTERUI.Banking.GuildBank
+        if GuildBankAdapter and GuildBankAdapter.IsGuildBankMode() then
+            if isWithdraw then
+                if GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
+                    return false -- Backpack full
+                end
+                TransferFromGuildBank(slotIndex)
+            else
+                if not IsDepositSupportedForBank(bagId, slotIndex, BAG_GUILDBANK) then
+                    return "skip"
+                end
+                if GetNumBagUsedSlots(BAG_GUILDBANK) >= GetBagSize(BAG_GUILDBANK) then
+                    return false -- Guild bank full
+                end
+                TransferToGuildBank(bagId, slotIndex)
+            end
+            return "queued"
+        end
+
+        -- Personal/house bank: existing RequestMoveItem logic
         if isWithdraw then
-            -- Withdraw: move from bank to backpack
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, BAG_BACKPACK)
             if destinationSlot == nil then
                 local freeSlots = GetBagUseableSize(BAG_BACKPACK) - GetNumBagUsedSlots(BAG_BACKPACK)
                 if freeSlots == 0 then
-                    return false -- Backpack full, abort processing
+                    return false
                 end
-                return "skip"    -- Item cannot be moved (e.g., restricted)
+                return "skip"
             end
 
             CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_BACKPACK, destinationSlot, stackCount)
@@ -220,13 +254,12 @@ function BETTERUI.Banking.Class:BatchTransfer()
                 return "skip"
             end
 
-            -- Deposit: move from backpack to bank
             local targetBag = ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
             if not targetBag or targetBag == "skip" then
-                return false -- Bank full, abort batch
+                return false
             end
             if targetBag == "unbankable" then
-                return "skip" -- Item unbankable, skip this item, do not abort
+                return "skip"
             end
 
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)

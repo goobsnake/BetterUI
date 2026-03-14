@@ -144,6 +144,12 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         {
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             name = function()
+                -- Guild bank mode: show guild selector
+                local GuildBank = BETTERUI.Banking.GuildBank
+                if GuildBank and GuildBank.IsGuildBankMode() then
+                    return GetString(SI_TRADING_HOUSE_GUILD_LABEL) or "Select Guild"
+                end
+                -- Personal bank: show bank upgrade
                 local cost = GetNextBankUpgradePrice()
                 if not cost or cost <= 0 then
                     return ""
@@ -159,14 +165,27 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 return text or ""
             end,
             visible = function()
+                local GuildBank = BETTERUI.Banking.GuildBank
+                if GuildBank and GuildBank.IsGuildBankMode() then
+                    return GetNumGuilds() > 1 and not self:IsBatchProcessing()
+                end
                 return IsBankUpgradeAvailable() and not self:IsBatchProcessing()
             end,
             enabled = function()
+                local GuildBank = BETTERUI.Banking.GuildBank
+                if GuildBank and GuildBank.IsGuildBankMode() then
+                    return not GuildBank.IsLoading()
+                end
                 local cost = GetNextBankUpgradePrice()
                 return cost ~= nil and GetCarriedCurrencyAmount(CURT_MONEY) >= cost
             end,
             callback = function()
                 if self:IsBatchProcessing() then
+                    return
+                end
+                local GuildBank = BETTERUI.Banking.GuildBank
+                if GuildBank and GuildBank.IsGuildBankMode() then
+                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
                     return
                 end
                 local cost = GetNextBankUpgradePrice()
@@ -387,10 +406,21 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             callback = function()
                 local amount = self.selector:GetValue()
                 local currencyType = self:GetList().selectedData.currencyType
-                if (self.currentMode == LIST_WITHDRAW) then
-                    WithdrawCurrencyFromBank(currencyType, amount)
+                local GuildBank = BETTERUI.Banking.GuildBank
+                if GuildBank and GuildBank.IsGuildBankMode() then
+                    -- Guild bank: use TransferCurrency with guild bank locations
+                    if self.currentMode == LIST_WITHDRAW then
+                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_GUILD_BANK, CURRENCY_LOCATION_CHARACTER)
+                    else
+                        TransferCurrency(currencyType, amount, CURRENCY_LOCATION_CHARACTER, CURRENCY_LOCATION_GUILD_BANK)
+                    end
                 else
-                    DepositCurrencyIntoBank(currencyType, amount)
+                    -- Personal bank: use standard bank currency functions
+                    if (self.currentMode == LIST_WITHDRAW) then
+                        WithdrawCurrencyFromBank(currencyType, amount)
+                    else
+                        DepositCurrencyIntoBank(currencyType, amount)
+                    end
                 end
                 self:HideSelector()
                 self:RefreshFooter()

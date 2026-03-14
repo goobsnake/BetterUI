@@ -64,6 +64,14 @@ return: bags (table), slotType (number)
 ]]
 local function ResolveBagsAndSlotType(self)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        if self.currentMode == LIST_WITHDRAW then
+            return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
+        else
+            return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+        end
+    end
     if self.currentMode == LIST_WITHDRAW then
         local bags
         if currentUsedBank == BAG_BANK then
@@ -204,8 +212,22 @@ function BETTERUI.Banking.Class:RefreshList()
 
     local checkingBags, slotType = ResolveBagsAndSlotType(self)
 
+    local GuildBankMode = BETTERUI.Banking.GuildBank and BETTERUI.Banking.GuildBank.IsGuildBankMode()
     local function IsNotStolenItem(itemData)
-        return not itemData.stolen
+        if itemData.stolen then return false end
+        -- Guild bank deposit filter: reject bound and BOP-tradeable items
+        if GuildBankMode and self.currentMode ~= LIST_WITHDRAW then
+            if IsItemBound and IsItemBound(itemData.bagId, itemData.slotIndex) then
+                return false
+            end
+            if IsItemBoPAndTradeable and IsItemBoPAndTradeable(itemData.bagId, itemData.slotIndex) then
+                return false
+            end
+            if itemData.isPlayerLocked then
+                return false
+            end
+        end
+        return true
     end
 
     local filteredDataTable = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(checkingBags))

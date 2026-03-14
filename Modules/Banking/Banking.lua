@@ -542,11 +542,47 @@ function BETTERUI.Banking.Init()
         SCENE_MANAGER,
         BETTERUI.Banking.GUILD_BANK_INTERACTION
     )
-    -- Share the same fragment so the Banking Window UI is reused
+    -- Add all required fragment groups (matching InitializeScene for the personal bank).
+    -- Without these the scene shows dimmed with locked input.
+    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
     local bankingFragment = BETTERUI.Banking.Window.fragment
     if bankingFragment then
         BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
     end
+    BETTERUI_GUILD_BANKING_SCENE:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    BETTERUI_GUILD_BANKING_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+    if BETTERUI.Banking.Window.footerFragment then
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
+    end
+    -- Register lifecycle callbacks so OnSceneShowing/OnSceneHidden fire for guild bank.
+    -- We temporarily swap self.scene so SceneLifecycle.Register picks up the guild bank scene.
+    local personalScene = BETTERUI.Banking.Window.scene
+    BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
+    BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
+        keybinds = { BETTERUI.Banking.Window.coreKeybinds },
+        taskManager = BETTERUI.CIM.Tasks,
+        onShowing = function(screen, wasPushed)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            if screen.OnSceneShowing then
+                screen:OnSceneShowing(wasPushed)
+            end
+        end,
+        onHiding = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            if screen.OnSceneHiding then
+                screen:OnSceneHiding()
+            end
+        end,
+        onHidden = function(screen)
+            if screen.OnSceneHidden then
+                screen:OnSceneHidden()
+            end
+        end,
+    })
+    BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
     SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
 
     -- Initialize the refresh manager for unified list refresh handling
