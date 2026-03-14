@@ -9,7 +9,7 @@
 -- and updates the UI panel with the relevant information for the current crafting station.
 --
 -- Writ detection patterns are defined in Constants.lua for centralized maintenance.
--- TODO(refactor): Add support for additional crafting types as ESO adds them
+-- New crafting types can be added via BETTERUI.Writs.CONST.PATTERNS_LOCALIZED in Constants.lua
 -- Last Modified: 2026-01-28
 ---------------------------------------------------------------------------------------------------
 
@@ -45,20 +45,20 @@ function BETTERUI.Writs.Get(qId)
 	local writLines = {}
 	local writConcate = ''
 	for lineId = 1, GetJournalQuestNumConditions(qId, 1) do
-		-- TODO(bug): 'complete' (5th return) is captured but never used; current==maximum is wrong for edge cases (fail conditions, multi-step). Use 'complete' flag per ESO reference code. Also: isFailCondition (4th) and isVisible (7th) are not checked, so fail/hidden conditions display incorrectly
-		local writLine, current, maximum, _, complete = GetJournalQuestConditionInfo(qId, 1, lineId)
-		local colour
-		if writLine ~= '' then
-			if current == maximum then
+		local writLine, current, maximum, isFailCondition, complete, _, isVisible = GetJournalQuestConditionInfo(qId, 1, lineId)
+		-- Skip empty, invisible, or fail conditions
+		if writLine ~= '' and isVisible ~= false and not isFailCondition then
+			local colour
+			if complete then
 				colour = BETTERUI.Writs.CONST.COLORS.COMPLETE
 			else
 				colour = BETTERUI.Writs.CONST.COLORS.INCOMPLETE
 			end
-			writLines[lineId] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
+			writLines[#writLines + 1] = { line = zo_strformat("|c<<1>><<2>>|r", colour, writLine), cur = current, max = maximum }
 		end
 	end
-	-- TODO(bug): pairs() on sparse numeric table produces non-deterministic iteration order; writ objectives may appear in random order. Use sequential insertion (writLines[#writLines+1]) and ipairs()
-	for key, line in pairs(writLines) do
+	-- Sequential insertion ensures deterministic ordering via ipairs
+	for _, line in ipairs(writLines) do
 		writConcate = zo_strformat("<<1>><<2>>\n", writConcate, line.line)
 	end
 
@@ -75,17 +75,17 @@ end
 ---
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
+	-- Resolve localized patterns once per scan (not per quest) — avoids
+	-- repeated GetCVar("language.2") calls inside a hot loop
+	local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
 	for qId = 1, MAX_JOURNAL_QUESTS do
 		if IsValidQuestIndex(qId) then
 			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
-				-- TODO(cleanup): Replace unused qDesc, qCompleted with _ placeholders
-			local qName, _, qDesc, _, _, qCompleted = GetJournalQuestInfo(qId)
+			local qName, _, _, _, _, _ = GetJournalQuestInfo(qId)
 				local currentWrit                       = -1
 				local q                                 = string.lower(qName or "")
 				-- Use patterns from Constants.lua for maintainability
 				-- Order matters: last match wins as in the original chain
-				-- TODO(fix): Use BETTERUI.Writs.CONST.GetLocalizedPatterns() instead of CONST.PATTERNS for i18n support (German/French users affected)
-				local patterns                          = BETTERUI.Writs.CONST.PATTERNS
 				for i = 1, #patterns do
 					local pat = patterns[i].pattern
 					local craft = patterns[i].craftType
@@ -115,8 +115,7 @@ end
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
-		-- TODO(cleanup): Replace unused activeText, completed with _ placeholders
-		local qName, _, activeText, _, _, completed = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
+		local qName, _, _, _, _, _ = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
 		-- Use cached control references for performance
 		if m_writNameLabel then
 			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", qName))
