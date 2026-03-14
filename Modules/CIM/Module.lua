@@ -36,7 +36,7 @@ References: Called by BetterUI.lua during addon initialization.
 ]]
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
-    local defaults = BETTERUI.CONST.CIM
+    local defaults = BETTERUI.CIM.CONST.DEFAULTS
 
     if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
         m_options = BETTERUI.Defaults.ApplyModuleDefaults("CIM", m_options)

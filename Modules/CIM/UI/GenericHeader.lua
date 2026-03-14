@@ -45,7 +45,7 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     icon:SetTexture(iconPath)
 
     -- Tint icons: Gold/Yellow for normal categories, White for filter types (sub-filters)
-    local colors = BETTERUI.CONST.COLORS
+    local colors = BETTERUI.CIM.CONST.COLORS
     local color = data.filterType and colors.TAB_ICON_FILTER or colors.TAB_ICON_GOLD
     icon:SetColor(color[1], color[2], color[3], icon:GetControlAlpha())
 
@@ -230,7 +230,7 @@ local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
         return
     end
 
-    local defaultIcon = BETTERUI.CONST.ICONS.DEFAULT_SLOT
+    local defaultIcon = BETTERUI.CIM.CONST.ICONS.DEFAULT_SLOT
     local mapping = {
         { name = iconNames.main,   texture = iconsData.main },
         { name = iconNames.off,    texture = iconsData.off },
@@ -314,9 +314,9 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         -- The tabBar will be activated by scene handlers (OnSceneShowing/ActivateHeader).
         control.tabBar.hideUnselectedControls = false
 
-        -- TODO(bug): MenuEntryTemplateEquality is an undefined global (nil); should be BETTERUI.CIM.MenuEntryTemplateEquality from GenericListManager.lua
+        -- Use the namespaced equality function from GenericListManager
         control.tabBar:AddDataTemplate("BETTERUI_GamepadTabBarTemplate", TabBar_Setup,
-            ZO_GamepadMenuEntryTemplateParametricListFunction, MenuEntryTemplateEquality)
+            ZO_GamepadMenuEntryTemplateParametricListFunction, BETTERUI.CIM.MenuEntryTemplateEquality)
     end
 
     -- Always ensure scrollList alias is set on the UI control so XML OnClicked handlers work

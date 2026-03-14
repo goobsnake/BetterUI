@@ -297,8 +297,7 @@ local function SetupThumbDragHandlers(instance)
     -- Register for global mouse up to handle release outside thumb
     EVENT_MANAGER:RegisterForEvent(updateName, EVENT_GLOBAL_MOUSE_UP, OnGlobalMouseUp)
 
-    -- Store for cleanup
-    -- TODO(leak): EVENT_GLOBAL_MOUSE_UP is registered but never unregistered; add a destroy/cleanup method that calls EVENT_MANAGER:UnregisterForEvent
+    -- Store for cleanup (used by ScrollIndicator.Destroy)
     instance.globalMouseUpHandler = OnGlobalMouseUp
     instance.globalMouseUpEventName = updateName
 end
@@ -676,4 +675,38 @@ function ScrollIndicator.SetListObject(listControl, listObject)
         SetupThumbDragHandlers(instance)
         instance.mouseHandlersSetup = true
     end
+end
+
+--[[
+Function: ScrollIndicator.Destroy
+Description: Cleans up a scroll indicator instance, unregistering all event handlers.
+Rationale: Prevents EVENT_GLOBAL_MOUSE_UP and arrow repeat handlers from leaking.
+param: listControl (table) - The parametric list control to destroy the indicator for.
+]]
+function ScrollIndicator.Destroy(listControl)
+    if not listControl then return end
+
+    local controlName = listControl:GetName()
+    local instance = indicatorInstances[controlName]
+
+    if not instance then return end
+
+    -- Unregister global mouse up handler
+    if instance.globalMouseUpEventName then
+        EVENT_MANAGER:UnregisterForEvent(instance.globalMouseUpEventName, EVENT_GLOBAL_MOUSE_UP)
+    end
+
+    -- Stop any active arrow repeat
+    StopArrowRepeat(instance)
+
+    -- Clear drag state
+    instance.isDragging = false
+
+    -- Hide controls
+    if instance.controls and instance.controls.container then
+        instance.controls.container:SetHidden(true)
+    end
+
+    -- Remove from cache
+    indicatorInstances[controlName] = nil
 end

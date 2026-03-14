@@ -12,7 +12,7 @@ Dialogs registered via this registry:
   - ZO_GAMEPAD_SPLIT_STACK_DIALOG (Inventory/Inventory.lua)
   - BETTERUI_CONFIRM_DESTROY_DIALOG (Inventory/Inventory.lua)
   - ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG (Inventory/Inventory.lua)
-  - BETTERUI_EQUIP_SLOT_DIALOG (Inventory/Actions/EquipAction.lua)
+  - BETTERUI.Inventory.Dialogs.EQUIP_SLOT (Inventory/Actions/EquipAction.lua)
 
   - ZO_GAMEPAD_INVENTORY_ACTION_DIALOG (Inventory/Actions/ActionDialogHooks.lua)
 ]]

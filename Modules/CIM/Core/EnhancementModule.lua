@@ -111,13 +111,24 @@ function BETTERUI.GeneralInterface.Setup()
 
 	-- Always hook mail delete, but check setting at runtime for live-refresh support
 	BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
-		-- TODO(fragile): Hardcoded index [3] assumes Delete is always the 3rd keybind; if ZOS reorders descriptors, this hooks the wrong action. Find by keybind name instead
-		local origCallback = self.mainKeybindDescriptor[3]["callback"]
-		self.mainKeybindDescriptor[3]["callback"] = function()
-			if BETTERUI.Settings.Modules["GeneralInterface"].removeDeleteDialog then
-				self:Delete() -- Skip confirmation
-			else
-				origCallback() -- Original behavior with confirmation
+		-- Find the Delete keybind by its keybind name instead of fragile index
+		for i, descriptor in ipairs(self.mainKeybindDescriptor) do
+			if type(descriptor) == "table" and descriptor.keybind == "UI_SHORTCUT_SECONDARY" then
+				local origCallback = descriptor["callback"]
+				-- Guard: descriptor may have no callback (e.g. already patched by another addon)
+				if not origCallback then break end
+				descriptor["callback"] = function()
+					-- Guard: settings may be nil if accessed before SavedVars load completes
+					local moduleSettings = BETTERUI.Settings
+						and BETTERUI.Settings.Modules
+						and BETTERUI.Settings.Modules["GeneralInterface"]
+					if moduleSettings and moduleSettings.removeDeleteDialog then
+						self:Delete() -- Skip confirmation
+					else
+						origCallback() -- Original behavior with confirmation
+					end
+				end
+				break
 			end
 		end
 	end)
@@ -200,10 +211,10 @@ function BETTERUI.GeneralInterface.Setup()
 			end
 			if newState == SCENE_SHOWING then
 				EVENT_MANAGER:UnregisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-				gsErrorSuppress = 1
+				BETTERUI.CIM._gsErrorSuppress = 1
 			elseif newState == SCENE_HIDDEN then
 				EVENT_MANAGER:RegisterForEvent("ErrorFrame", EVENT_LUA_ERROR)
-				gsErrorSuppress = 0
+				BETTERUI.CIM._gsErrorSuppress = 0
 			end
 		end)
 	end

@@ -828,10 +828,10 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
 --   - Inventory/Module.lua
 --   - Inventory/UI/TooltipUtils.lua
 
--- TODO(cleanup): Audit consumers of BETTERUI.CONST.* aliases and migrate to BETTERUI.CIM.CONST.* paths
--- Legacy namespace aliases (for code still using BETTERUI.CONST.*)
-BETTERUI.CONST.LAYOUT = BETTERUI.CIM.CONST.LAYOUT
-BETTERUI.CONST.COLORS = BETTERUI.CIM.CONST.COLORS
-BETTERUI.CONST.TOOLTIP = BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS
-BETTERUI.CONST.ICONS = BETTERUI.CIM.CONST.ICONS
-BETTERUI.CONST.CIM = BETTERUI.CIM.CONST.DEFAULTS
+-- BETTERUI.CONST.* namespace aliases REMOVED (2026-03-14)
+-- All Lua consumers migrated to canonical BETTERUI.CIM.CONST.* paths:
+--   - CIM/Module.lua → BETTERUI.CIM.CONST.DEFAULTS
+--   - CIM/Tooltips/Tooltips.lua → BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS
+--   - CIM/UI/GenericHeader.lua → BETTERUI.CIM.CONST.COLORS, BETTERUI.CIM.CONST.ICONS
+--   - Inventory/Lists/InventoryList.lua → BETTERUI.CIM.CONST.ICONS
+--   - Inventory/UI/TooltipUtils.lua → BETTERUI.CIM.CONST.LAYOUT.TOOLTIP

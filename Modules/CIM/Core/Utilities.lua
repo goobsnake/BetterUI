@@ -49,6 +49,11 @@ function BETTERUI.GetModuleEnabled(moduleName)
     local settings = BETTERUI.Settings.Modules[moduleName]
     if not settings then return false end
 
+    -- Session-only disable: modules that failed init/setup are skipped this session
+    if BETTERUI._sessionDisabledModules and BETTERUI._sessionDisabledModules[moduleName] then
+        return false
+    end
+
     -- Canonical key (m_enabled)
     if settings.m_enabled ~= nil then
         return settings.m_enabled

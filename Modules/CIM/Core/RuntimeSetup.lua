@@ -48,73 +48,38 @@ References: Called by RuntimeSetup.Apply().
 local function ApplyAPIPatches()
     if patchesApplied then return end
 
-    -- TODO(refactor): Extract common icon patching pattern into helper function - 6 nearly identical blocks follow
     -- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-    if type(zo_iconFormat) == "function" then
-        local _orig_zo_iconFormat = zo_iconFormat
-        zo_iconFormat = function(path, width, height)
+    -- Helper: wraps a (path, width, height) icon function with nil-path guard + pcall.
+    local function PatchIconFn(globalName)
+        local orig = _G[globalName]
+        if type(orig) ~= "function" then return end
+        _G[globalName] = function(path, width, height)
             if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconFormat(path, width, height)
-            end)
+            local ok, res = pcall(orig, path, width, height)
             return ok and res or ""
         end
     end
 
-    if type(zo_iconFormatInheritColor) == "function" then
-        local _orig_zo_iconFormatInheritColor = zo_iconFormatInheritColor
-        zo_iconFormatInheritColor = function(path, width, height)
+    -- Helper: wraps a (path, width, height, text, ...) icon-text function with nil-path guard + pcall.
+    local function PatchIconTextFn(globalName)
+        local orig = _G[globalName]
+        if type(orig) ~= "function" then return end
+        _G[globalName] = function(path, width, height, text, ...)
             if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconFormatInheritColor(path, width, height)
-            end)
-            return ok and res or ""
-        end
-    end
-
-    if type(zo_iconTextFormat) == "function" then
-        local _orig_zo_iconTextFormat = zo_iconTextFormat
-        zo_iconTextFormat = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormat(path, width, height, text, inheritColor, noGrammar)
-            end)
+            local ok, res = pcall(orig, path, width, height, text, ...)
             return ok and res or tostring(text or "")
         end
     end
 
-    if type(zo_iconTextFormatAlignedRight) == "function" then
-        local _orig_zo_iconTextFormatAlignedRight = zo_iconTextFormatAlignedRight
-        zo_iconTextFormatAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatAlignedRight(path, width, height, text, inheritColor, noGrammar)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
+    -- Apply icon-format patches (simple 3-param: path, width, height → "")
+    PatchIconFn("zo_iconFormat")
+    PatchIconFn("zo_iconFormatInheritColor")
 
-    if type(zo_iconTextFormatNoSpace) == "function" then
-        local _orig_zo_iconTextFormatNoSpace = zo_iconTextFormatNoSpace
-        zo_iconTextFormatNoSpace = function(path, width, height, text, inheritColor)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatNoSpace(path, width, height, text, inheritColor)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
-
-    if type(zo_iconTextFormatNoSpaceAlignedRight) == "function" then
-        local _orig_zo_iconTextFormatNoSpaceAlignedRight = zo_iconTextFormatNoSpaceAlignedRight
-        zo_iconTextFormatNoSpaceAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatNoSpaceAlignedRight(path, width, height, text, inheritColor, noGrammar)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
+    -- Apply icon-text-format patches (multi-param: path, width, height, text, ... → text)
+    PatchIconTextFn("zo_iconTextFormat")
+    PatchIconTextFn("zo_iconTextFormatAlignedRight")
+    PatchIconTextFn("zo_iconTextFormatNoSpace")
+    PatchIconTextFn("zo_iconTextFormatNoSpaceAlignedRight")
 
     -- Patch 2: Wrap ZO_KeybindStrip:HandleDuplicateAddKeybind to safely evaluate descriptor names.
     -- The original function calls GetKeybindDescriptorDebugIdentifier on descriptors, which can

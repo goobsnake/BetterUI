@@ -10,8 +10,8 @@ FEATURES:
 3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
 ]]
 
--- TODO(bug): gsErrorSuppress pollutes _G namespace and is written from EnhancementModule.lua without declaration; move into BETTERUI.CIM._gsErrorSuppress
-_G.gsErrorSuppress = 0 -- Global flag for guild store error suppression
+-- Guild store error suppression flag (namespaced to avoid _G pollution)
+BETTERUI.CIM._gsErrorSuppress = 0
 
 -------------------------------------------------------------------------------------------------
 -- RESEARCH TRAIT CACHING
@@ -117,7 +117,7 @@ end
 function BETTERUI.GetTooltipFontSize()
     local size = BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].tooltipSize
     if not size then
-        return BETTERUI.CONST.TOOLTIP.DEFAULT_FONT_SIZE
+        return BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS.DEFAULT_FONT_SIZE
     end
     return size
 end

@@ -316,9 +316,9 @@ local function InspectMemory()
     d("|cffcc00[Deferred Tasks]|r")
     if BETTERUI.CIM and BETTERUI.CIM.Tasks then
         local pending = 0
-        -- TODO(bug): Field name mismatch - DeferredTask.lua defines _tasks, not _scheduled; this always reads nil so pending count is always 0
-        if BETTERUI.CIM.Tasks._scheduled then
-            for _ in pairs(BETTERUI.CIM.Tasks._scheduled) do
+        -- Use correct field name matching DeferredTask.lua
+        if BETTERUI.CIM.Tasks._tasks then
+            for _ in pairs(BETTERUI.CIM.Tasks._tasks) do
                 pending = pending + 1
             end
         end
@@ -587,9 +587,11 @@ end
 -- Register commands immediately (they check IsEnabled internally)
 BETTERUI.CIM.Debug.RegisterCommands()
 
--- Backward compatibility: Support BETTERUI_SHIELD_DEBUG global
--- TODO(refactor): Migrate BETTERUI_SHIELD_DEBUG to FeatureFlags system
--- This allows existing code to work without changes
+-- Sync SHIELD_OVERLAY debug flag from FeatureFlags system
+if BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.IsEnabled then
+    BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY = BETTERUI.CIM.FeatureFlags.IsEnabled("SHIELD_DEBUG")
+end
+-- Backward compatibility: honor legacy BETTERUI_SHIELD_DEBUG global if set
 if BETTERUI_SHIELD_DEBUG then
     BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY = true
 end

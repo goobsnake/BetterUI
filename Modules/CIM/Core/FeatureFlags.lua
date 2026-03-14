@@ -49,8 +49,12 @@ local FLAG_DEFINITIONS = {
         defaultEnabled = false,
         version = "3.0",
     },
-    -- TODO(bug): Duplicate PERFORMANCE_METRICS key was here -- second definition silently overwrote the first in Lua; removed the duplicate
-    -- TODO(feature): Add SHIELD_DEBUG flag definition for visual debugging of shield overlays
+    SHIELD_DEBUG = {
+        name = "SHIELD_DEBUG",
+        description = "Visual debugging of shield overlays on resource orbs",
+        defaultEnabled = false,
+        version = "3.0",
+    },
 }
 
 -- Runtime flag state cache
@@ -179,4 +183,5 @@ BETTERUI.CIM.FeatureFlags.FLAGS = {
     BATCH_PROCESSING = "BATCH_PROCESSING",
     DEBUG_LOGGING = "DEBUG_LOGGING",
     PERFORMANCE_METRICS = "PERFORMANCE_METRICS",
+    SHIELD_DEBUG = "SHIELD_DEBUG",
 }
