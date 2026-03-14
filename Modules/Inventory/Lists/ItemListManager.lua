@@ -58,7 +58,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
             end)
             self.callLaterLeftToolTip = "InventoryTooltipUpdate"
 
-            self:PrepareNextClearNewStatus(selectedData)
+            BETTERUI.Inventory.NewItemTracker.PrepareFromSelectedData(selectedData)
 
             -- Keybind Refresh - protected by RefreshKeybinds() override
             self:RefreshKeybinds()

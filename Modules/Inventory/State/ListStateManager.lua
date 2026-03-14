@@ -39,7 +39,7 @@ local function SwitchActiveList(self, listDescriptor)
 
     if self.previousListType then
         self.listWaitingOnDestroyRequest = nil
-        self:TryClearNewStatusOnHidden()
+        BETTERUI.Inventory.NewItemTracker.CommitPendingClears()
     end
 
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)

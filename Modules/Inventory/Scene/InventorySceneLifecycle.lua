@@ -27,7 +27,7 @@ local BLOCK_TABBAR_CALLBACK = true
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()
-		BETTERUI.CIM.SetTooltipWidth(BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH)
+		BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
 
 		-- Mark when scene showed so we can skip redundant category refreshes during initial load
 		self._sceneShowedTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
@@ -130,10 +130,10 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		self.previousListType = savedListType
 		-- Track when scene was hidden for time-based brief-detour detection
 		self._sceneHiddenTime = GetFrameTimeSeconds and GetFrameTimeSeconds() or 0
-		BETTERUI.CIM.SetTooltipWidth(BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH)
+		BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
 
 		self.listWaitingOnDestroyRequest = nil
-		self:TryClearNewStatusOnHidden()
+		BETTERUI.Inventory.NewItemTracker.CommitPendingClears()
 
 		self:ClearActiveKeybinds()
 

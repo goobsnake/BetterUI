@@ -326,7 +326,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
             self.selectedDataCallback(list, selectedData)
         end
         if selectedData then
-            GAMEPAD_INVENTORY:PrepareNextClearNewStatus(selectedData)
+            BETTERUI.Inventory.NewItemTracker.PrepareFromSelectedData(selectedData)
             self:GetParametricList():RefreshVisible()
             -- Update scroll indicator position
             -- Use targetSelectedIndex (the intended final position) rather than GetSelectedIndex()
@@ -351,7 +351,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
     end
 
     local function OnEffectivelyHidden()
-        GAMEPAD_INVENTORY:TryClearNewStatusOnHidden()
+        BETTERUI.Inventory.NewItemTracker.CommitPendingClears()
         self:Deactivate()
     end
 

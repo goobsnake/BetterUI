@@ -105,4 +105,17 @@ function BETTERUI.Inventory.Setup()
 			}
 		})
 	end
+
+	-- Register narration for Inventory scene (ACC-001)
+	if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+		BETTERUI.CIM.Narration.RegisterListNarration(
+			"gamepadInventory",
+			function()
+				return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData
+			end,
+			function()
+				return GetString(SI_BETTERUI_INV_TITLE)
+			end
+		)
+	end
 end
