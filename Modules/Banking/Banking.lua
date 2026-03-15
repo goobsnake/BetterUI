@@ -168,10 +168,69 @@ function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
 
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
-    GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
 
-    local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-    LayoutBankUpgradeDetailsTooltip(tooltip, BuildBankUpgradeDetailsLines())
+    local GuildBank = BETTERUI.Banking.GuildBank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        -- Phase 1: call LayoutBankCurrencies to SHOW the tooltip panel (it handles visibility).
+        -- We'll immediately clear and overwrite with guild-correct values in phase 2.
+        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, { CURT_MONEY })
+
+        -- Phase 2: clear and rebuild with guild bank values.
+        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if not tooltip then return end
+        tooltip:ClearLines()
+
+        local guildId = GetSelectedGuildBankId and GetSelectedGuildBankId() or 0
+        local guildName = (guildId > 0) and GetGuildName(guildId) or GetString(SI_TRADING_HOUSE_GUILD_LABEL)
+
+        local guildBankGold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_GUILD_BANK) or 0
+        local carriedGold   = GetCarriedCurrencyAmount(CURT_MONEY) or 0
+
+        local function FmtGold(amount)
+            return ZO_Currency_FormatGamepad(CURT_MONEY, amount, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
+                or tostring(amount)
+        end
+
+        local mainSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencyMainSection"))
+
+        -- Section 1: Guild name + capacity (shown at top)
+        local guildSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencySection"))
+        local function AddToGuild(statText, valueText)
+            local pair = guildSection:AcquireStatValuePair(tooltip:GetStyle("currencyStatValuePair"))
+            pair:SetStat(statText, tooltip:GetStyle("currencyStatValuePairStat"))
+            pair:SetValue(valueText or "", tooltip:GetStyle("currencyStatValuePairValue"))
+            guildSection:AddStatValuePair(pair)
+        end
+        AddToGuild(GetString(SI_TRADING_HOUSE_GUILD_LABEL), guildName)
+        local usedSlots  = GetNumBagUsedSlots(BAG_GUILDBANK) or 0
+        local totalSlots = GetBagUseableSize(BAG_GUILDBANK) or 0
+        AddToGuild(GetString(SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL),
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, usedSlots, totalSlots))
+        mainSection:AddSection(guildSection)
+
+        -- ~2-line buffer before gold rows
+        mainSection:SetNextSpacing(48)
+
+        -- Section 2: Gold rows (below with buffer)
+        local goldSection = tooltip:AcquireSection(tooltip:GetStyle("bankCurrencySection"))
+        local function AddToGold(statText, valueText)
+            local pair = goldSection:AcquireStatValuePair(tooltip:GetStyle("currencyStatValuePair"))
+            pair:SetStat(statText, tooltip:GetStyle("currencyStatValuePairStat"))
+            pair:SetValue(valueText or "", tooltip:GetStyle("currencyStatValuePairValue"))
+            goldSection:AddStatValuePair(pair)
+        end
+        local goldName = GetCurrencyName(CURT_MONEY, true, false) or "Gold"
+        AddToGold("Banked " .. goldName, FmtGold(guildBankGold))
+        AddToGold("Carried " .. goldName, FmtGold(carriedGold))
+        mainSection:AddSection(goldSection)
+
+        tooltip:AddSection(mainSection)
+    else
+        -- Personal bank: show all bankable currencies
+        GAMEPAD_TOOLTIPS:LayoutBankCurrencies(GAMEPAD_LEFT_TOOLTIP, ZO_BANKABLE_CURRENCIES)
+        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+        LayoutBankUpgradeDetailsTooltip(tooltip, BuildBankUpgradeDetailsLines())
+    end
 end
 
 --[[
@@ -583,43 +642,12 @@ function BETTERUI.Banking.Init()
         end,
     })
     BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
-
-    -- DEFERRED GUILD BANK TAKEOVER
-    -- Vanilla ZO_GuildBank_Gamepad_Initialize() runs on XML OnInitialized (AFTER
-    -- our EVENT_ADD_ON_LOADED). It creates GAMEPAD_GUILD_BANK_SCENE at
-    -- "gamepad_guild_bank" and registers its own EVENT_OPEN_GUILD_BANK handler
-    -- that shows vanilla's scene. We must defer our takeover to
-    -- EVENT_PLAYER_ACTIVATED, which fires after all XML init is complete.
-    local initControl = BETTERUI.Banking.Window.control
-    if initControl then
-        initControl:RegisterForEvent(EVENT_PLAYER_ACTIVATED, function()
-            -- Only take over once
-            initControl:UnregisterForEvent(EVENT_PLAYER_ACTIVATED)
-
-            -- 1. Overwrite the scene alias AFTER vanilla has registered it
-            SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
-
-            -- 2. Suppress vanilla's EVENT_OPEN/CLOSE_GUILD_BANK handlers
-            --    Vanilla registers them on ZO_GuildBankTopLevel_Gamepad control
-            local vanillaControl = ZO_GuildBankTopLevel_Gamepad
-            if vanillaControl then
-                vanillaControl:UnregisterForEvent(EVENT_OPEN_GUILD_BANK)
-                vanillaControl:UnregisterForEvent(EVENT_CLOSE_GUILD_BANK)
-            end
-
-            -- 3. Register our own EVENT_OPEN/CLOSE_GUILD_BANK handlers
-            initControl:RegisterForEvent(EVENT_OPEN_GUILD_BANK, function()
-                if IsInGamepadPreferredMode() then
-                    SCENE_MANAGER:Show(BETTERUI_GUILD_BANKING_SCENE_NAME)
-                end
-            end)
-            initControl:RegisterForEvent(EVENT_CLOSE_GUILD_BANK, function()
-                if IsInGamepadPreferredMode() then
-                    SCENE_MANAGER:Hide(BETTERUI_GUILD_BANKING_SCENE_NAME)
-                end
-            end)
-        end)
-    end
+    -- Alias guild bank scene: vanilla's ZO_GuildBank_Gamepad_Initialize() has
+    -- already created GAMEPAD_GUILD_BANK_SCENE at "gamepad_guild_bank" (XML
+    -- OnInitialized runs before addon EVENT_ADD_ON_LOADED). We just overwrite
+    -- the scene entry so vanilla's EVENT_OPEN_GUILD_BANK handler shows our
+    -- scene instead. This matches the exact pattern used for personal bank above.
+    SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
 
     -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then

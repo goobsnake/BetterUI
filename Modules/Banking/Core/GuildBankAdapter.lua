@@ -28,6 +28,9 @@ local GuildBank = BETTERUI.Banking.GuildBank
 --- Returns true when the current banking interaction is a guild bank.
 --- @return boolean isGuildBank
 function GuildBank.IsGuildBankMode()
+    if BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE:IsShowing() then
+        return true
+    end
     return GetBankingBag() == BAG_GUILDBANK
 end
 
@@ -320,6 +323,16 @@ function GuildBank.RegisterGuildSelectorDialog()
     ESO_Dialogs[dialogName] = {
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
+            -- Center the title text — PARAMETRIC dialogs default to left-align
+            RefreshTextOverride = function(dialog, title)
+                local headerData = dialog.headerData
+                if headerData then
+                    ZO_ClearTable(headerData)
+                    headerData.titleText = title
+                    headerData.titleTextAlignment = TEXT_ALIGN_CENTER
+                    ZO_GamepadGenericHeader_Refresh(dialog.header, headerData)
+                end
+            end,
         },
         title = {
             text = GetString(SI_TRADING_HOUSE_GUILD_LABEL),
@@ -355,24 +368,44 @@ function GuildBank.RegisterGuildSelectorDialog()
     ZO_Dialogs_RegisterCustomDialog(dialogName, ESO_Dialogs[dialogName])
     -- Override setup to build guild list dynamically
     local orig = ESO_Dialogs[dialogName]
+    local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
+    local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
+
+    local function IsActiveGuild(data)
+        return data.isCurrentGuild
+    end
+
+    local function SetupGuildBankItem(control, data, ...)
+        ZO_SharedGamepadEntry_OnSetup(control, data, ...)
+        if IsActiveGuild(data) then
+            control.statusIndicator:AddIcon(CHECKED_ICON)
+            control.statusIndicator:Show()
+        end
+    end
+
     orig.setup = function(dialog)
+        local currentGuildId = GetSelectedGuildBankId()
         local parametricList = {}
         local numGuilds = GetNumGuilds()
         for i = 1, numGuilds do
             local guildId = GetGuildId(i)
             local guildName = GetGuildName(guildId)
-            local isSelected = (guildId == GetSelectedGuildBankId())
-            local entryData = ZO_GamepadEntryData:New(guildName)
+            local allianceId = GetGuildAlliance(guildId)
+            local icon = ZO_GetLargeAllianceSymbolIcon(allianceId)
+            local entryData = ZO_GamepadEntryData:New(guildName, icon)
+            entryData:SetFontScaleOnSelection(false)
+            entryData:SetIconTintOnSelection(true)
             entryData.guildId = guildId
-            if isSelected then
-                entryData:SetNameColors(ZO_SELECTED_TEXT, ZO_SELECTED_TEXT)
-            end
+            entryData.guildName = guildName
+            entryData.isCurrentGuild = (guildId == currentGuildId)
+            entryData.setup = SetupGuildBankItem
             table.insert(parametricList, {
-                template = "ZO_GamepadMenuEntryTemplate",
+                template = GUILD_ENTRY_TEMPLATE,
                 entryData = entryData,
             })
         end
         dialog.info.parametricList = parametricList
         dialog:setupFunc()
+        dialog.entryList:SetSelectedDataByEval(IsActiveGuild)
     end
 end

@@ -3,7 +3,7 @@ File: Modules/Banking/UI/FooterManager.lua
 Purpose: Manages the banking footer UI (capacity info, currency display).
          Extracted from Banking.lua.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-03-14
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -18,27 +18,47 @@ Description: Updates the footer information (bag capacity, currency).
 function BETTERUI.Banking.Class:RefreshFooter()
     if not self.footer or not self.footer.footer then return end
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    if (currentUsedBank == BAG_BANK) then
-        --IsBankOpen()
-        self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat(
-            "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t <<1>>",
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK))))
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
+
+    -- Deposit side (player inventory) — always the same
+    self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat(
+        "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t <<1>>",
+        zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK))))
+
+    -- Withdraw side (bank) — varies by bank type
+    if isGuildBank then
+        self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
+            "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
+            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_GUILDBANK),
+                GetBagUseableSize(BAG_GUILDBANK))))
+    elseif currentUsedBank == BAG_BANK then
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
                 GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK),
                 GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK))))
     else
-        self.footer.footer:GetNamedChild("DepositButtonSpaceLabel"):SetText(zo_strformat(
-            "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t <<1>>",
-            zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK))))
+        -- House bank
         self.footer.footer:GetNamedChild("WithdrawButtonSpaceLabel"):SetText(zo_strformat(
             "|t24:24:/esoui/art/icons/mapkey/mapkey_bank.dds|t <<1>>",
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(currentUsedBank),
                 GetBagUseableSize(currentUsedBank))))
     end
 
-    if ((self.currentMode == LIST_WITHDRAW) and (currentUsedBank == BAG_BANK)) then
+    -- Currency display — varies by bank type and mode
+    if isGuildBank then
+        -- Guild bank: show guild bank gold (only currency guild banks support)
+        if self.currentMode == LIST_WITHDRAW then
+            self.footerFragment.control:GetNamedChild("Data1Value"):SetText(BETTERUI.DisplayNumber(
+                GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_GUILD_BANK)))
+            self.footerFragment.control:GetNamedChild("Data2Value"):SetText("")
+        else
+            self.footerFragment.control:GetNamedChild("Data1Value"):SetText(BETTERUI.DisplayNumber(
+                GetCarriedCurrencyAmount(CURT_MONEY)))
+            self.footerFragment.control:GetNamedChild("Data2Value"):SetText("")
+        end
+    elseif (self.currentMode == LIST_WITHDRAW) and (currentUsedBank == BAG_BANK) then
         self.footerFragment.control:GetNamedChild("Data1Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(
             CURT_MONEY)))
         self.footerFragment.control:GetNamedChild("Data2Value"):SetText(BETTERUI.DisplayNumber(GetBankedCurrencyAmount(

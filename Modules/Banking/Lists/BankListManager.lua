@@ -165,7 +165,10 @@ function BETTERUI.Banking.Class:RefreshList()
     modeText = zo_strformat("<<Z:1>>", modeText)
 
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
-    if currentUsedBank == BAG_BANK then
+    local GuildBankAdapter = BETTERUI.Banking.GuildBank
+    local isGuildBankActive = GuildBankAdapter and GuildBankAdapter.IsGuildBankMode()
+
+    if currentUsedBank == BAG_BANK or isGuildBankActive then
         if not activeCategory or activeCategory.key == "all" then
             local labelByCurrency = {
                 [CURT_MONEY] = GetString(SI_BETTERUI_CURRENCY_GOLD),
@@ -173,19 +176,27 @@ function BETTERUI.Banking.Class:RefreshList()
                 [CURT_ALLIANCE_POINTS] = GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT),
                 [CURT_WRIT_VOUCHERS] = GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER),
             }
-            local bankableList = {}
-            if type(ZO_BANKABLE_CURRENCIES) == "table" then
-                if rawget(ZO_BANKABLE_CURRENCIES, 1) ~= nil then
-                    bankableList = ZO_BANKABLE_CURRENCIES
-                else
-                    for _, value in pairs(ZO_BANKABLE_CURRENCIES) do
-                        bankableList[#bankableList + 1] = value
+
+            -- Guild bank only supports gold
+            local bankableList
+            if isGuildBankActive then
+                bankableList = { CURT_MONEY }
+            else
+                bankableList = {}
+                if type(ZO_BANKABLE_CURRENCIES) == "table" then
+                    if rawget(ZO_BANKABLE_CURRENCIES, 1) ~= nil then
+                        bankableList = ZO_BANKABLE_CURRENCIES
+                    else
+                        for _, value in pairs(ZO_BANKABLE_CURRENCIES) do
+                            bankableList[#bankableList + 1] = value
+                        end
                     end
                 end
+                if #bankableList == 0 then
+                    bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
+                end
             end
-            if #bankableList == 0 then
-                bankableList = { CURT_MONEY, CURT_TELVAR_STONES, CURT_ALLIANCE_POINTS, CURT_WRIT_VOUCHERS }
-            end
+
             for _, currencyType in ipairs(bankableList) do
                 local entryData = BETTERUI.Banking.BuildCurrencyTransferEntryData(self, currencyType, modeText,
                     labelByCurrency)

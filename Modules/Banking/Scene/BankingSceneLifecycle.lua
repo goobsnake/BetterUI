@@ -25,8 +25,9 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if GuildBank and GuildBank.IsGuildBankMode() then
         self.isGuildBankMode = true
         -- Select the accessible guild bank and trigger data loading
-        if ZO_SharedInventory_SelectAccessibleGuildBank then
-            ZO_SharedInventory_SelectAccessibleGuildBank(GuildBank.GetSelectedGuildId())
+        local guildId = GuildBank.GetSelectedGuildId()
+        if ZO_SharedInventory_SelectAccessibleGuildBank and guildId > 0 then
+            ZO_SharedInventory_SelectAccessibleGuildBank(guildId)
         end
         self.loadingGuildBank = true
         self:SetTitle(GuildBank.GetHeaderTitle())
@@ -50,7 +51,13 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if self.headerGeneric and self.headerGeneric.tabBar then
         self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
     end
-    if self.isDirty then
+    if self.isGuildBankMode then
+        -- Guild bank: clear stale data and defer list refresh until
+        -- EVENT_GUILD_BANK_ITEMS_READY fires via OnGuildBankReady.
+        self.list:Clear()
+        self.list:Commit()
+        self:RefreshActiveKeybinds()
+    elseif self.isDirty then
         self:RefreshList()
     else
         self:RefreshActiveKeybinds()
@@ -240,31 +247,44 @@ function BETTERUI.Banking.SetupSceneInterception()
     local originalToggle = SCENE_MANAGER.Toggle
     local originalShow = SCENE_MANAGER.Show
     local bankingSceneName = BETTERUI_BANKING_SCENE_NAME
+    local guildBankSceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
     local intercepting = false
 
     local function InterceptSceneChange(targetSceneName)
         if intercepting then return false end
+        -- Never intercept our own banking scenes
         if targetSceneName == bankingSceneName or targetSceneName == "gamepad_banking" then
+            return false
+        end
+        if targetSceneName == guildBankSceneName or targetSceneName == "gamepad_guild_bank" then
             return false
         end
         if targetSceneName == "hud" or targetSceneName == "hudui" then
             return false
         end
 
+        -- Check if either banking scene is active
         local bankScene = SCENE_MANAGER:GetScene(bankingSceneName)
-        if not bankScene or not bankScene:IsShowing() then
+        local guildBankScene = SCENE_MANAGER:GetScene(guildBankSceneName)
+        local activeScene = nil
+        if bankScene and bankScene:IsShowing() then
+            activeScene = bankScene
+        elseif guildBankScene and guildBankScene:IsShowing() then
+            activeScene = guildBankScene
+        end
+        if not activeScene then
             return false
         end
 
         local function OnBankHidden(oldState, newState)
             if newState == SCENE_HIDDEN then
-                bankScene:UnregisterCallback("StateChange", OnBankHidden)
+                activeScene:UnregisterCallback("StateChange", OnBankHidden)
                 zo_callLater(function()
                     originalShow(SCENE_MANAGER, targetSceneName)
                 end, 50)
             end
         end
-        bankScene:RegisterCallback("StateChange", OnBankHidden)
+        activeScene:RegisterCallback("StateChange", OnBankHidden)
 
         intercepting = true
         SCENE_MANAGER:HideCurrentScene()

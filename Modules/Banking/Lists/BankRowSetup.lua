@@ -49,12 +49,14 @@ end
 local function GetCurrencyTransferMax(self, currencyType)
     local fromLocation
     local toLocation
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBank = GuildBank and GuildBank.IsGuildBankMode()
     if self.currentMode == LIST_WITHDRAW then
-        fromLocation = CURRENCY_LOCATION_BANK
+        fromLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
         toLocation = CURRENCY_LOCATION_CHARACTER
     else
         fromLocation = CURRENCY_LOCATION_CHARACTER
-        toLocation = CURRENCY_LOCATION_BANK
+        toLocation = isGuildBank and CURRENCY_LOCATION_GUILD_BANK or CURRENCY_LOCATION_BANK
     end
 
     if GetMaxCurrencyTransfer then
@@ -269,7 +271,9 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     end
 
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
-    if currentUsedBank == BAG_BANK then
+    local GuildBank = BETTERUI.Banking.GuildBank
+    local isGuildBankOrPersonalBank = (currentUsedBank == BAG_BANK) or (GuildBank and GuildBank.IsGuildBankMode())
+    if isGuildBankOrPersonalBank then
         local isCurrencyRow = ZO_GamepadBanking
             and ZO_GamepadBanking.IsEntryDataCurrencyRelated
             and ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData)
