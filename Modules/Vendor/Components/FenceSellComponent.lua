@@ -1,0 +1,199 @@
+--[[
+File: Modules/Vendor/Components/FenceSellComponent.lua
+Purpose: Fence Sell Stolen tab component for the Vendor module.
+Authors: BUI Team
+Last Modified: 2026-03-14
+
+Handles selling stolen items to the fence.
+KEY SAFETY GUARDS:
+- Artifact quality items (ITEM_FUNCTIONAL_QUALITY_ARTIFACT) blocked with dialog
+- Transaction limit checked every action via GetFenceSellTransactionInfo()
+- Only stolen items from BAG_BACKPACK shown in list
+]]
+
+local Vendor = BETTERUI.Vendor
+local MODE   = Vendor.MODE
+
+-- ============================================================================
+-- COMPONENT TABLE
+-- ============================================================================
+Vendor.FenceSellComponent = {}
+local FenceSell = Vendor.FenceSellComponent
+
+-- ============================================================================
+-- ACTIVATE / DEACTIVATE
+-- ============================================================================
+
+function FenceSell:Activate(vendorInstance)
+    vendorInstance:RefreshList()
+end
+
+function FenceSell:Deactivate(vendorInstance)
+    -- No cleanup needed
+end
+
+-- ============================================================================
+-- HELPERS
+-- ============================================================================
+
+--- Get remaining fence sells and total allowed
+--- @return number remaining
+--- @return number total
+local function GetRemainingSells()
+    if GetFenceSellTransactionInfo then
+        local totalSells, sellsUsed, resetTimeSeconds = GetFenceSellTransactionInfo()
+        totalSells = totalSells or 0
+        sellsUsed = sellsUsed or 0
+        return zo_max(totalSells - sellsUsed, 0), totalSells, resetTimeSeconds
+    end
+    return 0, 0, 0
+end
+
+--- Check if item is artifact quality (cannot be sold to fence)
+--- @param bagId number
+--- @param slotIndex number
+--- @return boolean
+local function IsArtifactItem(bagId, slotIndex)
+    if GetItemFunctionalQuality then
+        local funcQuality = GetItemFunctionalQuality(bagId, slotIndex)
+        -- ESO uses >= for artifact check (consistent with fencewindowsell_gamepad.lua)
+        return funcQuality ~= nil and funcQuality >= ITEM_FUNCTIONAL_QUALITY_ARTIFACT
+    end
+    return false
+end
+
+-- ============================================================================
+-- PRIMARY ACTION
+-- ============================================================================
+
+function FenceSell:GetPrimaryActionName()
+    return GetString(SI_ITEM_ACTION_SELL)
+end
+
+function FenceSell:IsPrimaryActionEnabled(vendorInstance)
+    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    if not selectedData then return false end
+
+    -- Must have remaining sells
+    local remaining = GetRemainingSells()
+    if remaining <= 0 then return false end
+
+    -- Artifact items cannot be sold
+    if selectedData.bagId and selectedData.slotIndex then
+        if IsArtifactItem(selectedData.bagId, selectedData.slotIndex) then
+            return false
+        end
+    end
+
+    return true
+end
+
+function FenceSell:OnPrimaryAction(vendorInstance)
+    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    if not selectedData then return end
+
+    local bagId = selectedData.bagId
+    local slotIndex = selectedData.slotIndex
+    if bagId == nil or slotIndex == nil then return end
+
+    -- Re-check artifact guard (critical safety)
+    -- ESO dialog: CANT_BUYBACK_FROM_FENCE (same dialog used by vanilla fence sell)
+    if IsArtifactItem(bagId, slotIndex) then
+        ZO_Dialogs_ShowGamepadDialog("CANT_BUYBACK_FROM_FENCE", { bag = bagId, slot = slotIndex })
+        return
+    end
+
+    -- Re-check remaining fence sells
+    local remaining = GetRemainingSells()
+    if remaining <= 0 then return end
+
+    -- Validate the slot still has items
+    local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
+    if stackSize <= 0 then return end
+
+    -- Sell full stack plus haggling bonus
+    SellInventoryItem(bagId, slotIndex, stackSize)
+end
+
+-- ============================================================================
+-- LIST BUILDING
+-- ============================================================================
+
+function FenceSell:BuildList(vendorInstance)
+    local list = vendorInstance.list
+    if not list then return end
+
+    local bagSize = GetBagSize(BAG_BACKPACK) or 0
+
+    for slotIndex = 0, bagSize - 1 do
+        -- Only show stolen items
+        if IsItemStolen(BAG_BACKPACK, slotIndex) then
+            local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
+            local name = GetItemName(BAG_BACKPACK, slotIndex)
+
+            if name and name ~= "" then
+                name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
+                local quality = GetItemDisplayQuality(BAG_BACKPACK, slotIndex)
+                    or ITEM_DISPLAY_QUALITY_NORMAL
+                local isArtifact = IsArtifactItem(BAG_BACKPACK, slotIndex)
+
+                -- Calculate sell price with haggling bonus
+                local fenceSellPrice = GetItemSellValueWithBonuses(BAG_BACKPACK, slotIndex) or sellPrice or 0
+                local hagglingBonus = GetTotalFenceHagglingBonus and GetTotalFenceHagglingBonus() or 0
+
+                local entryData = {
+                    name             = name,
+                    icon             = icon,
+                    stackCount       = stackCount or 1,
+                    sellPrice        = fenceSellPrice,
+                    stackSellPrice   = fenceSellPrice * (stackCount or 1),
+                    quality          = quality,
+                    bagId            = BAG_BACKPACK,
+                    slotIndex        = slotIndex,
+                    stolen           = true,
+                    isArtifact       = isArtifact,
+                    hagglingBonus    = hagglingBonus,
+                    itemLink         = GetItemLink(BAG_BACKPACK, slotIndex),
+                    bestGamepadItemCategoryName = "",
+                    statValue        = "",
+                }
+
+                local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+                entry:SetDataSource(entryData)
+                entry.narrationText = function() return entryData.name end
+
+                if quality then
+                    local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+                    entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+                end
+
+                -- Mark artifact items visually
+                if isArtifact then
+                    entry:SetIconDesaturation(0.5) -- Dim artifact items
+                end
+
+                list:AddEntry("BUI_Gamepad_ItemEntry", entry)
+            end
+        end
+    end
+end
+
+-- ============================================================================
+-- FOOTER INFO
+-- ============================================================================
+
+--- Returns footer text showing remaining sells and reset timer
+--- @return string footerText
+function FenceSell:GetFooterText()
+    local remaining, total, resetTimeSeconds = GetRemainingSells()
+    local text = zo_strformat(SI_BETTERUI_FENCE_SELLS_REMAINING, remaining, total)
+
+    if resetTimeSeconds and resetTimeSeconds > 0 then
+        local timeStr = ZO_FormatCountdownTimer(resetTimeSeconds)
+        if timeStr then
+            text = text .. " (" .. timeStr .. ")"
+        end
+    end
+
+    return text
+end
