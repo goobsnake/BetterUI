@@ -218,8 +218,18 @@ Modules\TradingHouse\Module.lua
 ; Module: Loot (ECO-001 scaffold)
 Modules\Loot\Module.lua
 
-; Module: Vendor (ECO-002 scaffold)
+; Module: Vendor (ECO-002)
 Modules\Vendor\Module.lua
+Modules\Vendor\Core\VendorClass.lua
+Modules\Vendor\Components\BuyComponent.lua
+Modules\Vendor\Components\SellComponent.lua
+Modules\Vendor\Components\RepairComponent.lua
+Modules\Vendor\Components\BuybackComponent.lua
+Modules\Vendor\Components\FenceSellComponent.lua
+Modules\Vendor\Components\FenceLaunderComponent.lua
+Modules\Vendor\Scene\VendorSceneLifecycle.lua
+Modules\Vendor\Vendor.lua
+Modules\Vendor\Settings\SettingsPanel.lua
 
 ; Module: Quickslot (INV-002 scaffold)
 Modules\Quickslot\Module.lua

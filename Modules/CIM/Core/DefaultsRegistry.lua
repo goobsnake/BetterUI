@@ -24,6 +24,7 @@ BETTERUI.Defaults = BETTERUI.Defaults or {}
 BETTERUI.Defaults.FirstInstall = {
     Inventory = true,         -- Core feature, showcase
     Banking = true,           -- Core feature, showcase
+    Vendor = true,            -- Core feature, enhanced vendor/fence
     GeneralInterface = true,  -- Enhanced tooltips, QoL
     ResourceOrbFrames = true, -- Per user request
     Writs = false,            -- Niche feature, opt-in
@@ -200,6 +201,23 @@ BETTERUI.Defaults.Modules = {
     -- ========================================================================
     Writs = {
         -- No specific settings, just m_enabled controlled by Master Settings
+    },
+
+    -- ========================================================================
+    -- VENDOR MODULE
+    -- ========================================================================
+    Vendor = {
+        -- Display Features
+        enableCarousel = true, -- Modern tab navigation
+        enableBatchJunkSell = true, -- Batch sell-all-junk confirmation
+
+        -- Icon Visibility (all on by default)
+        showIconEnchantment = true,
+        showIconSetGear = true,
+        showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
     },
 }
 

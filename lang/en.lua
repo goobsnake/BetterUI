@@ -648,3 +648,80 @@ ZO_CreateStringId("SI_BETTERUI_SLIDER_RETRIEVE", "Retrieve")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_STAYS", "Stays")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_STOW", "Stow")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_WITHDRAW", "Withdraw")
+
+-- Vendor Module Strings
+ZO_CreateStringId("SI_BETTERUI_ENABLE_VENDOR", "Enable |c0066FFEnhanced Vendor & Fence|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_VENDOR_TOOLTIP",
+    "Replaces the gamepad vendor and fence interfaces with BetterUI's enhanced columnar layout (Gamepad UI only)")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Vendor")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_NAME", "Name")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_TYPE", "Type")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_TRAIT", "Trait")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_STAT", "Stat")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_VALUE", "Value")
+
+-- Vendor General Settings
+ZO_CreateStringId("SI_BETTERUI_VENDOR_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_GENERAL_DESC",
+    "Configure core vendor behavior, including navigation and interaction options. These settings apply to the Gamepad UI only.")
+
+-- Vendor Font Settings
+ZO_CreateStringId("SI_BETTERUI_VENDOR_FONT_HEADER", "Font Customization")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_FONT_DESC",
+    "Customize fonts for the vendor list. Set different fonts for the Name column and other columns (Type, Trait, Stat, Value).")
+
+-- Vendor Name Column Font Settings
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP", "Select the font for item names.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
+
+-- Vendor Column Font Settings (Type, Trait, Stat, Value)
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU", "Other Columns Font (Type, Trait, Stat, Value)")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP", "Select the font for column data (Type, Trait, Stat, Value).")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
+
+-- Vendor Batch Junk Sell
+ZO_CreateStringId("SI_BETTERUI_VENDOR_BATCH_JUNK_SELL", "Enable Batch Junk Sell")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_BATCH_JUNK_SELL_TOOLTIP",
+    "Display a 'Sell All Junk' button when junk items are in your inventory.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SELL_JUNK_CONFIRM", "Sell All Junk?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SELL_JUNK_CONFIRM_DESC",
+    "Sell <<1>> junk item(s) for <<2>> gold? This cannot be undone.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_SELL_ALL_JUNK", "Sell All Junk")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_JUNK", "No junk items to sell")
+
+-- Vendor Tab Labels
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUY", "Buy")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_SELL", "Sell")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_REPAIR", "Repair")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUYBACK", "Buyback")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_SELL", "Sell Stolen")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Launder")
+
+-- Vendor Status Messages
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_ITEMS", "This vendor has nothing for sale")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_SELL_ITEMS", "No items to sell")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS", "No items need repair")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS", "No items to buy back")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL", "Repair All")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_REPAIR_ALL_COST", "Repair all items for <<1>> gold?")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONDITION", "Condition: <<1>>%")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_AFFORD", "Cannot afford this item")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_CARRY", "Not enough inventory space")
+
+-- Fence Status Messages
+ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Sells Remaining: <<1>>/<<2>>")
+ZO_CreateStringId("SI_BETTERUI_FENCE_LAUNDERS_REMAINING", "Launders Remaining: <<1>>/<<2>>")
+ZO_CreateStringId("SI_BETTERUI_FENCE_NO_STOLEN_ITEMS", "No stolen items to sell")
+ZO_CreateStringId("SI_BETTERUI_FENCE_NO_LAUNDER_ITEMS", "No stolen items to launder")
+
+-- Vendor Scene
+ZO_CreateStringId("SI_BETTERUI_SCENE_VENDOR", "Vendor")

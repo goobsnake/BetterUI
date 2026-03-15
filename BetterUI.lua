@@ -29,6 +29,7 @@ BETTERUI.version = "3.02"
 -- Module namespace tables
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Banking = BETTERUI.Banking or {}
+BETTERUI.Vendor = BETTERUI.Vendor or {}
 BETTERUI.Writs = BETTERUI.Writs or {}
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}
@@ -68,7 +69,8 @@ BETTERUI.DefaultSettings = {
 function BETTERUI.UpdateCIMState()
 	local shouldEnable = BETTERUI.GetModuleEnabled("GeneralInterface") or
 		BETTERUI.GetModuleEnabled("Inventory") or
-		BETTERUI.GetModuleEnabled("Banking")
+		BETTERUI.GetModuleEnabled("Banking") or
+		BETTERUI.GetModuleEnabled("Vendor")
 	if BETTERUI.Settings.Modules["CIM"] then
 		BETTERUI.Settings.Modules["CIM"].m_enabled = shouldEnable
 	end
@@ -144,6 +146,23 @@ function BETTERUI.InitModuleOptions()
 			setFunc = function(value)
 				BETTERUI.Settings.Modules["Banking"] = BETTERUI.Settings.Modules["Banking"] or {}
 				BETTERUI.Settings.Modules["Banking"].m_enabled = value
+				BETTERUI.UpdateCIMState()
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			sortKey = "Vendor",
+			type = "checkbox",
+			name = GetString(SI_BETTERUI_ENABLE_VENDOR),
+			tooltip = GetString(SI_BETTERUI_ENABLE_VENDOR_TOOLTIP),
+			getFunc = function()
+				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
+				return modules and modules["Vendor"] and modules["Vendor"].m_enabled or false
+			end,
+			setFunc = function(value)
+				BETTERUI.Settings.Modules["Vendor"] = BETTERUI.Settings.Modules["Vendor"] or {}
+				BETTERUI.Settings.Modules["Vendor"].m_enabled = value
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -424,6 +443,10 @@ function BETTERUI.LoadModules()
 		if BETTERUI.GetModuleEnabled("Banking") then
 			ValidateAndSetupModule("Banking", BETTERUI.Banking)
 		end
+
+		if BETTERUI.GetModuleEnabled("Vendor") and BETTERUI.Vendor then
+			ValidateAndSetupModule("Vendor", BETTERUI.Vendor)
+		end
 	end
 
 	-- Initialize independent modules with validation
@@ -481,6 +504,7 @@ function BETTERUI.Initialize(event, addon)
 		{ "CIM",               BETTERUI.CIM },
 		{ "Inventory",         BETTERUI.Inventory },
 		{ "Banking",           BETTERUI.Banking },
+		{ "Vendor",            BETTERUI.Vendor },
 		{ "Writs",             BETTERUI.Writs },
 		{ "GeneralInterface",  BETTERUI.GeneralInterface },
 		{ "Nameplates",        BETTERUI.Nameplates },
@@ -538,6 +562,9 @@ function BETTERUI.Initialize(event, addon)
 		end
 		if BETTERUI.GetModuleEnabled("Banking") and BETTERUI.Banking then
 			ValidateAndSetupModule("Banking", BETTERUI.Banking)
+		end
+		if BETTERUI.GetModuleEnabled("Vendor") and BETTERUI.Vendor then
+			ValidateAndSetupModule("Vendor", BETTERUI.Vendor)
 		end
 		if BETTERUI.GetModuleEnabled("Writs") and BETTERUI.Writs then
 			ValidateAndSetupModule("Writs", BETTERUI.Writs)
