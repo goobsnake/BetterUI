@@ -65,6 +65,10 @@ function BETTERUI.Inventory.ToSavedPosition(self)
         self.currentlySelectedData = nil
     end
 
+    -- Flag category switch so RefreshItemList skips stale-index fallback
+    -- (prevents old category's scroll position bleeding into new category)
+    self._categorySwitchInProgress = true
+
     -- Set current list and refresh for the current category
     if isCraftBag then
         self:SetCurrentList(self.craftBagList)
@@ -72,6 +76,37 @@ function BETTERUI.Inventory.ToSavedPosition(self)
     else
         self:SetCurrentList(self.itemList)
         self:RefreshItemList()
+    end
+
+    self._categorySwitchInProgress = false
+
+    -- Craft bag position restoration: CraftList:RefreshList has no internal position
+    -- restoration (unlike RefreshItemList which reads currentlySelectedData). Apply the
+    -- saved position explicitly after refresh, matching ProcessScrollListBatch's pattern.
+    if isCraftBag and currentList then
+        local innerList = currentList.list or currentList
+        local craftDataList = innerList.dataList
+        if craftDataList and #craftDataList > 0 then
+            local restored = false
+            if saved and saved.uniqueId then
+                for i, data in ipairs(craftDataList) do
+                    local uid = (data.dataSource and data.dataSource.uniqueId) or data.uniqueId
+                    if uid and Id64ToString(uid) == Id64ToString(saved.uniqueId) then
+                        innerList:SetSelectedIndexWithoutAnimation(i, true, false)
+                        restored = true
+                        break
+                    end
+                end
+            end
+            if not restored and saved and saved.index then
+                local targetIdx = math.min(saved.index, #craftDataList)
+                targetIdx = math.max(1, targetIdx)
+                innerList:SetSelectedIndexWithoutAnimation(targetIdx, true, false)
+            elseif not restored then
+                -- No saved position: reset to top (prevent stale index bleed)
+                innerList:SetSelectedIndexWithoutAnimation(1, true, false)
+            end
+        end
     end
 
     -- For small lists that process synchronously, apply fallback position restoration

@@ -9,6 +9,12 @@ Usage:
 SI_BETTERUI_MARKET_NO_PRICE_DATA = "SI_BETTERUI_MARKET_NO_PRICE_DATA"
 SI_BETTERUI_MARKET_PRICE = "SI_BETTERUI_MARKET_PRICE"
 SI_BETTERUI_MARKET_PRICE_STACK = "SI_BETTERUI_MARKET_PRICE_STACK"
+SI_BETTERUI_MARKET_TTC_AVG_SUG = "SI_BETTERUI_MARKET_TTC_AVG_SUG"
+SI_BETTERUI_MARKET_TTC_AVG = "SI_BETTERUI_MARKET_TTC_AVG"
+SI_BETTERUI_MARKET_TTC_SUG = "SI_BETTERUI_MARKET_TTC_SUG"
+SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG = 108
+SI_BETTERUI_MARKET_TTC_STACK_AVG = 109
+SI_BETTERUI_MARKET_TTC_STACK_SUG = 110
 SI_RECIPE_ALREADY_KNOWN = "SI_RECIPE_ALREADY_KNOWN"
 SI_USE_TO_LEARN_RECIPE = "SI_USE_TO_LEARN_RECIPE"
 SI_LORE_LIBRARY_IN_LIBRARY = "SI_LORE_LIBRARY_IN_LIBRARY"
@@ -18,11 +24,18 @@ CURT_MONEY = 1
 ITEMTYPE_RECIPE = 42
 EVENT_INVENTORY_SINGLE_SLOT_UPDATE = 1
 CT_LABEL = 1
+INVENTORY_UPDATE_REASON_DEFAULT = 0
 
 local stringMap = {
     [SI_BETTERUI_MARKET_NO_PRICE_DATA] = "<<1>>: No Price Data",
-    [SI_BETTERUI_MARKET_PRICE] = "<<1>> Price: <<2>>",
-    [SI_BETTERUI_MARKET_PRICE_STACK] = "<<1>> Price: <<2>>, Stack(<<3>>): <<4>>",
+    [SI_BETTERUI_MARKET_PRICE] = "<<1>>: <<2>>",
+    [SI_BETTERUI_MARKET_PRICE_STACK] = "<<1>>: <<2>>, (<<3>>x) <<4>>",
+    [SI_BETTERUI_MARKET_TTC_AVG_SUG] = "TTC: Avg: <<1>> / Sug: <<2>>",
+    [SI_BETTERUI_MARKET_TTC_AVG] = "TTC: Avg: <<1>>",
+    [SI_BETTERUI_MARKET_TTC_SUG] = "TTC: Sug: <<1>>",
+    [SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG] = "TTC: (<<1>>x) Avg: <<2>> / Sug: <<3>>",
+    [SI_BETTERUI_MARKET_TTC_STACK_AVG] = "TTC: (<<1>>x) Avg: <<2>>",
+    [SI_BETTERUI_MARKET_TTC_STACK_SUG] = "TTC: (<<1>>x) Sug: <<2>>",
     [SI_RECIPE_ALREADY_KNOWN] = "Already Known",
     [SI_USE_TO_LEARN_RECIPE] = "Use to Learn",
     [SI_LORE_LIBRARY_IN_LIBRARY] = "In Library",
@@ -71,11 +84,34 @@ function IsItemLinkBookKnown(itemLink)
     return itemLink == "book:known"
 end
 
+-- TTC mock globals (must be set before dofile)
+TamrielTradeCentre_ItemInfo = {
+    New = function(_, itemLink)
+        return { link = itemLink }
+    end,
+}
+
+TamrielTradeCentrePrice = {
+    GetPriceInfo = function(_, itemInfo)
+        if itemInfo.link == "ttc:both" or itemInfo.link == "ttc:both:stack" then
+            return { Avg = 15, SuggestedPrice = 20 }
+        elseif itemInfo.link == "ttc:avgonly" or itemInfo.link == "ttc:avgonly:stack" then
+            return { Avg = 30, SuggestedPrice = nil }
+        elseif itemInfo.link == "ttc:sugonly" then
+            return { Avg = nil, SuggestedPrice = 50 }
+        end
+        return nil
+    end,
+}
+
+TamrielTradeCentre = true
+
 BETTERUI = {
     Settings = {
         Modules = {
             GeneralInterface = {
                 attIntegration = true,
+                ttcIntegration = true,
                 showKnowledgeStatus = true,
             },
             CIM = {
@@ -102,7 +138,9 @@ BETTERUI = {
             DEFAULT_FONT_SIZE = 24,
         },
     },
-    GeneralInterface = {},
+    GeneralInterface = {
+        InvalidateResearchableTraitCache = function() end,
+    },
     Inventory = {},
 }
 
@@ -159,15 +197,72 @@ print("\n=== Tooltip Helper Tests ===\n")
 
 dofile("Modules/CIM/Tooltips/Tooltips.lua")
 
+-- Helper to find a line containing a specific substring from a list
+local function findLine(lines, needle)
+    for _, line in ipairs(lines) do
+        if type(line) == "string" and line:find(needle, 1, true) then
+            return line
+        end
+    end
+    return nil
+end
+
 print("Test: Store tooltip pricing falls back to a single-item stack when no bag context exists")
 local singlePriceLines = BETTERUI.GetInventoryPriceInfo("item:single", nil, nil, nil)
-assertEqual(1, #singlePriceLines, "Single-price tooltip line is generated")
-assertContains(singlePriceLines[1], "ATT Price: 10", "Single-price line uses the single-item market value")
+assertEqual(true, #singlePriceLines >= 1, "Single-price tooltip line is generated")
+local attSingleLine = findLine(singlePriceLines, "ATT")
+assertEqual(true, attSingleLine ~= nil, "ATT single-price line is present")
+assertContains(attSingleLine, "ATT: 10", "Single-price line uses the single-item market value")
 
 print("\nTest: Store tooltip pricing preserves explicit stack counts")
 local stackPriceLines = BETTERUI.GetInventoryPriceInfo("item:stack", nil, nil, 4)
-assertEqual(1, #stackPriceLines, "Stack-price tooltip line is generated")
-assertContains(stackPriceLines[1], "Stack(4): 100", "Stack-price line uses the provided store stack count")
+assertEqual(true, #stackPriceLines >= 1, "Stack-price tooltip line is generated")
+local attStackLine = findLine(stackPriceLines, "ATT")
+assertEqual(true, attStackLine ~= nil, "ATT stack-price line is present")
+assertContains(attStackLine, "(4x) 100", "Stack-price line uses the provided store stack count")
+
+-- === TTC Integration Tests ===
+
+print("\nTest: TTC single item shows per-unit Avg+Sug (no stack line)")
+local ttcSingleLines = BETTERUI.GetInventoryPriceInfo("ttc:both", nil, nil, 1)
+assertEqual(true, #ttcSingleLines >= 1, "TTC single item generates at least one price line")
+local ttcSingleLine = findLine(ttcSingleLines, "TTC")
+assertEqual(true, ttcSingleLine ~= nil, "TTC single item has a TTC price line")
+assertContains(ttcSingleLine, "Avg: 15", "TTC single shows avg price")
+assertContains(ttcSingleLine, "Sug: 20", "TTC single shows suggested price")
+-- Verify no stack info for single items
+assertEqual(nil, ttcSingleLine:find("%dx ", 1), "TTC single item has no stack text")
+
+print("\nTest: TTC stacked item shows per-unit line + separate stack total line")
+local ttcStackLines = BETTERUI.GetInventoryPriceInfo("ttc:both:stack", nil, nil, 10)
+-- Should produce at least 2 TTC lines: per-unit + stack total
+local ttcPerUnit = findLine(ttcStackLines, "TTC: Avg")
+assertEqual(true, ttcPerUnit ~= nil, "TTC stack has per-unit price line")
+assertContains(ttcPerUnit, "Avg: 15", "TTC per-unit line shows avg")
+assertContains(ttcPerUnit, "Sug: 20", "TTC per-unit line shows sug")
+local ttcStackTotal = findLine(ttcStackLines, "x) Avg")
+assertEqual(true, ttcStackTotal ~= nil, "TTC stack has stack total line")
+assertContains(ttcStackTotal, "(10x)", "TTC stack total shows Nx count")
+assertContains(ttcStackTotal, "Avg:", "TTC stack total shows Avg label")
+assertContains(ttcStackTotal, "150", "TTC stack total shows avg total (15*10)")
+assertContains(ttcStackTotal, "Sug:", "TTC stack total shows Sug label")
+assertContains(ttcStackTotal, "200", "TTC stack total shows sug total (20*10)")
+
+print("\nTest: TTC avg-only stacked item shows per-unit + stack total")
+local ttcAvgStackLines = BETTERUI.GetInventoryPriceInfo("ttc:avgonly:stack", nil, nil, 5)
+local ttcAvgPerUnit = findLine(ttcAvgStackLines, "TTC: Avg")
+assertEqual(true, ttcAvgPerUnit ~= nil, "TTC avg-only has per-unit line")
+assertContains(ttcAvgPerUnit, "Avg: 30", "TTC avg-only per-unit shows avg")
+local ttcAvgStackTotal = findLine(ttcAvgStackLines, "x) Avg")
+assertEqual(true, ttcAvgStackTotal ~= nil, "TTC avg-only has stack total line")
+assertContains(ttcAvgStackTotal, "(5x)", "TTC avg-only stack total shows Nx count")
+assertContains(ttcAvgStackTotal, "150", "TTC avg-only stack total shows total (30*5)")
+
+print("\nTest: TTC no data shows fallback")
+local ttcNoDataLines = BETTERUI.GetInventoryPriceInfo("ttc:nonexistent", nil, nil, 1)
+local ttcNoDataLine = findLine(ttcNoDataLines, "TTC")
+assertEqual(true, ttcNoDataLine ~= nil, "TTC no-data has a TTC fallback line")
+assertContains(ttcNoDataLine, "No Price Data", "TTC no-data shows fallback message")
 
 print("\nTest: Inventory hook preserves tooltip-seeded store stack counts")
 BETTERUI.Inventory.UpdateTooltipEquippedText = function() end
@@ -220,6 +315,152 @@ assertContains(knownBookLines[1], "In Library", "Known book line uses the librar
 BETTERUI.Settings.Modules.GeneralInterface.showKnowledgeStatus = false
 local disabledLines = BETTERUI.GetInventoryKnowledgeInfo("recipe:known")
 assertEqual(0, #disabledLines, "Knowledge lines are suppressed when the setting is disabled")
+
+print("\nTest: Blocklist guard passes through to native method when housing scene is active")
+-- Simulate housing furniture browser scene being active
+GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = {
+    IsShowing = function() return true end
+}
+
+local nativeMethodCalled = false
+local linkFuncCalled = false
+
+local housingTooltip = {
+    LayoutItem = function() nativeMethodCalled = true end,
+    LayoutBagItem = function() end,
+    LayoutStoreItemFromLink = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+BETTERUI.InventoryHook(
+    housingTooltip,
+    "mockHousingTooltip",
+    "LayoutItem",
+    function()
+        linkFuncCalled = true
+        return "test:item"
+    end,
+    "LayoutBagItem",
+    function() return nil, nil end,
+    "LayoutStoreItemFromLink",
+    function() return nil, nil end
+)
+
+-- Call the hooked method with housing scene active
+housingTooltip:LayoutItem("furniture_data")
+assertEqual(true, nativeMethodCalled, "Native LayoutItem method is called (pass-through)")
+assertEqual(false, linkFuncCalled, "linkFunc is NOT called (BetterUI logic skipped entirely)")
+
+print("\nTest: Blocklist guard on method2 (LayoutBagItem) passes through to native method")
+local nativeMethod2Called = false
+local linkFunc2Called = false
+
+local housingTooltip2 = {
+    LayoutItem = function() end,
+    LayoutBagItem = function() nativeMethod2Called = true end,
+    LayoutStoreItemFromLink = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+BETTERUI.InventoryHook(
+    housingTooltip2,
+    "mockHousingTooltip2",
+    "LayoutItem",
+    function() return nil end,
+    "LayoutBagItem",
+    function()
+        linkFunc2Called = true
+        return nil, nil
+    end,
+    "LayoutStoreItemFromLink",
+    function() return nil, nil end
+)
+
+housingTooltip2:LayoutBagItem("furniture_data")
+assertEqual(true, nativeMethod2Called, "Native LayoutBagItem is called (pass-through)")
+assertEqual(false, linkFunc2Called, "linkFunc2 is NOT called (BetterUI logic skipped)")
+
+print("\nTest: pcall safety net absorbs crashing linkFunc for unknown scene conflicts")
+-- Remove the housing scene so blocklist guard doesn't fire
+GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
+
+local crashTooltip = {
+    LayoutItem = function() end,
+    LayoutBagItem = function() end,
+    LayoutStoreItemFromLink = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+BETTERUI.InventoryHook(
+    crashTooltip,
+    "mockCrashTooltip",
+    "LayoutItem",
+    function() error("linkFunc crash: unexpected data") end,
+    "LayoutBagItem",
+    function() error("linkFunc2 crash: unexpected data") end,
+    "LayoutStoreItemFromLink",
+    function() error("linkFunc3 crash: unexpected data") end
+)
+
+-- Each hooked method should absorb the error via pcall, not propagate it
+local pcallOk1, _ = pcall(crashTooltip.LayoutBagItem, crashTooltip, "unknown_data")
+assertEqual(true, pcallOk1, "LayoutBagItem pcall safety net absorbs crashing linkFunc2")
+
+local pcallOk2, _ = pcall(crashTooltip.LayoutStoreItemFromLink, crashTooltip, "unknown_data")
+assertEqual(true, pcallOk2, "LayoutStoreItemFromLink pcall safety net absorbs crashing linkFunc3")
+
+local pcallOk3, _ = pcall(crashTooltip.LayoutItem, crashTooltip, "unknown_data")
+assertEqual(true, pcallOk3, "LayoutItem pcall safety net absorbs crashing linkFunc")
+
+print("\nTest: Deferred callback skipped when housing scene becomes active mid-frame")
+-- Simulate: deferred callback was scheduled while inventory was active,
+-- but by the time it fires, the housing scene has become active (race condition)
+local updateCalled = false
+local origUpdate = BETTERUI.Inventory.UpdateTooltipEquippedText
+BETTERUI.Inventory.UpdateTooltipEquippedText = function()
+    updateCalled = true
+end
+
+local raceTooltip = {
+    LayoutItem = function() end,
+    LayoutBagItem = function() end,
+    LayoutStoreItemFromLink = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+-- Hook with housing scene inactive (normal inventory state)
+GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
+BETTERUI.InventoryHook(
+    raceTooltip,
+    "mockRaceTooltip",
+    "LayoutItem",
+    function() return "test:item" end,
+    "LayoutBagItem",
+    function() return nil, nil end,
+    "LayoutStoreItemFromLink",
+    function() return nil, nil end
+)
+
+-- Now activate the housing scene BEFORE LayoutItem fires
+-- (simulating the race condition where scene transition happens mid-frame)
+GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = {
+    IsShowing = function() return true end
+}
+-- LayoutItem with housing active → blocklist guard fires, no deferred scheduled
+raceTooltip:LayoutItem("test:item")
+assertEqual(false, updateCalled, "Deferred header injection skipped when housing scene is active")
+
+-- Restore
+BETTERUI.Inventory.UpdateTooltipEquippedText = origUpdate
+GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))
