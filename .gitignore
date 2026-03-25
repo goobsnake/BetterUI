@@ -25,3 +25,5 @@
 !/esoui/pregameandinternalingame/
 !/esoui/pregamelocalization/
 !/esoui/publicallingames/
+# AI Orchestrator workspace sessions
+.agent_workspace/
