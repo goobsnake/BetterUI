@@ -61,6 +61,7 @@ end
 -- =========================================================================
 
 local function RefreshAllData()
+    if not m_isInitialized then return end
     if m_updateDeathFragment then m_updateDeathFragment() end
 
     -- Update Power Pools
@@ -86,7 +87,7 @@ local function RefreshAllData()
 end
 
 local function ApplyLayout(updateOrbs, updateSkills)
-    if not m_rootFrame then return end
+    if not m_rootFrame or not m_isInitialized then return end
 
     if updateSkills then
         -- Update Skill Bar Layouts
@@ -442,7 +443,16 @@ function ResourceOrbFrames.ApplySettings()
 
     if settings.m_enabled then
         if not m_isInitialized then
-            SetupModule(m_rootFrame)
+            -- Attempt initialization; if it fails, bail out
+            local ok, err = pcall(SetupModule, m_rootFrame)
+            if not ok then
+                BETTERUI.Debug("ResourceOrbFrames.ApplySettings: SetupModule failed: " .. tostring(err))
+                return
+            end
+        end
+        -- Double-check initialization succeeded before proceeding
+        if not m_isInitialized then
+            return
         end
         m_rootFrame:SetHidden(false)
         ApplyFullLayout()

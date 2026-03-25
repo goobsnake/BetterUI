@@ -487,6 +487,11 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         elseif leftOrnament then
             leftOrb:SetAnchor(CENTER, leftOrnament, CENTER, cfg.orbs.left.x * leftVisibleScale,
                 cfg.orbs.left.y * leftVisibleScale)
+        else
+            -- Fallback: ornament expected but not found; anchor to bgMiddle
+            leftOrb:SetAnchor(CENTER, bgMiddle, CENTER,
+                cfg.ornaments.left.x + cfg.orbs.left.x,
+                cfg.ornaments.left.y + cfg.orbs.left.y)
         end
         leftOrb:SetDimensions(leftBorderSize, leftBorderSize)
         local border = FindControl(leftOrb, 'Border')
@@ -505,6 +510,10 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         elseif rightOrnament then
             rightOrb:SetAnchor(CENTER, rightOrnament, CENTER, cfg.orbs.right.x * rightVisibleScale,
                 cfg.orbs.right.y * rightVisibleScale)
+        else
+            rightOrb:SetAnchor(CENTER, bgMiddle, CENTER,
+                cfg.ornaments.right.x + cfg.orbs.right.x,
+                cfg.ornaments.right.y + cfg.orbs.right.y)
         end
         rightOrb:SetDimensions(rightBorderSize, rightBorderSize)
 
@@ -617,7 +626,13 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         if sOrb then
             local size = leftBorderSize * cfg.fills.shield.ringScale
             sOrb:SetDimensions(size, size)
-            sOrb:SetAnchor(CENTER, leftOrb, CENTER, 0, 0)
+            if leftOrb then
+                sOrb:SetAnchor(CENTER, leftOrb, CENTER, 0, 0)
+            else
+                sOrb:SetAnchor(CENTER, bgMiddle, CENTER,
+                    cfg.ornaments.left.x + cfg.orbs.left.x,
+                    cfg.ornaments.left.y + cfg.orbs.left.y)
+            end
             local lbl = FindControl(sOrb, 'Label')
             if lbl then
                 lbl:SetAnchor(CENTER, leftOrb, CENTER,
