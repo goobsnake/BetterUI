@@ -1,4 +1,22 @@
-Current Release - v3.02 Changes:
+Current Release - v3.03 Changes:
+
+[INDENT]TOOLTIPS:
+1. Added: Housing furniture browser scene defense — BetterUI now cleanly passes through to native ESO tooltips when incompatible scenes (housing editor, furniture browser) are active, preventing UI disappearance
+2. Added: TTC tooltip pricing now displays stack totals in compact "Nx" format (e.g., `5x Avg: 10000 / Sug: 8000`) for stacked items
+3. Fixed: Hex color codes in market/researchable tooltip text now render correctly instead of displaying as raw text
+
+RESOURCE ORB FRAMES:
+4. Fixed: Race condition when toggling individual orb settings no longer causes runtime errors — stale sub-module references and unsafe layout updates are now guarded
+
+LOCALIZATION:
+5. Improved: Updated tooltip-related localization strings across all 7 locales with new compact pricing format labels
+
+INVENTORY & CRAFT BAG:
+6. Fixed: Category navigation (carousel LB/RB and tab clicks) no longer bleeds scroll position across categories — each category now correctly maintains its own independent saved position
+[/INDENT]
+
+
+v3.02 Changes:
 
 [INDENT]RESOURCE ORB FRAMES:
 1. Added: Keyboard mode support with dynamic gamepad/keyboard re-skinning — no more /reloadui required when switching input modes

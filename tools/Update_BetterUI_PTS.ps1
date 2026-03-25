@@ -7,22 +7,36 @@ Copies the repository addon payload to the local ESO PTS addon folder after
 removing the existing destination folder. Excludes development-only files and
 directories (tools, docs, git metadata, agent config, etc).
 
+Supports both Windows and Linux (Steam/Proton). The default destination is
+auto-detected based on the operating system.
+
 .PARAMETER SourceDir
 Repository root to copy from. Defaults to this script's parent directory.
 
 .PARAMETER DestinationDir
-Target BetterUI folder under ESO PTS AddOns.
+Target BetterUI folder under ESO PTS AddOns. Auto-detected per OS if omitted.
 
 .EXAMPLE
 .\Update_BetterUI_PTS.ps1
 
 .EXAMPLE
 .\Update_BetterUI_PTS.ps1 -SourceDir 'X:\Git\BetterUI'
+
+.EXAMPLE
+pwsh ./tools/Update_BetterUI_PTS.ps1   # Linux (Ubuntu 24.04 / Steam Proton)
 #>
 param(
     [string]$SourceDir = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path,
-    [string]$DestinationDir = "$env:USERPROFILE\Documents\Elder Scrolls Online\pts\AddOns\BetterUI"
+    [string]$DestinationDir
 )
+
+if (-not $DestinationDir) {
+    if ($IsLinux) {
+        $DestinationDir = Join-Path $HOME '.steam/steam/steamapps/compatdata/306130/pfx/drive_c/users/steamuser/Documents/Elder Scrolls Online/pts/AddOns/BetterUI'
+    } else {
+        $DestinationDir = Join-Path $env:USERPROFILE 'Documents/Elder Scrolls Online/pts/AddOns/BetterUI'
+    }
+}
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'

@@ -15,11 +15,14 @@ ZO_CreateStringId("SI_BETTERUI_SEARCH_NO_RESULTS", "Keine Gegenstände gefunden"
 
 -- Market Price Tooltip Strings (TTC / MM / ATT integration)
 ZO_CreateStringId("SI_BETTERUI_MARKET_NO_PRICE_DATA", "<<1>>: Keine Preisdaten")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC - Durchschn.: <<1>> / Empf.: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC - Durchschn.: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC - Empf.: <<1>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>> Preis: <<2>>")
-ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>> Preis: <<2>>,   Stapel(<<3>>): <<4>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG_SUG", "TTC: Durchschn.: <<1>> / Empf.: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_AVG", "TTC: Durchschn.: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_SUG", "TTC: Empf.: <<1>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG", "TTC: (<<1>>x) Durchschn.: <<2>> / Empf.: <<3>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_STACK_AVG", "TTC: (<<1>>x) Durchschn.: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_TTC_STACK_SUG", "TTC: (<<1>>x) Empf.: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE", "<<1>>: <<2>>")
+ZO_CreateStringId("SI_BETTERUI_MARKET_PRICE_STACK", "<<1>>: <<2>>, (<<3>>x) <<4>>")
 
 -- Footer Currency Labels
 ZO_CreateStringId("SI_BETTERUI_FOOTER_CARRY", "Tragen")
