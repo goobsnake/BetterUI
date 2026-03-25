@@ -441,7 +441,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     end
 
     -- Capture current active index before clearing as an ultimate fallback
-    if not targetIndex and self.itemList:GetSelectedIndex() then
+    -- Skip during category switches to prevent stale index from old category bleeding through
+    if not targetIndex and not self._categorySwitchInProgress and self.itemList:GetSelectedIndex() then
         targetIndex = self.itemList:GetSelectedIndex()
     end
 

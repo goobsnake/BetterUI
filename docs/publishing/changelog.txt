@@ -10,6 +10,9 @@ RESOURCE ORB FRAMES:
 
 LOCALIZATION:
 5. Improved: Updated tooltip-related localization strings across all 7 locales with new compact pricing format labels
+
+INVENTORY & CRAFT BAG:
+6. Fixed: Category navigation (carousel LB/RB and tab clicks) no longer bleeds scroll position across categories — each category now correctly maintains its own independent saved position
 [/INDENT]
 
 
