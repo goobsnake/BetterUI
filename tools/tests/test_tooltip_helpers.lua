@@ -122,7 +122,7 @@ BETTERUI = {
     CIM = {
         CONST = {
             COLORS = {
-                RESEARCHABLE = "|c00FF00",
+                RESEARCHABLE = "00FF00",
             },
             ICONS = {
                 RECIPE_UNKNOWN = "recipe.dds",

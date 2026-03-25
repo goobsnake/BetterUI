@@ -258,17 +258,17 @@ function BETTERUI.GetInventoryTraitInfo(itemLink)
         if (CanItemLinkBeTraitResearched(itemLink)) then
             -- Find owned items that can be researchable
             if (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BACKPACK) > 0) then
-                traitString = colors.RESEARCHABLE ..
-                    "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in Inventory|r"
+                traitString = "|c" .. colors.RESEARCHABLE ..
+                    "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in Inventory|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_BANK) + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_SUBSCRIBER_BANK) > 0) then
-                traitString = colors.RESEARCHABLE .. "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in Bank|r"
+                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in Bank|r"
             elseif (BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink) > 0) then
-                traitString = colors.RESEARCHABLE ..
-                    "Researchable|r - " .. colors.FOUND_LOCATION .. "Found in House Bank|r"
+                traitString = "|c" .. colors.RESEARCHABLE ..
+                    "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found in House Bank|r"
             elseif (BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, BAG_WORN) > 0) then
-                traitString = colors.RESEARCHABLE .. "Researchable|r - " .. colors.FOUND_LOCATION .. "Found Equipped|r"
+                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r - |c" .. colors.FOUND_LOCATION .. "Found Equipped|r"
             else
-                traitString = colors.RESEARCHABLE .. "Researchable|r"
+                traitString = "|c" .. colors.RESEARCHABLE .. "Researchable|r"
             end
         else
             return lines
