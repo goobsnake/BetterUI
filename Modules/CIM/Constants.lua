@@ -669,9 +669,9 @@ BETTERUI.CIM.CONST.COLORS = {
     TAB_ICON_GOLD = { 1, 0.95, 0.5, 1 }, -- Gold tint for category icons
     TAB_ICON_FILTER = { 1, 1, 1, 1 },    -- White for filter type icons
 
-    -- Tooltip research status colors (hex strings for inline coloring)
-    RESEARCHABLE = "00FF00",   -- Green for "Researchable" text
-    FOUND_LOCATION = "FF9900", -- Orange for "Found in X" location text
+    -- Tooltip research status colors (ESO |cHEX inline color codes)
+    RESEARCHABLE = "|c00FF00",   -- Green for "Researchable" text
+    FOUND_LOCATION = "|cFF9900", -- Orange for "Found in X" location text
 }
 
 --[[

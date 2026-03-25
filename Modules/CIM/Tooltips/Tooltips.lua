@@ -188,22 +188,18 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
                 local avgPrice = priceInfo.Avg
                 local sugPrice = priceInfo.SuggestedPrice
                 local coinIcon = BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY))
+                local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
                 local ttcLine
 
                 if avgPrice and sugPrice then
-                    -- Both prices available - show both
-                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
+                    -- Both prices available
                     ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG_SUG),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 elseif avgPrice then
-                    -- Only Avg available
-                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
                     ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2))) .. " " .. coinIconStr
                 elseif sugPrice then
-                    -- Only Suggested available
-                    local coinIconStr = string.format("|t%d:%d:%s|t", iconSize, iconSize, coinIcon)
                     ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_SUG),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 else
@@ -211,6 +207,24 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
                 end
 
                 if ttcLine then table.insert(lines, ttcLine) end
+
+                -- Stack total on a separate line for readability
+                if stackCount > 1 and (avgPrice or sugPrice) then
+                    local totalAvg = avgPrice and BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice * stackCount, 2)) or nil
+                    local totalSug = sugPrice and BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice * stackCount, 2)) or nil
+                    local stackLine
+                    if totalAvg and totalSug then
+                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG),
+                            stackCount, totalAvg, totalSug) .. " " .. coinIconStr
+                    elseif totalAvg then
+                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_AVG),
+                            stackCount, totalAvg) .. " " .. coinIconStr
+                    else
+                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_SUG),
+                            stackCount, totalSug) .. " " .. coinIconStr
+                    end
+                    table.insert(lines, stackLine)
+                end
             else
                 -- priceInfo is nil — TTC has no data for this item at all
                 table.insert(lines, zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), "TTC"))
@@ -337,6 +351,31 @@ end
 ---
 --- References: Called by Setup.
 ---
+
+--- Returns true if a known-incompatible scene is currently active.
+--- These are native ESO scenes that share gamepad tooltip controls with BetterUI
+--- but pass non-inventory data (e.g., housing furniture) that BetterUI cannot handle.
+---
+--- When an incompatible scene is active, tooltip wrapper functions pass through
+--- to the native ESO method and skip ALL BetterUI enhancement logic, leaving
+--- the user in the native ESO tooltip state (not an error-suppressed unknown state).
+---
+--- This is a BLOCKLIST (not an allowlist) because BetterUI intentionally enhances
+--- tooltips in many scenes (guild store, merchant, crafting, etc.) that are NOT
+--- at risk — those scenes cannot be active while the housing editor is open.
+local function IsIncompatibleSceneActive()
+    -- Housing Furniture Browser: uses GAMEPAD_RIGHT_TOOLTIP as an instant-scene
+    -- tooltip via AddTooltipInstantScene, passing furniture data that isn't
+    -- standard inventory data. BetterUI hooks LayoutItem/LayoutBagItem on all
+    -- three gamepad tooltip controls, so this tooltip call reaches our wrapper.
+    if GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE
+        and GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE:IsShowing() then
+        return true
+    end
+    -- Add future incompatible scenes here as they are discovered.
+    return false
+end
+
 --- @param tooltipControl object The tooltip control to hook.
 --- @param _tooltipType any Tooltip type constant (reserved for future use).
 --- @param method string The method name to hook/override.
@@ -356,24 +395,63 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
     local storeStackCount
 
     tooltipControl[method2] = function(self, ...)
-        bagId, slotIndex = linkFunc2(...)
+        -- Layer 1: Blocklist guard — if an incompatible scene (e.g., housing
+        -- furniture browser) is active, pass through to native method and skip
+        -- ALL BetterUI logic. This leaves the tooltip in native ESO state.
+        if IsIncompatibleSceneActive() then
+            newMethod2(self, ...)
+            return
+        end
+        -- Layer 2: pcall safety net for unknown future scene conflicts
+        local ok, b, s = pcall(linkFunc2, ...)
+        if ok then
+            bagId, slotIndex = b, s
+        else
+            bagId, slotIndex = nil, nil
+        end
         -- Clear store-specific state when navigating to a bag item
         storeItemLink = nil
         storeStackCount = nil
         newMethod2(self, ...)
     end
     tooltipControl[method3] = function(self, ...)
-        storeItemLink, storeStackCount = linkFunc3(...)
+        -- Layer 1: Blocklist guard
+        if IsIncompatibleSceneActive() then
+            newMethod3(self, ...)
+            return
+        end
+        -- Layer 2: pcall safety net
+        local ok, link, count = pcall(linkFunc3, ...)
+        if ok then
+            storeItemLink, storeStackCount = link, count
+        else
+            storeItemLink, storeStackCount = nil, nil
+        end
         -- Clear bag-specific state when navigating to a store item
         bagId = nil
         slotIndex = nil
         newMethod3(self, ...)
     end
     tooltipControl[method] = function(self, ...)
+        -- Layer 1: Blocklist guard — if an incompatible scene is active, call
+        -- ONLY the native ESO tooltip method and return immediately. No BetterUI
+        -- state is modified, no link extraction runs, no deferred callbacks fire.
+        -- The user sees the native ESO tooltip exactly as the game intended.
+        if IsIncompatibleSceneActive() then
+            newMethod(self, ...)
+            return
+        end
+
         if storeItemLink then
             itemLink = storeItemLink
         else
-            itemLink = linkFunc(...)
+            -- Layer 2: pcall safety net for unknown future scene conflicts
+            local ok, link = pcall(linkFunc, ...)
+            if ok then
+                itemLink = link
+            else
+                itemLink = nil
+            end
         end
 
         -- Capture current item link for Status Hook/Inventory Update to read
@@ -395,7 +473,13 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         storeStackCount = nil
 
         -- 1. Draw the standard tooltip first (other addon hooks fire within this call chain)
-        newMethod(self, ...)
+        -- Layer 2: pcall safety net for the original layout method.
+        -- If this crashes from unexpected data in an unknown future scene,
+        -- we absorb rather than blanking the entire UI.
+        local layoutOk, layoutErr = pcall(newMethod, self, ...)
+        if not layoutOk then
+            return
+        end
 
         -- 2. Get Settings
         local settings = BETTERUI.Settings.Modules["CIM"]
@@ -429,6 +513,12 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
                 if not tooltipRef or tooltipRef:IsHidden() then return end
                 if tooltipRef._betterui_priceRendered then return end
 
+                -- Layer 3: Scene-identity guard (belt-and-suspenders).
+                -- The blocklist guard at entry should prevent us from reaching here
+                -- for known-incompatible scenes, but this catches edge cases where
+                -- a deferred callback was scheduled just before a scene transition.
+                if IsIncompatibleSceneActive() then return end
+
                 -- Skip if user scrolled to a different item since we were scheduled
                 -- (the LayoutItem wrapper updates _betterui_itemLink synchronously)
                 if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
@@ -450,6 +540,8 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
             local tooltipRef = self
             zo_callLater(function()
                 if not tooltipRef or tooltipRef:IsHidden() then return end
+                -- Layer 3: Scene-identity guard (belt-and-suspenders)
+                if IsIncompatibleSceneActive() then return end
 
                 -- Recursive label scan: trading addon labels are nested inside
                 -- ZO_TooltipSection controls (tooltip → contentsSection → subsection → label)
