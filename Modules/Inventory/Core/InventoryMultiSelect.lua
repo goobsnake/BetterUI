@@ -10,8 +10,6 @@ local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
 --------------------------------------------------------------------------------
 
-local CanDestroyInventoryItem -- forward-declared, defined in InventoryBatchOps.lua and stored on Class
-
 --- Enters multi-select mode for the item list.
 function Class:EnterSelectionMode()
     MultiSelectMixin.EnterSelectionMode(self)

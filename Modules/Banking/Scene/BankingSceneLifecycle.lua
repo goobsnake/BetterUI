@@ -5,7 +5,6 @@ Extracted from Banking.lua for maintainability.
 ]]
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 --[[
 Function: BETTERUI.Banking.Class:OnSceneShowing
@@ -73,7 +72,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     local function OnInventoryUpdated(bagId, slotIndex)
         if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
         local currentUsedBank = BETTERUI.Banking.currentUsedBank
-        local relevantBags = {}
+        local relevantBags
         if self.currentMode == LIST_WITHDRAW then
             if GuildBank and GuildBank.IsGuildBankMode() then
                 relevantBags = { BAG_GUILDBANK }

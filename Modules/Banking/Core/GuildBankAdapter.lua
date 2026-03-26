@@ -105,7 +105,6 @@ function GuildBank.GetPermissionDenialReason(mode)
     if mode == LIST_WITHDRAW and not GuildBank.CanWithdraw() then
         return GetString(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS)
     elseif mode == LIST_DEPOSIT and not GuildBank.CanDeposit() then
-        local guildId = GuildBank.GetSelectedGuildId()
         local minMembers = GetGuildBankMinDepositMembers and GetGuildBankMinDepositMembers() or 10
         return zo_strformat(GetString(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS), minMembers)
     end

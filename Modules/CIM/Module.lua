@@ -24,7 +24,6 @@ Last Modified: 2026-02-08
 --- Ownership: CIM owns cross-cutting concerns. Feature-specific concerns
 --- belong in their respective modules (Banking, Inventory, Vendor).
 
-local LAM = LibAddonMenu2
 
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger

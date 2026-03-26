@@ -12,7 +12,6 @@ KEY SAFETY GUARDS:
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE

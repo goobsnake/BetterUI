@@ -13,7 +13,6 @@ local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
-local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
 --[[
 Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors

@@ -84,10 +84,10 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
     if equipSlot then
         ZO_InventoryUtils_UpdateTooltipEquippedIndicatorText(tooltipType, equipSlot)
-        local isHidden, highestPriorityVisualLayerThatIsShowing =
+        local isHidden =
             WouldEquipmentBeHidden(equipSlot, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
 
-        local equipSlotTextHidden = ""
+        local equipSlotTextHidden
         local equippedHeader = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
 
         if equipSlot == EQUIP_SLOT_MAIN_HAND then
@@ -188,7 +188,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 -- A. Item Type (Neck, Ring)
                 local itemType = GetItemLinkItemType(itemLink)
                 local typeString = GetString("SI_ITEMTYPE", itemType)
-                local typeStringUpper = zo_strupper(typeString)
+                local _ = zo_strupper(typeString)
 
                 -- B. Lock Icon
                 local lockString = ""
@@ -205,7 +205,6 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
                 -- D. Bind Type (e.g. Bind on Equip) that is NOT yet bound
                 local bindTypeString = ""
-                local bindTypeStringLocal = ""
 
                 local bindType = GetItemLinkBindType(itemLink) -- Always check link for the nature of the item
 
@@ -215,40 +214,29 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                         IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink))
 
                     if isSet and not isUnlocked then
-                        bindTypeStringLocal = GetString(SI_BETTERUI_BIND_FOR_COLLECTION)
-                        bindTypeString = bindTypeStringLocal
+                        bindTypeString = GetString(SI_BETTERUI_BIND_FOR_COLLECTION)
                     else
-                        bindTypeStringLocal = GetString(SI_ITEM_FORMAT_STR_BIND_ON_EQUIP)
-                        bindTypeString = bindTypeStringLocal
+                        bindTypeString = GetString(SI_ITEM_FORMAT_STR_BIND_ON_EQUIP)
                     end
                 elseif bindType == BIND_TYPE_ON_PICKUP or bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
-                    bindTypeStringLocal = GetString(SI_ITEM_FORMAT_STR_BIND_ON_PICKUP)
-                    bindTypeString = bindTypeStringLocal
+                    bindTypeString = GetString(SI_ITEM_FORMAT_STR_BIND_ON_PICKUP)
                 end
 
                 -- E. Traits (Ornate / Intricate)
                 local traitType = GetItemLinkTraitInfo(itemLink)
                 local traitString = ""
-                local traitStringLocal = ""
                 local traitIcon = ""
 
                 if traitType == ITEM_TRAIT_TYPE_ARMOR_ORNATE or traitType == ITEM_TRAIT_TYPE_WEAPON_ORNATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_ORNATE then
-                    traitStringLocal = GetString("SI_ITEMTRAITTYPE", traitType)
-                    traitString = traitStringLocal
+                    traitString = GetString("SI_ITEMTRAITTYPE", traitType)
                     traitIcon = "|t" .. iconSizeFmt .. ":esoui/art/inventory/inventory_trait_ornate_icon.dds|t"
                 elseif traitType == ITEM_TRAIT_TYPE_ARMOR_INTRICATE or traitType == ITEM_TRAIT_TYPE_WEAPON_INTRICATE or traitType == ITEM_TRAIT_TYPE_JEWELRY_INTRICATE then
-                    traitStringLocal = GetString("SI_ITEMTRAITTYPE", traitType)
-                    traitString = traitStringLocal
+                    traitString = GetString("SI_ITEMTRAITTYPE", traitType)
                     traitIcon = "|t" .. iconSizeFmt .. ":esoui/art/inventory/inventory_trait_intricate_icon.dds|t"
                 end
 
                 -- E2. Stolen Status
-                local isStolen = false
-                if bagId and slotIndex then
-                    isStolen = IsItemStolen(bagId, slotIndex)
-                else
-                    isStolen = IsItemLinkStolen(itemLink)
-                end
+                local isStolen = (bagId and slotIndex) and IsItemStolen(bagId, slotIndex) or IsItemLinkStolen(itemLink)
 
                 local stolenString = ""
                 local stolenIcon = ""
@@ -266,15 +254,6 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 local junkString = ""
                 if isJunk then
                     junkString = GetString(SI_ITEM_FORMAT_STR_JUNK)
-                end
-
-                -- F. Collected Status
-                local isCollected = false
-                if IsItemSetCollectionPiece and IsItemSetCollectionPieceUnlocked then
-                    local itemId = GetItemLinkItemId(itemLink)
-                    if IsItemSetCollectionPiece(itemLink) and itemId and IsItemSetCollectionPieceUnlocked(itemId) then
-                        isCollected = true
-                    end
                 end
 
                 -- G. Bag/Bank Counts
@@ -425,8 +404,8 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         ]]
         if not enhancementsEnabled then
             -- Get the scroll container structure
-            local scrollTooltip = container and container:GetNamedChild("Tip")
-            local scrollContainer = scrollTooltip and scrollTooltip:GetNamedChild("Scroll")
+            local tipControl = container and container:GetNamedChild("Tip")
+            local scrollContainer = tipControl and tipControl:GetNamedChild("Scroll")
             local scrollChild = scrollContainer and scrollContainer:GetNamedChild("ScrollChild")
 
             -- Show price text for ALL items
@@ -446,13 +425,13 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
                 local priceLabel = container._betterUiNativePriceLabel
                 if priceLabel then
-                    local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+                    local currentBottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
 
                     -- Position price just below the BottomRail divider
                     priceLabel:ClearAnchors()
-                    if bottomRail then
-                        priceLabel:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 5)
-                        priceLabel:SetAnchor(TOPRIGHT, bottomRail, BOTTOMRIGHT, 0, 5)
+                    if currentBottomRail then
+                        priceLabel:SetAnchor(TOPLEFT, currentBottomRail, BOTTOMLEFT, 0, 5)
+                        priceLabel:SetAnchor(TOPRIGHT, currentBottomRail, BOTTOMRIGHT, 0, 5)
                     else
                         priceLabel:SetAnchor(TOPLEFT, container, TOPLEFT, 0, 40)
                         priceLabel:SetAnchor(TOPRIGHT, container, TOPRIGHT, 0, 40)
@@ -468,10 +447,10 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     local priceHeight = numPriceLines * 32
 
                     -- Move the scroll tooltip (Tip) down to make room
-                    if scrollTooltip then
-                        scrollTooltip:ClearAnchors()
-                        scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, priceHeight + 5)
-                        scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+                    if tipControl then
+                        tipControl:ClearAnchors()
+                        tipControl:SetAnchor(TOPLEFT, currentBottomRail, BOTTOMLEFT, 0, priceHeight + 5)
+                        tipControl:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
                     end
                 end
             else
@@ -481,16 +460,16 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
 
                 -- Restore Tip to normal position
-                if scrollTooltip then
-                    local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
-                    scrollTooltip:ClearAnchors()
-                    if bottomRail then
-                        scrollTooltip:SetAnchor(TOPLEFT, bottomRail, BOTTOMLEFT, 0, 0)
+                if tipControl then
+                    local currentBottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
+                    tipControl:ClearAnchors()
+                    if currentBottomRail then
+                        tipControl:SetAnchor(TOPLEFT, currentBottomRail, BOTTOMLEFT, 0, 0)
                     else
-                        scrollTooltip:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
+                        tipControl:SetAnchor(TOPLEFT, container, TOPLEFT, 0,
                             BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y)
                     end
-                    scrollTooltip:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
+                    tipControl:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, 0, 0)
                 end
             end
 

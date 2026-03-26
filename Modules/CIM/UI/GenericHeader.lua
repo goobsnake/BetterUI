@@ -34,11 +34,6 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     local icon = control:GetNamedChild("Icon")
 
     -- Resolve text if function (used for accessibility)
-    local text = data.text
-    if type(text) == "function" then
-        text = text()
-    end
-
     local iconPath = data.iconsNormal[1]
     icon:SetTexture(iconPath)
 

@@ -9,8 +9,6 @@ Last Modified: 2026-01-28
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
 -------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 --[[
 Function: BETTERUI.Banking.Class:CycleCategory
@@ -132,7 +130,6 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
         -- Use NavigationState to check mode toggle status
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-        local NavState = BETTERUI.CIM.NavigationState
         -- During mode toggle, use animation-free selection to avoid callback interference
         if state.justToggledMode then
             self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
@@ -157,7 +154,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- module's generic header target when available (self.headerGeneric) to match
     -- where the tabBar and focusable controls were initialized.
     if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
-        local headerTarget = nil
+        local headerTarget
         if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
             headerTarget = self.headerGeneric.tabBar.control
         elseif self.headerGeneric then

@@ -40,7 +40,6 @@ KEY MECHANICS:
 local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 
-local esoSubscriber                 = BETTERUI.Banking.esoSubscriber
 
 -------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY AND UTILITY REFERENCES
@@ -48,8 +47,6 @@ local esoSubscriber                 = BETTERUI.Banking.esoSubscriber
 -- Use centralized category definitions from CIM module to eliminate duplication.
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
 -------------------------------------------------------------------------------------------------
-local BANK_CATEGORY_DEFS            = BETTERUI.Banking.CATEGORY_DEFS
-local EnsureKeybindGroupAdded       = BETTERUI.Banking.EnsureKeybindGroupAdded
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
 
@@ -323,7 +320,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         -- Register search. Pass our descriptor so AddSearch can wire keybinds appropriately.
         self:AddSearch(self.textSearchKeybindStripDescriptor, function(editOrText)
             -- Normalize the OnTextChanged argument: engine passes the editBox control, others may pass a string.
-            local query = ""
+            local query
             if type(editOrText) == "string" then
                 query = editOrText
             elseif editOrText and type(editOrText) == "table" and editOrText.GetText then
@@ -422,53 +419,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- these are event handlers which are specific to the banking interface. Handling the events this way encapsulates the banking interface
     -- these local functions are essentially just router functions to other functions within this class. it is done in this way to allow for
     -- us to access this classes' members (through "self")
-
-    -- Event handler for Single Slot Updates (Item added/removed/changed).
-    -- Purpose: Refreshes the list when inventory changes occur.
-    -- Mechanics:
-    -- 1. Checks `_suppressListUpdates` to avoid spamming refreshes during bulk moves.
-    -- 2. Calls `UpdateSingleItem` (which triggers a refresh).
-    -- 3. Re-computes visible categories (e.g., if the last Weapon was removed, hide Weapon tab).
-    -- 4. Handles Category auto-switching if the current category becomes empty.
-    local function UpdateSingle_Handler(eventId, bagId, slotId, isNewItem, itemSound)
-        -- If a coalesced refresh is in progress, skip intermediate updates to avoid UI stutter
-        if self._suppressListUpdates then
-            self.isDirty = true
-            return
-        end
-        self:UpdateSingleItem(bagId, slotId)
-        -- Categories can become empty/non-empty as items move; rebuild the header list
-        -- Capture the current category KEY before recomputing categories
-        local prevCategoryKey = nil
-        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
-            local prevCat = self.bankCategories[self.currentCategoryIndex]
-            if prevCat then
-                prevCategoryKey = prevCat.key
-            end
-        end
-        self.bankCategories = self:ComputeVisibleBankCategories()
-        -- Check if the captured category key still exists in the new list
-        if prevCategoryKey then
-            local categoryStillExists = false
-            for i, cat in ipairs(self.bankCategories) do
-                if cat.key == prevCategoryKey then
-                    categoryStillExists = true
-                    break
-                end
-            end
-            if not categoryStillExists then
-                -- Category became empty, force to All Items
-                self.currentCategoryIndex = 1
-            end
-        end
-        -- Suppress callback during rebuild when category has changed
-        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
-        state.suppressHeaderCallback = true
-        self:RebuildHeaderCategories()
-        state.suppressHeaderCallback = false
-        self:RefreshList()
-        self:RefreshActiveKeybinds()
-    end
 
     local function UpdateCurrency_Handler()
         -- Only update UI/keybinds when the banking scene is actually visible

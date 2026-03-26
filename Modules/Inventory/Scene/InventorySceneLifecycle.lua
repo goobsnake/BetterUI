@@ -9,9 +9,6 @@ Last Modified: 2026-03-14
 -- Constants (must match Inventory.lua)
 local INVENTORY_CATEGORY_LIST = "categoryList"
 local INVENTORY_ITEM_LIST = "itemList"
-local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
-
-local BLOCK_TABBAR_CALLBACK = true
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
 --- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.

@@ -124,7 +124,7 @@ end
 --- @return string|nil enchantmentDesc A brief description of the enchantment
 local function GetEnchantmentSummary(itemLink)
     if not itemLink or itemLink == "" then return nil end
-    local hasEnchant, enchantHeader, enchantDesc = GetItemLinkEnchantInfo(itemLink)
+    local hasEnchant, _, enchantDesc = GetItemLinkEnchantInfo(itemLink)
     if hasEnchant and enchantDesc and enchantDesc ~= "" then
         return enchantDesc
     end

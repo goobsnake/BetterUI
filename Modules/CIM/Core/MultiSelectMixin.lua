@@ -211,7 +211,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local chunkCostUnits, chunkPauseMs = 0, 0
     local adaptiveDelay, adaptiveThreshold, adaptiveStepMs = false, 0, 0
     local jitterMs = 0
-    local skipInterBatchCooldown = false
+    local skipInterBatchCooldown
     local postBatchCooldownBaseMs, postBatchCooldownThreshold = 0, 0
     local postBatchCooldownPerCostMs, postBatchCooldownMaxMs = 0, 0
     local enforceRateWindow, rateLimitWindowMs, rateLimitMaxActions = false, 0, 0
@@ -515,8 +515,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     processNext = function()
         -- Pipeline token guard: reject stale timer callbacks from previous batch
         if pipelineToken ~= self_ref.batchPipelineToken then return end
-        local actionQueued = false
-        local bagId, slotIndex = nil, nil
+        local actionQueued
+        local bagId, slotIndex
         while true do
             if not Cfg.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
             if self_ref.batchAbortRequested then stopReason = "aborted"; finishBatch(); return end

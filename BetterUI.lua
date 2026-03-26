@@ -415,7 +415,7 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 		-- Wrap in pcall to prevent one module's error from breaking the entire addon
 		local success, result = pcall(m_namespace.InitModule, m_options)
 		if success then
-			m_options = result
+			-- InitModule mutates/persists module settings; return value is not used here.
 		else
 			local name = moduleName or "unknown"
 			BETTERUI.Debug("[Error] InitModule failed for " .. name .. ": " .. tostring(result))
@@ -483,7 +483,6 @@ end
 ---@param entry ModuleRegistryEntry The registry entry to evaluate
 ---@return boolean Whether the module should be loaded
 local function ShouldLoadModule(entry)
-	local settings = BETTERUI.Settings.Modules
 	local moduleNamespace = BETTERUI[entry.namespace]
 
 	-- Check if namespace exists
@@ -602,8 +601,8 @@ function BETTERUI.Initialize(event, addon)
 			if BETTERUI.Settings.Modules[moduleName] == nil then
 				BETTERUI.Settings.Modules[moduleName] = {}
 			end
-			local result = BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName], moduleName)
-			if not result then
+			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName], moduleName)
+			if not moduleInitResult then
 				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
 			end
 		end

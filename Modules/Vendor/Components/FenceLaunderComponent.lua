@@ -12,7 +12,6 @@ KEY MECHANICS:
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE
@@ -137,7 +136,7 @@ function FenceLaunder:BuildList(vendorInstance)
     for slotIndex = 0, bagSize - 1 do
         -- Only show stolen items
         if IsItemStolen(BAG_BACKPACK, slotIndex) then
-            local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
+            local icon, stackCount, _ = GetItemInfo(BAG_BACKPACK, slotIndex)
             local name = GetItemName(BAG_BACKPACK, slotIndex)
 
             if name and name ~= "" then

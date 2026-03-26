@@ -211,12 +211,6 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         end
     end
 
-    -- Determine equip action based on item type
-    local function performEquipAction(mainSlot, isPrimary)
-        -- isPrimary indicates which weapon bar to target (true = primary/front bar, false = backup/back bar)
-        DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
-    end
-
     -- Handle different equip types
     if equipType == EQUIP_TYPE_COSTUME then
         -- Costumes equip directly
@@ -272,8 +266,6 @@ end
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
 --- Initializes the custom dialog for selecting equipment slots.
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
-    local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.BASIC)
-
     --- @param data table
     --- @param mainSlot boolean
     local function ReleaseDialog(data, mainSlot)
@@ -418,7 +410,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     return GetDialogSwitchButtonText(dialog.data[2])
                 end,
                 visible = function(dialog)
-                    if not (GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()) then
+                    if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
                         return false
                     end
                     local equipType = dialog.data[1].dataSource.equipType

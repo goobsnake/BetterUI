@@ -203,7 +203,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
 
     if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
-        local headerTarget = nil
+        local headerTarget
         if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
             headerTarget = self.headerGeneric.tabBar.control
         elseif self.headerGeneric then

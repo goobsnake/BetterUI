@@ -11,16 +11,16 @@ Last Modified: 2026-01-27
 KNOWN DEPENDENCY BOUNDARY VIOLATION:
   This CIM (base module) file creates BETTERUI.Inventory namespace entries, which
   violates the intended module boundary direction (CIM should not depend on Inventory).
-  
+
   Why it exists: This was created as a shared location for category definitions used
   by both Inventory and Banking modules to avoid duplication. Moving these to an
   Inventory-owned file would require significant refactoring of CIM item processing
   (ItemDataProcessor.lua) and Banking module dependencies.
-  
+
   Risk: HIGH - Moving these definitions would break Banking category filtering and
   CIM item categorization. The Banking module depends on BETTERUI.Inventory.Categories
   for its category definitions.
-  
+
   Recommended fix (future): Create a shared Categories module at Modules/Core/Categories
   that both CIM and Inventory/Banking can depend on, eliminating the CIM→Inventory
   dependency direction violation.

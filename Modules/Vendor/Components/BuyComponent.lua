@@ -9,7 +9,6 @@ Uses GetNumStoreItems/GetStoreEntryInfo to populate the list.
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE
@@ -97,9 +96,8 @@ function Buy:BuildList(vendorInstance)
     if numItems == 0 then return end
 
     for entryIndex = 1, numItems do
-        local icon, name, stack, price, sellPrice, meetsReqs, equipType,
-            itemStyle, quality, questNameColor, currencyType1, currencyQuantity1,
-            currencyType2, currencyQuantity2, entryType = GetStoreEntryInfo(entryIndex)
+        local icon, name, stack, price, sellPrice, meetsReqs, _, _, quality, _, currencyType1, currencyQuantity1,
+            _, _, entryType = GetStoreEntryInfo(entryIndex)
 
         if name and name ~= "" then
             local itemLink = GetStoreItemLink(entryIndex)

@@ -10,7 +10,6 @@ and GetRepairAllCost/RepairAll for batch repair.
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE
@@ -92,7 +91,7 @@ function Repair:RepairAll(vendorInstance)
     end
 
     -- Format cost for display
-    local goldStr = ZO_CurrencyControl_FormatCurrencyAndAppendIcon(repairAllCost, true, CURT_MONEY, true)
+    local _ = ZO_CurrencyControl_FormatCurrencyAndAppendIcon(repairAllCost, true, CURT_MONEY, true)
 
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
@@ -120,8 +119,7 @@ function Repair:BuildList(vendorInstance)
         for slotIndex = 0, bagSize - 1 do
             local condition = GetItemCondition(bagId, slotIndex) or 100
             if condition < 100 then
-                local icon, stackCount, sellPrice, meetsRequirements, locked,
-                    equipType, itemStyle, quality = GetItemInfo(bagId, slotIndex)
+                local icon, stackCount, _, _, _, _, _, quality = GetItemInfo(bagId, slotIndex)
                 local name = GetItemName(bagId, slotIndex)
 
                 if name and name ~= "" then

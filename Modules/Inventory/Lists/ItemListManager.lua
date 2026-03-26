@@ -8,14 +8,6 @@ Last Modified: 2026-01-28
 
 -- Localize frequently used globals
 local GetItemLink = GetItemLink
-local GetItemLinkItemType = GetItemLinkItemType
-local GetItemLinkSetInfo = GetItemLinkSetInfo
-local GetItemLinkEnchantInfo = GetItemLinkEnchantInfo
-local IsItemLinkRecipeKnown = IsItemLinkRecipeKnown
-local IsItemLinkBookKnown = IsItemLinkBookKnown
-local IsItemLinkBook = IsItemLinkBook
-local GetItemTrait = GetItemTrait
-local IsItemBound = IsItemBound
 local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 local zo_strformat = zo_strformat
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
@@ -300,8 +292,6 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
     local showJunkCategory = self.pendingContext.showJunkCategory
     local filteredEquipSlot = self.pendingContext.filteredEquipSlot
     local isQuestItem = self.pendingContext.isQuestItem
-    local currentBestCategoryName = self.pendingContext.currentBestCategoryName
-    local showRightTooltip = false -- Logic simplified for batch
     local targetUniqueId = self.pendingContext.targetUniqueId
 
     -- Loop logic duplicated from RefreshItemList (extracted for batching)

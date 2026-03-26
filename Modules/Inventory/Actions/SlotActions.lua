@@ -36,11 +36,6 @@ Last Modified: 2026-01-28
 -- Custom slot actions can be registered by external addons via BETTERUI.Inventory.RegisterSlotAction()
 --------------------------------------------------------------------------------
 
-local ACTION_KEY = 1
-local VISIBILITY_FUNCTION = 4
-local OPTION_ARG = 5
-
-local INVENTORY_SLOT_ACTIONS_USE_CONTEXT_MENU = true
 local INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
 
 -- Registry for external addon slot actions
@@ -93,9 +88,9 @@ BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 --- @param actionType string The type of action (e.g., "primary").
 --- @param visibilityFunction function Optional function to determine if the action is visible.
 --- @param options any Optional configuration options.
-local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, visibilityFunction, options)
+local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, _visibilityFunction, options)
     local actionName = actionStringId
-    visibilityFunction = function()
+    local visibilityFunction = function()
         return not IsUnitDead("player")
     end
 
@@ -297,41 +292,37 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     --- @param actionStringId number The action string ID.
     --- @param callback function The callback to execute.
     --- @param inventorySlot table The inventory slot data.
-    local function SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
-        BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
+    local function SetupSecureAction(actionsList, actionStringId, callback, inventorySlot)
+        BETTERUI.CIM.SetupSecureAction(actionsList, actionStringId, callback, inventorySlot)
     end
 
     --- Configures actions related to the Craft Bag (Stow/Retrieve).
     --- @param slotActions table The slot actions object.
     --- @param inventorySlot table The inventory slot data.
     --- @param canUseItem boolean Whether the item is also usable (adds USE as a secondary action).
-    local function HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-        BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-    end
-
     --- Sets up the primary action for a slot based on its action name.
     --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
     --- @param slotActions table The slot actions object.
     --- @param actionName string The localized name of the action.
     --- @param inventorySlot table The inventory slot data.
-    local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
+    local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
         if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_EQUIP,
                 function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end,
                 inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNEQUIP) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_UNEQUIP, function(...) TryUnequipItem(inventorySlot) end,
                 inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_WITHDRAW) or IsPrimaryAction(actionName, SI_ITEM_ACTION_BANK_DEPOSIT) then
-            SetupSecureAction(slotActions,
+            SetupSecureAction(actionsList,
                 actionName == GetActionString(SI_ITEM_ACTION_BANK_WITHDRAW) and SI_ITEM_ACTION_BANK_WITHDRAW or
                 SI_ITEM_ACTION_BANK_DEPOSIT,
                 function(...) TryBankItem(inventorySlot) end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
             -- Retrieve: Use quantity dialog for stacked items
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
                 function(...)
                     if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity then
                         BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
@@ -342,13 +333,13 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             -- NOTE: Split Stack is NOT added here because it's handled by _betterui_primaryOverride
             -- in PrimaryCommandActivate. Adding it here would cause double invocation.
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_SHOW_MAP) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_SHOW_MAP, function(...) TryUseItem(inventorySlot) end,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_SHOW_MAP, function(...) TryUseItem(inventorySlot) end,
                 inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_SKILL_RESPEC) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_START_SKILL_RESPEC, function(...) TryUseItem(inventorySlot) end,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_START_SKILL_RESPEC, function(...) TryUseItem(inventorySlot) end,
                 inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
-            SetupSecureAction(slotActions, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC,
+            SetupSecureAction(actionsList, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC,
                 function(...) TryUseItem(inventorySlot) end, inventorySlot)
         end
 
@@ -380,8 +371,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         ]]
     --- @param slotActions table
     --- @param inventorySlot table
-    local function SecureOpenSkills(slotActions, inventorySlot)
-        BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
+    local function SecureOpenSkills(actionsList, inventorySlot)
+        BETTERUI.CIM.SecureOpenSkills(actionsList, inventorySlot)
     end
 
     --[[
@@ -398,8 +389,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     --- @param primaryAction string
     --- @param canUseItem boolean
     --- @return string
-    local function ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
-        return BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
+    local function ResolveCraftBagState(actionsList, inventorySlot, primaryAction, canUseItem)
+        return BETTERUI.CIM.ResolveCraftBagState(actionsList, inventorySlot, primaryAction, canUseItem)
     end
 
     --[[
@@ -408,8 +399,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: slotActions (table) - The slot actions object to deduplicate
         ]]
     --- @param slotActions table
-    local function DeduplicateActions(slotActions)
-        BETTERUI.CIM.DeduplicateActions(slotActions)
+    local function DeduplicateActions(actionsList)
+        BETTERUI.CIM.DeduplicateActions(actionsList)
     end
 
     --- The main logic invoked when the primary action (A button) is potentially triggered.

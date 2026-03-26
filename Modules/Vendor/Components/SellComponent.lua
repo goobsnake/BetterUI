@@ -9,7 +9,6 @@ Includes batch junk sell support (Sell All Junk keybind).
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE

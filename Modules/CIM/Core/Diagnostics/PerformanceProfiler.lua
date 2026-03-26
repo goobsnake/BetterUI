@@ -23,7 +23,6 @@ BETTERUI.CIM.Profiler = {}
 local profilerEnabled = false
 local timings = {}
 local counters = {}
-local frameMetrics = {}
 local startTimes = {}
 
 -- ============================================================================

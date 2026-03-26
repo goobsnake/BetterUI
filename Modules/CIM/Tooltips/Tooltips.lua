@@ -377,14 +377,14 @@ local function IsIncompatibleSceneActive()
 end
 
 --- @param tooltipControl object The tooltip control to hook.
---- @param _tooltipType any Tooltip type constant (reserved for future use).
+--- @param tooltipType any Tooltip type constant (reserved for future use).
 --- @param method string The method name to hook/override.
 --- @param linkFunc function Function to retrieve item link.
 --- @param method2 string Secondary method to hook (typically for bag/slot retrieval).
 --- @param linkFunc2 function Secondary link function.
 --- @param method3 string Tertiary method to hook (for store search).
 --- @param linkFunc3 function Tertiary link function.
-function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
+function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local newMethod = tooltipControl[method]
     local newMethod2 = tooltipControl[method2]
     local newMethod3 = tooltipControl[method3]
@@ -482,7 +482,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         -- Layer 2: SafeExecute wrapper for the original layout method.
         -- If this crashes from unexpected data in an unknown future scene,
         -- we absorb rather than blanking the entire UI, with proper error logging.
-        local layoutOk, layoutErr = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
+        local layoutOk = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
         if not layoutOk then
             return
         end
@@ -511,7 +511,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         -- market prices, and research trait info.
         if itemLink then
             local tooltipRef = self
-            local capturedTooltipType = _tooltipType
+            local capturedTooltipType = tooltipType
             local capturedItemLink = itemLink
 
             zo_callLater(function()

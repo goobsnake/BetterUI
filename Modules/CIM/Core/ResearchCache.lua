@@ -32,11 +32,10 @@ function BETTERUI.GetResearch(forceRefresh)
     for i, craftType in pairs(BETTERUI.CIM.CONST.CraftingSkillTypes) do
         BETTERUI.ResearchTraits[craftType] = {}
         for researchIndex = 1, GetNumSmithingResearchLines(craftType) do
-            local name, icon, numTraits, timeRequiredForNextResearchSecs = GetSmithingResearchLineInfo(craftType,
-                researchIndex)
+            local _, _, numTraits = GetSmithingResearchLineInfo(craftType, researchIndex)
             BETTERUI.ResearchTraits[craftType][researchIndex] = {}
             for traitIndex = 1, numTraits do
-                local traitType, _, known = GetSmithingResearchLineTraitInfo(craftType, researchIndex, traitIndex)
+                local _, _, known = GetSmithingResearchLineTraitInfo(craftType, researchIndex, traitIndex)
                 BETTERUI.ResearchTraits[craftType][researchIndex][traitIndex] = known
             end
         end

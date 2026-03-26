@@ -9,7 +9,6 @@ Uses GetNumBuybackItems/GetBuybackItemInfo to populate the list.
 ]]
 
 local Vendor = BETTERUI.Vendor
-local MODE   = Vendor.MODE
 
 -- ============================================================================
 -- COMPONENT TABLE

@@ -15,7 +15,6 @@ BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 -- name/visible/callback functions that all need the same item data.
 -- ============================================================================
 
-local ActionContextCache = {}
 local cachedFrame = -1    -- Frame number when cache was last computed
 local cachedContext = nil -- The cached context data
 

@@ -16,7 +16,6 @@ Last Modified: 2026-02-07
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
-local BLOCK_TABBAR_CALLBACK = true
 -- Scene Name Override: We replace ZO_GAMEPAD_INVENTORY_SCENE_NAME to ensure
 -- BetterUI's inventory scene is registered instead of the vanilla one. This must
 -- happen before any scene registration to avoid dual-scene conflicts. While modifying
@@ -242,7 +241,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
 
         BETTERUI.Interface.Window.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
             -- Normalize the OnTextChanged argument like Banking does
-            local query = ""
+            local query
             if type(editOrText) == "string" then
                 query = editOrText
             elseif editOrText and type(editOrText) == "table" and editOrText.GetText then

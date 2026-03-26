@@ -44,15 +44,6 @@ end
 
 --- @param bagId number
 --- @param slotIndex number
---- @return boolean isGemmable
-local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
-    return CROWN_GEMIFICATION_MANAGER
-        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
-        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bagId), tonumber(slotIndex))
-end
-
---- @param bagId number
---- @param slotIndex number
 --- @param targetBankBag number
 --- @return boolean isSupported
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)

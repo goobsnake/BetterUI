@@ -130,7 +130,6 @@ function Narration.NarrateCurrency(currencyType, amount)
     if not currencyType or not amount then return narrations end
 
     local currencyName = GetCurrencyName(currencyType, amount ~= 1, true)
-    local text = ZO_CurrencyControl_FormatCurrencyAndAppendIcon(amount, false, currencyType, false)
     ZO_AppendNarration(narrations, SafeNarrate(tostring(amount) .. " " .. currencyName))
     return narrations
 end

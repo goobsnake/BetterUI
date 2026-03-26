@@ -129,12 +129,12 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
         return false
     end
-    
+
     -- Stolen items cannot be transferred to banks
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
     end
-    
+
     -- Bind on Pickup (Backpack) items cannot be transferred
     if GetItemBindType then
         local bindType = GetItemBindType(bagId, slotIndex)
@@ -142,7 +142,7 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
             return false
         end
     end
-    
+
     -- Guild bank specific restrictions
     if targetBag == BAG_GUILDBANK then
         if IsItemBound and IsItemBound(bagId, slotIndex) then
@@ -155,7 +155,7 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
             return false
         end
     end
-    
+
     return true
 end
 

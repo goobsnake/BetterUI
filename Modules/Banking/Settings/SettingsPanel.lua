@@ -55,7 +55,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             BETTERUI.Banking.SetSetting("useTriggersForSkip", false)
             BETTERUI.Banking.SetSetting("triggerSpeed", 10)
         end
-        
+
         ApplyTriggerMode(BETTERUI.Banking.GetSetting("useTriggersForSkip"))
 
         local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window

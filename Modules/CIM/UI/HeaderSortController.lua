@@ -303,8 +303,8 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
 
     -- Notify callback
     if self.onSortChangedCallback then
-        local column = self.columns[columnIndex]
-        self.onSortChangedCallback(column.key, newDirection, column.sortFn)
+        local callbackColumn = self.columns[columnIndex]
+        self.onSortChangedCallback(callbackColumn.key, newDirection, callbackColumn.sortFn)
     end
 
     return true

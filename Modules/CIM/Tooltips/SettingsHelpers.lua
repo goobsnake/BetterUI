@@ -89,7 +89,7 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
         end
     end
 
-    local shouldShowReason = false
+    local shouldShowReason
     if requireAny then
         shouldShowReason = availableCount == 0
     else

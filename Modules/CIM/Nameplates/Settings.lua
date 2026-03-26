@@ -7,7 +7,6 @@
 if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.Nameplates == nil then BETTERUI.Nameplates = {} end
 
-local LAM = LibAddonMenu2
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 

@@ -262,7 +262,7 @@ function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDe
             -- created by BETTERUI_TabBarScrollList), then the generic header
             -- control, then the root header control. This covers modules that
             -- initialize the header/tabbar on different child controls.
-            local headerTarget = nil
+            local headerTarget
             if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
                 headerTarget = self.headerGeneric.tabBar.control
             elseif self.headerGeneric then

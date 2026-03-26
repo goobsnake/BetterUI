@@ -42,7 +42,6 @@ end
 -- Import shared helpers from InventoryEntryFormatting.lua (loaded before this file)
 local _fmt = BETTERUI.Inventory._EntryFormatting
 local GetActiveListModuleName = _fmt.GetActiveListModuleName
-local GetModuleSettings = _fmt.GetModuleSettings
 local ShouldShowMarketPrice = _fmt.ShouldShowMarketPrice
 local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 
@@ -231,8 +230,6 @@ end
 --- Note: GetCategoryTypeFromWeaponType and GetBestItemCategoryDescription have been
 --- consolidated into CIM/CategoryDefinitions.lua to eliminate code duplication
 --- between Banking and Inventory modules.
-local GetCategoryTypeFromWeaponType = BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType
-
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
 --- Note: Uses shared implementation from CIM/CategoryDefinitions.lua
 --- @param itemData table The item data
@@ -283,9 +280,9 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
         self.inventoryTypes = { inventoryType }
     end
 
-    local function VendorEntryTemplateSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+    local function VendorEntryTemplateSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
         ZO_Inventory_BindSlot(data, slotType, data.slotIndex, data.bagId)
-        BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
+        BETTERUI_SharedGamepadEntry_OnSetup(rowControl, data, selected, selectedDuringRebuild, enabled, activated)
     end
 
     self.list = BETTERUI_VerticalParametricScrollList:New(self.control)

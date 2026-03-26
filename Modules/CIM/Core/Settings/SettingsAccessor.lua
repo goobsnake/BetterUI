@@ -54,18 +54,18 @@ function BETTERUI.CreateSettingAccessors(moduleName, callback)
             end
             return default
         end
-        
+
         local setFunc = function(value)
             -- Ensure settings table exists
             if not BETTERUI.Settings.Modules[moduleName] then
                 BETTERUI.Settings.Modules[moduleName] = {}
             end
             BETTERUI.Settings.Modules[moduleName][key] = value
-            
+
             -- Run callback if provided
             if callback then callback() end
         end
-        
+
         return getFunc, setFunc
     end
 end
@@ -78,10 +78,10 @@ end
 --- @return function A factory function(key, defaultTable) -> getFunc, setFunc
 function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
     local baseFactory = BETTERUI.CreateSettingAccessors(moduleName, callback)
-    
+
     return function(key, default)
         local baseGet, baseSet = baseFactory(key, default)
-        
+
         local getFunc = function()
             local col = baseGet()
             if type(col) == "table" then
@@ -89,11 +89,11 @@ function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
             end
             return 1, 1, 1, 1 -- Fallback
         end
-        
+
         local setFunc = function(r, g, b, a)
             baseSet({r, g, b, a})
         end
-        
+
         return getFunc, setFunc
     end
 end

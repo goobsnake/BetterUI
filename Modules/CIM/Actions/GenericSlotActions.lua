@@ -344,7 +344,6 @@ param: inventorySlot (table) - The inventory slot data.
 param: canUseItem (boolean) - Whether the item is also usable (adds USE as secondary).
 ]]
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
-    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
         if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryStowWithQuantity then
@@ -436,7 +435,6 @@ param: canUseItem (boolean) - Whether the item is also usable.
 return: string - The resolved action name for display.
 ]]
 function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
-    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
     local retrieveActionName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
     local actionName = primaryAction or stowActionName
     local isInCraftBag = BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)

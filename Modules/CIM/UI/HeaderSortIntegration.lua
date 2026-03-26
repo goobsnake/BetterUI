@@ -22,7 +22,6 @@ local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 -- CONSTANTS
 -------------------------------------------------------------------------------------------------
 
-local HEADER_MODE_KEYBIND_LAYER = "HeaderSortMode"
 
 -------------------------------------------------------------------------------------------------
 -- KEYBIND DESCRIPTORS

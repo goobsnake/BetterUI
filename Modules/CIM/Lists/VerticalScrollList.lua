@@ -55,27 +55,27 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
     -- Override EnsureValidGradient to provide custom fade behavior
-    list.EnsureValidGradient = function(self)
-        if self.validateGradient and self.validGradientDirty then
+    list.EnsureValidGradient = function(scrollList)
+        if scrollList.validateGradient and scrollList.validGradientDirty then
             -- Cache key based on inputs
-            local listHeight = self.scrollControl:GetHeight()
-            local centerOffset = self.fixedCenterOffset
+            local listHeight = scrollList.scrollControl:GetHeight()
+            local centerOffset = scrollList.fixedCenterOffset
 
             -- Optimization: Skip recalculation if dimensions haven't changed
-            if self._gradientCacheHeight == listHeight and self._gradientCacheOffset == centerOffset then
-                self.validGradientDirty = false
+            if scrollList._gradientCacheHeight == listHeight and scrollList._gradientCacheOffset == centerOffset then
+                scrollList.validGradientDirty = false
                 return
             end
 
-            if self.mode == PARAMETRIC_SCROLL_LIST_VERTICAL then
-                local listStart = GetStartOfControl(self.mode, self.scrollControl)
-                local listEnd = GetEndOfControl(self.mode, self.scrollControl)
-                local listMid = listStart + (GetControlDimensionForMode(self.mode, self.scrollControl) / 2.0)
+            if scrollList.mode == PARAMETRIC_SCROLL_LIST_VERTICAL then
+                local listStart = GetStartOfControl(scrollList.mode, scrollList.scrollControl)
+                local listEnd = GetEndOfControl(scrollList.mode, scrollList.scrollControl)
+                local listMid = listStart + (GetControlDimensionForMode(scrollList.mode, scrollList.scrollControl) / 2.0)
 
-                if self.alignToScreenCenter and self.alignToScreenCenterAnchor then
-                    listMid = GetStartOfControl(self.mode, self.alignToScreenCenterAnchor)
+                if scrollList.alignToScreenCenter and scrollList.alignToScreenCenterAnchor then
+                    listMid = GetStartOfControl(scrollList.mode, scrollList.alignToScreenCenterAnchor)
                 end
-                listMid = listMid + self.fixedCenterOffset
+                listMid = listMid + scrollList.fixedCenterOffset
 
                 local hasHeaders = false
                 for templateName, dataTypeInfo in pairs(self.dataTypes) do

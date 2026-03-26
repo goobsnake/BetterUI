@@ -79,7 +79,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         return
     end
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
-    local stackCount = GetSlotStackSize(fromBag, fromBagIndex)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
     if quantity == nil then
         quantity = 1
