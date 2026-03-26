@@ -11,9 +11,7 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 
 --[[
 Function: BETTERUI.CIM.SetTooltipWidth
-Description: Sets tooltip panel width and repositions the left tooltip.
-Rationale: Adjusts the UI layout to accommodate wider or narrower lists dynamically.
-Mechanism: Resizes GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT and anchors the tooltip relative to it.
+Sets tooltip panel width and repositions the left tooltip.
 param: width (number) - The new width of the background fragment.
 References: Called during scene state changes (SceneStateChange) in WindowClass.
 ]]

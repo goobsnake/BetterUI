@@ -33,11 +33,9 @@ local patchesApplied = false
 
 --[[
 Function: ApplyAPIPatches
-Description: Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
-Rationale: ESO's zo_iconFormat and related functions crash when passed nil paths.
+Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
            This commonly occurs during skill purchases, keybind strip updates, and UI transitions.
            These pcall wrappers are INTENTIONAL for ESO API stability.
-Mechanism:
     1. Checks if each function exists.
     2. Stores original reference.
     3. Replaces with a wrapper that nil-checks the path and uses pcall for safety.
@@ -153,10 +151,8 @@ end
 
 --[[
 Function: RunSettingsMigrations
-Description: Migrates legacy settings keys to current standards.
-Rationale: As BetterUI evolves, settings keys are renamed for consistency.
+Migrates legacy settings keys to current standards.
            This function ensures old SavedVariables are upgraded seamlessly.
-Mechanism:
     1. Renames "Tooltips" module to "GeneralInterface" (if present).
     2. Standardizes "enabled" key to "m_enabled" across all modules.
 References: Called by RuntimeSetup.Apply().
@@ -222,9 +218,7 @@ end
 
 --[[
 Function: RuntimeSetup.Apply
-Description: Main entry point for early-initialization logic.
-Rationale: Consolidates patches and migrations into a single call from BetterUI.Initialize.
-Mechanism:
+Main entry point for early-initialization logic.
     1. Applies API patches (once).
     2. Runs settings migrations on the provided settings table.
 References: Called from BetterUI.lua:Initialize after SavedVars are loaded.

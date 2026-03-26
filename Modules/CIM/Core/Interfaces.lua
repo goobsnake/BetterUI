@@ -42,9 +42,7 @@ BETTERUI.CIM.Interfaces = {}
 
 --[[
 Function: BETTERUI.CIM.Interfaces.ValidateModule
-Description: Validates that a module table conforms to the ModuleInterface.
-Rationale: Provides runtime type safety for module registrations.
-Mechanism: Checks required properties exist and are correct types.
+Validates that a module table conforms to the ModuleInterface.
 References: Called during module registration.
 ]]
 --- @param module table The module to validate

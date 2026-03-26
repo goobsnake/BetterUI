@@ -14,7 +14,6 @@ BETTERUI.Banking.Settings = BETTERUI.Banking.Settings or {}
 --[[
 Function: BETTERUI.Banking.Settings.RegisterPanel
 Description: Registers the Banking settings panel with LibAddonMenu.
-Rationale: Defines the "Banking Improvement Settings" menu structure.
 param: mId (string) - The module ID suffix.
 param: moduleName (string) - The display name for the panel.
 ]]

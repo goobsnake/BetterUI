@@ -15,7 +15,7 @@ if not BETTERUI.CIM.Font then BETTERUI.CIM.Font = {} end
 
 --[[
 Table: BETTERUI.CIM.Font.CHOICES
-Description: Human-readable font names for LAM dropdown menus.
+Human-readable font names for LAM dropdown menus.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.CHOICES = {
@@ -38,7 +38,7 @@ BETTERUI.CIM.Font.CHOICES = {
 
 --[[
 Table: BETTERUI.CIM.Font.VALUES
-Description: ESO font file paths corresponding to CHOICES.
+ESO font file paths corresponding to CHOICES.
              The first entry uses $(GAMEPAD_MEDIUM_FONT) which ESO resolves to
              the correct font for each language (Chinese, Japanese, etc.).
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
@@ -63,7 +63,7 @@ BETTERUI.CIM.Font.VALUES = {
 
 --[[
 Table: BETTERUI.CIM.Font.STYLE_CHOICES
-Description: Human-readable font style names for LAM dropdown menus.
+Human-readable font style names for LAM dropdown menus.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.STYLE_CHOICES = {
@@ -77,7 +77,7 @@ BETTERUI.CIM.Font.STYLE_CHOICES = {
 
 --[[
 Table: BETTERUI.CIM.Font.STYLE_VALUES
-Description: ESO font style suffixes corresponding to STYLE_CHOICES.
+ESO font style suffixes corresponding to STYLE_CHOICES.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
 BETTERUI.CIM.Font.STYLE_VALUES = {
@@ -91,7 +91,7 @@ BETTERUI.CIM.Font.STYLE_VALUES = {
 
 --[[
 Table: BETTERUI.CIM.Font.DEFAULTS
-Description: Default font settings shared across modules.
+Default font settings shared across modules.
              Modules can override specific values in their own settings.
 Used By: Banking/Module.lua, Inventory/Settings/FontSettings.lua
 ]]
@@ -132,9 +132,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Font.GetSizeValue
-Description: Converts a font size setting to a numeric pixel value.
-Rationale: Handles migration from legacy string values ("Small", "Large") to numbers.
-Mechanism: Returns the number if already numeric, otherwise returns default 24.
+Converts a font size setting to a numeric pixel value.
 param: sizeValue (string|number) - The size setting value.
 return: number - The font size in pixels.
 ]]
@@ -165,8 +163,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Font.BuildDescriptor
-Description: Builds an ESO font descriptor string from path, size, and style.
-Rationale: Consolidates the font descriptor creation logic used by multiple modules.
+Builds an ESO font descriptor string from path, size, and style.
 param: fontPath (string) - The font file path.
 param: fontSize (number) - The font size in pixels.
 param: fontStyle (string|nil) - The font style suffix (optional).
@@ -186,8 +183,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Font.GetModuleFontDescriptor
-Description: Gets a font descriptor for a specific module using its settings.
-Rationale: Generic helper that can be used by any module that stores font settings.
+Gets a font descriptor for a specific module using its settings.
 param: moduleName (string) - The module key in BETTERUI.Settings.Modules (e.g., "Banking", "Inventory").
 param: fontType (string) - "name" or "column" to specify which font setting to retrieve.
 return: string - ESO font descriptor (path|size|style).

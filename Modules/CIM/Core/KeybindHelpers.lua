@@ -11,9 +11,7 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 
 --[[
 Function: BETTERUI.Interface.EnsureKeybindGroupAdded
-Description: Safely registers a keybind group without causing duplicates.
-Rationale: Prevent errors when adding same keybind descriptor multiple times.
-Mechanism: Iterates existing groups; if found, updates it. If not, adds it.
+Safely registers a keybind group without causing duplicates.
 param: descriptor (table) - The keybind descriptor to add.
 ]]
 --- @param descriptor table The keybind descriptor to add

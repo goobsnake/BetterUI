@@ -85,8 +85,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:InitializeKeybind
 Description: Initializes the keybind descriptors for the banking module.
-Rationale: Defines all keybinds for the banking interface.
-Mechanism:
   - `coreKeybinds`: Navigation (Triggers), List Toggle (Y), Search Clear (Quaternary).
   - `withdrawDepositKeybinds`: Primary Action (A) for moving items.
   - `currencyKeybinds`: Primary Action (A) for opening currency selector.

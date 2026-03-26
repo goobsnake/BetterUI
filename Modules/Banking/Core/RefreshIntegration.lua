@@ -17,8 +17,6 @@ if not BETTERUI.Banking then BETTERUI.Banking = {} end
 --[[
 Function: BETTERUI.Banking.InitializeRefreshManager
 Description: Creates and configures a ListRefreshManager instance for Banking.
-Rationale: Centralizes refresh logic, enables coalescing, and position restoration.
-Mechanism:
   - Creates instance with Banking-specific coalesce delay
   - Stores in BETTERUI.Banking.RefreshManager for access by other Banking files
 ]]

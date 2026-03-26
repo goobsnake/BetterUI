@@ -84,9 +84,7 @@ BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 --[[
 Class: BETTERUI.Vendor.Class
-Description: Main class for the Vendor module window.
-Rationale: Subclasses GenericWindow to provide custom vendor/fence experience.
-Mechanism: Inherits header, footer, and list functionality from CIM.
+Main class for the Vendor module window.
 ]]
 BETTERUI.Vendor.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
@@ -128,9 +126,7 @@ end
 
 --[[
 Function: BETTERUI.Vendor.Class:SetMode
-Description: Switches the active vendor tab/mode.
-Rationale: Each mode has its own list builder, keybinds, and footer display.
-           SetMode routes to the appropriate component's Activate/Deactivate methods.
+Switches the active vendor tab/mode.
 param: mode (number) - One of BETTERUI.Vendor.MODE constants.
 ]]
 function BETTERUI.Vendor.Class:SetMode(mode)
@@ -185,8 +181,7 @@ end
 
 --[[
 Function: BETTERUI.Vendor.Class:RefreshList
-Description: Clears and rebuilds the current list using the active component's BuildList method.
-             Includes suppression guard for coalescing rapid inventory updates.
+Clears and rebuilds the current list using the active component's BuildList method.
 ]]
 function BETTERUI.Vendor.Class:RefreshList()
     if self._suppressListUpdates then

@@ -15,7 +15,6 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 --[[
 Function: BETTERUI.Banking.Class:CycleCategory
 Description: Cycles the selected category via shoulder buttons (Left/Right).
-Rationale: Delegates to CIM.HeaderNavigation for shared navigation logic.
 param: delta (number) - Direction (+1 or -1).
 ]]
 function BETTERUI.Banking.Class:CycleCategory(delta)
@@ -60,8 +59,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:RebuildHeaderCategories
 Description: Rebuilds the banking category header.
-Rationale: Refresh the tab bar with icons for the current bank mode.
-Mechanism:
   - Configures the generic header data (Title, Carousel Config).
   - Defines the `onSelectedChanged` callback to handle tab navigation with coalescence.
   - Clears andRepopulates the Generic Header list with `bankCategories`.

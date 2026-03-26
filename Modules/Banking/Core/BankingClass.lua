@@ -52,16 +52,12 @@ BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearch
 --[[
 Class: BETTERUI.Banking.Class
 Description: Main class for the Banking module window.
-Rationale: Subclasses BETTERUI.CIM.GenericWindow to provide a custom banking experience.
-Mechanism: Inherits from GenericWindow base class to leverage shared header, footer, and list functionality.
 ]]
 BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
 --[[
 Function: BETTERUI.Banking.Class:New
 Description: Creates a new instance of the Banking window class.
-Rationale: Constructor for the Banking module.
-Mechanism: Inherits from BETTERUI.CIM.GenericWindow.
 param: ... (any) - Arguments passed to the parent constructor.
 return: table - The new Banking Class instance.
 ]]
@@ -74,7 +70,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:IsSceneShowing
 Description: Checks if the banking scene is currently showing.
-Rationale: Delegates to CIM utility for consistent scene checks across all modules.
 return: boolean - True if the banking scene is currently showing.
 ]]
 --- @return boolean showing True if the banking scene is showing
@@ -85,8 +80,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:SetupUnifiedFooter
 Description: Configures the unified footer for BANKING mode.
-Rationale: Ensures consistent footer mode when Banking scene shows.
-Mechanism: Finds the UnifiedFooterController and sets BANKING mode.
 ]]
 function BETTERUI.Banking.Class:SetupUnifiedFooter()
     -- Look for the footer controller in our control hierarchy

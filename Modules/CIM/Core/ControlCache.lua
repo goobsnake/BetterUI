@@ -12,9 +12,7 @@ BETTERUI.CIM.ControlCache = {}
 
 --[[
 Function: BETTERUI.CIM.ControlCache.Create
-Description: Creates a cached child control resolver for a parent control.
-Rationale: Avoids repeated GetNamedChild lookups in hot paths (frame updates, cooldown loops).
-Mechanism: Returns a closure that caches lookups in a local table.
+Creates a cached child control resolver for a parent control.
 References: Called during module initialization (e.g., FrontBarManager.CacheControls)
 param: parent (control) - The parent UI control
 return: function - A function(childName) that returns cached child controls
@@ -33,9 +31,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.ControlCache.CacheChildren
-Description: Caches multiple named children at once into a lookup table.
-Rationale: Bulk caching during initialization is more efficient than on-demand caching.
-Mechanism: Iterates through childNames array and populates cache table.
+Caches multiple named children at once into a lookup table.
 References: Called during module initialization
 param: parent (control) - The parent UI control
 param: childNames (table) - Array of child control names to cache
@@ -54,9 +50,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.ControlCache.CacheButtonChildren
-Description: Caches common child controls for a skill bar button.
-Rationale: Skill bar buttons have a predictable set of children (Icon, Cooldown, etc.)
-Mechanism: Creates a cache table with all standard button children.
+Caches common child controls for a skill bar button.
 References: FrontBarManager, BackBarManager, UltimateManager
 param: button (control) - The button control
 return: table - A table with cached references to common button children

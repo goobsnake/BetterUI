@@ -18,10 +18,8 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
 --[[
 Class: BETTERUI.CIM.Lists.ListRefreshManager
-Description: Manages list refreshes with automatic position restoration.
+Manages list refreshes with automatic position restoration.
              Combines batch processing with coalescing to prevent UI stuttering.
-Rationale: Centralizes refresh logic scattered across Inventory/Banking modules.
-Mechanism:
   1. QueueRefresh() marks the list dirty and schedules coalesced refresh.
   2. ExecuteRefresh() performs the actual refresh with optional batching.
   3. RestorePosition() attempts to re-select the previously selected item.
@@ -36,7 +34,7 @@ end
 
 --[[
 Function: Initialize
-Description: Initializes the refresh manager.
+Initializes the refresh manager.
 param: options (table|nil) - Configuration:
   - coalesceDelay (number): Delay in ms before executing queued refresh (default: 80)
   - useBatching (boolean): Whether to use batch processing (default: false)
@@ -57,7 +55,7 @@ end
 
 --[[
 Function: SavePosition
-Description: Saves the current list position for later restoration.
+Saves the current list position for later restoration.
 param: list (table) - The parametric list to save position from.
 ]]
 --- @param list table The parametric list
@@ -75,7 +73,7 @@ end
 
 --[[
 Function: RestorePosition
-Description: Attempts to restore position after a refresh.
+Attempts to restore position after a refresh.
              Tries to find the item by uniqueId first, then falls back to index.
 param: list (table) - The parametric list to restore position on.
 return: boolean - True if position was restored.
@@ -124,7 +122,7 @@ end
 
 --[[
 Function: QueueRefresh
-Description: Queues a refresh with coalescing to prevent rapid redraws.
+Queues a refresh with coalescing to prevent rapid redraws.
 param: list (table) - The parametric list to refresh.
 param: refreshFn (function) - The function that performs the actual data refresh.
 param: savePosition (boolean) - Whether to save position before refresh (default: true).
@@ -155,7 +153,7 @@ end
 
 --[[
 Function: ExecuteRefresh
-Description: Immediately executes a refresh with optional position restoration.
+Immediately executes a refresh with optional position restoration.
 param: list (table) - The parametric list to refresh.
 param: refreshFn (function) - The function that performs the actual data refresh.
 ]]
@@ -175,7 +173,7 @@ end
 
 --[[
 Function: Cancel
-Description: Cancels any pending queued refresh.
+Cancels any pending queued refresh.
 ]]
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     if self.pendingRefreshCallId then
@@ -187,7 +185,7 @@ end
 
 --[[
 Function: IsDirty
-Description: Returns whether a refresh is pending.
+Returns whether a refresh is pending.
 return: boolean - True if a refresh is queued.
 ]]
 --- @return boolean isDirty True if refresh is queued
@@ -197,7 +195,7 @@ end
 
 --[[
 Function: MarkDirty
-Description: Marks the list as needing refresh without queuing.
+Marks the list as needing refresh without queuing.
              Useful when external events should trigger refresh on next show.
 ]]
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
@@ -206,7 +204,7 @@ end
 
 --[[
 Function: ClearDirty
-Description: Clears the dirty flag without executing refresh.
+Clears the dirty flag without executing refresh.
 ]]
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false

@@ -23,9 +23,7 @@ local _storage = {}
 
 --[[
 Function: BETTERUI.CIM.PositionManager.GetCategoryKey
-Description: Generates a stable string key for a category entry.
-Rationale: Provides consistent key generation for position lookup across modules.
-Mechanism: Uses filterType, onClickDirection, text, or index as fallback identifiers.
+Generates a stable string key for a category entry.
 param: categoryData (table) - The category data table.
 return: string|nil - The generated key or nil if no categoryData.
 ]]
@@ -64,9 +62,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PositionManager.SavePosition
-Description: Saves the current list position for a module/category.
-Rationale: Centralizes position persistence logic for all modules.
-Mechanism: Extracts selectedIndex and uniqueId from list, stores in _storage.
+Saves the current list position for a module/category.
 param: moduleName (string) - The module identifier (e.g., "Inventory", "Banking").
 param: categoryKey (string) - The category key from GetCategoryKey().
 param: list (table) - The list object with selectedIndex and selectedData.
@@ -97,7 +93,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PositionManager.GetSavedPosition
-Description: Retrieves the saved position for a module/category.
+Retrieves the saved position for a module/category.
 param: moduleName (string) - The module identifier.
 param: categoryKey (string) - The category key.
 return: table|nil - { index = N, uniqueId = "..." } or nil if not saved.
@@ -113,9 +109,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PositionManager.RestorePosition
-Description: Restores a saved position on a list.
-Rationale: Handles uniqueId lookup with index fallback for robust restoration.
-Mechanism:
+Restores a saved position on a list.
   1. Retrieves saved position data.
   2. If uniqueId exists, searches dataList for matching item.
   3. Falls back to saved index if uniqueId not found (item was removed).
@@ -164,8 +158,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PositionManager.ClearModule
-Description: Clears all saved positions for a module.
-Rationale: Used when exiting a scene to prevent stale data.
+Clears all saved positions for a module.
 param: moduleName (string) - The module identifier.
 ]]
 --- @param moduleName string The module identifier
@@ -176,7 +169,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PositionManager.ClearCategory
-Description: Clears the saved position for a specific category.
+Clears the saved position for a specific category.
 param: moduleName (string) - The module identifier.
 param: categoryKey (string) - The category key.
 ]]

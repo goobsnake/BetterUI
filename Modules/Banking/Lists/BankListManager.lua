@@ -58,7 +58,6 @@ local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItem
 Function: ResolveBagsAndSlotType
 Description: Determines which bags to scan and the appropriate slot type
              based on the current banking mode (withdraw vs deposit).
-Rationale: Extracted from duplicated logic in ComputeVisibleBankCategories and RefreshList.
 param: self (table) - The Banking class instance.
 return: bags (table), slotType (number)
 ]]

@@ -229,9 +229,7 @@ end
 
 --[[
 Function: BETTERUI.Init_ModulePanel
-Description: Creates a standardized module configuration panel for LibAddonMenu.
-Rationale: Ensures consistent settings menu appearance across modules.
-Mechanism: Returns a table matching LAM's panel specification.
+Creates a standardized module configuration panel for LibAddonMenu.
 References: Used by all Modules (Inventory, Banking, etc.) in their Initialization.
 param: moduleName (string) - The display name of the module.
 param: moduleDesc (string) - The description text.
@@ -256,9 +254,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Settings.CreateFontSubmenuOptions
-Description: Creates LAM submenu options for font customization.
-Rationale: Consolidates identical font settings structure from Banking and Inventory.
-Mechanism:
+Creates LAM submenu options for font customization.
   1. Creates "Name Font" submenu with dropdown, size slider, style dropdown, reset button
   2. Creates "Column Font" submenu with dropdown, size slider, style dropdown, reset button
   3. Uses shared BETTERUI.CIM.Font definitions

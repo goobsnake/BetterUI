@@ -15,9 +15,7 @@ BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
 --[[
 Function: BETTERUI_TabBarScrollList:New
-Description: Creates a new tab bar scroll list instance with LB/RB navigation icons.
-Rationale: Implements the "Carousel" header navigation (Circular Tab Bar).
-Mechanism:
+Creates a new tab bar scroll list instance with LB/RB navigation icons.
   1. Extends HorizontalParametricScrollList.
   2. Adds Left/Right shoulder button icons.
   3. Enables "Carousel Mode" (circular scrolling around a fixed selection).
@@ -72,9 +70,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:UpdateAnchors
-Description: Override UpdateAnchors to implement CAROUSEL rotation behavior.
-Rationale: Positions list items in a circular carousel or linear list.
-Mechanism:
+Override UpdateAnchors to implement CAROUSEL rotation behavior.
   - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
   - If Normal Mode: Positions items linearly using the same offset constants (no wrapping).
 param: continousTargetOffset (number) - The floating point index of the selection.
@@ -177,7 +173,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:Activate
-Description: Activates the tab bar and its keybinds.
+Activates the tab bar and its keybinds.
 ]]
 function BETTERUI_TabBarScrollList:Activate()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
@@ -186,7 +182,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:Deactivate
-Description: Deactivates the tab bar and removes keybinds.
+Deactivates the tab bar and removes keybinds.
 ]]
 function BETTERUI_TabBarScrollList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
@@ -197,8 +193,7 @@ end
 -- Override these to handle the dual-callback nature of standard ZO lists vs Carousel mode
 --[[
 Function: BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback
-Description: Sets the data change callback.
-Rationale: Uses a wrapper to filter out intermediate 'false' returns during animation if not in carousel mode.
+Sets the data change callback.
 param: callback (function) - The user callback.
 ]]
 function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
@@ -225,7 +220,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback
-Description: Removes the data change callback.
+Removes the data change callback.
 ]]
 function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = nil
@@ -237,7 +232,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors
-Description: Sets up LB/RB keybinds.
+Sets up LB/RB keybinds.
 ]]
 function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     self.keybindStripDescriptor =
@@ -261,8 +256,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:Commit
-Description: Commits changes.
-Rationale: Hides nav arrows if only 1 item exists.
+Commits changes.
 ]]
 function BETTERUI_TabBarScrollList:Commit(dontReselect)
     -- Hide arrows if only 1 item
@@ -279,7 +273,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:SetPipsEnabled
-Description: Enables/Disables Pip (Dot) indicators.
+Enables/Disables Pip (Dot) indicators.
 param: enabled (boolean) - True to enable.
 param: divider (table) - The control to anchor pips to.
 ]]
@@ -296,7 +290,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:RefreshPips
-Description: Updates Pip indicators based on selection.
+Updates Pip indicators based on selection.
 ]]
 function BETTERUI_TabBarScrollList:RefreshPips()
     if not self.pipsEnabled then
@@ -320,8 +314,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:SetSelectedIndex
-Description: Sets selection with animation.
-Mechanism: Updates pips and triggers UpdateAnchors if in Carousel mode.
+Sets selection with animation.
 ]]
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     -- BetterUI Fix: Capture old data BEFORE calling base class (which updates selectedData)
@@ -344,7 +337,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation
-Description: Sets selection immediately without animation.
+Sets selection immediately without animation.
 ]]
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled,
                                                                     dontCallSelectedDataChangedCallback)
@@ -358,8 +351,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:MovePrevious
-Description: Moves to previous item.
-Rationale: Handles wrapping (First -> Last).
+Moves to previous item.
 return: boolean - True if successful.
 ]]
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
@@ -384,8 +376,7 @@ end
 
 --[[
 Function: BETTERUI_TabBarScrollList:MoveNext
-Description: Moves to next item.
-Rationale: Handles wrapping (Last -> First).
+Moves to next item.
 return: boolean - True if successful.
 ]]
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
@@ -415,7 +406,7 @@ end
 
 --[[
 Function: BETTERUI_TabBar_OnLeftIconClicked
-Description: Global handler for Left Icon click.
+Global handler for Left Icon click.
 param: buttonControl (table) - The control clicked.
 ]]
 function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
@@ -428,7 +419,7 @@ end
 
 --[[
 Function: BETTERUI_TabBar_OnRightIconClicked
-Description: Global handler for Right Icon click.
+Global handler for Right Icon click.
 param: buttonControl (table) - The control clicked.
 ]]
 function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
@@ -441,9 +432,7 @@ end
 
 --[[
 Function: BETTERUI_TabBar_OnCategoryIconClicked
-Description: Global handler for direct category icon click.
-Rationale: Allows clicking directly on a category icon to jump to it.
-Mechanism:
+Global handler for direct category icon click.
 1. Identifies the parent scrollList.
 2. Finds the data index for the clicked control.
 3. Special Case: If in Inventory scene, dispatches directly to GAMEPAD_INVENTORY:OnCategoryClicked to ensure reliable switching.

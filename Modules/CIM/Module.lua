@@ -14,9 +14,7 @@ local ClampInteger = BETTERUI.ClampInteger
 
 --[[
 Function: BETTERUI.CIM.InitModule
-Description: Initializes default settings for the Common Interface Module.
-Rationale: Ensures all critical configuration values exist before the module is used.
-Mechanism: Checks for nil values in the provided options table and assigns defaults.
+Initializes default settings for the Common Interface Module.
 param: m_options (table) - The raw settings/options table to be initialized.
 return: table - The modified options table with default values applied.
 References: Called by BetterUI.lua during addon initialization.

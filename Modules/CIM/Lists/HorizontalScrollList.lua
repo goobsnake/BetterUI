@@ -13,7 +13,7 @@ BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:New
-Description: Creates a new horizontal scroll list instance.
+Creates a new horizontal scroll list instance.
 param: ... (any) - Arguments for ZO_HorizontalScrollList:New.
 return: table - The new list instance.
 ]]
@@ -23,7 +23,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:Initialize
-Description: Initializes the horizontal scroll list.
+Initializes the horizontal scroll list.
 param: control (table) - The list control.
 param: templateName (string) - The row template name.
 param: numVisibleEntries (number) - Number of visible entries.
@@ -42,9 +42,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors
-Description: Updates the anchors and positions of the scroll list controls.
-Rationale: Handles position interpolation and scaling for the 'selected' item effect.
-Mechanism:
+Updates the anchors and positions of the scroll list controls.
   - Iterates visible controls.
   - Calculates offsets based on primaryControlOffsetX.
   - Applies Scale effect to center item using Lerp/Ease.
@@ -113,7 +111,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction
-Description: Sets the callback for activation state changes.
+Sets the callback for activation state changes.
 param: onActivatedChangedFunction (function) - The callback.
 ]]
 function BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction(onActivatedChangedFunction)
@@ -123,8 +121,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:Commit
-Description: Commits the list data and updates UI.
-Rationale: Also handles Arrow visibility based on active state.
+Commits the list data and updates UI.
 ]]
 function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     ZO_HorizontalScrollList.Commit(self)
@@ -136,8 +133,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:SetActive
-Description: Sets the active state of the list.
-Rationale: Manages directional input activation and arrow visibility.
+Sets the active state of the list.
 param: active (boolean) - True to activate.
 ]]
 function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
@@ -163,7 +159,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:Activate
-Description: wrapper for SetActive(true).
+wrapper for SetActive(true).
 ]]
 function BETTERUI_HorizontalScrollList_Gamepad:Activate()
     self:SetActive(true)
@@ -171,7 +167,7 @@ end
 
 --[[
 Function: BETTERUI_HorizontalScrollList_Gamepad:Deactivate
-Description: wrapper for SetActive(false).
+wrapper for SetActive(false).
 ]]
 function BETTERUI_HorizontalScrollList_Gamepad:Deactivate()
     self:SetActive(false)
@@ -185,7 +181,7 @@ BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
 --[[
 Function: BETTERUI_HorizontalParametricScrollList:New
-Description: Creates a new horizontal parametric scroll list.
+Creates a new horizontal parametric scroll list.
 param: control (table) - The list control.
 param: onActivatedChangedFunction (function) - Callback for activation state changes.
 param: onCommitWithItemsFunction (function) - Callback on commit with items.

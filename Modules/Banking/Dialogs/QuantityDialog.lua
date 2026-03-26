@@ -10,9 +10,7 @@ Last Modified: 2026-01-29
 --[[
 Dialog: BETTERUI_BANK_QUANTITY_DIALOG
 Description: Modal quantity selection dialog for banking partial stack moves.
-Rationale: ESO uses GAMEPAD_DIALOGS.ITEM_SLIDER for all quantity selection (see esoui/ingame/inventory/gamepad/gamepadinventory.lua:546-605).
            This provides a consistent, polished UX compared to inline spinners.
-Mechanism:
   - Registered via ZO_Dialogs_RegisterCustomDialog
   - Uses standard ITEM_SLIDER dialog type with min=1, max=stackCount
   - Callback invokes BETTERUI.Banking.Window:MoveItem(list, quantity)
@@ -25,8 +23,6 @@ BETTERUI_BANK_QUANTITY_DIALOG = "BETTERUI_BANK_QUANTITY_DIALOG"
 --[[
 Function: BETTERUI.Banking.InitializeQuantityDialog
 Description: Registers the quantity selection dialog for banking operations.
-Rationale: Creates a reusable dialog for both withdraw and deposit partial stacks.
-Mechanism:
   - dialog.data contains: bagId, slotIndex, sliderMin, sliderMax, sliderStartValue, isDeposit, itemLink
   - OnSliderValueChanged updates the split preview labels
   - Primary button callback calls MoveItem with selected quantity
@@ -34,9 +30,7 @@ Mechanism:
 --[[
 Function: SetupSliderKeybindHints
 Description: Creates (lazily) and updates inline keybind hint labels in a slider dialog.
-Rationale: Shows gamepad button icons above item icons and Min/Max text below the value
            numbers so users can discover the shortcuts without looking at the keybind strip.
-Mechanism:
   - Creates four label controls once: icons anchored above icon1/icon2, text below sliderValue1/sliderValue2
   - Uses ZO_Keybindings_GetHighestPriorityBindingStringFromAction for device-appropriate icons
   - Called from dialog setup so labels refresh each time the dialog opens
@@ -233,8 +227,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:ShowQuantityDialog
 Description: Shows the quantity selection dialog for partial stack moves.
-Rationale: Called when user wants to move a partial stack instead of the full stack.
-Mechanism:
   - Gets selected item data from list
   - Validates stackCount > 1 (otherwise just move the single item)
   - Configures dialog with item info and calls ZO_Dialogs_ShowGamepadDialog

@@ -127,7 +127,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:PositionSearchControl
 Description: Positions the search control beneath the header title.
-Rationale: Ensures the search bar is visible and correctly aligned with the list.
 ]]
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
@@ -167,7 +166,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:OnEnterHeader
 Description: Callback when the header is entered (navigating up from list).
-Rationale: Auto-focuses the search field if appropriate.
 ]]
 function BETTERUI.Banking.Class:OnEnterHeader()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then

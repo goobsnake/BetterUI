@@ -154,11 +154,9 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.GetValue
-Description: Retrieves the current amount of a currency for display.
-Rationale: Different currencies use different APIs - some are character-specific
+Retrieves the current amount of a currency for display.
            (GetPlayerStoredCurrencyAmount) while others are account-wide (GetCurrencyAmount
            with CURRENCY_LOCATION_ACCOUNT). This function abstracts that complexity.
-Mechanism: Checks def.useStoredAmount flag first (for Tome Points), then checks
            def.location for account-wide currencies, otherwise uses default GetCurrencyAmount.
 param: def (table) - Currency definition from CURRENCY_DEFS containing apiConst, location, useStoredAmount
 return: number - The currency amount
@@ -175,9 +173,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.FormatLabel
-Description: Formats a currency label with localized text, color, value, and icon.
-Rationale: Provides consistent formatting across all currency types in the footer.
-Mechanism: Retrieves localized label string, gets gamepad currency icon (with keyboard
+Formats a currency label with localized text, color, value, and icon.
            fallback), formats via string concatenation with color codes and icon markup.
 param: def (table) - Currency definition from CURRENCY_DEFS
 param: amount (number) - The currency amount to display
@@ -208,10 +204,8 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.GetLabelControl
-Description: Retrieves a label control from the footer by name.
-Rationale: Footer controls can be accessed either as direct properties or via
+Retrieves a label control from the footer by name.
            GetNamedChild. This function handles both cases for compatibility.
-Mechanism: Tries direct property access first, falls back to GetNamedChild.
 param: footer (table) - The footer control object
 param: labelName (string) - Name of the label to retrieve
 return: control|nil - The label control or nil if not found
@@ -230,9 +224,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.UpdateLabels
-Description: Updates all currency labels in the footer with current values.
-Rationale: Called on refresh to sync footer display with current player currency amounts.
-Mechanism: Iterates through CURRENCY_DEFS, checks if API constant exists (for backwards
+Updates all currency labels in the footer with current values.
            compatibility), checks user visibility settings, then formats and sets text.
            Currencies with nil apiConst (e.g., Tome Points on old clients) are hidden.
 param: footer (table) - The footer control object
@@ -288,7 +280,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.GetVisibleOrder
-Description: Build ordered list of visible currency definitions based on user settings.
+Build ordered list of visible currency definitions based on user settings.
 param: invSettings (table) - Inventory settings containing currency order and visibility flags
 return: table - Array of visible currency definitions in user-specified order
 ]]
@@ -325,12 +317,10 @@ end
 
 --[[
 Function: BETTERUI.CIM.Currency.PositionLabels
-Description: Dynamically positions currency labels in the footer using a proper justified layout.
-Rationale:  Different currencies have vastly different text widths (e.g., "AP" vs "CRYSTALS").
+Dynamically positions currency labels in the footer using a proper justified layout.
             Fixed column widths waste space or cause overlap. A justified layout spreads
             currencies evenly across the *current* footer width, maximizing readability
             and adapting to any combination of selected currencies (4, 8, 12, etc.).
-Mechanism:
   1.  Calculates the maximum text width for each column (comparing Row 1 and Row 2).
   2.  Computes available horizontal space (Total Width - Anchors - Padding).
   3.  Determines the necessary gapSize to evenly distribute columns (Space-Between).

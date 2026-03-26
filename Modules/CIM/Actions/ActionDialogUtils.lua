@@ -29,7 +29,7 @@ local QUICKSLOT_LABELS = {
 
 --[[
 Function: BETTERUI.CIM.GetQuickslotLabel
-Description: Returns a human-readable directional label for a quickslot index.
+Returns a human-readable directional label for a quickslot index.
 param: slotIndex (number) - The quickslot index (1-8).
 return: string - The directional label.
 ]]
@@ -39,9 +39,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.BuildQuickslotDialogEntries
-Description: Populates the parametric list with quickslot wheel entries.
-Rationale: Shared quickslot assignment UI used by the Inventory module's action dialog.
-Mechanism:
+Populates the parametric list with quickslot wheel entries.
   1. Clears the parametric list.
   2. Adds "Remove" entry if item is already assigned to a slot.
   3. Adds entries for each of the 8 quickslot positions in clockwise order.
@@ -119,7 +117,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SetQuickslotDialogSelection
-Description: Sets the initial selection in the quickslot dialog.
+Sets the initial selection in the quickslot dialog.
 param: dialog (table) - The dialog object.
 param: quickslotInfo (table) - Result from BuildQuickslotDialogEntries.
 ]]
@@ -146,8 +144,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.PopulateActionEntries
-Description: Populates the parametric list with discovered slot actions.
-Rationale: Shared action entry building used by Inventory and Banking Y-menus.
+Populates the parametric list with discovered slot actions.
 param: parametricList (table) - The dialog's parametric list to populate.
 param: slotActions (object) - The slot actions object with GetNumSlotActions/GetSlotAction.
 param: options (table|nil) - Configuration options:
@@ -201,7 +198,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.HandleLinkToChat
-Description: Links an item to chat from target data.
+Links an item to chat from target data.
 param: targetData (table) - The item data containing bagId and slotIndex.
 return: boolean - True if link was inserted, false otherwise.
 ]]

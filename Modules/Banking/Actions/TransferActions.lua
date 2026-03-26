@@ -25,7 +25,6 @@ end
 --[[
 Function: FindEmptySlotInBank
 Description: Helper to find the first empty slot in the currently used bank.
-Rationale: Checks main bank, then subscriber bank, or house bank if active.
 return: number, number - The bag ID and slot index of an empty slot.
 ]]
 local function FindEmptySlotInBank()

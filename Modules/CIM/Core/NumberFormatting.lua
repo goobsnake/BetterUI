@@ -12,9 +12,7 @@ Last Modified: 2026-01-27
 
 --[[
 Function: BETTERUI.roundNumber
-Description: Rounds a number to a specified number of decimal places.
-Rationale: Utility for numeric formatting in UI elements.
-Mechanism: Multiplies by power of 10, floors, and divides back to truncate/round.
+Rounds a number to a specified number of decimal places.
 References: Used internally by AbbreviateNumber and other UI formatting logic.
 param: number (number) - The value to round.
 param: decimals (number) - The number of decimal places to keep.
@@ -38,9 +36,7 @@ end
 
 --[[
 Function: BETTERUI.DisplayNumber
-Description: Formats a number with comma separators (e.g., 1234567 -> 1,234,567).
-Rationale: Improves readability of large currency values in the UI.
-Mechanism: Uses string pattern matching to insert commas every 3 digits.
+Formats a number with comma separators (e.g., 1234567 -> 1,234,567).
 References: Used by AbbreviateNumber and general UI display elements.
 Credits: Bart Kiers
 param: number (number) - The number to format.
@@ -63,9 +59,7 @@ end
 
 --[[
 Function: BETTERUI.FormatNumber
-Description: Abbreviates large numbers using k/m/b suffixes.
-Rationale: Compact display of large values (Health, XP, Gold) where space is limited.
-Mechanism: Checks magnitude (Billions -> Millions -> Thousands) and formats accordingly.
+Abbreviates large numbers using k/m/b suffixes.
            Supports options for case (upper/lower suffixes) and decimal handling.
 References: Used by ResourceOrbs, Currency displays, Inventory values.
 param: value (number) - The number to format.
@@ -130,8 +124,7 @@ end
 
 --[[
 Function: BETTERUI.AbbreviateNumber
-Description: Abbreviates large numbers using k/m/b suffixes (lowercase).
-Rationale: Backward-compatible wrapper for ResourceOrbs and legacy code.
+Abbreviates large numbers using k/m/b suffixes (lowercase).
 param: n (number) - The number to abbreviate.
 param: defaultDecimals (number|nil) - Optional decimal places (ignored - uses smart decimals).
 return: string - The abbreviated number string.
@@ -146,8 +139,7 @@ end
 
 --[[
 Function: BETTERUI.FormatAbbreviatedNumber
-Description: Formats a number into abbreviated form (K, M, B) with uppercase.
-Rationale: Backward-compatible wrapper for Inventory display values.
+Formats a number into abbreviated form (K, M, B) with uppercase.
 param: value (number) - The number to format.
 return: string - Formatted string like "1.12K", "12.3K", "123K", "1.23M".
 ]]

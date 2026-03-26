@@ -17,9 +17,7 @@ local Debug = BETTERUI.CIM.Debug
 
 --[[
 Function: InspectDirectionalInput
-Description: Diagnoses DIRECTIONAL_INPUT stack issues.
-Rationale: Critical for debugging joystick lock-up problems.
-Mechanism: Lists all registered input objects and their associated controls.
+Diagnoses DIRECTIONAL_INPUT stack issues.
 ]]
 local function InspectDirectionalInput()
     if not DIRECTIONAL_INPUT then

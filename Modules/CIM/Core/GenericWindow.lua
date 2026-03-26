@@ -12,14 +12,13 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --[[
 Class: BETTERUI.CIM.GenericWindow
-Description: Intermediate base class for Inventory and Banking windows.
-Rationale: Shared logic for category management, list focus, and common inventory patterns.
+Intermediate base class for Inventory and Banking windows.
 ]]
 BETTERUI.CIM.GenericWindow = BETTERUI.Interface.Window:Subclass()
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:New
-Description: Constructor.
+Constructor.
 ]]
 function BETTERUI.CIM.GenericWindow:New(...)
     return BETTERUI.Interface.Window.New(self, ...)
@@ -27,8 +26,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:Initialize
-Description: Initialize the generic inventory window.
-Mechanism: Calls parent Initialize and sets up category position tracking.
+Initialize the generic inventory window.
 param: tlw_name (string) - Top-level window name.
 param: scene_name (string) - Scene name to register.
 param: virtualTemplate (string|nil) - Optional template override for modern modules.
@@ -47,7 +45,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey
-Description: Returns the current category identifier.
+Returns the current category identifier.
 return: string|nil - The current category key, or nil if none is set.
 ]]
 --- @return string|nil categoryKey The current category key
@@ -57,7 +55,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey
-Description: Sets the current category identifier.
+Sets the current category identifier.
 param: categoryKey (string) - The category key to set.
 ]]
 --- @param categoryKey string The category key to set
@@ -67,8 +65,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:SaveCategoryPosition
-Description: Saves the current list position for a category.
-Rationale: Allows returning to the same position when switching back to a category.
+Saves the current list position for a category.
 param: categoryKey (string) - The category to save position for. Uses current if nil.
 param: position (number|nil) - The position to save. Uses current list selection if nil.
 ]]
@@ -88,7 +85,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:RestoreCategoryPosition
-Description: Restores a previously saved list position for a category.
+Restores a previously saved list position for a category.
 param: categoryKey (string) - The category to restore position for. Uses current if nil.
 return: number - The saved position, or 1 if not found.
 ]]
@@ -103,8 +100,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:ClearCategoryPositions
-Description: Clears all saved category positions.
-Rationale: Called when exiting the window to reset state for next visit.
+Clears all saved category positions.
 ]]
 function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
     self.categoryPositions = {}
@@ -112,9 +108,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:SwitchToCategory
-Description: Switches to a specific category with position restoration.
-Rationale: Common pattern for category tab navigation in Inventory/Banking.
-Mechanism:
+Switches to a specific category with position restoration.
   1. Saves current category position.
   2. Updates current category key.
   3. Refreshes the list.
@@ -151,9 +145,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive
-Description: Ensures header tab bar keybinds are active.
-Rationale: Common pattern to restore header navigation after dialogs or spinners.
-Mechanism: Adds the tab bar keybinds if headerGeneric and tabBar exist.
+Ensures header tab bar keybinds are active.
 ]]
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
     if self.headerGeneric and self.headerGeneric.tabBar then
@@ -177,8 +169,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds
-Description: Standard keybind refresh pattern.
-Rationale: Updates keybind button visibility/state based on current selection.
+Standard keybind refresh pattern.
 ]]
 function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     if not KEYBIND_STRIP then return end
@@ -198,7 +189,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:UpdateHeaderTitle
-Description: Placeholder for updating header title based on category.
+Placeholder for updating header title based on category.
 ]]
 function BETTERUI.CIM.GenericWindow:UpdateHeaderTitle()
     -- Subclasses should override
@@ -206,7 +197,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:RefreshFooter
-Description: Placeholder for updating footer info.
+Placeholder for updating footer info.
 ]]
 function BETTERUI.CIM.GenericWindow:RefreshFooter()
     -- Subclasses should override

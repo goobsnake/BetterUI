@@ -21,7 +21,6 @@ local MODULES       = BETTERUI.CIM.CONST.MODULES
 --[[
 Function: GetCurrentBankBag (local)
 Description: Determines the current bank bag ID.
-Rationale: Extracts common bank-determination logic used by multiple functions.
 return: number - BAG_BANK or the specific house bank bag ID.
 ]]
 local function GetCurrentBankBag()
@@ -48,8 +47,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:CurrentUsedBank
 Description: Updates the 'currentUsedBank' state.
-Rationale: Determines whether we are using the main bank (BAG_BANK) or a house bank.
-Mechanism: Uses helper to determine bag, updates namespace.
 ]]
 function BETTERUI.Banking.Class:CurrentUsedBank()
     BETTERUI.Banking.currentUsedBank = GetCurrentBankBag()
@@ -58,7 +55,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:LastUsedBank
 Description: Updates the 'lastUsedBank' state.
-Mechanism: Uses helper to determine bag, updates namespace.
 ]]
 function BETTERUI.Banking.Class:LastUsedBank()
     BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
@@ -71,8 +67,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:SaveListPosition
 Description: Saves the current scroll position of the list.
-Rationale: Delegates to CIM.PositionManager for shared position persistence.
-Mechanism: Uses category key from current category to store position.
 References: Called before RefreshList, ToggleList, or Mode Switches.
 ]]
 function BETTERUI.Banking.Class:SaveListPosition()
@@ -97,7 +91,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:HandleEmptyList (helper)
 Description: Manages keybind and tooltip state when list is empty.
-Rationale: Extracted from ReturnToSaved to separate keybind management concern.
 return: boolean - True if list was empty and handled, false otherwise.
 ]]
 function BETTERUI.Banking.Class:HandleEmptyList()
@@ -123,7 +116,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:GetRestoredPosition
 Description: Retrieves the saved position for the current category/mode.
-Rationale: Extracted from ReturnToSaved for cleaner position lookup.
 return: number - The position to restore (1 if none saved).
 ]]
 function BETTERUI.Banking.Class:GetRestoredPosition()
@@ -145,7 +137,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:HandleBankSwitch
 Description: Handles the case where the player switched to a different bank.
-Rationale: Extracted from ReturnToSaved to isolate bank-switching logic.
 return: boolean - True if bank switch was handled, false if no switch occurred.
 ]]
 function BETTERUI.Banking.Class:HandleBankSwitch()
@@ -180,8 +171,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:ReturnToSaved
 Description: Restores the saved list position.
-Rationale: Uses CIM.PositionManager for position restoration with uniqueId lookup.
-Mechanism:
   1. Updates current bank state.
   2. Handles empty list case with keybind management.
   3. Handles mode toggle case (skip to top).
@@ -217,7 +206,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:UpdateSingleItem
 Description: Handles single slot updates (item add/remove/change).
-Rationale: Triggers a list refresh when a specific slot changes.
 param: bagId (number) - The bag ID.
 param: slotIndex (number) - The slot index.
 ]]
@@ -240,8 +228,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:ToggleList
 Description: Toggles between Withdraw and Deposit modes.
-Rationale: Switches the banking context and refreshes the UI.
-Mechanism:
   1. Saves current list position.
   2. Captures current category key to attempt restoration in new mode.
   3. Updates `currentMode` (LIST_WITHDRAW <-> LIST_DEPOSIT).

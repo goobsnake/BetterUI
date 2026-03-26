@@ -20,9 +20,7 @@ local DIVIDER_PIPPED = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 
 --[[
 Function: TabBar_Setup
-Description: Configures the visual state of a tab icon (hidden label, tinted icon).
-Rationale: Ensures the tab bar matches the BetterUI aesthetic (icons only, gold tint).
-Mechanism: Hides text labels, sets icon texture, and applies color tinting based on filter type.
+Configures the visual state of a tab icon (hidden label, tinted icon).
 param: control (table) - The list entry control.
 param: data (table) - The data associated with this entry.
 param: selected (boolean) - Is this entry currently selected?
@@ -84,9 +82,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.Initialize
-Description: Initializes the header control and caches child references.
-Rationale: Caching references prevents repeated GetNamedChild calls during high-frequency updates.
-Mechanism: Populates control.controls table mapping constants (TABBAR, TITLE) to UI objects.
+Initializes the header control and caches child references.
 param: control (table) - The header control.
 param: createTabBar (number) - Flag to indicate if tab bar should be shown/created.
 param: layout (any) - Layout info (unused explicitly here).
@@ -115,9 +111,7 @@ local TEXT_ALIGN_RIGHT = 2
 
 --[[
 Function: TabBar_OnDataChanged
-Description: Callback handler for when a tab is selected.
-Rationale: Syncs the main inventory category list when the header tab selection changes.
-Mechanism: Iterates through GAMEPAD_INVENTORY.categoryList to find and select the matching entry.
+Callback handler for when a tab is selected.
 param: list (table) - The scroll list control.
 param: selectedData (table) - The new selected data item.
 param: oldSelectedData (table) - The previous selected data item.
@@ -140,8 +134,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.AddToList
-Description: Add an entry to the tab bar list.
-Rationale: Helper to add entries using the standardized BETTERUI tab template.
+Add an entry to the tab bar list.
 param: control (table) - The header control.
 param: data (table) - The entry data.
 ]]
@@ -153,9 +146,7 @@ end
 
 --[[
 Function: UpdateEquipText
-Description: Updates equipment slot text styling for main or backup bar.
-Rationale: Houses shared logic for weapon bar text highlights to avoid duplication.
-Mechanism: Sets text based on active status and handles visibility for locked weapon swaps.
+Updates equipment slot text styling for main or backup bar.
 param: control (table) - Header control
 param: controlName (string) - Name of the child label control
 param: slotStringKey (number) - String identifier for the slot name
@@ -179,9 +170,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.SetEquipText
-Description: Set the primary equip text in the header (Main Hand).
-Rationale: Updates the visual indicator for the active weapon bar (text color/highlight).
-Mechanism: Uses UpdateEquipText helper.
+Set the primary equip text in the header (Main Hand).
 param: control (table) - Header control.
 param: isEquipMain (boolean) - True if Main Hand is the active weapon bar.
 ]]
@@ -191,9 +180,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.SetBackupEquipText
-Description: Set the backup equip text in the header (Back Up).
-Rationale: Updates visual indicator for backup bar. Hides entirely if weapon swap is locked.
-Mechanism: Uses UpdateEquipText helper.
+Set the backup equip text in the header (Back Up).
 param: control (table) - Header control.
 param: isEquipMain (boolean) - True if Main Hand is active (Backup is inactive).
 ]]
@@ -211,9 +198,7 @@ end
 
 --[[
 Function: UpdateEquippedIcons
-Description: Updates equipment icons for main or backup bar.
-Rationale: Consolidates texture setting and visibility logic for weapon bar icons.
-Mechanism: Checks weapon swap unlock status and applies textures or default icons to child controls.
+Updates equipment icons for main or backup bar.
 param: control (table) - Header control
 param: iconNames (table) - Table mapping 'main', 'off', 'poison' to child control names
 param: iconsData (table) - Table with 'main', 'off', 'poison' texture paths
@@ -249,9 +234,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.SetEquippedIcons
-Description: Populate current equipped icons for the main bar.
-Rationale: Updates visual indicators for equipped items on the primary bar.
-Mechanism: Uses UpdateEquippedIcons helper.
+Populate current equipped icons for the main bar.
 param: control (table) - The header control.
 param: equipMain (string) - Texture path for main hand icon.
 param: equipOff (string) - Texture path for off hand icon.
@@ -266,9 +249,7 @@ end
 
 --[[
 Function: BETTERUI.GenericHeader.SetBackupEquippedIcons
-Description: Populate current equipped icons for the backup bar.
-Rationale: Updates visual indicators for equipped items on the backup bar.
-Mechanism: Uses UpdateEquippedIcons helper.
+Populate current equipped icons for the backup bar.
 param: control (table) - The header control.
 param: equipMain (string) - Texture path for main hand icon.
 param: equipOff (string) - Texture path for off hand icon.

@@ -17,9 +17,7 @@ end
 
 --[[
 Function: BETTERUI.GetResearch
-Description: Populates the ResearchTraits cache.
-Rationale: Caches player's research knowledge to avoid expensive API calls during list rendering.
-Mechanism: Iterates through all crafting types, research lines, and traits.
+Populates the ResearchTraits cache.
            Stores boolean status (known/unknown) in BETTERUI.ResearchTraits.
 References: Called on initialization and when research completes.
 param: forceRefresh (boolean) - If true, ignores existing cache and rebuilds data.

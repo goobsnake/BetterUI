@@ -12,9 +12,7 @@ Last Modified: 2026-01-27
 
 --[[
 Function: BETTERUI.GetCustomCategory
-Description: Retrieves custom category information from AutoCategory addon.
-Rationale: Integration with AutoCategory for advanced inventory sorting.
-Mechanism: Checks if AutoCategory is loaded and initialized.
+Retrieves custom category information from AutoCategory addon.
            Calls MatchCategoryRules to get rule-based categorization.
 References: Used by Inventory list setup to assign items to dynamic categories.
 param: itemData (table) - The item data (must contain bagId and slotIndex).

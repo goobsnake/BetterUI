@@ -14,7 +14,7 @@ BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScroll
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:New
-Description: Creates a new sub-list (nested menu) instance.
+Creates a new sub-list (nested menu) instance.
 param: control (table) - The list control.
 param: parentList (table) - The parent list that spawned this.
 param: parentKeybinds (table) - Keybinds to restore when exiting.
@@ -28,8 +28,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:Initialize
-Description: Initializes the sub-list.
-Rationale: Hides initially and sets offset.
+Initializes the sub-list.
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parentList, parentKeybinds, onDataChosen)
     BETTERUI_VerticalParametricScrollList.Initialize(self, control)
@@ -43,7 +42,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:Commit
-Description: Commits selection and triggers callback.
+Commits selection and triggers callback.
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     ZO_ParametricScrollList.Commit(self, dontReselect)
@@ -53,7 +52,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:CancelSelection
-Description: Cancels selection and reverts to entry index.
+Cancels selection and reverts to entry index.
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:CancelSelection()
     local indexToReturnTo = zo_clamp(self.indexOnOpen, 1, #self.dataList)
@@ -64,7 +63,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip
-Description: Sets up navigation keybinds (Enter/Back).
+Sets up navigation keybinds (Enter/Back).
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:InitializeKeybindStrip()
     local function OnEntered()
@@ -83,8 +82,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:Activate
-Description: Shows and activates the sub-list.
-Mechanism: Swaps keybinds from parent to self.
+Shows and activates the sub-list.
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:Activate()
     self.parentList:Deactivate()
@@ -98,8 +96,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollListSubList:Deactivate
-Description: Hides and deactivates the sub-list.
-Mechanism: Restores parent keybinds and focus.
+Hides and deactivates the sub-list.
 ]]
 function BETTERUI_VerticalParametricScrollListSubList:Deactivate()
     if not self.active then return end

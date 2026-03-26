@@ -12,10 +12,7 @@ Last Modified: 2026-01-28
 
 --[[
 Function: DoEquipMove
-Description: Performs the actual equip move via CallSecureProtected.
-Rationale: Centralizes the equip slot resolution logic to eliminate duplication
-           between performEquipAction and ReleaseDialog's equipItemCallback.
-Mechanism: Maps equipment type + slot preference to target equip slot, then calls RequestMoveItem.
+Performs the actual equip move via CallSecureProtected.
 References: Used by TryEquipItem and InitializeEquipSlotDialog.
 param: bagId (number) - Source bag ID.
 param: slotIndex (number) - Source slot index.

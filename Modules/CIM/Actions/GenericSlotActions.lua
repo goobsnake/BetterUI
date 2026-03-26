@@ -14,8 +14,7 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --[[
 Class: BETTERUI.CIM.GenericSlotActions
-Description: Base class for slot action management.
-Rationale: Provides a simple action registry pattern for inventory-like windows.
+Base class for slot action management.
 ]]
 BETTERUI.CIM.GenericSlotActions = ZO_Object:Subclass()
 
@@ -36,7 +35,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:AddAction
-Description: Adds an action to the available actions list.
+Adds an action to the available actions list.
 param: name (string) - The display name of the action.
 param: callback (function) - The function to execute when the action is triggered.
 param: options (table|nil) - Optional configuration (visible, order, etc.).
@@ -56,7 +55,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:ClearActions
-Description: Clears all registered actions.
+Clears all registered actions.
 ]]
 function BETTERUI.CIM.GenericSlotActions:ClearActions()
     self.actions = {}
@@ -65,7 +64,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:GetAction
-Description: Retrieves a specific action by name.
+Retrieves a specific action by name.
 param: actionName (string) - The name of the action to retrieve.
 return: table|nil - The action table, or nil if not found.
 ]]
@@ -75,7 +74,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:HasAction
-Description: Checks if an action exists by name.
+Checks if an action exists by name.
 param: actionName (string) - The name of the action to check.
 return: boolean - True if the action exists.
 ]]
@@ -85,7 +84,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:GetActionCount
-Description: Returns the number of registered actions.
+Returns the number of registered actions.
 return: number - The count of actions.
 ]]
 function BETTERUI.CIM.GenericSlotActions:GetActionCount()
@@ -94,7 +93,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:GetActions
-Description: Returns the list of all registered actions.
+Returns the list of all registered actions.
 return: table - Array of action tables.
 ]]
 function BETTERUI.CIM.GenericSlotActions:GetActions()
@@ -103,7 +102,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:ExecuteAction
-Description: Executes an action by name.
+Executes an action by name.
 param: actionName (string) - The name of the action to execute.
 return: boolean - True if the action was found and executed.
 ]]
@@ -122,9 +121,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericSlotActions:BuildCommonActions
-Description: Populates standard actions for an inventory slot.
-Rationale: Common actions that apply to most item types (Link to Chat, etc.).
-Mechanism: Adds actions based on the item's properties.
+Populates standard actions for an inventory slot.
 param: inventorySlot (table) - The inventory slot data.
 param: options (table|nil) - Optional configuration.
   - includeLinkToChat (boolean): Whether to add Link to Chat action (default: true).
@@ -173,8 +170,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.TryUseItem
-Description: Attempts to use an item from the specified inventory slot.
-Rationale: Handles quest items vs standard items with secure calls.
+Attempts to use an item from the specified inventory slot.
 Used By: Inventory/Actions/SlotActions.lua
 param: inventorySlot (table) - The inventory slot data with bagId/slotIndex.
 ]]
@@ -204,8 +200,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.TryBankItem
-Description: Handles banking deposit/withdraw for an item.
-Rationale: Centralized banking logic with space checks and error handling.
+Handles banking deposit/withdraw for an item.
 Used By: Inventory/Actions/SlotActions.lua, Banking/Actions/TransferActions.lua
 param: inventorySlot (table) - The inventory slot data.
 ]]
@@ -248,8 +243,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.TryMoveToCraftBag
-Description: Moves an item between Backpack and Craft Bag.
-Rationale: Handles stow/retrieve with proper stack handling.
+Moves an item between Backpack and Craft Bag.
 Used By: Inventory/Actions/SlotActions.lua
 param: inventorySlot (table) - The inventory slot data.
 param: targetBag (number) - BAG_BACKPACK or BAG_VIRTUAL.
@@ -290,8 +284,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.CanItemMoveToCraftBag
-Description: Checks if an item is eligible for Craft Bag.
-Rationale: Requires ESO+ access, item compatibility, and not stolen.
+Checks if an item is eligible for Craft Bag.
 Used By: Inventory/Actions/SlotActions.lua
 param: inventorySlot (table) - The inventory slot data.
 return: boolean - True if item can be stowed.
@@ -311,8 +304,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SetupSecureAction
-Description: Wraps an action in a secure call if necessary (primarily for USE actions).
-Rationale: Ensures protected actions don't fail due to addon taint.
+Wraps an action in a secure call if necessary (primarily for USE actions).
 Used By: Inventory/Actions/SlotActions.lua
 param: slotActions (table) - The slot actions object.
 param: actionStringId (number) - The action string ID constant.
@@ -334,8 +326,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.HandleCraftBagActions
-Description: Configures actions related to the Craft Bag (Stow/Retrieve).
-Rationale: Handles complex logic for when to show "Stow" vs "Retrieve" vs "Stow & Use".
+Configures actions related to the Craft Bag (Stow/Retrieve).
 Used By: Inventory/Actions/SlotActions.lua
 param: slotActions (table) - The slot actions object.
 param: inventorySlot (table) - The inventory slot data.
@@ -365,8 +356,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SecureOpenSkills
-Description: Wraps the "Open Skills" action callback in a secure call.
-Rationale: The engine's "Open Skills" callback may call UseItem directly,
+Wraps the "Open Skills" action callback in a secure call.
            which causes tainting errors. This wrapper ensures CallSecureProtected is used.
 Used By: Inventory/Actions/SlotActions.lua
 param: slotActions (table) - The slot actions object.
@@ -391,8 +381,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.DeduplicateActions
-Description: Removes duplicate entries from the slot actions list.
-Rationale: Multiple code paths may add the same action (e.g., "Stow"); this
+Removes duplicate entries from the slot actions list.
            ensures the Y-button actions menu doesn't show duplicates.
 Used By: Inventory/Actions/SlotActions.lua
 param: slotActions (table) - The slot actions object to deduplicate.
@@ -414,7 +403,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.IsSlotInCraftBag
-Description: Checks if the inventory slot represents an item inside the Craft Bag.
+Checks if the inventory slot represents an item inside the Craft Bag.
 Used By: Inventory/Actions/SlotActions.lua, CIM.ResolveCraftBagState
 param: inventorySlot (table) - The inventory slot data.
 return: boolean - True if the item is in the Craft Bag.
@@ -426,8 +415,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.ResolveCraftBagState
-Description: Determines the correct primary action based on Craft Bag context.
-Rationale: Items in Craft Bag should show "Retrieve"; items in Inventory should
+Determines the correct primary action based on Craft Bag context.
            show "Stow" if eligible.
 Used By: Inventory/Actions/SlotActions.lua
 param: slotActions (table) - The slot actions object.

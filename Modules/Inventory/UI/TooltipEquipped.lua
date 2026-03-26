@@ -13,14 +13,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 --[[
 Function: BETTERUI.Inventory.UpdateTooltipEquippedText
-Description: Intercepts and customizes the 'Equipped' tooltip header.
-Rationale: Native tooltips lack sufficient detail (traits, binding, collections) and layout control.
-Mechanism:
-- 1. Checks settings to enable/disable enhancements.
-- 2. Hides native 'StatusLabel' and 'BottomRail' to take control of layout.
-- 3. Injects a custom label (_betterUiStatus) with comprehensive item info (Traits, Locked, Stolen, Price).
-- 4. Physically shifts the tooltip body (via Anchor) to prevent overlap with the custom header.
-- 5. Supports recursive hiding of redundant text in the native body.
+Intercepts and customizes the 'Equipped' tooltip header.
 param: tooltipType (string) - The type of tooltip (GAMEPAD_LEFT_TOOLTIP etc).
 param: equipSlot (number) - The equipment slot index.
 ]]
@@ -380,8 +373,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             customLabel:SetText(fullText)
             customLabel:SetHidden(false)
 
-            -- Rationale: Physically shift the tooltip body to prevent overlap with our custom header.
-            -- This relies on shifting the internal Tooltip control relative to its ScrollChild parent.
+            -- Physically shift the tooltip body to prevent overlap with our custom header.
             if tooltip then
                 tooltip:ClearAnchors()
                 tooltip:SetAnchor(TOPLEFT, nil, TOPLEFT, 0, BETTERUI.CIM.CONST.LAYOUT.TOOLTIP.BODY_OFFSET_Y_ENHANCED)

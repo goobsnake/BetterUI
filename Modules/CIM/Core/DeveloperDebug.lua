@@ -20,8 +20,7 @@ BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = false
 
 --[[
 Table: BETTERUI.CIM.Debug.FLAGS
-Description: Sub-flags for specific debug features.
-Rationale: Allows granular control over which debug visualizations are active.
+Sub-flags for specific debug features.
 Used By: ResourceOrbFrames, Inventory, Banking modules.
 ]]
 BETTERUI.CIM.Debug.FLAGS = {
@@ -38,9 +37,7 @@ BETTERUI.CIM.Debug.FLAGS = {
 
 --[[
 Function: BETTERUI.CIM.Debug.IsEnabled
-Description: Checks if debug mode is enabled.
-Rationale: Single point of control for all debug features.
-Mechanism: Checks FeatureFlags.DEBUG_LOGGING OR global BETTERUI_DEBUG.
+Checks if debug mode is enabled.
 References: Called by all debug utilities before executing.
 ]]
 --- @return boolean enabled True if debug mode is active
@@ -70,9 +67,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Debug.Log
-Description: Conditional debug logging that respects debug mode state.
-Rationale: Wrapper for BETTERUI.Debug that only outputs when debug is enabled.
-Mechanism: Checks IsEnabled before printing.
+Conditional debug logging that respects debug mode state.
 References: Used throughout codebase for development logging.
 ]]
 --- @param message string The message to log
@@ -86,8 +81,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Debug.SetFlag
-Description: Sets a debug sub-flag.
-Rationale: Runtime toggling of specific debug features.
+Sets a debug sub-flag.
 ]]
 --- @param flagName string The flag name from FLAGS table
 --- @param enabled boolean The new state

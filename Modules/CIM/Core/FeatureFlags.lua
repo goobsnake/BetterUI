@@ -67,9 +67,7 @@ local flagOverrides = {}
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.IsEnabled
-Description: Checks if a feature flag is enabled.
-Rationale: Single point of control for feature availability.
-Mechanism: Checks overrides first, then saved settings, then defaults.
+Checks if a feature flag is enabled.
 References: Called throughout the addon to gate feature-specific code.
 ]]
 --- @param flagName string The feature flag identifier
@@ -105,9 +103,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.SetEnabled
-Description: Sets a feature flag's enabled state (persisted to saved variables).
-Rationale: Allows runtime toggling of features via settings or debug commands.
-Mechanism: Updates saved settings and clears cache.
+Sets a feature flag's enabled state (persisted to saved variables).
 References: Settings panels, debug slash commands.
 ]]
 --- @param flagName string The feature flag identifier
@@ -121,9 +117,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.SetOverride
-Description: Sets a temporary runtime override for a feature flag.
-Rationale: Useful for testing or debug mode without persisting changes.
-Mechanism: Stores override in memory-only table.
+Sets a temporary runtime override for a feature flag.
 References: Debug commands, unit tests.
 ]]
 --- @param flagName string The feature flag identifier
@@ -134,8 +128,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.ClearOverrides
-Description: Clears all runtime feature flag overrides.
-Rationale: Reset to saved/default state.
+Clears all runtime feature flag overrides.
 References: Called when exiting debug mode.
 ]]
 function BETTERUI.CIM.FeatureFlags.ClearOverrides()
@@ -144,8 +137,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.GetAllFlags
-Description: Returns all defined feature flags with their current states.
-Rationale: For settings UI and debug display.
+Returns all defined feature flags with their current states.
 ]]
 --- @return table<string, {definition: FeatureFlagDefinition, enabled: boolean}> flags
 function BETTERUI.CIM.FeatureFlags.GetAllFlags()
@@ -161,8 +153,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.FeatureFlags.ResetToDefaults
-Description: Resets all feature flags to their default states.
-Rationale: Recovery option for corrupted settings.
+Resets all feature flags to their default states.
 ]]
 function BETTERUI.CIM.FeatureFlags.ResetToDefaults()
     if BETTERUI.Settings then

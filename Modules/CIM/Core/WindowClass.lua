@@ -30,9 +30,7 @@ BETTERUI.Interface.Window = ZO_Object:Subclass()
 
 --[[
 Function: BETTERUI.Interface.Window:New
-Description: Constructor for the Base Window class.
-Rationale: Standard factory method for creating new Window instances.
-Mechanism: Allocates a new ZO_Object and calls Initialize.
+Constructor for the Base Window class.
 param: ... (any) - Arguments passed to Initialize.
 return: table - The new window object.
 ]]
@@ -44,9 +42,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:Initialize
-Description: Initializes the window instance.
-Rationale: Sets up the control hierarchy, header/footer references, and spinner components.
-Mechanism:
+Initializes the window instance.
   1. Creates the physical UI control from 'BETTERUI_GenericInterface' virtual template.
   2. Finds and caches references to child controls (Header, Footer, Spinner).
   3. Initializes the spinner and wraps its range function.
@@ -103,7 +99,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:SetSpinnerValue
-Description: Sets the spinner's range and current value.
+Sets the spinner's range and current value.
 param: max (number) - The maximum allowed value (min is always 1).
 param: value (number) - The current value to set.
 ]]
@@ -115,8 +111,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:ActivateSpinner
-Description: Shows and activates the spinner, deactivating the main list.
-Rationale: Shifts focus to the quantity selector (e.g., for splitting stacks).
+Shows and activates the spinner, deactivating the main list.
 ]]
 function BETTERUI.Interface.Window:ActivateSpinner()
     if not self.spinner then return end
@@ -127,8 +122,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:DeactivateSpinner
-Description: Hides and deactivates the spinner, reactivating the main list.
-Rationale: returns focus to the main item list after spinner interaction.
+Hides and deactivates the spinner, reactivating the main list.
 ]]
 function BETTERUI.Interface.Window:DeactivateSpinner()
     if self.spinner then
@@ -141,8 +135,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:UpdateSpinnerConfirmation
-Description: Toggles spinner confirmation mode.
-Rationale: Used when confirming a stack split or deposit/withdrawal amount.
+Toggles spinner confirmation mode.
 param: activateSpinner (boolean) - True to show/activate, False to hide/deactivate.
 param: list (table) - The list control to refresh.
 ]]
@@ -163,8 +156,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:ApplySpinnerMinMax
-Description: Updates keybinds when spinner is toggled.
-Rationale: Adds specialized keybinds (confirm/cancel) when spinner is active.
+Updates keybinds when spinner is toggled.
 param: toggleValue (boolean) - True if spinner is active.
 ]]
 function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
@@ -182,8 +174,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:GetList
-Description: Gets the current primary list.
-Rationale: Accessor method allowing subclasses to override which list is active.
+Gets the current primary list.
 return: table - The active scroll list.
 ]]
 function BETTERUI.Interface.Window:GetList()
@@ -192,8 +183,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:InitializeKeybind
-Description: Initializes keybinds for the window.
-Rationale: Sets up default keybind (Back) and placeholders. Subclasses should override.
+Initializes keybinds for the window.
 ]]
 function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
@@ -206,8 +196,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:InitializeList
-Description: Initializes the main parametric scroll list.
-Rationale: Creates `BETTERUI_VerticalItemParametricScrollList` with custom settings for BetterUI.
+Initializes the main parametric scroll list.
 param: listName (string|nil) - Optional list name (not used in default implementation).
 ]]
 function BETTERUI.Interface.Window:InitializeList(listName)
@@ -224,23 +213,21 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:RefreshList
-Description: Placeholder for list refresh logic.
-Rationale: Intended to be overridden by subclasses.
+Placeholder for list refresh logic.
 ]]
 function BETTERUI.Interface.Window:RefreshList()
 end
 
 --[[
 Function: BETTERUI.Interface.Window:OnItemSelectedChange
-Description: Placeholder for selection change logic.
-Rationale: Intended to be overridden by subclasses.
+Placeholder for selection change logic.
 ]]
 function BETTERUI.Interface.Window:OnItemSelectedChange()
 end
 
 --[[
 Function: BETTERUI.Interface.Window:SetupList
-Description: Configures the main list template.
+Configures the main list template.
 param: rowTemplate (string) - The XML template name for list rows.
 param: SetupFunct (function) - The setup callback function for rows.
 ]]
@@ -251,7 +238,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:AddTemplate
-Description: Adds an additional data template to the list (for multi-template lists).
+Adds an additional data template to the list (for multi-template lists).
 param: rowTemplate (string) - The XML template name.
 param: SetupFunct (function) - The setup callback.
 ]]
@@ -261,7 +248,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:AddEntryToList
-Description: Adds a single entry to the list and commits.
+Adds a single entry to the list and commits.
 param: data (table) - The data object for the entry.
 ]]
 function BETTERUI.Interface.Window:AddEntryToList(data)
@@ -271,7 +258,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:AddColumn
-Description: Adds a column header to the window.
+Adds a column header to the window.
 param: columnName (string) - The text to display.
 param: xOffset (number) - The horizontal position (left-aligned anchor from TabBar BOTTOMLEFT).
 ]]
@@ -321,7 +308,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:SetTitle
-Description: Sets the window title text.
+Sets the window title text.
 param: headerText (string) - The title text.
 ]]
 function BETTERUI.Interface.Window:SetTitle(headerText)
@@ -330,8 +317,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:RefreshVisible
-Description: Refreshes the list and its visibility.
-Rationale: Helper to trigger a full list refresh.
+Refreshes the list and its visibility.
 ]]
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
@@ -340,7 +326,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback
-Description: Sets the callback for selection changes.
+Sets the callback for selection changes.
 param: selectedDataCallback (function) - The callback function.
 ]]
 function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedDataCallback)
@@ -349,8 +335,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:InitializeFragment
-Description: Initializes scene fragments for the window.
-Rationale: Sets up main window fragment and footer fragment.
+Initializes scene fragments for the window.
 param: footerControl (userdata|nil) - Optional footer bar control. Defaults to BETTERUI_BankingFooterBar.
 ]]
 function BETTERUI.Interface.Window:InitializeFragment(footerControl)
@@ -365,8 +350,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:InitializeScene
-Description: Initializes the ESO scene object and registers callbacks.
-Rationale: Integrates the window into the ESO scene manager provided scene.
+Initializes the ESO scene object and registers callbacks.
             Uses SceneLifecycleManager for unified lifecycle handling.
 param: scene (object) - The scene object to initialize with.
 ]]
@@ -410,7 +394,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:ToggleScene
-Description: Toggles the window's scene visibility.
+Toggles the window's scene visibility.
 Note: Subclasses must set self.sceneName during initialization for this to work.
 ]]
 function BETTERUI.Interface.Window:ToggleScene()
@@ -426,8 +410,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:OnTabNext
-Description: Handler for Next Tab action.
-Rationale: Placeholder debug function. Subclasses should override.
+Handler for Next Tab action.
 ]]
 function BETTERUI.Interface.Window:OnTabNext()
     -- Placeholder: subclasses should override for tab navigation
@@ -435,8 +418,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.Window:OnTabPrev
-Description: Handler for Previous Tab action.
-Rationale: Placeholder debug function. Subclasses should override.
+Handler for Previous Tab action.
 ]]
 function BETTERUI.Interface.Window:OnTabPrev()
     -- Placeholder: subclasses should override for tab navigation

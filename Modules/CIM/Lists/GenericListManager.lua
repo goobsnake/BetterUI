@@ -10,7 +10,7 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
 --[[
 Class: BETTERUI.CIM.GenericListManager
-Description: Base class for list management logic shared across inventory-like windows.
+Base class for list management logic shared across inventory-like windows.
 ]]
 BETTERUI.CIM.GenericListManager = ZO_Object:Subclass()
 
@@ -31,7 +31,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:SavePosition
-Description: Saves the current list position for later restoration.
+Saves the current list position for later restoration.
 param: categoryKey (string) - The category to save position for.
 param: position (number) - The scroll position to save.
 ]]
@@ -45,7 +45,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:RestorePosition
-Description: Restores a previously saved list position.
+Restores a previously saved list position.
 param: categoryKey (string) - The category to restore position for.
 return: number|nil - The saved position, or nil if not found.
 ]]
@@ -57,7 +57,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:ClearSavedPositions
-Description: Clears all saved list positions.
+Clears all saved list positions.
 ]]
 function BETTERUI.CIM.GenericListManager:ClearSavedPositions()
     self.savedPositions = {}
@@ -69,7 +69,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:CacheItemLinkData
-Description: Caches expensive item link data to avoid repeated API calls.
+Caches expensive item link data to avoid repeated API calls.
 param: itemData (table) - The item data table to cache into.
 param: bagId (number) - The bag ID.
 param: slotIndex (number) - The slot index.
@@ -99,8 +99,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortByName
-Description: Alphabetical name comparator.
-Rationale: Sorts items A-Z by display name.
+Alphabetical name comparator.
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -116,8 +115,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortByQuality
-Description: Quality tier comparator (higher quality first).
-Rationale: Sorts by item quality (Legendary > Epic > Superior > etc.)
+Quality tier comparator (higher quality first).
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -130,8 +128,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortByLevel
-Description: Level/CP requirement comparator (higher level first).
-Rationale: Sorts by item level requirement.
+Level/CP requirement comparator (higher level first).
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -152,8 +149,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortByValue
-Description: Sell price comparator (higher value first).
-Rationale: Sorts by gold sell value.
+Sell price comparator (higher value first).
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -169,8 +165,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortBySlotIndex
-Description: Bag slot order comparator.
-Rationale: Sorts by physical slot position (preserves bag order).
+Bag slot order comparator.
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -183,8 +178,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.SortByBagAndSlot
-Description: Sorts by bag ID first, then slot index.
-Rationale: Useful for bank views showing multiple bags.
+Sorts by bag ID first, then slot index.
 param: left (table) - First item data.
 param: right (table) - Second item data.
 return: boolean - True if left should come before right.
@@ -206,8 +200,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:ApplyTextFilter
-Description: Filters item list by name substring (case-insensitive).
-Rationale: Common search implementation for both Inventory and Banking.
+Filters item list by name substring (case-insensitive).
 param: items (table) - Array of item data tables.
 param: searchQuery (string) - The search string to match.
 return: table - Filtered array of items matching the query.
@@ -232,9 +225,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.GenericListManager:BuildSortFunction
-Description: Creates a multi-key comparator from an array of sort functions.
-Rationale: Allows chaining sort criteria (e.g., quality then name).
-Mechanism: Returns a comparator that tries each sort function in order,
+Creates a multi-key comparator from an array of sort functions.
            stopping at the first one that produces a difference.
 param: sortKeys (table) - Array of sort functions to chain.
 return: function - Combined comparator function.
@@ -273,7 +264,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.MenuEntryTemplateEquality
-Description: Equality function for parametric list templates.
+Equality function for parametric list templates.
              Used to determine if two list entries represent the same item.
 param: left (table) - First entry.
 param: right (table) - Second entry.

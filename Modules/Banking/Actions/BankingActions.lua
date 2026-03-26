@@ -23,8 +23,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:InitializeActionsDialog
 Description: Initializes the "Y Button" Actions Dialog.
-Rationale: Sets up the contextual menu for banking items (e.g. Split Stack, Link to Chat).
-Mechanism:
   1. Registers callbacks for dialog setup, finish, and confirmation.
   2. Filters out "Destroy" actions when in Deposit mode to prevent accidents.
   3. Populates the parametric list with valid actions from BETTERUI.Inventory.SlotActions.

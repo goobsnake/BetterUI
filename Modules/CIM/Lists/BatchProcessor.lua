@@ -17,9 +17,7 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
 --[[
 Class: BETTERUI.CIM.Lists.BatchProcessor
-Description: Manages incremental list population for large datasets.
-Rationale: Prevents UI freezing by processing items in batches with frame yields.
-Mechanism:
+Manages incremental list population for large datasets.
   1. Start() initializes batch state with data and options.
   2. ProcessBatch() handles one batch of items.
   3. zo_callLater schedules the next batch.
@@ -35,7 +33,7 @@ end
 
 --[[
 Function: Initialize
-Description: Initializes the batch processor.
+Initializes the batch processor.
 param: options (table|nil) - Configuration:
   - initialBatchSize (number): Items to process in first batch (default: 50)
   - remainingBatchSize (number): Items per subsequent batch (default: 200)
@@ -59,7 +57,7 @@ end
 
 --[[
 Function: Start
-Description: Starts batch processing a dataset.
+Starts batch processing a dataset.
 param: data (table) - Array of items to process.
 param: options (table) - Processing configuration:
   - context (table): Arbitrary context passed to callbacks
@@ -93,7 +91,7 @@ end
 
 --[[
 Function: ProcessBatch
-Description: Processes one batch of items.
+Processes one batch of items.
 ]]
 function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
     if not self.pendingData then return end
@@ -149,7 +147,7 @@ end
 
 --[[
 Function: Cancel
-Description: Cancels any pending batch operations.
+Cancels any pending batch operations.
 ]]
 function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
     if self.batchCallId then
@@ -161,7 +159,7 @@ end
 
 --[[
 Function: Reset
-Description: Resets internal state.
+Resets internal state.
 ]]
 function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.pendingData = nil
@@ -174,7 +172,7 @@ end
 
 --[[
 Function: IsActive
-Description: Returns true if batch processing is in progress.
+Returns true if batch processing is in progress.
 return: boolean
 ]]
 --- @return boolean active True if batch processing is in progress

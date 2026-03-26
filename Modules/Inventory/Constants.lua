@@ -140,8 +140,7 @@ BETTERUI.Inventory.CONST.SORT_SCHEMA = BETTERUI.CIM.CONST.SORT_SCHEMA
 Function: BETTERUI.Inventory.DefaultSortComparator
 Description: Custom comparison function for sorting gamepad inventory items.
              Delegates to CIM shared comparator for consistency with Banking.
-Rationale: Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
-Mechanism: Delegates to CIM.Utils.DefaultSortComparator.
+Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
 References: Used by the gamepad inventory list (Sort Comparator).
 param: left (table) - The first item data.
 param: right (table) - The second item data.

@@ -12,9 +12,7 @@ Last Modified: 2026-02-07
 
 --[[
 Function: BETTERUI.Debug
-Description: Prints a debug message to chat with BetterUI prefix.
-Rationale: Standardized debug logging for development.
-Mechanism: Prefixes the message with cyan [BETTERUI] tag and prints to chat.
+Prints a debug message to chat with BetterUI prefix.
 References: Used globally throughout the addon for debug logging.
 param: str (string) - The message string to display.
 ]]
@@ -33,9 +31,7 @@ end
 
 --[[
 Function: BETTERUI.GetModuleEnabled
-Description: Checks if a specific BetterUI module is enabled.
-Rationale: Uses 'm_enabled' as the canonical key. Legacy 'enabled' key support retained for backward compatibility.
-Mechanism: Checks saved settings for the module's enabled state.
+Checks if a specific BetterUI module is enabled.
 References: Used during module initialization to check if module should load.
 param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
 return: boolean - True if the module is enabled.
@@ -68,9 +64,7 @@ end
 
 --[[
 Function: BETTERUI.SafeIcon
-Description: Safely returns an icon path string.
-Rationale: Prevents crashes or errors when passing nil icon paths to ESO API functions.
-Mechanism: Checks if iconPath is nil; returns empty string if so, otherwise returns original path.
+Safely returns an icon path string.
 References: Used by Inventory, Banking, and Writ lists to ensure icon validity.
 param: iconPath (string|nil) - The path to the icon texture.
 return: string - The icon path or an empty string.
@@ -95,9 +89,7 @@ BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
 
 --[[
 Function: BETTERUI.CIM.Utils.SafeGetTargetData
-Description: Safe helper for GetTargetData calls (guards against lists without method).
-Rationale: Provides a consistent way to retrieve selected data across different list types.
-Mechanism: Checks for GetTargetData method, falls back to selectedData property.
+Safe helper for GetTargetData calls (guards against lists without method).
 References: Used by Inventory, Banking for safe list selection access.
 param: list (table) - The list object to query.
 return: table|nil - The target data of the list.
@@ -115,9 +107,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.WrapValue
-Description: Wraps a value around min/max bounds for circular navigation.
-Rationale: Provides consistent wrap-around behavior for tab/category navigation.
-Mechanism: If below 1, returns maxValue; if above maxValue, returns 1.
+Wraps a value around min/max bounds for circular navigation.
 References: Used for category cycling in header navigation.
 param: newValue (number) - The value to wrap.
 param: maxValue (number) - The maximum value (1 is implicit minimum).
@@ -138,9 +128,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.DefaultSortComparator
-Description: Custom comparison function for sorting gamepad inventory-style lists.
-Rationale: Provides consistent sort order (Type -> Name -> Level -> CP -> Icon -> ID).
-Mechanism: Uses ZO_TableOrderingFunction with CIM.CONST.SORT_SCHEMA.
+Custom comparison function for sorting gamepad inventory-style lists.
 References: Used by Inventory and Banking list sorting.
 param: left (table) - The first item data.
 param: right (table) - The second item data.
@@ -156,9 +144,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.FindStackableSlotInBag
-Description: Finds a slot with a stackable item matching the given item link that has room for more items.
-Rationale: Extracted from Banking/Actions/TransferActions.lua to eliminate DRY violation.
-Mechanism: Iterates through bag slots looking for matching stackable items with available stack space.
+Finds a slot with a stackable item matching the given item link that has room for more items.
 References: Used by Banking TransferActions for item stacking during transfers.
 param: bagId (number) - The bag ID to search.
 param: itemLink (string) - The item link to match against.
@@ -183,10 +169,8 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.ResolveMoveDestinationSlot
-Description: Resolves an explicit destination slot for inventory moves.
-Rationale: Batch RequestMoveItem calls must provide concrete destination slots to
+Resolves an explicit destination slot for inventory moves.
            avoid nil-slot transfer behavior under throttled processing.
-Mechanism:
   1) Prefer first empty slot in destination bag.
   2) If none, try stackable slot matching source item link.
 References: Used by Banking/Inventory multi-select batch move paths.
@@ -217,9 +201,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.SetExternalToolbarHidden
-Description: Toggles visibility of external addon toolbars (e.g., wykkydsToolbar).
-Rationale: Centralized helper to avoid duplicating toolbar visibility toggles across modules.
-Mechanism: Checks if wykkydsToolbar exists and sets its hidden state.
+Toggles visibility of external addon toolbars (e.g., wykkydsToolbar).
 References: Used by Inventory, Banking during scene state changes.
 param: hidden (boolean) - True to hide, false to show.
 ]]
@@ -232,9 +214,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.GetHouseBankTraitMatches
-Description: Returns the total count of researchable trait matches across all house banks.
-Rationale: Centralizes house bank iteration to avoid verbose 10-bank repetition in Tooltips.
-Mechanism: Iterates BAG_HOUSE_BANK_ONE through BAG_HOUSE_BANK_TEN and sums matches.
+Returns the total count of researchable trait matches across all house banks.
 References: Used by CIM/Tooltips/Tooltips.lua for research status display.
 param: itemLink (string) - The item link to check.
 return: number - Total count of matching researchable items across all house banks.
@@ -258,9 +238,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.IsBankingSceneShowing
-Description: Checks if the gamepad banking scene is currently visible.
-Rationale: Centralizes fragile scene check pattern used 24+ times across Banking and Inventory modules.
-Mechanism: Safely checks for scene existence before calling IsShowing().
+Checks if the gamepad banking scene is currently visible.
 References: Used by Banking, Inventory for scene-guarded operations.
 return: boolean - True if the banking scene is showing.
 ]]
@@ -275,9 +253,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.IsInventorySceneShowing
-Description: Checks if the gamepad inventory root scene is currently visible.
-Rationale: Provides consistent scene checking for inventory operations.
-Mechanism: Safely checks for scene existence before calling IsShowing().
+Checks if the gamepad inventory root scene is currently visible.
 References: Used by Inventory module for scene-guarded operations.
 return: boolean - True if the inventory scene is showing.
 ]]
@@ -289,10 +265,8 @@ end
 
 --[[
 Function: BETTERUI.CIM.Utils.SafeCall
-Description: Safely calls a method on an object if both exist.
-Rationale: For cases where nil is legitimately possible (e.g., optional controls,
+Safely calls a method on an object if both exist.
            scene state transitions). NOT for masking bugs - investigate and fix root causes.
-Mechanism: Checks obj and method existence before calling.
 References: Used for defensive coding in scene transitions and optional UI elements.
 param: obj (table|nil) - The object to call the method on.
 param: methodName (string) - The name of the method to call.

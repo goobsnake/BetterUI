@@ -11,7 +11,7 @@ BETTERUI.CIM.Settings = BETTERUI.CIM.Settings or {}
 
 --[[
 Table: ICON_DEFINITIONS
-Description: Defines the standard icon toggles shared across modules.
+Defines the standard icon toggles shared across modules.
 Used By: CreateIconToggleOptions
 ]]
 local ICON_DEFINITIONS = {
@@ -132,9 +132,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Settings.CreateIconToggleOptions
-Description: Creates LAM checkbox options for icon visibility toggles.
-Rationale: Consolidates identical icon toggle logic from Banking and Inventory.
-Mechanism:
+Creates LAM checkbox options for icon visibility toggles.
   1. Iterates through ICON_DEFINITIONS
   2. Creates a checkbox for each with get/set functions targeting the module settings
   3. Includes live refresh callback via refreshFn
@@ -184,8 +182,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption
-Description: Creates a dedicated submenu for item icon customization controls.
-Rationale: Keeps Inventory/Banking settings focused as icon options expand.
+Creates a dedicated submenu for item icon customization controls.
 param: moduleName (string) - The module name key in BETTERUI.Settings.Modules.
 param: refreshFn (function) - Callback to refresh visible lists after settings changes.
 return: table - A LAM submenu option containing icon toggles.

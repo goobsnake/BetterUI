@@ -76,11 +76,10 @@ BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 --- Inserts a primary action at the front of the slot actions table.
 --- Override of the standard AddSlotAction to force an action to be Primary (A Button).
 ---
---- Purpose: Sets the default "A" button behavior for a slot.
---- Mechanics:
---- - Inserts the action into index 1 of the action table.
---- - Updates `_betterui_primaryOverride` for direct invocation.
---- - Adds to Context Menu if applicable.
+--- Sets the default "A" button behavior for a slot.
+--- Inserts the action into index 1 of the action table.
+--- Updates `_betterui_primaryOverride` for direct invocation.
+--- Adds to Context Menu if applicable.
 ---
 --- @param self table The SlotActions instance.
 --- @param actionStringId number|string The string ID or name of the action.
@@ -129,7 +128,6 @@ local function TryUnequipItem(inventorySlot)
 end
 
 --- Attempts to use the item in the specified slot.
---- Rationale: Delegates to CIM.TryUseItem for shared implementation.
 --- @param inventorySlot table|nil The inventory slot data.
 local function TryUseItem(inventorySlot)
     if not inventorySlot then return end
@@ -150,7 +148,6 @@ local function TryUseItem(inventorySlot)
 end
 
 --- Handles banking actions (Deposit/Withdraw) for an item.
---- Rationale: Delegates to CIM.TryBankItem for shared implementation.
 --- @param inventorySlot table|nil The inventory slot data.
 local function TryBankItem(inventorySlot)
     if not inventorySlot then return end
@@ -158,7 +155,6 @@ local function TryBankItem(inventorySlot)
 end
 
 --- Attempts to move an item between the Backpack and the Craft Bag.
---- Rationale: Delegates to CIM.TryMoveToCraftBag for shared implementation.
 --- @param inventorySlot table|nil The inventory slot data.
 --- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
 local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
@@ -167,7 +163,6 @@ local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
 end
 
 --- Checks if an item can be moved to the Craft Bag.
---- Rationale: Delegates to CIM.CanItemMoveToCraftBag for shared implementation.
 --- @param inventorySlot table|nil The inventory slot data.
 --- @return boolean canMove True if the item is eligible for the Craft Bag.
 local function CanItemMoveToCraftBag(inventorySlot)
@@ -176,7 +171,6 @@ local function CanItemMoveToCraftBag(inventorySlot)
 end
 
 --- Checks if the inventory slot represents an item currently inside the Craft Bag.
---- Rationale: Delegates to CIM.IsSlotInCraftBag for shared implementation.
 --- @param inventorySlot table|nil The inventory slot data.
 --- @return boolean isInCraftBag True if the item is in the Craft Bag.
 local function IsSlotInCraftBag(inventorySlot)
@@ -186,8 +180,7 @@ end
 
 --- Initializes the slot actions controller, defining how actions are prioritized and executed.
 ---
---- Purpose: **Core Logic for 'A' Button**. Determines what the Primary Action is.
---- Mechanics:
+--- **Core Logic for 'A' Button**. Determines what the Primary Action is.
 --- 1. Creates `ZO_InventorySlotActions` instance.
 --- 2. Hooks `AddSlotPrimaryAction`.
 --- 3. Defines `PrimaryCommand`:
@@ -253,7 +246,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Table of action string IDs that should trigger a primary action replacement.
-    --- Rationale: Data-driven approach is faster and easier to maintain than if-chains.
     local PRIMARY_ACTION_REPLACEMENTS = {
         [SI_ITEM_ACTION_USE] = true,
         [SI_ITEM_ACTION_EQUIP] = true,
@@ -284,7 +276,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Wraps an action in a secure call if necessary (primarily for USE actions).
-    --- Rationale: Delegates to CIM.SetupSecureAction for shared implementation.
     --- @param slotActions table The slot actions object.
     --- @param actionStringId number The action string ID.
     --- @param callback function The callback to execute.
@@ -294,7 +285,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Configures actions related to the Craft Bag (Stow/Retrieve).
-    --- Rationale: Delegates to CIM.HandleCraftBagActions for shared implementation.
     --- @param slotActions table The slot actions object.
     --- @param inventorySlot table The inventory slot data.
     --- @param canUseItem boolean Whether the item is also usable (adds USE as a secondary action).
@@ -303,7 +293,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Sets up the primary action for a slot based on its action name.
-    --- Purpose: Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
+    --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
     --- @param slotActions table The slot actions object.
     --- @param actionName string The localized name of the action.
     --- @param inventorySlot table The inventory slot data.
@@ -366,8 +356,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     --[[
         Function: SecureOpenSkills
-        Description: Wraps the "Open Skills" action callback in a secure call.
-        Rationale: Delegates to CIM.SecureOpenSkills for shared implementation.
+        Wraps the "Open Skills" action callback in a secure call.
         param: slotActions (table) - The slot actions object
         param: inventorySlot (table) - The inventory slot data
         ]]
@@ -377,8 +366,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     --[[
         Function: ResolveCraftBagState
-        Description: Determines the correct primary action based on Craft Bag context.
-        Rationale: Delegates to CIM.ResolveCraftBagState for shared implementation.
+        Determines the correct primary action based on Craft Bag context.
         param: slotActions (table) - The slot actions object
         param: inventorySlot (table) - The inventory slot data
         param: primaryAction (string) - The current primary action name
@@ -391,8 +379,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     --[[
         Function: DeduplicateActions
-        Description: Removes duplicate entries from the slot actions list.
-        Rationale: Delegates to CIM.DeduplicateActions for shared implementation.
+        Removes duplicate entries from the slot actions list.
         param: slotActions (table) - The slot actions object to deduplicate
         ]]
     local function DeduplicateActions(slotActions)
@@ -401,8 +388,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 
     --- The main logic invoked when the primary action (A button) is potentially triggered.
     ---
-    --- Purpose: **Action Discovery and Selection**.
-    --- Mechanics:
+    --- **Action Discovery and Selection**.
     --- 1. Clears previous actions.
     --- 2. Calls `ZO_InventorySlot_DiscoverSlotActionsFromActionList`.
     --- 3. Fixes "Open Skills" to be secure.
@@ -553,7 +539,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
 end
 
 --- Returns the underlying ZO_InventorySlotActions object.
---- Purpose: Required for the Y-actions dialog to iterate through available actions.
+--- Required for the Y-actions dialog to iterate through available actions.
 --- @return table The inner slotActions object containing the discovered actions.
 function BETTERUI.Inventory.SlotActions:GetSlotActions()
     return self.slotActions

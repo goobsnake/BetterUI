@@ -103,14 +103,12 @@ end
 
 --[[
 Function: RefreshKeybinds (Override)
-Description: Guards keybind refresh against header sort mode.
-Rationale: ESO's ZO_Gamepad_ParametricList_Screen:CreateAndSetupList wraps the list's
-           OnSelectedDataChangedCallback with a call to self:RefreshKeybinds(). This
-           bypasses all our guards on individual RefreshKeybinds calls because ESO's
-           base class is calling RefreshKeybinds directly. By overriding the function
-           itself, we intercept ALL refresh calls - both from our code and ESO's base class.
-Mechanism: Check isInHeaderSortMode; if true, skip refresh entirely. Otherwise, call
-           the parent implementation via ZO_GamepadInventory.RefreshKeybinds.
+Guards keybind refresh against header sort mode.
+ESO's ZO_Gamepad_ParametricList_Screen:CreateAndSetupList wraps the list's
+OnSelectedDataChangedCallback with a call to self:RefreshKeybinds(). This
+bypasses all our guards on individual RefreshKeybinds calls because ESO's
+base class is calling RefreshKeybinds directly. By overriding the function
+itself, we intercept ALL refresh calls - both from our code and ESO's base class.
 References: Called by ESO base class in selection callbacks.
 ]]
 function BETTERUI.Inventory.Class:RefreshKeybinds()
@@ -130,11 +128,11 @@ end
 
 --[[
 Function: SetSelectedInventoryData (Override)
-Description: Guards itemActions:SetInventorySlot against header sort mode.
-Rationale: ESO's ZO_ItemSlotActionsController:SetInventorySlot calls RefreshKeybindStrip()
-           which DIRECTLY manipulates KEYBIND_STRIP (Add/Update/Remove). This bypasses our
-           RefreshKeybinds override. By guarding at the SetSelectedInventoryData level,
-           we prevent itemActions from updating keybinds during header sort mode.
+Guards itemActions:SetInventorySlot against header sort mode.
+ESO's ZO_ItemSlotActionsController:SetInventorySlot calls RefreshKeybindStrip()
+which DIRECTLY manipulates KEYBIND_STRIP (Add/Update/Remove). This bypasses our
+RefreshKeybinds override. By guarding at the SetSelectedInventoryData level,
+we prevent itemActions from updating keybinds during header sort mode.
 References: Called on every selection change via selection callbacks.
 ]]
 function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
@@ -157,7 +155,7 @@ end
 
 
 --- Initializes the Inventory object.
---- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
+--- Sets up the root scene, registers update loops, and hooks into visual layer changes.
 --- References: Called by Module.lua.
 --- @param control Control The root control for the inventory
 function BETTERUI.Inventory.Class:Initialize(control)
@@ -347,11 +345,10 @@ end
 
 --- Refreshes the header, ensuring callbacks are preserved.
 ---
---- Purpose: Overrides base RefreshHeader to enforce BetterUI logic.
---- Mechanics:
---- - Calls GenericHeader.Refresh with categoryHeaderData (which has proper titleText).
---- - Re-attaches the mouse click callback (which might be wiped by Refresh).
---- - Ensures scrollList link.
+--- Overrides base RefreshHeader to enforce BetterUI logic.
+--- Calls GenericHeader.Refresh with categoryHeaderData (which has proper titleText).
+--- Re-attaches the mouse click callback (which might be wiped by Refresh).
+--- Ensures scrollList link.
 --- @param blockCallback? boolean Whether to block the tab bar callback during refresh.
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)

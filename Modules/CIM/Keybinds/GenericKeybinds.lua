@@ -15,8 +15,7 @@ if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateBackKeybind
-Description: Creates a standard back navigation keybind.
-Rationale: Common pattern for exiting a scene.
+Creates a standard back navigation keybind.
 Used By: Common utility, not currently in production use.
 param: callback (function|nil) - Custom callback. If nil, uses standard back navigation.
 return: table - Keybind descriptor for back navigation.
@@ -37,8 +36,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateStackAllKeybind
-Description: Creates a "Stack All" keybind for a specific bag.
-Rationale: L-Stick action to consolidate item stacks.
+Creates a "Stack All" keybind for a specific bag.
 Used By: Inventory/Keybinds/InventoryKeybinds.lua
 param: bagId (number) - The bag to stack items in.
 param: visibleFn (function|nil) - Optional visibility function.
@@ -62,8 +60,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateActionsKeybind
-Description: Creates an "Actions" keybind (Y-button menu).
-Rationale: Opens the context menu for the selected item.
+Creates an "Actions" keybind (Y-button menu).
 Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
 param: showActionsFn (function) - Function to call to show the actions menu.
 param: visibleFn (function|nil) - Optional visibility function.
@@ -85,9 +82,8 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateClearSearchKeybind
-Description: Creates a "Clear Search" keybind.
+Creates a "Clear Search" keybind.
              Only visible when search box contains text (via hasTextFn).
-Rationale: Quick way to reset search filter. Hidden when empty to reduce keybind clutter.
 Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
 param: clearSearchFn (function) - Function to call to clear the search.
 param: visibleFn (function|nil) - Optional base visibility function.
@@ -126,8 +122,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.AddBackNavigation
-Description: Adds back navigation keybind(s) to a keybind group.
-Rationale: Wrapper around ZO_Gamepad_AddBackNavigationKeybindDescriptors for consistency.
+Adds back navigation keybind(s) to a keybind group.
 param: keybindGroup (table) - The keybind group to add to.
 param: navigationType (number|nil) - Navigation type. Defaults to GAME_NAVIGATION_TYPE_BUTTON.
 ]]
@@ -142,8 +137,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.AddTriggerKeybinds
-Description: Adds trigger keybinds for a parametric list (LT/RT for page navigation).
-Rationale: Wrapper around ZO_Gamepad_AddListTriggerKeybindDescriptors.
+Adds trigger keybinds for a parametric list (LT/RT for page navigation).
 param: keybindGroup (table) - The keybind group to add to.
 param: list (table) - The parametric scroll list.
 ]]
@@ -153,9 +147,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds
-Description: Creates LT/RT keybinds for fast scrolling with configurable speed.
-Rationale: Used by Banking/Inventory for trigger-based list navigation.
-Mechanism: Uses per-module speedGetter for scroll amount, or falls back to DEFAULT_TRIGGER_SPEED.
+Creates LT/RT keybinds for fast scrolling with configurable speed.
 param: listOrGetter (table|function) - The parametric scroll list, or a function returning it.
 param: useCategoryJumpGetter (function|boolean|nil) - Optional. Getter for category jump mode.
 param: speedGetter (function|nil) - Optional. Returns the trigger speed for this module.

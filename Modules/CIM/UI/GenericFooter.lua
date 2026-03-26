@@ -27,7 +27,7 @@ end
 
 --[[
 Function: GetLabelControl
-Description: Retrieves a label control from the footer by name.
+Retrieves a label control from the footer by name.
              Delegates to CurrencyManager's implementation for consistency.
 ]]
 local function GetLabelControl(footer, labelName)
@@ -40,9 +40,7 @@ end
 
 --[[
 Function: BETTERUI.GenericFooter:Initialize
-Description: Initializes the footer control reference.
-Rationale: Links the Lua object to the XML control structure defined in GenericFooter.xml.
-Mechanism: Finds the 'FooterContainer' child within the main control and caches the reference.
+Initializes the footer control reference.
            Triggers an initial refresh if the control is ready.
 param: control (table) - The parent control containing the footer.
 return: nil
@@ -55,9 +53,7 @@ end
 
 --[[
 Function: BETTERUI.GenericFooter:Refresh
-Description: Refreshes the footer content and layout.
-Rationale: Updates displayed values (Capacity, Currencies) to reflect current player state.
-Mechanism:
+Refreshes the footer content and layout.
   1. Updates Capacity Labels (Backpack and Bank).
   2. Delegates currency updates to CurrencyManager.
   3. Dynamically positions currency labels based on user-defined order.

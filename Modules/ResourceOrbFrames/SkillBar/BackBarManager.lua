@@ -40,9 +40,7 @@ end
 
 --[[
 Function: CacheBackBarControls
-Description: Caches all back bar control references for performance.
-Rationale: Avoids repeated GetNamedChild/FindControl lookups in hot paths.
-Mechanism: Uses CIM.ControlCache.CacheButtonChildren for each button.
+Caches all back bar control references for performance.
 References: Called during addon initialization after controls are created.
 param: rootFrame (control) - The root ResourceOrbFrames control
 ]]

@@ -11,7 +11,7 @@ local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
 
 --[[
 Function: GetControlDimensionForMode
-Description: Gets the relevant dimension (Height/Width) based on list orientation.
+Gets the relevant dimension (Height/Width) based on list orientation.
 param: mode (boolean) - Vertical (true) or Horizontal (false).
 param: control (table) - The control to check.
 return: number - The dimension size.
@@ -22,7 +22,7 @@ end
 
 --[[
 Function: GetStartOfControl
-Description: Gets the starting edge (Top/Left) based on list orientation.
+Gets the starting edge (Top/Left) based on list orientation.
 param: mode (boolean) - Vertical (true) or Horizontal (false).
 param: control (table) - The control to check.
 return: number - The start coordinate.
@@ -33,7 +33,7 @@ end
 
 --[[
 Function: GetEndOfControl
-Description: Gets the ending edge (Bottom/Right) based on list orientation.
+Gets the ending edge (Bottom/Right) based on list orientation.
 param: mode (boolean) - Vertical (true) or Horizontal (false).
 param: control (table) - The control to check.
 return: number - The end coordinate.
@@ -50,9 +50,7 @@ BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
 --[[
 Function: BETTERUI_VerticalParametricScrollList:New
-Description: Creates a new vertical parametric scroll list instance.
-Rationale: Initializes the list with custom fade gradient logic.
-Mechanism:
+Creates a new vertical parametric scroll list instance.
   - Overrides EnsureValidGradient to apply specific top/bottom fades.
   - Dynamically calculates gradient sizes based on list content and alignment.
   - Ensures clean fades at the edges of the scroll area.
@@ -136,7 +134,7 @@ end
 
 --[[
 Function: BETTERUI_VerticalParametricScrollList:Initialize
-Description: Initializes the list with default padding and sound.
+Initializes the list with default padding and sound.
 param: control (table) - The list control.
 ]]
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
@@ -151,14 +149,13 @@ end
 
 --[[
 Class: BETTERUI_VerticalItemParametricScrollList
-Description: Subclass specifically for Item Lists (Inventory rows).
-Rationale: Sets default post-padding for inventory items.
+Subclass specifically for Item Lists (Inventory rows).
 ]]
 BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollList:Subclass()
 
 --[[
 Function: BETTERUI_VerticalItemParametricScrollList:New
-Description: Constructor for item list.
+Constructor for item list.
 param: control (table) - The list control.
 return: table - The new list instance.
 ]]

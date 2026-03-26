@@ -12,9 +12,7 @@ Last Modified: 2026-01-27
 
 --[[
 Function: BETTERUI.CIM.CreateItemEntryData
-Description: Creates a ZO_GamepadEntryData for display in inventory/banking scroll lists.
-Rationale: Consolidates duplicate entry creation code from ItemListManager and BankListManager.
-Mechanism:
+Creates a ZO_GamepadEntryData for display in inventory/banking scroll lists.
   1. Creates new ZO_GamepadEntryData with item name and icon
   2. Initializes visual data (quality colors, icons)
   3. Sets up cooldown info if applicable
@@ -90,8 +88,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.AddItemEntryToList
-Description: Helper to add an item entry to a list with optional category header.
-Rationale: Encapsulates the category header logic used by both Inventory and Banking.
+Helper to add an item entry to a list with optional category header.
 param: list (table) - The scroll list to add to.
 param: data (ZO_GamepadEntryData) - The entry data.
 param: currentCategoryName (string|nil) - The current category name for header comparison.

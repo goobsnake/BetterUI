@@ -13,8 +13,7 @@ local MODULES = BETTERUI.CIM.CONST.MODULES
 
 --[[
 Function: GetCategoryKey
-Description: Generates a stable string key for a category entry.
-Rationale: Delegates to CIM.PositionManager for consistent key generation.
+Generates a stable string key for a category entry.
 ]]
 function BETTERUI.Inventory.GetCategoryKey(categoryData)
     return BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
@@ -22,7 +21,7 @@ end
 
 --[[
 Function: FindCategoryIndexByKey
-Description: Finds the index of a category in the list by its unique key.
+Finds the index of a category in the list by its unique key.
 ]]
 function BETTERUI.Inventory.FindCategoryIndexByKey(self, key)
     if not key or not self.categoryList or not self.categoryList.dataList then return nil end
@@ -36,10 +35,10 @@ end
 
 --[[
 Function: ToSavedPosition
-Description: Restores the list position and selection from saved state.
-Mechanism: Uses CIM.PositionManager to retrieve saved uniqueId/index,
-           sets currentlySelectedData before RefreshItemList so batch
-           processing restores to the correct position.
+Restores the list position and selection from saved state.
+Uses CIM.PositionManager to retrieve saved uniqueId/index,
+sets currentlySelectedData before RefreshItemList so batch
+processing restores to the correct position.
 ]]
 function BETTERUI.Inventory.ToSavedPosition(self)
     -- Determine if we're on inventory or craft bag based on current category
@@ -127,8 +126,7 @@ end
 
 --[[
 Function: SaveListPosition
-Description: Saves the current list position and selection.
-Mechanism: Delegates to CIM.PositionManager for storage.
+Saves the current list position and selection.
 ]]
 function BETTERUI.Inventory.SaveListPosition(self)
     -- Guard against nil state

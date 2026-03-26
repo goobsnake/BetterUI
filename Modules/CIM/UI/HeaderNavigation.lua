@@ -22,8 +22,7 @@ local NavState = BETTERUI.CIM.NavigationState
 
 --[[
 Function: BETTERUI.CIM.HeaderNavigation.GetOrCreateState
-Description: Gets or creates navigation state for a module instance.
-Rationale: Ensures consistent state object across all navigation operations.
+Gets or creates navigation state for a module instance.
 param: instance (table) - The module instance.
 return: table - The navigation state object.
 ]]
@@ -42,9 +41,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.HeaderNavigation.CycleCategory
-Description: Cycles category selection via shoulder buttons (LB/RB).
-Rationale: Provides consistent wrap-around navigation for category headers.
-Mechanism:
+Cycles category selection via shoulder buttons (LB/RB).
   1. Saves current position before switching.
   2. Calculates new index with wrap-around.
   3. Sets cycling flag to prevent duplicate saves.
@@ -97,9 +94,7 @@ end
 
 --[[
 Function: BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler
-Description: Creates a debounced onSelectedChanged callback for category headers.
-Rationale: Prevents rapid navigation from triggering multiple refreshes.
-Mechanism:
+Creates a debounced onSelectedChanged callback for category headers.
   1. Saves position before switch (unless already done by CycleCategory).
   2. Uses NavigationState for token-based coalescing.
   3. Waits for delay before applying the category change.

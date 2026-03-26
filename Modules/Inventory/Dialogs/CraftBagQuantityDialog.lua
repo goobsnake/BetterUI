@@ -22,8 +22,7 @@ local MAX_STACK_TRANSFER = 200
 
 --[[
 Function: BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog
-Description: Registers the quantity selection dialog for Craft Bag operations.
-Rationale: Uses GAMEPAD_DIALOGS.ITEM_SLIDER for consistent UX with Banking module.
+Registers the quantity selection dialog for Craft Bag operations.
 ]]
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end

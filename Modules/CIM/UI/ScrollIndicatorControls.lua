@@ -17,7 +17,7 @@ if not BETTERUI.CIM.ScrollIndicator then BETTERUI.CIM.ScrollIndicator = {} end
 
 --[[
 Constant: SCROLL_INDICATOR
-Description: Visual configuration for the scroll indicator.
+Visual configuration for the scroll indicator.
 Direction: offsetX positive = RIGHT, offsetY positive = DOWN
 ]]
 local SCROLL_INDICATOR = {
@@ -53,7 +53,7 @@ local indicatorInstances = {}
 
 --[[
 Constant: MOUSE_INTERACTION
-Description: Configuration for mouse click and drag behavior.
+Configuration for mouse click and drag behavior.
 ]]
 local MOUSE_INTERACTION = {
     ARROW_REPEAT_DELAY_MS = 400,    -- Initial delay before repeat starts
@@ -66,7 +66,7 @@ local MOUSE_INTERACTION = {
 
 --[[
 Function: StartArrowRepeat
-Description: Starts repeating scroll in the given direction while arrow is held.
+Starts repeating scroll in the given direction while arrow is held.
 param: instance (table) - The scroll indicator instance.
 param: direction (number) - -1 for up (MovePrevious), +1 for down (MoveNext).
 ]]
@@ -102,7 +102,7 @@ end
 
 --[[
 Function: StopArrowRepeat
-Description: Stops the arrow repeat scrolling.
+Stops the arrow repeat scrolling.
 param: instance (table) - The scroll indicator instance.
 ]]
 local function StopArrowRepeat(instance)
@@ -117,7 +117,7 @@ end
 
 --[[
 Function: SetupArrowMouseHandlers
-Description: Sets up mouse click handlers for the up and down arrows.
+Sets up mouse click handlers for the up and down arrows.
 param: instance (table) - The scroll indicator instance.
 ]]
 local function SetupArrowMouseHandlers(instance)
@@ -171,8 +171,7 @@ end
 
 --[[
 Function: GetSelectableBounds
-Description: Resolves the first/last selectable indices for a list.
-Rationale: Parametric lists can contain non-selectable rows; using raw item count
+Resolves the first/last selectable indices for a list.
            causes the thumb to stop short of visual extremes.
 param: instance (table) - The scroll indicator instance.
 param: totalItems (number) - Total entries currently in the list.
@@ -201,7 +200,7 @@ end
 
 --[[
 Function: SetupThumbDragHandlers
-Description: Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
+Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
 param: instance (table) - The scroll indicator instance.
 ]]
 local function SetupThumbDragHandlers(instance)
@@ -315,8 +314,7 @@ end
 
 --[[
 Function: CreateIndicatorControls
-Description: Creates the visual controls for the scroll indicator.
-Mechanism: Creates textures for track, thumb, and arrows positioned relative to the list.
+Creates the visual controls for the scroll indicator.
 param: listControl (table) - The parametric list control to attach to.
 return: table - Table containing references to created controls.
 ]]

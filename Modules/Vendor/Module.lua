@@ -46,13 +46,7 @@ end
 
 --[[
 Function: BETTERUI.Vendor.InitModule
-Description: Initializes default values and migrates legacy settings for the Vendor module.
-Rationale: Ensures all necessary settings exist and converts old formats.
-Mechanism:
-  - Sets defaults for icons and carousel.
-  - Migrates `nameFont` / `nameFontSize` from older generic keys.
-  - Converts string sizes ("Small", "Medium") to integer pixels.
-  - Converts numeric font styles to string identifiers ("outline").
+Initializes default values and migrates legacy settings for the Vendor module.
 param: m_options (table) - The raw settings table for this module.
 return: table - The initialized and migrated settings table.
 ]]
@@ -138,10 +132,7 @@ end
 
 --[[
 Function: BETTERUI.Vendor.Setup
-Description: Lifecycle hook to setup the Vendor module.
-Rationale: Called by the core when the module should initialize its keybinds, settings, and UI.
-Mechanism: Calls Settings.RegisterPanel to register the settings menu,
-           then calls BETTERUI.Vendor.Init to create the vendor class instance.
+Lifecycle hook to setup the Vendor module.
 References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 function BETTERUI.Vendor.Setup()

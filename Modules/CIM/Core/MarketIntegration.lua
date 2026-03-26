@@ -155,9 +155,7 @@ end
 
 --[[
 Function: BETTERUI.GetMarketPrice
-Description: Retrieves the market price of an item from third-party trade addons.
-Rationale: Integration with MM, ATT, and TTC to display price info in tooltips.
-Mechanism: Checks which addon integration is enabled in settings.
+Retrieves the market price of an item from third-party trade addons.
            Calls the specific addon's API to fetch price data.
            Returns the average price multiplied by stack size.
 References: Used by BetterUI.Tooltips and Inventory rows to show value.

@@ -61,30 +61,24 @@ local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescri
 --[[
 Function: BETTERUI.Banking.Class:CurrentUsedBank
 Description: Updates the 'currentUsedBank' state.
-Rationale: Determines whether we are using the main bank (BAG_BANK) or a house bank.
-Mechanism: Checks IsHouseBankBag(GetBankingBag()). Updates both namespace and local upvalue.
 ]]
 
 
 --[[
 Function: BETTERUI.Banking.Class:LastUsedBank
 Description: Updates the 'lastUsedBank' state.
-Mechanism: Updates both namespace and local upvalue for backward compat.
 ]]
 
 
 --[[
 Function: BETTERUI.Banking.Class:RefreshFooter
 Description: Refreshes the footer information (Space Used, Currency).
-Rationale: Updates the bottom bar with current bag space and currency amounts.
-Mechanism: Checks 'currentMode' to decide whether to show Bank or Backpack info.
 ]]
 
 
 --[[
 Function: BETTERUI.Banking.Class:RefreshCurrencyTooltip
 Description: Updates the tooltip for currency rows.
-Rationale: Shows currency balances in the tooltip when a currency row is selected.
 ]]
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
@@ -236,8 +230,6 @@ end
 --[[
 Function: BETTERUI.Banking.Class:Initialize
 Description: Initializes the banking module components.
-Rationale: Sets up the window, list, keybinds, and event listeners.
-Mechanism:
   - Initializes base GenericInterface window.
   - Registers keybind descriptors (Core, Currency, Actions).
   - Sets up the Actions Dialog for item operations.
@@ -561,8 +553,6 @@ end
 --[[
 Function: BETTERUI.Banking.Init
 Description: Global initialization for the Banking module using BetterUI.Window.
-Rationale: Creates the singleton Banking Window instance.
-Mechanism:
   1. Instantiates `BETTERUI.Banking.Class`.
   2. Sets the default title.
   3. Configures List Columns (Name, Trait, etc.).

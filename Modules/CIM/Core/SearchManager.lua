@@ -19,7 +19,7 @@ BETTERUI.Interface = BETTERUI.Interface or {}
 
 --[[
 Function: PatchMouseInteractivity (Local Helper)
-Description: Makes the search control and its children interactive for mouse users.
+Makes the search control and its children interactive for mouse users.
 ]]
 local function PatchMouseInteractivity(searchControl, focusHandler)
     if searchControl.SetMouseEnabled then
@@ -56,7 +56,7 @@ end
 
 --[[
 Function: RegisterNarrationHandler (Local Helper)
-Description: Registers narration logic for the search header and list items.
+Registers narration logic for the search header and list items.
              Enhanced to provide accessibility for item selection and actions.
 ]]
 local function RegisterNarrationHandler(window, focusHandler)
@@ -136,9 +136,7 @@ end
 
 --[[
 Function: BETTERUI.Interface.CreateSearchKeybindDescriptor
-Description: Creates keybind descriptors for text search functionality.
-Rationale: Standardizes search navigation (Select, Back, Down) across modules.
-Mechanism: Returns a table of keybind definitions with visibility callbacks tied to the search context.
+Creates keybind descriptors for text search functionality.
 param: context (table) - The search context object (must have textSearchHeaderControl, searchQuery, etc.).
 return: table - Array of keybind descriptors.
 ]]
@@ -226,9 +224,7 @@ BETTERUI.Interface.SearchMixin = {}
 
 --[[
 Function: SearchMixin.AddSearch
-Description: Integrates text search capability into the window.
-Rationale: Allows users to filter lists by text input (items, banks, etc.).
-Mechanism:
+Integrates text search capability into the window.
   1. Creates a header editbox control using 'ZO_Gamepad_TextSearch_HeaderEditbox'.
   2. Wraps it in `ZO_TextSearch_Header_Gamepad` for logic handling.
   3. Registers keybinds and focus management.
@@ -286,7 +282,7 @@ end
 
 --[[
 Function: SearchMixin.IsTextSearchEntryHidden
-Description: Checks if the search entry field is hidden.
+Checks if the search entry field is hidden.
 return: boolean - True if hidden or not initialized, False otherwise.
 ]]
 function BETTERUI.Interface.SearchMixin.IsTextSearchEntryHidden(self)
@@ -298,7 +294,7 @@ end
 
 --[[
 Function: SearchMixin.SetTextSearchEntryHidden
-Description: Sets the visibility of the search entry field.
+Sets the visibility of the search entry field.
 param: isHidden (boolean) - True to hide, False to show.
 ]]
 function BETTERUI.Interface.SearchMixin.SetTextSearchEntryHidden(self, isHidden)
@@ -309,9 +305,7 @@ end
 
 --[[
 Function: SearchMixin.SetTextSearchFocused
-Description: Sets focus state of the search entry.
-Rationale: Used to programmatically focus the search box.
-Mechanism: Sets focus and brings window to front to ensure it honors input.
+Sets focus state of the search entry.
 param: isFocused (boolean) - True to focus, False to unfocus.
 ]]
 function BETTERUI.Interface.SearchMixin.SetTextSearchFocused(self, isFocused)
@@ -326,9 +320,7 @@ end
 
 --[[
 Function: SearchMixin.GetActiveList
-Description: Gets the currently active list.
-Rationale: Helper to retrieve the list that should currently receive input.
-Mechanism: Checks if GetCurrentList method exists via type check, then calls it safely.
+Gets the currently active list.
            Falls back to self.list if method doesn't exist.
 return: table - The active list control.
 ]]
@@ -343,9 +335,7 @@ end
 
 --[[
 Function: SearchMixin.ActivateSearchHeader
-Description: Activates the search header mode.
-Rationale: Switches context from list navigation to search input.
-Mechanism: Sets internal flag `_searchHeaderActive` and activates the focus object.
+Activates the search header mode.
 ]]
 function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
@@ -360,8 +350,7 @@ end
 
 --[[
 Function: SearchMixin.DeactivateSearchHeader
-Description: Deactivates the search header mode.
-Rationale: Switches context back to list navigation.
+Deactivates the search header mode.
 ]]
 function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
     if self.textSearchHeaderFocus and self._searchHeaderActive then
@@ -372,7 +361,7 @@ end
 
 --[[
 Function: SearchMixin.IsSearchHeaderActive
-Description: Checks if search header is currently active.
+Checks if search header is currently active.
 return: boolean - True if active.
 ]]
 function BETTERUI.Interface.SearchMixin.IsSearchHeaderActive(self)
@@ -381,7 +370,7 @@ end
 
 --[[
 Function: SearchMixin.ClearSearchText
-Description: Clears the current search query.
+Clears the current search query.
 ]]
 function BETTERUI.Interface.SearchMixin.ClearSearchText(self)
     if self.textSearchHeaderFocus then
@@ -391,7 +380,7 @@ end
 
 --[[
 Function: SearchMixin.IsSearchFocused
-Description: Checks if the search box has input focus.
+Checks if the search box has input focus.
 return: boolean - True if focused.
 ]]
 function BETTERUI.Interface.SearchMixin.IsSearchFocused(self)
@@ -405,9 +394,7 @@ end
 
 --[[
 Function: SearchMixin.SetupEditBoxHandlers
-Description: Sets up focus, text change, and navigation handlers for the search edit box.
-Rationale: Consolidates ~50 lines of duplicate code from Banking.lua and InventoryClass.lua.
-Mechanism:
+Sets up focus, text change, and navigation handlers for the search edit box.
   1. Wraps existing handlers to preserve original behavior.
   2. Adds scene guards to prevent processing when scene is hidden.
   3. Handles D-pad/stick navigation to exit search on Down press.
