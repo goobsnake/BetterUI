@@ -201,18 +201,18 @@ end
 --- Configures the main list template.
 ---
 --- @param rowTemplate string The XML template name for list rows.
---- @param SetupFunct function The setup callback function for rows.
-function BETTERUI.Interface.Window:SetupList(rowTemplate, SetupFunct)
+--- @param setupCallback function The setup callback function for rows.
+function BETTERUI.Interface.Window:SetupList(rowTemplate, setupCallback)
     self.itemListTemplate = rowTemplate
-    self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
+    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
 --- Adds an additional data template to the list (for multi-template lists).
 ---
 --- @param rowTemplate string The XML template name.
---- @param SetupFunct function The setup callback.
-function BETTERUI.Interface.Window:AddTemplate(rowTemplate, SetupFunct)
-    self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
+--- @param setupCallback function The setup callback.
+function BETTERUI.Interface.Window:AddTemplate(rowTemplate, setupCallback)
+    self:GetList():AddDataTemplate(rowTemplate, setupCallback, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
 --- Adds a single entry to the list and commits.
