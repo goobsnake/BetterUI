@@ -12,24 +12,22 @@ Last Modified: 2026-01-26
 -- ============================================================================
 BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
---[[
-Function: BETTERUI_Gamepad_ParametricList_Screen:New
-Description: Creates a new Gamepad Parametric List Screen.
-return: table - The new screen instance.
-Note: We pass ... to the parent's New, which handles Initialize automatically.
-]]
+--- Creates a new Gamepad Parametric List Screen.
+---
+--- Note: We pass ... to the parent's New, which handles Initialize automatically.
+---
+--- @param ... any Arguments passed to parent New.
+--- @return table The new screen instance.
 function BETTERUI_Gamepad_ParametricList_Screen:New(...)
     return ZO_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
---[[
-Function: BETTERUI_Gamepad_ParametricList_Screen:Initialize
-Description: Initializes the screen.
-param: control (table) - The screen control.
-param: createTabBar (boolean) - Whether to create a tab bar (unused here, layout based).
-param: activateOnShow (boolean) - Whether to activate list when shown.
-param: scene (object) - The scene object to associate.
-]]
+--- Initializes the screen.
+---
+--- @param control table The screen control.
+--- @param createTabBar boolean Whether to create a tab bar (unused here, layout based).
+--- @param activateOnShow boolean Whether to activate list when shown.
+--- @param scene table The scene object to associate.
 function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar, activateOnShow, scene)
     control.owner = self
     self.control = control
@@ -61,6 +59,10 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
     self.dirty = true
 end
 
+--- Sets whether lists use trigger keybinds.
+---
+--- @param addListTriggerKeybinds boolean Whether to add list trigger keybinds.
+--- @param optionalHeaderComparator function|nil Optional header comparator.
 function BETTERUI_Gamepad_ParametricList_Screen:SetListsUseTriggerKeybinds(addListTriggerKeybinds,
                                                                            optionalHeaderComparator)
     self.addListTriggerKeybinds = addListTriggerKeybinds

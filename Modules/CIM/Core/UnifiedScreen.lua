@@ -19,25 +19,22 @@ BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 
 local MODE = BETTERUI.CIM.UnifiedFooter.MODE
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:New
-Description: Creates a new UnifiedScreen instance.
-return: UnifiedScreen
-Note: We pass ... to the parent's New, which handles Initialize automatically.
-]]
+--- Creates a new UnifiedScreen instance.
+---
+--- Note: We pass ... to the parent's New, which handles Initialize automatically.
+---
+--- @return BETTERUI.CIM.UnifiedScreen The new UnifiedScreen instance.
 function BETTERUI.CIM.UnifiedScreen:New(...)
     return BETTERUI_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:Initialize
-Description: Initializes the screen with unified footer support.
-param: control (Control) - The screen control.
-param: createTabBar (boolean) - Whether to create tab bar.
-param: activateOnShow (boolean) - Whether to activate on show.
-param: scene (Scene) - The scene to associate.
-param: footerMode (number) - Initial footer mode (MODE.CURRENCY or MODE.BANKING).
-]]
+--- Initializes the screen with unified footer support.
+---
+--- @param control table The screen control.
+--- @param createTabBar boolean Whether to create tab bar.
+--- @param activateOnShow boolean Whether to activate on show.
+--- @param scene table The scene to associate.
+--- @param footerMode number|nil Initial footer mode (MODE.CURRENCY or MODE.BANKING).
 function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOnShow, scene, footerMode)
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, createTabBar, activateOnShow, scene)
 
@@ -54,10 +51,7 @@ function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOn
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter
-Description: Links to the UnifiedFooter controller and sets initial mode.
-]]
+--- Links to the UnifiedFooter controller and sets initial mode.
 function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
     local footerContainer = self.control.container and self.control.container:GetNamedChild("FooterContainer")
     if footerContainer and footerContainer.unifiedFooter then
@@ -66,11 +60,9 @@ function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:SetFooterMode
-Description: Changes the footer display mode.
-param: mode (number) - MODE.CURRENCY or MODE.BANKING
-]]
+--- Changes the footer display mode.
+---
+--- @param mode number MODE.CURRENCY or MODE.BANKING
 function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
     self.footerMode = mode
     if self.unifiedFooterController then
@@ -78,29 +70,21 @@ function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:GetFooterMode
-Description: Returns the current footer mode.
-return: number
-]]
+--- Returns the current footer mode.
+---
+--- @return number The current footer mode.
 function BETTERUI.CIM.UnifiedScreen:GetFooterMode()
     return self.footerMode
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:RefreshFooter
-Description: Triggers a footer content refresh.
-]]
+--- Triggers a footer content refresh.
 function BETTERUI.CIM.UnifiedScreen:RefreshFooter()
     if self.unifiedFooterController then
         self.unifiedFooterController:Refresh()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:OnShowing
-Description: Called when screen is about to show. Sets footer mode.
-]]
+--- Called when screen is about to show. Sets footer mode.
 function BETTERUI.CIM.UnifiedScreen:OnShowing()
     -- Ensure footer controller is set up
     if not self.unifiedFooterController then
@@ -113,11 +97,8 @@ function BETTERUI.CIM.UnifiedScreen:OnShowing()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:OnHiding
-Description: Called when screen is about to hide.
-             Override in subclasses for cleanup.
-]]
+--- Called when screen is about to hide.
+--- Override in subclasses for cleanup.
 function BETTERUI.CIM.UnifiedScreen:OnHiding()
     -- Subclasses can override for cleanup
 end
@@ -127,11 +108,8 @@ end
 -- These provide common scene state handling for Inventory/Banking
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:HandleSceneShowing
-Description: Common SCENE_SHOWING handler logic.
-             Subclasses can call this then add module-specific logic.
-]]
+--- Common SCENE_SHOWING handler logic.
+--- Subclasses can call this then add module-specific logic.
 function BETTERUI.CIM.UnifiedScreen:HandleSceneShowing()
     -- Ensure footer controller is set up
     if not self.unifiedFooterController then
@@ -152,10 +130,7 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneShowing()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:HandleSceneHiding
-Description: Common SCENE_HIDING handler logic.
-]]
+--- Common SCENE_HIDING handler logic.
 function BETTERUI.CIM.UnifiedScreen:HandleSceneHiding()
     -- Restore external toolbars
     BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
@@ -166,10 +141,7 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneHiding()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:HandleSceneHidden
-Description: Common SCENE_HIDDEN handler logic.
-]]
+--- Common SCENE_HIDDEN handler logic.
 function BETTERUI.CIM.UnifiedScreen:HandleSceneHidden()
     -- Clear keybinds
     if self.ClearActiveKeybinds then
@@ -189,11 +161,9 @@ end
 -- KEYBIND MANAGEMENT METHODS
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds
-Description: Sets the active keybind group, removing any previous one.
-param: keybindDescriptor (table) - The keybind group to activate.
-]]
+--- Sets the active keybind group, removing any previous one.
+---
+--- @param keybindDescriptor table The keybind group to activate.
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
@@ -208,10 +178,7 @@ function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds
-Description: Refreshes the currently active keybind group.
-]]
+--- Refreshes the currently active keybind group.
 function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
     -- Skip refreshing active keybinds if in header sort mode
     if self.isInHeaderSortMode then
@@ -222,10 +189,7 @@ function BETTERUI.CIM.UnifiedScreen:RefreshActiveKeybinds()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds
-Description: Removes all keybind button groups from the strip.
-]]
+--- Removes all keybind button groups from the strip.
 function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
     if KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveAllKeyButtonGroups()
@@ -233,11 +197,8 @@ function BETTERUI.CIM.UnifiedScreen:ClearActiveKeybinds()
     self.activeKeybindDescriptor = nil
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:RefreshKeybinds
-Description: Overrides base class RefreshKeybinds with header mode guard.
-             Prevents keybind updates during header sort mode.
-]]
+--- Overrides base class RefreshKeybinds with header mode guard.
+--- Prevents keybind updates during header sort mode.
 function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
     -- Block keybind refresh during header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
@@ -253,20 +214,15 @@ end
 -- SEARCH FOCUS LOGIC
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:SetupSearchFocus
-Description: Initializes search focus behavior for the screen.
-param: searchKeybindDescriptor (table) - Keybind group for search mode.
-]]
+--- Initializes search focus behavior for the screen.
+---
+--- @param searchKeybindDescriptor table Keybind group for search mode.
 function BETTERUI.CIM.UnifiedScreen:SetupSearchFocus(searchKeybindDescriptor)
     self.searchKeybindDescriptor = searchKeybindDescriptor
     self._searchModeActive = false
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:EnterSearchMode
-Description: Activates search mode keybinds and state.
-]]
+--- Activates search mode keybinds and state.
 function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -280,10 +236,7 @@ function BETTERUI.CIM.UnifiedScreen:EnterSearchMode()
     end
 end
 
---[[
-Function: BETTERUI.CIM.UnifiedScreen:ExitSearchMode
-Description: Deactivates search mode and restores main keybinds.
-]]
+--- Deactivates search mode and restores main keybinds.
 function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false

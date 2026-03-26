@@ -28,14 +28,12 @@ local HEADER_MODE_KEYBIND_LAYER = "HeaderSortMode"
 -- KEYBIND DESCRIPTORS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: CreateHeaderModeKeybinds
-Description: Creates keybind descriptors for header sort navigation mode.
-param: controller (HeaderSortController) - The header sort controller instance.
-param: onExitCallback (function) - Called when exiting header mode.
-param: onSortCallback (function) - Called when sort is toggled.
-return: table - Keybind descriptor for header mode.
-]]
+--- Creates keybind descriptors for header sort navigation mode.
+---
+--- @param controller table The header sort controller instance.
+--- @param onExitCallback function Called when exiting header mode.
+--- @param onSortCallback function Called when sort is toggled.
+--- @return table Keybind descriptor for header mode.
 local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_CENTER,
@@ -142,19 +140,12 @@ end
 -- INTEGRATION SETUP
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: HeaderSortIntegration.Setup
-Description: Sets up header sort integration for a parametric scroll list.
-param: list (table) - The parametric scroll list instance.
-param: controller (HeaderSortController) - The header sort controller.
-param: options (table) - Configuration options:
-       - onEnterHeaderMode: function() - Called when entering header mode
-       - onExitHeaderMode: function() - Called when exiting header mode
-       - onSortChanged: function(columnKey, direction, sortFn) - Called when sort changes
-       - keybindStrip: table - The keybind strip to update
-       - mainKeybindDescriptor: table - The main keybind descriptor to restore on exit
-return: table - Integration state object for manual control.
-]]
+--- Sets up header sort integration for a parametric scroll list.
+---
+--- @param list table The parametric scroll list instance.
+--- @param controller table The header sort controller.
+--- @param options table Configuration options.
+--- @return table Integration state object for manual control.
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
 
@@ -195,12 +186,10 @@ function HeaderSortIntegration.Setup(list, controller, options)
     return integration
 end
 
---[[
-Function: HeaderSortIntegration.EnterHeaderMode
-Description: Enters header sort navigation mode.
-param: integration (table) - The integration state object.
-param: options (table) - Configuration options from Setup.
-]]
+--- Enters header sort navigation mode.
+---
+--- @param integration table The integration state object.
+--- @param options table Configuration options from Setup.
 function HeaderSortIntegration.EnterHeaderMode(integration, options)
     if integration.isActive then return end
 
@@ -219,12 +208,10 @@ function HeaderSortIntegration.EnterHeaderMode(integration, options)
     end
 end
 
---[[
-Function: HeaderSortIntegration.ExitHeaderMode
-Description: Exits header sort navigation mode and returns to list.
-param: integration (table) - The integration state object.
-param: options (table) - Configuration options from Setup.
-]]
+--- Exits header sort navigation mode and returns to list.
+---
+--- @param integration table The integration state object.
+--- @param options table Configuration options from Setup.
 function HeaderSortIntegration.ExitHeaderMode(integration, options)
     if not integration.isActive then return end
 
@@ -243,12 +230,10 @@ function HeaderSortIntegration.ExitHeaderMode(integration, options)
     end
 end
 
---[[
-Function: HeaderSortIntegration.IsActive
-Description: Returns whether header mode is currently active for an integration.
-param: integration (table) - The integration state object.
-return: boolean - True if in header mode.
-]]
+--- Returns whether header mode is currently active for an integration.
+---
+--- @param integration table The integration state object.
+--- @return boolean True if in header mode.
 function HeaderSortIntegration.IsActive(integration)
     return integration and integration.isActive
 end
@@ -257,18 +242,12 @@ end
 -- MIXIN PATTERN
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: HeaderSortIntegration.ApplyMixin
-Description: Injects EnterHeaderSortMode() and ExitHeaderSortMode() methods into an instance.
-             This eliminates duplicate code across Inventory and Banking modules.
-param: instance (table) - The class instance to add methods to (e.g., InventoryClass, BankingClass)
-param: config (table) - Configuration options:
-       - list: The parametric scroll list instance
-       - keybindDescriptor: The main keybind descriptor to swap out/restore
-       - headerControllerFn: function() returning the header sort controller
-       - initControllerFn: function() to initialize the controller if needed
-       - refreshFn: function() to refresh the list after sort changes (optional)
-]]
+--- Injects EnterHeaderSortMode() and ExitHeaderSortMode() methods into an instance.
+---
+--- Purpose: This eliminates duplicate code across Inventory and Banking modules.
+---
+--- @param instance table The class instance to add methods to (e.g., InventoryClass, BankingClass).
+--- @param config table Configuration options.
 function HeaderSortIntegration.ApplyMixin(instance, config)
     if not instance or not config then return end
 

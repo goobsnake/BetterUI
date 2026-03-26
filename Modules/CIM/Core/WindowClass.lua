@@ -28,35 +28,33 @@ end
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
---[[
-Function: BETTERUI.Interface.Window:New
-Constructor for the Base Window class.
-param: ... (any) - Arguments passed to Initialize.
-return: table - The new window object.
-]]
+--- Constructor for the Base Window class.
+---
+--- @param ... any Arguments passed to Initialize.
+--- @return table The new window object.
 function BETTERUI.Interface.Window:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
     return object
 end
 
---[[
-Function: BETTERUI.Interface.Window:Initialize
-Initializes the window instance.
-  1. Creates the physical UI control from 'BETTERUI_GenericInterface' virtual template.
-  2. Finds and caches references to child controls (Header, Footer, Spinner).
-  3. Initializes the spinner and wraps its range function.
-  4. Sets up header navigation callbacks.
-
-Note: Scene/fragment setup is NOT done here. Subclasses should:
-  1. Create their own scene (e.g., ZO_InteractScene:New(...))
-  2. Call self:InitializeFragment()
-  3. Call self:InitializeScene(scene)
-
-param: tlw_name (string) - The name of the TopLevelWindow control.
-param: scene_name (string) - Reserved for future use (scene name identifier).
-param: virtualTemplate (string|nil) - Optional template override (defaults to BETTERUI_GenericInterface).
-]]
+--- Initializes the window instance.
+---
+--- Purpose: Sets up the physical UI control and child references.
+--- Mechanics:
+--- 1. Creates the physical UI control from 'BETTERUI_GenericInterface' virtual template.
+--- 2. Finds and caches references to child controls (Header, Footer, Spinner).
+--- 3. Initializes the spinner and wraps its range function.
+--- 4. Sets up header navigation callbacks.
+---
+--- Note: Scene/fragment setup is NOT done here. Subclasses should:
+--- 1. Create their own scene (e.g., ZO_InteractScene:New(...))
+--- 2. Call self:InitializeFragment()
+--- 3. Call self:InitializeScene(scene)
+---
+--- @param tlw_name string The name of the TopLevelWindow control.
+--- @param scene_name string Reserved for future use (scene name identifier).
+--- @param virtualTemplate string|nil Optional template override (defaults to BETTERUI_GenericInterface).
 function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTemplate)
     self.windowName = tlw_name
     self.sceneName = scene_name -- Store for reference by subclasses
@@ -97,22 +95,17 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
     self:InitializeList()
 end
 
---[[
-Function: BETTERUI.Interface.Window:SetSpinnerValue
-Sets the spinner's range and current value.
-param: max (number) - The maximum allowed value (min is always 1).
-param: value (number) - The current value to set.
-]]
+--- Sets the spinner's range and current value.
+---
+--- @param max number The maximum allowed value (min is always 1).
+--- @param value number The current value to set.
 function BETTERUI.Interface.Window:SetSpinnerValue(max, value)
     if not self.spinner then return end
     self.spinner:SetMinMax(1, max)
     self.spinner:SetValue(value)
 end
 
---[[
-Function: BETTERUI.Interface.Window:ActivateSpinner
-Shows and activates the spinner, deactivating the main list.
-]]
+--- Shows and activates the spinner, deactivating the main list.
 function BETTERUI.Interface.Window:ActivateSpinner()
     if not self.spinner then return end
     self.spinner:SetHidden(false)
@@ -120,10 +113,7 @@ function BETTERUI.Interface.Window:ActivateSpinner()
     if (self:GetList() ~= nil) then self:GetList():Deactivate() end
 end
 
---[[
-Function: BETTERUI.Interface.Window:DeactivateSpinner
-Hides and deactivates the spinner, reactivating the main list.
-]]
+--- Hides and deactivates the spinner, reactivating the main list.
 function BETTERUI.Interface.Window:DeactivateSpinner()
     if self.spinner then
         self.spinner:SetValue(1)
@@ -133,12 +123,10 @@ function BETTERUI.Interface.Window:DeactivateSpinner()
     if (self:GetList() ~= nil) then self:GetList():Activate() end
 end
 
---[[
-Function: BETTERUI.Interface.Window:UpdateSpinnerConfirmation
-Toggles spinner confirmation mode.
-param: activateSpinner (boolean) - True to show/activate, False to hide/deactivate.
-param: list (table) - The list control to refresh.
-]]
+--- Toggles spinner confirmation mode.
+---
+--- @param activateSpinner boolean True to show/activate, False to hide/deactivate.
+--- @param list table The list control to refresh.
 function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, list)
     self.confirmationMode = activateSpinner
     if activateSpinner then
@@ -154,11 +142,9 @@ function BETTERUI.Interface.Window:UpdateSpinnerConfirmation(activateSpinner, li
     self:ApplySpinnerMinMax(activateSpinner)
 end
 
---[[
-Function: BETTERUI.Interface.Window:ApplySpinnerMinMax
-Updates keybinds when spinner is toggled.
-param: toggleValue (boolean) - True if spinner is active.
-]]
+--- Updates keybinds when spinner is toggled.
+---
+--- @param toggleValue boolean True if spinner is active.
 function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     -- Safely toggle a spinner-specific keybind group if one is explicitly provided by a subclass.
     -- Many modules (e.g., Banking) manage spinner keybinds themselves; in those cases this is a no-op.
@@ -172,19 +158,14 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     end
 end
 
---[[
-Function: BETTERUI.Interface.Window:GetList
-Gets the current primary list.
-return: table - The active scroll list.
-]]
+--- Gets the current primary list.
+---
+--- @return table The active scroll list.
 function BETTERUI.Interface.Window:GetList()
     return self.list
 end
 
---[[
-Function: BETTERUI.Interface.Window:InitializeKeybind
-Initializes keybinds for the window.
-]]
+--- Initializes keybinds for the window.
 function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
     }
@@ -194,11 +175,9 @@ function BETTERUI.Interface.Window:InitializeKeybind()
     self.triggerSpinnerBinds = {}
 end
 
---[[
-Function: BETTERUI.Interface.Window:InitializeList
-Initializes the main parametric scroll list.
-param: listName (string|nil) - Optional list name (not used in default implementation).
-]]
+--- Initializes the main parametric scroll list.
+---
+--- @param listName string|nil Optional list name (not used in default implementation).
 function BETTERUI.Interface.Window:InitializeList(listName)
     self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild(
         "List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
@@ -211,57 +190,43 @@ function BETTERUI.Interface.Window:InitializeList(listName)
     self:GetList().universalPostPadding = 5
 end
 
---[[
-Function: BETTERUI.Interface.Window:RefreshList
-Placeholder for list refresh logic.
-]]
+--- Placeholder for list refresh logic.
 function BETTERUI.Interface.Window:RefreshList()
 end
 
---[[
-Function: BETTERUI.Interface.Window:OnItemSelectedChange
-Placeholder for selection change logic.
-]]
+--- Placeholder for selection change logic.
 function BETTERUI.Interface.Window:OnItemSelectedChange()
 end
 
---[[
-Function: BETTERUI.Interface.Window:SetupList
-Configures the main list template.
-param: rowTemplate (string) - The XML template name for list rows.
-param: SetupFunct (function) - The setup callback function for rows.
-]]
+--- Configures the main list template.
+---
+--- @param rowTemplate string The XML template name for list rows.
+--- @param SetupFunct function The setup callback function for rows.
 function BETTERUI.Interface.Window:SetupList(rowTemplate, SetupFunct)
     self.itemListTemplate = rowTemplate
     self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
---[[
-Function: BETTERUI.Interface.Window:AddTemplate
-Adds an additional data template to the list (for multi-template lists).
-param: rowTemplate (string) - The XML template name.
-param: SetupFunct (function) - The setup callback.
-]]
+--- Adds an additional data template to the list (for multi-template lists).
+---
+--- @param rowTemplate string The XML template name.
+--- @param SetupFunct function The setup callback.
 function BETTERUI.Interface.Window:AddTemplate(rowTemplate, SetupFunct)
     self:GetList():AddDataTemplate(rowTemplate, SetupFunct, ZO_GamepadMenuEntryTemplateParametricListFunction)
 end
 
---[[
-Function: BETTERUI.Interface.Window:AddEntryToList
-Adds a single entry to the list and commits.
-param: data (table) - The data object for the entry.
-]]
+--- Adds a single entry to the list and commits.
+---
+--- @param data table The data object for the entry.
 function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():AddEntry(self.itemListTemplate, data)
     self:GetList():Commit()
 end
 
---[[
-Function: BETTERUI.Interface.Window:AddColumn
-Adds a column header to the window.
-param: columnName (string) - The text to display.
-param: xOffset (number) - The horizontal position (left-aligned anchor from TabBar BOTTOMLEFT).
-]]
+--- Adds a column header to the window.
+---
+--- @param columnName string The text to display.
+--- @param xOffset number The horizontal position (left-aligned anchor from TabBar BOTTOMLEFT).
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     -- Create label as child of HeaderColumnBar for container purposes
@@ -306,38 +271,29 @@ function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     end)
 end
 
---[[
-Function: BETTERUI.Interface.Window:SetTitle
-Sets the window title text.
-param: headerText (string) - The title text.
-]]
+--- Sets the window title text.
+---
+--- @param headerText string The title text.
 function BETTERUI.Interface.Window:SetTitle(headerText)
     self.header:GetNamedChild("Header"):GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(headerText)
 end
 
---[[
-Function: BETTERUI.Interface.Window:RefreshVisible
-Refreshes the list and its visibility.
-]]
+--- Refreshes the list and its visibility.
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
     self:GetList():RefreshVisible()
 end
 
---[[
-Function: BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback
-Sets the callback for selection changes.
-param: selectedDataCallback (function) - The callback function.
-]]
+--- Sets the callback for selection changes.
+---
+--- @param selectedDataCallback function The callback function.
 function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedDataCallback)
     self.selectedDataCallback = selectedDataCallback
 end
 
---[[
-Function: BETTERUI.Interface.Window:InitializeFragment
-Initializes scene fragments for the window.
-param: footerControl (userdata|nil) - Optional footer bar control. Defaults to BETTERUI_BankingFooterBar.
-]]
+--- Initializes scene fragments for the window.
+---
+--- @param footerControl userdata|nil Optional footer bar control. Defaults to BETTERUI_BankingFooterBar.
 function BETTERUI.Interface.Window:InitializeFragment(footerControl)
     self.fragment = ZO_SimpleSceneFragment:New(self.control)
     self.fragment:SetHideOnSceneHidden(true)
@@ -348,12 +304,10 @@ function BETTERUI.Interface.Window:InitializeFragment(footerControl)
     self.footerFragment:SetHideOnSceneHidden(true)
 end
 
---[[
-Function: BETTERUI.Interface.Window:InitializeScene
-Initializes the ESO scene object and registers callbacks.
-            Uses SceneLifecycleManager for unified lifecycle handling.
-param: scene (object) - The scene object to initialize with.
-]]
+--- Initializes the ESO scene object and registers callbacks.
+--- Uses SceneLifecycleManager for unified lifecycle handling.
+---
+--- @param scene table The scene object to initialize with.
 function BETTERUI.Interface.Window:InitializeScene(scene)
     self.scene = scene
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
@@ -392,11 +346,8 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
     })
 end
 
---[[
-Function: BETTERUI.Interface.Window:ToggleScene
-Toggles the window's scene visibility.
-Note: Subclasses must set self.sceneName during initialization for this to work.
-]]
+--- Toggles the window's scene visibility.
+--- Note: Subclasses must set self.sceneName during initialization for this to work.
 function BETTERUI.Interface.Window:ToggleScene()
     if self.sceneName then
         SCENE_MANAGER:Toggle(self.sceneName)
@@ -408,18 +359,12 @@ function BETTERUI.Interface.Window:ToggleScene()
     end
 end
 
---[[
-Function: BETTERUI.Interface.Window:OnTabNext
-Handler for Next Tab action.
-]]
+--- Handler for Next Tab action.
 function BETTERUI.Interface.Window:OnTabNext()
     -- Placeholder: subclasses should override for tab navigation
 end
 
---[[
-Function: BETTERUI.Interface.Window:OnTabPrev
-Handler for Previous Tab action.
-]]
+--- Handler for Previous Tab action.
 function BETTERUI.Interface.Window:OnTabPrev()
     -- Placeholder: subclasses should override for tab navigation
 end

@@ -17,14 +17,14 @@ local SelectionHighlight = BETTERUI.CIM.SelectionHighlight
 -- SETUP FUNCTIONS
 -- ============================================================================
 
---[[
-Function: SelectionHighlight.Setup
-Description: Shows/hides the selection highlight bar for an inventory/banking row.
-             The gradient styling is pre-defined in XML (SharedTemplates.xml) using
-             FadeGradient element, so we only need to toggle visibility here.
-param: control (table) - The row control (BETTERUI_GamepadSubMenuEntryTemplate).
-param: selected (boolean) - True if this row is currently selected.
-]]
+--- Shows/hides the selection highlight bar for an inventory/banking row.
+---
+--- Purpose: Toggles selection highlight visibility.
+--- Note: The gradient styling is pre-defined in XML (SharedTemplates.xml) using
+--- FadeGradient element, so we only need to toggle visibility here.
+---
+--- @param control table The row control (BETTERUI_GamepadSubMenuEntryTemplate).
+--- @param selected boolean True if this row is currently selected.
 function SelectionHighlight.Setup(control, selected)
     if not control then return end
 

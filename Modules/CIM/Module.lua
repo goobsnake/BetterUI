@@ -12,13 +12,14 @@ local LAM = LibAddonMenu2
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 
---[[
-Function: BETTERUI.CIM.InitModule
-Initializes default settings for the Common Interface Module.
-param: m_options (table) - The raw settings/options table to be initialized.
-return: table - The modified options table with default values applied.
-References: Called by BetterUI.lua during addon initialization.
-]]
+--- Initializes default settings for the Common Interface Module.
+---
+--- Purpose: Callback for module initialization.
+--- Mechanics: Applies default values for CIM-specific settings.
+--- References: Called by BetterUI.lua during addon initialization.
+---
+--- @param m_options table|nil The raw settings/options table to be initialized.
+--- @return table The modified options table with default values applied.
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS

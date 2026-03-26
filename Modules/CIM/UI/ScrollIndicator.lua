@@ -26,17 +26,15 @@ local CreateIndicatorControls = I.CreateIndicatorControls or function() return {
 -- PUBLIC API
 -- ============================================================================
 
---[[
-Function: ScrollIndicator.Initialize
-Initializes the scroll indicator for a parametric list.
-           Optionally sets up mouse interaction if listObject is provided.
-param: listControl (table) - The parametric list control.
-param: offsetX (number?) - Optional X offset override for positioning.
-param: offsetTopY (number?) - Optional top Y offset for arrow adjustment.
-param: offsetBottomY (number?) - Optional bottom Y offset for arrow adjustment.
-param: listObject (table?) - Optional parametric list object for mouse interaction callbacks.
-return: table - The indicator instance.
-]]
+--- Initializes the scroll indicator for a parametric list.
+--- Optionally sets up mouse interaction if listObject is provided.
+---
+--- @param listControl table The parametric list control.
+--- @param offsetX number|nil Optional X offset override for positioning.
+--- @param offsetTopY number|nil Optional top Y offset for arrow adjustment.
+--- @param offsetBottomY number|nil Optional bottom Y offset for arrow adjustment.
+--- @param listObject table|nil Optional parametric list object for mouse interaction callbacks.
+--- @return table|nil The indicator instance.
 function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY, listObject)
     if not listControl then return nil end
 
@@ -99,15 +97,13 @@ function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBott
     return instance
 end
 
---[[
-Function: ScrollIndicator.Update
-Updates the scroll indicator position and visibility.
-           Shows/hides arrows and track based on whether scrolling is possible.
-param: listControl (table) - The parametric list control.
-param: currentIndex (number) - Currently selected item index (1-based).
-param: totalItems (number) - Total number of items in the list.
-param: visibleItems (number) - Number of items visible at once.
-]]
+--- Updates the scroll indicator position and visibility.
+--- Shows/hides arrows and track based on whether scrolling is possible.
+---
+--- @param listControl table The parametric list control.
+--- @param currentIndex number Currently selected item index (1-based).
+--- @param totalItems number Total number of items in the list.
+--- @param visibleItems number Number of items visible at once.
 function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleItems)
     if not listControl then return end
 
@@ -206,11 +202,9 @@ function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleIt
     end
 end
 
---[[
-Function: ScrollIndicator.Hide
-Hides the scroll indicator completely.
-param: listControl (table) - The parametric list control.
-]]
+--- Hides the scroll indicator completely.
+---
+--- @param listControl table The parametric list control.
 function ScrollIndicator.Hide(listControl)
     if not listControl then return end
 
@@ -222,11 +216,9 @@ function ScrollIndicator.Hide(listControl)
     end
 end
 
---[[
-Function: ScrollIndicator.Show
-Shows the scroll indicator (if scrolling is possible).
-param: listControl (table) - The parametric list control.
-]]
+--- Shows the scroll indicator (if scrolling is possible).
+---
+--- @param listControl table The parametric list control.
 function ScrollIndicator.Show(listControl)
     if not listControl then return end
 
@@ -240,15 +232,13 @@ function ScrollIndicator.Show(listControl)
     end
 end
 
---[[
-Function: ScrollIndicator.SetTrackAnchors
-Sets custom anchors for the scroll track to position it relative to header/footer.
-param: listControl (table) - The parametric list control.
-param: topAnchorControl (table) - Control to anchor top to (e.g., header divider).
-param: bottomAnchorControl (table) - Control to anchor bottom to (e.g., footer divider).
-param: topOffset (number) - Offset from top anchor.
-param: bottomOffset (number) - Offset from bottom anchor.
-]]
+--- Sets custom anchors for the scroll track to position it relative to header/footer.
+---
+--- @param listControl table The parametric list control.
+--- @param topAnchorControl table Control to anchor top to (e.g., header divider).
+--- @param bottomAnchorControl table Control to anchor bottom to (e.g., footer divider).
+--- @param topOffset number Offset from top anchor.
+--- @param bottomOffset number Offset from bottom anchor.
 function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAnchorControl, topOffset, bottomOffset)
     if not listControl then return end
 
@@ -275,12 +265,10 @@ function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAn
     end
 end
 
---[[
-Function: ScrollIndicator.SetListObject
-Sets or updates the list object reference for mouse interaction.
-param: listControl (table) - The parametric list control.
-param: listObject (table) - The parametric list object.
-]]
+--- Sets or updates the list object reference for mouse interaction.
+---
+--- @param listControl table The parametric list control.
+--- @param listObject table The parametric list object.
 function ScrollIndicator.SetListObject(listControl, listObject)
     if not listControl then return end
 
@@ -299,11 +287,9 @@ function ScrollIndicator.SetListObject(listControl, listObject)
     end
 end
 
---[[
-Function: ScrollIndicator.Destroy
-Cleans up a scroll indicator instance, unregistering all event handlers.
-param: listControl (table) - The parametric list control to destroy the indicator for.
-]]
+--- Cleans up a scroll indicator instance, unregistering all event handlers.
+---
+--- @param listControl table The parametric list control to destroy the indicator for.
 function ScrollIndicator.Destroy(listControl)
     if not listControl then return end
 
