@@ -601,9 +601,14 @@ BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
     PRICE_LABEL_OFFSET_Y = 5,    -- Price label vertical nudge inside tooltip footer (+ down, - up).
 }
 
--- TODO(cleanup): Audit XML templates for BETTERUI_GAMEPAD_* usage — remove aliases whose XML consumers have been migrated
--- TODO(cleanup): Remove backward compatibility aliases after v3.2 migration
--- Backward Compatibility Aliases (XML Support) - PANEL
+-- ============================================================================
+-- XML-SUPPORT CONSTANTS (Stable Global Bindings)
+-- These Lua globals are referenced directly in BetterUI XML templates
+-- (GenericHeader.xml, InterfaceLibrary.xml) and must remain available.
+-- The canonical values live in BETTERUI.CIM.CONST.LAYOUT above;
+-- these aliases exist solely because ESO's XML engine reads Lua globals.
+-- ============================================================================
+-- XML Support - PANEL
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
 .WIDTH                                                                             -- Mirrors custom panel width.
 BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
@@ -611,7 +616,7 @@ BETTERUI_ZO_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
 BETTERUI_GAMEPAD_DEFAULT_PANEL_CONTAINER_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
     .CONTAINER_WIDTH                                                               -- Mirrors inner panel width.
 
--- Backward Compatibility Aliases (XML Support) - PADDING
+-- XML Support - PADDING
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
 BETTERUI_GAMEPAD_CONTAINER_HORIZ_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.CONTAINER
 BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING_OTHER = BETTERUI.CIM.CONST.LAYOUT.PADDING.OTHER
@@ -619,11 +624,11 @@ BETTERUI_GAMEPAD_SCREEN_PADDING = BETTERUI.CIM.CONST.LAYOUT.PADDING.SCREEN
 BETTERUI_GAMEPAD_LIST_TOTAL_PADDING_HORZ = BETTERUI.CIM.CONST.LAYOUT.PADDING.SCREEN +
     BETTERUI.CIM.CONST.LAYOUT.PADDING.DEFAULT
 
--- Backward Compatibility Aliases (XML Support) - LIST
+-- XML Support - LIST
 BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFSET = BETTERUI.CIM.CONST.LAYOUT.LIST.SCREEN_X_OFFSET -- + right, - left list shift.
 BETTERUI_TABBAR_ICON_WIDTH = BETTERUI.CIM.CONST.LAYOUT.LIST.ICON_WIDTH                 -- Shared tab/list icon width.
 
--- Backward Compatibility Aliases (XML Support) - LIST ENTRY DIMENSIONS
+-- XML Support - LIST ENTRY DIMENSIONS
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH -
     (2 * BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING)        -- Full row width after left/right panel padding.
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_HWIDTH = BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH -
@@ -634,16 +639,16 @@ BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT = BETTERUI_GAMEPAD_LIST_SCREEN_X_OFFS
 BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH_AFTER_INDENT = BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_WIDTH -
     BETTERUI_GAMEPAD_DEFAULT_LIST_ENTRY_INDENT          -- Effective row width after icon/data indent.
 
--- Backward Compatibility Aliases (XML Support) - HEADER
+-- XML Support - HEADER
 BETTERUI_SEARCH_BAR_SPACING_Y = 8 -- Vertical gap between header rows and search bar (+ down, - up).
 
--- Backward Compatibility Aliases (XML Support) - POSITIONING
+-- XML Support - POSITIONING
 BETTERUI_GAMEPAD_QUADRANT_1_LEFT =
     BETTERUI_GAMEPAD_DEFAULT_HORIZ_PADDING -- Left boundary for quadrant-1 anchored controls.
 
--- Backward Compatibility Aliases (XML Support) - COLUMNS
--- These aliases mirror canonical values in BETTERUI.CIM.CONST.LAYOUT.COLUMNS.
--- Tune the canonical table above; aliases are kept for XML/backward compatibility only.
+-- XML Support - COLUMNS
+-- Aliases mirror canonical values in BETTERUI.CIM.CONST.LAYOUT.COLUMNS.
+-- Tune the canonical table above; aliases expose values to XML.
 BETTERUI_SUBMENU_LABEL_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.OFFSET_X -- + right, - left.
 BETTERUI_SUBMENU_LABEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.SUBMENU.WIDTH       -- Column width budget.
 BETTERUI_ITEM_TYPE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.TYPE.OFFSET_X        -- + right, - left.

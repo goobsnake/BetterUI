@@ -46,18 +46,9 @@ end
 
 -- Settings registration moved to Banking/Settings/SettingsPanel.lua
 
---[[
-Function: BETTERUI.Banking.InitModule
-Description: Initializes default values and migrates legacy settings for the Banking module.
-Rationale: Ensures all necessary settings exist and converts old formats.
-Mechanism:
-  - Sets defaults for icons and carousel.
-  - Migrates `nameFont` / `nameFontSize` from older generic keys.
-  - Converts string sizes ("Small", "Medium") to integer pixels.
-  - Converts numeric font styles to string identifiers ("outline").
-param: m_options (table) - The raw settings table for this module.
-return: table - The initialized and migrated settings table.
-]]
+--- Initializes defaults and migrates legacy settings for the Banking module.
+--- @param m_options table The raw settings table for this module.
+--- @return table The initialized and migrated settings table.
 function BETTERUI.Banking.InitModule(m_options)
 	-- Apply centralized defaults from DefaultsRegistry
 	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
@@ -145,13 +136,7 @@ function BETTERUI.Banking.InitModule(m_options)
 	return m_options
 end
 
---[[
-Function: BETTERUI.Banking.Setup
-Description: Lifecycle hook to setup the Banking module.
-Rationale: Called by the core when the module should initialize its keybinds, settings, and UI.
-Mechanism: Calls Init to register settings menu, then calls BETTERUI.Banking.Init to start the class.
-References: Called by BETTERUI.LoadModules() in BetterUI.lua.
-]]
+--- Lifecycle hook: registers settings and starts the Banking class.
 function BETTERUI.Banking.Setup()
 	BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
 	BETTERUI.Banking.Init()

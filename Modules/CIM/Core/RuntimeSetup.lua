@@ -166,14 +166,13 @@ local function RunSettingsMigrations(settings)
     if not settings or not settings.Modules then return end
 
     -- Migration 1: Rename "Tooltips" to "GeneralInterface" for consistency
+    -- Applied since v3.03; all modules now reference GeneralInterface directly.
     if settings.Modules["Tooltips"] ~= nil then
         if settings.Modules["GeneralInterface"] == nil then
             settings.Modules["GeneralInterface"] = settings.Modules["Tooltips"]
         end
-        -- Keep 'Tooltips' key in settings pointing to same table to avoid breaking older modules
-        -- until they are all updated, then we can nil it out.
-        -- For now, redirecting the reference is safest.
-        settings.Modules["Tooltips"] = settings.Modules["GeneralInterface"]
+        -- Migration complete: nil the stale key so SavedVars stay clean.
+        settings.Modules["Tooltips"] = nil
     end
 
     -- Ensure GeneralInterface module settings exist for existing users (if migration didn't run)
