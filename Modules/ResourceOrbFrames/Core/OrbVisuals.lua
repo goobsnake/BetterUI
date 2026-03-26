@@ -42,12 +42,17 @@ end
 -------------------------------------------------------------------------------------------------
 BetterUIOrbBar = ZO_Object:Subclass()
 
+--- @param ... any Description
+--- @return any Description
 function BetterUIOrbBar:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
     return obj
 end
 
+--- @param control any Description
+--- @param powerType any Description
+--- @return any Description
 function BetterUIOrbBar:Initialize(control, powerType)
     self.control = control
     self.fog = FindControl(control, 'Fog')
@@ -70,37 +75,51 @@ function BetterUIOrbBar:Initialize(control, powerType)
     }
 end
 
+--- @param value any Description
+--- @return any Description
 function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
     self:RefreshVisuals()
     self:RefreshLabel()
 end
 
+--- @param value any Description
+--- @return any Description
 function BetterUIOrbBar:SetValue(value)
     self:UpdateValue(value)
 end
 
+--- @param min any Description
+--- @param max any Description
+--- @return any Description
 function BetterUIOrbBar:SetMinMax(min, max)
     self:SetRange(min, max)
 end
 
+--- @return any Description
 function BetterUIOrbBar:GetValue()
     return self.currentValue
 end
 
+--- @return any Description
 function BetterUIOrbBar:GetMinMax()
     return self.minValue, self.maxValue
 end
 
+--- @return any Description
 function BetterUIOrbBar:GetMax()
     return self.maxValue
 end
 
+--- @param min any Description
+--- @param max any Description
+--- @return any Description
 function BetterUIOrbBar:SetRange(min, max)
     self.minValue = min
     self.maxValue = max
 end
 
+--- @return any Description
 function BetterUIOrbBar:RefreshLabel()
     if self.label ~= nil then
         if self.currentValue >= 1000000 then
@@ -113,6 +132,7 @@ function BetterUIOrbBar:RefreshLabel()
     end
 end
 
+--- @return any Description
 function BetterUIOrbBar:RefreshVisuals()
     local percent = 0
     if self.currentValue >= self.maxValue then
@@ -226,6 +246,8 @@ end
 -------------------------------------------------------------------------------------------------
 BetterUIShieldBar = BetterUIOrbBar:Subclass()
 
+--- @param ... any Description
+--- @return any Description
 function BetterUIShieldBar:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
@@ -235,6 +257,7 @@ end
 -- Shield overlay is always static (no animation)
 function BetterUIShieldBar:UpdateAnimation() end
 
+--- @return any Description
 function BetterUIShieldBar:RefreshVisuals()
     if not self.fog then return end
 
@@ -380,6 +403,10 @@ local ScaleForBorder = BETTERUI.ResourceOrbFrames.Utils.ScaleForBorder
 local CalculateBorderSizes = BETTERUI.ResourceOrbFrames.Utils.CalculateBorderSizes
 local CalculateFillDimensions = BETTERUI.ResourceOrbFrames.Utils.CalculateFillDimensions
 
+--- @param rootFrame any Description
+--- @param pools any Description
+--- @param shieldBar any Description
+--- @return any Description
 function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
     if not bgMiddle then return end
@@ -575,6 +602,8 @@ end
 -------------------------------------------------------------------------------------------------
 -- Setup Functions
 -------------------------------------------------------------------------------------------------
+--- @param rootFrame any Description
+--- @return any Description
 function Visuals.SetupPowerPools(rootFrame)
     local cfg = BETTERUI_ORB_FRAMES
 
@@ -636,6 +665,9 @@ function Visuals.SetupPowerPools(rootFrame)
     return pools
 end
 
+--- @param rootFrame any Description
+--- @param pools any Description
+--- @return any Description
 function Visuals.SetupShieldBar(rootFrame, pools)
     local shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
 

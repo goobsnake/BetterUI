@@ -11,6 +11,8 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 Function: BETTERUI.Banking.Class:RefreshItemActions
 Description: Updates the context menu actions for the currently selected item.
 ]]
+--- Updates the context menu actions for the currently selected item.
+--- @return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     if self.isInHeaderSortMode then
@@ -29,6 +31,8 @@ Description: Initializes the "Y Button" Actions Dialog.
   4. Handles the "Confirm" event to execute the selected action (or custom Chat Link logic).
 References: Called during Initialize.
 ]]
+--- Initializes the Y Button Actions Dialog with callbacks.
+--- @return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogSetup(dialog)
         if BETTERUI.CIM.Utils.IsBankingSceneShowing() then

@@ -17,6 +17,8 @@ Function: Submenus.BuildSkillBarsSubmenu
 Description: Builds the "Skill Bars" submenu with cooldown timers, quickslot,
 back bar, ultimate, and combat indicator settings.
 ]]
+--- @param accessors any Description
+--- @return any Description
 function Submenus.BuildSkillBarsSubmenu(accessors)
     local a = accessors
     return {
@@ -204,6 +206,8 @@ end
 Function: Submenus.BuildOrbTextSubmenu
 Description: Builds the "Orb Text & Visuals" submenu with ornament, text size/color settings.
 ]]
+--- @param accessors any Description
+--- @return any Description
 function Submenus.BuildOrbTextSubmenu(accessors)
     local a = accessors
     return {
@@ -307,6 +311,8 @@ end
 Function: Submenus.BuildBarSubmenus
 Description: Returns submenu tables for XP Bar, Cast Bar, and Mount Stamina Bar settings.
 ]]
+--- @param accessors any Description
+--- @return any Description
 function Submenus.BuildBarSubmenus(accessors)
     local a = accessors
     local xpSubmenu = {

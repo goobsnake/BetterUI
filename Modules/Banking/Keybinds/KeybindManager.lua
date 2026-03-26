@@ -22,6 +22,9 @@ Note: Delegates to shared CIM factory for consistency.
 param: list (table) - The list control.
 return: table, table - Left and Right trigger keybind descriptors.
 ]]
+--- @param list table
+--- @return table leftTrigger
+--- @return table rightTrigger
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
     return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
@@ -35,6 +38,8 @@ end
 Function: BETTERUI.Banking.Class:UpdateActions
 Description: Updates the active item actions based on current selection.
 ]]
+--- Updates the active item actions based on current selection.
+--- @return nil
 function BETTERUI.Banking.Class:UpdateActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
@@ -61,6 +66,8 @@ end
 Function: BETTERUI.Banking.Class:AddKeybinds
 Description: Registers the banking keybind groups.
 ]]
+--- Registers the banking keybind groups.
+--- @return nil
 function BETTERUI.Banking.Class:AddKeybinds()
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
@@ -77,6 +84,8 @@ end
 Function: BETTERUI.Banking.Class:RemoveKeybinds
 Description: Unregisters the banking keybind groups.
 ]]
+--- Unregisters the banking keybind groups.
+--- @return nil
 function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
@@ -91,6 +100,8 @@ Description: Initializes the keybind descriptors for the banking module.
   - `spinnerKeybinds`: Confirm/Cancel for partial stack moves.
 References: Called during Initialize.
 ]]
+--- Initializes the keybind descriptors for the banking module.
+--- @return nil
 function BETTERUI.Banking.Class:InitializeKeybind()
     if not BETTERUI.Settings.Modules["Banking"].m_enabled then
         return
@@ -501,6 +512,8 @@ end
 Function: BETTERUI.Banking.Class:RefreshActiveKeybinds
 Description: Manually triggers the selection callback to update keybinds.
 ]]
+--- Manually triggers the selection callback to update keybinds.
+--- @return nil
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end
     local selectedControl = nil

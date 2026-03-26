@@ -11,9 +11,6 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 
 --- Retrieves a setting value for the Inventory module.
---- @param key string The setting key.
---- @return any The setting value or nil.
---- Retrieves a setting value for the Inventory module.
 --- @param key string The setting key
 --- @return any value The setting value or nil
 function BETTERUI.Inventory.GetSetting(key)
@@ -24,9 +21,6 @@ function BETTERUI.Inventory.GetSetting(key)
 	return modules["Inventory"][key]
 end
 
---- Sets a setting value for the Inventory module.
---- @param key string The setting key.
---- @param value any The value to set.
 --- Sets a setting value for the Inventory module.
 --- @param key string The setting key
 --- @param value any The value to set
@@ -44,16 +38,16 @@ end
 --- Initializes the settings panel for the Inventory module.
 --- @param mId string The module ID
 --- @param moduleName string The display name of the module
---- Initializes the settings panel for the Inventory module.
---- @param mId string The module ID
---- @param moduleName string The display name of the module
 function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
+	--- @return table inventoryWindow
 	local function GetInventoryWindow()
 		return GAMEPAD_INVENTORY
 	end
 
+	--- @param inv table
+	--- @return boolean isShowing
 	local function IsInventorySceneShowing(inv)
 		if not inv then return false end
 		if inv.scene and inv.scene.IsShowing then
@@ -69,6 +63,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		end
 	end
 
+	--- @param _useCategoryJump any
 	local function ApplyTriggerMode(_useCategoryJump)
 		local inv = GetInventoryWindow()
 		if not inv then return end
@@ -270,9 +265,6 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
 end
 
---- Initialize inventory module settings with default values
---- @param m_options table The module options table
---- @return table m_options The initialized options table
 --- Initialize inventory module settings with default values.
 --- @param m_options table The module options table
 --- @return table m_options The initialized options table

@@ -55,9 +55,6 @@ end
 --- Called when a user selects/views an item in the inventory list.
 --- @param bagId number The bag containing the item
 --- @param slotIndex number The slot index within the bag
---- Stage an item for "new" status clearing when the scene hides.
---- @param bagId number The bag containing the item
---- @param slotIndex number The slot index within the bag
 function NewItemTracker.PrepareForClear(bagId, slotIndex)
     if not bagId or not slotIndex then return end
     local key = MakeKey(bagId, slotIndex)
@@ -66,8 +63,6 @@ end
 
 --- Stage an item from selectedData (ZO_GamepadEntryData or item table).
 --- Convenience wrapper for list selection callbacks.
---- @param selectedData table Item data from list selection
---- Stage an item from selectedData for "new" status clearing.
 --- @param selectedData table Item data from list selection
 function NewItemTracker.PrepareFromSelectedData(selectedData)
     if not selectedData then return end
@@ -79,7 +74,6 @@ end
 --- Commit all pending "new" status clears.
 --- Called when the inventory scene hides or the list type changes.
 --- This is the safe lifecycle point to clear new indicators.
---- Commit all pending "new" status clears.
 function NewItemTracker.CommitPendingClears()
     if not SHARED_INVENTORY then return end
 
@@ -101,9 +95,6 @@ end
 
 --- Immediately clear "new" status for a specific item.
 --- Used when an item is moved, destroyed, or explicitly acted upon.
---- @param bagId number The bag containing the item
---- @param slotIndex number The slot index within the bag
---- Immediately clear "new" status for a specific item.
 --- @param bagId number The bag containing the item
 --- @param slotIndex number The slot index within the bag
 function NewItemTracker.ClearImmediate(bagId, slotIndex)
@@ -128,8 +119,6 @@ end
 
 --- Returns the number of items pending "new" status clear.
 --- Useful for debugging.
---- @return number count
---- Returns the number of items pending "new" status clear.
 --- @return number count The number of pending clears
 function NewItemTracker.GetPendingCount()
     local count = 0
@@ -141,7 +130,6 @@ end
 
 --- Resets all pending clears without actually clearing them.
 --- Used when the inventory is destroyed/recreated.
---- Resets all pending clears without actually clearing them.
 function NewItemTracker.Reset()
     pendingClears = {}
 end

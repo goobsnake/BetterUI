@@ -10,6 +10,8 @@ local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryUtils = BETTERUI.Inventory.Utils
 
+--- @param self Control
+--- @return table|nil
 local function GetCurrentTarget(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return InventoryUtils.SafeGetTargetData(self.craftBagList)
@@ -20,6 +22,8 @@ local function GetCurrentTarget(self)
     return nil
 end
 
+--- @param target table
+--- @return number|nil
 local function GetQuestItemId(target)
     if not target then
         return nil
@@ -36,6 +40,9 @@ local function GetQuestItemId(target)
     return nil
 end
 
+--- @param target table
+--- @param isQuestItem boolean
+--- @return number|nil
 local function GetAssignedQuickslot(target, isQuestItem)
     if not target then
         return nil
@@ -53,6 +60,7 @@ local function GetAssignedQuickslot(target, isQuestItem)
     return FindActionSlotMatchingItem(target.bagId, target.slotIndex, hotbarCategory)
 end
 
+--- @param target table
 local function ExecuteTargetUse(target)
     if not target then
         return
@@ -78,6 +86,7 @@ local function ExecuteTargetUse(target)
     end
 end
 
+--- @param target table
 local function InsertTargetLink(target)
     if not target then
         return
@@ -95,6 +104,8 @@ local function InsertTargetLink(target)
     end
 end
 
+--- @param self Control
+--- @return table|nil
 function InventoryKeybinds.GetActionsTargetList(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return self.craftBagList
@@ -105,6 +116,8 @@ function InventoryKeybinds.GetActionsTargetList(self)
     return nil
 end
 
+--- @param self Control
+--- @return boolean
 function InventoryKeybinds.HasStableActionsTarget(self)
     local targetList = InventoryKeybinds.GetActionsTargetList(self)
     if not targetList then
@@ -134,6 +147,8 @@ function InventoryKeybinds.HasStableActionsTarget(self)
     return true
 end
 
+--- @param self Control
+--- @return string
 function InventoryKeybinds.GetPrimaryKeybindName(self)
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE
         and self.actionMode ~= InventoryConst.CRAFT_BAG_ACTION_MODE then
@@ -176,6 +191,8 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
     return GetString(SI_ITEM_ACTION_USE)
 end
 
+--- @param self Control
+--- @return boolean
 function InventoryKeybinds.IsPrimaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -204,6 +221,7 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
     return GetCurrentTarget(self) ~= nil
 end
 
+--- @param self Control
 function InventoryKeybinds.HandlePrimaryKeybind(self)
     if self:IsBatchProcessing() then
         return
@@ -259,6 +277,8 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     end
 end
 
+--- @param self Control
+--- @return string
 function InventoryKeybinds.GetSecondaryKeybindName(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
@@ -288,6 +308,8 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
     return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
 end
 
+--- @param self Control
+--- @return boolean
 function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -308,6 +330,7 @@ function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     return false
 end
 
+--- @param self Control
 function InventoryKeybinds.HandleSecondaryKeybind(self)
     if self:IsBatchProcessing() then
         return
@@ -364,6 +387,8 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
     InsertTargetLink(actionContext.target)
 end
 
+--- @param self Control
+--- @return boolean
 function InventoryKeybinds.IsTertiaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return true
@@ -380,6 +405,7 @@ function InventoryKeybinds.IsTertiaryKeybindVisible(self)
     return InventoryKeybinds.HasStableActionsTarget(self)
 end
 
+--- @param self Control
 function InventoryKeybinds.HandleTertiaryKeybind(self)
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
@@ -404,6 +430,8 @@ function InventoryKeybinds.HandleTertiaryKeybind(self)
     self:ShowActions()
 end
 
+--- @param self Control
+--- @return boolean
 function InventoryKeybinds.IsMultiSelectEntryVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -429,6 +457,7 @@ function InventoryKeybinds.IsMultiSelectEntryVisible(self)
     return false
 end
 
+--- @param self Control
 function InventoryKeybinds.HandleMultiSelectEntry(self)
     if self:IsBatchProcessing() then
         return

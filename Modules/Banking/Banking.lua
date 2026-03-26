@@ -80,6 +80,7 @@ Description: Refreshes the footer information (Space Used, Currency).
 Function: BETTERUI.Banking.Class:RefreshCurrencyTooltip
 Description: Updates the tooltip for currency rows.
 ]]
+--- @return table|nil
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
@@ -130,6 +131,8 @@ end
 
 local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
 
+--- @param tooltip any
+--- @param details table|nil
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     if not tooltip or not details or not details.rows or #details.rows == 0 then
         return

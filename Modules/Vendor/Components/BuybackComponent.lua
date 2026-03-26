@@ -21,10 +21,14 @@ local Buyback = Vendor.BuybackComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buyback:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buyback:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -33,10 +37,13 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
+--- @return any Description
 function Buyback:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_BUYBACK)
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -45,6 +52,8 @@ function Buyback:IsPrimaryActionEnabled(vendorInstance)
     return vendorInstance:CanAfford(price) and vendorInstance:HasInventorySpace()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buyback:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -73,6 +82,8 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buyback:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

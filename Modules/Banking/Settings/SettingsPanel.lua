@@ -17,6 +17,8 @@ Description: Registers the Banking settings panel with LibAddonMenu.
 param: mId (string) - The module ID suffix.
 param: moduleName (string) - The display name for the panel.
 ]]
+--- @param mId string The module ID suffix
+--- @param moduleName string The display name for the panel
 function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 

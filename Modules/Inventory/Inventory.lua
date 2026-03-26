@@ -54,6 +54,7 @@ local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
 -- Globally hooks the assignable utility wheel to ensure untrusted callstacks
 -- from our add-on keybinds don't crash when they reach protected assignment CAPI.
 --- Initializes secure wheel hooks for the assignable utility wheel.
+--- @return nil
 function BETTERUI.Inventory.InitializeSecureWheelHooks()
 	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
 		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
@@ -108,8 +109,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Toggles the tooltip detailed info mode.
-
---- Toggles the tooltip detailed info mode.
+--- @return nil
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
 	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -191,6 +191,7 @@ end
 --- - Registers for Engine Events (Money, Inventory Updates).
 --- References: Called by `OnStateChanged`.
 ---
+--- @return nil
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	if self.isDeferredInitialized then return end
 	self.isDeferredInitialized = true
@@ -240,12 +241,14 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		BETTERUI.GenericFooter:Initialize()
 	end
 
+	--- @return nil
 	local function RefreshHeader()
 		if not self.control:IsHidden() then
 			self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 		end
 	end
 
+	--- @return nil
 	local function RefreshSelectedData()
 		if not self.control:IsHidden() then
 			self:SetSelectedInventoryData(self.currentlySelectedData)
@@ -276,6 +279,8 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
+	--- @param bagId number
+	--- @param slotIndex number
 	local function OnInventoryUpdated(bagId, slotIndex)
 		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
 		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
@@ -419,6 +424,7 @@ end
 --- References: Called when hiding scene or when "Clear" keybind is pressed.
 ---
 --- Clears the text search UI and internal state.
+--- @return nil
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
@@ -431,6 +437,7 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 end
 
 --- Refreshes the footer display.
+--- @return nil
 function BETTERUI.Inventory.Class:RefreshFooter()
 	if BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter:Refresh()
@@ -438,6 +445,7 @@ function BETTERUI.Inventory.Class:RefreshFooter()
 end
 
 --- Selects the current category and switches to the appropriate list.
+--- @return nil
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 	if not catTarget or not catTarget.onClickDirection then
@@ -448,6 +456,7 @@ function BETTERUI.Inventory.Class:Select()
 end
 
 --- Switches between item list and craft bag list.
+--- @return nil
 function BETTERUI.Inventory.Class:Switch()
 	if self:GetCurrentList() == self.craftBagList then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)

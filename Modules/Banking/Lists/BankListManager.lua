@@ -20,6 +20,8 @@ local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
 Function: BuildAllBankCategories
 Description: Builds the full list of bank categories.
 ]]
+--- @param isFurnitureVault boolean
+--- @return table
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
@@ -48,6 +50,9 @@ end
 Function: DoesItemMatchBankCategory
 Description: Wrapper for the shared category matching function.
 ]]
+--- @param itemData table
+--- @param category table
+--- @return boolean
 local function DoesItemMatchBankCategory(itemData, category)
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
@@ -61,6 +66,8 @@ Description: Determines which bags to scan and the appropriate slot type
 param: self (table) - The Banking class instance.
 return: bags (table), slotType (number)
 ]]
+--- @return table bags
+--- @return number slotType
 local function ResolveBagsAndSlotType(self)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -92,6 +99,8 @@ end
 Function: ComputeVisibleBankCategories
 Description: Compute the subset of categories that actually contain items for the current bank mode.
 ]]
+--- Computes the subset of categories that contain items for the current bank mode.
+--- @return table visibleCategories
 function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     local isFurnitureVault = IsFurnitureVault(GetBankingBag())
     local allCategories = BuildAllBankCategories(isFurnitureVault)
@@ -138,6 +147,8 @@ end
 Function: BETTERUI.Banking.Class:RefreshList
 Description: Refreshes the banking list contents.
 ]]
+--- Refreshes the banking list contents.
+--- @return nil
 function BETTERUI.Banking.Class:RefreshList()
     if not self.list then
         return

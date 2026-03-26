@@ -23,6 +23,9 @@ Description: Registers scene state callbacks for showing/hiding the vendor.
 param: sceneName (string) - The scene name.
 param: vendorInstance (table) - The VendorClass instance.
 ]]
+--- @param sceneName any Description
+--- @param vendorInstance any Description
+--- @return any Description
 function Vendor.SceneLifecycle.Register(sceneName, vendorInstance)
     if not sceneName or not vendorInstance then return end
 
@@ -45,6 +48,8 @@ Function: Vendor.SceneLifecycle.OnShowing
 Description: Called when the vendor scene begins showing.
              Adds keybinds, sets up footer, refreshes the list.
 ]]
+--- @param vendorInstance any Description
+--- @return any Description
 function Vendor.SceneLifecycle.OnShowing(vendorInstance)
     if not vendorInstance then return end
 
@@ -74,6 +79,8 @@ Function: Vendor.SceneLifecycle.OnHiding
 Description: Called when the vendor scene begins hiding.
              Removes keybinds and cancels deferred tasks.
 ]]
+--- @param vendorInstance any Description
+--- @return any Description
 function Vendor.SceneLifecycle.OnHiding(vendorInstance)
     if not vendorInstance then return end
 
@@ -101,6 +108,8 @@ Function: Vendor.SceneLifecycle.OnHidden
 Description: Called when the vendor scene is fully hidden.
              Deactivates the current component.
 ]]
+--- @param vendorInstance any Description
+--- @return any Description
 function Vendor.SceneLifecycle.OnHidden(vendorInstance)
     if not vendorInstance then return end
 

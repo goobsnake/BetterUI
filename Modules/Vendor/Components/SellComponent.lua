@@ -21,10 +21,14 @@ local Sell = Vendor.SellComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -33,10 +37,13 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
+--- @return any Description
 function Sell:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_SELL)
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -50,6 +57,8 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
     return sellPrice > 0
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -70,6 +79,8 @@ end
 -- BATCH JUNK SELL
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
@@ -99,6 +110,8 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Sell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

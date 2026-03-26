@@ -15,11 +15,6 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 -- ============================================================================
 
 --- Initializes the Inventory module.
---- 1. Initializes the settings panel (`Init`).
---- 2. Replaces the native `GAMEPAD_INVENTORY` object with `BETTERUI.Inventory.Class`.
---- 3. Swaps the native inventory scene fragment with BetterUI's custom fragment.
---- 4. Configures tooltips and registers custom dialogs (e.g., BoE protection).
---- Initializes the Inventory module.
 --- Registers settings, replaces native GAMEPAD_INVENTORY, and configures tooltips.
 function BETTERUI.Inventory.Setup()
 	BETTERUI.Inventory.Settings.RegisterPanel("Inventory", "Inventory")

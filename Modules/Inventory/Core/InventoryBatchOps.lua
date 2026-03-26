@@ -12,16 +12,26 @@ local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 -- SLOT HELPERS
 --------------------------------------------------------------------------------
 
+--- @param itemData table
+--- @return number bagId
+--- @return number slotIndex
 local function ExtractSlot(itemData)
     local rawData = itemData.dataSource or itemData
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @return boolean hasItem
 local function HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
 end
 
+--- @param itemData table
+--- @param bagId number
+--- @param slotIndex number
+--- @return number|nil stackCount
 local function ResolveStackCount(itemData, bagId, slotIndex)
     local rawData = itemData.dataSource or itemData
     local requestedStack = rawData.stackCount or itemData.stackCount or 1
@@ -32,12 +42,19 @@ local function ResolveStackCount(itemData, bagId, slotIndex)
     return zo_clamp(requestedStack, 1, liveStack)
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @return boolean isGemmable
 local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
     return CROWN_GEMIFICATION_MANAGER
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bagId), tonumber(slotIndex))
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @param targetBankBag number
+--- @return boolean isSupported
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
@@ -48,6 +65,9 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     return true
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @return number|nil targetBag
 local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
     local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
     if targetBankBag == BAG_BANK then
@@ -69,6 +89,8 @@ end
 -- DESTROY ELIGIBILITY
 --------------------------------------------------------------------------------
 
+--- @param itemData table
+--- @return boolean canDestroy
 local function CanDestroyInventoryItem(itemData)
     if not itemData then
         return false
@@ -201,7 +223,6 @@ end
 --------------------------------------------------------------------------------
 
 --- Performs batch retrieve on all selected craftbag items (throttled).
---- Performs batch retrieve on all selected craftbag items (throttled).
 function Class:BatchRetrieve()
     if not self.craftBagMultiSelectManager then return end
     local selectedItems = self.craftBagMultiSelectManager:GetSelectedItems()
@@ -235,7 +256,6 @@ function Class:BatchRetrieve()
     end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
 end
 
---- Performs batch stow on all selected inventory items (throttled).
 --- Performs batch stow on all selected inventory items (throttled).
 function Class:BatchStow()
     if not self.multiSelectManager then return end
@@ -271,7 +291,6 @@ function Class:BatchStow()
     end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), CRAFT_BAG_STOW_BATCH_OPTIONS)
 end
 
---- Performs batch deposit on all selected items (throttled).
 --- Performs batch deposit on all selected items (throttled).
 function Class:BatchDeposit()
     if not self.multiSelectManager then return end
@@ -329,7 +348,6 @@ function Class:BatchUnmarkAsJunk()
 end
 
 --- Performs batch destroy on all selected items (with confirmation).
---- Performs batch destroy on all selected items (with confirmation).
 function Class:BatchDestroy()
     if not self.multiSelectManager then return end
     local allItems = self.multiSelectManager:GetSelectedItems()
@@ -360,7 +378,6 @@ end
 -- BATCH DIALOGS
 --------------------------------------------------------------------------------
 
---- Initializes the batch destroy confirmation dialog.
 --- Initializes the batch destroy confirmation dialog.
 function Class:InitializeBatchDestroyDialog()
     BETTERUI.CIM.Dialogs.Register("BETTERUI_BATCH_DESTROY_DIALOG", {

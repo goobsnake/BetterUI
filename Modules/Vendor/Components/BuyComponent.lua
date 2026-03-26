@@ -21,10 +21,14 @@ local Buy = Vendor.BuyComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buy:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buy:Deactivate(vendorInstance)
     -- No cleanup needed for Buy mode
 end
@@ -33,10 +37,13 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
+--- @return any Description
 function Buy:GetPrimaryActionName()
     return GetString(SI_TRADING_HOUSE_PURCHASE)
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buy:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -48,6 +55,8 @@ function Buy:IsPrimaryActionEnabled(vendorInstance)
         and vendorInstance:HasInventorySpace()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buy:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -78,6 +87,8 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function Buy:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

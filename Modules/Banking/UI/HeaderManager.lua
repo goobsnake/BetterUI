@@ -17,6 +17,7 @@ Function: BETTERUI.Banking.Class:CycleCategory
 Description: Cycles the selected category via shoulder buttons (Left/Right).
 param: delta (number) - Direction (+1 or -1).
 ]]
+--- @param delta number Direction (+1 or -1)
 function BETTERUI.Banking.Class:CycleCategory(delta)
     BETTERUI.CIM.HeaderNavigation.CycleCategory(self, delta, {
         categories = self.bankCategories,
@@ -31,6 +32,8 @@ end
 Function: BETTERUI.Banking.Class:UpdateHeaderTitle
 Description: Updates the header title text to match the current category.
 ]]
+--- Updates the header title text to match the current category.
+--- @return nil
 function BETTERUI.Banking.Class:UpdateHeaderTitle()
     local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if cat and cat.name then
@@ -49,6 +52,8 @@ end
 Function: BETTERUI.Banking.Class:EnsureHeaderKeybindsActive
 Description: Activates the category tab bar keybinds.
 ]]
+--- Activates the category tab bar keybinds.
+--- @return nil
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if tabBar and tabBar.keybindStripDescriptor then
@@ -67,6 +72,8 @@ Description: Rebuilds the banking category header.
   - Links the Text Search control to the Header Focus chain.
 References: Called on Initialize, ToggleList, and Slot Updates.
 ]]
+--- Rebuilds the banking category header.
+--- @return nil
 function BETTERUI.Banking.Class:RebuildHeaderCategories()
     if not (self.header and self.bankCategories) then return end
     -- Prepare header data and entries

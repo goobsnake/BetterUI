@@ -7,6 +7,7 @@ Author: BetterUI Team
 local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
+--- @param list table
 local function SetupCategoryList(list)
     list:AddDataTemplate(
         "BETTERUI_GamepadItemEntryTemplate",
@@ -23,11 +24,14 @@ end
 --- Initializes the category list (tabs) for the inventory.
 --- Sets up templates, selection callbacks, and target change handlers.
 --- Initializes the category list (tabs) for the inventory.
+--- @return nil
 function BETTERUI.Inventory.Class:InitializeCategoryList()
     self.categoryList = self:AddList("Category", SetupCategoryList)
     self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
 
     -- Match the tooltip to the selected data because it looks nicer
+    --- @param list table
+    --- @param selectedData table
     local function OnSelectedCategoryChanged(list, selectedData)
         if selectedData ~= nil and self.scene:IsShowing() then
             self:UpdateCategoryLeftTooltip(selectedData)
@@ -43,6 +47,8 @@ function BETTERUI.Inventory.Class:InitializeCategoryList()
     self.categoryList:SetOnSelectedDataChangedCallback(OnSelectedCategoryChanged)
 
     --Match the functionality to the target data
+    --- @param list table
+    --- @param targetData table
     local function OnTargetCategoryChanged(list, targetData)
         if targetData then
             self.selectedEquipSlot = targetData.equipSlot
@@ -119,12 +125,14 @@ end
 --- References: Called by RefreshItemList.
 ---
 --- Rebuilds the category list based on the current state.
+--- @return nil
 function BETTERUI.Inventory.Class:RefreshCategoryList()
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
         return
     end
 
+    --- @return number
     local function CountStolenNotJunk()
         local count = 0
         local backpack = self:GetCachedSlotData(BAG_BACKPACK)

@@ -111,6 +111,7 @@ local CURRENCY_DATA = {
     },
 }
 
+--- @return table|nil settings
 local function GetInventorySettings()
     local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
     if not modules then
@@ -119,6 +120,7 @@ local function GetInventorySettings()
     return modules["Inventory"]
 end
 
+--- @return table|nil settings
 local function EnsureInventorySettings()
     if not BETTERUI or not BETTERUI.Settings then
         return nil
@@ -130,7 +132,8 @@ local function EnsureInventorySettings()
     return BETTERUI.Settings.Modules["Inventory"]
 end
 
--- Resolve dynamic labels
+--- @param dataEntry table
+--- @return string label
 local function GetCurrencyLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
@@ -140,6 +143,8 @@ local function GetCurrencyLabel(dataEntry)
     return GetString(dataEntry.labelStr)
 end
 
+--- @param dataEntry table
+--- @return string label
 local function GetOrderLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
@@ -149,6 +154,7 @@ local function GetOrderLabel(dataEntry)
     return GetString(dataEntry.orderStr)
 end
 
+--- @param headerToo boolean|nil
 local function SafeRefresh(headerToo)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE.IsShowing and GAMEPAD_INVENTORY_ROOT_SCENE:IsShowing() then
         if headerToo and GAMEPAD_INVENTORY.RefreshHeader then
@@ -160,6 +166,7 @@ local function SafeRefresh(headerToo)
     end
 end
 
+--- @return boolean canEnable
 local function CanEnableMoreCurrencies()
     local inv = GetInventorySettings()
     if not inv then return false end
@@ -215,8 +222,6 @@ local function RecomputeCurrencyOrderString()
 end
 
 --- Applies a currency preset by enabling/disabling specific currencies.
---- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom").
---- Applies a currency preset by enabling/disabling specific currencies.
 --- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom")
 function BETTERUI.ApplyCurrencyPreset(presetName)
     local inv = EnsureInventorySettings()
@@ -249,7 +254,6 @@ function BETTERUI.ApplyCurrencyPreset(presetName)
     end
 end
 
---- Returns the LAM control for Currency Submenu.
 --- Returns the LAM control for Currency Submenu.
 --- @return table option The currency submenu option
 function BETTERUI.Inventory.Settings.GetCurrencyOptions()

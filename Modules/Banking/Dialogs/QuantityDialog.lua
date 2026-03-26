@@ -35,6 +35,7 @@ Description: Creates (lazily) and updates inline keybind hint labels in a slider
   - Uses ZO_Keybindings_GetHighestPriorityBindingStringFromAction for device-appropriate icons
   - Called from dialog setup so labels refresh each time the dialog opens
 ]]
+--- @param dialog table
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end
 
@@ -113,6 +114,8 @@ local function SetupSliderKeybindHints(dialog)
     dialog._maxTextLabel:SetHidden(false)
 end
 
+--- Registers the quantity selection dialog for banking operations.
+--- @return nil
 function BETTERUI.Banking.InitializeQuantityDialog()
     BETTERUI.CIM.Dialogs.Register(BETTERUI_BANK_QUANTITY_DIALOG, {
         blockDirectionalInput = true,
@@ -232,6 +235,7 @@ Description: Shows the quantity selection dialog for partial stack moves.
   - Configures dialog with item info and calls ZO_Dialogs_ShowGamepadDialog
 param: isDeposit (boolean) - True if depositing to bank, false if withdrawing.
 ]]
+--- @param isDeposit boolean True if depositing to bank, false if withdrawing
 function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     local list = self:GetList()
     if not list or not list.selectedData then return end

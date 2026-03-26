@@ -222,7 +222,7 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
 end
 
 --- Processes a batch of craft bag items.
---- Processes a batch of craft bag items.
+--- @return nil
 function BETTERUI.Inventory.CraftList:ProcessBatch()
     if not self.pendingBatchData or not self.list then return end
 

@@ -14,17 +14,7 @@ local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 local BLOCK_TABBAR_CALLBACK = true
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
----
 --- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.
---- Mechanics:
---- - **SHOWING**: Defers Init if needed. Configures Tooltip Width. Switches to correct list (Backpack vs Category). Activates Header/Toolbar.
---- - **HIDING**: Deactivates Header. Restores Toolbar. Saves List Position.
---- - **HIDDEN**: Clears Active Keybinds. Clears Text Search. Saves Console Profile.
---- References: Registered as Scene State Change callback.
----
---- @param oldState integer The previous scene state
---- @param newState integer The new scene state
---- Handles scene state changes (SHOWING, HIDING, HIDDEN).
 --- @param oldState integer The previous scene state
 --- @param newState integer The new scene state
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)

@@ -26,6 +26,9 @@ Description: Registers the Vendor settings panel with LibAddonMenu2.
 param: moduleName (string) - The module name key in BETTERUI.Settings.Modules.
 param: displayName (string) - Human-readable panel name.
 ]]
+--- @param moduleName any Description
+--- @param displayName any Description
+--- @return any Description
 function Vendor.Settings.RegisterPanel(moduleName, displayName)
     local panelData = {
         type = "panel",

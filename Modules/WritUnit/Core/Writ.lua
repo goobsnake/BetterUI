@@ -24,6 +24,7 @@ local m_writsPanel = nil
 --- Purpose: Avoids repeated global lookups in Show() each time panel is displayed.
 --- Mechanics: Stores references to UI controls at startup.
 --- References: Called during addon initialization.
+--- @return nil
 function BETTERUI.Writs.CacheControls()
 	m_writNameLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritName
 	m_writDescLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc
@@ -72,7 +73,7 @@ end
 --- - Iterates `MAX_JOURNAL_QUESTS`.
 --- - Matches Quest Name against patterns defined in Constants.lua.
 --- - Maps the matching Quest ID to the corresponding `CRAFTING_TYPE_XXX` constant in `BETTERUI.Writs.List`.
----
+--- @return nil
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
 	-- Resolve localized patterns once per scan (not per quest) — avoids
@@ -112,6 +113,7 @@ end
 --- - Sets Panel to Visible.
 ---
 --- @param writType number The crafting type ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
+--- @return nil
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.Writs.Update()
 	if BETTERUI.Writs.List[writType] ~= nil then
@@ -132,6 +134,7 @@ end
 --- Hides the Writ panel.
 ---
 --- Purpose: Cleanly removes the UI overlay.
+--- @return nil
 function BETTERUI.Writs.Hide()
 	if m_writsPanel then
 		m_writsPanel:SetHidden(true)

@@ -23,6 +23,7 @@ Function: GetCurrentBankBag (local)
 Description: Determines the current bank bag ID.
 return: number - BAG_BANK or the specific house bank bag ID.
 ]]
+--- @return number
 local function GetCurrentBankBag()
     if IsHouseBankBag(GetBankingBag()) then
         return GetBankingBag()
@@ -36,6 +37,8 @@ Description: Returns the mode string key for CIM PositionManager namespacing.
 param: mode (number) - LIST_WITHDRAW or LIST_DEPOSIT.
 return: string - "Withdraw" or "Deposit".
 ]]
+--- @param mode number LIST_WITHDRAW or LIST_DEPOSIT
+--- @return string
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
@@ -48,6 +51,8 @@ end
 Function: BETTERUI.Banking.Class:CurrentUsedBank
 Description: Updates the 'currentUsedBank' state.
 ]]
+--- Updates the currentUsedBank state.
+--- @return nil
 function BETTERUI.Banking.Class:CurrentUsedBank()
     BETTERUI.Banking.currentUsedBank = GetCurrentBankBag()
 end
@@ -56,6 +61,8 @@ end
 Function: BETTERUI.Banking.Class:LastUsedBank
 Description: Updates the 'lastUsedBank' state.
 ]]
+--- Updates the lastUsedBank state.
+--- @return nil
 function BETTERUI.Banking.Class:LastUsedBank()
     BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
 end
@@ -69,6 +76,8 @@ Function: BETTERUI.Banking.Class:SaveListPosition
 Description: Saves the current scroll position of the list.
 References: Called before RefreshList, ToggleList, or Mode Switches.
 ]]
+--- Saves the current scroll position of the list.
+--- @return nil
 function BETTERUI.Banking.Class:SaveListPosition()
     if not self.list then return end
     -- Save per-mode position (for legacy compatibility)
@@ -93,6 +102,8 @@ Function: BETTERUI.Banking.Class:HandleEmptyList (helper)
 Description: Manages keybind and tooltip state when list is empty.
 return: boolean - True if list was empty and handled, false otherwise.
 ]]
+--- Manages keybind and tooltip state when list is empty.
+--- @return boolean handled True if list was empty and handled
 function BETTERUI.Banking.Class:HandleEmptyList()
     local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
     if totalEntries == 0 then
@@ -118,6 +129,8 @@ Function: BETTERUI.Banking.Class:GetRestoredPosition
 Description: Retrieves the saved position for the current category/mode.
 return: number - The position to restore (1 if none saved).
 ]]
+--- Retrieves the saved position for the current category/mode.
+--- @return number position The position to restore (1 if none saved)
 function BETTERUI.Banking.Class:GetRestoredPosition()
     if not self.bankCategories or #self.bankCategories == 0 then
         return 1
@@ -139,6 +152,8 @@ Function: BETTERUI.Banking.Class:HandleBankSwitch
 Description: Handles the case where the player switched to a different bank.
 return: boolean - True if bank switch was handled, false if no switch occurred.
 ]]
+--- Handles the case where the player switched to a different bank.
+--- @return boolean handled True if bank switch was handled
 function BETTERUI.Banking.Class:HandleBankSwitch()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local lastUsedBank = BETTERUI.Banking.lastUsedBank
@@ -178,6 +193,8 @@ Description: Restores the saved list position.
   5. Restores normal position from CIM.
 References: Called at the end of RefreshList.
 ]]
+--- Restores the saved list position.
+--- @return nil
 function BETTERUI.Banking.Class:ReturnToSaved()
     self:CurrentUsedBank()
 
@@ -209,6 +226,8 @@ Description: Handles single slot updates (item add/remove/change).
 param: bagId (number) - The bag ID.
 param: slotIndex (number) - The slot index.
 ]]
+--- @param bagId number
+--- @param slotIndex number
 function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
     -- Rebuild the list from the shared inventory cache rather than mutating
     -- the parametric list internals while it's animating/moving.
@@ -220,6 +239,7 @@ Function: BETTERUI.Banking.Class:RemoveItemStack
 Description: Handles item stack removal.
 param: itemIndex (number) - The index of the item being removed.
 ]]
+--- @param itemIndex number
 function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
     -- Avoid directly mutating the parametric list while it may be moving; just refresh.
     self:RefreshList()
@@ -237,6 +257,7 @@ Description: Toggles between Withdraw and Deposit modes.
 References: Called by "Y" Keybind (Secondary).
 param: toWithdraw (boolean) - True if switching to Withdraw mode, False for Deposit.
 ]]
+--- @param toWithdraw boolean True if switching to Withdraw mode
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     -- Exit multi-select mode when switching between Withdraw/Deposit
     -- Selections are mode-specific and should not carry over

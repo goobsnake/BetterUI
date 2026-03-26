@@ -30,11 +30,14 @@ local CURRENCY_LABEL_PULSE_MAX_SCALE = 1.03
 Function: SetupLabelListing
 Description: Template setup for simple label rows (e.g. headers or currency).
 ]]
+--- @param control Control
+--- @param data table
 function BETTERUI.Banking.Class.SetupLabelListing(control, data)
     control:GetNamedChild("Label"):SetText(data.label)
     control:GetNamedChild("Label"):SetFont(BETTERUI.Banking.GetNameFontDescriptor())
 end
 
+--- @return string
 local function GetCurrencyActionFontDescriptor()
     local moduleSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Banking"]
     local defaults = BETTERUI.CIM.Font.DEFAULTS
@@ -46,6 +49,8 @@ local function GetCurrencyActionFontDescriptor()
     return BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize + CURRENCY_ACTION_FONT_SIZE_BONUS, fontStyle)
 end
 
+--- @param currencyType number
+--- @return number
 local function GetCurrencyTransferMax(self, currencyType)
     local fromLocation
     local toLocation
@@ -70,6 +75,11 @@ local function GetCurrencyTransferMax(self, currencyType)
     return zo_min(fromAmount, remainingCapacity)
 end
 
+--- @param modeText string
+--- @param currencyLabel string
+--- @param currencyType number
+--- @param transferMax number
+--- @return string
 local function GetCurrencyTransferEntryLabel(modeText, currencyLabel, currencyType, transferMax)
     local formatOptions
     if currencyType == CURT_MONEY then
@@ -86,6 +96,10 @@ local function GetCurrencyTransferEntryLabel(modeText, currencyLabel, currencyTy
     return string.format("%s %s (%s)", modeText, currencyLabel, amountText)
 end
 
+--- @param currencyType number
+--- @param modeText string
+--- @param labelByCurrency table
+--- @return table
 function BETTERUI.Banking.BuildCurrencyTransferEntryData(self, currencyType, modeText, labelByCurrency)
     local currencyLabel = labelByCurrency[currencyType]
         or (GetCurrencyName and GetCurrencyName(currencyType, true, false))
@@ -109,6 +123,10 @@ function BETTERUI.Banking.BuildCurrencyTransferEntryData(self, currencyType, mod
     return entryData
 end
 
+--- @param control Control
+--- @param icon Control|nil
+--- @param label Control|nil
+--- @return table|nil
 local function EnsureCurrencyPulseTimeline(control, icon, label)
     if not icon and not label then
         return nil
@@ -168,6 +186,12 @@ local function EnsureCurrencyPulseTimeline(control, icon, label)
     return timeline
 end
 
+--- @param control Control
+--- @param data table
+--- @param selected boolean
+--- @param selectedDuringRebuild boolean
+--- @param enabled boolean
+--- @param activated boolean
 function BETTERUI.Banking.Class.SetupCurrencyTransferEntry(control, data, selected, selectedDuringRebuild, enabled,
                                                            activated)
     ZO_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
@@ -207,6 +231,7 @@ end
 -- SELECTION CHANGE HELPERS
 -------------------------------------------------------------------------------------------------
 
+--- @param isCurrencyRow boolean
 local function UpdateKeybindsForSelection(self, isCurrencyRow)
     if self.isInHeaderSortMode then
         return
@@ -229,6 +254,7 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 end
 
+--- @param selectedData table
 local function HandleItemRowSelection(selectedData)
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
     if selectedData.bagId and selectedData.slotIndex then
@@ -245,6 +271,7 @@ local function HandleItemRowSelection(selectedData)
     end
 end
 
+--- @param self table
 local function HandleCurrencyRowSelection(self)
     UpdateKeybindsForSelection(self, true)
     BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
@@ -255,6 +282,8 @@ end
 -- SELECTION + TEMPLATE REGISTRATION
 -------------------------------------------------------------------------------------------------
 
+--- @param list table
+--- @param selectedData table|nil
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
@@ -295,6 +324,7 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     self:UpdateActions()
 end
 
+--- @param list table
 function BETTERUI.Banking.Class.SetupItemList(list)
     list:AddDataTemplate(
         BETTERUI.Banking.CURRENCY_ROW_TEMPLATE,

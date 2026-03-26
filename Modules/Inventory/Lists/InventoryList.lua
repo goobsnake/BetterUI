@@ -30,14 +30,7 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 }
 
 --- Default item sort comparator for gamepad inventory.
----
 --- Purpose: Sorts items based on Best Category Name -> Name -> Level -> Champion Points -> Icon -> ID.
---- Mechanics: Uses `ZO_TableOrderingFunction` with `DEFAULT_GAMEPAD_ITEM_SORT`.
----
---- @param left table: Left item data
---- @param right table: Right item data
---- @return boolean: True if left should come before right
---- Default item sort comparator for gamepad inventory.
 --- @param left table Left item data
 --- @param right table Right item data
 --- @return boolean shouldComeBefore True if left should come before right
@@ -54,23 +47,7 @@ local ShouldShowMarketPrice = _fmt.ShouldShowMarketPrice
 local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 
 --- Configures a shared gamepad inventory entry (row).
----
---- Purpose: **The Main Render Function**. Populates all displayed data for a row.
---- Mechanics:
---- 1. **Label**: Calls `BETTERUI_SharedGamepadEntryLabelSetup`.
---- 2. **Cache**: Uses cached `itemLink`, `itemType` to reduce API overhead.
---- 3. **Columns**: Populates Item Type, Trait, Stat (Damage/Armor/Known), and Value.
---- 4. **Market Price**: Fetches MasterMerchant/TTC price if enabled.
---- 5. **Icons**: Calls `BETTERUI_SharedGamepadEntryIconSetup`.
---- 6. **Sizing**: Dynamically scales icons based on the active module's `nameFontSize`.
----
---- @param control table The UI control for the row.
---- @param data table The data item to display.
---- @param selected boolean True if the row is selected.
---- @param reselectingDuringRebuild boolean True if preserving selection during a list rebuild.
---- @param enabled boolean True if the row is enabled.
---- @param active boolean True if the row is active.
---- Configures a shared gamepad inventory entry (row).
+--- Purpose: The main render function. Populates all displayed data for a row.
 --- @param control table The UI control for the row
 --- @param data table The data item to display
 --- @param selected boolean True if the row is selected
@@ -257,13 +234,7 @@ end
 local GetCategoryTypeFromWeaponType = BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType
 
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
----
---- Purpose: Helper for sorting and categorization logic.
 --- Note: Uses shared implementation from CIM/CategoryDefinitions.lua
----
---- @param itemData table The item data.
---- @return string The localized category description.
---- Determines the best display category for an item.
 --- @param itemData table The item data
 --- @return string category The localized category description
 function GetBestItemCategoryDescription(itemData)
@@ -282,13 +253,17 @@ function BETTERUI.Inventory.List:New(...)
 end
 
 --- Initializes the inventory list.
----
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
---- Mechanics:
---- - Creates `BETTERUI_VerticalParametricScrollList`.
---- - Registers `VendorEntryTemplateSetup` (wraps `BETTERUI_SharedGamepadEntry_OnSetup`).
---- - Connects to `SHARED_INVENTORY` for real-time updates.
----
+--- @param control Control The UI control for the list
+--- @param inventoryType number|table The inventory type(s)
+--- @param slotType number The slot type
+--- @param selectedDataCallback function|nil Callback when selected data changes
+--- @param entrySetupCallback function|nil Callback for entry setup
+--- @param categorizationFunction function|nil Function for item categorization
+--- @param sortFunction function|nil Sort function override
+--- @param useTriggers boolean|nil Whether to use trigger keybinds
+--- @param template string|nil The entry template name
+--- @param templateSetupFunction function|nil Custom template setup function
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
                                             categorizationFunction, sortFunction, useTriggers, template,
                                             templateSetupFunction)
@@ -409,14 +384,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
 end
 
 --- Populates the slot table with item data from the inventory.
----
 --- Purpose: Filters and accepts items for the list.
---- Mechanics:
---- - Iterates inventory slots via `SHARED_INVENTORY:GenerateSingleSlotData`.
---- - Applies `itemFilterFunction`.
---- - Calcualtes `bestGamepadItemCategoryName` for headers.
----
---- Populates the slot table with item data from the inventory.
 --- @param slotsTable table The table to populate
 --- @param inventoryType number The inventory type
 --- @param slotIndex number The slot index
@@ -437,16 +405,7 @@ function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, s
 end
 
 --- Refreshes the inventory list.
----
 --- Purpose: Rebuilds the visual list from source data.
---- Mechanics:
---- 1. Clears current list.
---- 2. Generates new Slot Table (`AddSlotDataToTable`).
---- 3. Creates `ZO_GamepadEntryData` wrappers.
---- 4. Adds entries to the Parametric List (with Headers where applicable).
---- 5. Commits (renders) the list.
----
---- Refreshes the inventory list.
 function BETTERUI.Inventory.List:RefreshList()
     if self.control:IsHidden() then
         self.isDirty = true

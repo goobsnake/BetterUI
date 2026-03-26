@@ -15,6 +15,8 @@ local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 local Id64ToString = Id64ToString
 
+--- @param itemData table
+--- @return boolean isStolen
 local function IsStolenItem(itemData)
     return itemData.stolen
 end
@@ -40,7 +42,6 @@ function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot,
     end
 end
 
---- Refreshes the item list based on the selected category and filter.
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
     -- Skip refresh during batch processing to prevent flickering
@@ -271,7 +272,6 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 end
 
 --- Updates the left tooltip for the selected item.
---- Updates the left tooltip for the selected item.
 --- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     if not selectedData or not selectedData.dataSource or not selectedData.dataSource.bagId then
@@ -371,8 +371,7 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     end
 end
 
---- Updates the comparison tooltip (displayed in the Left Tooltip window in BetterUI)
---- Updates the comparison tooltip.
+--- Updates the comparison tooltip (displayed in the Left Tooltip window in BetterUI).
 --- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData

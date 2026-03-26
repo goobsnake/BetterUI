@@ -281,6 +281,8 @@ function GuildBank.OnGuildBankedMoneyUpdate()
 end
 
 --- Called when guild ranks change. Refreshes keybinds if it affects the selected guild.
+--- @param _ any Event id (ignored)
+--- @param guildId number
 function GuildBank.OnGuildRanksChanged(_, guildId)
     if guildId == GetSelectedGuildBankId() then
         local window = BETTERUI.Banking.Window
@@ -294,6 +296,9 @@ function GuildBank.OnGuildRanksChanged(_, guildId)
 end
 
 --- Called when a guild member's rank changes. Refreshes if it's the player in the selected guild.
+--- @param _ any Event id (ignored)
+--- @param guildId number
+--- @param displayName string
 function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
     if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
         local window = BETTERUI.Banking.Window
@@ -316,6 +321,7 @@ end
 -------------------------------------------------------------------------------------------------
 
 --- Registers the guild bank selection dialog for switching between guilds.
+--- @return nil
 function GuildBank.RegisterGuildSelectorDialog()
     local dialogName = "BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD"
     if ESO_Dialogs[dialogName] then return end
@@ -371,10 +377,14 @@ function GuildBank.RegisterGuildSelectorDialog()
     local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
     local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
 
+    --- @param data table
+    --- @return boolean
     local function IsActiveGuild(data)
         return data.isCurrentGuild
     end
 
+    --- @param control Control
+    --- @param data table
     local function SetupGuildBankItem(control, data, ...)
         ZO_SharedGamepadEntry_OnSetup(control, data, ...)
         if IsActiveGuild(data) then

@@ -35,7 +35,6 @@ function Class:IsInSelectionMode()
 end
 
 --- Shows the batch actions menu for multi-selected items.
---- Shows the batch actions menu for multi-selected items.
 function Class:ShowBatchActionsMenu()
     if not self.multiSelectManager or not self.multiSelectManager:IsActive() then
         return
@@ -165,7 +164,6 @@ end
 -- CRAFTBAG MULTI-SELECT MODE
 --------------------------------------------------------------------------------
 
---- @param selectedCount number
 --- Called when craft bag selection count changes.
 --- @param selectedCount number The new selection count
 function Class:OnCraftBagSelectionCountChanged(selectedCount)
@@ -223,7 +221,6 @@ function Class:ExitCraftBagSelectionMode()
     end
 end
 
---- Shows the batch actions menu for multi-selected craftbag items.
 --- Shows the batch actions menu for multi-selected craftbag items.
 function Class:ShowCraftBagBatchActionsMenu()
     if not self.craftBagMultiSelectManager or not self.craftBagMultiSelectManager:IsActive() then
@@ -329,7 +326,6 @@ function Class:ShowCraftBagBatchActionsMenu()
 end
 
 --- Selects all items in the current craftbag category.
---- Selects all items in the current craftbag category.
 function Class:SelectAllCraftBagItems()
     if not self.craftBagMultiSelectManager then return end
 
@@ -343,7 +339,6 @@ function Class:SelectAllCraftBagItems()
     end, 100)
 end
 
---- Selects all items in the current item list category.
 --- Selects all items in the current item list category.
 function Class:SelectAllItems()
     if not self.multiSelectManager then return end

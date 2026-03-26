@@ -20,6 +20,11 @@ param: equipType (number) - Equipment type constant (EQUIP_TYPE_*).
 param: mainSlot (boolean) - For 1H/rings: true = main hand/ring 1, false = off hand/ring 2.
 param: isPrimary (boolean) - For weapons: true = front bar, false = back bar.
 ]]
+--- @param bagId number
+--- @param slotIndex number
+--- @param equipType number
+--- @param mainSlot boolean
+--- @param isPrimary boolean
 local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     local targetPrimary = (isPrimary ~= false)
 
@@ -56,6 +61,7 @@ local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
+--- @return boolean
 local function AttemptCompanionEquipPatch()
     local class = _G["ZO_CompanionEquipment_Gamepad"]
     if not class then
@@ -94,6 +100,7 @@ local function AttemptCompanionEquipPatch()
     return true
 end
 
+--- @return boolean
 local function EnsureCompanionEquipPatched()
     if AttemptCompanionEquipPatch() then
         if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
@@ -267,6 +274,8 @@ end
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.BASIC)
 
+    --- @param data table
+    --- @param mainSlot boolean
     local function ReleaseDialog(data, mainSlot)
         local equipType = data[1].dataSource.equipType
         local bound = IsItemBound(data[1].dataSource.bagId, data[1].dataSource.slotIndex)
@@ -299,10 +308,14 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         end
     end
 
+    --- @param isPrimary boolean
+    --- @return string
     local function GetDialogSwitchButtonText(isPrimary)
         return GetString(SI_BETTERUI_INV_SWITCH_EQUIPSLOT)
     end
 
+    --- @param dialog table
+    --- @return string
     local function GetDialogMainText(dialog)
         local equipType = dialog.data[1].dataSource.equipType
         local itemName = GetItemName(dialog.data[1].dataSource.bagId, dialog.data[1].dataSource.slotIndex)

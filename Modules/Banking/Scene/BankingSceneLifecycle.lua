@@ -11,6 +11,8 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 Function: BETTERUI.Banking.Class:OnSceneShowing
 Description: Scene showing handler called by SceneLifecycleManager.
 ]]
+--- Scene showing handler called by SceneLifecycleManager.
+--- @param wasPushed boolean
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- Ensure currency selector is hidden on scene entry
     if self.selector and self.selector.control then
@@ -140,6 +142,8 @@ end
 Function: BETTERUI.Banking.Class:OnSceneHiding
 Description: Abort any in-flight batch before cleanup.
 ]]
+--- Aborts any in-flight batch before cleanup.
+--- @return nil
 function BETTERUI.Banking.Class:OnSceneHiding()
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
@@ -150,6 +154,8 @@ end
 Function: BETTERUI.Banking.Class:OnSceneHidden
 Description: Scene hidden handler called by SceneLifecycleManager.
 ]]
+--- Scene hidden handler called by SceneLifecycleManager.
+--- @return nil
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
@@ -230,6 +236,8 @@ end
 Function: BETTERUI.Banking.Class:UpdateExternalAddons
 Description: Handles visibility of supported external addon elements.
 ]]
+--- Handles visibility of supported external addon elements.
+--- @param hidden boolean
 function BETTERUI.Banking.Class:UpdateExternalAddons(hidden)
     if wykkydsToolbar then
         wykkydsToolbar:SetHidden(hidden)
@@ -243,6 +251,7 @@ end
 --- Sets up keyboard shortcut interception hooks on SCENE_MANAGER.
 --- Prevents keyboard keys (I, G, M, etc.) from interrupting the banking
 --- ZO_InteractScene mid-interaction.
+--- @return nil
 function BETTERUI.Banking.SetupSceneInterception()
     local originalToggle = SCENE_MANAGER.Toggle
     local originalShow = SCENE_MANAGER.Show
@@ -250,6 +259,8 @@ function BETTERUI.Banking.SetupSceneInterception()
     local guildBankSceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
     local intercepting = false
 
+    --- @param targetSceneName string
+    --- @return boolean
     local function InterceptSceneChange(targetSceneName)
         if intercepting then return false end
         -- Never intercept our own banking scenes

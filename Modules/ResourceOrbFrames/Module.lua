@@ -400,6 +400,7 @@ end
 -- Note: InitModule is now provided by Settings/Defaults.lua
 
 --- Sets up the Resource Orb Frames module.
+--- @return any Description
 function BETTERUI.ResourceOrbFrames.Setup()
     Init("ResourceOrbFrames", "Resource Orb Frames")
 end

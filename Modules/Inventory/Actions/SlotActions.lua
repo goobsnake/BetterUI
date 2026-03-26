@@ -247,10 +247,15 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         end,
     }
 
+    --- @param actionId number
+    --- @return string
     local function GetActionString(actionId)
         return GetString(actionId)
     end
 
+    --- @param actionName string
+    --- @param actionStringId number
+    --- @return boolean
     local function IsPrimaryAction(actionName, actionStringId)
         return actionName == GetActionString(actionStringId)
     end
@@ -278,6 +283,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         end
     end
 
+    --- @param primaryAction string
+    --- @return boolean
     local function ShouldReplacePrimaryAction(primaryAction)
         return ACTION_REPLACEMENT_LOOKUP[primaryAction] == true
         -- Note: Split stack is intentionally NOT included here so it remains
@@ -354,6 +361,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         end
     end
 
+    --- @return boolean
     local function PrimaryCommandHasBind()
         -- Avoid showing the primary (A) bind when the primary action is "Link to Chat",
         -- because the X button already exposes this action in the inventory UI and
@@ -370,6 +378,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: slotActions (table) - The slot actions object
         param: inventorySlot (table) - The inventory slot data
         ]]
+    --- @param slotActions table
+    --- @param inventorySlot table
     local function SecureOpenSkills(slotActions, inventorySlot)
         BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     end
@@ -383,6 +393,11 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: canUseItem (boolean) - Whether the item is also usable
         return: string - The resolved action name for display
         ]]
+    --- @param slotActions table
+    --- @param inventorySlot table
+    --- @param primaryAction string
+    --- @param canUseItem boolean
+    --- @return string
     local function ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
         return BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
     end
@@ -392,6 +407,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         Removes duplicate entries from the slot actions list.
         param: slotActions (table) - The slot actions object to deduplicate
         ]]
+    --- @param slotActions table
     local function DeduplicateActions(slotActions)
         BETTERUI.CIM.DeduplicateActions(slotActions)
     end

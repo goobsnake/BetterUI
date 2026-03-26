@@ -8,6 +8,7 @@ Author: BetterUI Team (extracted from Inventory.lua)
 Last Modified: 2026-03-14
 ]]
 
+--- @param targetBag number
 local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 	local emptySlotIndex, bagId
 	if targetBag == BAG_BANK or targetBag == BAG_SUBSCRIBER_BANK then
@@ -39,12 +40,9 @@ local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 end
 
 --- Initializes the split stack dialog for moving items.
----
 --- Purpose: Allows splitting stacks when moving to/from bank.
 --- Mechanics: Registers `ZO_GAMEPAD_SPLIT_STACK_DIALOG` with custom callback to `PickupInventoryItem`.
 --- References: Called by Initialize.
----
---- Initializes the split stack dialog for moving items.
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		canQueue = true,
@@ -132,14 +130,8 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 end
 
 --- Initializes the confirmation dialog for item destruction.
----
 --- Purpose: Safety prompt before destroying items.
---- Mechanics:
---- - Registers `BETTERUI_CONFIRM_DESTROY_DIALOG`.
---- - Shows item link in main text.
---- - Calls `TryDestroyItem(..., true)` on confirmation.
----
---- Initializes the confirmation dialog for item destruction.
+--- Mechanics: Registers `BETTERUI_CONFIRM_DESTROY_DIALOG`, shows item link, calls `TryDestroyItem` on confirm.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 	BETTERUI.CIM.Dialogs.Register("BETTERUI_CONFIRM_DESTROY_DIALOG", {
 		blockDirectionalInput = true,
@@ -190,14 +182,8 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 end
 
 --- Initializes the confirmation dialog for armory item destruction.
----
 --- Purpose: Safety prompt before destroying armory-related items with 2-second cooldown.
---- Mechanics:
---- - Registers `ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG`.
---- - Uses native `RespondToDestroyRequest()` API.
---- - Includes 2-second cooldown on confirm button for safety.
----
---- Initializes the confirmation dialog for armory item destruction.
+--- Mechanics: Registers `ZO_GAMEPAD_CONFIRM_DESTROY_ARMORY_ITEM_DIALOG` with native `RespondToDestroyRequest()`.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 	local function ReleaseDialog(destroyItem)
 		RespondToDestroyRequest(destroyItem == true)

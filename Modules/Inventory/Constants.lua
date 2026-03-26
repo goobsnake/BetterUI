@@ -146,6 +146,9 @@ param: left (table) - The first item data.
 param: right (table) - The second item data.
 return: boolean - True if 'left' should appear before 'right'.
 ]]
+--- @param left table
+--- @param right table
+--- @return boolean
 function BETTERUI.Inventory.DefaultSortComparator(left, right)
     return BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
 end

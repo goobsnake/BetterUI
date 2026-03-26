@@ -37,6 +37,7 @@ local INLINE_STATUS_ICON_WEIGHT = {
     BOOK_UNKNOWN = 1.0,
 }
 
+--- @return string moduleName
 local function GetActiveListModuleName()
     if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
         return "Banking"
@@ -44,6 +45,8 @@ local function GetActiveListModuleName()
     return "Inventory"
 end
 
+--- @param moduleName string
+--- @return table|nil settings
 local function GetModuleSettings(moduleName)
     local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
     if not modules then
@@ -52,6 +55,7 @@ local function GetModuleSettings(moduleName)
     return modules[moduleName]
 end
 
+--- @return boolean shouldShow
 local function ShouldShowMarketPrice()
     local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
     if not modules then
@@ -72,6 +76,8 @@ local function ShouldShowMarketPrice()
     return true
 end
 
+--- @param moduleName string
+--- @return number fontSize
 local function GetActiveNameFontSize(moduleName)
     local settings = GetModuleSettings(moduleName)
     if settings and settings.nameFontSize then
@@ -80,6 +86,10 @@ local function GetActiveNameFontSize(moduleName)
     return BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
 end
 
+--- @param value number
+--- @param minValue number
+--- @param maxValue number
+--- @return number clamped
 local function Clamp(value, minValue, maxValue)
     if value < minValue then
         return minValue
@@ -90,6 +100,9 @@ local function Clamp(value, minValue, maxValue)
     return value
 end
 
+--- @param fontSize number
+--- @param weightMultiplier number|nil
+--- @return number iconSize
 local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
     local ratio = fontSize / baseFontSize
@@ -97,10 +110,17 @@ local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     return Clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
 end
 
+--- @param texturePath string
+--- @param iconSize number
+--- @return string tag
 local function BuildInlineIconTag(texturePath, iconSize)
     return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
 end
 
+--- @param moduleSettings table|nil
+--- @param key string
+--- @param defaultValue boolean
+--- @return boolean value
 local function GetIconToggleSetting(moduleSettings, key, defaultValue)
     if moduleSettings and moduleSettings[key] ~= nil then
         return moduleSettings[key]
@@ -109,18 +129,7 @@ local function GetIconToggleSetting(moduleSettings, key, defaultValue)
 end
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
----
 --- Purpose: Formats the main text label for an inventory item.
---- Mechanics:
---- 1. **Fonts**: Selects font based on scene (Banking vs Inventory).
---- 2. **Status Icons**: Prepends icons for Locked, BoP, Stolen, Guild Trader, Enchanted, Set Item, Unknown Recipe.
---- 3. **Text**: Appends Stack Count.
---- 4. **Color**: Sets text color based on item quality or selection state.
----
---- @param label table The label control.
---- @param data table The data for the entry.
---- @param selected boolean True if the entry is selected.
---- Sets up the label for a shared gamepad entry.
 --- @param label table The label control
 --- @param data table The data for the entry
 --- @param selected boolean True if the entry is selected
@@ -268,19 +277,9 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
 end
 
 --- Configures the status indicator (New icon) and equipped icon for an entry.
----
 --- Purpose: Visual feedback for item state.
---- Mechanics:
---- - Checks `data.brandNew` to show "New" icon.
---- - Checks `data.isEquippedInCurrentCategory` / `dataSource.equipSlot` to show Equipped icons.
---- - Distinguishes between Main Hand, Backup Hand, and Quickslots.
----
---- @param statusIndicator table The control for the status indicator (New item icon).
---- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
---- @param data table The data for the entry.
---- Configures the status indicator and equipped icon for an entry.
---- @param statusIndicator table The control for the status indicator
---- @param equippedIcon table The control for the equipped icon
+--- @param statusIndicator table The control for the status indicator (New item icon)
+--- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot)
 --- @param data table The data for the entry
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     -- Guard against non-item entries (currency rows, headers)
@@ -322,18 +321,7 @@ function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
 end
 
 --- Sets up the main icon for a shared gamepad entry, including stacking counts and cooldown overlays.
----
 --- Purpose: Renders the primary item icon.
---- Mechanics:
---- - Sets Texture from `data:GetIcon`.
---- - Handles Desaturation/Coloring (Red if unusable).
---- - Applies selection tinting.
----
---- @param icon table The icon control.
---- @param stackCountLabel table The label for the stack count.
---- @param data table The data for the entry.
---- @param selected boolean True if the entry is selected.
---- Sets up the main icon for a shared gamepad entry.
 --- @param icon table The icon control
 --- @param stackCountLabel table The label for the stack count
 --- @param data table The data for the entry
@@ -415,9 +403,6 @@ function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType,
     control.cooldown:SetHidden(not inCooldownNow)
 end
 
---- High-level setup for cooldown indicators on an item entry.
---- @param control table The control (usually the row control).
---- @param data table The data containing cooldown information.
 --- High-level setup for cooldown indicators on an item entry.
 --- @param control table The control (usually the row control)
 --- @param data table The data containing cooldown information

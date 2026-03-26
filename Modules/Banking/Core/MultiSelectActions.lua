@@ -17,16 +17,26 @@ local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 local MSMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
+--- @param itemData table
+--- @return number bagId
+--- @return number slotIndex
 local function ExtractSlot(itemData)
     local rawData = itemData.dataSource or itemData
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @return boolean
 local function HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
 end
 
+--- @param itemData table
+--- @param bagId number
+--- @param slotIndex number
+--- @return number|nil
 local function ResolveStackCount(itemData, bagId, slotIndex)
     local rawData = itemData.dataSource or itemData
     local requestedStack = rawData.stackCount or itemData.stackCount or 1
@@ -37,51 +47,19 @@ local function ResolveStackCount(itemData, bagId, slotIndex)
     return zo_clamp(requestedStack, 1, liveStack)
 end
 
---[[
-File: Modules/Banking/Core/MultiSelectActions.lua
-Purpose: Banking-specific multi-select batch operations.
-         BatchTransfer (withdraw/deposit), ShowBatchActionsMenu, and SelectAllItems.
-         Common operations (lock, unlock, junk, throttled processing) are provided
-         by CIM.MultiSelectMixin via BankingClass.lua delegates.
-Author: BetterUI Team
-Last Modified: 2026-02-09
-]]
-
--------------------------------------------------------------------------------------------------
--- SHARED CONSTANTS
--------------------------------------------------------------------------------------------------
-local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
-local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
-
-local MSMixin                = BETTERUI.CIM.MultiSelectMixin
-local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
-
-local function ExtractSlot(itemData)
-    local rawData = itemData.dataSource or itemData
-    return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
-end
-
-local function HasItemAtSlot(bagId, slotIndex)
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
-    return (stackCount or 0) > 0
-end
-
-local function ResolveStackCount(itemData, bagId, slotIndex)
-    local rawData = itemData.dataSource or itemData
-    local requestedStack = rawData.stackCount or itemData.stackCount or 1
-    local liveStack = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
-    if liveStack <= 0 then
-        return nil
-    end
-    return zo_clamp(requestedStack, 1, liveStack)
-end
-
+--- @param bagId number
+--- @param slotIndex number
+--- @return boolean
 local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
     return CROWN_GEMIFICATION_MANAGER
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
         and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bagId), tonumber(slotIndex))
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @param targetBankBag number
+--- @return boolean
 local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
@@ -112,6 +90,10 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     return true
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @param currentUsedBank number
+--- @return number|string
 local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then

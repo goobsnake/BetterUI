@@ -53,6 +53,7 @@ local g_slotDataCache = {}
 local g_slotDataCacheDirty = true
 
 --- Invalidates the slot data cache.
+--- @return nil
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
@@ -74,6 +75,8 @@ function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     end
 end
 
+--- @param bags table
+--- @return any
 local function GetBagCacheKey(bags)
     if #bags == 1 then return bags[1] end
     return table.concat(bags, ",")
@@ -119,6 +122,7 @@ itself, we intercept ALL refresh calls - both from our code and ESO's base class
 References: Called by ESO base class in selection callbacks.
 ]]
 --- Refreshes the keybind strip (override with guards).
+--- @return nil
 function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
     -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
@@ -205,6 +209,8 @@ function BETTERUI.Inventory.Class:Initialize(control)
     -- Calling ToSavedPosition here was causing redundant refreshes and flickering.
 
     -- Guard update loop so we only process while the inventory scene is visible.
+    --- @param updateControl Control
+    --- @param currentFrameTimeSeconds number
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
         if self.scene and self.scene:IsShowing() then
             self:OnUpdate(currentFrameTimeSeconds)
@@ -215,6 +221,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         self:TrySetClearNewFlag(callId)
     end
 
+    --- @return nil
     local function RefreshVisualLayer()
         if self.scene:IsShowing() then
             self:OnUpdate()
@@ -402,6 +409,7 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 end
 
 --- Positions the text search control in the header.
+--- @return nil
 function BETTERUI.Inventory.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then
         return

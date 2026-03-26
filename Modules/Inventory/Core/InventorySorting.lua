@@ -95,6 +95,7 @@ end
 --- Creates sort comparator for a column with the specified direction
 --- @param sortKey string The key to sort by
 --- @param ascending boolean True for ascending, false for descending
+--- @return function
 local function CreateColumnSortComparator(sortKey, ascending)
     -- TRAIT: Alphabetical with blanks after "z"
     if sortKey == "trait" then
@@ -157,6 +158,7 @@ end
 
 --- Initializes the header sort controller for this inventory instance
 --- Initializes the header sort controller for this inventory instance.
+--- @return nil
 function Class:InitializeHeaderSortController()
     if self.headerSortControllers then return end
 
@@ -204,6 +206,7 @@ end
 
 --- Links column header labels to the sort controller for visual feedback
 --- Links column header labels to the sort controller for visual feedback.
+--- @return nil
 function Class:LinkColumnLabels()
     if not self.headerSortControllers then return end
 

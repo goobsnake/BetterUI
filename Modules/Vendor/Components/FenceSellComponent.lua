@@ -24,10 +24,14 @@ local FenceSell = Vendor.FenceSellComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function FenceSell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function FenceSell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -66,10 +70,13 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
+--- @return any Description
 function FenceSell:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_SELL)
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -88,6 +95,8 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     return true
 end
 
+--- @param vendorInstance any Description
+--- @return any Description
 function FenceSell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -119,6 +128,8 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
+--- @param vendorInstance any Description
+--- @return any Description
 function FenceSell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

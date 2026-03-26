@@ -87,20 +87,27 @@ end
 
 --- Updates state without animating (instant set).
 --- Use this during initialization to sync state.
+--- @param scale any Description
+--- @param offsetX any Description
+--- @param offsetY any Description
+--- @return any Description
 function Animations.SetState(scale, offsetX, offsetY)
     m_lastScale = scale
     m_lastOffsetX = offsetX
     m_lastOffsetY = offsetY
 end
 
+--- @return any Description
 function Animations.GetLastScale()
     return m_lastScale
 end
 
+--- @return any Description
 function Animations.GetLastOffsetX()
     return m_lastOffsetX
 end
 
+--- @return any Description
 function Animations.GetLastOffsetY()
     return m_lastOffsetY
 end

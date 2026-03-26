@@ -439,6 +439,7 @@ function ResourceOrbFrames.Initialize(control)
     end)
 end
 
+--- @return any Description
 function ResourceOrbFrames.ApplySettings()
     local settings = GetModuleSettings()
     if not m_rootFrame then return end
@@ -471,6 +472,8 @@ function ResourceOrbFrames.ApplySettings()
 end
 
 -- Global XML Handler (Bridge)
+--- @param control any Description
+--- @return any Description
 function ResourceOrbFrames_Initialize(control)
     ResourceOrbFrames.Initialize(control)
 end

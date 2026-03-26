@@ -81,6 +81,7 @@ end
 Function: BETTERUI.Banking.Class:SetupUnifiedFooter
 Description: Configures the unified footer for BANKING mode.
 ]]
+--- Configures the unified footer for BANKING mode.
 function BETTERUI.Banking.Class:SetupUnifiedFooter()
     -- Look for the footer controller in our control hierarchy
     local footerContainer = self.control and self.control.container and
@@ -212,6 +213,7 @@ end
 --- VALUE (market price priority)
 --- @param sortKey string The key to sort by
 --- @param ascending boolean True for ascending, false for descending
+--- @return function
 local function CreateColumnSortComparator(sortKey, ascending)
     -- TRAIT: Alphabetical with blanks after "z"
     if sortKey == "trait" then
@@ -321,7 +323,8 @@ local function CreateColumnSortComparator(sortKey, ascending)
     end
 end
 
---- Initializes the header sort controller for this banking instance
+--- Initializes the header sort controller for this banking instance.
+--- @return nil
 function BETTERUI.Banking.Class:InitializeHeaderSortController()
     if self.headerSortController then return end
 
@@ -354,8 +357,9 @@ function BETTERUI.Banking.Class:InitializeHeaderSortController()
     -- Note: Column labels are linked separately via LinkColumnLabels() after AddColumn() calls
 end
 
---- Links column header labels to the sort controller for visual feedback
---- Must be called AFTER AddColumn() populates self.header.columns
+--- Links column header labels to the sort controller for visual feedback.
+--- Must be called AFTER AddColumn() populates self.header.columns.
+--- @return nil
 function BETTERUI.Banking.Class:LinkColumnLabels()
     if not self.headerSortController then return end
     if not self.header or not self.header.columns then return end
@@ -428,6 +432,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Initializes the multi-select manager and applies the shared mixin.
+--- @return nil
 function BETTERUI.Banking.Class:InitializeMultiSelectManager()
     if self.multiSelectManager then return end
 
@@ -461,6 +466,8 @@ end
 -- in MultiSelectActions.lua.
 local MSMixin = BETTERUI.CIM.MultiSelectMixin
 
+--- Enters multi-select mode.
+--- @return nil
 function BETTERUI.Banking.Class:EnterSelectionMode()
     -- Lazy-initialize manager on first use
     self:InitializeMultiSelectManager()
@@ -474,46 +481,67 @@ function BETTERUI.Banking.Class:EnterSelectionMode()
     MSMixin.EnterSelectionMode(self)
 end
 
+--- Exits multi-select mode.
+--- @return nil
 function BETTERUI.Banking.Class:ExitSelectionMode()
     MSMixin.ExitSelectionMode(self)
 end
 
+--- Called when the selection count changes.
+--- @param selectedCount number
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
     MSMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
+--- @return boolean
 function BETTERUI.Banking.Class:IsInSelectionMode()
     return MSMixin.IsInSelectionMode(self)
 end
 
+--- @return boolean
 function BETTERUI.Banking.Class:IsBatchProcessing()
     return MSMixin.IsBatchProcessing(self)
 end
 
+--- @return boolean
 function BETTERUI.Banking.Class:CanAbortBatch()
     return MSMixin.CanAbortBatch(self)
 end
 
+--- @return nil
 function BETTERUI.Banking.Class:RequestBatchAbort()
     return MSMixin.RequestBatchAbort(self)
 end
 
+--- @param items table
+--- @param actionFn function
+--- @param onComplete function
+--- @param actionName string
+--- @param batchOptions table
 function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
     MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
+--- Locks all selected items.
+--- @return nil
 function BETTERUI.Banking.Class:BatchLock()
     MSMixin.BatchLock(self)
 end
 
+--- Unlocks all selected items.
+--- @return nil
 function BETTERUI.Banking.Class:BatchUnlock()
     MSMixin.BatchUnlock(self)
 end
 
+--- Marks all selected items as junk.
+--- @return nil
 function BETTERUI.Banking.Class:BatchMarkAsJunk()
     MSMixin.BatchMarkAsJunk(self)
 end
 
+--- Unmarks all selected items as junk.
+--- @return nil
 function BETTERUI.Banking.Class:BatchUnmarkAsJunk()
     MSMixin.BatchUnmarkAsJunk(self)
 end

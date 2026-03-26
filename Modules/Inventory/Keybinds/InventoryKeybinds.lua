@@ -8,6 +8,8 @@ Last Modified: 2026-03-14
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 
+--- @param slotData table
+--- @return boolean
 local function IsQuickslottable(slotData)
     if not slotData or not slotData.bagId or not slotData.slotIndex then
         return false
@@ -37,6 +39,8 @@ local function IsQuickslottable(slotData)
     return false
 end
 
+--- @param self Control
+--- @return table|nil
 local function GetXButtonActionContext(self)
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE then
         return nil

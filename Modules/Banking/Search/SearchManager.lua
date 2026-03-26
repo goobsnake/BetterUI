@@ -16,6 +16,8 @@ local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 Function: BETTERUI.Banking.Class:ClearTextSearch
 Description: Clears the text search input and resets the query.
 ]]
+--- Clears the text search input and resets the query.
+--- @return nil
 function BETTERUI.Banking.Class:ClearTextSearch()
     self.searchQuery = ""
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
@@ -30,6 +32,8 @@ Function: BETTERUI.Banking.Class:IsHeaderActive
 Description: Checks if the header (or search field) is currently focused.
 return: boolean - True if header or search is active.
 ]]
+--- Checks if the header or search field is currently focused.
+--- @return boolean
 function BETTERUI.Banking.Class:IsHeaderActive()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
         local active = self.textSearchHeaderFocus:IsActive()
@@ -42,6 +46,8 @@ end
 Function: BETTERUI.Banking.Class:RequestEnterHeader
 Description: Requests focus for the header/search control.
 ]]
+--- Requests focus for the header/search control.
+--- @return nil
 function BETTERUI.Banking.Class:RequestEnterHeader()
     if self.OnEnterHeader then
         self:OnEnterHeader()
@@ -54,6 +60,8 @@ end
 Function: BETTERUI.Banking.Class:EnterSearchMode
 Description: Enters text search mode, showing the search field and updating keybinds.
 ]]
+--- Enters text search mode.
+--- @return nil
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -89,6 +97,8 @@ end
 Function: BETTERUI.Banking.Class:LeaveSearchMode
 Description: Exits text search mode, hiding the search field and restoring standard keybinds.
 ]]
+--- Exits text search mode and restores standard keybinds.
+--- @return nil
 function BETTERUI.Banking.Class:LeaveSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
@@ -128,6 +138,8 @@ end
 Function: BETTERUI.Banking.Class:PositionSearchControl
 Description: Positions the search control beneath the header title.
 ]]
+--- Positions the search control beneath the header title.
+--- @return nil
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
     -- Clear existing anchors then attach below the visible header area
@@ -159,6 +171,8 @@ end
 Function: BETTERUI.Banking.Class:ExitSearchFocus
 Description: Callback when search focus is lost.
 ]]
+--- Callback when search focus is lost.
+--- @return nil
 function BETTERUI.Banking.Class:ExitSearchFocus()
     self:LeaveSearchMode()
 end
@@ -167,6 +181,8 @@ end
 Function: BETTERUI.Banking.Class:OnEnterHeader
 Description: Callback when the header is entered (navigating up from list).
 ]]
+--- Callback when the header is entered (navigating up from list).
+--- @return nil
 function BETTERUI.Banking.Class:OnEnterHeader()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()

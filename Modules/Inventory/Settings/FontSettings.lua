@@ -14,6 +14,7 @@ BETTERUI.Inventory.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
 BETTERUI.Inventory.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Inventory.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
+--- @return table|nil settings
 local function GetInventorySettings()
     local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
     if not modules then
@@ -25,6 +26,7 @@ local function GetInventorySettings()
     return modules["Inventory"]
 end
 
+--- @return boolean isEnabled
 local function IsCIMEnabled()
     local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
     local cimSettings = modules and modules["CIM"]
@@ -74,7 +76,6 @@ do
     BETTERUI.Inventory.GetColumnFontDescriptor = descriptors.column
 end
 
---- Returns the LAM control list for Font Customization.
 --- Returns the LAM control list for Font Customization.
 --- @return table options The font option controls
 function BETTERUI.Inventory.Settings.GetFontOptions()
