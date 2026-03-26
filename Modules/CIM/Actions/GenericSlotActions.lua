@@ -5,9 +5,20 @@ Purpose: Shared slot action logic for Inventory and Banking modules.
 Author: BetterUI Team
 Last Modified: 2026-01-26
 
-Note: This class is not currently used by Inventory/Banking (they use
-BETTERUI.Inventory.SlotActions which inherits ZO_ItemSlotActionsController).
-These implementations provide a foundation for future refactoring.
+STATUS: ORPHANED / FOUNDATION CODE
+----------------------------------
+This file is NOT currently used by Inventory/Banking modules. They use:
+  - BETTERUI.Inventory.SlotActions (inherits ZO_ItemSlotActionsController)
+  - Direct action handlers in Inventory/Actions/SlotActions.lua
+
+The GenericSlotActions class and helper functions here provide a foundation for
+future refactoring but have no active consumers in the current codebase.
+
+DECISION: Retained for future use. If no integration occurs by v4.0, consider:
+  - Option A: Integrate into Inventory/Banking to replace duplicate logic
+  - Option B: Remove and rely on ZO_ItemSlotActionsController patterns
+
+REFERENCED BY: None (verified via file_grep search)
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end

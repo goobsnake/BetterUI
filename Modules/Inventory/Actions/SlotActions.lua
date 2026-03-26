@@ -163,7 +163,7 @@ end
 --- Attempts to move an item between the Backpack and the Craft Bag.
 --- @param inventorySlot table|nil The inventory slot data.
 --- @param targetBag number The ID of the destination bag (BAG_BACKPACK or BAG_VIRTUAL).
-local function TryMoveToInventoryorCraftBag(inventorySlot, targetBag)
+local function TryMoveToInventoryOrCraftBag(inventorySlot, targetBag)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
 end
@@ -336,7 +336,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                     if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity then
                         BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
                     else
-                        TryMoveToInventoryorCraftBag(inventorySlot, BAG_BACKPACK)
+                        TryMoveToInventoryOrCraftBag(inventorySlot, BAG_BACKPACK)
                     end
                 end, inventorySlot)
             -- NOTE: Split Stack is NOT added here because it's handled by _betterui_primaryOverride

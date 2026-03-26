@@ -334,10 +334,32 @@ end
 ---   On failure, disables the module to prevent cascading errors.
 --- References: Called by BETTERUI.Initialize for each registered module (Inventory, Banking, etc.).
 ---
---- @param m_namespace table The module's namespace table.
---- @param m_options table The options table for the module.
---- @param moduleName string|nil Optional module name for error reporting.
---- @return table|nil The initialized module namespace, or nil on failure.
+--- INIT CONTRACT: BETTERUI.ModuleOptions (Wrapper) vs Module InitModule (Callee)
+--- ============================================================================
+--- This function is the WRAPPER that orchestrates module initialization.
+--- It receives the full context but passes only m_options to the module.
+---
+--- Wrapper Signature (this function):
+---   @param m_namespace table  The module's namespace table (e.g., BETTERUI.Inventory)
+---   @param m_options table    The raw settings table to populate with defaults
+---   @param moduleName string  Optional name for error reporting (e.g., "Inventory")
+---   @return table|nil         Returns m_namespace on success, nil on failure
+---
+--- Module InitModule Signature (called via pcall):
+---   @param m_options table|nil  The raw settings table to be initialized
+---   @return table               The modified options table with defaults applied
+---
+--- Why the signatures differ:
+---   - ModuleOptions needs m_namespace and moduleName for error context and return
+---   - InitModule only needs m_options because modules access their namespace
+---     directly via the global BETTERUI table (e.g., BETTERUI.CIM.CONST)
+---
+--- See: CIM.InitModule, Inventory.InitModule, Banking.InitModule, Vendor.InitModule
+---
+--- @param m_namespace table The module's namespace table (e.g., BETTERUI.Inventory)
+--- @param m_options table The raw settings table to populate with defaults
+--- @param moduleName string|nil Optional name for error reporting (e.g., "Inventory")
+--- @return table|nil Returns m_namespace on success, nil on failure
 function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	if m_namespace and m_namespace.InitModule then
 		-- Wrap in pcall to prevent one module's error from breaking the entire addon

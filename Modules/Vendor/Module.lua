@@ -46,12 +46,23 @@ end
 
 --[[
 Function: BETTERUI.Vendor.InitModule
-Initializes default values and migrates legacy settings for the Vendor module.
-param: m_options (table) - The raw settings table for this module.
+Initializes defaults and migrates legacy settings for the Vendor module.
+
+INIT CONTRACT: This function implements the standard InitModule signature.
+It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
+
+Standard InitModule Signature (consistent across all modules):
+  @param m_options table|nil The raw settings table to be initialized
+  @return table The modified options table with default values applied
+
+Wrapper Function (caller in BetterUI.lua):
+  BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+
+param: m_options (table|nil) - The raw settings table for this module.
 return: table - The initialized and migrated settings table.
 ]]
---- @param m_options any Description
---- @return any Description
+--- @param m_options table|nil The raw settings table for this module
+--- @return table The initialized and migrated settings table
 function BETTERUI.Vendor.InitModule(m_options)
 	local defaults = BETTERUI.Vendor.DEFAULTS
 	local fallbackDefaults = {

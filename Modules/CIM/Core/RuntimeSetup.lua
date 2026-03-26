@@ -23,6 +23,7 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.RuntimeSetup = {}
 
 local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
+local SafeExecute = BETTERUI.CIM.SafeExecute
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
@@ -52,7 +53,7 @@ local function ApplyAPIPatches()
         if type(orig) ~= "function" then return end
         _G[globalName] = function(path, width, height)
             if path == nil then path = "" end
-            local ok, res = pcall(orig, path, width, height)
+            local ok, res = SafeExecute("RuntimeSetup:PatchIconFn:" .. globalName, orig, path, width, height)
             return ok and res or ""
         end
     end
@@ -63,7 +64,7 @@ local function ApplyAPIPatches()
         if type(orig) ~= "function" then return end
         _G[globalName] = function(path, width, height, text, ...)
             if path == nil then path = "" end
-            local ok, res = pcall(orig, path, width, height, text, ...)
+            local ok, res = SafeExecute("RuntimeSetup:PatchIconTextFn:" .. globalName, orig, path, width, height, text, ...)
             return ok and res or tostring(text or "")
         end
     end
@@ -87,17 +88,23 @@ local function ApplyAPIPatches()
         local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
         ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor,
                                                              keybindButtonDescriptor, state, stateIndex, currentSceneName)
-            local ok, res = pcall(function()
-                return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state,
-                    stateIndex, currentSceneName)
-            end)
+            local ok, res = SafeExecute(
+                "RuntimeSetup:HandleDuplicateAddKeybind",
+                _orig_HandleDuplicate,
+                self,
+                existingButtonOrEtherealDescriptor,
+                keybindButtonDescriptor,
+                state,
+                stateIndex,
+                currentSceneName
+            )
             -- If the call succeeded, return normally
             if ok then return res end
 
             -- If the call failed, attempt a safe recovery by removing the conflicting descriptor
             -- so the new keybind can be registered. This ensures LB/RB navigation is restored
             -- even when duplicate handling errors occur.
-            pcall(function()
+            SafeExecute("RuntimeSetup:HandleDuplicateRecoveryRemove", function()
                 if existingButtonOrEtherealDescriptor then
                     local descriptor = existingButtonOrEtherealDescriptor
                     -- If it's a button control, extract the descriptor
@@ -116,10 +123,10 @@ local function ApplyAPIPatches()
             -- during scene transitions (like search enter/exit) where multiple duplicate keybind
             -- errors may occur in quick succession. Use zo_callLater with a 0ms delay to defer
             -- until the next frame cycle, ensuring the removal has settled.
-            pcall(function()
+            SafeExecute("RuntimeSetup:HandleDuplicateDeferredReAdd", function()
                 if zo_callLater and type(zo_callLater) == "function" then
                     zo_callLater(function()
-                        pcall(function()
+                        SafeExecute("RuntimeSetup:HandleDuplicateDeferredReAddCallLater", function()
                             -- Only re-add if not already present
                             if self and self.HasKeybindButton then
                                 local present = self:HasKeybindButton(keybindButtonDescriptor, stateIndex)

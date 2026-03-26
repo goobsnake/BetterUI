@@ -14,12 +14,26 @@ local ClampInteger = BETTERUI.ClampInteger
 
 --- Initializes default settings for the Common Interface Module.
 ---
---- Purpose: Callback for module initialization.
---- Mechanics: Applies default values for CIM-specific settings.
+--- Purpose: Callback for module initialization via BETTERUI.ModuleOptions().
+--- Mechanics: Applies default values for CIM-specific settings (tooltip size,
+---   scroll speed, etc.) and clamps values to valid ranges.
 --- References: Called by BetterUI.lua during addon initialization.
 ---
---- @param m_options table|nil The raw settings/options table to be initialized.
---- @return table The modified options table with default values applied.
+--- INIT CONTRACT: Module InitModule functions follow the signature:
+---   function InitModule(m_options) -> table
+--- This matches the call in BETTERUI.ModuleOptions() which passes only m_options.
+--- The module namespace (e.g., BETTERUI.CIM) is NOT passed; modules access
+--- their namespace directly via the global BETTERUI table.
+---
+--- Standard InitModule Signature (implemented by all modules):
+---   @param m_options table|nil The raw settings table to be initialized
+---   @return table The modified options table with default values applied
+---
+--- Wrapper Function (caller):
+---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+---
+--- @param m_options table|nil The raw settings/options table to be initialized
+--- @return table The modified options table with default values applied
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS
