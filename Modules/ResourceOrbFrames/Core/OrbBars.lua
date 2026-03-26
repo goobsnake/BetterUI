@@ -39,13 +39,6 @@ local CAST_BAR_ORB_FILL_STYLES = {
     },
 }
 local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
-local BAR_TEXT_SIZE_MIN = 5
-local BAR_TEXT_SIZE_MAX = 20
-
-local Utils = BETTERUI.ResourceOrbFrames.Utils
-local ClampTextSize = Utils.ClampTextSize
-local FindControl = Utils.FindControl
-local GetModuleSettings = Utils.GetModuleSettings
 
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)

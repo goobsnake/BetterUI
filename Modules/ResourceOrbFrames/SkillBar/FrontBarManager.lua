@@ -16,7 +16,6 @@ local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetModuleSettings = Utils.GetModuleSettings
 
-local GetNamedChildDirect = Utils.GetNamedChildDirect
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
 -- Cached control references

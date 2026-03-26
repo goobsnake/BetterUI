@@ -28,7 +28,6 @@ local function BuildCooldownStateKey(slotIndex, hotbarCategory)
     return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
 end
 
-local GetNamedChildDirect = Utils.GetNamedChildDirect
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
 --------------------------------------------------------------------------------

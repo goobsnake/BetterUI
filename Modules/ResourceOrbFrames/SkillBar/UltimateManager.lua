@@ -35,7 +35,6 @@ end
 local function PlayUltimateReadyAnimations(btn)
     local readyBurst = btn.readyBurst
     local readyLoop = btn.readyLoop
-    local glow = btn.glow
     local glowAnim = btn.glowAnimation
 
     if not btn.readyBurstTimeline then

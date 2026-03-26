@@ -23,36 +23,36 @@ local m_lastOffsetY = nil
 --- @param targetOffsetY number The target Y offset (inverted, positive moves up).
 function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, targetOffsetY)
     if not rootFrame then return end
-    
+
     -- Stop existing animation
     if m_dimensionsTimeline then m_dimensionsTimeline:Stop() end
-    
+
     if not m_dimensionsTimeline then
         m_dimensionsTimeline = ANIMATION_MANAGER:CreateTimeline()
-        
+
         -- Fade Animation (Flash effect)
         local alphaAnim = m_dimensionsTimeline:InsertAnimation(ANIMATION_ALPHA, rootFrame)
         alphaAnim:SetDuration(250)
         alphaAnim:SetAlphaValues(0.5, 1.0)
         alphaAnim:SetEasingFunction(ZO_EaseInQuadratic)
-        
+
         -- Custom Animation for Scale and Position
         local customAnim = m_dimensionsTimeline:InsertAnimation(ANIMATION_CUSTOM, rootFrame)
         customAnim:SetDuration(300)
         customAnim:SetEasingFunction(ZO_EaseOutQuadratic)
-        
+
         customAnim:SetUpdateFunction(function(anim, progress)
             local currentScale = zo_lerp(anim.startScale, anim.endScale, progress)
             local currentX = zo_lerp(anim.startX, anim.endX, progress)
             local currentY = zo_lerp(anim.startY, anim.endY, progress)
-            
+
             rootFrame:SetScale(currentScale)
             rootFrame:ClearAnchors()
             -- Invert offsetY: positive settings value means UP, so we used negative anchor Y
             rootFrame:SetAnchor(BOTTOM, GuiRoot, BOTTOM, currentX, -currentY)
         end)
     end
-    
+
     -- Setup animation data
     local customAnim = m_dimensionsTimeline:GetFirstAnimationOfType(ANIMATION_CUSTOM)
     customAnim.startScale = rootFrame:GetScale()
@@ -76,9 +76,9 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, tar
         customAnim.startY = currentAnchorY and -currentAnchorY or targetOffsetY
     end
     customAnim.endY = targetOffsetY
-    
+
     m_dimensionsTimeline:PlayFromStart()
-    
+
     -- Update state
     m_lastScale = targetScale
     m_lastOffsetX = targetOffsetX

@@ -282,9 +282,9 @@ local function SetupModule(control)
         -- Re-apply mode-specific XML template and action bar skin.
         -- NOTE: ApplyTemplateToControl can reset OnMouseEnter/script handlers on buttons,
         -- which is why we must replay the full front-bar setup sequence below.
-        local isGamePad = IsInGamepadPreferredMode()
-        local layout = isGamePad and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
-        SkillBar.ApplyActionBarSkin(m_rootFrame, layout)
+        local isGamePadInner = IsInGamepadPreferredMode()
+        local innerLayout = isGamePadInner and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
+        SkillBar.ApplyActionBarSkin(m_rootFrame, innerLayout)
 
         -- Re-read front bar config live (not stale closure from SetupModule time)
         local liveFrontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar

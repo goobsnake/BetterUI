@@ -12,8 +12,6 @@ local GetModuleSettings = Utils.GetModuleSettings
 --------------------------------------------------------------------------------
 -- PRESS FEEDBACK CONSTANTS
 --------------------------------------------------------------------------------
-local TARGET_FAILURE_CAST_HOLD_MS = 200
-local NON_COST_FAILURE_CAST_HOLD_MS = 250
 local PRESS_FEEDBACK_DEDUPE_WINDOW_MS = 140
 local PRESS_FEEDBACK_EDGE_FLASH_MS = 167
 local PRESS_FEEDBACK_EDGE_FLASH_ALPHA = 0.95

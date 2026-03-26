@@ -605,7 +605,6 @@ end
 --- @param rootFrame any Description
 --- @return any Description
 function Visuals.SetupPowerPools(rootFrame)
-    local cfg = BETTERUI_ORB_FRAMES
 
     local pools = {
         [POWERTYPE_HEALTH] = BetterUIOrbBar:New(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH),

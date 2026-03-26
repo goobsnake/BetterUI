@@ -100,7 +100,7 @@ function CastBar:Update()
 
     local insetX = CAST.FILL_INSET_X or 40
     local insetY = CAST.FILL_INSET_Y or 55
-    local current, max = 0, 1
+    local current, max
 
     local castTextSize = ClampTextSize(settings.castBarTextSize, BAR_TEXT_SIZE_MIN, BAR_TEXT_SIZE_MAX, 16)
     local castTextColor = settings.castBarTextColor or { 1, 1, 1, 1 }
@@ -161,8 +161,7 @@ function ExperienceBar:Update()
     self.control:SetHidden(false)
 
     local isChampion = IsUnitChampion("player")
-    local current, max, effectiveMax = 0, 0, 0
-    local labelText = ""
+    local current, max, effectiveMax, labelText
 
     if isChampion then
         local currentCP = GetPlayerChampionPointsEarned()

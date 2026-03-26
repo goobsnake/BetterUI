@@ -10,7 +10,6 @@ if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end
 
 local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
-local NAME = "ResourceOrbFrames"
 
 -- State
 local m_backBarBaseX = 0
