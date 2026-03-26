@@ -473,10 +473,10 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         storeStackCount = nil
 
         -- 1. Draw the standard tooltip first (other addon hooks fire within this call chain)
-        -- Layer 2: pcall safety net for the original layout method.
+        -- Layer 2: SafeExecute wrapper for the original layout method.
         -- If this crashes from unexpected data in an unknown future scene,
-        -- we absorb rather than blanking the entire UI.
-        local layoutOk, layoutErr = pcall(newMethod, self, ...)
+        -- we absorb rather than blanking the entire UI, with proper error logging.
+        local layoutOk, layoutErr = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
         if not layoutOk then
             return
         end

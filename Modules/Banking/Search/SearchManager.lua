@@ -1,24 +1,19 @@
 --[[
 File: Modules/Banking/Search/SearchManager.lua
-Purpose: Manages text search functionality in the banking module.
-         Extracted from Banking.lua.
+Purpose: Canonical search/header focus boundary for BETTERUI.Banking.Class.
+         All banking search interactions should route through this module.
 Author: BetterUI Team
-Last Modified: 2026-01-24
+Last Modified: 2026-03-26
 ]]
 
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
 -------------------------------------------------------------------------------------------------
--- Import EnsureKeybindGroupAdded for use in local scope
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
---[[
-Function: BETTERUI.Banking.Class:ClearTextSearch
-Description: Clears the text search input and resets the query.
-]]
 --- Clears the text search input and resets the query.
 --- @return nil
-function BETTERUI.Banking.Class:ClearTextSearch()
+function BETTERUI.Banking.Class:ClearSearchInput()
     self.searchQuery = ""
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
         BETTERUI.Interface.Window.ClearSearchText(self)
@@ -27,39 +22,43 @@ function BETTERUI.Banking.Class:ClearTextSearch()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:IsHeaderActive
-Description: Checks if the header (or search field) is currently focused.
-return: boolean - True if header or search is active.
-]]
---- Checks if the header or search field is currently focused.
+--- Backwards-compatible alias.
+--- @return nil
+function BETTERUI.Banking.Class:ClearTextSearch()
+    self:ClearSearchInput()
+end
+
+--- Checks whether the header/search control is currently focused.
 --- @return boolean
-function BETTERUI.Banking.Class:IsHeaderActive()
+function BETTERUI.Banking.Class:IsHeaderFocused()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
-        local active = self.textSearchHeaderFocus:IsActive()
-        return active
+        return self.textSearchHeaderFocus:IsActive()
     end
     return self._searchModeActive == true
 end
 
---[[
-Function: BETTERUI.Banking.Class:RequestEnterHeader
-Description: Requests focus for the header/search control.
-]]
---- Requests focus for the header/search control.
+--- Backwards-compatible alias.
+--- @return boolean
+function BETTERUI.Banking.Class:IsHeaderActive()
+    return self:IsHeaderFocused()
+end
+
+--- Requests focus for the search/header control.
 --- @return nil
-function BETTERUI.Banking.Class:RequestEnterHeader()
-    if self.OnEnterHeader then
-        self:OnEnterHeader()
+function BETTERUI.Banking.Class:RequestHeaderFocus()
+    if self.OnHeaderEntered then
+        self:OnHeaderEntered()
     else
         self:EnterSearchMode()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:EnterSearchMode
-Description: Enters text search mode, showing the search field and updating keybinds.
-]]
+--- Backwards-compatible alias.
+--- @return nil
+function BETTERUI.Banking.Class:RequestEnterHeader()
+    self:RequestHeaderFocus()
+end
+
 --- Enters text search mode.
 --- @return nil
 function BETTERUI.Banking.Class:EnterSearchMode()
@@ -73,7 +72,6 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     end
 
-    -- Ensure we exit header sort mode fully before showing search
     if self.isInHeaderSortMode and self.ExitHeaderSortMode then
         self:ExitHeaderSortMode()
     end
@@ -82,10 +80,8 @@ function BETTERUI.Banking.Class:EnterSearchMode()
         EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
     end
 
-    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate then
-        if not self.textSearchHeaderFocus:IsActive() then
-            self.textSearchHeaderFocus:Activate()
-        end
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate and not self.textSearchHeaderFocus:IsActive() then
+        self.textSearchHeaderFocus:Activate()
     end
 
     if self.SetTextSearchFocused then
@@ -93,34 +89,25 @@ function BETTERUI.Banking.Class:EnterSearchMode()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:LeaveSearchMode
-Description: Exits text search mode, hiding the search field and restoring standard keybinds.
-]]
 --- Exits text search mode and restores standard keybinds.
 --- @return nil
-function BETTERUI.Banking.Class:LeaveSearchMode()
+function BETTERUI.Banking.Class:ExitSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
-    -- LeaveSearchMode: restore keybinds and header focus. No debug logging in production.
+
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
 
-    -- Add back core keybinds and ensure coreKeybinds group is added
     if self.coreKeybinds then
         EnsureKeybindGroupAdded(self.coreKeybinds)
         KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     end
 
-    -- Call RefreshActiveKeybinds to determine and add the correct withdraw/deposit keybinds
-    -- based on current selection (currency rows get currencyKeybinds, items get withdrawDepositKeybinds)
     self:RefreshActiveKeybinds()
 
-    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate then
-        if self.textSearchHeaderFocus:IsActive() then
-            self.textSearchHeaderFocus:Deactivate()
-        end
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
+        self.textSearchHeaderFocus:Deactivate()
     end
 
     if self.SetTextSearchFocused then
@@ -128,76 +115,66 @@ function BETTERUI.Banking.Class:LeaveSearchMode()
     end
 
     self:EnsureHeaderKeybindsActive()
-
     self:UpdateActions()
-
-    -- No extra teardown required; leaving search mode handles restoring keybinds/list focus.
 end
 
---[[
-Function: BETTERUI.Banking.Class:PositionSearchControl
-Description: Positions the search control beneath the header title.
-]]
+--- Backwards-compatible alias.
+--- @return nil
+function BETTERUI.Banking.Class:LeaveSearchMode()
+    self:ExitSearchMode()
+end
+
 --- Positions the search control beneath the header title.
 --- @return nil
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
-    -- Clear existing anchors then attach below the visible header area
+
     self.textSearchHeaderControl:ClearAnchors()
     local anchorTarget = self.headerGeneric or self.header
-    -- Try to anchor under the header's TitleContainer if present, otherwise under the header itself
     local titleContainer = nil
     if anchorTarget and anchorTarget.GetNamedChild then
         titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
     end
+
     local parentForAnchor = titleContainer or anchorTarget
     if parentForAnchor then
-        -- Search bar position configured in BetterUI.CONST.lua
         local xOffset = BETTERUI.Banking.CONST.SEARCH.X_OFFSET
         local yOffset = BETTERUI.Banking.CONST.SEARCH.Y_OFFSET
         local rightInset = BETTERUI.Banking.CONST.SEARCH.RIGHT_INSET
-        -- Anchor left with an X offset, and inset the right anchor slightly so control width remains reasonable
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
     else
-        -- Fallback: anchor to header control bottom
         self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
         self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
     end
+
     self.textSearchHeaderControl:SetHidden(false)
 end
 
---[[
-Function: BETTERUI.Banking.Class:ExitSearchFocus
-Description: Callback when search focus is lost.
-]]
 --- Callback when search focus is lost.
 --- @return nil
-function BETTERUI.Banking.Class:ExitSearchFocus()
-    self:LeaveSearchMode()
+function BETTERUI.Banking.Class:OnSearchFocusLost()
+    self:ExitSearchMode()
 end
 
---[[
-Function: BETTERUI.Banking.Class:OnEnterHeader
-Description: Callback when the header is entered (navigating up from list).
-]]
+--- Backwards-compatible alias.
+--- @return nil
+function BETTERUI.Banking.Class:ExitSearchFocus()
+    self:OnSearchFocusLost()
+end
+
 --- Callback when the header is entered (navigating up from list).
 --- @return nil
-function BETTERUI.Banking.Class:OnEnterHeader()
+function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
-        -- Call base implementation if present
         if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
             BETTERUI.Interface.Window.OnEnterHeader(self)
         end
 
-        -- Ensure only the Clear keybind group remains visible shortly after entering header.
-        -- DELAY RATIONALE: Native ESO logic may restore keybinds on the next frame after focus change.
-        -- We wait 20ms to ensure our cleanup runs AFTER native restoration.
         BETTERUI.Banking.Tasks:Schedule("searchKeybindCleanup", 20, function()
-            if not self._searchModeActive then return end
-            if not KEYBIND_STRIP then return end
+            if not self._searchModeActive or not KEYBIND_STRIP then return end
 
             local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
             if keybindGroups then
@@ -209,28 +186,26 @@ function BETTERUI.Banking.Class:OnEnterHeader()
                 end
             end
 
-            if not self._searchModeActive then return end
-
-            if self.textSearchKeybindStripDescriptor then
+            if self._searchModeActive and self.textSearchKeybindStripDescriptor then
                 EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
         end)
-    else
-        -- Fallback to base behavior if no text search available
-        if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
-            BETTERUI.Interface.Window.OnEnterHeader(self)
-        end
+    elseif BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
+        BETTERUI.Interface.Window.OnEnterHeader(self)
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:OnSearchTextChanged
-Description: Callback when search text changes.
-]]
---- @param editBox EditBox The edit box control
+--- Backwards-compatible alias.
+--- @return nil
+function BETTERUI.Banking.Class:OnEnterHeader()
+    self:OnHeaderEntered()
+end
+
+--- Handles search text updates.
+--- @param editBox userdata Edit box control that exposes GetText().
+--- @return nil
 function BETTERUI.Banking.Class:OnSearchTextChanged(editBox)
     if not (editBox and editBox.GetText) then return end
-    local text = editBox:GetText()
-    self.searchQuery = text
+    self.searchQuery = editBox:GetText()
     self:RefreshList()
 end

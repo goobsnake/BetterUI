@@ -359,8 +359,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
             window:RefreshList()
         end,
         enterHeaderFn = function(window)
-            if window.RequestEnterHeader then
-                window:RequestEnterHeader()
+            if window.RequestHeaderFocus then
+                window:RequestHeaderFocus()
             else
                 window:EnterSearchMode()
             end
@@ -389,7 +389,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
                 end
             end
             -- Now exit search focus
-            self:ExitSearchFocus()
+            self:OnSearchFocusLost()
             return
         end
 
@@ -524,8 +524,8 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
             if not ok then
                 -- No previous entry; go to header/search bar (matching Inventory behavior)
-                if self.OnEnterHeader then
-                    self:OnEnterHeader()
+                if self.OnHeaderEntered then
+                    self:OnHeaderEntered()
                 elseif self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.Activate then
                     self.headerGeneric.tabBar:Activate()
                 end
