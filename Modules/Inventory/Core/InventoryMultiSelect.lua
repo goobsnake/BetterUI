@@ -3,7 +3,7 @@
 -- Extracted from InventoryClass.lua for maintainability.
 
 local Class = BETTERUI.Inventory.Class
-local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
 --------------------------------------------------------------------------------
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
@@ -14,24 +14,24 @@ local CanDestroyInventoryItem -- forward-declared, defined in InventoryBatchOps.
 
 --- Enters multi-select mode for the item list.
 function Class:EnterSelectionMode()
-    MSMixin.EnterSelectionMode(self)
+    MultiSelectMixin.EnterSelectionMode(self)
 end
 
 --- Exits multi-select mode for the item list.
 function Class:ExitSelectionMode()
-    MSMixin.ExitSelectionMode(self)
+    MultiSelectMixin.ExitSelectionMode(self)
 end
 
 --- Called when the selection count changes.
 --- @param selectedCount number The new selection count
 function Class:OnSelectionCountChanged(selectedCount)
-    MSMixin.OnSelectionCountChanged(self, selectedCount)
+    MultiSelectMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
 --- Checks if currently in selection mode.
 --- @return boolean isInSelectionMode True if in selection mode
 function Class:IsInSelectionMode()
-    return MSMixin.IsInSelectionMode(self)
+    return MultiSelectMixin.IsInSelectionMode(self)
 end
 
 --- Shows the batch actions menu for multi-selected items.
@@ -45,7 +45,7 @@ function Class:ShowBatchActionsMenu()
     if selectedCount == 0 then return end
 
     -- Analyze selected items using shared mixin (lock/unlock/junk counts)
-    local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
+    local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
 
     -- Inventory-specific: count stow/destroy-eligible items
     local canStowCount = 0
@@ -122,18 +122,18 @@ function Class:ShowBatchActionsMenu()
     local parametricList = {}
 
     -- Select All (always first)
-    table.insert(parametricList, MSMixin.CreateDialogEntry(
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
         GetString(SI_BETTERUI_SELECT_ALL),
         function() self:SelectAllItems() end
     ))
 
     -- Common batch entries from mixin (Lock, Unlock, Mark/Unmark Junk)
-    MSMixin.AppendCommonBatchEntries(parametricList, counts, self)
+    MultiSelectMixin.AppendCommonBatchEntries(parametricList, counts, self)
 
     -- Destroy (only if setting enabled AND destroyable items exist) - Inventory-specific
     local batchDestroyEnabled = BETTERUI.Inventory.GetSetting("enableBatchDestroy") == true
     if batchDestroyEnabled and canDestroyCount > 0 then
-        table.insert(parametricList, MSMixin.CreateDialogEntry(
+        table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
             zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), canDestroyCount),
             function() self:BatchDestroy() end
         ))
@@ -141,14 +141,14 @@ function Class:ShowBatchActionsMenu()
 
     -- Stow (only if craftbag-eligible items exist) - Inventory-specific
     if canStowCount > 0 then
-        table.insert(parametricList, MSMixin.CreateDialogEntry(
+        table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
             zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), canStowCount),
             function() self:BatchStow() end
         ))
     end
 
     -- Deselect All (always last)
-    table.insert(parametricList, MSMixin.CreateDialogEntry(
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
         zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")

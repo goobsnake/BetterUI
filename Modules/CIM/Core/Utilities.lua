@@ -81,6 +81,52 @@ end
 -- ============================================================================
 
 BETTERUI.CIM = BETTERUI.CIM or {}
+
+--- @class CIM.WindowOptions
+--- @field title string|nil
+--- @field subtitle string|nil
+--- @field width number|nil
+--- @field height number|nil
+--- @field anchorPoint any|nil
+--- @field anchorTarget any|nil
+--- @field anchorRelativePoint any|nil
+--- @field anchorOffsetX number|nil
+--- @field anchorOffsetY number|nil
+--- @field clampToScreen boolean|nil
+
+--- @class CIM.MultiSelectConfig
+--- @field getList fun(self: table): table|nil
+--- @field refreshList fun(self: table)
+--- @field refreshKeybinds fun(self: table)
+--- @field isSceneShowing fun(self: table): boolean|nil
+--- @field getSceneExitLabel fun(): string|nil
+
+--- @class CIM.BatchOptions
+--- @field serverBound boolean|nil
+--- @field suppressUiUpdates boolean|nil
+--- @field costPerItem number|nil
+--- @field cooldownEvery integer|nil
+--- @field cooldownMs integer|nil
+--- @field minServerDelayMs integer|nil
+--- @field maxServerDelayMs integer|nil
+--- @field awaitInventoryAck boolean|nil
+--- @field ackTimeoutMs integer|nil
+--- @field chunkCostUnits integer|nil
+--- @field chunkPauseMs integer|nil
+--- @field adaptiveDelay boolean|nil
+--- @field adaptiveThreshold integer|nil
+--- @field adaptiveStepMs integer|nil
+--- @field jitterMs integer|nil
+--- @field skipInterBatchCooldown boolean|nil
+--- @field postBatchCooldownBaseMs integer|nil
+--- @field postBatchCooldownThreshold integer|nil
+--- @field postBatchCooldownPerCostMs integer|nil
+--- @field postBatchCooldownMaxMs integer|nil
+--- @field enforceRateWindow boolean|nil
+--- @field rateLimitWindowMs integer|nil
+--- @field rateLimitMaxActions integer|nil
+--- @field countTowardRateOnSuccess boolean|nil
+
 --- @class BETTERUI.CIM.Utils
 --- Shared utility functions for the BetterUI Common Interface Module.
 --- Provides scene checks, sort comparators, safe accessors, and bag helpers.

@@ -3,7 +3,7 @@
 -- Extracted from InventoryClass.lua for maintainability.
 
 local Class = BETTERUI.Inventory.Class
-local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 local BLOCK_TABBAR_CALLBACK = true
 
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
@@ -181,19 +181,19 @@ local DESTROY_BATCH_OPTIONS = {
 --- Checks if a batch operation is currently processing.
 --- @return boolean isProcessing True if batch processing is active
 function Class:IsBatchProcessing()
-    return MSMixin.IsBatchProcessing(self)
+    return MultiSelectMixin.IsBatchProcessing(self)
 end
 
 --- Checks if the current batch can be aborted.
 --- @return boolean canAbort True if batch can be aborted
 function Class:CanAbortBatch()
-    return MSMixin.CanAbortBatch(self)
+    return MultiSelectMixin.CanAbortBatch(self)
 end
 
 --- Requests abort of the current batch operation.
 --- @return boolean requested True if abort was requested
 function Class:RequestBatchAbort()
-    return MSMixin.RequestBatchAbort(self)
+    return MultiSelectMixin.RequestBatchAbort(self)
 end
 
 --- Processes a batch of items with throttling.
@@ -203,7 +203,7 @@ end
 --- @param actionName string Name of the action for progress display
 --- @param batchOptions table Options for batch processing
 function Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
-    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
+    MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
 --------------------------------------------------------------------------------
@@ -315,22 +315,22 @@ end
 -- Common batch operations delegate to CIM.MultiSelectMixin
 --- Performs batch lock on all selected items.
 function Class:BatchLock()
-    MSMixin.BatchLock(self)
+    MultiSelectMixin.BatchLock(self)
 end
 
 --- Performs batch unlock on all selected items.
 function Class:BatchUnlock()
-    MSMixin.BatchUnlock(self)
+    MultiSelectMixin.BatchUnlock(self)
 end
 
 --- Performs batch mark as junk on all selected items.
 function Class:BatchMarkAsJunk()
-    MSMixin.BatchMarkAsJunk(self)
+    MultiSelectMixin.BatchMarkAsJunk(self)
 end
 
 --- Performs batch unmark as junk on all selected items.
 function Class:BatchUnmarkAsJunk()
-    MSMixin.BatchUnmarkAsJunk(self)
+    MultiSelectMixin.BatchUnmarkAsJunk(self)
 end
 
 --- Performs batch destroy on all selected items (with confirmation).

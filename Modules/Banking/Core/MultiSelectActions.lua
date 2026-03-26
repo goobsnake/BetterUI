@@ -14,7 +14,7 @@ Last Modified: 2026-02-09
 local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
-local MSMixin                = BETTERUI.CIM.MultiSelectMixin
+local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
 --- @param itemData table
@@ -280,7 +280,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     if selectedCount == 0 then return end
 
     -- Use shared mixin to analyze selected items
-    local counts = MSMixin.AnalyzeSelectedItems(selectedItems)
+    local counts = MultiSelectMixin.AnalyzeSelectedItems(selectedItems)
     local isDepositMode = (self.currentMode == LIST_DEPOSIT)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank or BAG_BANK
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -355,7 +355,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     local parametricList = {}
 
     -- Select All (always first)
-    table.insert(parametricList, MSMixin.CreateDialogEntry(
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
         GetString(SI_BETTERUI_SELECT_ALL),
         function() self:SelectAllItems() end
     ))
@@ -365,17 +365,17 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         local transferName = isDepositMode
             and GetString(SI_BETTERUI_BANKING_DEPOSIT)
             or GetString(SI_BETTERUI_BANKING_WITHDRAW)
-        table.insert(parametricList, MSMixin.CreateDialogEntry(
+        table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
             zo_strformat("<<1>> (<<2>>)", transferName, transferCount),
             function() self:BatchTransfer() end
         ))
     end
 
     -- Append common batch entries (Lock, Unlock, Mark/Unmark Junk) from mixin
-    MSMixin.AppendCommonBatchEntries(parametricList, counts, self)
+    MultiSelectMixin.AppendCommonBatchEntries(parametricList, counts, self)
 
     -- Deselect All (always last)
-    table.insert(parametricList, MSMixin.CreateDialogEntry(
+    table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
         zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog(dialogName)

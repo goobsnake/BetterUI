@@ -15,23 +15,23 @@ create its own scene and call InitializeFragment/InitializeScene.
 --- @class BETTERUI.Interface
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--------------------------------------------------------------------------------------------------
--- PRIVATE HELPERS
--------------------------------------------------------------------------------------------------
+---==========================================================
+--- SECTION: Private Helpers
+---==========================================================
 
 --- Wraps an integer value within min/max bounds
 --- @private
 --- @param value number The value to wrap
 --- @param min number The minimum bound
 --- @param max number The maximum bound
---- @return number
+--- @return number wrappedValue The wrapped integer value
 local function WrapInt(value, min, max)
     return (zo_floor(value) - min) % (max - min + 1) + min
 end
 
--------------------------------------------------------------------------------------------------
--- WINDOW CLASS
--------------------------------------------------------------------------------------------------
+---==========================================================
+--- SECTION: Window Class Definition
+---==========================================================
 
 --- @class BETTERUI.Interface.Window : ZO_Object
 --- @field windowName string The name of the top-level window
@@ -120,6 +120,10 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
     self:InitializeList()
 end
 
+---==========================================================
+--- SECTION: Spinner Management
+---==========================================================
+
 --- Sets the spinner's range and current value.
 ---
 --- @param max number The maximum allowed value (min is always 1).
@@ -183,21 +187,15 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     end
 end
 
+---==========================================================
+--- SECTION: List Management
+---==========================================================
+
 --- Gets the current primary list.
 ---
---- @return table|nil The active scroll list.
+--- @return table|nil list The active scroll list.
 function BETTERUI.Interface.Window:GetList()
     return self.list
-end
-
---- Initializes keybinds for the window.
-function BETTERUI.Interface.Window:InitializeKeybind()
-    self.coreKeybinds = {
-    }
-
-    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
-
-    self.triggerSpinnerBinds = {}
 end
 
 --- Initializes the main parametric scroll list.
@@ -216,11 +214,15 @@ function BETTERUI.Interface.Window:InitializeList(listName)
 end
 
 --- Placeholder for list refresh logic.
+--- Subclasses should override this to implement specific refresh behavior.
 function BETTERUI.Interface.Window:RefreshList()
+    -- Placeholder: subclasses should override for list refresh logic
 end
 
 --- Placeholder for selection change logic.
+--- Subclasses should override this to handle item selection changes.
 function BETTERUI.Interface.Window:OnItemSelectedChange()
+    -- Placeholder: subclasses should override for selection change logic
 end
 
 --- Configures the main list template.
@@ -247,6 +249,24 @@ function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():AddEntry(self.itemListTemplate, data)
     self:GetList():Commit()
 end
+
+---==========================================================
+--- SECTION: Keybind Management
+---==========================================================
+
+--- Initializes keybinds for the window.
+function BETTERUI.Interface.Window:InitializeKeybind()
+    self.coreKeybinds = {
+    }
+
+    ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.mainKeybindStripDescriptor, GAME_NAVIGATION_TYPE_BUTTON) -- "Back"
+
+    self.triggerSpinnerBinds = {}
+end
+
+---==========================================================
+--- SECTION: Header and Column Management
+---==========================================================
 
 --- Adds a column header to the window.
 ---
@@ -303,6 +323,10 @@ function BETTERUI.Interface.Window:SetTitle(headerText)
     self.header:GetNamedChild("Header"):GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(headerText)
 end
 
+---==========================================================
+--- SECTION: UI Refresh and Callbacks
+---==========================================================
+
 --- Refreshes the list and its visibility.
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
@@ -315,6 +339,10 @@ end
 function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedDataCallback)
     self.selectedDataCallback = selectedDataCallback
 end
+
+---==========================================================
+--- SECTION: Scene and Fragment Management
+---==========================================================
 
 --- Initializes scene fragments for the window.
 ---
@@ -384,22 +412,29 @@ function BETTERUI.Interface.Window:ToggleScene()
     end
 end
 
+---==========================================================
+--- SECTION: Navigation Handlers
+---==========================================================
+
 --- Handler for Next Tab action.
+--- Placeholder: subclasses should override for tab navigation.
 function BETTERUI.Interface.Window:OnTabNext()
     -- Placeholder: subclasses should override for tab navigation
 end
 
 --- Handler for Previous Tab action.
+--- Placeholder: subclasses should override for tab navigation.
 function BETTERUI.Interface.Window:OnTabPrev()
     -- Placeholder: subclasses should override for tab navigation
 end
 
--------------------------------------------------------------------------------------------------
--- APPLY SEARCH MIXIN
--- SearchManager.lua defines BETTERUI.Interface.SearchMixin with search-related methods.
--- Apply them to the Window class if the mixin is available.
--------------------------------------------------------------------------------------------------
+---==========================================================
+--- SECTION: Mixin Integration
+---==========================================================
 
+--- Apply Search Mixin
+--- SearchManager.lua defines BETTERUI.Interface.SearchMixin with search-related methods.
+--- Apply them to the Window class if the mixin is available.
 if BETTERUI.Interface.SearchMixin then
     for name, fn in pairs(BETTERUI.Interface.SearchMixin) do
         BETTERUI.Interface.Window[name] = fn

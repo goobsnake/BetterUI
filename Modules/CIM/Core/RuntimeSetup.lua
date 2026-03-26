@@ -102,11 +102,11 @@ HOW TO ADD NEW MIGRATIONS:
 --- Mechanics:
 --- 1. Checks if each function exists.
 --- 2. Stores original reference.
---- 3. Replaces with a wrapper that nil-checks the path and uses pcall for safety.
+--- 3. Replaces with a wrapper that nil-checks the path and uses SafeExecute for safety.
 --- 4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
 ---
 --- References: Called by RuntimeSetup.Apply().
---- Note: AUDITED(pcall) - These pcall wrappers are intentional for ESO API stability.
+--- Note: These wrappers intentionally use BETTERUI.CIM.SafeExecute for ESO API stability.
 local function ApplyAPIPatches()
     if patchesApplied then return end
 

@@ -402,10 +402,12 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
             newMethod2(self, ...)
             return
         end
-        -- Layer 2: pcall safety net for unknown future scene conflicts
-        local ok, b, s = pcall(linkFunc2, ...)
-        if ok then
-            bagId, slotIndex = b, s
+        -- Layer 2: SafeExecute safety net for unknown future scene conflicts
+        local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:path-recovery", function(...)
+            return { linkFunc2(...) }
+        end, ...)
+        if ok and result then
+            bagId, slotIndex = result[1], result[2]
         else
             bagId, slotIndex = nil, nil
         end
@@ -420,10 +422,12 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
             newMethod3(self, ...)
             return
         end
-        -- Layer 2: pcall safety net
-        local ok, link, count = pcall(linkFunc3, ...)
-        if ok then
-            storeItemLink, storeStackCount = link, count
+        -- Layer 2: SafeExecute safety net
+        local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:store-link", function(...)
+            return { linkFunc3(...) }
+        end, ...)
+        if ok and result then
+            storeItemLink, storeStackCount = result[1], result[2]
         else
             storeItemLink, storeStackCount = nil, nil
         end
@@ -445,10 +449,12 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         if storeItemLink then
             itemLink = storeItemLink
         else
-            -- Layer 2: pcall safety net for unknown future scene conflicts
-            local ok, link = pcall(linkFunc, ...)
-            if ok then
-                itemLink = link
+            -- Layer 2: SafeExecute safety net for unknown future scene conflicts
+            local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:item-link", function(...)
+                return { linkFunc(...) }
+            end, ...)
+            if ok and result then
+                itemLink = result[1]
             else
                 itemLink = nil
             end

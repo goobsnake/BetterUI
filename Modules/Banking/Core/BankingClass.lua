@@ -444,8 +444,8 @@ function BETTERUI.Banking.Class:InitializeMultiSelectManager()
     )
 
     -- Apply the shared mixin with Banking-specific hooks
-    local MSMixin = BETTERUI.CIM.MultiSelectMixin
-    MSMixin.Apply(self, {
+    local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
+    MultiSelectMixin.Apply(self, {
         getList = function(s) return s.list end,
         refreshList = function(s) s:RefreshList() end,
         isSceneShowing = function(s) return s:IsSceneShowing() end,
@@ -464,7 +464,7 @@ end
 -- Delegate lifecycle and batch methods to the shared mixin.
 -- Banking-specific operations (BatchTransfer, ShowBatchActionsMenu) remain
 -- in MultiSelectActions.lua.
-local MSMixin = BETTERUI.CIM.MultiSelectMixin
+local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
 --- Enters multi-select mode.
 --- @return nil
@@ -478,39 +478,39 @@ function BETTERUI.Banking.Class:EnterSelectionMode()
     end
 
     self:SaveListPosition()
-    MSMixin.EnterSelectionMode(self)
+    MultiSelectMixin.EnterSelectionMode(self)
 end
 
 --- Exits multi-select mode.
 --- @return nil
 function BETTERUI.Banking.Class:ExitSelectionMode()
-    MSMixin.ExitSelectionMode(self)
+    MultiSelectMixin.ExitSelectionMode(self)
 end
 
 --- Called when the selection count changes.
 --- @param selectedCount number
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
-    MSMixin.OnSelectionCountChanged(self, selectedCount)
+    MultiSelectMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
 --- @return boolean
 function BETTERUI.Banking.Class:IsInSelectionMode()
-    return MSMixin.IsInSelectionMode(self)
+    return MultiSelectMixin.IsInSelectionMode(self)
 end
 
 --- @return boolean
 function BETTERUI.Banking.Class:IsBatchProcessing()
-    return MSMixin.IsBatchProcessing(self)
+    return MultiSelectMixin.IsBatchProcessing(self)
 end
 
 --- @return boolean
 function BETTERUI.Banking.Class:CanAbortBatch()
-    return MSMixin.CanAbortBatch(self)
+    return MultiSelectMixin.CanAbortBatch(self)
 end
 
 --- @return nil
 function BETTERUI.Banking.Class:RequestBatchAbort()
-    return MSMixin.RequestBatchAbort(self)
+    return MultiSelectMixin.RequestBatchAbort(self)
 end
 
 --- @param items table
@@ -519,29 +519,29 @@ end
 --- @param actionName string
 --- @param batchOptions table
 function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
-    MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
+    MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
 --- Locks all selected items.
 --- @return nil
 function BETTERUI.Banking.Class:BatchLock()
-    MSMixin.BatchLock(self)
+    MultiSelectMixin.BatchLock(self)
 end
 
 --- Unlocks all selected items.
 --- @return nil
 function BETTERUI.Banking.Class:BatchUnlock()
-    MSMixin.BatchUnlock(self)
+    MultiSelectMixin.BatchUnlock(self)
 end
 
 --- Marks all selected items as junk.
 --- @return nil
 function BETTERUI.Banking.Class:BatchMarkAsJunk()
-    MSMixin.BatchMarkAsJunk(self)
+    MultiSelectMixin.BatchMarkAsJunk(self)
 end
 
 --- Unmarks all selected items as junk.
 --- @return nil
 function BETTERUI.Banking.Class:BatchUnmarkAsJunk()
-    MSMixin.BatchUnmarkAsJunk(self)
+    MultiSelectMixin.BatchUnmarkAsJunk(self)
 end
