@@ -164,8 +164,7 @@ Function: BETTERUI.Vendor.Class:CycleTabs
 Description: Cycles through tabs in the given direction.
 param: direction (number) - +1 for next, -1 for previous.
 ]]
---- @param direction any Description
---- @return any Description
+--- @param direction number +1 for next tab, -1 for previous tab
 function BETTERUI.Vendor.Class:CycleTabs(direction)
     local tabs = GetActiveTabs()
     if #tabs <= 1 then return end
@@ -192,7 +191,6 @@ end
 Function: BETTERUI.Vendor.Class:UpdateTabHeader
 Description: Updates the header title to show the current tab name.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Class:UpdateTabHeader()
     local tabs = GetActiveTabs()
     local currentMode = self:GetCurrentMode()
@@ -288,7 +286,6 @@ Description: Initializes the Vendor module.
              Creates scene, registers events, registers components,
              and aliases the native gamepad_store scene.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Init()
     if Vendor.initialized then return end
 

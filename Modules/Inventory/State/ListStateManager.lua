@@ -12,7 +12,7 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
 --- Switches the active list between Inventory and Craft Bag.
---- @param listDescriptor string The list descriptor ("categoryList", "itemList", "craftBagList")
+--- @param listDescriptor string|nil A BETTERUI.Inventory.CONST.LIST_TYPES value (CATEGORY, ITEM, or CRAFT_BAG), or nil to deactivate
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then
         return

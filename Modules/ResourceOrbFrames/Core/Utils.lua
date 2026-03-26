@@ -32,14 +32,15 @@ end
 
 Utils.FindControl = BETTERUI.ControlUtils.FindControl
 
---- @return any Description
+--- Module settings accessor alias for brevity in ResourceOrbFrames code.
+--- @return table settings The ResourceOrbFrames module settings
 function Utils.GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end
 
 --- Attaches a tooltip to an orb control showing current/max resource power.
 --- Shared utility to eliminate duplication between OrbOverlays and OrbVisuals.
---- @param control userdata The UI control to attach the tooltip to
+--- @param control Control The UI control to attach the tooltip to
 --- @param powerType number The ESO POWERTYPE constant (e.g. POWERTYPE_HEALTH)
 function Utils.AddOrbTooltip(control, powerType)
     if not control then return end
@@ -141,7 +142,7 @@ function Utils.CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
 end
 
 --- Updates the dimensions and anchor of a custom overlay control.
---- @param parent userdata The parent control
+--- @param parent Control The parent control
 --- @param cfgName string The overlay config key name (e.g. 'health', 'magStam')
 --- @param baseSize number The base border size for scaling
 --- @param cfg table The orb configuration table (BETTERUI_ORB_FRAMES)
@@ -159,9 +160,9 @@ function Utils.UpdateOverlaySize(parent, cfgName, baseSize, cfg)
 end
 
 --- Safely gets a named child control from a parent.
---- @param parent userdata The parent control
+--- @param parent Control The parent control
 --- @param name string The child name to look up
---- @return userdata|nil The child control or nil
+--- @return Control|nil The child control or nil
 function Utils.GetNamedChildDirect(parent, name)
     if parent and parent.GetNamedChild then
         return parent:GetNamedChild(name)
@@ -170,10 +171,10 @@ function Utils.GetNamedChildDirect(parent, name)
 end
 
 --- Gets a front bar button control with fallback resolution for special buttons.
---- @param rootFrame userdata The root frame control
---- @param frontBarContainer userdata The front bar container control
+--- @param rootFrame Control The root frame control
+--- @param frontBarContainer Control The front bar container control
 --- @param buttonName string The button name to find
---- @return userdata|nil The button control or nil
+--- @return Control|nil The button control or nil
 function Utils.GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
     local GetNamedChildDirect = Utils.GetNamedChildDirect
     local FindControl = Utils.FindControl

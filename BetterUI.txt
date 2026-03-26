@@ -239,8 +239,8 @@ Modules\Companions\Module.lua
 ; Module: Repair (MNT-001 scaffold)
 Modules\Repair\Module.lua
 
-; Module: Crafting (CFT-001 scaffold)
-Modules\Crafting\Module.lua
+; Module: Crafting (CFT-001 scaffold) — disabled until real functionality exists
+; Modules\Crafting\Module.lua
 
 ; Module: Mail (MAIL-001 scaffold)
 Modules\Mail\Module.lua
