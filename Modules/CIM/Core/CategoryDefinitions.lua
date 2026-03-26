@@ -204,15 +204,10 @@ BETTERUI.Inventory.Categories.Inventory = {
 -- Used by both Inventory and Banking modules for filtering.
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.Inventory.Categories.DoesItemMatchCategory
-Description: Checks if itemData belongs to the given category definition.
-Rationale: Centralizes filtering logic used by both Inventory and Banking.
-Mechanism: Checks 'all' key, special flags (junk, stolen), or uses ESO filter API.
-param: itemData (table) - The item's data object (must have isJunk, stolen fields).
-param: category (table) - The category definition to check against.
-return: boolean - True if the item matches the category.
-]]
+--- Checks if itemData belongs to the given category definition.
+--- @param itemData table Item data (must have isJunk, stolen fields).
+--- @param category table Category definition to check against.
+--- @return boolean True if the item matches the category.
 function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
     -- Handle special category types FIRST
     -- (e.g., 'Junk' has filterType=nil, so checking special first prevents it from matching the 'All' logic)
@@ -246,15 +241,10 @@ end
 -- item categorization and description generation.
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType
-Description: Maps a weapon item to a gamepad weapon category type.
-Rationale: Centralizes weapon categorization logic used by both Inventory and Banking.
-Mechanism: Checks weapon type and returns appropriate GAMEPAD_WEAPON_CATEGORY_* constant.
-param: bagId (number) - The bag containing the item.
-param: slotIndex (number) - The slot index of the item.
-return: number|nil - The weapon category constant, or nil if not a weapon.
-]]
+--- Maps a weapon item to its gamepad weapon category constant.
+--- @param bagId number The bag containing the item.
+--- @param slotIndex number The slot index of the item.
+--- @return number|nil The weapon category constant, or nil if not a weapon.
 function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slotIndex)
     local weaponType = GetItemWeaponType(bagId, slotIndex)
     if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
@@ -272,14 +262,9 @@ function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slot
     end
 end
 
---[[
-Function: BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
-Description: Computes the best category description string for an item.
-Rationale: Centralizes description generation logic used by both Inventory and Banking.
-Mechanism: Checks for Stolen, InvalidEquip, Weapons, Armor, and builds combined type+equip string.
-param: itemData (table) - The item data object with bagId, slotIndex, equipType, itemType.
-return: string - The localized category description.
-]]
+--- Computes the best category description string for an item.
+--- @param itemData table Item data (must have bagId, slotIndex, equipType, itemType).
+--- @return string The localized category description.
 function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 
