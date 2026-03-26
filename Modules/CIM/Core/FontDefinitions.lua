@@ -104,6 +104,19 @@ BETTERUI.CIM.Font.DEFAULTS = {
     columnFontStyle = "",
 }
 
+local WESTERN_ONLY_FONTS = {
+    ["EsoUI/Common/Fonts/FTN57.otf"] = true,
+    ["EsoUI/Common/Fonts/FTN47.otf"] = true,
+    ["EsoUI/Common/Fonts/FTN87.otf"] = true,
+    ["EsoUI/Common/Fonts/Univers57.otf"] = true,
+    ["EsoUI/Common/Fonts/Univers67.otf"] = true,
+    ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
+    ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
+    ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
+    ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
+    ["EsoUI/Common/Fonts/consola.otf"] = true,
+}
+
 BETTERUI.CIM.Font.SIZE_MIN = 12
 BETTERUI.CIM.Font.SIZE_MAX = 48
 
@@ -158,6 +171,54 @@ function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
     m_options.nameFontSize = ClampFontSize(m_options.nameFontSize, defaultNameSize)
     m_options.columnFontSize = ClampFontSize(m_options.columnFontSize, defaultColumnSize)
 
+    return m_options
+end
+
+--- Shared module initialization helper for defaults and font migrations.
+--- @param moduleKey string Module key in settings registry
+--- @param m_options table Module settings table
+--- @param defaults table|nil Optional module font defaults table
+--- @param fallbackDefaults table|nil Fallback defaults when DefaultsRegistry is unavailable
+--- @param onBeforeFontMigration fun(options: table, moduleDefaults: table)|nil Optional module-specific migration callback
+--- @return table m_options The initialized settings table
+function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbackDefaults, onBeforeFontMigration)
+    if type(m_options) ~= "table" then
+        m_options = {}
+    end
+
+    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
+        m_options = BETTERUI.Defaults.ApplyModuleDefaults(moduleKey, m_options)
+    elseif type(fallbackDefaults) == "table" then
+        for key, value in pairs(fallbackDefaults) do
+            if m_options[key] == nil then
+                m_options[key] = value
+            end
+        end
+    end
+
+    local moduleDefaults = defaults or BETTERUI.CIM.Font.DEFAULTS
+    m_options.nameFont = m_options.nameFont or moduleDefaults.nameFont
+    m_options.nameFontSize = m_options.nameFontSize or moduleDefaults.nameFontSize
+    m_options.nameFontStyle = m_options.nameFontStyle or moduleDefaults.nameFontStyle
+    m_options.columnFont = m_options.columnFont or moduleDefaults.columnFont
+    m_options.columnFontSize = m_options.columnFontSize or moduleDefaults.columnFontSize
+    m_options.columnFontStyle = m_options.columnFontStyle or moduleDefaults.columnFontStyle
+
+    if type(onBeforeFontMigration) == "function" then
+        onBeforeFontMigration(m_options, moduleDefaults)
+    end
+
+    local currentLang = GetCVar("language.2") or "en"
+    if currentLang ~= "en" then
+        if m_options.nameFont and WESTERN_ONLY_FONTS[m_options.nameFont] then
+            m_options.nameFont = "$(GAMEPAD_MEDIUM_FONT)"
+        end
+        if m_options.columnFont and WESTERN_ONLY_FONTS[m_options.columnFont] then
+            m_options.columnFont = "$(GAMEPAD_MEDIUM_FONT)"
+        end
+    end
+
+    BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, moduleDefaults)
     return m_options
 end
 

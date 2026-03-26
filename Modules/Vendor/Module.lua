@@ -53,62 +53,19 @@ return: table - The initialized and migrated settings table.
 --- @param m_options any Description
 --- @return any Description
 function BETTERUI.Vendor.InitModule(m_options)
-	-- Apply centralized defaults from DefaultsRegistry
-	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
-		m_options = BETTERUI.Defaults.ApplyModuleDefaults("Vendor", m_options)
-	else
-		-- Fallback if DefaultsRegistry not loaded yet
-		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
-		if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
-		if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
-		if m_options["showIconResearchableTrait"] == nil then m_options["showIconResearchableTrait"] = true end
-		if m_options["showIconUnknownRecipe"] == nil then m_options["showIconUnknownRecipe"] = true end
-		if m_options["showIconUnknownBook"] == nil then m_options["showIconUnknownBook"] = true end
-		if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
-		if m_options["enableBatchJunkSell"] == nil then m_options["enableBatchJunkSell"] = true end
-	end
-
-	-- Font customization - Name column settings
 	local defaults = BETTERUI.Vendor.DEFAULTS
-	m_options["nameFont"] = m_options["nameFont"] or defaults.nameFont
-	m_options["nameFontSize"] = m_options["nameFontSize"] or defaults.nameFontSize
-	m_options["nameFontStyle"] = m_options["nameFontStyle"] or defaults.nameFontStyle
+	local fallbackDefaults = {
+		showIconEnchantment = true,
+		showIconSetGear = true,
+		showIconUnboundItem = true,
+		showIconResearchableTrait = true,
+		showIconUnknownRecipe = true,
+		showIconUnknownBook = true,
+		enableCarousel = true,
+		enableBatchJunkSell = true,
+	}
 
-	-- Font customization - Other columns settings (Type, Trait, Stat, Value)
-	m_options["columnFont"] = m_options["columnFont"] or defaults.columnFont
-	m_options["columnFontSize"] = m_options["columnFontSize"] or defaults.columnFontSize
-	m_options["columnFontStyle"] = m_options["columnFontStyle"] or defaults.columnFontStyle
-
-	-- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
-	local currentLang = GetCVar("language.2") or "en"
-	local isEnglish = (currentLang == "en")
-
-	if not isEnglish then
-		local westernOnlyFonts = {
-			["EsoUI/Common/Fonts/FTN57.otf"] = true,
-			["EsoUI/Common/Fonts/FTN47.otf"] = true,
-			["EsoUI/Common/Fonts/FTN87.otf"] = true,
-			["EsoUI/Common/Fonts/Univers57.otf"] = true,
-			["EsoUI/Common/Fonts/Univers67.otf"] = true,
-			["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-			["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-			["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-			["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-			["EsoUI/Common/Fonts/consola.otf"] = true,
-		}
-		if m_options["nameFont"] and westernOnlyFonts[m_options["nameFont"]] then
-			m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-		end
-		if m_options["columnFont"] and westernOnlyFonts[m_options["columnFont"]] then
-			m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-		end
-	end
-
-	-- Persisted font sizes may exceed current slider caps from prior versions.
-	if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then
-		BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
-	end
-
+	m_options = BETTERUI.CIM.InitModuleDefaults("Vendor", m_options, defaults, fallbackDefaults)
 	return m_options
 end
 

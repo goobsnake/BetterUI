@@ -50,88 +50,45 @@ end
 --- @param m_options table The raw settings table for this module.
 --- @return table The initialized and migrated settings table.
 function BETTERUI.Banking.InitModule(m_options)
-	-- Apply centralized defaults from DefaultsRegistry
-	if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
-		m_options = BETTERUI.Defaults.ApplyModuleDefaults("Banking", m_options)
-	else
-		-- Fallback if DefaultsRegistry not loaded yet
-		if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
-		if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
-		if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
-		if m_options["showIconResearchableTrait"] == nil then m_options["showIconResearchableTrait"] = true end
-		if m_options["showIconUnknownRecipe"] == nil then m_options["showIconUnknownRecipe"] = true end
-		if m_options["showIconUnknownBook"] == nil then m_options["showIconUnknownBook"] = true end
-		if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
-	end
-
-	-- Font customization - Name column settings
 	local defaults = BETTERUI.Banking.DEFAULTS
-	m_options["nameFont"] = m_options["nameFont"] or defaults.nameFont
-	m_options["nameFontSize"] = m_options["nameFontSize"] or defaults.nameFontSize
-	m_options["nameFontStyle"] = m_options["nameFontStyle"] or defaults.nameFontStyle
+	local fallbackDefaults = {
+		showIconEnchantment = true,
+		showIconSetGear = true,
+		showIconUnboundItem = true,
+		showIconResearchableTrait = true,
+		showIconUnknownRecipe = true,
+		showIconUnknownBook = true,
+		enableCarousel = true,
+	}
 
-	-- Font customization - Other columns settings (Type, Trait, Stat, Value)
-	m_options["columnFont"] = m_options["columnFont"] or defaults.columnFont
-	m_options["columnFontSize"] = m_options["columnFontSize"] or defaults.columnFontSize
-	m_options["columnFontStyle"] = m_options["columnFontStyle"] or defaults.columnFontStyle
-
-	-- Migrate old settings to new format if present
-	if m_options["font"] and not m_options["nameFont"] then
-		m_options["nameFont"] = m_options["font"]
-		m_options["columnFont"] = m_options["font"]
-	end
-	if m_options["skinSize"] and not m_options["nameFontSize"] then
-		m_options["nameFontSize"] = m_options["skinSize"]
-		m_options["columnFontSize"] = m_options["skinSize"]
-	end
-
-	if m_options["fontStyle"] and not m_options["nameFontStyle"] then
-		local oldStyle = m_options["fontStyle"]
-		if type(oldStyle) == "number" then
-			local styleMap = {
-				[0] = "",
-				[1] = "outline",
-				[2] = "thick-outline",
-				[3] = "shadow",
-				[4] = "soft-shadow-thick",
-				[5] = "soft-shadow-thin",
-			}
-			oldStyle = styleMap[oldStyle] or defaults.nameFontStyle
+	m_options = BETTERUI.CIM.InitModuleDefaults("Banking", m_options, defaults, fallbackDefaults, function(options, moduleDefaults)
+		-- Migrate old settings to new format if present
+		if options["font"] and not options["nameFont"] then
+			options["nameFont"] = options["font"]
+			options["columnFont"] = options["font"]
 		end
-		m_options["nameFontStyle"] = oldStyle
-		m_options["columnFontStyle"] = oldStyle
-	end
-
-	-- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
-	-- Only migrate non-English users; English users keep their font selections
-	local currentLang = GetCVar("language.2") or "en"
-	local isEnglish = (currentLang == "en")
-
-	if not isEnglish then
-		local westernOnlyFonts = {
-			["EsoUI/Common/Fonts/FTN57.otf"] = true,
-			["EsoUI/Common/Fonts/FTN47.otf"] = true,
-			["EsoUI/Common/Fonts/FTN87.otf"] = true,
-			["EsoUI/Common/Fonts/Univers57.otf"] = true,
-			["EsoUI/Common/Fonts/Univers67.otf"] = true,
-			["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-			["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-			["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-			["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-			["EsoUI/Common/Fonts/consola.otf"] = true,
-		}
-		if m_options["nameFont"] and westernOnlyFonts[m_options["nameFont"]] then
-			m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
+		if options["skinSize"] and not options["nameFontSize"] then
+			options["nameFontSize"] = options["skinSize"]
+			options["columnFontSize"] = options["skinSize"]
 		end
-		if m_options["columnFont"] and westernOnlyFonts[m_options["columnFont"]] then
-			m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-		end
-	end
 
-	-- Persisted font sizes may exceed current slider caps from prior versions.
-	if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then
-		BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
-	end
+		if options["fontStyle"] and not options["nameFontStyle"] then
+			local oldStyle = options["fontStyle"]
+			if type(oldStyle) == "number" then
+				local styleMap = {
+					[0] = "",
+					[1] = "outline",
+					[2] = "thick-outline",
+					[3] = "shadow",
+					[4] = "soft-shadow-thick",
+					[5] = "soft-shadow-thin",
+				}
+				oldStyle = styleMap[oldStyle] or moduleDefaults.nameFontStyle
+			end
+			options["nameFontStyle"] = oldStyle
+			options["columnFontStyle"] = oldStyle
+		end
+	end)
 
 	return m_options
 end
