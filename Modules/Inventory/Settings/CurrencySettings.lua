@@ -216,6 +216,8 @@ end
 
 --- Applies a currency preset by enabling/disabling specific currencies.
 --- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom").
+--- Applies a currency preset by enabling/disabling specific currencies.
+--- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom")
 function BETTERUI.ApplyCurrencyPreset(presetName)
     local inv = EnsureInventorySettings()
     if not inv then return end
@@ -248,6 +250,8 @@ function BETTERUI.ApplyCurrencyPreset(presetName)
 end
 
 --- Returns the LAM control for Currency Submenu.
+--- Returns the LAM control for Currency Submenu.
+--- @return table option The currency submenu option
 function BETTERUI.Inventory.Settings.GetCurrencyOptions()
     local CURRENCY_ORDER_CHOICES = {
         GetString(SI_BETTERUI_CURRENCY_POS_1), GetString(SI_BETTERUI_CURRENCY_POS_2),

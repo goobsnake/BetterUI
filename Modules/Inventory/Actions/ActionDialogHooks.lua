@@ -19,6 +19,7 @@ Purpose: Hooks the native "Y-Action" dialog (ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 ---   - Safe "Destroy" (BetterUI replacement).
 ---   - "Link to Chat" (safety checks).
 --- - Implements custom `buttons` (Select/Cancel) to route actions correctly.
+--- Hooks the native Y-button Action Dialog.
 function BETTERUI.Inventory.HookActionDialog()
     local function ActionsDialogSetup(dialog, data)
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and

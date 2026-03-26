@@ -22,6 +22,7 @@ end
 --- Responds to category selection by switching between item and craft bag lists
 --- Initializes the category list (tabs) for the inventory.
 --- Sets up templates, selection callbacks, and target change handlers.
+--- Initializes the category list (tabs) for the inventory.
 function BETTERUI.Inventory.Class:InitializeCategoryList()
     self.categoryList = self:AddList("Category", SetupCategoryList)
     self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
@@ -75,6 +76,10 @@ end
 --- @param filterType number|nil The item filter type for the category.
 --- @param iconFile string The path to the icon texture.
 --- @param FilterFunct function|nil Optional custom filter function.
+--- Adds a new category entry to the category list if it contains items.
+--- @param filterType number|nil The item filter type for the category
+--- @param iconFile string The path to the icon texture
+--- @param FilterFunct function|nil Optional custom filter function
 function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
     if FilterFunct == nil then
         FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType
@@ -113,6 +118,7 @@ end
 --- 5. Restores previous selection if possible.
 --- References: Called by RefreshItemList.
 ---
+--- Rebuilds the category list based on the current state.
 function BETTERUI.Inventory.Class:RefreshCategoryList()
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then

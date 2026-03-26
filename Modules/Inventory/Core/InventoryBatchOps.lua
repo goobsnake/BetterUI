@@ -168,18 +168,30 @@ local DESTROY_BATCH_OPTIONS = {
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
 --------------------------------------------------------------------------------
 
+--- Checks if a batch operation is currently processing.
+--- @return boolean isProcessing True if batch processing is active
 function Class:IsBatchProcessing()
     return MSMixin.IsBatchProcessing(self)
 end
 
+--- Checks if the current batch can be aborted.
+--- @return boolean canAbort True if batch can be aborted
 function Class:CanAbortBatch()
     return MSMixin.CanAbortBatch(self)
 end
 
+--- Requests abort of the current batch operation.
+--- @return boolean requested True if abort was requested
 function Class:RequestBatchAbort()
     return MSMixin.RequestBatchAbort(self)
 end
 
+--- Processes a batch of items with throttling.
+--- @param items table The items to process
+--- @param actionFn function The action function to apply to each item
+--- @param onComplete function|nil Callback when batch completes
+--- @param actionName string Name of the action for progress display
+--- @param batchOptions table Options for batch processing
 function Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
     MSMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
@@ -188,6 +200,7 @@ end
 -- BATCH INVENTORY ACTIONS
 --------------------------------------------------------------------------------
 
+--- Performs batch retrieve on all selected craftbag items (throttled).
 --- Performs batch retrieve on all selected craftbag items (throttled).
 function Class:BatchRetrieve()
     if not self.craftBagMultiSelectManager then return end
@@ -222,6 +235,7 @@ function Class:BatchRetrieve()
     end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
 end
 
+--- Performs batch stow on all selected inventory items (throttled).
 --- Performs batch stow on all selected inventory items (throttled).
 function Class:BatchStow()
     if not self.multiSelectManager then return end
@@ -258,6 +272,7 @@ function Class:BatchStow()
 end
 
 --- Performs batch deposit on all selected items (throttled).
+--- Performs batch deposit on all selected items (throttled).
 function Class:BatchDeposit()
     if not self.multiSelectManager then return end
     local selectedItems = self.multiSelectManager:GetSelectedItems()
@@ -293,22 +308,27 @@ function Class:BatchDeposit()
 end
 
 -- Common batch operations delegate to CIM.MultiSelectMixin
+--- Performs batch lock on all selected items.
 function Class:BatchLock()
     MSMixin.BatchLock(self)
 end
 
+--- Performs batch unlock on all selected items.
 function Class:BatchUnlock()
     MSMixin.BatchUnlock(self)
 end
 
+--- Performs batch mark as junk on all selected items.
 function Class:BatchMarkAsJunk()
     MSMixin.BatchMarkAsJunk(self)
 end
 
+--- Performs batch unmark as junk on all selected items.
 function Class:BatchUnmarkAsJunk()
     MSMixin.BatchUnmarkAsJunk(self)
 end
 
+--- Performs batch destroy on all selected items (with confirmation).
 --- Performs batch destroy on all selected items (with confirmation).
 function Class:BatchDestroy()
     if not self.multiSelectManager then return end
@@ -340,6 +360,7 @@ end
 -- BATCH DIALOGS
 --------------------------------------------------------------------------------
 
+--- Initializes the batch destroy confirmation dialog.
 --- Initializes the batch destroy confirmation dialog.
 function Class:InitializeBatchDestroyDialog()
     BETTERUI.CIM.Dialogs.Register("BETTERUI_BATCH_DESTROY_DIALOG", {

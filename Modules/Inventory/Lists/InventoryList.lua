@@ -37,6 +37,10 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 --- @param left table: Left item data
 --- @param right table: Right item data
 --- @return boolean: True if left should come before right
+--- Default item sort comparator for gamepad inventory.
+--- @param left table Left item data
+--- @param right table Right item data
+--- @return boolean shouldComeBefore True if left should come before right
 function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
         ZO_SORT_ORDER_UP)
@@ -66,6 +70,13 @@ local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 --- @param reselectingDuringRebuild boolean True if preserving selection during a list rebuild.
 --- @param enabled boolean True if the row is enabled.
 --- @param active boolean True if the row is active.
+--- Configures a shared gamepad inventory entry (row).
+--- @param control table The UI control for the row
+--- @param data table The data item to display
+--- @param selected boolean True if the row is selected
+--- @param reselectingDuringRebuild boolean True if preserving selection during rebuild
+--- @param enabled boolean True if the row is enabled
+--- @param active boolean True if the row is active
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
     local moduleName = GetActiveListModuleName()
@@ -252,6 +263,9 @@ local GetCategoryTypeFromWeaponType = BETTERUI.Inventory.Categories.GetCategoryT
 ---
 --- @param itemData table The item data.
 --- @return string The localized category description.
+--- Determines the best display category for an item.
+--- @param itemData table The item data
+--- @return string category The localized category description
 function GetBestItemCategoryDescription(itemData)
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end
@@ -259,6 +273,9 @@ end
 -- Class: BETTERUI.Inventory.List (extends ZO_GamepadInventoryList)
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
 
+--- Creates a new Inventory List instance.
+--- @param ... any Constructor arguments
+--- @return table list The new list instance
 function BETTERUI.Inventory.List:New(...)
     local object = ZO_GamepadInventoryList.New(self, ...)
     return object
@@ -399,6 +416,10 @@ end
 --- - Applies `itemFilterFunction`.
 --- - Calcualtes `bestGamepadItemCategoryName` for headers.
 ---
+--- Populates the slot table with item data from the inventory.
+--- @param slotsTable table The table to populate
+--- @param inventoryType number The inventory type
+--- @param slotIndex number The slot index
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
@@ -425,6 +446,7 @@ end
 --- 4. Adds entries to the Parametric List (with Headers where applicable).
 --- 5. Commits (renders) the list.
 ---
+--- Refreshes the inventory list.
 function BETTERUI.Inventory.List:RefreshList()
     if self.control:IsHidden() then
         self.isDirty = true

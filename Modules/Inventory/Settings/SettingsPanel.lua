@@ -13,6 +13,9 @@ BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 --- Retrieves a setting value for the Inventory module.
 --- @param key string The setting key.
 --- @return any The setting value or nil.
+--- Retrieves a setting value for the Inventory module.
+--- @param key string The setting key
+--- @return any value The setting value or nil
 function BETTERUI.Inventory.GetSetting(key)
 	local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
 	if not modules or not modules["Inventory"] then
@@ -24,6 +27,9 @@ end
 --- Sets a setting value for the Inventory module.
 --- @param key string The setting key.
 --- @param value any The value to set.
+--- Sets a setting value for the Inventory module.
+--- @param key string The setting key
+--- @param value any The value to set
 function BETTERUI.Inventory.SetSetting(key, value)
 	if not BETTERUI or not BETTERUI.Settings then
 		return
@@ -35,6 +41,9 @@ function BETTERUI.Inventory.SetSetting(key, value)
 	BETTERUI.Settings.Modules["Inventory"][key] = value
 end
 
+--- Initializes the settings panel for the Inventory module.
+--- @param mId string The module ID
+--- @param moduleName string The display name of the module
 --- Initializes the settings panel for the Inventory module.
 --- @param mId string The module ID
 --- @param moduleName string The display name of the module
@@ -262,6 +271,9 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 end
 
 --- Initialize inventory module settings with default values
+--- @param m_options table The module options table
+--- @return table m_options The initialized options table
+--- Initialize inventory module settings with default values.
 --- @param m_options table The module options table
 --- @return table m_options The initialized options table
 function BETTERUI.Inventory.InitModule(m_options)

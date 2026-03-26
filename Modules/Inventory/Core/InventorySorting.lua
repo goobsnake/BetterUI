@@ -156,6 +156,7 @@ local function CreateColumnSortComparator(sortKey, ascending)
 end
 
 --- Initializes the header sort controller for this inventory instance
+--- Initializes the header sort controller for this inventory instance.
 function Class:InitializeHeaderSortController()
     if self.headerSortControllers then return end
 
@@ -202,6 +203,7 @@ function Class:InitializeHeaderSortController()
 end
 
 --- Links column header labels to the sort controller for visual feedback
+--- Links column header labels to the sort controller for visual feedback.
 function Class:LinkColumnLabels()
     if not self.headerSortControllers then return end
 
@@ -244,6 +246,10 @@ function Class:LinkColumnLabels()
 end
 
 --- Called when sort direction changes on a column
+--- @param listType string "itemList" or "craftBagList"
+--- @param columnKey string The column key
+--- @param direction number Sort direction constant
+--- Called when sort direction changes on a column.
 --- @param listType string "itemList" or "craftBagList"
 --- @param columnKey string The column key
 --- @param direction number Sort direction constant

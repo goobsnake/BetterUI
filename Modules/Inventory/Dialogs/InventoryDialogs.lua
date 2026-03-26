@@ -44,6 +44,7 @@ end
 --- Mechanics: Registers `ZO_GAMEPAD_SPLIT_STACK_DIALOG` with custom callback to `PickupInventoryItem`.
 --- References: Called by Initialize.
 ---
+--- Initializes the split stack dialog for moving items.
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		canQueue = true,
@@ -138,6 +139,7 @@ end
 --- - Shows item link in main text.
 --- - Calls `TryDestroyItem(..., true)` on confirmation.
 ---
+--- Initializes the confirmation dialog for item destruction.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 	BETTERUI.CIM.Dialogs.Register("BETTERUI_CONFIRM_DESTROY_DIALOG", {
 		blockDirectionalInput = true,
@@ -195,6 +197,7 @@ end
 --- - Uses native `RespondToDestroyRequest()` API.
 --- - Includes 2-second cooldown on confirm button for safety.
 ---
+--- Initializes the confirmation dialog for armory item destruction.
 function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 	local function ReleaseDialog(destroyItem)
 		RespondToDestroyRequest(destroyItem == true)

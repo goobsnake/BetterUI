@@ -120,6 +120,10 @@ end
 --- @param label table The label control.
 --- @param data table The data for the entry.
 --- @param selected boolean True if the entry is selected.
+--- Sets up the label for a shared gamepad entry.
+--- @param label table The label control
+--- @param data table The data for the entry
+--- @param selected boolean True if the entry is selected
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine active module context (Inventory vs Banking)
@@ -274,6 +278,10 @@ end
 --- @param statusIndicator table The control for the status indicator (New item icon).
 --- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot).
 --- @param data table The data for the entry.
+--- Configures the status indicator and equipped icon for an entry.
+--- @param statusIndicator table The control for the status indicator
+--- @param equippedIcon table The control for the equipped icon
+--- @param data table The data for the entry
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     -- Guard against non-item entries (currency rows, headers)
     if not data or not data.dataSource then
@@ -325,6 +333,11 @@ end
 --- @param stackCountLabel table The label for the stack count.
 --- @param data table The data for the entry.
 --- @param selected boolean True if the entry is selected.
+--- Sets up the main icon for a shared gamepad entry.
+--- @param icon table The icon control
+--- @param stackCountLabel table The label for the stack count
+--- @param data table The data for the entry
+--- @param selected boolean True if the entry is selected
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
         -- Guard against non-item entries (currency rows, headers) that don't have item methods
@@ -405,6 +418,9 @@ end
 --- High-level setup for cooldown indicators on an item entry.
 --- @param control table The control (usually the row control).
 --- @param data table The data containing cooldown information.
+--- High-level setup for cooldown indicators on an item entry.
+--- @param control table The control (usually the row control)
+--- @param data table The data containing cooldown information
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"
     if control.cooldown then

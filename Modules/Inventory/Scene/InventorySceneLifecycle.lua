@@ -24,6 +24,9 @@ local BLOCK_TABBAR_CALLBACK = true
 ---
 --- @param oldState integer The previous scene state
 --- @param newState integer The new scene state
+--- Handles scene state changes (SHOWING, HIDING, HIDDEN).
+--- @param oldState integer The previous scene state
+--- @param newState integer The new scene state
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()

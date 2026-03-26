@@ -102,6 +102,7 @@ local function SetupSliderKeybindHints(dialog)
     dialog._maxTextLabel:SetHidden(false)
 end
 
+--- Registers the quantity selection dialog for Craft Bag operations.
 function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
     -- Only register once (CIM registry handles duplicate check)
     if BETTERUI.CIM.Dialogs.IsRegistered(BETTERUI_CRAFTBAG_QUANTITY_DIALOG) then
@@ -243,6 +244,9 @@ Description: Displays the quantity selection dialog for stow/retrieve operations
 param: inventorySlot (table) - The inventory slot data containing bagId and slotIndex.
 param: isStow (boolean) - True if stowing to Craft Bag, false if retrieving.
 ]]
+--- Displays the quantity selection dialog for stow/retrieve operations.
+--- @param inventorySlot table The inventory slot data
+--- @param isStow boolean True if stowing to Craft Bag, false if retrieving
 function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, isStow)
     if not inventorySlot then return end
 
@@ -281,6 +285,8 @@ Function: BETTERUI.Inventory.Dialogs.TryStowWithQuantity
 Description: Attempts to stow an item to the Craft Bag, prompting for quantity if stacked.
 param: inventorySlot (table) - The inventory slot data.
 ]]
+--- Attempts to stow an item to the Craft Bag, prompting for quantity if stacked.
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, true)
 end
@@ -290,6 +296,8 @@ Function: BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity
 Description: Attempts to retrieve an item from the Craft Bag, prompting for quantity if stacked.
 param: inventorySlot (table) - The inventory slot data.
 ]]
+--- Attempts to retrieve an item from the Craft Bag, prompting for quantity if stacked.
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, false)
 end
@@ -299,6 +307,8 @@ Function: BETTERUI.Inventory.Dialogs.StowFullStack
 Description: Immediately stows the full stack to the Craft Bag without prompting.
 param: inventorySlot (table) - The inventory slot data.
 ]]
+--- Immediately stows the full stack to the Craft Bag without prompting.
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.StowFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
@@ -309,6 +319,8 @@ Function: BETTERUI.Inventory.Dialogs.RetrieveFullStack
 Description: Immediately retrieves the full stack from the Craft Bag without prompting.
 param: inventorySlot (table) - The inventory slot data.
 ]]
+--- Immediately retrieves the full stack from the Craft Bag without prompting.
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.RetrieveFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK)

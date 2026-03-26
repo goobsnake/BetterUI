@@ -75,6 +75,8 @@ do
 end
 
 --- Returns the LAM control list for Font Customization.
+--- Returns the LAM control list for Font Customization.
+--- @return table options The font option controls
 function BETTERUI.Inventory.Settings.GetFontOptions()
     -- Apply language-based font filtering (non-English users only see compatible fonts)
     local Localization = BETTERUI.CIM.Font.Localization

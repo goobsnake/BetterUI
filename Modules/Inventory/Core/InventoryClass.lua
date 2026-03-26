@@ -52,11 +52,15 @@ BETTERUI.Inventory.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 local g_slotDataCache = {}
 local g_slotDataCacheDirty = true
 
+--- Invalidates the slot data cache.
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
 end
 
+--- Invalidates cached item metadata for a specific bag/slot.
+--- @param bagId number|nil The bag ID, or nil to clear all
+--- @param slotIndex number|nil The slot index, or nil to clear all slots in the bag
 function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     if not self.itemMetaCache then self.itemMetaCache = {} end
     if not bagId then
@@ -75,6 +79,9 @@ local function GetBagCacheKey(bags)
     return table.concat(bags, ",")
 end
 
+--- Gets cached slot data for the specified bags.
+--- @param ... number Bag IDs to include in the cache
+--- @return table slotData The cached slot data
 function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = { ... }
     table.sort(bags) -- Ensure consistent key
@@ -111,6 +118,7 @@ base class is calling RefreshKeybinds directly. By overriding the function
 itself, we intercept ALL refresh calls - both from our code and ESO's base class.
 References: Called by ESO base class in selection callbacks.
 ]]
+--- Refreshes the keybind strip (override with guards).
 function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
     -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
@@ -135,6 +143,8 @@ RefreshKeybinds override. By guarding at the SetSelectedInventoryData level,
 we prevent itemActions from updating keybinds during header sort mode.
 References: Called on every selection change via selection callbacks.
 ]]
+--- Sets the selected inventory data (override with guards).
+--- @param inventoryData table|nil The inventory data to select
 function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     -- Skip itemActions keybind updates when in header sort mode
     -- This is the REAL fix for the "A-Button Burn" flicker - itemActions:SetInventorySlot
@@ -287,6 +297,9 @@ end
 -- HELPER UTILITIES
 --------------------------------------------------------------------------------
 
+--- Gets the equip slot for a given equip type.
+--- @param equipType number The equipment type constant
+--- @return number|nil equipSlot The equip slot, or nil if not found
 function BETTERUI.Inventory.Class:GetEquipSlotForEquipType(equipType)
     -- Prefer the slot corresponding to the currently intended bar (primary/backup)
     local wantPrimary = true
@@ -329,6 +342,11 @@ end
 
 --- Checks if any items in the cached list are marked as new.
 --- Optimized replacement for SHARED_INVENTORY:AreAnyItemsNew to use local cache.
+--- Checks if any items in the cached list are marked as new.
+--- @param filterFunc function|nil Optional filter function
+--- @param filterType number|nil Optional filter type
+--- @param bagId number|nil Optional bag ID to check
+--- @return boolean hasNewItems True if any items are new
 function BETTERUI.Inventory.Class:AreAnyItemsNew(filterFunc, filterType, bagId)
     local items = self:GetCachedSlotData(bagId)
     if not items then return false end

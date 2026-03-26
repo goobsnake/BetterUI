@@ -42,6 +42,12 @@ end
 --- 3. Returns true if destroyed, false if confirmation (UI) is needed.
 --- @param suppressUiRefresh boolean? When true, skips immediate cache/UI refresh work.
 --- References: Called by Hooked Destroy and Action Dialog.
+--- Attempts to destroy an item, dealing with junk status and user confirmation settings.
+--- @param bagId number The bag containing the item
+--- @param slotIndex number The slot index within the bag
+--- @param force boolean Whether to force destruction without confirmation
+--- @param suppressUiRefresh boolean|nil When true, skips immediate cache/UI refresh
+--- @return boolean destroyed True if the item was destroyed
 function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh)
     if not bagId or not slotIndex then
         return false
@@ -89,6 +95,7 @@ end
 --- - Otherwise, shows `BETTERUI_CONFIRM_DESTROY_DIALOG` for user confirmation.
 --- - Always returns true to prevent the engine's cursor-based destroy flow
 ---   from showing a second (native) confirmation dialog.
+--- Hooks the native destroy logic to use BetterUI's destroy flow.
 function BETTERUI.Inventory.HookDestroyItem()
     ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)

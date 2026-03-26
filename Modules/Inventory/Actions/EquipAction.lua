@@ -145,6 +145,9 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 ---
 --- @param inventorySlot table The data of the item to equip.
 --- @param isCallingFromActionDialog boolean True if called from the actions dialog (delays dialogs slightly).
+--- Attempts to equip the selected item with BOE protection.
+--- @param inventorySlot table The data of the item to equip
+--- @param isCallingFromActionDialog boolean True if called from the actions dialog
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
     -- Y-MENU FIX: The engine's gamepad_equip handler calls TryEquipItem(inventorySlot) without the
     -- isCallingFromActionDialog parameter, so we check if action dialog IS showing instead.
@@ -260,6 +263,7 @@ end
 --------------------------------------------------------------------------------
 
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
+--- Initializes the custom dialog for selecting equipment slots.
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     local dialog = ZO_GenericGamepadDialog_GetControl(GAMEPAD_DIALOGS.BASIC)
 

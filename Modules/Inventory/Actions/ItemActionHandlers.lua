@@ -85,6 +85,10 @@ end
 --- @param self table Inventory.Class instance
 --- @param dialog table The ZO dialog instance
 --- @param data table Setup data
+--- Populates the Y-menu action dialog with contextual actions.
+--- @param self table Inventory.Class instance
+--- @param dialog table The ZO dialog instance
+--- @param data table Setup data
 function ActionHandlers.OnSetup(self, dialog, data)
     if not self.scene:IsShowing() then return end
 
@@ -305,6 +309,8 @@ end
 --- Restores keybinds and refreshes state after the Y-menu dialog closes.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_FINISH callback.
 --- @param self table Inventory.Class instance
+--- Restores keybinds and refreshes state after the Y-menu dialog closes.
+--- @param self table Inventory.Class instance
 function ActionHandlers.OnFinish(self)
     if not self.scene:IsShowing() then return end
 
@@ -337,6 +343,9 @@ end
 
 --- Handles A-button press inside the Y-menu dialog to execute the selected action.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM callback.
+--- @param self table Inventory.Class instance
+--- @param dialog table The ZO dialog instance
+--- Handles A-button press inside the Y-menu dialog to execute the selected action.
 --- @param self table Inventory.Class instance
 --- @param dialog table The ZO dialog instance
 function ActionHandlers.OnConfirm(self, dialog)

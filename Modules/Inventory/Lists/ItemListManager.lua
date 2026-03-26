@@ -68,6 +68,7 @@ end
 
 --- Initializes the Item List.
 --- Purpose: Creates the scroll list and sets up sorting/padding.
+--- Initializes the Item List.
 function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
 
@@ -144,6 +145,10 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 end
 
 --- Checks if the item list would be empty for the current filter.
+--- Checks if the item list would be empty for the current filter.
+--- @param filteredEquipSlot number|nil The filtered equip slot
+--- @param nonEquipableFilterType number|nil The non-equipable filter type
+--- @return boolean isEmpty True if the list would be empty
 function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
     local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 
@@ -166,6 +171,9 @@ function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipabl
     return true
 end
 
+--- Counts items matching a filter type for category badge display.
+--- @param nonEquipableFilterType number|nil The item filter type (nil = All)
+--- @return number count The number of matching items
 --- Counts items matching a filter type for category badge display.
 --- @param nonEquipableFilterType number|nil The item filter type (nil = All)
 --- @return number count The number of matching items
@@ -197,6 +205,8 @@ function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
 end
 
 --- Checks for any junk items in the backpack.
+--- Checks for any junk items in the backpack.
+--- @return boolean hasJunk True if any junk items exist
 function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
     -- Prefer shared inventory cache
     local backpack = self:GetCachedSlotData(BAG_BACKPACK)
@@ -218,6 +228,8 @@ function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
     return false
 end
 
+--- Counts junk items in the backpack for category badge display.
+--- @return number count The number of junk items
 --- Counts junk items in the backpack for category badge display.
 --- @return number count The number of junk items
 function BETTERUI.Inventory.Class:CountJunkInBackpack()
@@ -245,6 +257,8 @@ function BETTERUI.Inventory.Class:CountJunkInBackpack()
 end
 
 --- Sets up visual data (name, icon, coloring) for an inventory row.
+--- Sets up visual data (name, icon, coloring) for an inventory row.
+--- @param itemData table The item data
 function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
     self.uniqueId = itemData.uniqueId
     self.bestItemCategoryName = itemData.bestItemCategoryName
@@ -264,6 +278,7 @@ end
 
 --- Processes a batch of items for the scroll list.
 --- Used by RefreshItemList to load large lists incrementally.
+--- Processes a batch of items for the scroll list.
 function BETTERUI.Inventory.Class:ProcessScrollListBatch()
     if not self.pendingBatchData or not self.scene:IsShowing() then return end
 
@@ -410,6 +425,7 @@ function BETTERUI.Inventory.Class:ProcessScrollListBatch()
     end
 end
 
+--- Refreshes the item list based on the selected category and filter.
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
     -- Skip refresh during batch processing to prevent flickering
@@ -641,6 +657,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 end
 
 --- Updates the left tooltip for the selected item.
+--- Updates the left tooltip for the selected item.
+--- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     if not selectedData or not selectedData.dataSource or not selectedData.dataSource.bagId then
         if GAMEPAD_TOOLTIPS then
@@ -705,6 +723,8 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 end
 
 --- Updates the comparison tooltip (displayed in the Left Tooltip window in BetterUI)
+--- Updates the comparison tooltip.
+--- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData
     local selectedEquipSlot

@@ -19,6 +19,10 @@ local function IsStolenItem(itemData)
     return itemData.stolen
 end
 
+--- Gets a comparator function for filtering item data.
+--- @param filteredEquipSlot number|nil The filtered equip slot
+--- @param nonEquipableFilterType number|nil The non-equipable filter type
+--- @return function comparator The filter comparator function
 function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
     return function(itemData)
         if nonEquipableFilterType then
@@ -36,6 +40,7 @@ function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot,
     end
 end
 
+--- Refreshes the item list based on the selected category and filter.
 --- Refreshes the item list based on the selected category and filter.
 function BETTERUI.Inventory.Class:RefreshItemList()
     -- Skip refresh during batch processing to prevent flickering
@@ -266,6 +271,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 end
 
 --- Updates the left tooltip for the selected item.
+--- Updates the left tooltip for the selected item.
+--- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     if not selectedData or not selectedData.dataSource or not selectedData.dataSource.bagId then
         if GAMEPAD_TOOLTIPS then
@@ -365,6 +372,8 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 end
 
 --- Updates the comparison tooltip (displayed in the Left Tooltip window in BetterUI)
+--- Updates the comparison tooltip.
+--- @param selectedData table|nil The selected item data
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData
     local selectedEquipSlot

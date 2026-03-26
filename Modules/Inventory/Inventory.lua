@@ -53,6 +53,7 @@ BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
 -- Globally hooks the assignable utility wheel to ensure untrusted callstacks
 -- from our add-on keybinds don't crash when they reach protected assignment CAPI.
+--- Initializes secure wheel hooks for the assignable utility wheel.
 function BETTERUI.Inventory.InitializeSecureWheelHooks()
 	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
 		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
@@ -108,6 +109,7 @@ end
 
 --- Toggles the tooltip detailed info mode.
 
+--- Toggles the tooltip detailed info mode.
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
 	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -416,6 +418,7 @@ end
 --- Mechanics: Clears `self.searchQuery` and calls `BETTERUI.Interface.Window.ClearSearchText`.
 --- References: Called when hiding scene or when "Clear" keybind is pressed.
 ---
+--- Clears the text search UI and internal state.
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
@@ -427,12 +430,14 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	end
 end
 
+--- Refreshes the footer display.
 function BETTERUI.Inventory.Class:RefreshFooter()
 	if BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter:Refresh()
 	end
 end
 
+--- Selects the current category and switches to the appropriate list.
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 	if not catTarget or not catTarget.onClickDirection then
@@ -442,6 +447,7 @@ function BETTERUI.Inventory.Class:Select()
 	end
 end
 
+--- Switches between item list and craft bag list.
 function BETTERUI.Inventory.Class:Switch()
 	if self:GetCurrentList() == self.craftBagList then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)
@@ -483,6 +489,11 @@ end
 --- - Initializes and setups list logic.
 --- - Adds to `self.lists`.
 ---
+--- Creates a new parametric list for the inventory scene.
+--- @param name string The name of the list
+--- @param callbackParam any The callback parameter for list setup
+--- @param listClass any The list class to use
+--- @return table list The created list
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	local listContainer = CreateControlFromVirtual(
 		"$(parent)" .. name,
@@ -498,6 +509,9 @@ function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	return list
 end
 
+--- Checks if the given inventory slot is locked.
+--- @param inventorySlot table The inventory slot to check
+--- @return boolean isLocked True if the slot is locked
 function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	if not inventorySlot then
 		return false

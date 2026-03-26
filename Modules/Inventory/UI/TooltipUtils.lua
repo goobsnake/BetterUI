@@ -17,6 +17,7 @@ Configures the visual style of native tooltips.
 Modifies the global ZO_TOOLTIP_STYLES table.
 References: Called by BETTERUI.Inventory.Setup
 ]]
+--- Configures the visual style of native tooltips.
 function BETTERUI.Inventory.ApplyTooltipStyles()
     local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
 
@@ -67,6 +68,7 @@ Enables mouse wheel scrolling for the left-side tooltip container.
 Sets MouseEnabled on the tip controls and registers an OnMouseWheel handler.
 References: Called by BETTERUI.Inventory.Setup
 ]]
+--- Enables mouse wheel scrolling for the left-side tooltip container.
 function BETTERUI.Inventory.EnableTooltipMouseWheel()
     local tip = ZO_GamepadTooltipTopLevelLeftTooltipContainerTip
     local tipScroll = ZO_GamepadTooltipTopLevelLeftTooltipContainerTipScroll
@@ -94,6 +96,8 @@ Function: BETTERUI.Inventory.CleanupEnhancedTooltip
 Hides the custom BetterUI tooltip status label and resets bottomRail anchors.
 param: tooltipType (string) - The type of tooltip (GAMEPAD_LEFT_TOOLTIP etc).
 ]]
+--- Hides the custom BetterUI tooltip status label and resets bottomRail anchors.
+--- @param tooltipType string The type of tooltip (GAMEPAD_LEFT_TOOLTIP etc)
 function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)

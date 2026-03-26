@@ -16,6 +16,7 @@ Last Modified: 2026-03-14
 ---
 --- Purpose: Creates the helper object for "Y" button actions.
 --- Mechanics: Instantiates `BETTERUI.Inventory.SlotActions`.
+--- Initializes the action slot manager for item interactions.
 function BETTERUI.Inventory.Class:InitializeItemActions()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
 end
@@ -32,6 +33,7 @@ end
 --- The three handlers (Setup, Finish, Confirm) were extracted to
 --- ItemActionHandlers.lua to keep both files under 600 lines.
 --- They receive `self` (the Inventory.Class instance) via closure capture here.
+--- Initializes the actions dialog (Y-button menu).
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
