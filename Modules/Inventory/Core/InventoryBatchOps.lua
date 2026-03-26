@@ -56,10 +56,11 @@ end
 --- @param targetBankBag number
 --- @return boolean isSupported
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
-    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
+    if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
         return false
     end
-    if targetBankBag == FURNITURE_VAULT_BAG_ID and IsFurnitureVaultGemmableItem(bagId, slotIndex) then
+    if targetBankBag == FURNITURE_VAULT_BAG_ID
+        and not BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault(bagId, slotIndex) then
         return false
     end
     return true
@@ -98,21 +99,8 @@ local function CanDestroyInventoryItem(itemData)
     local rawData = itemData.dataSource or itemData
     local bagId = rawData.bagId or itemData.bagId
     local slotIndex = rawData.slotIndex or itemData.slotIndex
-    if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
-        return false
-    end
-    if IsItemPlayerLocked(bagId, slotIndex) then
-        return false
-    end
-    if ZO_InventorySlot_CanDestroyItem and (rawData.slotType or itemData.slotType) then
-        local destroyProbe = {
-            slotType = rawData.slotType or itemData.slotType,
-            bagId = bagId,
-            slotIndex = slotIndex,
-        }
-        return ZO_InventorySlot_CanDestroyItem(destroyProbe) == true
-    end
-    return true
+    local slotType = rawData.slotType or itemData.slotType
+    return BETTERUI.CIM.ProtectionPolicy.CanDestroyItem(bagId, slotIndex, slotType)
 end
 
 -- Expose to other modules (e.g., InventoryMultiSelect needs it)
@@ -267,9 +255,7 @@ function Class:BatchStow()
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex
             and HasItemAtSlot(bagId, slotIndex)
-            and HasCraftBagAccess()
-            and CanItemBeVirtual(bagId, slotIndex)
-            and not IsItemStolen(bagId, slotIndex)
+            and BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag(bagId, slotIndex)
         then
             table.insert(items, itemData)
         end
@@ -278,7 +264,7 @@ function Class:BatchStow()
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
         if not HasItemAtSlot(bagId, slotIndex) then return true end
-        if not HasCraftBagAccess() or not CanItemBeVirtual(bagId, slotIndex) or IsItemStolen(bagId, slotIndex) then
+        if not BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag(bagId, slotIndex) then
             return true
         end
         local stackSize = ResolveStackCount(itemData, bagId, slotIndex)

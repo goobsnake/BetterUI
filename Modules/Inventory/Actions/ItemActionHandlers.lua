@@ -28,11 +28,7 @@ local function ToggleJunkState(self, isJunk)
     if not target then return end
 
     if isJunk then
-        if IsItemPlayerLocked(target.bagId, target.slotIndex) then return end
-        if not CanItemBeMarkedAsJunk(target.bagId, target.slotIndex) then return end
-        local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
-        if not companionJunkEnabled
-            and GetItemActorCategory(target.bagId, target.slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        if not BETTERUI.CIM.ProtectionPolicy.CanJunkItem(target.bagId, target.slotIndex) then
             return
         end
     end
@@ -122,18 +118,13 @@ function ActionHandlers.OnSetup(self, dialog, data)
     local headerData = { titleText = titleText }
     ZO_GamepadGenericHeader_RefreshData(dialog.header, headerData)
 
-    -- Determine junk/lock visibility
-    local isLocked = false
-    if target and target.bagId and target.slotIndex then
-        isLocked = IsItemPlayerLocked(target.bagId, target.slotIndex)
-    end
-    local canMarkJunk = true
-    if target and target.bagId and target.slotIndex then
-        local companionJunkEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
-        canMarkJunk = CanItemBeMarkedAsJunk(target.bagId, target.slotIndex)
-            and (companionJunkEnabled or GetItemActorCategory(target.bagId, target.slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION)
-        if target.bagId == BAG_VIRTUAL then canMarkJunk = false end
-    end
+    -- Determine junk/lock visibility using shared protection policy
+    local isLocked = target and target.bagId and target.slotIndex
+        and BETTERUI.CIM.ProtectionPolicy.IsItemPlayerLocked(target.bagId, target.slotIndex)
+        or false
+    local canMarkJunk = target and target.bagId and target.slotIndex
+        and BETTERUI.CIM.ProtectionPolicy.CanJunkItem(target.bagId, target.slotIndex)
+        or false
 
     local isQuestItem = false
     if target then
@@ -198,12 +189,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
                 and (self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
                 or nil
             if t and t.bagId and t.slotIndex and actionName == GetString(SI_ITEM_ACTION_MARK_AS_JUNK) then
-                local actorCat = GetItemActorCategory(t.bagId, t.slotIndex)
-                local canMark = CanItemBeMarkedAsJunk(t.bagId, t.slotIndex)
-                local compEnabled = BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
-                hideMarkJunk = IsItemPlayerLocked(t.bagId, t.slotIndex)
-                    or not canMark
-                    or (not compEnabled and actorCat == GAMEPLAY_ACTOR_CATEGORY_COMPANION)
+                hideMarkJunk = not BETTERUI.CIM.ProtectionPolicy.CanJunkItem(t.bagId, t.slotIndex)
             end
         end
 

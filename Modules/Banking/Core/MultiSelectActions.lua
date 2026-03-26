@@ -61,30 +61,21 @@ end
 --- @param targetBankBag number
 --- @return boolean
 local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
-    if IsItemStolen and IsItemStolen(bagId, slotIndex) then
+    -- Use shared protection policy for transfer validation
+    if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
         return false
     end
 
-    if targetBankBag == FURNITURE_VAULT_BAG_ID and IsFurnitureVaultGemmableItem(bagId, slotIndex) then
+    -- Additional furniture vault check
+    if targetBankBag == FURNITURE_VAULT_BAG_ID
+        and not BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault(bagId, slotIndex) then
         return false
     end
 
+    -- Bind on Pickup (Backpack) items cannot be transferred to banks
     local bindType = GetItemBindType and GetItemBindType(bagId, slotIndex)
     if bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
         return false
-    end
-
-    -- Guild bank rejects bound, BOP-tradeable, and player-locked items
-    if targetBankBag == BAG_GUILDBANK then
-        if IsItemBound and IsItemBound(bagId, slotIndex) then
-            return false
-        end
-        if IsItemBoPAndTradeable and IsItemBoPAndTradeable(bagId, slotIndex) then
-            return false
-        end
-        if IsItemPlayerLocked and IsItemPlayerLocked(bagId, slotIndex) then
-            return false
-        end
     end
 
     return true

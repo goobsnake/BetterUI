@@ -26,25 +26,18 @@ end
 --- @param key string The setting key
 --- @return any value The setting value or nil
 function BETTERUI.Inventory.GetSetting(key)
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules or not modules["Inventory"] then
-        return nil
-    end
-    return modules["Inventory"][key]
+	return BETTERUI.GetSetting("Inventory", key)
 end
 
 --- Sets a setting value for the Inventory module.
 --- @param key string The setting key
 --- @param value any The value to set
 function BETTERUI.Inventory.SetSetting(key, value)
-    if not BETTERUI or not BETTERUI.Settings then
-        return
-    end
-    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-    if type(BETTERUI.Settings.Modules["Inventory"]) ~= "table" then
-        BETTERUI.Settings.Modules["Inventory"] = {}
-    end
-    BETTERUI.Settings.Modules["Inventory"][key] = value
+	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+	if not BETTERUI.Settings.Modules["Inventory"] then
+		BETTERUI.Settings.Modules["Inventory"] = {}
+	end
+	BETTERUI.Settings.Modules["Inventory"][key] = value
 end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.

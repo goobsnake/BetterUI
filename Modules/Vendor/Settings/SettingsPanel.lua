@@ -23,17 +23,16 @@ Vendor.Settings = Vendor.Settings or {}
 --[[
 Function: Vendor.Settings.RegisterPanel
 Description: Registers the Vendor settings panel with LibAddonMenu2.
-param: moduleName (string) - The module name key in BETTERUI.Settings.Modules.
-param: displayName (string) - Human-readable panel name.
+param: mId (string) - Unique settings panel id suffix.
+param: moduleName (string) - Human-readable panel name.
 ]]
---- @param moduleName any Description
---- @param displayName any Description
---- @return any Description
-function Vendor.Settings.RegisterPanel(moduleName, displayName)
+--- @param mId string Panel id suffix
+--- @param moduleName string Human-readable panel name
+function Vendor.Settings.RegisterPanel(mId, moduleName)
     local panelData = {
         type = "panel",
-        name = "BetterUI - " .. displayName,
-        displayName = "BetterUI - " .. displayName,
+        name = "BetterUI - " .. moduleName,
+        displayName = "BetterUI - " .. moduleName,
         registerForRefresh = true,
     }
 
@@ -232,7 +231,7 @@ function Vendor.Settings.RegisterPanel(moduleName, displayName)
     -- Register panel with LibAddonMenu2
     local LAM = LibAddonMenu2
     if LAM then
-        LAM:RegisterAddonPanel("BetterUI_" .. moduleName .. "_Panel", panelData)
-        LAM:RegisterOptionControls("BetterUI_" .. moduleName .. "_Panel", optionsData)
+        LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
+        LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsData)
     end
 end
