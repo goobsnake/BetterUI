@@ -13,6 +13,9 @@ Last Modified: 2026-02-08
 -- See the registry definition below for module configuration.
 ]]
 
+--- @module BetterUI
+--- Lifecycle: Addon load -> EVENT_ADD_ON_LOADED -> Initialize() -> LoadModules() -> per-module setup.
+
 local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
@@ -148,7 +151,11 @@ function BETTERUI.InitModuleOptions()
 		},
 	}
 
-	local function NormalizeModuleToggleSortName(name)
+--- Normalizes a module toggle name for sorting by removing color codes, textures,
+--- whitespace, and language-specific "Enable" prefixes.
+--- @param name string The raw toggle name to normalize
+--- @return string normalized The normalized sort key
+local function NormalizeModuleToggleSortName(name)
 		if type(name) ~= "string" then
 			return ""
 		end

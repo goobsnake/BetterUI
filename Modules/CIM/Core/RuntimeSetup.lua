@@ -48,6 +48,7 @@ local function ApplyAPIPatches()
 
     -- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
     -- Helper: wraps a (path, width, height) icon function with nil-path guard + pcall.
+    -- Phase: icon-patch
     local function PatchIconFn(globalName)
         local orig = _G[globalName]
         if type(orig) ~= "function" then return end
@@ -59,6 +60,7 @@ local function ApplyAPIPatches()
     end
 
     -- Helper: wraps a (path, width, height, text, ...) icon-text function with nil-path guard + pcall.
+    -- Phase: icon-text-patch
     local function PatchIconTextFn(globalName)
         local orig = _G[globalName]
         if type(orig) ~= "function" then return end
@@ -84,6 +86,7 @@ local function ApplyAPIPatches()
     -- call formatting helpers (like zo_iconFormat) with nil paths. We wrap this to silently
     -- handle any errors. On error, we attempt to remove the conflicting descriptor so the
     -- new one can be registered, restoring keybind strip functionality.
+    -- Phase: keybind-recovery
     if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
         local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
         ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor,

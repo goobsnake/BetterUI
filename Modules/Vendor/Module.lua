@@ -26,22 +26,34 @@ do
     BETTERUI.Vendor.GetColumnFontDescriptor = descriptors.column
 end
 
+--- Settings Accessor Protocol:
+--- GetSetting(key) -> value: Returns saved setting value or default
+--- SetSetting(key, value): Persists setting and triggers change notification
+---
 --- Retrieves a setting value for the Vendor module.
 --- @param key string The setting key.
---- @return any The setting value or nil.
+--- @return any The setting value or module default.
 function BETTERUI.Vendor.GetSetting(key)
-	return BETTERUI.GetSetting("Vendor", key)
+	if key == nil then return nil end
+	local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault("Vendor", key) or nil
+	return BETTERUI.GetSetting("Vendor", key, defaultValue)
 end
 
 --- Sets a setting value for the Vendor module.
 --- @param key string The setting key.
 --- @param value any The value to set.
 function BETTERUI.Vendor.SetSetting(key, value)
+	if key == nil then return end
 	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+	--- SETTINGS BOUNDARY: Direct access to shared settings table.
+	--- TODO: Migrate to SettingsFactory boundary API for change signaling.
 	if not BETTERUI.Settings.Modules["Vendor"] then
 		BETTERUI.Settings.Modules["Vendor"] = {}
 	end
 	BETTERUI.Settings.Modules["Vendor"][key] = value
+	if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
+		CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", "Vendor", key, value)
+	end
 end
 
 --[[

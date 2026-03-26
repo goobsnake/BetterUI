@@ -22,22 +22,34 @@ do
     BETTERUI.Inventory.GetColumnFontDescriptor = descriptors.column
 end
 
+--- Settings Accessor Protocol:
+--- GetSetting(key) -> value: Returns saved setting value or default
+--- SetSetting(key, value): Persists setting and triggers change notification
+---
 --- Retrieves a setting value for the Inventory module.
---- @param key string The setting key
---- @return any value The setting value or nil
+--- @param key string The setting key.
+--- @return any The setting value or module default.
 function BETTERUI.Inventory.GetSetting(key)
-	return BETTERUI.GetSetting("Inventory", key)
+	if key == nil then return nil end
+	local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault("Inventory", key) or nil
+	return BETTERUI.GetSetting("Inventory", key, defaultValue)
 end
 
 --- Sets a setting value for the Inventory module.
---- @param key string The setting key
---- @param value any The value to set
+--- @param key string The setting key.
+--- @param value any The value to set.
 function BETTERUI.Inventory.SetSetting(key, value)
+	if key == nil then return end
 	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+	--- SETTINGS BOUNDARY: Direct access to shared settings table.
+	--- TODO: Migrate to SettingsFactory boundary API for change signaling.
 	if not BETTERUI.Settings.Modules["Inventory"] then
 		BETTERUI.Settings.Modules["Inventory"] = {}
 	end
 	BETTERUI.Settings.Modules["Inventory"][key] = value
+	if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
+		CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", "Inventory", key, value)
+	end
 end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.
