@@ -29,7 +29,7 @@ local TOME_POINTS_ID = CURT_TOME_POINTS -- can be nil
 
 BETTERUI.CIM.Currency.DEFS = {
     {
-        token = "gold",
+        iconKey = "gold",
         labelName = "GoldLabel",
         settingKey = "showCurrencyGold",
         apiConst = CURT_MONEY,
@@ -38,7 +38,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = nil
     },
     {
-        token = "ap",
+        iconKey = "ap",
         labelName = "APLabel",
         settingKey = "showCurrencyAlliancePoints",
         apiConst = CURT_ALLIANCE_POINTS,
@@ -47,7 +47,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = nil
     },
     {
-        token = "telvar",
+        iconKey = "telvar",
         labelName = "TVLabel",
         settingKey = "showCurrencyTelVar",
         apiConst = CURT_TELVAR_STONES,
@@ -56,7 +56,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = nil
     },
     {
-        token = "gems",
+        iconKey = "gems",
         labelName = "GemsLabel",
         settingKey = "showCurrencyCrownGems",
         apiConst = CURT_CROWN_GEMS,
@@ -65,7 +65,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "transmute",
+        iconKey = "transmute",
         labelName = "TCLabel",
         settingKey = "showCurrencyTransmute",
         apiConst = CURT_TRANSMUTE_CRYSTALS,
@@ -74,7 +74,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "crowns",
+        iconKey = "crowns",
         labelName = "CrownsLabel",
         settingKey = "showCurrencyCrowns",
         apiConst = CURT_CROWNS,
@@ -83,7 +83,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "writs",
+        iconKey = "writs",
         labelName = "WritsLabel",
         settingKey = "showCurrencyWritVouchers",
         apiConst = CURT_WRIT_VOUCHERS,
@@ -92,7 +92,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = nil
     },
     {
-        token = "tradebars",
+        iconKey = "tradebars",
         labelName = "TradeBarsLabel",
         settingKey = "showCurrencyTradeBars",
         apiConst = TRADE_BARS_ID,
@@ -102,7 +102,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "keys",
+        iconKey = "keys",
         labelName = "KeysLabel",
         settingKey = "showCurrencyUndauntedKeys",
         apiConst = CURT_UNDAUNTED_KEYS,
@@ -111,7 +111,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "outfit",
+        iconKey = "outfit",
         labelName = "OutfitLabel",
         settingKey = "showCurrencyOutfitTokens",
         apiConst = CURT_STYLE_STONES,
@@ -120,7 +120,7 @@ BETTERUI.CIM.Currency.DEFS = {
         location = CURRENCY_LOCATION_ACCOUNT
     },
     {
-        token = "seals",
+        iconKey = "seals",
         labelName = "SealsLabel",
         settingKey = "showCurrencySeals",
         apiConst = SEALS_ID,
@@ -131,7 +131,7 @@ BETTERUI.CIM.Currency.DEFS = {
     -- Note: CURT_TOME_POINTS uses GetPlayerStoredCurrencyAmount instead of GetCurrencyAmount
     -- because Endless Archive currency storage is character-specific, not account-wide
     {
-        token = "tomepoints",
+        iconKey = "tomepoints",
         labelName = "TomePointsLabel",
         settingKey = "showCurrencyTomePoints",
         apiConst = TOME_POINTS_ID,
@@ -142,10 +142,10 @@ BETTERUI.CIM.Currency.DEFS = {
     },
 }
 
--- Build token-to-def lookup table for ordering
+-- Build iconKey-to-def lookup table for ordering
 BETTERUI.CIM.Currency.TOKEN_TO_DEF = {}
 for _, def in ipairs(BETTERUI.CIM.Currency.DEFS) do
-    BETTERUI.CIM.Currency.TOKEN_TO_DEF[def.token] = def
+    BETTERUI.CIM.Currency.TOKEN_TO_DEF[def.iconKey] = def
 end
 
 -- ============================================================================
@@ -187,7 +187,7 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
     if not label or label == "" then
-        label = zo_strupper(def.token) .. ":"
+        label = zo_strupper(def.iconKey) .. ":"
     end
 
     -- Try gamepad icon first, fall back to keyboard icon.
@@ -254,7 +254,7 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     for _, def in ipairs(DEFS) do
         local label = GetLabelControl(footer, def.labelName)
         if label then
-            local cached = cache[def.token] or {}
+            local cached = cache[def.iconKey] or {}
 
             -- Runtime availability check:
             --   API constant missing (e.g. CURT_TOME_POINTS on pre-U49 clients)
@@ -277,7 +277,7 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
                         label:SetText(FormatLabel(def, val))
                     end
 
-                    cache[def.token] = { enabled = enabled, amount = val }
+                    cache[def.iconKey] = { enabled = enabled, amount = val }
                     anyChanged = true
                 end
             end
@@ -300,20 +300,20 @@ function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local DEFS = BETTERUI.CIM.Currency.DEFS
     local TOKEN_TO_DEF = BETTERUI.CIM.Currency.TOKEN_TO_DEF
 
-    -- First pass: Add enabled tokens found in the order string
-    for token in string.gmatch(string.lower(orderStr), "[^,%s]+") do
-        local def = TOKEN_TO_DEF[token]
+    -- First pass: Add enabled iconKeys found in the order string
+    for iconKey in string.gmatch(string.lower(orderStr), "[^,%s]+") do
+        local def = TOKEN_TO_DEF[iconKey]
         if def then
-            seen[token] = true
+            seen[iconKey] = true
             if invSettings[def.settingKey] ~= false then
                 table.insert(visible, def)
             end
         end
     end
 
-    -- Second pass: Add any remaining enabled tokens not in order string (fallback)
+    -- Second pass: Add any remaining enabled iconKeys not in order string (fallback)
     for _, def in ipairs(DEFS) do
-        if not seen[def.token] then
+        if not seen[def.iconKey] then
             if invSettings[def.settingKey] ~= false then
                 table.insert(visible, def)
             end
