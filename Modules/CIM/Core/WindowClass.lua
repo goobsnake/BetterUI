@@ -2,7 +2,7 @@
 File: Modules/CIM/Core/WindowClass.lua
 Purpose: Base window class for gamepad inventory/banking screens.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-03-26
 
 
 Provides core abstractions shared across BetterUI's gamepad screens,
@@ -12,12 +12,19 @@ Note: Scene creation is NOT done here - each module (Banking, etc.) should
 create its own scene and call InitializeFragment/InitializeScene.
 ]]
 
+--- @class BETTERUI.Interface
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 -------------------------------------------------------------------------------------------------
 -- PRIVATE HELPERS
 -------------------------------------------------------------------------------------------------
 
+--- Wraps an integer value within min/max bounds
+--- @private
+--- @param value number The value to wrap
+--- @param min number The minimum bound
+--- @param max number The maximum bound
+--- @return number
 local function WrapInt(value, min, max)
     return (zo_floor(value) - min) % (max - min + 1) + min
 end
@@ -26,12 +33,30 @@ end
 -- WINDOW CLASS
 -------------------------------------------------------------------------------------------------
 
+--- @class BETTERUI.Interface.Window : ZO_Object
+--- @field windowName string The name of the top-level window
+--- @field sceneName string|nil The scene name identifier
+--- @field control Control|nil The main UI control
+--- @field header Control|nil The header control
+--- @field footer Control|nil The footer control
+--- @field spinner Control|nil The spinner control
+--- @field list table|nil The scroll list
+--- @field scene table|nil The scene object
+--- @field fragment table|nil The scene fragment
+--- @field footerFragment table|nil The footer fragment
+--- @field coreKeybinds table|nil Core keybind descriptors
+--- @field mainKeybindStripDescriptor table|nil Main keybind strip descriptor
+--- @field triggerSpinnerBinds table|nil Spinner-specific keybinds
+--- @field confirmationMode boolean|nil Whether spinner confirmation mode is active
+--- @field itemListTemplate string|nil The template name for list items
+--- @field selectedDataCallback function|nil Callback for selection changes
+--- @field header columns table|nil Column header controls
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
 --- Constructor for the Base Window class.
 ---
 --- @param ... any Arguments passed to Initialize.
---- @return table The new window object.
+--- @return BETTERUI.Interface.Window The new window object.
 function BETTERUI.Interface.Window:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -160,7 +185,7 @@ end
 
 --- Gets the current primary list.
 ---
---- @return table The active scroll list.
+--- @return table|nil The active scroll list.
 function BETTERUI.Interface.Window:GetList()
     return self.list
 end

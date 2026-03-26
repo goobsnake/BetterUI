@@ -4,7 +4,7 @@ Purpose: A specialized base class for Inventory-like windows (Banking, Backpack)
          Inherits from BETTERUI.Interface.Window and adds shared inventory behaviors.
          Supports configurable virtual templates for header unification.
 Author: BetterUI Team
-Last Modified: 2026-02-03
+Last Modified: 2026-03-26
 ]]
 
 
@@ -13,13 +13,25 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 --[[
 Class: BETTERUI.CIM.GenericWindow
 Intermediate base class for Inventory and Banking windows.
+Inherits from BETTERUI.Interface.Window.
 ]]
+--- @class BETTERUI.CIM.GenericWindow : BETTERUI.Interface.Window
+--- @field categoryPositions table<string, number> Map of category keys to saved positions
+--- @field currentCategoryKey string|nil The current category identifier
+--- @field list table|nil The list control reference
+--- @field headerGeneric table|nil The header control reference
+--- @field textSearchKeybindStripDescriptor table|nil Keybind descriptor for text search
+--- @field mainKeybindStripDescriptor table|nil Main keybind strip descriptor
+--- @field coreKeybinds table|nil Core keybinds table
+--- @field _searchModeActive boolean|nil Whether search mode is active
 BETTERUI.CIM.GenericWindow = BETTERUI.Interface.Window:Subclass()
 
 --[[
 Function: BETTERUI.CIM.GenericWindow:New
 Constructor.
 ]]
+--- @param ... any Arguments passed to parent Initialize
+--- @return BETTERUI.CIM.GenericWindow
 function BETTERUI.CIM.GenericWindow:New(...)
     return BETTERUI.Interface.Window.New(self, ...)
 end
@@ -27,10 +39,10 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:Initialize
 Initialize the generic inventory window.
-param: tlw_name (string) - Top-level window name.
-param: scene_name (string) - Scene name to register.
-param: virtualTemplate (string|nil) - Optional template override for modern modules.
 ]]
+--- @param tlw_name string Top-level window name
+--- @param scene_name string Scene name to register
+--- @param virtualTemplate string|nil Optional template override for modern modules
 function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name, virtualTemplate)
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name, virtualTemplate)
 
@@ -46,9 +58,8 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey
 Returns the current category identifier.
-return: string|nil - The current category key, or nil if none is set.
 ]]
---- @return string|nil categoryKey The current category key
+--- @return string|nil categoryKey The current category key, or nil if none is set
 function BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey()
     return self.currentCategoryKey
 end
@@ -56,7 +67,6 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey
 Sets the current category identifier.
-param: categoryKey (string) - The category key to set.
 ]]
 --- @param categoryKey string The category key to set
 function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
@@ -66,11 +76,9 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:SaveCategoryPosition
 Saves the current list position for a category.
-param: categoryKey (string) - The category to save position for. Uses current if nil.
-param: position (number|nil) - The position to save. Uses current list selection if nil.
 ]]
---- @param categoryKey string|nil The category to save position for
---- @param position number|nil The position to save
+--- @param categoryKey string|nil The category to save position for. Uses current if nil
+--- @param position number|nil The position to save. Uses current list selection if nil
 function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     local key = categoryKey or self.currentCategoryKey
     if not key then return end
@@ -86,10 +94,8 @@ end
 --[[
 Function: BETTERUI.CIM.GenericWindow:RestoreCategoryPosition
 Restores a previously saved list position for a category.
-param: categoryKey (string) - The category to restore position for. Uses current if nil.
-return: number - The saved position, or 1 if not found.
 ]]
---- @param categoryKey string|nil The category to restore position for
+--- @param categoryKey string|nil The category to restore position for. Uses current if nil
 --- @return number position The saved position, or 1 if not found
 function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
@@ -113,7 +119,6 @@ Switches to a specific category with position restoration.
   2. Updates current category key.
   3. Refreshes the list.
   4. Restores position for the new category.
-param: categoryKey (string) - The category to switch to.
 ]]
 --- @param categoryKey string The category to switch to
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)

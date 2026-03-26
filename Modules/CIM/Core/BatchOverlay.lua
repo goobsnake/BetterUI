@@ -215,7 +215,8 @@ end
 
 local function ResolveBatchStatusTextValue(value)
     if type(value) == "function" then
-        local ok, resolved = pcall(value)
+        -- Phase: resolve-status-text
+        local ok, resolved = BETTERUI.CIM.SafeExecute("BatchOverlay:ResolveStatusText", value)
         if not ok or resolved == nil then
             return ""
         end

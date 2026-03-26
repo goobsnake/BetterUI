@@ -1,9 +1,9 @@
 --[[
-File: Modules/CIM/InterfaceLibrary.lua
+File: Modules/CIM/Core/InterfaceLibrary.lua
 Purpose: Loader/namespace for CIM interface components.
          Actual implementations are in Core/ subdirectory.
 Author: BetterUI Team
-Last Modified: 2026-01-26
+Last Modified: 2026-03-26
 
 -- The implementations have been extracted to:
 --   - Core/KeybindHelpers.lua  - EnsureKeybindGroupAdded utility
@@ -17,7 +17,15 @@ This file now serves as:
 ]]
 
 -- Ensure namespaces exist (may already be set in Globals.lua or earlier files)
+--- @class BETTERUI.Interface
+--- @field EnsureKeybindGroupAdded fun(descriptor: table): boolean
+--- @field CreateSearchKeybindDescriptor fun(): table
+--- @field Window BETTERUI.Interface.Window
+--- @field SearchMixin table<string, function>|nil
 BETTERUI.Interface = BETTERUI.Interface or {}
+
+--- @class BETTERUI.CIM
+--- @field SetTooltipWidth fun(width: number)
 BETTERUI.CIM = BETTERUI.CIM or {}
 
 -- ============================================================================

@@ -1,16 +1,24 @@
 --[[
 File: Modules/Banking/Actions/BankingActions.lua
-Purpose: Actions dialog setup for the banking interface (Y-button menu).
-Extracted from Banking.lua for maintainability.
+Purpose: Thin coordinator for banking action dialog behavior.
+         Transfer execution is handled in TransferActions.lua.
 ]]
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
---[[
-Function: BETTERUI.Banking.Class:RefreshItemActions
-Description: Updates the context menu actions for the currently selected item.
-]]
+-------------------------------------------------------
+--- Transfer Actions
+-------------------------------------------------------
+-- Transfer execution responsibilities are intentionally kept in:
+--   Modules/Banking/Actions/TransferActions.lua
+-- Including: MoveItem, DisplaySelector, HideSelector, ShowActions,
+-- and CancelWithdrawDeposit.
+
+-------------------------------------------------------
+--- Action Filtering
+-------------------------------------------------------
+
 --- Updates the context menu actions for the currently selected item.
 --- @return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
@@ -22,15 +30,51 @@ function BETTERUI.Banking.Class:RefreshItemActions()
     self.itemActions:SetInventorySlot(targetData)
 end
 
---[[
-Function: BETTERUI.Banking.Class:InitializeActionsDialog
-Description: Initializes the "Y Button" Actions Dialog.
-  1. Registers callbacks for dialog setup, finish, and confirmation.
-  2. Filters out "Destroy" actions when in Deposit mode to prevent accidents.
-  3. Populates the parametric list with valid actions from BETTERUI.Inventory.SlotActions.
-  4. Handles the "Confirm" event to execute the selected action (or custom Chat Link logic).
-References: Called during Initialize.
-]]
+local function EnsureTargetSlotType(self, targetData)
+    if not targetData or targetData.slotType then
+        return
+    end
+
+    if self.currentMode == LIST_WITHDRAW then
+        targetData.slotType = SLOT_TYPE_BANK_ITEM
+    else
+        targetData.slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
+    end
+end
+
+local function RebuildDiscoveredActions(self, targetData)
+    if not targetData then
+        return
+    end
+
+    EnsureTargetSlotType(self, targetData)
+
+    -- Set the inventory slot on the outer controller
+    self.itemActions:SetInventorySlot(targetData)
+
+    -- Directly discover actions on the inner slotActions object
+    if self.itemActions.slotActions then
+        local innerSlotActions = self.itemActions.slotActions
+        innerSlotActions:Clear()
+        innerSlotActions:SetInventorySlot(targetData)
+        ZO_InventorySlot_DiscoverSlotActionsFromActionList(targetData, innerSlotActions)
+    end
+
+    self:RefreshItemActions()
+end
+
+local function PopulateFilteredActions(self, parametricList)
+    local actions = self.itemActions:GetSlotActions()
+    local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
+    BETTERUI.CIM.PopulateActionEntries(parametricList, actions, {
+        hideDestroy = hideDestroyInDeposit,
+    })
+end
+
+-------------------------------------------------------
+--- Dialog Setup
+-------------------------------------------------------
+
 --- Initializes the Y Button Actions Dialog with callbacks.
 --- @return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
@@ -45,38 +89,8 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
             -- Get target data and set on itemActions before discovering actions
             local targetData = self:GetList() and self:GetList().selectedData or nil
-
-            if targetData then
-                -- Ensure slotType is present for discovery (matches Inventory pattern)
-                if not targetData.slotType then
-                    if self.currentMode == LIST_WITHDRAW then
-                        targetData.slotType = SLOT_TYPE_BANK_ITEM
-                    else
-                        targetData.slotType = SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-                    end
-                end
-
-                -- Set the inventory slot on the outer controller
-                self.itemActions:SetInventorySlot(targetData)
-
-                -- Directly discover actions on the inner slotActions object
-                if self.itemActions.slotActions then
-                    local innerSlotActions = self.itemActions.slotActions
-                    innerSlotActions:Clear()
-                    innerSlotActions:SetInventorySlot(targetData)
-                    ZO_InventorySlot_DiscoverSlotActionsFromActionList(targetData, innerSlotActions)
-                end
-            end
-
-            -- Refresh item actions after discovery
-            self:RefreshItemActions()
-
-            -- Use shared CIM utility for action entry population
-            local actions = self.itemActions:GetSlotActions()
-            local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
-            BETTERUI.CIM.PopulateActionEntries(parametricList, actions, {
-                hideDestroy = hideDestroyInDeposit,
-            })
+            RebuildDiscoveredActions(self, targetData)
+            PopulateFilteredActions(self, parametricList)
 
             -- Add custom "Withdraw Stack" / "Deposit Stack" action for stacked items
             if targetData and targetData.stackCount and targetData.stackCount > 1 then
@@ -186,6 +200,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             end
         end
     end
+
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_SETUP", ActionDialogSetup)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_FINISH", ActionDialogFinish)
     CALLBACK_MANAGER:RegisterCallback("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", ActionDialogButtonConfirm)

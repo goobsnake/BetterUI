@@ -190,13 +190,8 @@ function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleF
         end,
     }
 
-    local ok, err = pcall(function()
+    -- Phase: register-narration
+    BETTERUI.CIM.SafeExecute("NarrationHelper:RegisterListNarration:" .. sceneName, function()
         SCREEN_NARRATION_MANAGER:RegisterCustomObject(sceneName, narrationInfo)
     end)
-    if not ok then
-        BETTERUI.CIM.Debug.Log(
-            "NarrationHelper: failed to register narration for " .. sceneName .. ": " .. tostring(err),
-            "Narration"
-        )
-    end
 end

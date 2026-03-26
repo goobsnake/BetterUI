@@ -63,12 +63,15 @@ end
 local function BuildModuleDefaults(moduleName, moduleNamespace)
     local moduleSettings = {}
 
+    -- Phase: build-module-defaults
     if moduleNamespace and type(moduleNamespace.InitModule) == "function" then
-        local success, result = pcall(moduleNamespace.InitModule, moduleSettings)
+        local success, result = BETTERUI.CIM.SafeExecute(
+            "SettingsReset:BuildModuleDefaults:" .. moduleName,
+            moduleNamespace.InitModule,
+            moduleSettings
+        )
         if success and type(result) == "table" then
             moduleSettings = result
-        elseif not success and BETTERUI.Debug then
-            BETTERUI.Debug(string.format("[Reset] Failed to rebuild defaults for %s: %s", moduleName, tostring(result)))
         end
     elseif BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
         moduleSettings = BETTERUI.Defaults.ApplyModuleDefaults(moduleName, moduleSettings)
