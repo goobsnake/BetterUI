@@ -25,11 +25,11 @@ end
 -- HELPER FUNCTIONS
 -- ============================================================================
 
---[[
-Function: GetLabelControl
-Retrieves a label control from the footer by name.
-             Delegates to CurrencyManager's implementation for consistency.
-]]
+--- Retrieves a label control from the footer by name.
+--- Delegates to CurrencyManager's implementation for consistency.
+---
+--- @param footer table The footer control.
+--- @param labelName string The name of the label to retrieve.
 local function GetLabelControl(footer, labelName)
     return EnsureCurrencyManager().GetLabelControl(footer, labelName)
 end
@@ -38,27 +38,23 @@ end
 -- PUBLIC API
 -- ============================================================================
 
---[[
-Function: BETTERUI.GenericFooter:Initialize
-Initializes the footer control reference.
-           Triggers an initial refresh if the control is ready.
-param: control (table) - The parent control containing the footer.
-return: nil
-]]
+--- Initializes the footer control reference.
+--- Triggers an initial refresh if the control is ready.
 function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
     if (self.footer.GoldLabel ~= nil) then BETTERUI.GenericFooter.Refresh(self) end
 end
 
---[[
-Function: BETTERUI.GenericFooter:Refresh
-Refreshes the footer content and layout.
-  1. Updates Capacity Labels (Backpack and Bank).
-  2. Delegates currency updates to CurrencyManager.
-  3. Dynamically positions currency labels based on user-defined order.
-References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
-]]
+--- Refreshes the footer content and layout.
+---
+--- Purpose: Updates footer display with current bag/bank and currency info.
+--- Mechanics:
+--- 1. Updates Capacity Labels (Backpack and Bank).
+--- 2. Delegates currency updates to CurrencyManager.
+--- 3. Dynamically positions currency labels based on user-defined order.
+---
+--- References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
 function BETTERUI.GenericFooter:Refresh()
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
     local invSettings = BETTERUI.Settings.Modules["Inventory"]

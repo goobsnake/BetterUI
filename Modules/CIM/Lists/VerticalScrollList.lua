@@ -9,35 +9,29 @@ Last Modified: 2026-01-26
 local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
 local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
 
---[[
-Function: GetControlDimensionForMode
-Gets the relevant dimension (Height/Width) based on list orientation.
-param: mode (boolean) - Vertical (true) or Horizontal (false).
-param: control (table) - The control to check.
-return: number - The dimension size.
-]]
+--- Gets the relevant dimension (Height/Width) based on list orientation.
+---
+--- @param mode boolean Vertical (true) or Horizontal (false).
+--- @param control table The control to check.
+--- @return number The dimension size.
 local function GetControlDimensionForMode(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetHeight() or control:GetWidth()
 end
 
---[[
-Function: GetStartOfControl
-Gets the starting edge (Top/Left) based on list orientation.
-param: mode (boolean) - Vertical (true) or Horizontal (false).
-param: control (table) - The control to check.
-return: number - The start coordinate.
-]]
+--- Gets the starting edge (Top/Left) based on list orientation.
+---
+--- @param mode boolean Vertical (true) or Horizontal (false).
+--- @param control table The control to check.
+--- @return number The start coordinate.
 local function GetStartOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetTop() or control:GetLeft()
 end
 
---[[
-Function: GetEndOfControl
-Gets the ending edge (Bottom/Right) based on list orientation.
-param: mode (boolean) - Vertical (true) or Horizontal (false).
-param: control (table) - The control to check.
-return: number - The end coordinate.
-]]
+--- Gets the ending edge (Bottom/Right) based on list orientation.
+---
+--- @param mode boolean Vertical (true) or Horizontal (false).
+--- @param control table The control to check.
+--- @return number The end coordinate.
 local function GetEndOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetBottom() or control:GetRight()
 end
@@ -48,15 +42,15 @@ end
 -- ============================================================================
 BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
---[[
-Function: BETTERUI_VerticalParametricScrollList:New
-Creates a new vertical parametric scroll list instance.
-  - Overrides EnsureValidGradient to apply specific top/bottom fades.
-  - Dynamically calculates gradient sizes based on list content and alignment.
-  - Ensures clean fades at the edges of the scroll area.
-param: ... (any) - Arguments passed to ZO_ParametricScrollList:New.
-return: table - The new list instance.
-]]
+--- Creates a new vertical parametric scroll list instance.
+---
+--- Purpose: Overrides EnsureValidGradient to apply specific top/bottom fades.
+--- Mechanics:
+--- - Dynamically calculates gradient sizes based on list content and alignment.
+--- - Ensures clean fades at the edges of the scroll area.
+---
+--- @param ... any Arguments passed to ZO_ParametricScrollList:New.
+--- @return table The new list instance.
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -132,11 +126,9 @@ function BETTERUI_VerticalParametricScrollList:New(...)
     return list
 end
 
---[[
-Function: BETTERUI_VerticalParametricScrollList:Initialize
-Initializes the list with default padding and sound.
-param: control (table) - The list control.
-]]
+--- Initializes the list with default padding and sound.
+---
+--- @param control table The list control.
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
     ZO_ParametricScrollList.Initialize(self, control, PARAMETRIC_SCROLL_LIST_VERTICAL,
         ZO_GamepadOnDefaultScrollListActivatedChanged)
@@ -153,12 +145,10 @@ Subclass specifically for Item Lists (Inventory rows).
 ]]
 BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollList:Subclass()
 
---[[
-Function: BETTERUI_VerticalItemParametricScrollList:New
-Constructor for item list.
-param: control (table) - The list control.
-return: table - The new list instance.
-]]
+--- Constructor for item list.
+---
+--- @param control table The list control.
+--- @return table The new list instance.
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)

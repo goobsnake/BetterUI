@@ -10,15 +10,13 @@ Last Modified: 2026-01-31
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.SceneCleanup = {}
 
---[[
-Function: BETTERUI.CIM.SceneCleanup.CleanupInputState
-Description: Cleans up all input-related state when a scene is hidden. This ensures
-             DIRECTIONAL_INPUT registrations are properly released and mode flags are cleared.
-Rationale: Extracted from Banking and Inventory OnSceneHidden handlers to eliminate
-           code duplication and ensure consistent cleanup behavior.
-param: screen (table) - The screen instance (Banking.Class or Inventory.Class)
-Returns: void
-]]
+--- Cleans up all input-related state when a scene is hidden.
+---
+--- Purpose: Ensures DIRECTIONAL_INPUT registrations are properly released and mode flags are cleared.
+--- Rationale: Extracted from Banking and Inventory OnSceneHidden handlers to eliminate
+---            code duplication and ensure consistent cleanup behavior.
+---
+--- @param screen table The screen instance (Banking.Class or Inventory.Class)
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if not screen then return end
 
@@ -83,15 +81,13 @@ function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     screen._suppressListUpdatesToken = nil
 end
 
---[[
-Function: BETTERUI.CIM.SceneCleanup.DeactivateLists
-Description: Deactivates all list controls to release DIRECTIONAL_INPUT.
-Rationale: Lists register with DIRECTIONAL_INPUT when active and must be
-           explicitly deactivated on scene hidden.
-param: screen (table) - The screen instance
-param: ... (tables) - Additional list objects to deactivate
-Returns: void
-]]
+--- Deactivates all list controls to release DIRECTIONAL_INPUT.
+---
+--- Purpose: Ensures lists are properly deactivated when a scene is hidden.
+--- Rationale: Lists register with DIRECTIONAL_INPUT when active and must be
+---            explicitly deactivated on scene hidden.
+---
+--- @param screen table The screen instance
 function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
     if not screen then return end
 
@@ -120,12 +116,9 @@ function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
     end
 end
 
---[[
-Function: BETTERUI.CIM.SceneCleanup.ClearSearchState
-Description: Clears search-related state and text when exiting a scene.
-param: screen (table) - The screen instance
-Returns: void
-]]
+--- Clears search-related state and text when exiting a scene.
+---
+--- @param screen table The screen instance
 function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     if not screen then return end
 

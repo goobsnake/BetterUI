@@ -68,16 +68,17 @@ function BETTERUI_TabBarScrollList:New(control, leftIcon, rightIcon, data, onAct
     return list
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:UpdateAnchors
-Override UpdateAnchors to implement CAROUSEL rotation behavior.
-  - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
-  - If Normal Mode: Positions items linearly using the same offset constants (no wrapping).
-param: continousTargetOffset (number) - The floating point index of the selection.
-param: initialUpdate (boolean) - True if this is the first update.
-param: reselectingDuringRebuild (boolean) - True if reselecting.
-param: blockSelectionChangedCallback (boolean) - True to supress callbacks.
-]]
+--- Override UpdateAnchors to implement CAROUSEL rotation behavior.
+---
+--- Purpose: Positions items for carousel or normal mode.
+--- Mechanics:
+--- - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
+--- - If Normal Mode: Positions items linearly using the same offset constants (no wrapping).
+---
+--- @param continousTargetOffset number The floating point index of the selection.
+--- @param initialUpdate boolean True if this is the first update.
+--- @param reselectingDuringRebuild boolean True if reselecting.
+--- @param blockSelectionChangedCallback boolean True to suppress callbacks.
 function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialUpdate, reselectingDuringRebuild,
                                                  blockSelectionChangedCallback)
     self.visibleControls, self.unseenControls = self.unseenControls, self.visibleControls
@@ -171,19 +172,13 @@ function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialU
     end
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:Activate
-Activates the tab bar and its keybinds.
-]]
+--- Activates the tab bar and its keybinds.
 function BETTERUI_TabBarScrollList:Activate()
     KEYBIND_STRIP:AddKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Activate(self)
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:Deactivate
-Deactivates the tab bar and removes keybinds.
-]]
+--- Deactivates the tab bar and removes keybinds.
 function BETTERUI_TabBarScrollList:Deactivate()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.keybindStripDescriptor)
     BETTERUI_HorizontalParametricScrollList.Deactivate(self)
@@ -191,11 +186,9 @@ end
 
 -- Custom Callback Management
 -- Override these to handle the dual-callback nature of standard ZO lists vs Carousel mode
---[[
-Function: BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback
-Sets the data change callback.
-param: callback (function) - The user callback.
-]]
+--- Sets the data change callback.
+---
+--- @param callback function The user callback.
 function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = callback -- For Carousel mode
 
@@ -218,10 +211,9 @@ function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
     end
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback
-Removes the data change callback.
-]]
+--- Removes the data change callback.
+---
+--- @param callback function The callback to remove.
 function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = nil
     if self._zo_selectedDataChangedWrapper then
@@ -230,10 +222,7 @@ function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     end
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors
-Sets up LB/RB keybinds.
-]]
+--- Sets up LB/RB keybinds.
 function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     self.keybindStripDescriptor =
     {
@@ -254,10 +243,9 @@ function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
     }
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:Commit
-Commits changes.
-]]
+--- Commits changes.
+---
+--- @param dontReselect boolean|nil If true, don't reselect the current item.
 function BETTERUI_TabBarScrollList:Commit(dontReselect)
     -- Hide arrows if only 1 item
     if #self.dataList > 1 then
@@ -271,12 +259,10 @@ function BETTERUI_TabBarScrollList:Commit(dontReselect)
     self:RefreshPips()
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:SetPipsEnabled
-Enables/Disables Pip (Dot) indicators.
-param: enabled (boolean) - True to enable.
-param: divider (table) - The control to anchor pips to.
-]]
+--- Enables/Disables Pip (Dot) indicators.
+---
+--- @param enabled boolean True to enable.
+--- @param divider table|nil The control to anchor pips to.
 function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
     self.pipsEnabled = enabled
     if not divider then
@@ -288,10 +274,7 @@ function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
     self:RefreshPips()
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:RefreshPips
-Updates Pip indicators based on selection.
-]]
+--- Updates Pip indicators based on selection.
 function BETTERUI_TabBarScrollList:RefreshPips()
     if not self.pipsEnabled then
         if self.pips then self.pips:RefreshPips() end
@@ -312,10 +295,11 @@ function BETTERUI_TabBarScrollList:RefreshPips()
     self.pips:RefreshPips(numPips, selectedPipIndex)
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:SetSelectedIndex
-Sets selection with animation.
-]]
+--- Sets selection with animation.
+---
+--- @param selectedIndex number The index to select.
+--- @param allowEvenIfDisabled boolean|nil If true, allow selection even if disabled.
+--- @param forceAnimation boolean|nil If true, force animation.
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     -- BetterUI Fix: Capture old data BEFORE calling base class (which updates selectedData)
     local oldSelectedData = self.selectedData
@@ -335,10 +319,11 @@ function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDi
     end
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation
-Sets selection immediately without animation.
-]]
+--- Sets selection immediately without animation.
+---
+--- @param selectedIndex number The index to select.
+--- @param allowEvenIfDisabled boolean|nil If true, allow selection even if disabled.
+--- @param dontCallSelectedDataChangedCallback boolean|nil If true, don't call the selection changed callback.
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled,
                                                                     dontCallSelectedDataChangedCallback)
     ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled,
@@ -349,11 +334,11 @@ function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedInde
     end
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:MovePrevious
-Moves to previous item.
-return: boolean - True if successful.
-]]
+--- Moves to previous item.
+---
+--- @param allowWrapping boolean|nil If true, wrap to the last item if at the first.
+--- @param suppressFailSound boolean|nil If true, suppress the fail sound.
+--- @return boolean True if successful.
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingBackward()
     local succeeded = ZO_ParametricScrollList.MovePrevious(self)
@@ -374,11 +359,11 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
     return succeeded
 end
 
---[[
-Function: BETTERUI_TabBarScrollList:MoveNext
-Moves to next item.
-return: boolean - True if successful.
-]]
+--- Moves to next item.
+---
+--- @param allowWrapping boolean|nil If true, wrap to the first item if at the last.
+--- @param suppressFailSound boolean|nil If true, suppress the fail sound.
+--- @return boolean True if successful.
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingForward()
     local succeeded = ZO_ParametricScrollList.MoveNext(self)
@@ -404,11 +389,9 @@ end
 -- Called from XML via OnClicked, etc.
 -- ============================================================================
 
---[[
-Function: BETTERUI_TabBar_OnLeftIconClicked
-Global handler for Left Icon click.
-param: buttonControl (table) - The control clicked.
-]]
+--- Global handler for Left Icon click.
+---
+--- @param buttonControl table The control clicked.
 function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -417,11 +400,9 @@ function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     end
 end
 
---[[
-Function: BETTERUI_TabBar_OnRightIconClicked
-Global handler for Right Icon click.
-param: buttonControl (table) - The control clicked.
-]]
+--- Global handler for Right Icon click.
+---
+--- @param buttonControl table The control clicked.
 function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -430,15 +411,16 @@ function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     end
 end
 
---[[
-Function: BETTERUI_TabBar_OnCategoryIconClicked
-Global handler for direct category icon click.
-1. Identifies the parent scrollList.
-2. Finds the data index for the clicked control.
-3. Special Case: If in Inventory scene, dispatches directly to GAMEPAD_INVENTORY:OnCategoryClicked to ensure reliable switching.
-4. Default: Calls scrollList:SetSelectedIndex.
-param: categoryControl (table) - The UI control that was clicked.
-]]
+--- Global handler for direct category icon click.
+---
+--- Purpose: Handles category selection via icon click.
+--- Mechanics:
+--- 1. Identifies the parent scrollList.
+--- 2. Finds the data index for the clicked control.
+--- 3. Special Case: If in Inventory scene, dispatches directly to GAMEPAD_INVENTORY:OnCategoryClicked.
+--- 4. Default: Calls scrollList:SetSelectedIndex.
+---
+--- @param categoryControl table The UI control that was clicked.
 function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
     local scrollList = nil
     -- Traverse up to find the scrollList owner

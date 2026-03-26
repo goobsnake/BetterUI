@@ -18,6 +18,11 @@ local MODULE_RESET_ORDER = {
     { "ResourceOrbFrames", BETTERUI.ResourceOrbFrames },
 }
 
+--- Deep copies a value, handling circular references.
+---
+--- @param value any The value to copy.
+--- @param seen table|nil Table of already seen values (for circular reference handling).
+--- @return any The deep copy of the value.
 local function DeepCopy(value, seen)
     if type(value) ~= "table" then
         return value
@@ -38,6 +43,10 @@ local function DeepCopy(value, seen)
     return copy
 end
 
+--- Checks if a key should be retained during settings reset.
+---
+--- @param key string The key to check.
+--- @return boolean True if the key should be retained.
 local function IsRetainedTopLevelKey(key)
     return key == "useAccountWide"
         or key == "firstInstall"
@@ -46,6 +55,11 @@ local function IsRetainedTopLevelKey(key)
         or key == "SortOptions"
 end
 
+--- Builds default settings for a module.
+---
+--- @param moduleName string The name of the module.
+--- @param moduleNamespace table|nil The module's namespace table.
+--- @return table The default settings for the module.
 local function BuildModuleDefaults(moduleName, moduleNamespace)
     local moduleSettings = {}
 
@@ -63,6 +77,9 @@ local function BuildModuleDefaults(moduleName, moduleNamespace)
     return DeepCopy(moduleSettings)
 end
 
+--- Resets the settings store to defaults.
+---
+--- @param store table The settings store to reset.
 local function ResetSettingsStore(store)
     if type(store) ~= "table" then
         return
@@ -98,6 +115,9 @@ local function ResetSettingsStore(store)
     store.firstInstall = false
 end
 
+--- Gets the active settings store.
+---
+--- @return table|nil The active settings store, or nil if not found.
 local function GetActiveSettingsStore()
     if type(BETTERUI.Settings) == "table" then
         return BETTERUI.Settings
@@ -121,6 +141,7 @@ local function GetActiveSettingsStore()
     return nil
 end
 
+--- Resets all BetterUI settings to their default values.
 function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
     local targetStore = GetActiveSettingsStore()
     if type(targetStore) ~= "table" then

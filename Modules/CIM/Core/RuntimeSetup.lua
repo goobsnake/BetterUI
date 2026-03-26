@@ -31,18 +31,17 @@ local patchesApplied = false
 -- API PATCHES
 -- ============================================================================
 
---[[
-Function: ApplyAPIPatches
-Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
-           This commonly occurs during skill purchases, keybind strip updates, and UI transitions.
-           These pcall wrappers are INTENTIONAL for ESO API stability.
-    1. Checks if each function exists.
-    2. Stores original reference.
-    3. Replaces with a wrapper that nil-checks the path and uses pcall for safety.
-    4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
-References: Called by RuntimeSetup.Apply().
--- AUDITED(pcall): These pcall wrappers are intentional for ESO API stability.
-]]
+--- Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
+---
+--- Purpose: Provides stability for ESO API calls that may receive nil paths.
+--- Mechanics:
+--- 1. Checks if each function exists.
+--- 2. Stores original reference.
+--- 3. Replaces with a wrapper that nil-checks the path and uses pcall for safety.
+--- 4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
+---
+--- References: Called by RuntimeSetup.Apply().
+--- Note: AUDITED(pcall) - These pcall wrappers are intentional for ESO API stability.
 local function ApplyAPIPatches()
     if patchesApplied then return end
 
@@ -149,15 +148,14 @@ end
 -- SETTINGS MIGRATIONS
 -- ============================================================================
 
---[[
-Function: RunSettingsMigrations
-Migrates legacy settings keys to current standards.
-           This function ensures old SavedVariables are upgraded seamlessly.
-    1. Renames "Tooltips" module to "GeneralInterface" (if present).
-    2. Standardizes "enabled" key to "m_enabled" across all modules.
-References: Called by RuntimeSetup.Apply().
-param: settings (table) - The BETTERUI.Settings table to migrate.
-]]
+--- Migrates legacy settings keys to current standards.
+---
+--- Purpose: Ensures old SavedVariables are upgraded seamlessly.
+--- Mechanics:
+--- 1. Renames "Tooltips" module to "GeneralInterface" (if present).
+--- 2. Standardizes "enabled" key to "m_enabled" across all modules.
+---
+--- @param settings table The BETTERUI.Settings table to migrate.
 local function RunSettingsMigrations(settings)
     if not settings or not settings.Modules then return end
 
@@ -216,14 +214,14 @@ end
 -- PUBLIC API
 -- ============================================================================
 
---[[
-Function: RuntimeSetup.Apply
-Main entry point for early-initialization logic.
-    1. Applies API patches (once).
-    2. Runs settings migrations on the provided settings table.
-References: Called from BetterUI.lua:Initialize after SavedVars are loaded.
-param: settings (table) - The BETTERUI.Settings table to migrate.
-]]
+--- Main entry point for early-initialization logic.
+---
+--- Purpose: Applies runtime API patches and runs settings migrations.
+--- Mechanics:
+--- 1. Applies API patches (once).
+--- 2. Runs settings migrations on the provided settings table.
+---
+--- @param settings table The BETTERUI.Settings table to migrate.
 function RuntimeSetup.Apply(settings)
     ApplyAPIPatches()
     RunSettingsMigrations(settings)

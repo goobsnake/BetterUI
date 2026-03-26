@@ -11,27 +11,23 @@ Last Modified: 2026-01-26
 -- ============================================================================
 BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:New
-Creates a new horizontal scroll list instance.
-param: ... (any) - Arguments for ZO_HorizontalScrollList:New.
-return: table - The new list instance.
-]]
+--- Creates a new horizontal scroll list instance.
+---
+--- @param ... any Arguments for ZO_HorizontalScrollList:New.
+--- @return table The new list instance.
 function BETTERUI_HorizontalScrollList_Gamepad:New(...)
     return ZO_HorizontalScrollList.New(self, ...)
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:Initialize
-Initializes the horizontal scroll list.
-param: control (table) - The list control.
-param: templateName (string) - The row template name.
-param: numVisibleEntries (number) - Number of visible entries.
-param: setupFunction (function) - Sub-function to setup each entry.
-param: equalityFunction (function) - Function to compare entries.
-param: onCommitWithItemsFunction (function) - Callback on commit with items.
-param: onClearedFunction (function) - Callback on list clear.
-]]
+--- Initializes the horizontal scroll list.
+---
+--- @param control table The list control.
+--- @param templateName string The row template name.
+--- @param numVisibleEntries number Number of visible entries.
+--- @param setupFunction function Sub-function to setup each entry.
+--- @param equalityFunction function Function to compare entries.
+--- @param onCommitWithItemsFunction function Callback on commit with items.
+--- @param onClearedFunction function Callback on list clear.
 function BETTERUI_HorizontalScrollList_Gamepad:Initialize(control, templateName, numVisibleEntries, setupFunction,
                                                           equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     ZO_HorizontalScrollList.Initialize(self, control, templateName, numVisibleEntries, setupFunction, equalityFunction,
@@ -40,17 +36,17 @@ function BETTERUI_HorizontalScrollList_Gamepad:Initialize(control, templateName,
     self.movementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors
-Updates the anchors and positions of the scroll list controls.
-  - Iterates visible controls.
-  - Calculates offsets based on primaryControlOffsetX.
-  - Applies Scale effect to center item using Lerp/Ease.
-  - Updates Arrow button visibility/enabled state.
-param: primaryControlOffsetX (number) - Current X offset for the primary control.
-param: initialUpdate (boolean) - True if this is the first update.
-param: reselectingDuringRebuild (boolean) - True if reselecting.
-]]
+--- Updates the anchors and positions of the scroll list controls.
+---
+--- Mechanics:
+--- - Iterates visible controls.
+--- - Calculates offsets based on primaryControlOffsetX.
+--- - Applies Scale effect to center item using Lerp/Ease.
+--- - Updates Arrow button visibility/enabled state.
+---
+--- @param primaryControlOffsetX number Current X offset for the primary control.
+--- @param initialUpdate boolean True if this is the first update.
+--- @param reselectingDuringRebuild boolean True if reselecting.
 function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffsetX, initialUpdate,
                                                              reselectingDuringRebuild)
     if self.isUpdatingAnchors then return end
@@ -109,20 +105,15 @@ function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffse
     end
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction
-Sets the callback for activation state changes.
-param: onActivatedChangedFunction (function) - The callback.
-]]
+--- Sets the callback for activation state changes.
+---
+--- @param onActivatedChangedFunction function The callback.
 function BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction(onActivatedChangedFunction)
     self.onActivatedChangedFunction = onActivatedChangedFunction
     self.dirty = true
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:Commit
-Commits the list data and updates UI.
-]]
+--- Commits the list data and updates UI.
 function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     ZO_HorizontalScrollList.Commit(self)
 
@@ -131,11 +122,9 @@ function BETTERUI_HorizontalScrollList_Gamepad:Commit()
     self.rightArrow:SetHidden(hideArrows)
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:SetActive
-Sets the active state of the list.
-param: active (boolean) - True to activate.
-]]
+--- Sets the active state of the list.
+---
+--- @param active boolean True to activate.
 function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     if (self.active ~= active) or self.dirty then
         self.active = active
@@ -157,18 +146,12 @@ function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     end
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:Activate
-wrapper for SetActive(true).
-]]
+--- Wrapper for SetActive(true).
 function BETTERUI_HorizontalScrollList_Gamepad:Activate()
     self:SetActive(true)
 end
 
---[[
-Function: BETTERUI_HorizontalScrollList_Gamepad:Deactivate
-wrapper for SetActive(false).
-]]
+--- Wrapper for SetActive(false).
 function BETTERUI_HorizontalScrollList_Gamepad:Deactivate()
     self:SetActive(false)
 end
@@ -179,15 +162,13 @@ end
 -- ============================================================================
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
---[[
-Function: BETTERUI_HorizontalParametricScrollList:New
-Creates a new horizontal parametric scroll list.
-param: control (table) - The list control.
-param: onActivatedChangedFunction (function) - Callback for activation state changes.
-param: onCommitWithItemsFunction (function) - Callback on commit with items.
-param: onClearedFunction (function) - Callback on clear.
-return: table - The new list instance.
-]]
+--- Creates a new horizontal parametric scroll list.
+---
+--- @param control table The list control.
+--- @param onActivatedChangedFunction function Callback for activation state changes.
+--- @param onCommitWithItemsFunction function Callback on commit with items.
+--- @param onClearedFunction function Callback on clear.
+--- @return table The new list instance.
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction,
                                                      onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
