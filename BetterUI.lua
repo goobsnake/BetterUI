@@ -488,8 +488,11 @@ function BETTERUI.Initialize(event, addon)
 
 	-- Load saved variables
 	-- Changed version to 2.89 to prevent issues with prior saved variables
-	BETTERUI.SavedVars = ZO_SavedVars:New("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
-	BETTERUI.GlobalVars = ZO_SavedVars:NewAccountWide("BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	-- Wrap in pcall so corrupted SavedVars don't crash the entire addon
+	local ok, result = pcall(ZO_SavedVars.New, ZO_SavedVars, "BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	BETTERUI.SavedVars = ok and result or BETTERUI.DefaultSettings
+	local okGlobal, resultGlobal = pcall(ZO_SavedVars.NewAccountWide, ZO_SavedVars, "BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	BETTERUI.GlobalVars = okGlobal and resultGlobal or BETTERUI.DefaultSettings
 
 	-- Determine which settings to use
 	if BETTERUI.SavedVars.useAccountWide then

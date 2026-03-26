@@ -5,7 +5,6 @@
 ## Contributers: prasoc, RockingDice
 ## Version: 3.03
 ## DependsOn: LibAddonMenu-2.0>=41
-## OptionalDependsOn: LibDebugLogger
 ## SavedVariables: BetterUISavedVars
  
 ; Core Initialization (Must load first)

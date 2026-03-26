@@ -11,21 +11,8 @@ local LAM = LibAddonMenu2
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
 
-local function ClampInteger(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < minValue then
-        return minValue
-    end
-    if rounded > maxValue then
-        return maxValue
-    end
-    return rounded
-end
+-- Import shared utility (canonical definition in SettingsAccessor.lua)
+local ClampInteger = BETTERUI.ClampInteger
 
 local function GetNameplateSettings()
     local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules

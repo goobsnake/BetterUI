@@ -212,3 +212,13 @@ function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
 
     return BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
 end
+
+--- Creates bound font descriptor closures for a module.
+--- @param moduleName string The module key in BETTERUI.Settings.Modules
+--- @return table descriptors Table with `name` and `column` closure fields
+function BETTERUI.CIM.Font.CreateModuleDescriptors(moduleName)
+    return {
+        name = function() return BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, "name") end,
+        column = function() return BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, "column") end,
+    }
+end

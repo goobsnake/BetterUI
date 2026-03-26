@@ -76,6 +76,4 @@ Rationale: Delegates to CIM.Utils.SafeGetTargetData for shared implementation.
 ]]
 --- @param list table The list to get target data from
 --- @return table|nil targetData The target data
-function BETTERUI.Inventory.Utils.SafeGetTargetData(list)
-    return BETTERUI.CIM.Utils.SafeGetTargetData(list)
-end
+BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData

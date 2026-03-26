@@ -4,20 +4,8 @@ Purpose: Entry point and settings configuration for the Banking module.
 Authors: BUI Team
 Last Modified: 2026-01-16
 
-This file handles the initialization and configuration of the Banking module.
-It integrates with LibAddonMenu (LAM) to provide a settings panel for user customization.
-
-KEY RESPONSIBILITIES:
-1.  **Module Initialization (`Init`, `Setup`)**:
-    *   Registers the "Banking" panel in the BetterUI addon settings.
-    *   Defines default settings (`DEFAULTS`) for fonts and toggleable features.
-2.  **Configuration Options**:
-    *   **Fonts**: Custom font selection, size, and style for Name and Columns.
-    *   **Features**: Toggles for Carousel Navigation (navigating tabs via shoulders/triggers)
-        and icon visibility (Unbound, Enchanted, Set Gear).
-3.  **Font Helpers**:
-    *   `GetNameFontDescriptor`: Returns a valid font string for the item name column.
-    *   `GetColumnFontDescriptor`: Returns a valid font string for other columns (Trait, Value, etc.).
+Registers the Banking panel in the BetterUI addon settings and provides font
+descriptor factories for the name and column rendering.
 ]]
 
 
@@ -31,39 +19,28 @@ BETTERUI.Banking.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
 BETTERUI.Banking.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Banking.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
---[[
-Function: BETTERUI.Banking.GetNameFontDescriptor
-Description: Generates the font descriptor string for the Name column.
-Rationale: Delegates to CIM.Font.GetModuleFontDescriptor with module-specific settings.
-return: string - ESO font descriptor (path|size|style).
-]]
-function BETTERUI.Banking.GetNameFontDescriptor()
-	return BETTERUI.CIM.Font.GetModuleFontDescriptor("Banking", "name")
-end
-
---[[
-Function: BETTERUI.Banking.GetColumnFontDescriptor
-Description: Generates the font descriptor string for metadata columns.
-Rationale: Delegates to CIM.Font.GetModuleFontDescriptor with module-specific settings.
-return: string - ESO font descriptor (path|size|style).
-]]
-function BETTERUI.Banking.GetColumnFontDescriptor()
-	return BETTERUI.CIM.Font.GetModuleFontDescriptor("Banking", "column")
+-- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
+do
+    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Banking")
+    BETTERUI.Banking.GetNameFontDescriptor = descriptors.name
+    BETTERUI.Banking.GetColumnFontDescriptor = descriptors.column
 end
 
 --- Retrieves a setting value for the Banking module.
 --- @param key string The setting key.
 --- @return any The setting value or nil.
 function BETTERUI.Banking.GetSetting(key)
-	if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Banking"] then return nil end
-	return BETTERUI.Settings.Modules["Banking"][key]
+	return BETTERUI.GetSetting("Banking", key)
 end
 
 --- Sets a setting value for the Banking module.
 --- @param key string The setting key.
 --- @param value any The value to set.
 function BETTERUI.Banking.SetSetting(key, value)
-	if not BETTERUI.Settings.Modules["Banking"] then return end
+	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+	if not BETTERUI.Settings.Modules["Banking"] then
+		BETTERUI.Settings.Modules["Banking"] = {}
+	end
 	BETTERUI.Settings.Modules["Banking"][key] = value
 end
 

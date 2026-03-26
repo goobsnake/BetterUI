@@ -67,21 +67,8 @@ local function GetDefaults()
     }
 end
 
-local function ClampInteger(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-
-    local rounded = math.floor(numeric + 0.5)
-    if rounded < minValue then
-        return minValue
-    end
-    if rounded > maxValue then
-        return maxValue
-    end
-    return rounded
-end
+-- Import shared utility (canonical definition in SettingsAccessor.lua)
+local ClampInteger = BETTERUI.ClampInteger
 
 local function ClampNumber(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)

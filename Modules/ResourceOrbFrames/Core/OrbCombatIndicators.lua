@@ -18,9 +18,7 @@ local m_combatIconControl = nil
 local m_combatIconPulseTimeline = nil
 local m_combatIconPulseControl = nil
 
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
+local FindControl = BETTERUI.ControlUtils.FindControl
 
 local function GetNamedChildDirect(parent, name)
     if parent and parent.GetNamedChild then

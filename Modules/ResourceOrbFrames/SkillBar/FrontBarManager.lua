@@ -16,23 +16,8 @@ local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetModuleSettings = Utils.GetModuleSettings
 
-local function GetNamedChildDirect(parent, name)
-    if parent and parent.GetNamedChild then
-        return parent:GetNamedChild(name)
-    end
-    return nil
-end
-
-local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
-    if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
-        return GetNamedChildDirect(rootFrame, buttonName)
-            or GetNamedChildDirect(frontBarContainer, buttonName)
-            or FindControl(rootFrame, buttonName)
-            or FindControl(frontBarContainer, buttonName)
-    end
-    return GetNamedChildDirect(frontBarContainer, buttonName)
-        or FindControl(frontBarContainer, buttonName)
-end
+local GetNamedChildDirect = Utils.GetNamedChildDirect
+local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
 -- Cached control references
 local m_buttonCache = {}

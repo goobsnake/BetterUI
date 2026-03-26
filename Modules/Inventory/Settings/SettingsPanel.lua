@@ -38,7 +38,7 @@ end
 --- Initializes the settings panel for the Inventory module.
 --- @param mId string The module ID
 --- @param moduleName string The display name of the module
-function BETTERUI.Inventory.RegisterSettings(mId, moduleName)
+function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
 	local function GetInventoryWindow()

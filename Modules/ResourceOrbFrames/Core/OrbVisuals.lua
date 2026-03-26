@@ -23,9 +23,7 @@ local ORB_CONFIG = {
 }
 
 -- Local helpers
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
+local FindControl = BETTERUI.ControlUtils.FindControl
 
 local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
@@ -377,77 +375,10 @@ function Visuals.ApplyThemeVisuals(rootFrame)
 end
 
 -- Layout Calculation Helpers
-local function ScaleForBorder(value, borderSize, baseBorderSize)
-    if type(value) ~= "number" then
-        return 0
-    end
-    if type(baseBorderSize) ~= "number" or baseBorderSize <= 0 then
-        return value
-    end
-    return value * (borderSize / baseBorderSize)
-end
-
-local function CalculateBorderSizes(cfg, settings)
-    local hideLeft = settings.hideLeftOrnament or false
-    local hideRight = settings.hideRightOrnament or false
-    local leftSize = cfg.orbs.left.borderSize
-    local rightSize = cfg.orbs.right.borderSize
-    local leftVisibleScale = cfg.orbs.left.visibleScale or 1.0
-    local rightVisibleScale = cfg.orbs.right.visibleScale or 1.0
-
-    if hideLeft then
-        leftSize = leftSize * (settings.leftOrbSizeScale or 1.0)
-    else
-        leftSize = leftSize * leftVisibleScale
-    end
-
-    if hideRight then
-        rightSize = rightSize * (settings.rightOrbSizeScale or 1.0)
-    else
-        rightSize = rightSize * rightVisibleScale
-    end
-
-    return leftSize, rightSize, leftVisibleScale, rightVisibleScale
-end
-
-local function CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
-    local leftBaseSize = cfg.orbs.left.borderSize or leftBorderSize
-    local rightBaseSize = cfg.orbs.right.borderSize or rightBorderSize
-
-    return {
-        health = {
-            width = math.min(leftBorderSize * cfg.fills.health.scaleW, leftBorderSize),
-            height = math.min(leftBorderSize * cfg.fills.health.scaleH, leftBorderSize),
-            x = ScaleForBorder(cfg.fills.health.x, leftBorderSize, leftBaseSize),
-            y = ScaleForBorder(cfg.fills.health.y, leftBorderSize, leftBaseSize)
-        },
-        shield = (function()
-            local ringSize = leftBorderSize * (cfg.fills.shield.ringScale or 1.2)
-            return {
-                width = math.min(ringSize * cfg.fills.shield.scaleW, ringSize),
-                height = math.min(ringSize * cfg.fills.shield.scaleH, ringSize),
-                x = ScaleForBorder(cfg.fills.shield.x, leftBorderSize, leftBaseSize),
-                y = ScaleForBorder(cfg.fills.shield.y, leftBorderSize, leftBaseSize)
-            }
-        end)(),
-        magicka = {
-            width = math.min(rightBorderSize * cfg.fills.magicka.scaleW, rightBorderSize),
-            height = math.min(rightBorderSize * cfg.fills.magicka.scaleH, rightBorderSize),
-            x = ScaleForBorder(cfg.fills.magicka.x, rightBorderSize, rightBaseSize),
-            y = ScaleForBorder(cfg.fills.magicka.y, rightBorderSize, rightBaseSize)
-        },
-        stamina = {
-            width = math.min(rightBorderSize * cfg.fills.stamina.scaleW, rightBorderSize),
-            height = math.min(rightBorderSize * cfg.fills.stamina.scaleH, rightBorderSize),
-            x = ScaleForBorder(cfg.fills.stamina.x, rightBorderSize, rightBaseSize),
-            y = ScaleForBorder(cfg.fills.stamina.y, rightBorderSize, rightBaseSize)
-        },
-        resource = {
-            width = math.min(rightBorderSize * cfg.fills.resource.scaleW, rightBorderSize),
-            height = math.min(rightBorderSize * cfg.fills.resource.scaleH, rightBorderSize)
-        }
-    }
-end
+-- Import shared utilities (canonical definitions in Utils.lua)
+local ScaleForBorder = BETTERUI.ResourceOrbFrames.Utils.ScaleForBorder
+local CalculateBorderSizes = BETTERUI.ResourceOrbFrames.Utils.CalculateBorderSizes
+local CalculateFillDimensions = BETTERUI.ResourceOrbFrames.Utils.CalculateFillDimensions
 
 function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
@@ -540,20 +471,9 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         end
     end
 
-    local function UpdateOverlaySize(parent, cfgName, baseSize)
-        if not parent then return end
-        local overlayName = parent:GetName() .. "CustomOverlay"
-        local overlay = _G[overlayName]
-        if overlay and not overlay:IsHidden() then
-            local overlayCfg = cfg.overlays and cfg.overlays[cfgName]
-            local scale = overlayCfg and overlayCfg.scale or 1.0
-            local size = baseSize * scale
-            overlay:SetDimensions(size, size)
-            overlay:SetAnchor(CENTER, parent, CENTER, overlayCfg and overlayCfg.x or 0, overlayCfg and overlayCfg.y or 0)
-        end
-    end
-    UpdateOverlaySize(leftOrb, 'health', leftBorderSize)
-    UpdateOverlaySize(rightOrb, 'magStam', rightBorderSize)
+    local UpdateOverlaySize = BETTERUI.ResourceOrbFrames.Utils.UpdateOverlaySize
+    UpdateOverlaySize(leftOrb, 'health', leftBorderSize, cfg)
+    UpdateOverlaySize(rightOrb, 'magStam', rightBorderSize, cfg)
 
     if pools then
         -- Refresh label font/color from current settings (enables realtime updates)
@@ -679,16 +599,8 @@ function Visuals.SetupPowerPools(rootFrame)
         end
     end
 
-    local function AddOrbTooltip(control, powerType)
-        if not control then return end
-        control:SetMouseEnabled(true)
-        control:SetHandler("OnMouseEnter", function(self)
-            InitializeTooltip(InformationTooltip, self, RIGHT, -5, 0)
-            local current, max = GetUnitPower("player", powerType)
-            SetTooltipText(InformationTooltip, string.format("%d / %d", current, max))
-        end)
-        control:SetHandler("OnMouseExit", function() ClearTooltip(InformationTooltip) end)
-    end
+    -- Import shared tooltip utility (canonical definition in Utils.lua)
+    local AddOrbTooltip = BETTERUI.ResourceOrbFrames.Utils.AddOrbTooltip
 
     AddOrbTooltip(FindControl(rootFrame, 'OrbHealth'), POWERTYPE_HEALTH)
 

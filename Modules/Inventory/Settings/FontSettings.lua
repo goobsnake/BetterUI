@@ -67,14 +67,11 @@ local function RefreshInventoryList()
     end
 end
 
---- Returns the ESO font descriptor for the Name column.
-function BETTERUI.Inventory.GetNameFontDescriptor()
-    return BETTERUI.CIM.Font.GetModuleFontDescriptor("Inventory", "name")
-end
-
---- Returns the ESO font descriptor for other columns (Type, Trait, Stat, Value).
-function BETTERUI.Inventory.GetColumnFontDescriptor()
-    return BETTERUI.CIM.Font.GetModuleFontDescriptor("Inventory", "column")
+-- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
+do
+    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Inventory")
+    BETTERUI.Inventory.GetNameFontDescriptor = descriptors.name
+    BETTERUI.Inventory.GetColumnFontDescriptor = descriptors.column
 end
 
 --- Returns the LAM control list for Font Customization.

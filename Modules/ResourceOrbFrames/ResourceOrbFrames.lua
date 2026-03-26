@@ -53,9 +53,7 @@ local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames", DEFAULTS)
 end
 
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
+local FindControl = BETTERUI.ControlUtils.FindControl
 
 -- =========================================================================
 -- UPDATE HELPERS

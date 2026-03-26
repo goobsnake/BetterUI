@@ -97,3 +97,26 @@ function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
         return getFunc, setFunc
     end
 end
+
+--- Clamps a value to an integer within [minValue, maxValue], falling back if non-numeric.
+--- Shared utility to eliminate duplication across CIM, Nameplates, and ResourceOrbFrames settings.
+--- @param value any Value to clamp (coerced via tonumber)
+--- @param minValue number Minimum allowed value
+--- @param maxValue number Maximum allowed value
+--- @param fallback number Value to return if input is non-numeric
+--- @return number Clamped integer value
+function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+
+    local rounded = math.floor(numeric + 0.5)
+    if rounded < minValue then
+        return minValue
+    end
+    if rounded > maxValue then
+        return maxValue
+    end
+    return rounded
+end

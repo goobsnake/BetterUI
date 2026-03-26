@@ -18,9 +18,7 @@ local m_backBarBaseY = 0
 local m_swapTimeline = nil
 
 -- Helpers
-local function FindControl(parent, name)
-    return BETTERUI.ControlUtils.FindControl(parent, name)
-end
+local FindControl = BETTERUI.ControlUtils.FindControl
 
 local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")

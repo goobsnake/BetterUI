@@ -4,20 +4,8 @@ Purpose: Entry point and settings configuration for the Vendor module.
 Authors: BUI Team
 Last Modified: 2026-03-14
 
-This file handles the initialization and configuration of the Vendor module.
-It integrates with LibAddonMenu (LAM) to provide a settings panel for user customization.
-
-KEY RESPONSIBILITIES:
-1.  **Module Initialization (`InitModule`, `Setup`)**:
-    *   Registers the "Vendor" panel in the BetterUI addon settings.
-    *   Defines default settings (`DEFAULTS`) for fonts and toggleable features.
-2.  **Configuration Options**:
-    *   **Fonts**: Custom font selection, size, and style for Name and Columns.
-    *   **Features**: Toggles for Carousel Navigation (navigating tabs via shoulders/triggers)
-        and icon visibility (Unbound, Enchanted, Set Gear).
-3.  **Font Helpers**:
-    *   `GetNameFontDescriptor`: Returns a valid font string for the item name column.
-    *   `GetColumnFontDescriptor`: Returns a valid font string for other columns.
+Registers the Vendor panel in the BetterUI addon settings and provides font
+descriptor factories for the name and column rendering.
 ]]
 
 
@@ -31,39 +19,28 @@ BETTERUI.Vendor.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
 BETTERUI.Vendor.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Vendor.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
---[[
-Function: BETTERUI.Vendor.GetNameFontDescriptor
-Description: Generates the font descriptor string for the Name column.
-Rationale: Delegates to CIM.Font.GetModuleFontDescriptor with module-specific settings.
-return: string - ESO font descriptor (path|size|style).
-]]
-function BETTERUI.Vendor.GetNameFontDescriptor()
-	return BETTERUI.CIM.Font.GetModuleFontDescriptor("Vendor", "name")
-end
-
---[[
-Function: BETTERUI.Vendor.GetColumnFontDescriptor
-Description: Generates the font descriptor string for metadata columns.
-Rationale: Delegates to CIM.Font.GetModuleFontDescriptor with module-specific settings.
-return: string - ESO font descriptor (path|size|style).
-]]
-function BETTERUI.Vendor.GetColumnFontDescriptor()
-	return BETTERUI.CIM.Font.GetModuleFontDescriptor("Vendor", "column")
+-- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
+do
+    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Vendor")
+    BETTERUI.Vendor.GetNameFontDescriptor = descriptors.name
+    BETTERUI.Vendor.GetColumnFontDescriptor = descriptors.column
 end
 
 --- Retrieves a setting value for the Vendor module.
 --- @param key string The setting key.
 --- @return any The setting value or nil.
 function BETTERUI.Vendor.GetSetting(key)
-	if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Vendor"] then return nil end
-	return BETTERUI.Settings.Modules["Vendor"][key]
+	return BETTERUI.GetSetting("Vendor", key)
 end
 
 --- Sets a setting value for the Vendor module.
 --- @param key string The setting key.
 --- @param value any The value to set.
 function BETTERUI.Vendor.SetSetting(key, value)
-	if not BETTERUI.Settings or not BETTERUI.Settings.Modules or not BETTERUI.Settings.Modules["Vendor"] then return end
+	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+	if not BETTERUI.Settings.Modules["Vendor"] then
+		BETTERUI.Settings.Modules["Vendor"] = {}
+	end
 	BETTERUI.Settings.Modules["Vendor"][key] = value
 end
 

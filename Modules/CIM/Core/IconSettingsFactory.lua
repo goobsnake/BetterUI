@@ -107,24 +107,10 @@ local function GetIconToggleDefault(moduleName, iconDef)
     return defaultValue, metadata
 end
 
-local function GetModuleSettings(moduleName)
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return nil
-    end
-    return modules[moduleName]
-end
-
-local function EnsureModuleSettings(moduleName)
-    if not BETTERUI or not BETTERUI.Settings then
-        return nil
-    end
-    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-    if type(BETTERUI.Settings.Modules[moduleName]) ~= "table" then
-        BETTERUI.Settings.Modules[moduleName] = {}
-    end
-    return BETTERUI.Settings.Modules[moduleName]
-end
+-- Import shared settings helpers (canonical definitions in SettingsHelpers.lua)
+local _H = BETTERUI.GeneralInterface and BETTERUI.GeneralInterface._SettingsHelpers or {}
+local GetModuleSettings = _H.GetModuleSettings or function() return nil end
+local EnsureModuleSettings = _H.EnsureModuleSettings or function() return nil end
 
 local function ResetIconCustomizationSettings(moduleName, refreshFn)
     if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then

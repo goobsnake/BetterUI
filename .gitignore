@@ -27,3 +27,13 @@
 !/esoui/publicallingames/
 # AI Orchestrator workspace sessions
 .agent_workspace/
+# Desloppify local state
+.desloppify/
+.venv-desloppify/
+# Claude CLI local state
+.claude/
+# Node modules
+node_modules/
+# Misc artifacts
+nul
+scorecard.png

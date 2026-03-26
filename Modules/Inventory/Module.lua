@@ -20,7 +20,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 --- 3. Swaps the native inventory scene fragment with BetterUI's custom fragment.
 --- 4. Configures tooltips and registers custom dialogs (e.g., BoE protection).
 function BETTERUI.Inventory.Setup()
-	BETTERUI.Inventory.RegisterSettings("Inventory", "Inventory")
+	BETTERUI.Inventory.Settings.RegisterPanel("Inventory", "Inventory")
 
 	-- Replace the native GAMEPAD_INVENTORY global with our custom class
 	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
