@@ -8,15 +8,58 @@ Mechanics: Listens for EVENT_ADD_ON_LOADED to initialize itself.
 Author: BetterUI Team
 Last Modified: 2026-02-08
 
--- NOTE(ARCHITECTURE): Each module is manually listed in LoadModules() and Initialize().
--- A formal registration pattern (BETTERUI.RegisterModule) could reduce boilerplate,
--- but the current approach works reliably. Consider revisiting if module count grows
--- significantly beyond the current set. See WoW's AceAddon for inspiration.
+-- NOTE(ARCHITECTURE): Modules are now registered declaratively via MODULE_REGISTRY.
+-- This reduces boilerplate and makes the loading order and conditions explicit.
+-- See the registry definition below for module configuration.
 ]]
 
 local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
+
+-- ============================================================================
+-- MODULE REGISTRY
+-- ============================================================================
+
+---@class ModuleRegistryEntry
+---@field name string The unique name of the module (used for settings keys)
+---@field namespace string The namespace key in BETTERUI table
+---@field required boolean|nil Whether this module is required (always enabled)
+---@field condition function|nil Optional condition function that must return true to load
+---@field preSetup function|nil Optional function to call before Setup (e.g., for hooks)
+---@field depends string|nil Name of another module that must be enabled for this to load
+
+--- Declarative module registry. Add new modules here to include them in loading.
+--- The order of entries determines initialization order.
+---@type ModuleRegistryEntry[]
+local MODULE_REGISTRY = {
+	-- Core infrastructure (required by other modules)
+	{ name = "CIM", namespace = "CIM", required = true },
+
+	-- CIM-dependent modules (require CIM to be enabled)
+	{
+		name = "Inventory",
+		namespace = "Inventory",
+		preSetup = function()
+			-- Pre-Setup hooks (must run before Setup)
+			if BETTERUI.Inventory.HookDestroyItem then BETTERUI.Inventory.HookDestroyItem() end
+			if BETTERUI.Inventory.HookActionDialog then BETTERUI.Inventory.HookActionDialog() end
+			return true
+		end
+	},
+	{ name = "Banking", namespace = "Banking" },
+	{ name = "Vendor", namespace = "Vendor" },
+
+	-- Independent modules
+	{ name = "Writs", namespace = "Writs" },
+	{ name = "GeneralInterface", namespace = "GeneralInterface" },
+	{
+		name = "Nameplates",
+		namespace = "Nameplates",
+		depends = "GeneralInterface"
+	},
+	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames" },
+}
 
 -- ============================================================================
 -- NAMESPACE INITIALIZATION (Required before module files load)
@@ -428,6 +471,52 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	return true
 end
 
+--- Checks if a module should be loaded based on registry entry.
+--- Evaluates conditions, dependencies, and CIM requirements.
+---@param entry ModuleRegistryEntry The registry entry to evaluate
+---@return boolean Whether the module should be loaded
+local function ShouldLoadModule(entry)
+	local settings = BETTERUI.Settings.Modules
+	local moduleNamespace = BETTERUI[entry.namespace]
+
+	-- Check if namespace exists
+	if not moduleNamespace then
+		return false
+	end
+
+	-- Required modules always load
+	if entry.required then
+		return true
+	end
+
+	-- Check if module is enabled in settings
+	if not BETTERUI.GetModuleEnabled(entry.name) then
+		return false
+	end
+
+	-- Check custom condition function if present
+	if entry.condition and not entry.condition() then
+		return false
+	end
+
+	-- Check dependency if present
+	if entry.depends and not BETTERUI.GetModuleEnabled(entry.depends) then
+		return false
+	end
+
+	-- CIM-dependent modules require CIM to be enabled
+	-- Inventory, Banking, Vendor are CIM-dependent
+	if entry.name ~= "CIM" and entry.name ~= "Writs" and
+	   entry.name ~= "GeneralInterface" and entry.name ~= "Nameplates" and
+	   entry.name ~= "ResourceOrbFrames" then
+		if not BETTERUI.GetModuleEnabled("CIM") then
+			return false
+		end
+	end
+
+	return true
+end
+
 --- Loads and initializes all enabled modules.
 ---
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
@@ -450,45 +539,19 @@ function BETTERUI.LoadModules()
 	-- Initialize research data once
 	BETTERUI.GetResearch()
 
-	local settings = BETTERUI.Settings.Modules
+	-- Iterate the module registry for declarative loading
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		if ShouldLoadModule(entry) then
+			local moduleNamespace = BETTERUI[entry.namespace]
 
-	-- Initialize CIM-dependent modules with validation
-	if BETTERUI.GetModuleEnabled("CIM") then
-		if BETTERUI.GetModuleEnabled("Inventory") and BETTERUI.Inventory then
-			-- Pre-Setup hooks (must run before Setup)
-			if BETTERUI.Inventory.HookDestroyItem then BETTERUI.Inventory.HookDestroyItem() end
-			if BETTERUI.Inventory.HookActionDialog then BETTERUI.Inventory.HookActionDialog() end
-			-- Validated Setup
-			ValidateAndSetupModule("Inventory", BETTERUI.Inventory)
+			-- Run pre-setup hooks if defined
+			if entry.preSetup then
+				entry.preSetup()
+			end
+
+			-- Validate and setup the module
+			ValidateAndSetupModule(entry.name, moduleNamespace)
 		end
-
-		if BETTERUI.GetModuleEnabled("Banking") then
-			ValidateAndSetupModule("Banking", BETTERUI.Banking)
-		end
-
-		if BETTERUI.GetModuleEnabled("Vendor") and BETTERUI.Vendor then
-			ValidateAndSetupModule("Vendor", BETTERUI.Vendor)
-		end
-	end
-
-	-- Initialize independent modules with validation
-	if BETTERUI.GetModuleEnabled("Writs") then
-		ValidateAndSetupModule("Writs", BETTERUI.Writs)
-	end
-
-	-- Initialize General Interface (Settings & Tooltips)
-	if BETTERUI.GetModuleEnabled("GeneralInterface") then
-		ValidateAndSetupModule("GeneralInterface", BETTERUI.GeneralInterface)
-	end
-
-	-- Nameplates (Dependent on General Interface)
-	if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") then
-		ValidateAndSetupModule("Nameplates", BETTERUI.Nameplates)
-	end
-
-	-- Resource Orb Frames
-	if BETTERUI.GetModuleEnabled("ResourceOrbFrames") then
-		ValidateAndSetupModule("ResourceOrbFrames", BETTERUI.ResourceOrbFrames)
 	end
 
 	BETTERUI.Debug("Finished! BETTERUI is loaded")
@@ -525,19 +588,8 @@ function BETTERUI.Initialize(event, addon)
 
 	-- Initialize or update module settings with defaults
 	-- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
-	local modules = {
-		{ "CIM",               BETTERUI.CIM },
-		{ "Inventory",         BETTERUI.Inventory },
-		{ "Banking",           BETTERUI.Banking },
-		{ "Vendor",            BETTERUI.Vendor },
-		{ "Writs",             BETTERUI.Writs },
-		{ "GeneralInterface",  BETTERUI.GeneralInterface },
-		{ "Nameplates",        BETTERUI.Nameplates },
-		{ "ResourceOrbFrames", BETTERUI.ResourceOrbFrames }
-	}
-
-	for _, moduleInfo in ipairs(modules) do
-		local moduleName, moduleNamespace = moduleInfo[1], moduleInfo[2]
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		local moduleName, moduleNamespace = entry.name, BETTERUI[entry.namespace]
 		if moduleNamespace then
 			-- Ensure the settings table exists before initializing
 			if BETTERUI.Settings.Modules[moduleName] == nil then
@@ -582,26 +634,19 @@ function BETTERUI.Initialize(event, addon)
 		-- NOTE: Only LAM settings panels are registered here. Gameplay hooks (inventory
 		-- destroy/action hooks, etc.) remain in LoadModules() and only activate
 		-- when gamepad mode is entered.
-		if BETTERUI.GetModuleEnabled("Inventory") and BETTERUI.Inventory then
-			ValidateAndSetupModule("Inventory", BETTERUI.Inventory)
-		end
-		if BETTERUI.GetModuleEnabled("Banking") and BETTERUI.Banking then
-			ValidateAndSetupModule("Banking", BETTERUI.Banking)
-		end
-		if BETTERUI.GetModuleEnabled("Vendor") and BETTERUI.Vendor then
-			ValidateAndSetupModule("Vendor", BETTERUI.Vendor)
-		end
-		if BETTERUI.GetModuleEnabled("Writs") and BETTERUI.Writs then
-			ValidateAndSetupModule("Writs", BETTERUI.Writs)
-		end
-		if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GeneralInterface then
-			ValidateAndSetupModule("GeneralInterface", BETTERUI.GeneralInterface)
-		end
-		if BETTERUI.GetModuleEnabled("GeneralInterface") and BETTERUI.GetModuleEnabled("Nameplates") and BETTERUI.Nameplates then
-			ValidateAndSetupModule("Nameplates", BETTERUI.Nameplates)
-		end
-		if BETTERUI.GetModuleEnabled("ResourceOrbFrames") and BETTERUI.ResourceOrbFrames then
-			ValidateAndSetupModule("ResourceOrbFrames", BETTERUI.ResourceOrbFrames)
+		for _, entry in ipairs(MODULE_REGISTRY) do
+			if entry.name ~= "CIM" then -- Skip CIM, it's internal
+				if BETTERUI.GetModuleEnabled(entry.name) and BETTERUI[entry.namespace] then
+					-- For Nameplates, also check GeneralInterface dependency
+					if entry.name == "Nameplates" then
+						if BETTERUI.GetModuleEnabled("GeneralInterface") then
+							ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace])
+						end
+					else
+						ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace])
+					end
+				end
+			end
 		end
 	end
 	-- Ensure companion equip patch is queued even if modules didn't hook above
