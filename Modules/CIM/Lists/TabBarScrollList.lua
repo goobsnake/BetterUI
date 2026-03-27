@@ -308,7 +308,7 @@ function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDi
     BETTERUI_HorizontalParametricScrollList.SetSelectedIndex(self, selectedIndex, allowEvenIfDisabled, forceAnimation)
     self:RefreshPips()
     if self.UpdateAnchors then
-        self:UpdateAnchors(selectedIndex, false, false)
+        self:UpdateAnchors(selectedIndex, false, false, false)
     end
 
     -- BetterUI Fix: Fire callback directly if selection actually changed
@@ -330,7 +330,7 @@ function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedInde
         dontCallSelectedDataChangedCallback)
     self:RefreshPips()
     if self.UpdateAnchors then
-        self:UpdateAnchors(selectedIndex, true, false)
+        self:UpdateAnchors(selectedIndex, true, false, false)
     end
 end
 
@@ -350,7 +350,7 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_BACK)
         if self.UpdateAnchors then
-            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
+            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false, false)
         end
     elseif not suppressFailSound then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
@@ -375,7 +375,7 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     if succeeded then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_FORWARD)
         if self.UpdateAnchors then
-            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false)
+            self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false, false)
         end
     elseif not suppressFailSound then
         self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)

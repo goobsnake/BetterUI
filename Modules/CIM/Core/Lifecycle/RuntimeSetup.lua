@@ -22,6 +22,7 @@ Last Modified: 2026-03-26
 -- NAMESPACE SETUP
 -- ============================================================================
 
+---@diagnostic disable-next-line: missing-fields
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.RuntimeSetup = {}
 

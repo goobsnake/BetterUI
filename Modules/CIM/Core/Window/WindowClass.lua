@@ -33,11 +33,16 @@ end
 --- SECTION: Window Class Definition
 ---==========================================================
 
+--- @class BETTERUI_WindowHeader : Control
+--- @field MoveNext function
+--- @field MovePrev function
+--- @field columns table
+
 --- @class BETTERUI.Interface.Window : ZO_Object
 --- @field windowName string The name of the top-level window
 --- @field sceneName string|nil The scene name identifier
 --- @field control Control|nil The main UI control
---- @field header Control|nil The header control
+--- @field header BETTERUI_WindowHeader|nil The header control
 --- @field footer Control|nil The footer control
 --- @field spinner Control|nil The spinner control
 --- @field list table|nil The scroll list
@@ -50,7 +55,7 @@ end
 --- @field confirmationMode boolean|nil Whether spinner confirmation mode is active
 --- @field itemListTemplate string|nil The template name for list items
 --- @field selectedDataCallback function|nil Callback for selection changes
---- @field header columns table|nil Column header controls
+--- @field headerColumns table|nil Column header controls
 BETTERUI.Interface.Window = ZO_Object:Subclass()
 
 --- Constructor for the Base Window class.
@@ -85,7 +90,7 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
     self.sceneName = scene_name -- Store for reference by subclasses
     local template = virtualTemplate or "BETTERUI_GenericInterface"
     self.control = BETTERUI.WindowManager:CreateControlFromVirtual(tlw_name, GuiRoot, template)
-    self.header = self.control:GetNamedChild("ContainerHeader")
+    self.header = self.control:GetNamedChild("ContainerHeader") --[[@as BETTERUI_WindowHeader]]
     self.footer = self.control:GetNamedChild("ContainerFooter")
 
     -- Safely get spinner control from the hierarchy
@@ -202,8 +207,11 @@ end
 ---
 --- @param listName string|nil Optional list name (not used in default implementation).
 function BETTERUI.Interface.Window:InitializeList(listName)
-    self.list = BETTERUI_VerticalItemParametricScrollList:New(self.control:GetNamedChild("Container"):GetNamedChild(
-        "List")) -- replace the itemList with my own generic one (with better gradient size, etc.)
+    local container = self.control and self.control:GetNamedChild("Container")
+    local listControl = container and container:GetNamedChild("List")
+    if not listControl then return end
+    
+    self.list = BETTERUI_VerticalItemParametricScrollList:New(listControl) -- replace the itemList with my own generic one (with better gradient size, etc.)
 
     self:GetList():SetAlignToScreenCenter(true, 30)
 

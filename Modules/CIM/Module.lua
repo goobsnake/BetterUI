@@ -48,8 +48,6 @@ local ClampInteger = BETTERUI.ClampInteger
 --- Wrapper Function (caller):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
---- @param m_options table|nil The raw settings/options table to be initialized
---- @return table The modified options table with default values applied
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS

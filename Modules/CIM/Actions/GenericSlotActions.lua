@@ -436,6 +436,7 @@ return: string - The resolved action name for display.
 ]]
 function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
     local retrieveActionName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
     local actionName = primaryAction or stowActionName
     local isInCraftBag = BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
 

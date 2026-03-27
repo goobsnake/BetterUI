@@ -7,6 +7,9 @@ Author: BetterUI Team
 Last Modified: 2026-03-14
 ]]
 
+---@diagnostic disable: lowercase-global, undefined-global
+
+if not BETTERUI then BETTERUI = {} end
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.CONST then BETTERUI.CIM.CONST = {} end
 

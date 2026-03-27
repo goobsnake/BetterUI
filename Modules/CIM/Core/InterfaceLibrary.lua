@@ -25,7 +25,6 @@ This file now serves as:
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 --- @class BETTERUI.CIM
---- @field SetTooltipWidth fun(width: number)
 BETTERUI.CIM = BETTERUI.CIM or {}
 
 -- ============================================================================
