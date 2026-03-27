@@ -133,12 +133,36 @@ function BETTERUI.GeneralInterface.Setup()
 		end
 	end)
 
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP), GAMEPAD_LEFT_TOOLTIP, "LayoutItem", BETTERUI.ReturnItemLink,
-		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP), GAMEPAD_RIGHT_TOOLTIP, "LayoutItem", BETTERUI.ReturnItemLink,
-		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
-	BETTERUI.InventoryHook(GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP), GAMEPAD_MOVABLE_TOOLTIP, "LayoutItem", BETTERUI.ReturnItemLink,
-		"LayoutBagItem", BETTERUI.ReturnSelectedData, "LayoutGuildStoreSearchResult", BETTERUI.ReturnStoreSearch)
+	BETTERUI.InventoryHook({
+		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP),
+		tooltipType    = GAMEPAD_LEFT_TOOLTIP,
+		method         = "LayoutItem",
+		linkFunc       = BETTERUI.ReturnItemLink,
+		method2        = "LayoutBagItem",
+		linkFunc2      = BETTERUI.ReturnSelectedData,
+		method3        = "LayoutGuildStoreSearchResult",
+		linkFunc3      = BETTERUI.ReturnStoreSearch,
+	})
+	BETTERUI.InventoryHook({
+		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP),
+		tooltipType    = GAMEPAD_RIGHT_TOOLTIP,
+		method         = "LayoutItem",
+		linkFunc       = BETTERUI.ReturnItemLink,
+		method2        = "LayoutBagItem",
+		linkFunc2      = BETTERUI.ReturnSelectedData,
+		method3        = "LayoutGuildStoreSearchResult",
+		linkFunc3      = BETTERUI.ReturnStoreSearch,
+	})
+	BETTERUI.InventoryHook({
+		tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_MOVABLE_TOOLTIP),
+		tooltipType    = GAMEPAD_MOVABLE_TOOLTIP,
+		method         = "LayoutItem",
+		linkFunc       = BETTERUI.ReturnItemLink,
+		method2        = "LayoutBagItem",
+		linkFunc2      = BETTERUI.ReturnSelectedData,
+		method3        = "LayoutGuildStoreSearchResult",
+		linkFunc3      = BETTERUI.ReturnStoreSearch,
+	})
 
 	-- Hook LayoutStoreWindowItem on each tooltip control to capture item links
 	-- for merchant/NPC store items. These use LayoutStoreItemFromLink → LayoutItem

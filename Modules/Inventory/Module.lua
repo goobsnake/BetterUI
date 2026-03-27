@@ -94,57 +94,6 @@ function BETTERUI.Inventory.InitModule(m_options)
     m_options["columnFontSize"] = m_options["columnFontSize"] or funcDefaults.columnFontSize
     m_options["columnFontStyle"] = m_options["columnFontStyle"] or funcDefaults.columnFontStyle
 
-    -- Migration
-    if m_options["font"] and not m_options["nameFont"] then
-        m_options["nameFont"] = m_options["font"]
-        m_options["columnFont"] = m_options["font"]
-    end
-    if m_options["skinSize"] and not m_options["nameFontSize"] then
-        m_options["nameFontSize"] = m_options["skinSize"]
-        m_options["columnFontSize"] = m_options["skinSize"]
-    end
-    if m_options["fontStyle"] and not m_options["nameFontStyle"] then
-        local oldStyle = m_options["fontStyle"]
-        if type(oldStyle) == "number" then
-            local styleMap = {
-                [0] = "",
-                [1] = "outline",
-                [2] = "thick-outline",
-                [3] = "shadow",
-                [4] = "soft-shadow-thick",
-                [5] = "soft-shadow-thin"
-            }
-            oldStyle = styleMap[oldStyle] or funcDefaults.nameFontStyle
-        end
-        m_options["nameFontStyle"] = oldStyle
-        m_options["columnFontStyle"] = oldStyle
-    end
-
-    -- Migration: Western-only fonts -> Localized font (for CJK/Russian support)
-    -- Only migrate non-English users; English users keep their font selections
-    local currentLang = GetCVar("language.2") or "en"
-    local isEnglish = (currentLang == "en")
-
-    if not isEnglish then
-        local westernOnlyFonts = {
-            ["EsoUI/Common/Fonts/FTN57.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN47.otf"] = true,
-            ["EsoUI/Common/Fonts/FTN87.otf"] = true,
-            ["EsoUI/Common/Fonts/Univers57.otf"] = true,
-            ["EsoUI/Common/Fonts/Univers67.otf"] = true,
-            ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
-            ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
-            ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
-            ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
-            ["EsoUI/Common/Fonts/consola.otf"] = true,
-        }
-        if m_options["nameFont"] and westernOnlyFonts[m_options["nameFont"]] then
-            m_options["nameFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-        end
-        if m_options["columnFont"] and westernOnlyFonts[m_options["columnFont"]] then
-            m_options["columnFont"] = "$(GAMEPAD_MEDIUM_FONT)"
-        end
-    end
 
     -- Currency defaults should match the canonical "default" preset (same behavior as reset).
     local defaultCurrencyPreset = BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS.default
@@ -189,18 +138,6 @@ function BETTERUI.Inventory.InitModule(m_options)
         "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
     end
 
-    -- Migration: Rename showCurrencyEventTickets -> showCurrencyTradeBars
-    if m_options["showCurrencyEventTickets"] ~= nil then
-        m_options["showCurrencyTradeBars"] = m_options["showCurrencyEventTickets"]
-        m_options["showCurrencyEventTickets"] = nil
-    end
-    if m_options["orderCurrencyEventTickets"] ~= nil then
-        m_options["showCurrencyTradeBars"] = m_options["orderCurrencyEventTickets"]
-        m_options["orderCurrencyEventTickets"] = nil
-    end
-    if m_options["currencyOrder"] ~= nil then
-        m_options["currencyOrder"] = string.gsub(m_options["currencyOrder"], "tickets", "tradebars")
-    end
 
     -- Persisted font sizes may exceed current slider caps from prior versions.
     if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then

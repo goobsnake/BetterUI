@@ -86,6 +86,23 @@ Migration 5: GeneralInterface Module Existence Guarantee
         didn't run (new users or corrupted saved vars).
     Action: settings.Modules["GeneralInterface"] = {}
 
+    Migration 6: Western-only Fonts → Localized Font
+        Trigger: !isEnglish and modSettings.nameFont in westernOnlyFonts
+        Version: Since v3.06 (Centralized)
+        Description:
+            Migrates hardcoded Western-only font paths to localized aliases
+            ($(GAMEPAD_MEDIUM_FONT)) for non-English users to support
+            CJK and Russian characters.
+        Action: modSettings.nameFont = "$(GAMEPAD_MEDIUM_FONT)"
+
+    Migration 7: EventTickets → TradeBars Currency Rename
+        Trigger: modSettings.showCurrencyEventTickets ~= nil
+        Version: Since v3.07
+        Description:
+            Renames "Event Tickets" to "Trade Bars" in settings to match
+            ZOS terminology updates.
+        Action: modSettings.showCurrencyTradeBars = modSettings.showCurrencyEventTickets
+
 HOW TO ADD NEW MIGRATIONS:
     1. Add migration logic to RunSettingsMigrations() below
     2. Document the migration in this header comment
@@ -258,11 +275,81 @@ local function RunSettingsMigrations(settings)
 
     -- Phase: migration-2-enabled-standardization
     -- Migration 2: Standardize 'enabled' to 'm_enabled'
+    -- Migration 6: Western-only fonts migration
+    -- Migration 7: Currency rename (EventTickets -> TradeBars)
     --- @deprecated Legacy "enabled" key is transitional; replaced by "m_enabled" since v2.8
+    local currentLang = GetCVar("language.2") or "en"
+    local isEnglish = (currentLang == "en")
+    local westernOnlyFonts = {
+        ["EsoUI/Common/Fonts/FTN57.otf"] = true,
+        ["EsoUI/Common/Fonts/FTN47.otf"] = true,
+        ["EsoUI/Common/Fonts/FTN87.otf"] = true,
+        ["EsoUI/Common/Fonts/Univers57.otf"] = true,
+        ["EsoUI/Common/Fonts/Univers67.otf"] = true,
+        ["EsoUI/Common/Fonts/ProseAntiquePSMT.otf"] = true,
+        ["EsoUI/Common/Fonts/Handwritten_Bold.otf"] = true,
+        ["EsoUI/Common/Fonts/TrajanPro-Regular.otf"] = true,
+        ["EsoUI/Common/Fonts/Skyrim_Handwritten.otf"] = true,
+        ["EsoUI/Common/Fonts/consola.otf"] = true,
+    }
+
     for modName, modSettings in pairs(settings.Modules) do
-        if type(modSettings) == "table" and modSettings.enabled ~= nil and modSettings.m_enabled == nil then
-            modSettings.m_enabled = modSettings.enabled
-            modSettings.enabled = nil
+        if type(modSettings) == "table" then
+            -- M2: Enabled standardization
+            if modSettings.enabled ~= nil and modSettings.m_enabled == nil then
+                modSettings.m_enabled = modSettings.enabled
+                modSettings.enabled = nil
+            end
+
+            -- M5: Legacy Font/Size/Style migrations
+            if modSettings.font and modSettings.nameFont == nil then
+                modSettings.nameFont = modSettings.font
+                modSettings.columnFont = modSettings.font
+            end
+            if modSettings.skinSize and modSettings.nameFontSize == nil then
+                modSettings.nameFontSize = modSettings.skinSize
+                modSettings.columnFontSize = modSettings.skinSize
+            end
+            if modSettings.fontStyle and modSettings.nameFontStyle == nil then
+                local oldStyle = modSettings.fontStyle
+                if type(oldStyle) == "number" then
+                    local styleMap = {
+                        [0] = "",
+                        [1] = "outline",
+                        [2] = "thick-outline",
+                        [3] = "shadow",
+                        [4] = "soft-shadow-thick",
+                        [5] = "soft-shadow-thin"
+                    }
+                    modSettings.nameFontStyle = styleMap[oldStyle] or ""
+                else
+                    modSettings.nameFontStyle = oldStyle
+                end
+                modSettings.columnFontStyle = modSettings.nameFontStyle
+            end
+
+            -- M6: Western-only fonts (Localized support)
+            if not isEnglish then
+                if modSettings.nameFont and westernOnlyFonts[modSettings.nameFont] then
+                    modSettings.nameFont = "$(GAMEPAD_MEDIUM_FONT)"
+                end
+                if modSettings.columnFont and westernOnlyFonts[modSettings.columnFont] then
+                    modSettings.columnFont = "$(GAMEPAD_MEDIUM_FONT)"
+                end
+            end
+
+            -- M7: Currency rename (Tickets -> TradeBars)
+            if modSettings.showCurrencyEventTickets ~= nil then
+                modSettings.showCurrencyTradeBars = modSettings.showCurrencyEventTickets
+                modSettings.showCurrencyEventTickets = nil
+            end
+            if modSettings.orderCurrencyEventTickets ~= nil then
+                modSettings.orderCurrencyTradeBars = modSettings.orderCurrencyEventTickets
+                modSettings.orderCurrencyEventTickets = nil
+            end
+            if type(modSettings.currencyOrder) == "string" then
+                modSettings.currencyOrder = string.gsub(modSettings.currencyOrder, "tickets", "tradebars")
+            end
         end
     end
 

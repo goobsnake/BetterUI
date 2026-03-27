@@ -355,7 +355,6 @@ end
 ---
 --- References: Called by Setup.
 ---
-
 --- Returns true if a known-incompatible scene is currently active.
 --- These are native ESO scenes that share gamepad tooltip controls with BetterUI
 --- but pass non-inventory data (e.g., housing furniture) that BetterUI cannot handle.
@@ -381,240 +380,225 @@ local function IsIncompatibleSceneActive()
 end
 
 --- @class InventoryHookConfig
---- @field tooltipControl userdata
---- @field tooltipType string
---- @field method function
---- @field linkFunc function
---- @field method2 function|nil
---- @field linkFunc2 function|nil
---- @field method3 function|nil
---- @field linkFunc3 function|nil
+--- @field tooltipControl userdata The tooltip control to hook.
+--- @field tooltipType number Tooltip type constant (e.g. GAMEPAD_LEFT_TOOLTIP).
+--- @field method string The method name to hook/override (e.g. "LayoutItem").
+--- @field linkFunc function Function to retrieve item link for 'method'.
+--- @field method2 string Secondary method to hook (e.g. "LayoutBagItem").
+--- @field linkFunc2 function Function to retrieve bag/slot for 'method2'.
+--- @field method3 string Tertiary method to hook (e.g. "LayoutGuildStoreSearchResult").
+--- @field linkFunc3 function Function to retrieve store link for 'method3'.
 
---- @param tooltipControl object The tooltip control to hook.
---- @param tooltipType any Tooltip type constant (reserved for future use).
---- @param method string The method name to hook/override.
---- @param linkFunc function Function to retrieve item link.
---- @param method2 string Secondary method to hook (typically for bag/slot retrieval).
---- @param linkFunc2 function Secondary link function.
---- @param method3 string Tertiary method to hook (for store search).
---- @param linkFunc3 function Tertiary link function.
-function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
-    local newMethod = tooltipControl[method]
-    local newMethod2 = tooltipControl[method2]
-    local newMethod3 = tooltipControl[method3]
+--- @param config InventoryHookConfig|userdata If userdata, treats as legacy positional (tooltipControl).
+function BETTERUI.InventoryHook(config, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
+    local tooltipControl, tooltipType
+    local layoutItemName, layoutItemDataFn
+    local layoutBagName, layoutBagDataFn
+    local layoutStoreName, layoutStoreDataFn
+
+    if type(config) == "table" and config.tooltipControl then
+        -- New table-based call
+        tooltipControl = config.tooltipControl
+        tooltipType = config.tooltipType
+        layoutItemName = config.method or "LayoutItem"
+        layoutItemDataFn = config.linkFunc
+        layoutBagName = config.method2 or "LayoutBagItem"
+        layoutBagDataFn = config.linkFunc2
+        layoutStoreName = config.method3 or "LayoutGuildStoreSearchResult"
+        layoutStoreDataFn = config.linkFunc3
+    else
+        -- Legacy positional call (backward compatibility)
+        tooltipControl = config
+        tooltipType = _tooltipType
+        layoutItemName = method or "LayoutItem"
+        layoutItemDataFn = linkFunc
+        layoutBagName = method2 or "LayoutBagItem"
+        layoutBagDataFn = linkFunc2
+        layoutStoreName = method3 or "LayoutGuildStoreSearchResult"
+        layoutStoreDataFn = linkFunc3
+    end
+
+    if not (tooltipControl and (layoutItemName or layoutBagName or layoutStoreName)) then
+        return
+    end
+
+    local newMethod = tooltipControl[layoutItemName]
+    local newMethod2 = tooltipControl[layoutBagName]
+    local newMethod3 = tooltipControl[layoutStoreName]
     local bagId
     local itemLink
     local slotIndex
     local storeItemLink
     local storeStackCount
 
-    tooltipControl[method2] = function(self, ...)
-        -- Layer 1: Blocklist guard — if an incompatible scene (e.g., housing
-        -- furniture browser) is active, pass through to native method and skip
-        -- ALL BetterUI logic. This leaves the tooltip in native ESO state.
-        if IsIncompatibleSceneActive() then
-            newMethod2(self, ...)
-            return
-        end
-        -- Layer 2: SafeExecute safety net for unknown future scene conflicts
-        local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:path-recovery", function(...)
-            return { linkFunc2(...) }
-        end, ...)
-        if ok and result then
-            bagId, slotIndex = result[1], result[2]
-        else
-            bagId, slotIndex = nil, nil
-        end
-        -- Clear store-specific state when navigating to a bag item
-        storeItemLink = nil
-        storeStackCount = nil
-        newMethod2(self, ...)
-    end
-    tooltipControl[method3] = function(self, ...)
-        -- Layer 1: Blocklist guard
-        if IsIncompatibleSceneActive() then
-            newMethod3(self, ...)
-            return
-        end
-        -- Layer 2: SafeExecute safety net
-        local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:store-link", function(...)
-            return { linkFunc3(...) }
-        end, ...)
-        if ok and result then
-            storeItemLink, storeStackCount = result[1], result[2]
-        else
-            storeItemLink, storeStackCount = nil, nil
-        end
-        -- Clear bag-specific state when navigating to a store item
-        bagId = nil
-        slotIndex = nil
-        newMethod3(self, ...)
-    end
-    tooltipControl[method] = function(self, ...)
-        -- Layer 1: Blocklist guard — if an incompatible scene is active, call
-        -- ONLY the native ESO tooltip method and return immediately. No BetterUI
-        -- state is modified, no link extraction runs, no deferred callbacks fire.
-        -- The user sees the native ESO tooltip exactly as the game intended.
-        if IsIncompatibleSceneActive() then
-            newMethod(self, ...)
-            return
-        end
-
-        if storeItemLink then
-            itemLink = storeItemLink
-        else
-            -- Layer 2: SafeExecute safety net for unknown future scene conflicts
-            local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:item-link", function(...)
-                return { linkFunc(...) }
+    if newMethod2 then
+        tooltipControl[layoutBagName] = function(self, ...)
+            -- Layer 1: Blocklist guard
+            if IsIncompatibleSceneActive() then
+                newMethod2(self, ...)
+                return
+            end
+            -- Layer 2: SafeExecute safety net
+            local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:path-recovery", function(...)
+                return { layoutBagDataFn(...) }
             end, ...)
             if ok and result then
-                itemLink = result[1]
+                bagId, slotIndex = result[1], result[2]
             else
-                itemLink = nil
+                bagId, slotIndex = nil, nil
             end
+            -- Clear store-specific state
+            storeItemLink = nil
+            storeStackCount = nil
+            newMethod2(self, ...)
         end
+    end
 
-        -- Capture current item link for Status Hook/Inventory Update to read
-        local effectiveStoreStackCount = storeStackCount
-        if effectiveStoreStackCount == nil and bagId == nil and slotIndex == nil then
-            effectiveStoreStackCount = self._betterui_storeStackCount
-        end
-        self._betterui_itemLink = itemLink
-        self._betterui_bagId = bagId
-        self._betterui_slotIndex = slotIndex
-        self._betterui_storeStackCount = effectiveStoreStackCount
-
-        -- Reset price-rendered flag so the deferred injection can fire
-        -- (Inventory/Banking set this to true in UpdateTooltipEquippedText)
-        self._betterui_priceRendered = false
-
-        -- Clear consumed store state to prevent it persisting to the next item
-        storeItemLink = nil
-        storeStackCount = nil
-
-        -- 1. Draw the standard tooltip first (other addon hooks fire within this call chain)
-        -- Layer 2: SafeExecute wrapper for the original layout method.
-        -- If this crashes from unexpected data in an unknown future scene,
-        -- we absorb rather than blanking the entire UI, with proper error logging.
-        local layoutOk = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
-        if not layoutOk then
-            return
-        end
-
-        -- 2. Get Settings
-        local settings = BETTERUI.Settings.Modules["CIM"]
-        local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
-
-        local fontSize = BETTERUI.GetTooltipFontSize()
-        local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
-
-        -- 3. Scale Fonts immediately (this is safe to do now)
-        for i = 1, self:GetNumChildren() do
-            local child = self:GetChild(i)
-            if child and child:GetType() == CT_LABEL then
-                child:SetFont(fontStr)
+    if newMethod3 then
+        tooltipControl[layoutStoreName] = function(self, ...)
+            -- Layer 1: Blocklist guard
+            if IsIncompatibleSceneActive() then
+                newMethod3(self, ...)
+                return
             end
+            -- Layer 2: SafeExecute safety net
+            local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:store-link", function(...)
+                return { layoutStoreDataFn(...) }
+            end, ...)
+            if ok and result then
+                storeItemLink, storeStackCount = result[1], result[2]
+            else
+                storeItemLink, storeStackCount = nil, nil
+            end
+            -- Clear bag-specific state
+            bagId = nil
+            slotIndex = nil
+            newMethod3(self, ...)
         end
+    end
 
-        -- 4. Universal enhanced tooltip header injection
-        -- Deferred by 1 frame so Inventory/Banking's own UpdateTooltipEquippedText call
-        -- gets first priority. If that function runs (setting _betterui_priceRendered),
-        -- the deferred injection skips. For all other scenes (guild store, merchant,
-        -- fence, crafting, companion, etc.), this fires and renders the full enhanced
-        -- header: lock, bound, bind type, traits, stolen, junk, bag/bank/craftbag counts,
-        -- market prices, and research trait info.
-        if itemLink then
-            local tooltipRef = self
-            local capturedTooltipType = tooltipType
-            local capturedItemLink = itemLink
+    if newMethod then
+        tooltipControl[layoutItemName] = function(self, ...)
+            -- Layer 1: Blocklist guard
+            if IsIncompatibleSceneActive() then
+                newMethod(self, ...)
+                return
+            end
 
-            zo_callLater(function()
-                -- Skip if tooltip is gone, hidden, or Inventory/Banking already rendered
-                if not tooltipRef or tooltipRef:IsHidden() then return end
-                if tooltipRef._betterui_priceRendered then return end
+            if storeItemLink then
+                itemLink = storeItemLink
+            else
+                -- Layer 2: SafeExecute safety net
+                local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:link-extraction", function(...)
+                    return layoutItemDataFn(...)
+                end, ...)
+                if ok then
+                    itemLink = result
+                else
+                    itemLink = nil
+                end
+            end
 
-                -- Layer 3: Scene-identity guard (belt-and-suspenders).
-                -- The blocklist guard at entry should prevent us from reaching here
-                -- for known-incompatible scenes, but this catches edge cases where
-                -- a deferred callback was scheduled just before a scene transition.
-                if IsIncompatibleSceneActive() then return end
+            -- Capture current item link
+            local effectiveStoreStackCount = storeStackCount
+            if effectiveStoreStackCount == nil and bagId == nil and slotIndex == nil then
+                effectiveStoreStackCount = self._betterui_storeStackCount
+            end
+            self._betterui_itemLink = itemLink
+            self._betterui_bagId = bagId
+            self._betterui_slotIndex = slotIndex
+            self._betterui_storeStackCount = effectiveStoreStackCount
 
-                -- Skip if user scrolled to a different item since we were scheduled
-                -- (the LayoutItem wrapper updates _betterui_itemLink synchronously)
-                if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
+            -- Reset price-rendered flag
+            self._betterui_priceRendered = false
 
-                -- Render full enhanced header (equipSlot=nil for non-equipped items)
-                BETTERUI.Inventory.UpdateTooltipEquippedText(capturedTooltipType, nil)
-            end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
-        end
+            -- Clear consumed store state
+            storeItemLink = nil
+            storeStackCount = nil
 
+            -- 1. Draw the standard tooltip first
+            local layoutOk = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
+            if not layoutOk then
+                return
+            end
 
-        -- 5. Defer duplicate addon label cleanup to next frame
-        -- Trading addons (TTC, MM, ATT) may hook LayoutItem AFTER BetterUI,
-        -- meaning their labels are added after our wrapper returns. By deferring
-        -- the cleanup scan, we ensure all addon hooks have finished.
-        -- The scan must be RECURSIVE because addon labels added via
-        -- ZO_Tooltip:AddLine() are nested inside section controls, not direct
-        -- children of the tooltip.
-        if enhancementsEnabled then
-            local tooltipRef = self
-            zo_callLater(function()
-                if not tooltipRef or tooltipRef:IsHidden() then return end
-                -- Layer 3: Scene-identity guard (belt-and-suspenders)
-                if IsIncompatibleSceneActive() then return end
+            -- 2. Get Settings
+            local settings = BETTERUI.Settings.Modules["CIM"]
+            local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
 
-                -- Recursive label scan: trading addon labels are nested inside
-                -- ZO_TooltipSection controls (tooltip → contentsSection → subsection → label)
-                local function ScanAndHideAddonLabels(control)
-                    for i = 1, control:GetNumChildren() do
-                        local child = control:GetChild(i)
-                        if child then
-                            if child:GetType() == CT_LABEL and not child:IsHidden() then
-                                local text = child:GetText()
-                                if text then
-                                    -- Strip ESO color markup (|cXXXXXX ... |r) for matching,
-                                    -- since addons may wrap their labels in color codes
-                                    local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-                                    -- Match known addon label prefixes
-                                    local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
-                                        or (plainText:find("^Tamriel Trade Centre") ~= nil)
-                                        or (plainText:find("^M%.M%.") ~= nil)
-                                        or (plainText:find("^Master Merchant") ~= nil)
-                                        or (plainText:find("^ATT:") ~= nil)
-                                        or (plainText:find("^Arkadius' Trade Tools") ~= nil)
-                                    if isDuplicateAddonLine then
-                                        child:SetHidden(true)
-                                        child:SetHeight(0)
+            local fontSize = BETTERUI.GetTooltipFontSize()
+            local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
 
-                                        -- Also hide the preceding divider texture if present
-                                        if i > 1 then
-                                            local prevChild = control:GetChild(i - 1)
-                                            if prevChild and prevChild:GetType() == CT_TEXTURE then
-                                                prevChild:SetHidden(true)
-                                                prevChild:SetHeight(0)
+            -- 3. Scale Fonts
+            for i = 1, self:GetNumChildren() do
+                local child = self:GetChild(i)
+                if child and child:GetType() == CT_LABEL then
+                    child:SetFont(fontStr)
+                end
+            end
+
+            -- 4. Universal enhanced tooltip header injection
+            if itemLink then
+                local tooltipRef = self
+                local capturedTooltipType = tooltipType
+                local capturedItemLink = itemLink
+
+                zo_callLater(function()
+                    if not tooltipRef or tooltipRef:IsHidden() then return end
+                    if tooltipRef._betterui_priceRendered then return end
+                    if IsIncompatibleSceneActive() then return end
+                    if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
+
+                    -- Render full enhanced header (equipSlot=nil for non-equipped items)
+                    BETTERUI.Inventory.UpdateTooltipEquippedText(tonumber(capturedTooltipType) or 0, nil)
+                end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
+            end
+
+            -- 5. Defer duplicate addon label cleanup
+            if enhancementsEnabled then
+                local tooltipRef = self
+                zo_callLater(function()
+                    if not tooltipRef or tooltipRef:IsHidden() then return end
+                    if IsIncompatibleSceneActive() then return end
+
+                    local function ScanAndHideAddonLabels(control)
+                        for i = 1, control:GetNumChildren() do
+                            local child = control:GetChild(i)
+                            if child then
+                                if child:GetType() == CT_LABEL and not child:IsHidden() then
+                                    local text = child:GetText()
+                                    if text then
+                                        local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+                                        local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
+                                            or (plainText:find("^Tamriel Trade Centre") ~= nil)
+                                            or (plainText:find("^M%.M%.") ~= nil)
+                                            or (plainText:find("^Master Merchant") ~= nil)
+                                            or (plainText:find("^ATT:") ~= nil)
+                                            or (plainText:find("^Arkadius' Trade Tools") ~= nil)
+                                        if isDuplicateAddonLine then
+                                            child:SetHidden(true)
+                                            child:SetHeight(0)
+                                            if i > 1 then
+                                                local prevChild = control:GetChild(i - 1)
+                                                if prevChild and prevChild:GetType() == CT_TEXTURE then
+                                                    prevChild:SetHidden(true)
+                                                    prevChild:SetHeight(0)
+                                                end
                                             end
                                         end
                                     end
                                 end
-                            end
-                            -- Recurse into child controls (sections, containers)
-                            if child:GetNumChildren() > 0 then
-                                ScanAndHideAddonLabels(child)
+                                if child:GetNumChildren() > 0 then
+                                    ScanAndHideAddonLabels(child)
+                                end
                             end
                         end
                     end
-                end
-
-                ScanAndHideAddonLabels(tooltipRef)
-            end, 2) -- 2ms delay: must run AFTER deferred header injection (1ms) to avoid hiding our own price labels
+                    ScanAndHideAddonLabels(tooltipRef)
+                end, 2)
+            end
         end
     end
-end
-
---- Backward-compatible table-based wrapper around InventoryHook positional args.
---- @param config InventoryHookConfig
-function BETTERUI.InventoryHookTable(config)
-    return BETTERUI.InventoryHook(config.tooltipControl, config.tooltipType, config.method, config.linkFunc, config.method2, config.linkFunc2, config.method3, config.linkFunc3)
 end
 
 -- Passthrough helpers for tooltip hook data extraction

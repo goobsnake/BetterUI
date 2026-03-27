@@ -75,11 +75,8 @@ function BETTERUI.CreateSettingAccessors(moduleName, callback)
         end
 
         local setFunc = function(value)
-            -- Ensure settings table exists
-            if not BETTERUI.Settings.Modules[moduleName] then
-                BETTERUI.Settings.Modules[moduleName] = {}
-            end
-            BETTERUI.Settings.Modules[moduleName][key] = value
+            -- Use the unified SetSetting helper to ensure event emission
+            BETTERUI.SetSetting(moduleName, key, value)
 
             -- Run callback if provided
             if callback then callback() end

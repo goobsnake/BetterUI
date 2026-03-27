@@ -58,6 +58,21 @@ function BETTERUI.GetModuleEnabled(moduleName)
     return false
 end
 
+--[[
+Function: BETTERUI.SetModuleEnabled
+Sets the session-enabled status of a specific BetterUI module.
+References: Used during module cleanup/load-guards to soft-disable modules.
+param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
+param: enabled (boolean) - True to enable, false to disable for this session.
+]]
+--- @param moduleName string The key of the module in BETTERUI.Settings.Modules
+--- @param enabled boolean True to enable, false to disable for this session
+function BETTERUI.SetModuleEnabled(moduleName, enabled)
+    if not moduleName then return end
+    BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
+    BETTERUI._sessionDisabledModules[moduleName] = not enabled
+end
+
 -- ============================================================================
 -- ICON UTILITIES
 -- ============================================================================

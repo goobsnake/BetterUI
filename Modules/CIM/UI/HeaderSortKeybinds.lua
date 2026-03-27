@@ -6,9 +6,20 @@ Author: BetterUI Team
 Last Modified: 2026-03-14
 ]]
 
--- Guard: HeaderSortController must be loaded first
-if not (BETTERUI.CIM and BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController) then
-    error("HeaderSortKeybinds.lua requires HeaderSortController.lua to be loaded first")
+if not BETTERUI.CIM then BETTERUI.CIM = {} end
+if not BETTERUI.CIM.UI then BETTERUI.CIM.UI = {} end
+
+-- Strict Load Guard: Only proceed if HeaderSort is enabled and the controller class exists.
+-- Soft-disables module for this session if prerequisites are not met, avoiding hard crash.
+local function IsHeaderSortPrerequisiteMet()
+    if not BETTERUI.GetModuleEnabled("HeaderSort") then return false end
+    if not BETTERUI.CIM.UI.HeaderSortController then return false end
+    return true
+end
+
+if not IsHeaderSortPrerequisiteMet() then
+    BETTERUI.SetModuleEnabled("HeaderSort", false)
+    return
 end
 
 -- Reference sort direction constants from the controller class

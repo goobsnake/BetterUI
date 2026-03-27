@@ -47,8 +47,8 @@ local ClampInteger = BETTERUI.ClampInteger
 --- their namespace directly via the global BETTERUI table.
 ---
 --- Standard InitModule Signature (implemented by all modules):
----   @param m_options table|nil The raw settings table to be initialized
----   @return table The modified options table with default values applied
+---   param m_options table|nil The raw settings table to be initialized
+---   return table The modified options table with default values applied
 ---
 --- Wrapper Function (caller):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)

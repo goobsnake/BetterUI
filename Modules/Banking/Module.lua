@@ -81,34 +81,7 @@ function BETTERUI.Banking.InitModule(m_options)
 		enableCarousel = true,
 	}
 
-	m_options = BETTERUI.CIM.InitModuleDefaults("Banking", m_options, defaults, fallbackDefaults, function(options, moduleDefaults)
-		-- Migrate old settings to new format if present
-		if options["font"] and not options["nameFont"] then
-			options["nameFont"] = options["font"]
-			options["columnFont"] = options["font"]
-		end
-		if options["skinSize"] and not options["nameFontSize"] then
-			options["nameFontSize"] = options["skinSize"]
-			options["columnFontSize"] = options["skinSize"]
-		end
-
-		if options["fontStyle"] and not options["nameFontStyle"] then
-			local oldStyle = options["fontStyle"]
-			if type(oldStyle) == "number" then
-				local styleMap = {
-					[0] = "",
-					[1] = "outline",
-					[2] = "thick-outline",
-					[3] = "shadow",
-					[4] = "soft-shadow-thick",
-					[5] = "soft-shadow-thin",
-				}
-				oldStyle = styleMap[oldStyle] or moduleDefaults.nameFontStyle
-			end
-			options["nameFontStyle"] = oldStyle
-			options["columnFontStyle"] = oldStyle
-		end
-	end)
+	m_options = BETTERUI.CIM.InitModuleDefaults("Banking", m_options, defaults, fallbackDefaults)
 
 	return m_options
 end

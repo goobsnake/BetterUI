@@ -17,9 +17,8 @@ local Vendor = BETTERUI.Vendor
 -- COMPONENT TABLE
 -- ============================================================================
 --- @class BetterUIVendorFenceSellComponent
-Vendor.FenceSellComponent = {}
---- @type BetterUIVendorFenceSellComponent
-local FenceSell = Vendor.FenceSellComponent
+local FenceSell = {}
+Vendor.FenceSellComponent = FenceSell
 
 -- ============================================================================
 -- ACTIVATE / DEACTIVATE
@@ -30,7 +29,6 @@ function FenceSell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
---- @param vendorInstance BETTERUI.Vendor.Class
 --- @param vendorInstance BETTERUI.Vendor.Class
 --- @return nil
 function FenceSell:Deactivate(vendorInstance)
