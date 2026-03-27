@@ -50,6 +50,7 @@ local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 -------------------------------------------------------------------------------------------------
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
+---@diagnostic disable-next-line: undefined-doc-class
 --- @class BetterUIBankingCoordinator: BETTERUI.Banking.Class
 --- @field currentMode number
 --- @field lastPositions table<number, number>
@@ -135,7 +136,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
 
     -- Move selected item position up to align with tooltip arrow (matches Inventory)
-    self.list:SetFixedCenterOffset(LIST_FIXED_CENTER_OFFSET_Y)
+    self.list:SetFixedCenterOffset(-50)
 
     -- Setup data templates of the lists
     BETTERUI.Banking.Class.SetupItemList(self.list)

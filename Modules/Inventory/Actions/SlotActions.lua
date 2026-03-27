@@ -42,6 +42,7 @@ Last Modified: 2026-01-28
 --- @field visibilityFunction? fun(inventorySlot: table): boolean
 --- @field options? table
 ---
+---@diagnostic disable-next-line: undefined-doc-class
 --- @class BetterUIInventorySlotActions: ZO_ItemSlotActionsController
 --- @field slotActions table
 --- @field useKeybindStrip boolean
