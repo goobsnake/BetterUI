@@ -8,6 +8,21 @@ Extracted from Banking.lua for maintainability.
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
 
+-- Guild bank events registered/unregistered as a batch during scene transitions
+local GUILD_BANK_EVENTS = {
+    EVENT_GUILD_BANK_SELECTED,
+    EVENT_GUILD_BANK_DESELECTED,
+    EVENT_GUILD_BANK_ITEMS_READY,
+    EVENT_GUILD_BANK_ITEM_ADDED,
+    EVENT_GUILD_BANK_ITEM_REMOVED,
+    EVENT_GUILD_BANK_UPDATED_QUANTITY,
+    EVENT_GUILD_BANK_OPEN_ERROR,
+    EVENT_GUILD_BANKED_MONEY_UPDATE,
+    EVENT_GUILD_RANKS_CHANGED,
+    EVENT_GUILD_MEMBER_RANK_CHANGED,
+    EVENT_GUILD_SELF_LEFT_GUILD,
+}
+
 -- ─── Public API ──────────────────────────────────────────────────────────────
 
 --- Scene showing handler called by SceneLifecycleManager.
@@ -123,17 +138,22 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if self.isGuildBankMode and GuildBank then
         GuildBank.RegisterGuildSelectorDialog()
         local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_SELECTED, GuildBank.OnGuildBankSelected)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_DESELECTED, GuildBank.OnGuildBankDeselected)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_ITEMS_READY, GuildBank.OnGuildBankReady)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_ITEM_ADDED, GuildBank.OnGuildBankUpdated)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_ITEM_REMOVED, GuildBank.OnGuildBankUpdated)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_UPDATED_QUANTITY, GuildBank.OnGuildBankUpdated)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANK_OPEN_ERROR, GuildBank.OnGuildBankOpenError)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_BANKED_MONEY_UPDATE, GuildBank.OnGuildBankedMoneyUpdate)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_RANKS_CHANGED, GuildBank.OnGuildRanksChanged)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_MEMBER_RANK_CHANGED, GuildBank.OnGuildMemberRankChanged)
-        EVENT_MANAGER:RegisterForEvent(ns, EVENT_GUILD_SELF_LEFT_GUILD, GuildBank.OnGuildSelfLeft)
+        local eventHandlers = {
+            [EVENT_GUILD_BANK_SELECTED]         = GuildBank.OnGuildBankSelected,
+            [EVENT_GUILD_BANK_DESELECTED]       = GuildBank.OnGuildBankDeselected,
+            [EVENT_GUILD_BANK_ITEMS_READY]      = GuildBank.OnGuildBankReady,
+            [EVENT_GUILD_BANK_ITEM_ADDED]       = GuildBank.OnGuildBankUpdated,
+            [EVENT_GUILD_BANK_ITEM_REMOVED]     = GuildBank.OnGuildBankUpdated,
+            [EVENT_GUILD_BANK_UPDATED_QUANTITY]  = GuildBank.OnGuildBankUpdated,
+            [EVENT_GUILD_BANK_OPEN_ERROR]       = GuildBank.OnGuildBankOpenError,
+            [EVENT_GUILD_BANKED_MONEY_UPDATE]   = GuildBank.OnGuildBankedMoneyUpdate,
+            [EVENT_GUILD_RANKS_CHANGED]         = GuildBank.OnGuildRanksChanged,
+            [EVENT_GUILD_MEMBER_RANK_CHANGED]   = GuildBank.OnGuildMemberRankChanged,
+            [EVENT_GUILD_SELF_LEFT_GUILD]       = GuildBank.OnGuildSelfLeft,
+        }
+        for _, event in ipairs(GUILD_BANK_EVENTS) do
+            EVENT_MANAGER:RegisterForEvent(ns, event, eventHandlers[event])
+        end
     end
 end
 
@@ -165,18 +185,23 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     self.confirmationMode = false
 
     if KEYBIND_STRIP then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencyKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.currencySelectorKeybinds)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
-        if self._activeHeaderSortKeybindDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
-            self._activeHeaderSortKeybindDescriptor = nil
+        local keybindGroups = {
+            self.textSearchKeybindStripDescriptor,
+            self.withdrawDepositKeybinds,
+            self.coreKeybinds,
+            self.currencyKeybinds,
+            self.currencySelectorKeybinds,
+            self.spinnerKeybindStripDescriptor,
+            self.mainKeybindStripDescriptor,
+            self._activeHeaderSortKeybindDescriptor,
+            self.headerSortKeybindDescriptor,
+        }
+        for _, group in ipairs(keybindGroups) do
+            if group then
+                KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+            end
         end
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
+        self._activeHeaderSortKeybindDescriptor = nil
     end
     GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
 
@@ -201,17 +226,9 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     -- Unregister guild bank events
     local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_SELECTED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_DESELECTED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_ITEMS_READY)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_ITEM_ADDED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_ITEM_REMOVED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_UPDATED_QUANTITY)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANK_OPEN_ERROR)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_BANKED_MONEY_UPDATE)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_RANKS_CHANGED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_MEMBER_RANK_CHANGED)
-    EVENT_MANAGER:UnregisterForEvent(ns, EVENT_GUILD_SELF_LEFT_GUILD)
+    for _, event in ipairs(GUILD_BANK_EVENTS) do
+        EVENT_MANAGER:UnregisterForEvent(ns, event)
+    end
 
     -- Reset guild bank loading state
     if self.isGuildBankMode and BETTERUI.Banking.GuildBank then

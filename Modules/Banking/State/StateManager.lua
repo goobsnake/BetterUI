@@ -309,17 +309,11 @@ function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     self:RebuildHeaderCategories()
     state.justToggledMode = false
     local footer = self.footer:GetNamedChild("Footer")
-    if (self.currentMode == LIST_WITHDRAW) then
-        footer:GetNamedChild("SelectBg"):SetTextureRotation(0)
-
-        footer:GetNamedChild("DepositButtonLabel"):SetColor(unpack(BETTERUI_BANK_INACTIVE_LABEL_COLOR))
-        footer:GetNamedChild("WithdrawButtonLabel"):SetColor(1, 1, 1, 1)
-    else
-        footer:GetNamedChild("SelectBg"):SetTextureRotation(BETTERUI_BANK_DEPOSIT_ARROW_ROTATION)
-
-        footer:GetNamedChild("DepositButtonLabel"):SetColor(1, 1, 1, 1)
-        footer:GetNamedChild("WithdrawButtonLabel"):SetColor(unpack(BETTERUI_BANK_INACTIVE_LABEL_COLOR))
-    end
+    local isWithdraw = (self.currentMode == LIST_WITHDRAW)
+    local activeColor = { 1, 1, 1, 1 }
+    footer:GetNamedChild("SelectBg"):SetTextureRotation(isWithdraw and 0 or BETTERUI_BANK_DEPOSIT_ARROW_ROTATION)
+    footer:GetNamedChild("DepositButtonLabel"):SetColor(unpack(isWithdraw and BETTERUI_BANK_INACTIVE_LABEL_COLOR or activeColor))
+    footer:GetNamedChild("WithdrawButtonLabel"):SetColor(unpack(isWithdraw and activeColor or BETTERUI_BANK_INACTIVE_LABEL_COLOR))
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
     --KEYBIND_STRIP:UpdateKeybindButtonGroup(self.spinnerKeybindStripDescriptor)
     self:RefreshList()
