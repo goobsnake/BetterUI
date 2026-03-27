@@ -39,17 +39,7 @@ end
 --- @param key string The setting key.
 --- @param value any The value to set.
 function BETTERUI.Inventory.SetSetting(key, value)
-	if key == nil then return end
-	if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
-	--- SETTINGS BOUNDARY: Direct access to shared settings table.
-	--- TODO: Migrate to SettingsFactory boundary API for change signaling.
-	if not BETTERUI.Settings.Modules["Inventory"] then
-		BETTERUI.Settings.Modules["Inventory"] = {}
-	end
-	BETTERUI.Settings.Modules["Inventory"][key] = value
-	if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
-		CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", "Inventory", key, value)
-	end
+	BETTERUI.SetSetting("Inventory", key, value)
 end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.

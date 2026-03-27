@@ -18,6 +18,8 @@
 local m_writNameLabel = nil
 local m_writDescLabel = nil
 local m_writsPanel = nil
+local WRIT_CONTEXT_UPDATE = "Writs:Update"
+local WRIT_CONTEXT_SHOW = "Writs:Show"
 
 --- Caches control references for performance.
 ---
@@ -76,31 +78,33 @@ end
 --- @return nil
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
-	-- Resolve localized patterns once per scan (not per quest) — avoids
-	-- repeated GetCVar("language.2") calls inside a hot loop
-	local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-	for qId = 1, MAX_JOURNAL_QUESTS do
-		if IsValidQuestIndex(qId) then
-			if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
-			local qName, _, _, _, _, _ = GetJournalQuestInfo(qId)
-				local currentWrit                       = -1
-				local q                                 = string.lower(qName or "")
-				-- Use patterns from Constants.lua for maintainability
-				-- Order matters: last match wins as in the original chain
-				for i = 1, #patterns do
-					local pat = patterns[i].pattern
-					local craft = patterns[i].craftType
-					if string.find(q, pat, 1, true) then
-						currentWrit = craft
+	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_UPDATE, function()
+		-- Resolve localized patterns once per scan (not per quest) — avoids
+		-- repeated GetCVar("language.2") calls inside a hot loop
+		local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
+		for qId = 1, MAX_JOURNAL_QUESTS do
+			if IsValidQuestIndex(qId) then
+				if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
+				local qName, _, _, _, _, _ = GetJournalQuestInfo(qId)
+					local currentWrit                       = -1
+					local q                                 = string.lower(qName or "")
+					-- Use patterns from Constants.lua for maintainability
+					-- Order matters: last match wins as in the original chain
+					for i = 1, #patterns do
+						local pat = patterns[i].pattern
+						local craft = patterns[i].craftType
+						if string.find(q, pat, 1, true) then
+							currentWrit = craft
+						end
 					end
-				end
 
-				if currentWrit ~= -1 then
-					BETTERUI.Writs.List[currentWrit] = { id = qId, writLines = BETTERUI.Writs.Get(qId) }
+					if currentWrit ~= -1 then
+						BETTERUI.Writs.List[currentWrit] = { id = qId, writLines = BETTERUI.Writs.Get(qId) }
+					end
 				end
 			end
 		end
-	end
+	end)
 end
 
 --- Shows the Writ panel for a specific crafting station type.
@@ -115,8 +119,10 @@ end
 --- @param writType number The crafting type ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 --- @return nil
 function BETTERUI.Writs.Show(writType)
-	BETTERUI.Writs.Update()
-	if BETTERUI.Writs.List[writType] ~= nil then
+	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
+		BETTERUI.Writs.Update()
+		if BETTERUI.Writs.List[writType] == nil then return end
+
 		local qName, _, _, _, _, _ = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
 		-- Use cached control references for performance
 		if m_writNameLabel then
@@ -128,7 +134,7 @@ function BETTERUI.Writs.Show(writType)
 		if m_writsPanel then
 			m_writsPanel:SetHidden(false)
 		end
-	end
+	end)
 end
 
 --- Hides the Writ panel.

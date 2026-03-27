@@ -11,6 +11,20 @@ Key Responsibilities:
 ]]
 
 
+local function SafeExecuteWrits(context, fn, ...)
+    local safeExecute = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute
+    if safeExecute then
+        return safeExecute(context, fn, ...)
+    end
+    return fn(...)
+end
+
+local function IsWritsModuleEnabled()
+    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
+    local writsSettings = modules and modules["Writs"]
+    return writsSettings and writsSettings.m_enabled == true
+end
+
 --- Initializes the Writs module settings.
 ---
 --- Purpose: Callback for module initialization.
@@ -33,10 +47,12 @@ end
 --- @param sameStation boolean Whether interacting with same station type.
 --- @return nil
 local function OnCraftStation(eventCode, craftId, sameStation)
-    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
-        local id = craftId and tonumber(craftId)
-        if id then BETTERUI.Writs.Show(id) end
-    end
+    if not IsWritsModuleEnabled() then return end
+
+    local id = craftId and tonumber(craftId)
+    if not id then return end
+
+    SafeExecuteWrits("Writs:OnCraftStation", BETTERUI.Writs.Show, id)
 end
 
 --- Event handler for crafting station interaction (End).
@@ -47,7 +63,7 @@ end
 --- @param eventCode number The event code.
 --- @return nil
 local function OnCloseCraftStation(eventCode)
-    BETTERUI.Writs.Hide()
+    SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.Hide)
 end
 
 --- Event handler for crafting completion.
@@ -60,10 +76,12 @@ end
 --- @param craftId number The crafting ID (usually matching the station type).
 --- @return nil
 local function OnCraftItem(eventCode, craftId)
-    if BETTERUI.Settings.Modules["Writs"] and BETTERUI.Settings.Modules["Writs"].m_enabled then
-        local id = craftId and tonumber(craftId)
-        if id then BETTERUI.Writs.Show(id) end
-    end
+    if not IsWritsModuleEnabled() then return end
+
+    local id = craftId and tonumber(craftId)
+    if not id then return end
+
+    SafeExecuteWrits("Writs:OnCraftItem", BETTERUI.Writs.Show, id)
 end
 
 -- Sets up Writs module: creates UI and registers event handlers

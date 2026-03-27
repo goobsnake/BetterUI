@@ -32,6 +32,25 @@ function BETTERUI.GetSetting(moduleName, key, default)
     return default
 end
 
+--- Sets a specific setting value and emits the standard setting-changed callback.
+--- @param moduleName string The module name
+--- @param key string The setting key
+--- @param value any The value to set
+function BETTERUI.SetSetting(moduleName, key, value)
+    if key == nil then return end
+    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
+
+    if not BETTERUI.Settings.Modules[moduleName] then
+        BETTERUI.Settings.Modules[moduleName] = {}
+    end
+
+    BETTERUI.Settings.Modules[moduleName][key] = value
+
+    if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
+        CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", moduleName, key, value)
+    end
+end
+
 --- Creates a factory for generating get/set functions for LAM controls.
 --- Reduces boilerplate in Module options tables.
 ---

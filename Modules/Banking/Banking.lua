@@ -39,6 +39,7 @@ KEY MECHANICS:
 -------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
+local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 
 -------------------------------------------------------------------------------------------------
@@ -242,11 +243,9 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         if self._searchModeActive and self.list and self.list.IsActive and self.list:IsActive() then
             -- Process the keybind update for currency rows BEFORE exiting search focus
             -- This ensures the correct keybinds (currencyKeybinds or withdrawDepositKeybinds) are applied
-            if selectedData then
+            if selectedData and self.selectedDataCallback then
                 local selectedControl = list:GetSelectedControl()
-                if self.selectedDataCallback then
-                    self:selectedDataCallback(selectedControl, selectedData)
-                end
+                self:selectedDataCallback(selectedControl, selectedData)
             end
             -- Now exit search focus
             self:OnSearchFocusLost()
@@ -290,7 +289,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
 
         -- Currency transfers emit both carried+banked events; coalesce to one UI refresh.
-        BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", 40, function()
+        BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", CURRENCY_UI_REFRESH_DELAY_MS, function()
             if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
                 return
             end

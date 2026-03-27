@@ -9,6 +9,7 @@ if BETTERUI.Nameplates == nil then BETTERUI.Nameplates = {} end
 
 local NAMEPLATE_SIZE_MIN = 8
 local NAMEPLATE_SIZE_MAX = 64
+local DEFAULT_NAMEPLATE_SIZE = 16
 
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
@@ -59,11 +60,11 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
-                if settings then
-                    settings.m_enabled = value
-                    if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged then
-                        BETTERUI.Nameplates.OnEnabledChanged(value)
-                    end
+                if not settings then return end
+
+                settings.m_enabled = value
+                if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged then
+                    BETTERUI.Nameplates.OnEnabledChanged(value)
                 end
             end,
             width = "full",
@@ -88,11 +89,11 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
-                if settings then
-                    settings.font = value
-                    if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                        BETTERUI.Nameplates.ApplyCurrentSettings()
-                    end
+                if not settings then return end
+
+                settings.font = value
+                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+                    BETTERUI.Nameplates.ApplyCurrentSettings()
                 end
             end,
             disabled = function() return not IsNameplateEnabled() end,
@@ -113,11 +114,11 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
-                if settings then
-                    settings.style = value
-                    if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                        BETTERUI.Nameplates.ApplyCurrentSettings()
-                    end
+                if not settings then return end
+
+                settings.style = value
+                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+                    BETTERUI.Nameplates.ApplyCurrentSettings()
                 end
             end,
             disabled = function() return not IsNameplateEnabled() end,
@@ -130,19 +131,20 @@ function BETTERUI.Nameplates.GetSettingsOptions()
             min = NAMEPLATE_SIZE_MIN,
             max = NAMEPLATE_SIZE_MAX,
             step = 1,
-            default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.size or 16,
+            default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.size or DEFAULT_NAMEPLATE_SIZE,
             getFunc = function()
                 local settings = GetNameplateSettings()
-                local defaultSize = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS and BETTERUI.Nameplates.DEFAULTS.size or 16
+                local defaultSize = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS and BETTERUI.Nameplates.DEFAULTS.size or
+                    DEFAULT_NAMEPLATE_SIZE
                 return ClampInteger(settings and settings.size, NAMEPLATE_SIZE_MIN, NAMEPLATE_SIZE_MAX, defaultSize)
             end,
             setFunc = function(value)
                 local settings = EnsureNameplateSettings()
-                if settings then
-                    settings.size = value
-                    if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                        BETTERUI.Nameplates.ApplyCurrentSettings()
-                    end
+                if not settings then return end
+
+                settings.size = value
+                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
+                    BETTERUI.Nameplates.ApplyCurrentSettings()
                 end
             end,
             disabled = function() return not IsNameplateEnabled() end,

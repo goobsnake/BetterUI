@@ -397,51 +397,51 @@ param: labelControl (table) - The label control to update.
 --- @param columnIndex number Column index (1-indexed)
 --- @param labelControl table The label control to update
 function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelControl)
-    if self.columns[columnIndex] then
-        self.columns[columnIndex].labelControl = labelControl
+    local column = self.columns[columnIndex]
+    if not column then return end
 
-        -- Cache the original localized text from the label for proper display
-        -- The column.name field is just an identifier like "NAME", not the localized text
-        local originalText = labelControl:GetText()
-        if originalText and originalText ~= "" then
-            self.columns[columnIndex].originalText = originalText
-        end
+    column.labelControl = labelControl
 
-        -- Create arrow texture control if it doesn't exist
-        if not self.columns[columnIndex].arrowTexture then
-            -- Safety check: labelControl might not have a name if created dynamically
-            local baseName = labelControl:GetName()
-            local arrowName
-            if baseName and baseName ~= "" then
-                arrowName = baseName .. "Arrow"
-            else
-                -- Generate unique name based on column index
-                arrowName = "BETTERUI_HeaderSortArrow_" .. columnIndex
-            end
-            -- Parent to the label itself so it moves with the column
-            local arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
-            arrow:SetDimensions(24, 24)
-            -- Position arrow to the LEFT of the label text, vertically centered
-            arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
-            arrow:SetHidden(true)
-            self.columns[columnIndex].arrowTexture = arrow
-        end
-
-        -- Register mouse click handler for interactive sorting
-        local controller = self
-        labelControl:SetMouseEnabled(true)
-        labelControl:SetHandler("OnMouseUp", function(control, button)
-            if button == MOUSE_BUTTON_INDEX_LEFT then
-                -- Enter header mode if not active, select this column, and toggle sort
-                if not controller.isHeaderModeActive then
-                    controller:EnterHeaderMode()
-                end
-                controller.currentColumnIndex = columnIndex
-                controller:ToggleSortForColumn(columnIndex)
-                PlaySound(SOUNDS.MENU_BAR_CLICK)
-            end
-        end)
+    -- Cache the original localized text from the label for proper display
+    -- The column.name field is just an identifier like "NAME", not the localized text
+    local originalText = labelControl:GetText()
+    if originalText and originalText ~= "" then
+        column.originalText = originalText
     end
+
+    -- Create arrow texture control if it doesn't exist
+    if not column.arrowTexture then
+        -- Safety check: labelControl might not have a name if created dynamically
+        local baseName = labelControl:GetName()
+        local arrowName
+        if baseName and baseName ~= "" then
+            arrowName = baseName .. "Arrow"
+        else
+            -- Generate unique name based on column index
+            arrowName = "BETTERUI_HeaderSortArrow_" .. columnIndex
+        end
+        -- Parent to the label itself so it moves with the column
+        local arrow = WINDOW_MANAGER:CreateControl(arrowName, labelControl, CT_TEXTURE)
+        arrow:SetDimensions(24, 24)
+        -- Position arrow to the LEFT of the label text, vertically centered
+        arrow:SetAnchor(RIGHT, labelControl, LEFT, -4, 0)
+        arrow:SetHidden(true)
+        column.arrowTexture = arrow
+    end
+
+    -- Register mouse click handler for interactive sorting
+    local controller = self
+    labelControl:SetMouseEnabled(true)
+    labelControl:SetHandler("OnMouseUp", function(_, button)
+        if button ~= MOUSE_BUTTON_INDEX_LEFT then return end
+        -- Enter header mode if not active, select this column, and toggle sort
+        if not controller.isHeaderModeActive then
+            controller:EnterHeaderMode()
+        end
+        controller.currentColumnIndex = columnIndex
+        controller:ToggleSortForColumn(columnIndex)
+        PlaySound(SOUNDS.MENU_BAR_CLICK)
+    end)
 end
 
 --[[

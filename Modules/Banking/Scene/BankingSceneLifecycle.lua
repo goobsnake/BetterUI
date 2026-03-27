@@ -10,10 +10,6 @@ local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
 
 -- ─── Public API ──────────────────────────────────────────────────────────────
 
---[[
-Function: BETTERUI.Banking.Class:OnSceneShowing
-Description: Scene showing handler called by SceneLifecycleManager.
-]]
 --- Scene showing handler called by SceneLifecycleManager.
 --- @param wasPushed boolean
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
@@ -141,10 +137,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:OnSceneHiding
-Description: Abort any in-flight batch before cleanup.
-]]
 --- Aborts any in-flight batch before cleanup.
 --- @return nil
 function BETTERUI.Banking.Class:OnSceneHiding()
@@ -153,10 +145,6 @@ function BETTERUI.Banking.Class:OnSceneHiding()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:OnSceneHidden
-Description: Scene hidden handler called by SceneLifecycleManager.
-]]
 --- Scene hidden handler called by SceneLifecycleManager.
 --- @return nil
 function BETTERUI.Banking.Class:OnSceneHidden()
@@ -235,10 +223,6 @@ function BETTERUI.Banking.Class:OnSceneHidden()
     self.lastPositionsByCategory = {}
 end
 
---[[
-Function: BETTERUI.Banking.Class:UpdateExternalAddons
-Description: Handles visibility of supported external addon elements.
-]]
 --- Handles visibility of supported external addon elements.
 --- @param hidden boolean
 function BETTERUI.Banking.Class:UpdateExternalAddons(hidden)

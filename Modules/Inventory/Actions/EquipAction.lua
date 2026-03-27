@@ -10,16 +10,6 @@ Last Modified: 2026-01-28
 -- SHARED EQUIP HELPER
 --------------------------------------------------------------------------------
 
---[[
-Function: DoEquipMove
-Performs the actual equip move via CallSecureProtected.
-References: Used by TryEquipItem and InitializeEquipSlotDialog.
-param: bagId (number) - Source bag ID.
-param: slotIndex (number) - Source slot index.
-param: equipType (number) - Equipment type constant (EQUIP_TYPE_*).
-param: mainSlot (boolean) - For 1H/rings: true = main hand/ring 1, false = off hand/ring 2.
-param: isPrimary (boolean) - For weapons: true = front bar, false = back bar.
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @param equipType number

@@ -361,27 +361,12 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return (self.actionName ~= nil) or self:HasSelectedAction()
     end
 
-    --[[
-        Function: SecureOpenSkills
-        Wraps the "Open Skills" action callback in a secure call.
-        param: slotActions (table) - The slot actions object
-        param: inventorySlot (table) - The inventory slot data
-        ]]
     --- @param actionsList table
     --- @param inventorySlot table
     local function SecureOpenSkills(actionsList, inventorySlot)
         BETTERUI.CIM.SecureOpenSkills(actionsList, inventorySlot)
     end
 
-    --[[
-        Function: ResolveCraftBagState
-        Determines the correct primary action based on Craft Bag context.
-        param: slotActions (table) - The slot actions object
-        param: inventorySlot (table) - The inventory slot data
-        param: primaryAction (string) - The current primary action name
-        param: canUseItem (boolean) - Whether the item is also usable
-        return: string - The resolved action name for display
-        ]]
     --- @param actionsList table
     --- @param inventorySlot table
     --- @param primaryAction string
@@ -391,11 +376,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         return BETTERUI.CIM.ResolveCraftBagState(actionsList, inventorySlot, primaryAction, canUseItem)
     end
 
-    --[[
-        Function: DeduplicateActions
-        Removes duplicate entries from the slot actions list.
-        param: slotActions (table) - The slot actions object to deduplicate
-        ]]
     --- @param actionsList table
     local function DeduplicateActions(actionsList)
         BETTERUI.CIM.DeduplicateActions(actionsList)

@@ -299,64 +299,65 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     -- This must be outside the creation block in case the control was recreated or refreshed
     tabBarControl.scrollList = control.tabBar
 
+    local tabBar = control.tabBar
+    if not tabBar then return end
+
     -- Apply carousel configuration (offsets, spacing) from BetterUI.CONST.lua (via data)
-    if control.tabBar and data.carouselConfig then
-        if data.carouselConfig.startOffset then
-            control.tabBar.carouselStartOffset = data.carouselConfig.startOffset
+    local carouselConfig = data.carouselConfig
+    if carouselConfig then
+        if carouselConfig.startOffset then
+            tabBar.carouselStartOffset = carouselConfig.startOffset
         end
-        if data.carouselConfig.verticalOffset then
-            control.tabBar.carouselVerticalOffset = data.carouselConfig.verticalOffset
+        if carouselConfig.verticalOffset then
+            tabBar.carouselVerticalOffset = carouselConfig.verticalOffset
         end
-        if data.carouselConfig.itemSpacing then
-            control.tabBar.carouselItemSpacing = data.carouselConfig.itemSpacing
+        if carouselConfig.itemSpacing then
+            tabBar.carouselItemSpacing = carouselConfig.itemSpacing
         end
-        if data.carouselConfig.enabled ~= nil then
-            control.tabBar.carouselMode = data.carouselConfig.enabled
+        if carouselConfig.enabled ~= nil then
+            tabBar.carouselMode = carouselConfig.enabled
         end
     end
 
     -- BetterUI Fix: Ensure callback from data is applied to the tab bar
     -- This allows context switching (Inventory <-> Craft Bag) to update the listener
-    if control.tabBar and data.callback then
-        control.tabBar:SetOnSelectedDataChangedCallback(data.callback)
+    if data.callback then
+        tabBar:SetOnSelectedDataChangedCallback(data.callback)
     end
 
     -- If tab bar exists, commit the list to show items
-    if control.tabBar then
-        control.tabBar:Commit(blockTabBarCallbacks)
+    tabBar:Commit(blockTabBarCallbacks)
+
+    -- Only use onSelectedDataChangedCallback when NOT using onNext/onPrev pattern.
+    -- The onNext/onPrev callbacks are invoked directly from MoveNext/MovePrevious
+    -- and should not be combined with onSelectedDataChangedCallback to avoid double-firing.
+    -- Why: Some menus drive navigation via direct list changes (onSelectedChanged), others via explicit Next/Prev buttons.
+    -- We must correctly detect which mode we are in.
+    local hasDirectCallbacks = data.tabBarData and (data.tabBarData.onNext or data.tabBarData.onPrev)
+    local onChange = nil
+    if not hasDirectCallbacks then
+        onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
     end
 
-    if control.tabBar then
-        -- Only use onSelectedDataChangedCallback when NOT using onNext/onPrev pattern.
-        -- The onNext/onPrev callbacks are invoked directly from MoveNext/MovePrevious
-        -- and should not be combined with onSelectedDataChangedCallback to avoid double-firing.
-        -- Why: Some menus drive navigation via direct list changes (onSelectedChanged), others via explicit Next/Prev buttons.
-        -- We must correctly detect which mode we are in.
-        local hasDirectCallbacks = data.tabBarData and (data.tabBarData.onNext or data.tabBarData.onPrev)
-        local onChange = nil
-        if not hasDirectCallbacks then
-            onChange = data and data.onSelectedChanged or TabBar_OnDataChanged
-        end
-
-        if onChange then
-            if (blockTabBarCallbacks) then
-                control.tabBar:RemoveOnSelectedDataChangedCallback(onChange)
-            else
-                control.tabBar:SetOnSelectedDataChangedCallback(onChange)
-            end
+    if onChange then
+        if blockTabBarCallbacks then
+            tabBar:RemoveOnSelectedDataChangedCallback(onChange)
         else
-            -- Clear any previously set callback
-            control.tabBar:RemoveOnSelectedDataChangedCallback(nil)
+            tabBar:SetOnSelectedDataChangedCallback(onChange)
         end
-        if data.activatedCallback then
-            control.tabBar:SetOnActivatedChangedFunction(data.activatedCallback)
-        end
+    else
+        -- Clear any previously set callback
+        tabBar:RemoveOnSelectedDataChangedCallback(nil)
+    end
 
-        control.tabBar:Commit()
+    if data.activatedCallback then
+        tabBar:SetOnActivatedChangedFunction(data.activatedCallback)
+    end
 
-        -- Restore callback after commit if it was blocked
-        if (blockTabBarCallbacks) then
-            control.tabBar:SetOnSelectedDataChangedCallback(onChange)
-        end
+    tabBar:Commit()
+
+    -- Restore callback after commit if it was blocked
+    if blockTabBarCallbacks and onChange then
+        tabBar:SetOnSelectedDataChangedCallback(onChange)
     end
 end

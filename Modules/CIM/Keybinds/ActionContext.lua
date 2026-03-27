@@ -63,38 +63,39 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     -- Get target data
     ctx.target = targetList and targetList.selectedData or nil
 
-    if ctx.target then
-        local target = ctx.target
-
-        -- Compute filter type once
-        if target.bagId and target.slotIndex then
-            ctx.filterType = GetItemFilterTypeInfo(target.bagId, target.slotIndex)
-        else
-            ctx.filterType = nil
-        end
-
-        -- Quest item check
-        ctx.isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
-
-        -- Quickslot check
-        ctx.isQuickslottable = IsQuickslottable(target)
-
-        -- Usage requirements
-        ctx.meetsUsage = target.meetsUsageRequirement
-
-        -- Check if it's gear (weapons/armor/jewelry)
-        ctx.isGear = ctx.filterType and (
-            ctx.filterType == ITEMFILTERTYPE_WEAPONS or
-            ctx.filterType == ITEMFILTERTYPE_ARMOR or
-            ctx.filterType == ITEMFILTERTYPE_JEWELRY
-        )
-    else
+    if not ctx.target then
         ctx.filterType = nil
         ctx.isQuestItem = false
         ctx.isQuickslottable = false
         ctx.meetsUsage = false
         ctx.isGear = false
+        return cachedContext
     end
+
+    local target = ctx.target
+
+    -- Compute filter type once
+    if target.bagId and target.slotIndex then
+        ctx.filterType = GetItemFilterTypeInfo(target.bagId, target.slotIndex)
+    else
+        ctx.filterType = nil
+    end
+
+    -- Quest item check
+    ctx.isQuestItem = ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST)
+
+    -- Quickslot check
+    ctx.isQuickslottable = IsQuickslottable(target)
+
+    -- Usage requirements
+    ctx.meetsUsage = target.meetsUsageRequirement
+
+    -- Check if it's gear (weapons/armor/jewelry)
+    ctx.isGear = ctx.filterType and (
+        ctx.filterType == ITEMFILTERTYPE_WEAPONS or
+        ctx.filterType == ITEMFILTERTYPE_ARMOR or
+        ctx.filterType == ITEMFILTERTYPE_JEWELRY
+    )
 
     return cachedContext
 end

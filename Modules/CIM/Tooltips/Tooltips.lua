@@ -380,6 +380,16 @@ local function IsIncompatibleSceneActive()
     return false
 end
 
+--- @class InventoryHookConfig
+--- @field tooltipControl userdata
+--- @field tooltipType string
+--- @field method function
+--- @field linkFunc function
+--- @field method2 function|nil
+--- @field linkFunc2 function|nil
+--- @field method3 function|nil
+--- @field linkFunc3 function|nil
+
 --- @param tooltipControl object The tooltip control to hook.
 --- @param tooltipType any Tooltip type constant (reserved for future use).
 --- @param method string The method name to hook/override.
@@ -599,6 +609,12 @@ function BETTERUI.InventoryHook(tooltipControl, tooltipType, method, linkFunc, m
             end, 2) -- 2ms delay: must run AFTER deferred header injection (1ms) to avoid hiding our own price labels
         end
     end
+end
+
+--- Backward-compatible table-based wrapper around InventoryHook positional args.
+--- @param config InventoryHookConfig
+function BETTERUI.InventoryHookTable(config)
+    return BETTERUI.InventoryHook(config.tooltipControl, config.tooltipType, config.method, config.linkFunc, config.method2, config.linkFunc2, config.method3, config.linkFunc3)
 end
 
 -- Passthrough helpers for tooltip hook data extraction

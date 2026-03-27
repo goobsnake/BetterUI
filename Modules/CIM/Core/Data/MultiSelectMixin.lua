@@ -42,9 +42,9 @@
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.MultiSelectMixin = {}
 local Mixin = BETTERUI.CIM.MultiSelectMixin
-local Cfg = BETTERUI.CIM.BatchConfig
-local Overlay = BETTERUI.CIM.BatchOverlay
-local Actions = BETTERUI.CIM.BatchActions
+local BatchConfig = BETTERUI.CIM.BatchConfig
+local BatchOverlay = BETTERUI.CIM.BatchOverlay
+local BatchActions = BETTERUI.CIM.BatchActions
 
 -------------------------------------------------------------------------------------------------
 -- MIXIN APPLICATION
@@ -100,7 +100,7 @@ function Mixin.ExitSelectionMode(self)
         self.multiSelectManager:ExitSelectionMode()
     end
 
-    if Cfg.IsBatchSceneShowing(self) then
+    if BatchConfig.IsBatchSceneShowing(self) then
         self._msConfig.refreshKeybinds(self)
         self._msConfig.refreshList(self)
     end
@@ -121,7 +121,7 @@ function Mixin.OnSelectionCountChanged(self, selectedCount)
         return
     end
 
-    if Cfg.IsBatchSceneShowing(self) then
+    if BatchConfig.IsBatchSceneShowing(self) then
         self._msConfig.refreshKeybinds(self)
     end
 end
@@ -152,7 +152,7 @@ function Mixin.RequestBatchAbort(self)
         self._msBatchWakeHandler()
     end
 
-    if Cfg.IsBatchSceneShowing(self) and self._msConfig and self._msConfig.refreshKeybinds then
+    if BatchConfig.IsBatchSceneShowing(self) and self._msConfig and self._msConfig.refreshKeybinds then
         self._msConfig.refreshKeybinds(self)
     end
 
@@ -171,7 +171,7 @@ end
 --- @param actionName string|nil
 --- @param batchOptions CIM.BatchOptions|nil
 function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
-    items = Cfg.NormalizeBatchItems(items or {})
+    items = BatchConfig.NormalizeBatchItems(items or {})
     local totalItems = #items
     if totalItems == 0 then
         if onComplete then onComplete() end
@@ -190,19 +190,19 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local processedCount = 0
     local processedCost = 0
     local stopReason = nil
-    local throttleProfile = Cfg.ResolveBatchThrottleProfile(totalItems)
+    local throttleProfile = BatchConfig.ResolveBatchThrottleProfile(totalItems)
     local batchDelayMs = throttleProfile.DELAY_MS or 75
     local showProgress = throttleProfile.SHOW_PROGRESS == true
-    local showEta = totalItems >= Cfg.BATCH_ETA_THRESHOLD
+    local showEta = totalItems >= BatchConfig.BATCH_ETA_THRESHOLD
     local options = batchOptions or {}
     local isServerBound = options.serverBound == true
     if isServerBound then showProgress = true end
     local suppressUiUpdates = options.suppressUiUpdates == true
-    local sceneExitLabel = Cfg.ResolveSceneExitLabel(self, options)
+    local sceneExitLabel = BatchConfig.ResolveSceneExitLabel(self, options)
     local requestedCost = tonumber(options.costPerItem)
-    local actionCost = Cfg.DEFAULT_ACTION_COST_UNITS
+    local actionCost = BatchConfig.DEFAULT_ACTION_COST_UNITS
     if requestedCost and requestedCost > 0 then
-        actionCost = zo_max(Cfg.DEFAULT_ACTION_COST_UNITS, zo_ceil(requestedCost))
+        actionCost = zo_max(BatchConfig.DEFAULT_ACTION_COST_UNITS, zo_ceil(requestedCost))
     end
     local totalCostUnits = totalItems * actionCost
     local cooldownEvery, cooldownMs = 0, 0
@@ -220,38 +220,38 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local nextCooldownAt, nextChunkAt = nil, nil
 
     if isServerBound then
-        cooldownEvery = Cfg.ResolvePositiveIntOption(options.cooldownEvery, Cfg.SERVER_COOLDOWN_EVERY)
-        cooldownMs = Cfg.ResolvePositiveIntOption(options.cooldownMs, Cfg.SERVER_COOLDOWN_MS)
-        minServerDelayMs = Cfg.ResolvePositiveIntOption(options.minServerDelayMs, Cfg.SERVER_MIN_DELAY_MS)
-        maxServerDelayMs = Cfg.ResolvePositiveIntOption(options.maxServerDelayMs, Cfg.SERVER_MAX_DELAY_MS)
+        cooldownEvery = BatchConfig.ResolvePositiveIntOption(options.cooldownEvery, BatchConfig.SERVER_COOLDOWN_EVERY)
+        cooldownMs = BatchConfig.ResolvePositiveIntOption(options.cooldownMs, BatchConfig.SERVER_COOLDOWN_MS)
+        minServerDelayMs = BatchConfig.ResolvePositiveIntOption(options.minServerDelayMs, BatchConfig.SERVER_MIN_DELAY_MS)
+        maxServerDelayMs = BatchConfig.ResolvePositiveIntOption(options.maxServerDelayMs, BatchConfig.SERVER_MAX_DELAY_MS)
         maxServerDelayMs = zo_max(maxServerDelayMs, minServerDelayMs)
-        awaitInventoryAck = Cfg.ResolveBooleanOption(options.awaitInventoryAck, Cfg.SERVER_AWAIT_INVENTORY_ACK)
-        ackTimeoutMs = Cfg.ResolvePositiveIntOption(options.ackTimeoutMs, Cfg.SERVER_ACK_TIMEOUT_MS)
-        chunkCostUnits = Cfg.ResolvePositiveIntOption(options.chunkCostUnits, Cfg.SERVER_CHUNK_COST_UNITS)
-        chunkPauseMs = Cfg.ResolvePositiveIntOption(options.chunkPauseMs, Cfg.SERVER_CHUNK_PAUSE_MS)
-        adaptiveDelay = Cfg.ResolveBooleanOption(options.adaptiveDelay, Cfg.SERVER_ADAPTIVE_DELAY)
-        adaptiveThreshold = Cfg.ResolvePositiveIntOption(options.adaptiveThreshold, Cfg.SERVER_ADAPTIVE_THRESHOLD)
-        adaptiveStepMs = Cfg.ResolvePositiveIntOption(options.adaptiveStepMs, Cfg.SERVER_ADAPTIVE_STEP_MS)
-        jitterMs = Cfg.ResolvePositiveIntOption(options.jitterMs, Cfg.SERVER_JITTER_MS)
-        skipInterBatchCooldown = Cfg.ResolveBooleanOption(options.skipInterBatchCooldown, false)
-        postBatchCooldownBaseMs = Cfg.ResolvePositiveIntOption(options.postBatchCooldownBaseMs, Cfg.SERVER_POST_BATCH_COOLDOWN_BASE_MS)
-        postBatchCooldownThreshold = Cfg.ResolvePositiveIntOption(options.postBatchCooldownThreshold, Cfg.SERVER_POST_BATCH_COOLDOWN_THRESHOLD)
-        postBatchCooldownPerCostMs = Cfg.ResolvePositiveIntOption(options.postBatchCooldownPerCostMs, Cfg.SERVER_POST_BATCH_COOLDOWN_PER_COST_MS)
-        postBatchCooldownMaxMs = Cfg.ResolvePositiveIntOption(options.postBatchCooldownMaxMs, Cfg.SERVER_POST_BATCH_COOLDOWN_MAX_MS)
-        enforceRateWindow = Cfg.ResolveBooleanOption(options.enforceRateWindow, true)
-        rateLimitWindowMs = Cfg.ResolvePositiveIntOption(options.rateLimitWindowMs, Cfg.SERVER_RATE_WINDOW_MS)
-        rateLimitMaxActions = Cfg.ResolvePositiveIntOption(options.rateLimitMaxActions, Cfg.SERVER_RATE_MAX_ACTIONS)
-        countTowardRateOnSuccess = Cfg.ResolveBooleanOption(options.countTowardRateOnSuccess, true)
+        awaitInventoryAck = BatchConfig.ResolveBooleanOption(options.awaitInventoryAck, BatchConfig.SERVER_AWAIT_INVENTORY_ACK)
+        ackTimeoutMs = BatchConfig.ResolvePositiveIntOption(options.ackTimeoutMs, BatchConfig.SERVER_ACK_TIMEOUT_MS)
+        chunkCostUnits = BatchConfig.ResolvePositiveIntOption(options.chunkCostUnits, BatchConfig.SERVER_CHUNK_COST_UNITS)
+        chunkPauseMs = BatchConfig.ResolvePositiveIntOption(options.chunkPauseMs, BatchConfig.SERVER_CHUNK_PAUSE_MS)
+        adaptiveDelay = BatchConfig.ResolveBooleanOption(options.adaptiveDelay, BatchConfig.SERVER_ADAPTIVE_DELAY)
+        adaptiveThreshold = BatchConfig.ResolvePositiveIntOption(options.adaptiveThreshold, BatchConfig.SERVER_ADAPTIVE_THRESHOLD)
+        adaptiveStepMs = BatchConfig.ResolvePositiveIntOption(options.adaptiveStepMs, BatchConfig.SERVER_ADAPTIVE_STEP_MS)
+        jitterMs = BatchConfig.ResolvePositiveIntOption(options.jitterMs, BatchConfig.SERVER_JITTER_MS)
+        skipInterBatchCooldown = BatchConfig.ResolveBooleanOption(options.skipInterBatchCooldown, false)
+        postBatchCooldownBaseMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownBaseMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_BASE_MS)
+        postBatchCooldownThreshold = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownThreshold, BatchConfig.SERVER_POST_BATCH_COOLDOWN_THRESHOLD)
+        postBatchCooldownPerCostMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownPerCostMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_PER_COST_MS)
+        postBatchCooldownMaxMs = BatchConfig.ResolvePositiveIntOption(options.postBatchCooldownMaxMs, BatchConfig.SERVER_POST_BATCH_COOLDOWN_MAX_MS)
+        enforceRateWindow = BatchConfig.ResolveBooleanOption(options.enforceRateWindow, true)
+        rateLimitWindowMs = BatchConfig.ResolvePositiveIntOption(options.rateLimitWindowMs, BatchConfig.SERVER_RATE_WINDOW_MS)
+        rateLimitMaxActions = BatchConfig.ResolvePositiveIntOption(options.rateLimitMaxActions, BatchConfig.SERVER_RATE_MAX_ACTIONS)
+        countTowardRateOnSuccess = BatchConfig.ResolveBooleanOption(options.countTowardRateOnSuccess, true)
 
         if not SHARED_INVENTORY then awaitInventoryAck = false end
         if cooldownEvery > 0 then nextCooldownAt = cooldownEvery end
         if chunkCostUnits > 0 then nextChunkAt = chunkCostUnits end
 
         if not skipInterBatchCooldown then
-            startupDelayMs = zo_max((Cfg.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs or 0) - Cfg.GetNowMs(), 0)
+            startupDelayMs = zo_max((BatchConfig.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs or 0) - BatchConfig.GetNowMs(), 0)
         end
         if enforceRateWindow and rateLimitWindowMs > 0 and rateLimitMaxActions > 0 then
-            startupDelayMs = zo_max(startupDelayMs, Cfg.ComputeServerActionDelayMs(Cfg.GetNowMs(), rateLimitWindowMs, rateLimitMaxActions))
+            startupDelayMs = zo_max(startupDelayMs, BatchConfig.ComputeServerActionDelayMs(BatchConfig.GetNowMs(), rateLimitWindowMs, rateLimitMaxActions))
         else
             enforceRateWindow = false
         end
@@ -274,7 +274,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
     local function ClearQueuedStillProcessingAnnouncements()
         stillProcessingAnnouncementActive = false
-        Overlay.StopLayoutPulse()
+        BatchOverlay.StopLayoutPulse()
     end
 
     local function ClearPendingContinuation()
@@ -358,7 +358,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     ClearQueuedStillProcessingAnnouncements()
-    Overlay.Hide()
+    BatchOverlay.Hide()
     RegisterInventoryAckCallbacks()
 
     self.isBatchProcessing = true
@@ -371,11 +371,11 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     local estimatedDurationMs = nil
-    local batchStartedAtMs = Cfg.GetNowMs()
+    local batchStartedAtMs = BatchConfig.GetNowMs()
     local countdownPausedTotalMs = 0
     local countdownPauseStartedAtMs = nil
     if showProgress and showEta then
-        local estimatedSeconds = Cfg.EstimateBatchDurationSeconds(
+        local estimatedSeconds = BatchConfig.EstimateBatchDurationSeconds(
             totalItems, effectiveDelayMs, cooldownEvery, cooldownMs,
             totalCostUnits, chunkCostUnits, chunkPauseMs, startupDelayMs
         )
@@ -389,7 +389,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         self_ref.isBatchProcessing = false
 
         -- Record batch diagnostics summary for debugging via /buibatch
-        local elapsedMs = Cfg.GetNowMs() - batchStartedAtMs
+        local elapsedMs = BatchConfig.GetNowMs() - batchStartedAtMs
         self_ref.lastBatchSummary = {
             action     = displayName,
             totalItems = totalItems,
@@ -401,7 +401,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             pipelineToken = pipelineToken,
         }
 
-        if Cfg.IsBatchSceneShowing(self_ref) and self_ref._msConfig and self_ref._msConfig.refreshKeybinds then
+        if BatchConfig.IsBatchSceneShowing(self_ref) and self_ref._msConfig and self_ref._msConfig.refreshKeybinds then
             self_ref._msConfig.refreshKeybinds(self_ref)
         end
         ClearQueuedStillProcessingAnnouncements()
@@ -417,14 +417,14 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             elseif processedCount < totalItems then
                 completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PARTIAL_SUCCESS), processedCount, totalItems)
             end
-            Overlay.Show(displayName, completeText)
-            Overlay.Hide((stopReason and 4000) or 2000)
+            BatchOverlay.Show(displayName, completeText)
+            BatchOverlay.Hide((stopReason and 4000) or 2000)
         else
-            Overlay.Hide()
+            BatchOverlay.Hide()
         end
 
         if isServerBound and processedCost > 0 then
-            local nowMs = Cfg.GetNowMs()
+            local nowMs = BatchConfig.GetNowMs()
             local postCooldownMs = 0
             local threshold = zo_max(postBatchCooldownThreshold, 0)
             if threshold == 0 or processedCost >= threshold then
@@ -433,8 +433,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
                 postCooldownMs = zo_clamp(postCooldownMs, 0, postBatchCooldownMaxMs)
             end
             if postCooldownMs > 0 then
-                Cfg.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs = zo_max(
-                    Cfg.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs or 0, nowMs + postCooldownMs)
+                BatchConfig.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs = zo_max(
+                    BatchConfig.SERVER_BATCH_RECOVERY_STATE.cooldownUntilMs or 0, nowMs + postCooldownMs)
             end
         end
 
@@ -443,12 +443,12 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         self_ref._msBatchWakeHandler = nil
         stillProcessingWaitUntilMs = 0
         stillProcessingAnnouncementActive = false
-        Overlay.StopLayoutPulse()
+        BatchOverlay.StopLayoutPulse()
         if onComplete then onComplete(stopReason) end
     end
 
     local function ResolveStillProcessingWaitMs(nowMs, waitMs)
-        local resolvedNow = nowMs or Cfg.GetNowMs()
+        local resolvedNow = nowMs or BatchConfig.GetNowMs()
         if waitMs and waitMs > 0 then
             stillProcessingWaitUntilMs = zo_max(stillProcessingWaitUntilMs, resolvedNow + waitMs)
         end
@@ -474,7 +474,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     end
 
     local function BuildStillProcessingMainText()
-        local nowMs = Cfg.GetNowMs()
+        local nowMs = BatchConfig.GetNowMs()
         local remainingWaitMs = ResolveStillProcessingWaitMs(nowMs, nil)
         if estimatedDurationMs and estimatedDurationMs > 0 then
             local pausedMs = countdownPausedTotalMs
@@ -490,25 +490,25 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             else
                 remainingMs = remainingMs + pauseBudget
             end
-            return string.format("Processing (%d/%d) ~%s", processedCount, totalItems, Cfg.FormatEstimatedBatchDuration(remainingMs / 1000))
+            return string.format("Processing (%d/%d) ~%s", processedCount, totalItems, BatchConfig.FormatEstimatedBatchDuration(remainingMs / 1000))
         end
         return string.format("Processing (%d/%d)", processedCount, totalItems)
     end
 
     local function BuildStillProcessingSecondaryText()
-        local remainingWaitMs = ResolveStillProcessingWaitMs(Cfg.GetNowMs(), nil)
+        local remainingWaitMs = ResolveStillProcessingWaitMs(BatchConfig.GetNowMs(), nil)
         if remainingWaitMs > 0 then
             return string.format("Continuing in %ds to prevent message rate limit logoff", zo_max(1, zo_ceil(remainingWaitMs / 1000)))
         end
-        return string.format("Please Wait - Press %s to abort", Cfg.ResolveBatchAbortBindingMarkup())
+        return string.format("Please Wait - Press %s to abort", BatchConfig.ResolveBatchAbortBindingMarkup())
     end
 
     local function ShowStillProcessingAnnouncement(waitMs, forceRecreate)
         if not showProgress then return end
-        if waitMs and waitMs > 0 then ResolveStillProcessingWaitMs(Cfg.GetNowMs(), waitMs) end
+        if waitMs and waitMs > 0 then ResolveStillProcessingWaitMs(BatchConfig.GetNowMs(), waitMs) end
         if stillProcessingAnnouncementActive and not forceRecreate then return end
         if forceRecreate then ClearQueuedStillProcessingAnnouncements() end
-        Overlay.Show(displayName, BuildStillProcessingMainText, BuildStillProcessingSecondaryText)
+        BatchOverlay.Show(displayName, BuildStillProcessingMainText, BuildStillProcessingSecondaryText)
         stillProcessingAnnouncementActive = true
     end
 
@@ -518,12 +518,12 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         local actionQueued
         local bagId, slotIndex
         while true do
-            if not Cfg.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
+            if not BatchConfig.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
             if self_ref.batchAbortRequested then stopReason = "aborted"; finishBatch(); return end
             if announceAfterCooldown then announceAfterCooldown = false; ShowStillProcessingAnnouncement() end
 
             if isServerBound and enforceRateWindow then
-                local rateDelay = Cfg.ComputeServerActionDelayMs(Cfg.GetNowMs(), rateLimitWindowMs, rateLimitMaxActions)
+                local rateDelay = BatchConfig.ComputeServerActionDelayMs(BatchConfig.GetNowMs(), rateLimitWindowMs, rateLimitMaxActions)
                 if rateDelay > 0 then
                     ShowStillProcessingAnnouncement(rateDelay)
                     ScheduleContinuation(rateDelay, processNext)
@@ -555,7 +555,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
                     actionQueued = (result == "queued")
                     consecutiveQueuedActions = actionQueued and (consecutiveQueuedActions + 1) or 0
                     if isServerBound and enforceRateWindow and (actionQueued or countTowardRateOnSuccess) then
-                        Cfg.RecordServerAction(Cfg.GetNowMs(), rateLimitWindowMs)
+                        BatchConfig.RecordServerAction(BatchConfig.GetNowMs(), rateLimitWindowMs)
                     end
                 end
             else
@@ -576,7 +576,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
                 end
             end
             if jitterMs > 0 then
-                baseDelayMs = zo_clamp(baseDelayMs + Cfg.ResolveSignedJitter(jitterMs), minServerDelayMs, maxServerDelayMs)
+                baseDelayMs = zo_clamp(baseDelayMs + BatchConfig.ResolveSignedJitter(jitterMs), minServerDelayMs, maxServerDelayMs)
             else
                 baseDelayMs = zo_clamp(baseDelayMs, minServerDelayMs, maxServerDelayMs)
             end
@@ -606,7 +606,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         end
 
         ScheduleContinuation(nextDelayMs, function()
-            if self_ref.batchAbortRequested or not Cfg.IsBatchSceneShowing(self_ref) then
+            if self_ref.batchAbortRequested or not BatchConfig.IsBatchSceneShowing(self_ref) then
                 ResetInventoryAckState(); processNext(); return
             end
             if shouldAwaitAck and not ackReceivedForAction then
@@ -621,13 +621,13 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     local function StartBatchAfterDialogDismiss(remainingWaitMs, settleDelayMs)
         if not self_ref.isBatchProcessing then return end
         if self_ref.batchAbortRequested then stopReason = "aborted"; finishBatch(); return end
-        if not Cfg.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
+        if not BatchConfig.IsBatchSceneShowing(self_ref) then stopReason = "sceneExit"; finishBatch(); return end
 
-        local dialogShowing = Overlay.IsAnyBatchActionDialogShowing()
+        local dialogShowing = BatchOverlay.IsAnyBatchActionDialogShowing()
         if dialogShowing and remainingWaitMs > 0 then
             zo_callLater(function()
-                StartBatchAfterDialogDismiss(zo_max(remainingWaitMs - Cfg.BATCH_STATUS_DIALOG_CLOSE_POLL_MS, 0), settleDelayMs)
-            end, Cfg.BATCH_STATUS_DIALOG_CLOSE_POLL_MS)
+                StartBatchAfterDialogDismiss(zo_max(remainingWaitMs - BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS, 0), settleDelayMs)
+            end, BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS)
             return
         end
         if (not dialogShowing) and (settleDelayMs or 0) > 0 then
@@ -640,17 +640,17 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         else processNext() end
     end
 
-    StartBatchAfterDialogDismiss(Cfg.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, Cfg.BATCH_STATUS_DIALOG_SETTLE_MS)
+    StartBatchAfterDialogDismiss(BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS)
 end
 
 -------------------------------------------------------------------------------------------------
 -- BATCH OPERATION DELEGATES
 -------------------------------------------------------------------------------------------------
 
-Mixin.BatchLock = Actions.BatchLock
-Mixin.BatchUnlock = Actions.BatchUnlock
-Mixin.BatchMarkAsJunk = Actions.BatchMarkAsJunk
-Mixin.BatchUnmarkAsJunk = Actions.BatchUnmarkAsJunk
-Mixin.AnalyzeSelectedItems = Actions.AnalyzeSelectedItems
-Mixin.CreateDialogEntry = Actions.CreateDialogEntry
-Mixin.AppendCommonBatchEntries = Actions.AppendCommonBatchEntries
+Mixin.BatchLock = BatchActions.BatchLock
+Mixin.BatchUnlock = BatchActions.BatchUnlock
+Mixin.BatchMarkAsJunk = BatchActions.BatchMarkAsJunk
+Mixin.BatchUnmarkAsJunk = BatchActions.BatchUnmarkAsJunk
+Mixin.AnalyzeSelectedItems = BatchActions.AnalyzeSelectedItems
+Mixin.CreateDialogEntry = BatchActions.CreateDialogEntry
+Mixin.AppendCommonBatchEntries = BatchActions.AppendCommonBatchEntries
