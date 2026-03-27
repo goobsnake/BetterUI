@@ -17,6 +17,15 @@ Last Modified: 2026-02-08
 --- Lifecycle: Addon load -> EVENT_ADD_ON_LOADED -> Initialize() -> LoadModules() -> per-module setup.
 
 local LAM = LibAddonMenu2
+local ZO_STRLOWER = rawget(_G, "zo_strlower")
+
+local function GetStringByName(globalName)
+	local stringId = rawget(_G, globalName)
+	if stringId ~= nil then
+		return GetString(stringId)
+	end
+	return globalName
+end
 
 if BETTERUI == nil then BETTERUI = {} end
 
@@ -133,18 +142,18 @@ end
 --- References: Called during BETTERUI.Initialize.
 ---
 function BETTERUI.InitModuleOptions()
-	local panelData = BETTERUI.Init_ModulePanel("Master", GetString(SI_BETTERUI_MASTER_SETTINGS_TITLE))
+	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
 
 	local optionsTable = {
 		{
 			type = "header",
-			name = GetString(SI_BETTERUI_MASTER_SETTINGS_HEADER),
+			name = GetStringByName("SI_BETTERUI_MASTER_SETTINGS_HEADER"),
 			width = "full",
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_GLOBAL_SETTINGS),
-			tooltip = GetString(SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_GLOBAL_SETTINGS"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_GLOBAL_TOOLTIP"),
 			getFunc = function() return BETTERUI.SavedVars.useAccountWide end,
 			setFunc = function(value)
 				BETTERUI.SavedVars.useAccountWide = value
@@ -179,8 +188,8 @@ local function NormalizeModuleToggleSortName(name)
 		normalized = normalized:gsub("^启用", "")
 		normalized = normalized:gsub("^有効にする%s*", "")
 
-		if zo_strlower then
-			return zo_strlower(normalized)
+		if ZO_STRLOWER then
+			return ZO_STRLOWER(normalized)
 		end
 		return string.lower(normalized)
 	end
@@ -190,8 +199,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "Banking",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_BANKING),
-			tooltip = GetString(SI_BETTERUI_ENABLE_BANKING_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_BANKING"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_BANKING_TOOLTIP"),
 			getFunc = function()
 				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
 				return modules and modules["Banking"] and modules["Banking"].m_enabled or false
@@ -207,8 +216,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "Vendor",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_VENDOR),
-			tooltip = GetString(SI_BETTERUI_ENABLE_VENDOR_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_VENDOR"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_VENDOR_TOOLTIP"),
 			getFunc = function()
 				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
 				return modules and modules["Vendor"] and modules["Vendor"].m_enabled or false
@@ -224,8 +233,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "General Interface",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_TOOLTIPS),
-			tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP"),
 			getFunc = function()
 				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
 				return modules and modules["GeneralInterface"] and modules["GeneralInterface"].m_enabled or false
@@ -241,8 +250,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "Inventory",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_INVENTORY),
-			tooltip = GetString(SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP"),
 			getFunc = function()
 				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
 				return modules and modules["Inventory"] and modules["Inventory"].m_enabled or false
@@ -258,8 +267,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "Resource Orb Frames",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_ORBS),
-			tooltip = GetString(SI_BETTERUI_ENABLE_ORBS_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_ORBS"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_ORBS_TOOLTIP"),
 			getFunc = function()
 				return BETTERUI.GetModuleEnabled("ResourceOrbFrames")
 			end,
@@ -273,8 +282,8 @@ local function NormalizeModuleToggleSortName(name)
 		{
 			sortKey = "Writs",
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_WRITS),
-			tooltip = GetString(SI_BETTERUI_ENABLE_WRITS_TOOLTIP),
+			name = GetStringByName("SI_BETTERUI_ENABLE_WRITS"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_WRITS_TOOLTIP"),
 			getFunc = function()
 				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
 				return modules and modules["Writs"] and modules["Writs"].m_enabled or false
@@ -317,12 +326,12 @@ local function NormalizeModuleToggleSortName(name)
 		local flagControls = {
 			{
 				type = "header",
-				name = GetString(SI_BETTERUI_FEATURE_FLAGS_HEADER),
+				name = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_HEADER"),
 				width = "full",
 			},
 			{
 				type = "description",
-				text = GetString(SI_BETTERUI_FEATURE_FLAGS_DESC),
+				text = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_DESC"),
 				width = "full",
 			},
 		}
@@ -366,8 +375,8 @@ local function NormalizeModuleToggleSortName(name)
 	})
 	table.insert(optionsTable, {
 		type = "button",
-		name = GetString(SI_BETTERUI_MASTER_RESET_ALL),
-		tooltip = GetString(SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP),
+		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
+		tooltip = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP"),
 		func = function()
 			if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetAllSettingsToDefaults then
 				BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
