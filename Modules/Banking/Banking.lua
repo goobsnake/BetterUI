@@ -49,6 +49,16 @@ local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 -------------------------------------------------------------------------------------------------
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
+--- @class BetterUIBankingCoordinator: BETTERUI.Banking.Class
+--- @field currentMode number
+--- @field lastPositions table<number, number>
+--- @field lastPositionsByCategory table<string|number, number>
+--- @field bankCategories table|nil
+--- @field currentCategoryIndex number|nil
+--- @field itemActions BetterUIInventorySlotActions|table
+--- @field selector any
+--- @field selectorCurrency any
+
 
 
 -- Class definition moved to Core/BankingClass.lua (loaded first in manifest)
@@ -93,6 +103,7 @@ param: scene_name (string) - Scene name.
 ]]
 --- @param tlw_name string Top level window name
 --- @param scene_name string Scene name
+--- @return nil
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
@@ -123,7 +134,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING * BETTERUI_BANK_HEADER_PADDING_SCALE)
 
     -- Move selected item position up to align with tooltip arrow (matches Inventory)
-    self.list:SetFixedCenterOffset(-50)
+    self.list:SetFixedCenterOffset(LIST_FIXED_CENTER_OFFSET_Y)
 
     -- Setup data templates of the lists
     BETTERUI.Banking.Class.SetupItemList(self.list)

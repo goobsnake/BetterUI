@@ -68,6 +68,7 @@ end
 Function: BETTERUI.CIM.GenericSlotActions:ClearActions
 Clears all registered actions.
 ]]
+--- @return nil
 function BETTERUI.CIM.GenericSlotActions:ClearActions()
     self.actions = {}
     self.actionsByName = {}

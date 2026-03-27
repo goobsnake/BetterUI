@@ -210,7 +210,8 @@ function BETTERUI.Interface.Window:InitializeList(listName)
     local container = self.control and self.control:GetNamedChild("Container")
     local listControl = container and container:GetNamedChild("List")
     if not listControl then return end
-    
+
+
     self.list = BETTERUI_VerticalItemParametricScrollList:New(listControl) -- replace the itemList with my own generic one (with better gradient size, etc.)
 
     self:GetList():SetAlignToScreenCenter(true, 30)

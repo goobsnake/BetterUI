@@ -25,7 +25,11 @@ BETTERUI.CIM._gsErrorSuppress = 0
 -- NOTE (2026-01-28): BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
 -- SHARED_INVENTORY:GenerateFullSlotData handles virtual bag iteration transparently.
 -------------------------------------------------------------------------------------------------
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local ResearchableTraitCache = {}
+local DEFAULT_FONT_SIZE = 24
+
+-- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --- Builds the cache of researchable trait counts for a specific bag.
 ---
@@ -117,7 +121,7 @@ end
 function BETTERUI.GetTooltipFontSize()
     local size = BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].tooltipSize
     if not size then
-        return BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS.DEFAULT_FONT_SIZE
+        return DEFAULT_FONT_SIZE
     end
     return size
 end
@@ -602,6 +606,10 @@ function BETTERUI.ReturnItemLink(itemLink)
     return itemLink
 end
 
+--- @param bagId number
+--- @param slotIndex number
+--- @return number
+--- @return number
 function BETTERUI.ReturnSelectedData(bagId, slotIndex)
     return bagId, slotIndex
 end

@@ -9,6 +9,13 @@ descriptor factories for the name and column rendering.
 ]]
 
 
+--- @class BetterUIBankingModule
+--- @field FONT_CHOICES table
+--- @field FONT_VALUES table
+--- @field FONTSTYLE_CHOICES table
+--- @field FONTSTYLE_VALUES table
+--- @field DEFAULTS table
+
 -- Module initialization
 BETTERUI.Banking = BETTERUI.Banking or {}
 
@@ -117,6 +124,7 @@ function BETTERUI.Banking.InitModule(m_options)
 end
 
 --- Lifecycle hook: registers settings and starts the Banking class.
+--- @return nil
 function BETTERUI.Banking.Setup()
 	BETTERUI.Banking.Settings.RegisterPanel("Bank", "Banking")
 	BETTERUI.Banking.Init()

@@ -36,7 +36,22 @@ Last Modified: 2026-01-28
 -- Custom slot actions can be registered by external addons via BETTERUI.Inventory.RegisterSlotAction()
 --------------------------------------------------------------------------------
 
+--- @class BetterUIInventoryCustomSlotAction
+--- @field name string|fun(inventorySlot: table): string
+--- @field callback fun(inventorySlot: table)
+--- @field visibilityFunction? fun(inventorySlot: table): boolean
+--- @field options? table
+---
+--- @class BetterUIInventorySlotActions: ZO_ItemSlotActionsController
+--- @field slotActions table
+--- @field useKeybindStrip boolean
+--- @field actionName string|nil
+--- @field selectedAction any
+
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local INVENTORY_SLOT_ACTIONS_PREVENT_CONTEXT_MENU = false
+
+-- ─── Private Helpers ────────────────────────────────────────────────────────
 
 -- Registry for external addon slot actions
 local m_customActions = {}

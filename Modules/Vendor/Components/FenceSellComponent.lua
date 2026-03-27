@@ -16,7 +16,9 @@ local Vendor = BETTERUI.Vendor
 -- ============================================================================
 -- COMPONENT TABLE
 -- ============================================================================
+--- @class BetterUIVendorFenceSellComponent
 Vendor.FenceSellComponent = {}
+--- @type BetterUIVendorFenceSellComponent
 local FenceSell = Vendor.FenceSellComponent
 
 -- ============================================================================
@@ -29,6 +31,8 @@ function FenceSell:Activate(vendorInstance)
 end
 
 --- @param vendorInstance BETTERUI.Vendor.Class
+--- @param vendorInstance BETTERUI.Vendor.Class
+--- @return nil
 function FenceSell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -79,16 +83,11 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
 
-    -- Must have remaining sells
     local remaining = GetRemainingSells()
     if remaining <= 0 then return false end
 
-    -- Artifact items cannot be sold
-    if selectedData.bagId and selectedData.slotIndex then
-        if IsArtifactItem(selectedData.bagId, selectedData.slotIndex) then
-            return false
-        end
-    end
+    if not (selectedData.bagId and selectedData.slotIndex) then return true end
+    if IsArtifactItem(selectedData.bagId, selectedData.slotIndex) then return false end
 
     return true
 end

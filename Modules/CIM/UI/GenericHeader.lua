@@ -59,19 +59,19 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     -- Display item count badge for selected tab only
     -- Count is populated by module's RefreshList via data.itemCount
     -- NOTE: Must be AFTER base setup since that overwrites the label control
-    if countBadge then
-        if selected and data.itemCount and data.itemCount > 0 then
-            countBadge:SetText("[" .. tostring(data.itemCount) .. "]")
-            countBadge:SetHidden(false)
-            countBadge:SetColor(1, 1, 1, 0.9) -- White text for count with slight transparency
-            -- Apply custom vertical offset if specified (e.g., Banking needs badge lower than Inventory)
-            if data.countBadgeOffsetY then
-                countBadge:ClearAnchors()
-                countBadge:SetAnchor(BOTTOM, icon, TOP, 0, data.countBadgeOffsetY)
-            end
-        else
-            countBadge:SetHidden(true)
-        end
+    if not countBadge then return end
+    if not (selected and data.itemCount and data.itemCount > 0) then
+        countBadge:SetHidden(true)
+        return
+    end
+
+    countBadge:SetText("[" .. tostring(data.itemCount) .. "]")
+    countBadge:SetHidden(false)
+    countBadge:SetColor(1, 1, 1, 0.9) -- White text for count with slight transparency
+
+    if data.countBadgeOffsetY then
+        countBadge:ClearAnchors()
+        countBadge:SetAnchor(BOTTOM, icon, TOP, 0, data.countBadgeOffsetY)
     end
 end
 

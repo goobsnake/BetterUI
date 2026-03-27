@@ -86,6 +86,13 @@ BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 Class: BETTERUI.Vendor.Class
 Main class for the Vendor module window.
 ]]
+--- @class BetterUIVendorClass: BETTERUI.CIM.GenericWindow
+--- @field currentMode number|nil
+--- @field components table<number, table>|nil
+--- @field list any
+--- @field _suppressListUpdates boolean|nil
+--- @field _isDirty boolean|nil
+--- @field unifiedFooterController any
 BETTERUI.Vendor.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
 --[[
@@ -109,10 +116,8 @@ return: boolean - True if the vendor scene is currently showing.
 --- @return boolean
 function BETTERUI.Vendor.Class:IsSceneShowing()
     local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
-    if scene then
-        return scene:IsShowing()
-    end
-    return false
+    if not scene then return false end
+    return scene:IsShowing()
 end
 
 -- ============================================================================
@@ -296,6 +301,7 @@ end
 Function: BETTERUI.Vendor.Class:SetupUnifiedFooter
 Description: Configures the unified footer for VENDOR mode.
 ]]
+--- @return nil
 function BETTERUI.Vendor.Class:SetupUnifiedFooter()
     local footerContainer = self.control and self.control.container and
         self.control.container:GetNamedChild("FooterContainer")

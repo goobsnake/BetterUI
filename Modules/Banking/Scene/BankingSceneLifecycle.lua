@@ -4,7 +4,11 @@ Purpose: Scene showing/hiding/hidden lifecycle handlers and keyboard shortcut in
 Extracted from Banking.lua for maintainability.
 ]]
 
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
+local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
+
+-- ─── Public API ──────────────────────────────────────────────────────────────
 
 --[[
 Function: BETTERUI.Banking.Class:OnSceneShowing
@@ -93,7 +97,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
         if not isRelevant then return end
 
-        BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", 100, function()
+        BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", SHARED_INVENTORY_UPDATE_DELAY_MS, function()
             if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
                 self.isDirty = true
                 self:RefreshList()

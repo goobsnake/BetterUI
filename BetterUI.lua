@@ -20,6 +20,9 @@ local LAM = LibAddonMenu2
 
 if BETTERUI == nil then BETTERUI = {} end
 
+-- ─── Constants ───────────────────────────────────────────────────────────────
+local SAVED_VARS_SCHEMA_VERSION = 2.89
+
 -- ============================================================================
 -- MODULE REGISTRY
 -- ============================================================================
@@ -580,9 +583,9 @@ function BETTERUI.Initialize(event, addon)
 	-- Load saved variables
 	-- Changed version to 2.89 to prevent issues with prior saved variables
 	-- Wrap in pcall so corrupted SavedVars don't crash the entire addon
-	local ok, result = pcall(ZO_SavedVars.New, ZO_SavedVars, "BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	local ok, result = pcall(ZO_SavedVars.New, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
 	BETTERUI.SavedVars = ok and result or BETTERUI.DefaultSettings
-	local okGlobal, resultGlobal = pcall(ZO_SavedVars.NewAccountWide, ZO_SavedVars, "BetterUISavedVars", 2.89, nil, BETTERUI.DefaultSettings)
+	local okGlobal, resultGlobal = pcall(ZO_SavedVars.NewAccountWide, ZO_SavedVars, "BetterUISavedVars", SAVED_VARS_SCHEMA_VERSION, nil, BETTERUI.DefaultSettings)
 	BETTERUI.GlobalVars = okGlobal and resultGlobal or BETTERUI.DefaultSettings
 
 	-- Determine which settings to use

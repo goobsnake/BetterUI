@@ -6,8 +6,12 @@ Author: BetterUI Team
 Last Modified: 2026-01-26
 ]]
 
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
 local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
+local MINIMUM_ALLOWED_FADE_GRADIENT = 32
+
+-- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --- Gets the relevant dimension (Height/Width) based on list orientation.
 ---
@@ -50,7 +54,7 @@ BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 --- - Ensures clean fades at the edges of the scroll area.
 ---
 --- @param ... any Arguments passed to ZO_ParametricScrollList:New.
---- @return table The new list instance.
+--- @return BetterUIVerticalParametricScrollList The new list instance.
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -96,7 +100,6 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                 end
 
                 -- Calculate fading gradients
-                local MINIMUM_ALLOWED_FADE_GRADIENT = 32
                 local gradientMaxStart = zo_max(listMid - listStart - selectedControlBufferStart,
                     MINIMUM_ALLOWED_FADE_GRADIENT)
                 local gradientMaxEnd = zo_max(listEnd - listMid - selectedControlBufferEnd, MINIMUM_ALLOWED_FADE_GRADIENT)
@@ -148,7 +151,7 @@ BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollLis
 --- Constructor for item list.
 ---
 --- @param control table The list control.
---- @return table The new list instance.
+--- @return BetterUIVerticalItemParametricScrollList The new list instance.
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)

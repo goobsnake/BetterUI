@@ -14,8 +14,13 @@ local Bars = nil
 local SkillBar = nil
 local Events = nil
 
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local NAME = "ResourceOrbFrames"
 local BARS  -- resolved after Constants.lua loads (in Initialize)
+local MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X = 350
+local BAR_FALLBACK_OFFSET_Y = -20
+
+-- ─── Private Helpers ────────────────────────────────────────────────────────
 local m_rootFrame = nil
 local m_isInitialized = false
 local m_updateDeathFragment = nil
@@ -152,7 +157,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
                 m_mountStaminaBar.control:SetAnchor(TOP, m_rightOrnament, BOTTOM, BARS.MOUNT.OFFSET_X,
                     BARS.MOUNT.OFFSET_Y)
             else
-                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, 350, -20)
+                m_mountStaminaBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X, BAR_FALLBACK_OFFSET_Y)
             end
         end
         m_mountStaminaBar:Update()

@@ -7,10 +7,11 @@ Last Modified: 2026-01-24
 ]]
 
 -------------------------------------------------------------------------------------------------
--- SHARED CONSTANTS & STATE
--------------------------------------------------------------------------------------------------
+-- ─── Constants ───────────────────────────────────────────────────────────────
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
+
+-- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --[[
 Function: FindEmptySlotInBag
@@ -211,11 +212,12 @@ Description: Cancels the current withdraw/deposit operation.
 --- @param list table
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
-    if self.confirmationMode then
-        self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
-    else
+    if not self.confirmationMode then
         SCENE_MANAGER:HideCurrentScene()
+        return
     end
+
+    self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
 --[[
