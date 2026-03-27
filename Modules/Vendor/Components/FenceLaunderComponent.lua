@@ -23,14 +23,10 @@ local FenceLaunder = Vendor.FenceLaunderComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
 function FenceLaunder:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function FenceLaunder:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -68,13 +64,10 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
---- @return any Description
 function FenceLaunder:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_LAUNDER)
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -91,8 +84,6 @@ function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     return vendorInstance:CanAfford(cost)
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function FenceLaunder:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -125,8 +116,6 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
 function FenceLaunder:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

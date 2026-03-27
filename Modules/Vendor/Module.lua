@@ -73,9 +73,9 @@ Wrapper Function (caller in BetterUI.lua):
 param: m_options (table|nil) - The raw settings table for this module.
 return: table - The initialized and migrated settings table.
 ]]
---- @param m_options table|nil The raw settings table for this module
---- @return table The initialized and migrated settings table
 function BETTERUI.Vendor.InitModule(m_options)
+	m_options = m_options or {}
+	---@cast m_options table
 	local defaults = BETTERUI.Vendor.DEFAULTS
 	local fallbackDefaults = {
 		showIconEnchantment = true,
@@ -117,7 +117,6 @@ Function: BETTERUI.Vendor.Setup
 Lifecycle hook to setup the Vendor module.
 References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Setup()
 	BETTERUI.Vendor.Settings.RegisterPanel("Vendor", "Vendor")
 	BETTERUI.Vendor.Init()

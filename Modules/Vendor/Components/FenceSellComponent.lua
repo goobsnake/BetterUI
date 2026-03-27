@@ -23,14 +23,12 @@ local FenceSell = Vendor.FenceSellComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
+--- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
---- @param vendorInstance any Description
---- @return any Description
+--- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -42,6 +40,7 @@ end
 --- Get remaining fence sells and total allowed
 --- @return number remaining
 --- @return number total
+--- @return number resetTimeSeconds
 local function GetRemainingSells()
     if GetFenceSellTransactionInfo then
         local totalSells, sellsUsed, resetTimeSeconds = GetFenceSellTransactionInfo()
@@ -69,13 +68,13 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
---- @return any Description
+--- @return string
 function FenceSell:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_SELL)
 end
 
---- @param vendorInstance any Description
---- @return any Description
+--- @param vendorInstance BETTERUI.Vendor.Class
+--- @return boolean
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -94,8 +93,7 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     return true
 end
 
---- @param vendorInstance any Description
---- @return any Description
+--- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -127,8 +125,7 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
+--- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

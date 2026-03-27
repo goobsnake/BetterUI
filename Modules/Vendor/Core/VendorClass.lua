@@ -94,10 +94,11 @@ Description: Creates a new instance of the Vendor window class.
 param: ... (any) - Arguments passed to the parent constructor.
 return: table - The new Vendor Class instance.
 ]]
---- @param ... any Description
---- @return any Description
+--- @param ... any
+--- @return BETTERUI.Vendor.Class
 function BETTERUI.Vendor.Class:New(...)
-    return BETTERUI.CIM.GenericWindow.New(self, ...)
+    local obj = BETTERUI.CIM.GenericWindow.New(self, ...)
+    return obj --[[@as BETTERUI.Vendor.Class]]
 end
 
 --[[
@@ -105,7 +106,7 @@ Function: BETTERUI.Vendor.Class:IsSceneShowing
 Description: Checks if the vendor scene is currently showing.
 return: boolean - True if the vendor scene is currently showing.
 ]]
---- @return any Description
+--- @return boolean
 function BETTERUI.Vendor.Class:IsSceneShowing()
     local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
     if scene then
@@ -123,7 +124,7 @@ Function: BETTERUI.Vendor.Class:GetCurrentMode
 Description: Returns the current active mode (Buy/Sell/Repair/Buyback/FenceSell/FenceLaunder).
 return: number - One of BETTERUI.Vendor.MODE constants.
 ]]
---- @return any Description
+--- @return number
 function BETTERUI.Vendor.Class:GetCurrentMode()
     return self.currentMode or BETTERUI.Vendor.MODE.BUY
 end
@@ -133,8 +134,7 @@ Function: BETTERUI.Vendor.Class:SetMode
 Switches the active vendor tab/mode.
 param: mode (number) - One of BETTERUI.Vendor.MODE constants.
 ]]
---- @param mode any Description
---- @return any Description
+--- @param mode number
 function BETTERUI.Vendor.Class:SetMode(mode)
     if not mode then return end
     if self.currentMode == mode then return end
@@ -164,7 +164,7 @@ Function: BETTERUI.Vendor.Class:GetActiveComponent
 Description: Returns the component table for the current mode.
 return: table|nil - The component table, or nil if not registered.
 ]]
---- @return any Description
+--- @return table|nil
 function BETTERUI.Vendor.Class:GetActiveComponent()
     if not self.components then return nil end
     return self.components[self:GetCurrentMode()]
@@ -176,9 +176,8 @@ Description: Registers a component table for a given mode.
 param: mode (number) - One of BETTERUI.Vendor.MODE constants.
 param: component (table) - Component table with Activate/Deactivate/BuildList/GetKeybinds methods.
 ]]
---- @param mode any Description
---- @param component any Description
---- @return any Description
+--- @param mode number
+--- @param component table
 function BETTERUI.Vendor.Class:RegisterComponent(mode, component)
     if not mode or not component then return end
     self.components = self.components or {}
@@ -220,7 +219,6 @@ Function: BETTERUI.Vendor.Class:SuppressListUpdates
 Description: Enters suppression mode — list refreshes are deferred and coalesced.
              Call FlushListUpdates() or EndSuppression() to apply pending changes.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Class:SuppressListUpdates()
     self._suppressListUpdates = true
     self._isDirty = false
@@ -230,7 +228,6 @@ end
 Function: BETTERUI.Vendor.Class:FlushListUpdates
 Description: Exits suppression mode and flushes any pending list updates.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Class:FlushListUpdates()
     self._suppressListUpdates = false
     if self._isDirty then
@@ -247,7 +244,7 @@ Function: BETTERUI.Vendor.Class:IsFenceMode
 Description: Checks if the current mode is a fence mode (Sell Stolen or Launder).
 return: boolean - True if in fence sell or launder mode.
 ]]
---- @return any Description
+--- @return boolean
 function BETTERUI.Vendor.Class:IsFenceMode()
     local mode = self:GetCurrentMode()
     return mode == BETTERUI.Vendor.MODE.FENCE_SELL
@@ -259,7 +256,7 @@ Function: BETTERUI.Vendor.Class:GetStoreCurrencyTypes
 Description: Returns the currency types used by the current store.
 return: number, number - Primary and secondary currency types.
 ]]
---- @return any Description
+--- @return number, number|nil
 function BETTERUI.Vendor.Class:GetStoreCurrencyTypes()
     if GetStoreUsedCurrencyTypes then
         return GetStoreUsedCurrencyTypes()
@@ -274,9 +271,9 @@ param: cost (number) - The cost of the item.
 param: currencyType (number) - The currency type (defaults to CURT_MONEY).
 return: boolean - True if the player can afford the item.
 ]]
---- @param cost any Description
---- @param currencyType any Description
---- @return any Description
+--- @param cost number
+--- @param currencyType number|nil
+--- @return boolean
 function BETTERUI.Vendor.Class:CanAfford(cost, currencyType)
     if not cost or cost <= 0 then return true end
     currencyType = currencyType or CURT_MONEY
@@ -289,7 +286,7 @@ Function: BETTERUI.Vendor.Class:HasInventorySpace
 Description: Checks if the player has backpack space for an item.
 return: boolean - True if there's at least 1 empty slot.
 ]]
---- @return any Description
+--- @return boolean
 function BETTERUI.Vendor.Class:HasInventorySpace()
     local numFree = GetNumBagFreeSlots(BAG_BACKPACK)
     return numFree and numFree > 0
@@ -299,7 +296,6 @@ end
 Function: BETTERUI.Vendor.Class:SetupUnifiedFooter
 Description: Configures the unified footer for VENDOR mode.
 ]]
---- @return any Description
 function BETTERUI.Vendor.Class:SetupUnifiedFooter()
     local footerContainer = self.control and self.control.container and
         self.control.container:GetNamedChild("FooterContainer")

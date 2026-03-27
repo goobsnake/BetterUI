@@ -21,14 +21,10 @@ local Repair = Vendor.RepairComponent
 -- ACTIVATE / DEACTIVATE
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -37,13 +33,10 @@ end
 -- PRIMARY ACTION
 -- ============================================================================
 
---- @return any Description
 function Repair:GetPrimaryActionName()
     return GetString(SI_ITEM_ACTION_REPAIR)
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -52,8 +45,6 @@ function Repair:IsPrimaryActionEnabled(vendorInstance)
     return repairCost > 0 and vendorInstance:CanAfford(repairCost)
 end
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -78,8 +69,6 @@ end
 -- REPAIR ALL
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:RepairAll(vendorInstance)
     local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
     if repairAllCost <= 0 then return end
@@ -105,8 +94,6 @@ end
 -- LIST BUILDING
 -- ============================================================================
 
---- @param vendorInstance any Description
---- @return any Description
 function Repair:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
