@@ -155,17 +155,7 @@ end
 --- @param candidateLink string Item link of the candidate
 --- @param candidateBagId number Bag ID of the candidate
 --- @param candidateSlotIndex number Slot index in the bag
---- @return table|nil result Comparison result with fields:
----   - equipSlot: number
----   - equippedLink: string
----   - deltas: table { armorRating, weaponDamage, level, quality }
----   - lines: string[] Formatted comparison lines for display
----   - isUpgrade: boolean Overall upgrade assessment
---- Compare a candidate item against the currently equipped item in the same slot.
---- @param candidateLink string Item link of the candidate
---- @param candidateBagId number Bag ID of the candidate
---- @param candidateSlotIndex number Slot index in the bag
---- @return table|nil result Comparison result with deltas and display lines
+--- @return table|nil result Comparison result with fields: equipSlot, equippedLink, deltas, lines, isUpgrade
 function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotIndex)
     if not candidateLink or candidateLink == "" then return nil end
 
@@ -289,9 +279,6 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     }
 end
 
---- Format the comparison result as a single string for tooltip display.
---- @param result table The result from Compare()
---- @return string text Formatted comparison text
 --- Format the comparison result as a single string for tooltip display.
 --- @param result table The result from Compare()
 --- @return string text Formatted comparison text

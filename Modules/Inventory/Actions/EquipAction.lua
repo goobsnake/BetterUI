@@ -139,7 +139,7 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 -- EQUIP LOGIC
 --------------------------------------------------------------------------------
 
---- Attempts to equip the selected item.
+--- Attempts to equip the selected item with BOE protection.
 ---
 --- Purpose: Handles item equipping logic with safety checks.
 --- Mechanics:
@@ -150,9 +150,6 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 --- 5. Handles Costumes vs Gear.
 --- References: Called from "A" keybind (Equip).
 ---
---- @param inventorySlot table The data of the item to equip.
---- @param isCallingFromActionDialog boolean True if called from the actions dialog (delays dialogs slightly).
---- Attempts to equip the selected item with BOE protection.
 --- @param inventorySlot table The data of the item to equip
 --- @param isCallingFromActionDialog boolean True if called from the actions dialog
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
@@ -264,7 +261,6 @@ end
 --------------------------------------------------------------------------------
 
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
---- Initializes the custom dialog for selecting equipment slots.
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     --- @param data table
     --- @param mainSlot boolean

@@ -128,9 +128,6 @@ end
 --- Counts items in the Craft Bag matching a filter type for category badge display.
 --- @param filterType number|nil The crafting filter type (nil = All)
 --- @return number count The number of matching items
---- Counts items in the Craft Bag matching a filter type for category badge display.
---- @param filterType number|nil The crafting filter type (nil = All)
---- @return number count The number of matching items
 function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCount(filterType)
     local count = 0
     local virtualItems = SHARED_INVENTORY:GetBagCache(BAG_VIRTUAL)

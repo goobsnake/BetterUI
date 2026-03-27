@@ -64,9 +64,9 @@ end
 --- Wrapper Function (caller in BetterUI.lua):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
---- @param m_options table|nil The raw settings table for this module
---- @return table The initialized and migrated settings table
 function BETTERUI.Inventory.InitModule(m_options)
+    m_options = m_options or {}
+    ---@cast m_options table
     -- Apply centralized defaults from DefaultsRegistry
     if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
         m_options = BETTERUI.Defaults.ApplyModuleDefaults("Inventory", m_options)

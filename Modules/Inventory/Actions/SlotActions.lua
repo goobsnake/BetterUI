@@ -45,15 +45,7 @@ local m_customActions = {}
 --- Actions appear in the Y-menu when the visibility function returns true.
 ---
 --- @param id string Unique identifier for the action (used for dedup/removal).
---- @param config table Action configuration with fields:
----   - name (string|function): Display name or function returning name.
----   - callback (function): Called with (inventorySlot) when activated.
----   - visibilityFunction (function|nil): Optional. Called with (inventorySlot), returns bool.
----     If nil, the action is always visible.
----   - options (any|nil): Optional action options (e.g. "silent").
---- Registers a custom slot action from an external addon.
---- @param id string Unique identifier for the action
---- @param config table Action configuration with name, callback, visibilityFunction
+--- @param config table Action configuration.
 --- @return boolean success True if registration succeeded
 function BETTERUI.Inventory.RegisterSlotAction(id, config)
     if not id or not config or not config.name or not config.callback then
@@ -66,8 +58,6 @@ end
 
 --- Unregisters a previously registered custom slot action.
 --- @param id string The unique identifier used during registration.
---- Unregisters a previously registered custom slot action.
---- @param id string The unique identifier used during registration
 function BETTERUI.Inventory.UnregisterSlotAction(id)
     m_customActions[id] = nil
 end
@@ -86,8 +76,8 @@ BETTERUI.Inventory.SlotActions = ZO_ItemSlotActionsController:Subclass()
 --- @param actionStringId number|string The string ID or name of the action.
 --- @param actionCallback function The function to execute when the action is triggered.
 --- @param actionType string The type of action (e.g., "primary").
---- @param visibilityFunction function Optional function to determine if the action is visible.
---- @param options any Optional configuration options.
+--- @param _visibilityFunction function|nil Optional function to determine if the action is visible.
+--- @param options any|nil Optional configuration options.
 local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, actionType, _visibilityFunction, options)
     local actionName = actionStringId
     local visibilityFunction = function()
@@ -197,10 +187,6 @@ end
 --- @param alignmentOverride any Override for the keybind strip alignment.
 --- @param additionalMouseOverbinds table List of additional keybinds for mouse-over actions.
 --- @param useKeybindStrip boolean Whether to display the keybind strip (default: true).
---- Initializes the slot actions controller.
---- @param alignmentOverride any Override for the keybind strip alignment
---- @param additionalMouseOverbinds table List of additional keybinds for mouse-over actions
---- @param useKeybindStrip boolean Whether to display the keybind strip
 function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additionalMouseOverbinds, useKeybindStrip)
     self.alignment = KEYBIND_STRIP_ALIGN_RIGHT
 
@@ -288,7 +274,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Wraps an action in a secure call if necessary (primarily for USE actions).
-    --- @param slotActions table The slot actions object.
+    --- @param actionsList table The slot actions object.
     --- @param actionStringId number The action string ID.
     --- @param callback function The callback to execute.
     --- @param inventorySlot table The inventory slot data.
@@ -297,12 +283,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     end
 
     --- Configures actions related to the Craft Bag (Stow/Retrieve).
-    --- @param slotActions table The slot actions object.
-    --- @param inventorySlot table The inventory slot data.
-    --- @param canUseItem boolean Whether the item is also usable (adds USE as a secondary action).
     --- Sets up the primary action for a slot based on its action name.
     --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
-    --- @param slotActions table The slot actions object.
+    --- @param actionsList table The slot actions object.
     --- @param actionName string The localized name of the action.
     --- @param inventorySlot table The inventory slot data.
     local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
@@ -369,7 +352,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: slotActions (table) - The slot actions object
         param: inventorySlot (table) - The inventory slot data
         ]]
-    --- @param slotActions table
+    --- @param actionsList table
     --- @param inventorySlot table
     local function SecureOpenSkills(actionsList, inventorySlot)
         BETTERUI.CIM.SecureOpenSkills(actionsList, inventorySlot)
@@ -384,7 +367,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         param: canUseItem (boolean) - Whether the item is also usable
         return: string - The resolved action name for display
         ]]
-    --- @param slotActions table
+    --- @param actionsList table
     --- @param inventorySlot table
     --- @param primaryAction string
     --- @param canUseItem boolean
@@ -398,7 +381,7 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         Removes duplicate entries from the slot actions list.
         param: slotActions (table) - The slot actions object to deduplicate
         ]]
-    --- @param slotActions table
+    --- @param actionsList table
     local function DeduplicateActions(actionsList)
         BETTERUI.CIM.DeduplicateActions(actionsList)
     end
@@ -557,9 +540,7 @@ end
 
 --- Returns the underlying ZO_InventorySlotActions object.
 --- Required for the Y-actions dialog to iterate through available actions.
---- @return table The inner slotActions object containing the discovered actions.
---- Returns the underlying ZO_InventorySlotActions object.
---- @return table slotActions The inner slotActions object
+--- @return table slotActions The inner slotActions object containing the discovered actions.
 function BETTERUI.Inventory.SlotActions:GetSlotActions()
     return self.slotActions
 end

@@ -151,6 +151,7 @@ end
 --- References: Called by native `OnUpdate` handler.
 ---
 --- @param currentFrameTimeSeconds number|nil The current game time (or nil if forced).
+--- @return nil
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
@@ -530,6 +531,7 @@ function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	if slot then
 		return slot.locked
 	end
+	return false
 end
 
 -- InitializeKeybindStrip extracted to Keybinds/InventoryKeybinds.lua

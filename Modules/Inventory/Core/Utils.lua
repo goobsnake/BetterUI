@@ -14,9 +14,6 @@ BETTERUI.Inventory.Utils = {}
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
 --- @param parent table The parent class instance
 --- @param successful boolean Whether the bumper press was successful
---- Callback for Right Bumper (Next) navigation.
---- @param parent table The parent class instance
---- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
     if not successful then return end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -45,9 +42,6 @@ end
 --- Callback for Left Bumper (Previous) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
---- @param parent table The parent class instance
---- @param successful boolean Whether the bumper press was successful
---- Callback for Left Bumper (Previous) navigation.
 --- @param parent table The parent class instance
 --- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
@@ -80,6 +74,4 @@ Function: BETTERUI.Inventory.Utils.SafeGetTargetData
 Description: Safe helper for GetTargetData calls (guards against lists without method).
 Rationale: Delegates to CIM.Utils.SafeGetTargetData for shared implementation.
 ]]
---- @param list table The list to get target data from
---- @return table|nil targetData The target data
 BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData

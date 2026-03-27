@@ -43,9 +43,7 @@ end
 --- 1. Checks if item is Junk or `force` flag is true.
 --- 2. If so, destroys immediately (fixing sound and refreshing cache).
 --- 3. Returns true if destroyed, false if confirmation (UI) is needed.
---- @param suppressUiRefresh boolean? When true, skips immediate cache/UI refresh work.
 --- References: Called by Hooked Destroy and Action Dialog.
---- Attempts to destroy an item, dealing with junk status and user confirmation settings.
 --- @param bagId number The bag containing the item
 --- @param slotIndex number The slot index within the bag
 --- @param force boolean Whether to force destruction without confirmation
