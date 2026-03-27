@@ -70,9 +70,9 @@ end
 --- Wrapper Function (caller in BetterUI.lua):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
---- @param m_options table|nil The raw settings table for this module
---- @return table The initialized and migrated settings table
 function BETTERUI.Banking.InitModule(m_options)
+	m_options = m_options or {}
+	---@cast m_options table
 	local defaults = BETTERUI.Banking.DEFAULTS
 	local fallbackDefaults = {
 		showIconEnchantment = true,

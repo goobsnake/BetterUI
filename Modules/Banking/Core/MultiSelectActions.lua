@@ -18,8 +18,7 @@ local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
 --- @param itemData table
---- @return number bagId
---- @return number slotIndex
+--- @return number bagId, number slotIndex
 local function ExtractSlot(itemData)
     local rawData = itemData.dataSource or itemData
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
@@ -47,9 +46,6 @@ local function ResolveStackCount(itemData, bagId, slotIndex)
     return zo_clamp(requestedStack, 1, liveStack)
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean
 --- @param bagId number
 --- @param slotIndex number
 --- @param targetBankBag number
@@ -229,6 +225,7 @@ function BETTERUI.Banking.Class:BatchTransfer()
                 return "skip"
             end
 
+            ---@cast targetBag number
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex, targetBag)
             if destinationSlot == nil then
                 return "skip"
