@@ -24,8 +24,6 @@ local function GetModuleSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end
 
---- @param rootFrame any Description
---- @return any Description
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame
     if not targetRootFrame then
@@ -38,8 +36,6 @@ function Events.RefreshCombatIndicators(rootFrame)
     end
 end
 
---- @param rootFrame any Description
---- @return any Description
 function Events.SetupCombatIndicators(rootFrame)
     m_combatIndicatorRootFrame = rootFrame
     if not m_combatIndicatorRootFrame then

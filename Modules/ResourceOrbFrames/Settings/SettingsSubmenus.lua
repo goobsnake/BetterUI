@@ -8,7 +8,6 @@ Each function returns a LAM submenu table definition.
 local ROF = BETTERUI.ResourceOrbFrames
 if not ROF then return end
 
---- @class ROFSettingsSubmenus
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
@@ -17,8 +16,8 @@ Function: Submenus.BuildSkillBarsSubmenu
 Description: Builds the "Skill Bars" submenu with cooldown timers, quickslot,
 back bar, ultimate, and combat indicator settings.
 ]]
---- @param accessors any Description
---- @return any Description
+--- @param accessors table
+--- @return table LAM submenu definition
 function Submenus.BuildSkillBarsSubmenu(accessors)
     local a = accessors
     return {
@@ -206,8 +205,8 @@ end
 Function: Submenus.BuildOrbTextSubmenu
 Description: Builds the "Orb Text & Visuals" submenu with ornament, text size/color settings.
 ]]
---- @param accessors any Description
---- @return any Description
+--- @param accessors table
+--- @return table LAM submenu definition
 function Submenus.BuildOrbTextSubmenu(accessors)
     local a = accessors
     return {
@@ -311,8 +310,8 @@ end
 Function: Submenus.BuildBarSubmenus
 Description: Returns submenu tables for XP Bar, Cast Bar, and Mount Stamina Bar settings.
 ]]
---- @param accessors any Description
---- @return any Description
+--- @param accessors table
+--- @return table, table, table LAM submenu definitions
 function Submenus.BuildBarSubmenus(accessors)
     local a = accessors
     local xpSubmenu = {

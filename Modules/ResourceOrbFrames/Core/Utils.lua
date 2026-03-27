@@ -10,11 +10,6 @@ if not BETTERUI.ResourceOrbFrames.Utils then BETTERUI.ResourceOrbFrames.Utils = 
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 
---- @param value any Description
---- @param minValue any Description
---- @param maxValue any Description
---- @param fallback any Description
---- @return any Description
 function Utils.ClampTextSize(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then

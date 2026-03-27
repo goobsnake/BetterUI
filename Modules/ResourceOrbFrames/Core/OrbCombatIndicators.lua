@@ -45,8 +45,6 @@ local function Clamp(value, minValue, maxValue, fallback)
     return numberValue
 end
 
---- @param rootFrame any Description
---- @return any Description
 function CombatIndicators.ResolveFrontBarContainer(rootFrame)
     if not rootFrame then
         return nil
@@ -115,8 +113,6 @@ local function EnsureCombatIconControl(rootFrame, frontBarContainer)
     return m_combatIconControl
 end
 
---- @param rootFrame any Description
---- @return any Description
 function CombatIndicators.GetCombatIndicatorControls(rootFrame)
     if not rootFrame then
         return nil, nil
@@ -352,7 +348,6 @@ local function GetGlowTargets(rootFrame)
     return targets
 end
 
---- @return any Description
 function CombatIndicators.HideAllCombatGlows()
     for control, timeline in pairs(m_combatGlowTimelinesByControl) do
         if timeline and timeline.IsPlaying and timeline:IsPlaying() then
@@ -407,10 +402,6 @@ end
 --- Internal state for tracking combat transitions
 CombatIndicators._lastCombatState = nil
 
---- @param rootFrame any Description
---- @param isInCombat any Description
---- @param playAudioCue any Description
---- @return any Description
 function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
     local settings = GetModuleSettings()
     local glow, icon = CombatIndicators.GetCombatIndicatorControls(rootFrame)

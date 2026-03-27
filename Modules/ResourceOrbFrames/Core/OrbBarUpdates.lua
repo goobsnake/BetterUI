@@ -25,9 +25,6 @@ local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
 local FoodBuffTracker = Bars.FoodBuffTracker
 
---- @param fillColor any Description
---- @param depthColor any Description
---- @return any Description
 function CastBar:ApplyFillStyle(fillColor, depthColor)
     self.currentFillColor = fillColor or self.defaultFillColor
     self.currentDepthColor = depthColor or self.defaultDepthColor
@@ -67,9 +64,6 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
     if self.fill then self.fill:SetHidden(false) end
 end
 
---- @param unitTag any Description
---- @param wasInterrupted any Description
---- @return any Description
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
@@ -79,7 +73,6 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
     self:Update()
 end
 
---- @return any Description
 function CastBar:Update()
     local settings = GetModuleSettings()
     if not settings.castBarEnabled then
@@ -149,7 +142,6 @@ function CastBar:Update()
     end
 end
 
---- @return any Description
 function ExperienceBar:Update()
     if not self.control then return end
     local settings = GetModuleSettings()
@@ -209,7 +201,6 @@ function ExperienceBar:Update()
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
 
---- @return any Description
 function MountStaminaBar:Update()
     local settings = GetModuleSettings()
     if not settings.mountStaminaBarEnabled then
@@ -254,7 +245,6 @@ function MountStaminaBar:Update()
     end
 end
 
---- @return any Description
 function FoodBuffTracker:Update()
     -- Logic available in repo if needed, minimal placeholder here to prevent errors if referenced
     if self.control and self.control.SetValue then self.control:SetValue(0) end

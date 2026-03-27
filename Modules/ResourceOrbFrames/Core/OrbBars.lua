@@ -182,8 +182,6 @@ end
 -------------------------------------------------------------------------------------------------
 BetterUIBarFrame = ZO_Object:Subclass()
 
---- @param control any Description
---- @return any Description
 function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
     -- Assign to instance, not class prototype
@@ -222,11 +220,6 @@ function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillText
     return control
 end
 
---- @param r any Description
---- @param g any Description
---- @param b any Description
---- @param a any Description
---- @return any Description
 function BetterUIBarFrame:SetColor(r, g, b, a)
     if self.fill then self.fill:SetColor(r, g, b, a) end
 end
@@ -239,11 +232,6 @@ local function IsValidRegion(region)
         and type(region.bottom) == "number"
 end
 
---- @param barWidth any Description
---- @param barHeight any Description
---- @param extraOffsetX any Description
---- @param extraOffsetY any Description
---- @return any Description
 function BetterUIBarFrame:GetLabelAnchorOffsets(barWidth, barHeight, extraOffsetX, extraOffsetY)
     local offsetX = extraOffsetX or 0
     local offsetY = extraOffsetY or 0
@@ -258,13 +246,6 @@ function BetterUIBarFrame:GetLabelAnchorOffsets(barWidth, barHeight, extraOffset
     return offsetX, offsetY
 end
 
---- @param current any Description
---- @param max any Description
---- @param insetX any Description
---- @param insetY any Description
---- @param barWidth any Description
---- @param barHeight any Description
---- @return any Description
 function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
     if not self.control or self.control:IsHidden() then return end
 
@@ -317,16 +298,12 @@ end
 -------------------------------------------------------------------------------------------------
 local CastBar = BetterUIBarFrame:Subclass()
 
---- @param parent any Description
---- @return any Description
 function CastBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
---- @param parent any Description
---- @return any Description
 function CastBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent,
         CAST.BACKDROP_TEXTURE or "CastBar.dds",
@@ -452,16 +429,12 @@ end
 -------------------------------------------------------------------------------------------------
 local ExperienceBar = BetterUIBarFrame:Subclass()
 
---- @param parent any Description
---- @return any Description
 function ExperienceBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
---- @param parent any Description
---- @return any Description
 function ExperienceBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent,
         XP.BACKDROP_TEXTURE or "Bar.dds",
@@ -476,16 +449,12 @@ end
 -------------------------------------------------------------------------------------------------
 local MountStaminaBar = BetterUIBarFrame:Subclass()
 
---- @param parent any Description
---- @return any Description
 function MountStaminaBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
---- @param parent any Description
---- @return any Description
 function MountStaminaBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent,
         MOUNT.BACKDROP_TEXTURE or "MountBar.dds",
@@ -516,8 +485,6 @@ function MountStaminaBar:Initialize(parent)
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
---- @param isMounted any Description
---- @return any Description
 function MountStaminaBar:OnMountedStateChanged(isMounted)
     if isMounted then
         local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
@@ -531,8 +498,6 @@ end
 -------------------------------------------------------------------------------------------------
 local FoodBuffTracker = ZO_Object:Subclass()
 
---- @param control any Description
---- @return any Description
 function FoodBuffTracker:New(control)
     local obj = ZO_Object.New(self)
     obj.control = control
