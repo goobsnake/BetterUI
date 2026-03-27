@@ -1,3 +1,4 @@
+---@diagnostic disable: lowercase-global
 -- BetterUI luacheck configuration
 -- ESO addon: suppress undefined globals (entire ESO API is injected at runtime)
 std = "lua51"

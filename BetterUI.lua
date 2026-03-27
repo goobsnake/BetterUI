@@ -13,7 +13,7 @@ Last Modified: 2026-02-08
 -- See the registry definition below for module configuration.
 ]]
 
---- @module BetterUI
+---@class BETTERUI
 --- Lifecycle: Addon load -> EVENT_ADD_ON_LOADED -> Initialize() -> LoadModules() -> per-module setup.
 
 local LAM = LibAddonMenu2
@@ -390,14 +390,14 @@ end
 --- It receives the full context but passes only m_options to the module.
 ---
 --- Wrapper Signature (this function):
----   @param m_namespace table  The module's namespace table (e.g., BETTERUI.Inventory)
----   @param m_options table    The raw settings table to populate with defaults
----   @param moduleName string  Optional name for error reporting (e.g., "Inventory")
----   @return table|nil         Returns m_namespace on success, nil on failure
+---   - m_namespace (table): The module's namespace table (e.g., BETTERUI.Inventory)
+---   - m_options (table): The raw settings table to populate with defaults
+---   - moduleName (string): Optional name for error reporting (e.g., "Inventory")
+---   - Returns (table|nil): Returns m_namespace on success, nil on failure
 ---
 --- Module InitModule Signature (called via pcall):
----   @param m_options table|nil  The raw settings table to be initialized
----   @return table               The modified options table with defaults applied
+---   - m_options (table|nil): The raw settings table to be initialized
+---   - Returns (table): The modified options table with defaults applied
 ---
 --- Why the signatures differ:
 ---   - ModuleOptions needs m_namespace and moduleName for error context and return
