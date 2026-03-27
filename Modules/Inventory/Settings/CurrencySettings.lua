@@ -137,7 +137,7 @@ end
 local function GetCurrencyLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
-            return GetString(SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS)
+            return GetString(rawget(_G, "SI_BETTERUI_CURRENCY_SHOW_EVENT_TICKETS"))
         end
     end
     return GetString(dataEntry.labelStr)
@@ -148,7 +148,7 @@ end
 local function GetOrderLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
-            return GetString(SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS)
+            return GetString(rawget(_G, "SI_BETTERUI_CURRENCY_ORDER_EVENT_TICKETS"))
         end
     end
     return GetString(dataEntry.orderStr)
@@ -188,7 +188,7 @@ end
 
 local function NotifyCurrencyEnableLimitReached()
     local maxVisible = BETTERUI_MAX_VISIBLE_CURRENCIES or 5
-    local warningText = zo_strformat(GetString(SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING), maxVisible)
+    local warningText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_CURRENCY_ENABLE_LIMIT_WARNING")), maxVisible)
     BETTERUI.Debug(warningText)
     if PlaySound and SOUNDS and SOUNDS.NEGATIVE_CLICK then
         PlaySound(SOUNDS.NEGATIVE_CLICK)
@@ -258,31 +258,31 @@ end
 --- @return table option The currency submenu option
 function BETTERUI.Inventory.Settings.GetCurrencyOptions()
     local CURRENCY_ORDER_CHOICES = {
-        GetString(SI_BETTERUI_CURRENCY_POS_1), GetString(SI_BETTERUI_CURRENCY_POS_2),
-        GetString(SI_BETTERUI_CURRENCY_POS_3), GetString(SI_BETTERUI_CURRENCY_POS_4),
-        GetString(SI_BETTERUI_CURRENCY_POS_5), GetString(SI_BETTERUI_CURRENCY_POS_6),
-        GetString(SI_BETTERUI_CURRENCY_POS_7), GetString(SI_BETTERUI_CURRENCY_POS_8),
-        GetString(SI_BETTERUI_CURRENCY_POS_9), GetString(SI_BETTERUI_CURRENCY_POS_10),
-        GetString(SI_BETTERUI_CURRENCY_POS_11), GetString(SI_BETTERUI_CURRENCY_POS_12),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_1")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_2")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_3")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_4")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_5")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_6")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_7")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_8")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_9")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_10")),
+        GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_11")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_12")),
     }
     local CURRENCY_ORDER_VALUES = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 }
 
     local controls = {
         {
             type = "description",
-            text = GetString(SI_BETTERUI_CURRENCY_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_DESC")),
             width = "full",
         },
         {
             type = "dropdown",
-            name = GetString(SI_BETTERUI_CURRENCY_PRESET),
-            tooltip = GetString(SI_BETTERUI_CURRENCY_PRESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_TOOLTIP")),
             choices = {
-                GetString(SI_BETTERUI_CURRENCY_PRESET_DEFAULT),
-                GetString(SI_BETTERUI_CURRENCY_PRESET_PVP),
-                GetString(SI_BETTERUI_CURRENCY_PRESET_CRAFTER),
-                GetString(SI_BETTERUI_CURRENCY_PRESET_EVENTS),
-                GetString(SI_BETTERUI_CURRENCY_PRESET_CUSTOM),
+                GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_DEFAULT")),
+                GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_PVP")),
+                GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_CRAFTER")),
+                GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_EVENTS")),
+                GetString(rawget(_G, "SI_BETTERUI_CURRENCY_PRESET_CUSTOM")),
             },
             choicesValues = { "default", "pvp", "crafter", "events", "custom" },
             getFunc = function()
@@ -393,8 +393,8 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
     })
     table.insert(controls, {
         type = "button",
-        name = GetString(SI_BETTERUI_CURRENCY_RESET),
-        tooltip = GetString(SI_BETTERUI_CURRENCY_RESET_TOOLTIP),
+        name = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_RESET")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_RESET_TOOLTIP")),
         func = function()
             BETTERUI.ApplyCurrencyPreset("default")
             local settings = EnsureInventorySettings()
@@ -409,7 +409,7 @@ function BETTERUI.Inventory.Settings.GetCurrencyOptions()
 
     return {
         type = "submenu",
-        name = GetString(SI_BETTERUI_CURRENCY_SUBMENU),
+        name = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_SUBMENU")),
         reference = "BETTERUI_Inventory_CurrencyVisibility_Submenu",
         disableAutoSort = true,
         controls = controls,

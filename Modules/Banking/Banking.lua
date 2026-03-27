@@ -162,7 +162,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.currentCategoryIndex = 1
 
     -- Base header title (used as fallback); header title will show selected category like inventory
-    self.headerBaseTitle = GetString(SI_BETTERUI_BANK_TITLE)
+    self.headerBaseTitle = GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE"))
 
     -- Initialize the banking header with a tab bar similar to inventory
     self.headerGeneric = self.header:GetNamedChild("Header") or self.header
@@ -377,18 +377,18 @@ References: Called by BETTERUI.Banking.Setup().
 ]]
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", BETTERUI_BANKING_SCENE_NAME)
-    BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r")
+    BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")
 
     -- Initialize header with categories & selection immediately
     BETTERUI.Banking.Window:RebuildHeaderCategories()
 
     -- Set the column headings up using shared CIM constants
     local COLS = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_NAME), COLS.NAME)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TYPE), COLS.TYPE)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_TRAIT), COLS.TRAIT)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_STAT), COLS.STAT)
-    BETTERUI.Banking.Window:AddColumn(GetString(SI_BETTERUI_BANKING_COLUMN_VALUE), COLS.VALUE)
+    BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME")), COLS.NAME)
+    BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE")), COLS.TYPE)
+    BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT")), COLS.TRAIT)
+    BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT")), COLS.STAT)
+    BETTERUI.Banking.Window:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE")), COLS.VALUE)
 
     -- Link column labels to sort controller AFTER columns are created
     if BETTERUI.Banking.Window.LinkColumnLabels then

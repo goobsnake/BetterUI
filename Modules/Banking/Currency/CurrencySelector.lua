@@ -42,7 +42,7 @@ local function BuildBankUpgradeDetailsLines()
         true
     )
     details.rows[#details.rows + 1] = {
-        stat = GetString(SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL),
+        stat = GetString(rawget(_G, "SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL")),
         value = bankCapacityValue,
     }
 
@@ -50,7 +50,7 @@ local function BuildBankUpgradeDetailsLines()
         local cost = GetNextBankUpgradePrice and GetNextBankUpgradePrice() or 0
         local costText = ZO_Currency_FormatGamepad(CURT_MONEY, cost, ZO_CURRENCY_FORMAT_AMOUNT_ICON)
         details.rows[#details.rows + 1] = {
-            stat = GetString(SI_PROMPT_TITLE_BUY_BANK_SPACE),
+            stat = GetString(rawget(_G, "SI_PROMPT_TITLE_BUY_BANK_SPACE")),
             value = costText,
         }
     end
@@ -99,7 +99,7 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
         tooltip:ClearLines()
 
         local guildId = GetSelectedGuildBankId and GetSelectedGuildBankId() or 0
-        local guildName = (guildId > 0) and GetGuildName(guildId) or GetString(SI_TRADING_HOUSE_GUILD_LABEL)
+        local guildName = (guildId > 0) and GetGuildName(guildId) or GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL"))
 
         local guildBankGold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_GUILD_BANK) or 0
         local carriedGold = GetCarriedCurrencyAmount(CURT_MONEY) or 0
@@ -119,10 +119,10 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
             guildSection:AddStatValuePair(pair)
         end
 
-        AddToGuild(GetString(SI_TRADING_HOUSE_GUILD_LABEL), guildName)
+        AddToGuild(GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")), guildName)
         local usedSlots = GetNumBagUsedSlots(BAG_GUILDBANK) or 0
         local totalSlots = GetBagUseableSize(BAG_GUILDBANK) or 0
-        AddToGuild(GetString(SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL),
+        AddToGuild(GetString(rawget(_G, "SI_GAMEPAD_BANK_BANK_CAPACITY_LABEL")),
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, usedSlots, totalSlots))
         mainSection:AddSection(guildSection)
 
@@ -205,7 +205,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.currencySelectorKeybinds)
     else
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_BETTERUI_BANK_NO_FUNDS))
+        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(rawget(_G, "SI_BETTERUI_BANK_NO_FUNDS")))
     end
 end
 

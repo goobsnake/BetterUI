@@ -92,19 +92,19 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 
 		additionalInputNarrationFunction = function()
 			return ZO_GetHorizontalDirectionalInputNarrationData(
-				GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION),
-				GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION)
+				GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION")),
+				GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION"))
 			)
 		end,
 
 		buttons = {
 			{
 				keybind = "DIALOG_NEGATIVE",
-				text = GetString(SI_DIALOG_CANCEL),
+				text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
 			},
 			{
 				keybind = "DIALOG_PRIMARY",
-				text = GetString(SI_GAMEPAD_SELECT_OPTION),
+				text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
 				callback = function(dialog)
 					local dialogData = dialog.data
 					local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
@@ -142,23 +142,23 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 		},
 		title = {
 			text = function(dialog)
-				return GetString(SI_DESTROY_ITEM_PROMPT_TITLE) or "Destroy Item"
+				return GetString(rawget(_G, "SI_DESTROY_ITEM_PROMPT_TITLE")) or "Destroy Item"
 			end,
 		},
 		mainText = {
 			text = function(dialog)
 				local link = dialog and dialog.data and dialog.data.itemLink
 				if link and link ~= "" then
-					return zo_strformat(GetString(SI_BETTERUI_DESTROY_CONFIRM_FORMAT), link)
+					return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_DESTROY_CONFIRM_FORMAT")), link)
 				end
-				return GetString(SI_BETTERUI_DESTROY_CONFIRM_GENERIC)
+				return GetString(rawget(_G, "SI_BETTERUI_DESTROY_CONFIRM_GENERIC"))
 			end,
 		},
 		buttons = {
-			{ keybind = "DIALOG_NEGATIVE", text = GetString(SI_DIALOG_CANCEL) },
+			{ keybind = "DIALOG_NEGATIVE", text = GetString(rawget(_G, "SI_DIALOG_CANCEL")) },
 			{
 				keybind = "DIALOG_PRIMARY",
-				text = GetString(SI_GAMEPAD_SELECT_OPTION),
+				text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
 				callback = function(dialog)
 					local d = dialog and dialog.data
 					if d and d.bagId and d.slotIndex then
@@ -214,14 +214,14 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyArmoryItemDialog()
 			{
 				onShowCooldown = 2000,
 				keybind = "DIALOG_PRIMARY",
-				text = GetString(SI_YES),
+				text = GetString(rawget(_G, "SI_YES")),
 				callback = function()
 					ReleaseDialog(true)
 				end,
 			},
 			{
 				keybind = "DIALOG_NEGATIVE",
-				text = GetString(SI_NO),
+				text = GetString(rawget(_G, "SI_NO")),
 				callback = function()
 					ReleaseDialog()
 				end,

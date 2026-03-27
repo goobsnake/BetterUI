@@ -217,7 +217,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
             ZO_Dialogs_ShowDialog(
                 BETTERUI.Inventory.Dialogs.EQUIP_SLOT,
                 { inventorySlot, self.isPrimaryWeapon },
-                { mainTextParams = { GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN) } },
+                { mainTextParams = { GetString(rawget(_G, "SI_BETTERUI_INV_EQUIPSLOT_MAIN")) } },
                 true
             )
         end
@@ -240,7 +240,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
                 RequestEquipItem(bagId, slotIndex, wornBag)
             else
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
-                    possibleError or GetString(SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED))
+                    possibleError or GetString(rawget(_G, "SI_INVENTORY_ERROR_ITEM_CANNOT_BE_EQUIPPED")))
             end
         end)
     end
@@ -289,7 +289,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     --- @param isPrimary boolean
     --- @return string
     local function GetDialogSwitchButtonText(isPrimary)
-        return GetString(SI_BETTERUI_INV_SWITCH_EQUIPSLOT)
+        return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_EQUIPSLOT"))
     end
 
     --- @param dialog table
@@ -302,21 +302,21 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         local itemColor = GetItemQualityColor(itemQuality)
         itemName = itemColor:Colorize(itemName)
         local str = ""
-        local weaponChoice = GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN)
+        local weaponChoice = GetString(rawget(_G, "SI_BETTERUI_INV_EQUIPSLOT_MAIN"))
         if not dialog.data[2] then
-            weaponChoice = GetString(SI_BETTERUI_INV_EQUIPSLOT_BACKUP)
+            weaponChoice = GetString(rawget(_G, "SI_BETTERUI_INV_EQUIPSLOT_BACKUP"))
         end
         if equipType == EQUIP_TYPE_ONE_HAND then
-            str = zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON), itemName, weaponChoice)
+            str = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_ONE_HAND_WEAPON")), itemName, weaponChoice)
         elseif
             equipType == EQUIP_TYPE_MAIN_HAND
             or equipType == EQUIP_TYPE_OFF_HAND
             or equipType == EQUIP_TYPE_TWO_HAND
             or equipType == EQUIP_TYPE_POISON
         then
-            str = zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_OTHER_WEAPON), itemName, weaponChoice)
+            str = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_OTHER_WEAPON")), itemName, weaponChoice)
         elseif equipType == EQUIP_TYPE_RING then
-            str = zo_strformat(GetString(SI_BETTERUI_INV_EQUIP_RING), itemName)
+            str = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_RING")), itemName)
         end
         return str
     end
@@ -331,7 +331,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             dialog:setupFunc()
         end,
         title = {
-            text = GetString(SI_BETTERUI_INV_EQUIPSLOT_TITLE),
+            text = GetString(rawget(_G, "SI_BETTERUI_INV_EQUIPSLOT_TITLE")),
         },
         mainText = {
             text = function(dialog)
@@ -344,16 +344,16 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                 text = function(dialog)
                     local equipType = dialog.data[1].dataSource.equipType
                     if equipType == EQUIP_TYPE_ONE_HAND then
-                        return GetString(SI_BETTERUI_INV_EQUIP_PROMPT_MAIN)
+                        return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_MAIN"))
                     elseif
                         equipType == EQUIP_TYPE_MAIN_HAND
                         or equipType == EQUIP_TYPE_OFF_HAND
                         or equipType == EQUIP_TYPE_TWO_HAND
                         or equipType == EQUIP_TYPE_POISON
                     then
-                        return GetString(SI_BETTERUI_INV_EQUIP)
+                        return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP"))
                     elseif equipType == EQUIP_TYPE_RING then
-                        return GetString(SI_BETTERUI_INV_FIRST_SLOT)
+                        return GetString(rawget(_G, "SI_BETTERUI_INV_FIRST_SLOT"))
                     end
                     return ""
                 end,
@@ -366,7 +366,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                 text = function(dialog)
                     local equipType = dialog.data[1].dataSource.equipType
                     if equipType == EQUIP_TYPE_ONE_HAND then
-                        return GetString(SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP)
+                        return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP"))
                     elseif
                         equipType == EQUIP_TYPE_MAIN_HAND
                         or equipType == EQUIP_TYPE_OFF_HAND
@@ -375,7 +375,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     then
                         return ""
                     elseif equipType == EQUIP_TYPE_RING then
-                        return GetString(SI_BETTERUI_INV_SECOND_SLOT)
+                        return GetString(rawget(_G, "SI_BETTERUI_INV_SECOND_SLOT"))
                     end
                     return ""
                 end,

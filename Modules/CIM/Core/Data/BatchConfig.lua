@@ -270,7 +270,7 @@ function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
     end
 
     if GetString and SI_BETTERUI_SCENE_INVENTORY then
-        local fallbackLabel = GetString(SI_BETTERUI_SCENE_INVENTORY)
+        local fallbackLabel = GetString(rawget(_G, "SI_BETTERUI_SCENE_INVENTORY"))
         if type(fallbackLabel) == "string" and fallbackLabel ~= "" then
             return fallbackLabel
         end
@@ -345,12 +345,12 @@ end
 function BatchConfig.FormatEstimatedBatchDuration(estimatedSeconds)
     local roundedSeconds = zo_max(1, zo_ceil(estimatedSeconds or 0))
     if roundedSeconds < 60 then
-        return zo_strformat(GetString(SI_BETTERUI_BATCH_DURATION_SECONDS), roundedSeconds)
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_DURATION_SECONDS")), roundedSeconds)
     end
 
     local minutes = zo_floor(roundedSeconds / 60)
     local seconds = roundedSeconds - (minutes * 60)
-    return zo_strformat(GetString(SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS), minutes, seconds)
+    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_DURATION_MINUTES_SECONDS")), minutes, seconds)
 end
 
 --- Resolves the batch abort keybinding markup for display.

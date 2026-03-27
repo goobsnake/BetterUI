@@ -148,7 +148,7 @@ function BETTERUI.CIM.GenericSlotActions:BuildCommonActions(inventorySlot, optio
     if includeLinkToChat then
         local itemLink = GetItemLink(bag, slot)
         if itemLink and itemLink ~= "" then
-            self:AddAction(GetString(SI_ITEM_ACTION_LINK_TO_CHAT), function()
+            self:AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")), function()
                 ZO_LinkHandler_InsertLink(zo_strformat("<<2>>", SI_TOOLTIP_ITEM_NAME, itemLink))
             end)
         end
@@ -158,7 +158,7 @@ function BETTERUI.CIM.GenericSlotActions:BuildCommonActions(inventorySlot, optio
     if includeSplitStack then
         local stackSize = GetSlotStackSize(bag, slot)
         if stackSize and stackSize > 1 then
-            self:AddAction(GetString(SI_ITEM_ACTION_SPLIT_STACK), function()
+            self:AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_SPLIT_STACK")), function()
                 if ZO_InventorySlot_TrySplitStack then
                     ZO_InventorySlot_TrySplitStack(inventorySlot)
                 end
@@ -358,7 +358,7 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     for i, action in ipairs(slotActions.m_slotActions) do
         local actionName = action[1]
         -- Use localized string constant to match on non-English clients
-        if actionName == GetString(SI_ITEM_ACTION_START_SKILL_RESPEC) then
+        if actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC")) then
             local wrappedCallback = function()
                 if inventorySlot then
                     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -416,8 +416,8 @@ param: canUseItem (boolean) - Whether the item is also usable.
 return: string - The resolved action name for display.
 ]]
 function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
-    local retrieveActionName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
-    local stowActionName = GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG)
+    local retrieveActionName = GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"))
+    local stowActionName = GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG"))
     local actionName = primaryAction or stowActionName
     local isInCraftBag = BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
 

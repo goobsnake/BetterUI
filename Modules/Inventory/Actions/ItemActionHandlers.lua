@@ -110,7 +110,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
 
     self:RefreshItemActions()
 
-    local titleText = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
+    local titleText = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
     local headerData = { titleText = titleText }
     ZO_GamepadGenericHeader_RefreshData(dialog.header, headerData)
 
@@ -151,8 +151,8 @@ function ActionHandlers.OnSetup(self, dialog, data)
         for i = 1, numActions do
             local action = actions:GetSlotAction(i)
             local actionName = actions:GetRawActionName(action)
-            if actionName == GetString(SI_ITEM_ACTION_MARK_AS_LOCKED)
-                or actionName == GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED) then
+            if actionName == GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED"))
+                or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")) then
                 for j, slotAction in ipairs(actions.m_slotActions) do
                     if slotAction and slotAction[1] == actionName then
                         local origCallback = slotAction[2]
@@ -177,22 +177,22 @@ function ActionHandlers.OnSetup(self, dialog, data)
         local actionName = actions:GetRawActionName(action)
 
         local hideDestroy = BETTERUI.CIM.Utils.IsBankingSceneShowing()
-        local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
-            or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+        local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
+            or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
         local hideMarkJunk = false
         do
             local t = (self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE)
                 and (self.itemList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
                 or nil
-            if t and t.bagId and t.slotIndex and actionName == GetString(SI_ITEM_ACTION_MARK_AS_JUNK) then
+            if t and t.bagId and t.slotIndex and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")) then
                 hideMarkJunk = not BETTERUI.CIM.ProtectionPolicy.CanJunkItem(t.bagId, t.slotIndex)
             end
         end
 
-        local isStowOrRetrieve = (actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
-            or (actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
-        local isConvertStyle = (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_IMPERIAL_STYLE))
-            or (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_MORAG_TONG_STYLE))
+        local isStowOrRetrieve = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")))
+            or (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")))
+        local isConvertStyle = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_CONVERT_TO_IMPERIAL_STYLE")))
+            or (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_CONVERT_TO_MORAG_TONG_STYLE")))
 
         if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve and not isConvertStyle then
             local entryData = ZO_GamepadEntryData:New(actionName)
@@ -210,7 +210,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
             local stackCount = GetSlotStackSize(itemTarget.bagId, itemTarget.slotIndex) or 1
             local canStow = BETTERUI.CIM.CanItemMoveToCraftBag(itemTarget)
             if canStow and stackCount > 1 then
-                local e = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_STOW_STACK))
+                local e = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_STOW_STACK")))
                 e:SetIconTintOnSelection(true)
                 e.isStowStackAction = true
                 e.itemTarget = itemTarget
@@ -226,7 +226,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
         if craftBagTarget and craftBagTarget.bagId and craftBagTarget.slotIndex then
             local stackCount = GetSlotStackSize(craftBagTarget.bagId, craftBagTarget.slotIndex) or 1
             if stackCount > 1 then
-                local e = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_RETRIEVE_STACK))
+                local e = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_RETRIEVE_STACK")))
                 e:SetIconTintOnSelection(true)
                 e.isRetrieveStackAction = true
                 e.itemTarget = craftBagTarget
@@ -259,7 +259,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
 
     if showSortEntry and sortContext and sortContext.EnterHeaderSortMode
         and currentList and not currentList:IsEmpty() then
-        local sortEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_HEADER_SORT))
+        local sortEntry = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")))
         sortEntry:SetIconTintOnSelection(true)
         sortEntry.isSortAction = true
         sortEntry.sortContext = sortContext
@@ -268,7 +268,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
     end
 
     -- Move "Get Help" to end
-    local getHelpName = GetString(SI_ITEM_ACTION_REPORT_ITEM)
+    local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
     local getHelpIndex = nil
     for i, entry in ipairs(parametricList) do
         if entry.entryData and entry.entryData.GetText and entry.entryData:GetText() == getHelpName then
@@ -401,8 +401,8 @@ function ActionHandlers.OnConfirm(self, dialog)
     local selectedActionName = selectedRow and selectedRow.text or nil
 
     -- Intercept engine Destroy/Delete
-    if selectedActionName == GetString(SI_ITEM_ACTION_DESTROY)
-        or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(SI_ITEM_ACTION_DELETE)) then
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY"))
+        or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE"))) then
         local targetData = ResolveCurrentTarget(self)
         local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)
         if bag and slot then
@@ -422,7 +422,7 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     -- Link to Chat
-    if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
         local isCompanionScene = SCENE_MANAGER and SCENE_MANAGER.scenes
             and SCENE_MANAGER.scenes["companionEquipmentGamepad"]
             and SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
@@ -439,7 +439,7 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     -- Equip (use fresh target data to avoid stale references)
-    if selectedActionName == GetString(SI_ITEM_ACTION_EQUIP) then
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP")) then
         local targetData = ResolveCurrentTarget(self)
         if targetData and targetData.dataSource then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
@@ -449,10 +449,10 @@ function ActionHandlers.OnConfirm(self, dialog)
     end
 
     -- Use / Show Map / Respec actions (require trusted callstack)
-    if selectedActionName == GetString(SI_ITEM_ACTION_USE)
-        or selectedActionName == GetString(SI_ITEM_ACTION_SHOW_MAP)
-        or selectedActionName == GetString(SI_ITEM_ACTION_START_SKILL_RESPEC)
-        or selectedActionName == GetString(SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
+        or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_MAP"))
+        or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
+        or selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC")) then
         local targetData = ResolveCurrentTarget(self)
         if targetData then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)

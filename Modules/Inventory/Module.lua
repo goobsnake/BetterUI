@@ -252,7 +252,7 @@ function BETTERUI.Inventory.Setup()
 				return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData
 			end,
 			function()
-				return GetString(SI_BETTERUI_INV_TITLE)
+				return GetString(rawget(_G, "SI_BETTERUI_INV_TITLE"))
 			end
 		)
 	end

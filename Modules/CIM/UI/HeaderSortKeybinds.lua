@@ -80,7 +80,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         -- A button: Toggle sort direction
         {
-            name = GetString(SI_BETTERUI_HEADER_SORT),
+            name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")),
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
                 controller:ToggleSort()
@@ -90,14 +90,14 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         },
         -- B button: Exit header mode
         {
-            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = exitCallback,
         },
         -- X button: Clear sort
         {
             ---@diagnostic disable-next-line: undefined-global
-            name = GetString(SI_BETTERUI_CLEAR_SORT),
+            name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
                 local currentDirection = controller.sortDirections[controller.currentColumnIndex]
@@ -159,7 +159,7 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         -- Y button: Already in header mode, show current state (no-op)
         -- This prevents Y from being "lost" when main keybinds are removed
         {
-            name = GetString(SI_BETTERUI_HEADER_SORT),
+            name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")),
             keybind = "UI_SHORTCUT_QUINARY",
             ethereal = true, -- Hidden since A already shows "Sort"
             callback = function()

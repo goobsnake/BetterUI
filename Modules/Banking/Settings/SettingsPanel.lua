@@ -68,19 +68,19 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local optionsTable = {
         {
             type = "header",
-            name = GetString(SI_BETTERUI_BANK_GENERAL_HEADER),
+            name = GetString(rawget(_G, "SI_BETTERUI_BANK_GENERAL_HEADER")),
             width = "full",
         },
         {
             type = "description",
-            text = GetString(SI_BETTERUI_BANK_GENERAL_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_BANK_GENERAL_DESC")),
             width = "full",
         },
         -- Carousel Navigation
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
-            tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP")),
             getFunc = function()
                 return BETTERUI.Banking.GetSetting("enableCarousel")
             end,
@@ -95,8 +95,8 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE),
-            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TYPE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP")),
             getFunc = function()
                 return BETTERUI.Banking.GetSetting("useTriggersForSkip")
             end,
@@ -108,8 +108,8 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         },
         {
             type = "editbox",
-            name = GetString(SI_BETTERUI_TRIGGER_SKIP),
-            tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TOOLTIP")),
             getFunc = function()
                 local value = BETTERUI.Banking.GetSetting("triggerSpeed")
                 return value and tostring(value) or "10"
@@ -127,8 +127,8 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
         },
         {
             type = "button",
-            name = GetString(SI_BETTERUI_GENERAL_RESET),
-            tooltip = GetString(SI_BETTERUI_GENERAL_RESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
             func = function()
                 ResetBankingGeneralSettings()
             end,

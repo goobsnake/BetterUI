@@ -133,9 +133,9 @@ end
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- Update empty-state text based on search context
     if searchQuery and tostring(searchQuery) ~= "" then
-        self.list:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+        self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
     else
-        self.list:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY))
+        self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
     end
 
     self.list:Clear()

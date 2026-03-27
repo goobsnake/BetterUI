@@ -63,7 +63,7 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
         if assignedIndex then
             hasUnassign = true
             -- Create "Remove" entry
-            local removeText = GetString(SI_ITEM_ACTION_REMOVE)
+            local removeText = GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE"))
             if not removeText or removeText == "" then
                 removeText = "Remove"
             end
@@ -166,8 +166,8 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
         local actionName = slotActions:GetRawActionName(action)
 
         -- Check if this is a Destroy/Delete action
-        local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
-            or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+        local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
+            or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
 
         -- Apply filters
         local shouldInclude = true

@@ -112,15 +112,15 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         if isUnknown == nil then
             isUnknown = not IsItemLinkRecipeKnown(itemLink)
         end
-        statText = isUnknown and GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN) or
-            GetString(SI_BETTERUI_INV_RECIPE_KNOWN)
+        statText = isUnknown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN")) or
+            GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN"))
     elseif data.cached_isBook or itemType == ITEMTYPE_BOOK or itemType == ITEMTYPE_LOREBOOK or itemType == ITEMTYPE_RACIAL_STYLE_MOTIF then
         local isKnown = data.cached_isBookKnown
         if isKnown == nil then
             isKnown = IsItemLinkBookKnown(itemLink)
         end
-        statText = isKnown and GetString(SI_BETTERUI_INV_RECIPE_KNOWN) or
-            GetString(SI_BETTERUI_INV_RECIPE_UNKNOWN)
+        statText = isKnown and GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_KNOWN")) or
+            GetString(rawget(_G, "SI_BETTERUI_INV_RECIPE_UNKNOWN"))
     else
         local statValue = data.dataSource and data.dataSource.statValue
         if statValue == nil then

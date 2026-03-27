@@ -25,7 +25,7 @@ return: table - Keybind descriptor for back navigation.
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        name = GetString(SI_GAMEPAD_BACK_OPTION),
+        name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
         keybind = "UI_SHORTCUT_NEGATIVE",
         order = 2000,
         callback = callback or function()
@@ -48,7 +48,7 @@ return: table - Keybind descriptor for stack all action.
 function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        name = GetString(SI_ITEM_ACTION_STACK_ALL),
+        name = GetString(rawget(_G, "SI_ITEM_ACTION_STACK_ALL")),
         keybind = "UI_SHORTCUT_LEFT_STICK",
         disabledDuringSceneHiding = true,
         visible = visibleFn or function() return true end,
@@ -72,7 +72,7 @@ return: table - Keybind descriptor for actions menu.
 function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        name = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND),
+        name = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND")),
         keybind = "UI_SHORTCUT_TERTIARY",
         order = 1000,
         visible = visibleFn or function() return true end,
@@ -97,7 +97,7 @@ return: table - Keybind descriptor for clear search action.
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn, hasTextFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        name = GetString(SI_BETTERUI_CLEAR_SEARCH),
+        name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH")),
         keybind = "UI_SHORTCUT_QUATERNARY",
         disabledDuringSceneHiding = true,
         visible = function()

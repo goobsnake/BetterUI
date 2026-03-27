@@ -156,8 +156,8 @@ function BETTERUI.Banking.Class:BatchTransfer()
         currentUsedBank = BAG_GUILDBANK
     end
     local actionName = isWithdraw
-        and GetString(SI_BETTERUI_BANKING_WITHDRAW)
-        or GetString(SI_BETTERUI_BANKING_DEPOSIT)
+        and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
+        or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
 
     local items = {}
     for _, itemData in ipairs(selectedItems) do
@@ -305,11 +305,11 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
             title = {
                 text = function(dialog)
                     local count = dialog and dialog.data and dialog.data.selectedCount or 0
-                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
+                    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
                 end,
             },
             mainText = {
-                text = GetString(SI_BETTERUI_BATCH_ACTIONS_DESC),
+                text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
             },
             setup = function(dialog)
                 dialog:setupFunc()
@@ -318,7 +318,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
             buttons = {
                 {
                     keybind = "DIALOG_PRIMARY",
-                    text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                     callback = function(dialog)
                         local selected = dialog.entryList and dialog.entryList:GetTargetData()
                         if selected and selected.callback then
@@ -328,7 +328,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                 },
                 {
                     keybind = "DIALOG_NEGATIVE",
-                    text = GetString(SI_GAMEPAD_BACK_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
                             if BETTERUI.Banking.Window then
@@ -347,15 +347,15 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     -- Select All (always first)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        GetString(SI_BETTERUI_SELECT_ALL),
+        GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")),
         function() self:SelectAllItems() end
     ))
 
     -- Withdraw/Deposit All (primary banking action)
     if transferCount > 0 then
         local transferName = isDepositMode
-            and GetString(SI_BETTERUI_BANKING_DEPOSIT)
-            or GetString(SI_BETTERUI_BANKING_WITHDRAW)
+            and GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
+            or GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
         table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
             zo_strformat("<<1>> (<<2>>)", transferName, transferCount),
             function() self:BatchTransfer() end
@@ -367,7 +367,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
 
     -- Deselect All (always last)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount),
+        zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog(dialogName)
             zo_callLater(function() self:ExitSelectionMode() end, 50)

@@ -109,7 +109,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     self.coreKeybinds = {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            name = GetString(SI_BETTERUI_BANKING_TOGGLE_LIST),
+            name = GetString(rawget(_G, "SI_BETTERUI_BANKING_TOGGLE_LIST")),
             keybind = "UI_SHORTCUT_SECONDARY",
             callback = function()
                 if self:IsBatchProcessing() then
@@ -155,7 +155,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 -- Guild bank mode: show guild selector
                 local GuildBank = BETTERUI.Banking.GuildBank
                 if GuildBank and GuildBank.IsGuildBankMode() then
-                    return GetString(SI_TRADING_HOUSE_GUILD_LABEL) or "Select Guild"
+                    return GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")) or "Select Guild"
                 end
                 -- Personal bank: show bank upgrade
                 local cost = GetNextBankUpgradePrice()
@@ -201,7 +201,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     return
                 end
                 if cost > GetCarriedCurrencyAmount(CURT_MONEY) then
-                    ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_BUY_BANK_SPACE_CANNOT_AFFORD))
+                    ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
                 else
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
                     DisplayBankUpgrade()
@@ -213,11 +213,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 if self:IsBatchProcessing() then
-                    return GetString(SI_BETTERUI_ABORT_ACTION)
+                    return GetString(rawget(_G, "SI_BETTERUI_ABORT_ACTION"))
                 end
 
                 -- Always show "Actions" label - selection count is on A button
-                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
@@ -256,7 +256,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         -- L-Stick Stack All using custom logic for dual-bank stacking
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(SI_ITEM_ACTION_STACK_ALL),
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_STACK_ALL")),
             keybind = "UI_SHORTCUT_LEFT_STICK",
             order = 1500,
             disabledDuringSceneHiding = true,
@@ -286,7 +286,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         -- Dedicated entry point for multi-select functionality
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(SI_BETTERUI_MULTI_SELECT),
+            name = GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT")),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 -- Must have items available.
@@ -325,15 +325,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                         return ""
                     end
                     if target and self.multiSelectManager:IsSelected(target) then
-                        return GetString(SI_BETTERUI_DESELECT_ITEM)
+                        return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
                     else
                         local count = self.multiSelectManager:GetSelectedCount()
-                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
                     end
                 end
 
-                local n = (self.currentMode == LIST_WITHDRAW) and GetString(SI_BETTERUI_BANKING_WITHDRAW) or
-                    GetString(SI_BETTERUI_BANKING_DEPOSIT)
+                local n = (self.currentMode == LIST_WITHDRAW) and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW")) or
+                    GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
                 return n or ""
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
@@ -406,7 +406,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
         {
-            name = GetString(SI_BETTERUI_CONFIRM_AMOUNT),
+            name = GetString(rawget(_G, "SI_BETTERUI_CONFIRM_AMOUNT")),
             keybind = "UI_SHORTCUT_PRIMARY",
             visible = function()
                 return true

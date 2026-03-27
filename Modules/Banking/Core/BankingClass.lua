@@ -450,7 +450,7 @@ function BETTERUI.Banking.Class:InitializeMultiSelectManager()
         refreshList = function(s) s:RefreshList() end,
         isSceneShowing = function(s) return s:IsSceneShowing() end,
         getSceneExitLabel = function()
-            return GetString(SI_BETTERUI_SCENE_BANKING)
+            return GetString(rawget(_G, "SI_BETTERUI_SCENE_BANKING"))
         end,
         refreshKeybinds = function(s)
             KEYBIND_STRIP:UpdateKeybindButtonGroup(s.coreKeybinds)

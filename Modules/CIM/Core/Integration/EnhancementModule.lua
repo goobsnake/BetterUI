@@ -42,12 +42,12 @@ local function Init(mId, moduleName)
 	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
 		table.insert(optionsTable, {
 			type = "header",
-			name = GetString(SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER),
+			name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER")),
 			width = "full",
 		})
 		table.insert(optionsTable, {
 			type = "description",
-			text = GetString(SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC),
+			text = GetString(rawget(_G, "SI_BETTERUI_GENERAL_INTERFACE_GENERAL_DESC")),
 			width = "full",
 		})
 
@@ -63,7 +63,7 @@ local function Init(mId, moduleName)
 	if BETTERUI.Nameplates and BETTERUI.Nameplates.GetSettingsOptions then
 		table.insert(optionsTable, {
 			type = "submenu",
-			name = GetString(SI_BETTERUI_NAMEPLATES_HEADER),
+			name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER")),
 			controls = BETTERUI.Nameplates.GetSettingsOptions()
 		})
 	end

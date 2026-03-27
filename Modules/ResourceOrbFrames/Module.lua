@@ -90,7 +90,7 @@ local function ApplySubmenuSectionOrdering(optionsTable)
         return
     end
 
-    local skillBarsSubmenuName = GetString(SI_BETTERUI_SKILL_BARS_SUBMENU)
+    local skillBarsSubmenuName = GetString(rawget(_G, "SI_BETTERUI_SKILL_BARS_SUBMENU"))
     for _, option in ipairs(optionsTable) do
         if type(option) == "table"
             and option.type == "submenu"
@@ -258,19 +258,19 @@ local function Init(mId, moduleName)
     local optionsTable = {
         {
             type = "header",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER),
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_HEADER")),
             width = "full",
         },
         {
             type = "description",
-            text = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_DESC")),
             width = "full",
         },
 
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_SCALE_TOOLTIP")),
             min = 0.75,
             max = 1.75,
             step = 0.05,
@@ -282,8 +282,8 @@ local function Init(mId, moduleName)
         },
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_TOOLTIP")),
             min = -300,
             max = 300,
             step = 5,
@@ -294,8 +294,8 @@ local function Init(mId, moduleName)
         },
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_OFFSET_X_TOOLTIP")),
             min = -500,
             max = 500,
             step = 5,
@@ -306,8 +306,8 @@ local function Init(mId, moduleName)
         },
         {
             type = "button",
-            name = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET),
-            tooltip = GetString(SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
             func = function()
                 ResetSettingsGroup({
                     { key = "scale", value = 1 },

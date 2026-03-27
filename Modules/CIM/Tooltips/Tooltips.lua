@@ -149,13 +149,13 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
 
     local avgPrice = getPriceFunc(itemLink)
     if not avgPrice or avgPrice == 0 then
-        return zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), addonName)
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_NO_PRICE_DATA")), addonName)
     end
 
     if stackCount > 1 then
         local coinIcon = string.format("|t%d:%d:%s|t", iconSize, iconSize,
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
-        return zo_strformat(GetString(SI_BETTERUI_MARKET_PRICE_STACK),
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_STACK")),
             addonName,
             BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon,
             stackCount,
@@ -163,7 +163,7 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
     else
         local coinIcon = string.format("|t%d:%d:%s|t", iconSize, iconSize,
             BETTERUI.SafeIcon(GetCurrencyGamepadIcon(CURT_MONEY)))
-        return zo_strformat(GetString(SI_BETTERUI_MARKET_PRICE),
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE")),
             addonName,
             BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)) .. " " .. coinIcon)
     end
@@ -197,17 +197,17 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
 
                 if avgPrice and sugPrice then
                     -- Both prices available
-                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG_SUG),
+                    ttcLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_AVG_SUG")),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2)),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 elseif avgPrice then
-                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_AVG),
+                    ttcLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_AVG")),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(avgPrice, 2))) .. " " .. coinIconStr
                 elseif sugPrice then
-                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_SUG),
+                    ttcLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_SUG")),
                         BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice, 2))) .. " " .. coinIconStr
                 else
-                    ttcLine = zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), "TTC")
+                    ttcLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_NO_PRICE_DATA")), "TTC")
                 end
 
                 if ttcLine then table.insert(lines, ttcLine) end
@@ -218,20 +218,20 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
                     local totalSug = sugPrice and BETTERUI.DisplayNumber(BETTERUI.roundNumber(sugPrice * stackCount, 2)) or nil
                     local stackLine
                     if totalAvg and totalSug then
-                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG),
+                        stackLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_STACK_AVG_SUG")),
                             stackCount, totalAvg, totalSug) .. " " .. coinIconStr
                     elseif totalAvg then
-                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_AVG),
+                        stackLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_STACK_AVG")),
                             stackCount, totalAvg) .. " " .. coinIconStr
                     else
-                        stackLine = zo_strformat(GetString(SI_BETTERUI_MARKET_TTC_STACK_SUG),
+                        stackLine = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_TTC_STACK_SUG")),
                             stackCount, totalSug) .. " " .. coinIconStr
                     end
                     table.insert(lines, stackLine)
                 end
             else
                 -- priceInfo is nil — TTC has no data for this item at all
-                table.insert(lines, zo_strformat(GetString(SI_BETTERUI_MARKET_NO_PRICE_DATA), "TTC"))
+                table.insert(lines, zo_strformat(GetString(rawget(_G, "SI_BETTERUI_MARKET_NO_PRICE_DATA")), "TTC"))
             end
         end
 
@@ -318,9 +318,9 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
             return lines
         end
         if IsItemLinkRecipeKnown(itemLink) then
-            table.insert(lines, icon .. "|cAAAAAA" .. GetString(SI_RECIPE_ALREADY_KNOWN) .. "|r")
+            table.insert(lines, icon .. "|cAAAAAA" .. GetString(rawget(_G, "SI_RECIPE_ALREADY_KNOWN")) .. "|r")
         else
-            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(SI_USE_TO_LEARN_RECIPE) .. "|r")
+            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(rawget(_G, "SI_USE_TO_LEARN_RECIPE")) .. "|r")
         end
         return lines
     end
@@ -333,9 +333,9 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
             return lines
         end
         if IsItemLinkBookKnown(itemLink) then
-            table.insert(lines, icon .. "|cAAAAAA" .. GetString(SI_LORE_LIBRARY_IN_LIBRARY) .. "|r")
+            table.insert(lines, icon .. "|cAAAAAA" .. GetString(rawget(_G, "SI_LORE_LIBRARY_IN_LIBRARY")) .. "|r")
         else
-            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(SI_LORE_LIBRARY_USE_TO_LEARN) .. "|r")
+            table.insert(lines, icon .. "|c" .. colors.RESEARCHABLE .. GetString(rawget(_G, "SI_LORE_LIBRARY_USE_TO_LEARN")) .. "|r")
         end
         return lines
     end

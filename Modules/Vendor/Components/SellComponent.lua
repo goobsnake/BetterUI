@@ -33,7 +33,7 @@ end
 -- ============================================================================
 
 function Sell:GetPrimaryActionName()
-    return GetString(SI_ITEM_ACTION_SELL)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
 function Sell:IsPrimaryActionEnabled(vendorInstance)
@@ -73,7 +73,7 @@ function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_NO_JUNK))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
         return
     end
 

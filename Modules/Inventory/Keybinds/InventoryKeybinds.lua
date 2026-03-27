@@ -98,7 +98,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 return BETTERUI.CIM.Utils.IsInventorySceneShowing()
             end,
             getSceneExitLabel = function()
-                return GetString(SI_BETTERUI_SCENE_INVENTORY)
+                return GetString(rawget(_G, "SI_BETTERUI_SCENE_INVENTORY"))
             end,
             refreshKeybinds = function(s)
                 if s.isInHeaderSortMode then
@@ -148,10 +148,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
                 if self:IsBatchProcessing() then
-                    return GetString(SI_BETTERUI_ABORT_ACTION)
+                    return GetString(rawget(_G, "SI_BETTERUI_ABORT_ACTION"))
                 end
 
-                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
@@ -175,7 +175,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     or SI_BETTERUI_INV_ACTION_CB
 
                 return zo_strformat(
-                    GetString(SI_BETTERUI_INV_ACTION_TO_TEMPLATE),
+                    GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_TO_TEMPLATE")),
                     GetString(targetStringId)
                 ) or ""
             end,
@@ -217,7 +217,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         ),
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
-            name = GetString(SI_BETTERUI_MULTI_SELECT),
+            name = GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT")),
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
                 return InventoryKeybinds.IsMultiSelectEntryVisible(self)

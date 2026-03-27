@@ -70,7 +70,7 @@ function BETTERUI.GenericFooter:Refresh()
 
     if cwLabel then
         local bagText = zo_strformat("<<1>> (<<2>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
-            GetString(SI_BETTERUI_FOOTER_BAG_CAPACITY),
+            GetString(rawget(_G, "SI_BETTERUI_FOOTER_BAG_CAPACITY")),
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT, GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
 
         if footer._stringCache.bag ~= bagText then
@@ -82,7 +82,7 @@ function BETTERUI.GenericFooter:Refresh()
 
     if bankLabel then
         local bankText = zo_strformat("<<1>> (<<2>>)|t32:32:/esoui/art/inventory/inventory_all_tabicon_inactive.dds|t",
-            GetString(SI_BETTERUI_FOOTER_BANK_CAPACITY),
+            GetString(rawget(_G, "SI_BETTERUI_FOOTER_BANK_CAPACITY")),
             zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
                 GetNumBagUsedSlots(BAG_BANK) + GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK),
                 GetBagUseableSize(BAG_BANK) + GetBagUseableSize(BAG_SUBSCRIBER_BANK)))

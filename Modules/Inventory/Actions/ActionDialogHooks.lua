@@ -52,12 +52,12 @@ function BETTERUI.Inventory.HookActionDialog()
             entryData:SetIconTintOnSelection(true)
             entryData.setup = ZO_SharedGamepadEntry_OnSetup
             -- Intercept Destroy/Delete to route through BetterUI confirm dialog
-            local isDestroy = (actionName == GetString(SI_ITEM_ACTION_DESTROY))
-                or (SI_ITEM_ACTION_DELETE and actionName == GetString(SI_ITEM_ACTION_DELETE))
+            local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
+                or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
             local inBankScene = BETTERUI.CIM.Utils.IsBankingSceneShowing()
             if not (isDestroy and inBankScene) then
                 -- When in the companion equipment scene, hide the 'Link to Chat' action to avoid insecure SendChatMessage calls
-                if actionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+                if actionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) and isCompanionSceneShowing then
                     -- skip adding this action entirely
                 else
                     if isDestroy then
@@ -118,7 +118,7 @@ function BETTERUI.Inventory.HookActionDialog()
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = {
             text = function(dialog)
-                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
             end,
         },
 
@@ -148,11 +148,11 @@ function BETTERUI.Inventory.HookActionDialog()
         buttons = {
             {
                 keybind = "DIALOG_NEGATIVE",
-                text = GetString(SI_DIALOG_CANCEL),
+                text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
             },
             {
                 keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
                     if
                         (
@@ -223,7 +223,7 @@ function BETTERUI.Inventory.HookActionDialog()
                                     .selectedAction)
                             end
                         end
-                        if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+                        if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
                             local targetData = ResolveTargetDataFromDialog()
                             if targetData then
                                 local bag, slot = ZO_Inventory_GetBagAndIndex(targetData)

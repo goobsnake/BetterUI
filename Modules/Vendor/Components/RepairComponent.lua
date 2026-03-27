@@ -34,7 +34,7 @@ end
 -- ============================================================================
 
 function Repair:GetPrimaryActionName()
-    return GetString(SI_ITEM_ACTION_REPAIR)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_REPAIR"))
 end
 
 function Repair:IsPrimaryActionEnabled(vendorInstance)
@@ -58,7 +58,7 @@ function Repair:OnPrimaryAction(vendorInstance)
 
     if not vendorInstance:CanAfford(repairCost) then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_AFFORD))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
@@ -75,7 +75,7 @@ function Repair:RepairAll(vendorInstance)
 
     if not vendorInstance:CanAfford(repairAllCost) then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_AFFORD))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 

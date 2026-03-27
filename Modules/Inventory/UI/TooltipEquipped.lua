@@ -88,16 +88,16 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             WouldEquipmentBeHidden(equipSlot, GAMEPLAY_ACTOR_CATEGORY_PLAYER)
 
         local equipSlotTextHidden
-        local equippedHeader = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+        local equippedHeader = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_ITEM_HEADER"))
 
         if equipSlot == EQUIP_SLOT_MAIN_HAND then
-            equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_MAIN_HAND_ITEM_HEADER)
+            equipSlotText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_MAIN_HAND_ITEM_HEADER"))
         elseif equipSlot == EQUIP_SLOT_BACKUP_MAIN then
-            equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_MAIN_ITEM_HEADER)
+            equipSlotText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_BACKUP_MAIN_ITEM_HEADER"))
         elseif equipSlot == EQUIP_SLOT_OFF_HAND then
-            equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_OFF_HAND_ITEM_HEADER)
+            equipSlotText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_OFF_HAND_ITEM_HEADER"))
         elseif equipSlot == EQUIP_SLOT_BACKUP_OFF then
-            equipSlotText = GetString(SI_GAMEPAD_EQUIPPED_BACKUP_OFF_ITEM_HEADER)
+            equipSlotText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_BACKUP_OFF_ITEM_HEADER"))
         end
 
         -- Custom Header Logic ONLY if Enabled
@@ -119,15 +119,15 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 headerText = zo_strformat("<<1>>: ", equippedHeader)
                 valueText = zo_strformat("<<1>>", equipSlotText)
             else
-                headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+                headerText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_ITEM_HEADER"))
                 valueText = equipSlotText
             end
         else
             -- Native Standard Logic replication with dash separator
             if equipSlotText ~= "" then
-                headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER) .. " -"
+                headerText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_ITEM_HEADER")) .. " -"
             else
-                headerText = GetString(SI_GAMEPAD_EQUIPPED_ITEM_HEADER)
+                headerText = GetString(rawget(_G, "SI_GAMEPAD_EQUIPPED_ITEM_HEADER"))
             end
             valueText = equipSlotText
         end
@@ -197,7 +197,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
 
                 -- C. Bound Status
-                local boundStringLocal = GetString(SI_ITEM_FORMAT_STR_BOUND)
+                local boundStringLocal = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_BOUND"))
                 local boundString = ""
                 if bagId and slotIndex and IsItemBound(bagId, slotIndex) then
                     boundString = boundStringLocal
@@ -214,12 +214,12 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                         IsItemSetCollectionPieceUnlocked(GetItemLinkItemId(itemLink))
 
                     if isSet and not isUnlocked then
-                        bindTypeString = GetString(SI_BETTERUI_BIND_FOR_COLLECTION)
+                        bindTypeString = GetString(rawget(_G, "SI_BETTERUI_BIND_FOR_COLLECTION"))
                     else
-                        bindTypeString = GetString(SI_ITEM_FORMAT_STR_BIND_ON_EQUIP)
+                        bindTypeString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_BIND_ON_EQUIP"))
                     end
                 elseif bindType == BIND_TYPE_ON_PICKUP or bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
-                    bindTypeString = GetString(SI_ITEM_FORMAT_STR_BIND_ON_PICKUP)
+                    bindTypeString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_BIND_ON_PICKUP"))
                 end
 
                 -- E. Traits (Ornate / Intricate)
@@ -241,7 +241,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 local stolenString = ""
                 local stolenIcon = ""
                 if isStolen then
-                    stolenString = GetString(SI_GAMEPAD_ITEM_STOLEN_LABEL) -- "Stolen"
+                    stolenString = GetString(rawget(_G, "SI_GAMEPAD_ITEM_STOLEN_LABEL")) -- "Stolen"
                     stolenIcon = "|t" ..
                         denseIconSizeFmt .. ":EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolenitem.dds|t"
                 end
@@ -253,7 +253,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                 end
                 local junkString = ""
                 if isJunk then
-                    junkString = GetString(SI_ITEM_FORMAT_STR_JUNK)
+                    junkString = GetString(rawget(_G, "SI_ITEM_FORMAT_STR_JUNK"))
                 end
 
                 -- G. Bag/Bank Counts

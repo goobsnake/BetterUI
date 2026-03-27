@@ -17,13 +17,13 @@ local function InitializeHeader(self)
 
     local tabBarEntries = {
         {
-            text = GetString(SI_GAMEPAD_INVENTORY_CATEGORY_HEADER),
+            text = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CATEGORY_HEADER")),
             callback = function()
                 self:SwitchActiveList(INVENTORY_CATEGORY_LIST)
             end,
         },
         {
-            text = GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_HEADER),
+            text = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_HEADER")),
             callback = function()
                 self:SwitchActiveList(INVENTORY_CRAFT_BAG_LIST)
             end,

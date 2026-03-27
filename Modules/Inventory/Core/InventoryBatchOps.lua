@@ -232,7 +232,7 @@ function Class:BatchRetrieve()
         return "queued"
     end, function()
         self:ExitCraftBagSelectionMode()
-    end, GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")), CRAFT_BAG_RETRIEVE_BATCH_OPTIONS)
 end
 
 --- Performs batch stow on all selected inventory items (throttled).
@@ -265,7 +265,7 @@ function Class:BatchStow()
         return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), CRAFT_BAG_STOW_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")), CRAFT_BAG_STOW_BATCH_OPTIONS)
 end
 
 --- Performs batch deposit on all selected items (throttled).
@@ -366,7 +366,7 @@ function Class:InitializeBatchDestroyDialog()
         },
         title = {
             text = function(dialog)
-                return GetString(SI_DESTROY_ITEM_PROMPT_TITLE) or "Destroy Items"
+                return GetString(rawget(_G, "SI_DESTROY_ITEM_PROMPT_TITLE")) or "Destroy Items"
             end,
         },
         mainText = {
@@ -377,10 +377,10 @@ function Class:InitializeBatchDestroyDialog()
             end,
         },
         buttons = {
-            { keybind = "DIALOG_NEGATIVE", text = GetString(SI_DIALOG_CANCEL) },
+            { keybind = "DIALOG_NEGATIVE", text = GetString(rawget(_G, "SI_DIALOG_CANCEL")) },
             {
                 keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
                     local d = dialog and dialog.data
                     if d and d.itemsToDestroy and d.inventoryInstance then
@@ -401,7 +401,7 @@ function Class:InitializeBatchDestroyDialog()
                             if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
                                 inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                             end
-                        end, GetString(SI_ITEM_ACTION_DESTROY), DESTROY_BATCH_OPTIONS)
+                        end, GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")), DESTROY_BATCH_OPTIONS)
                     end
                     ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_DESTROY_DIALOG")
                 end,
@@ -436,7 +436,7 @@ function Class:InitializeBatchDestroyDialog()
         buttons = {
             {
                 keybind = "DIALOG_NEGATIVE",
-                text = GetString(SI_DIALOG_CANCEL),
+                text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
                 callback = function(dialog)
                     ZO_Dialogs_ReleaseDialogOnButtonPress("BETTERUI_BATCH_PROGRESS_DIALOG")
                 end,

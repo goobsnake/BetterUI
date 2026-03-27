@@ -67,8 +67,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     local generalControls = {
         {
             type = "editbox",
-            name = GetString(SI_BETTERUI_CHAT_HISTORY),
-            tooltip = GetString(SI_BETTERUI_CHAT_HISTORY_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_CHAT_HISTORY")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_CHAT_HISTORY_TOOLTIP")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
                 local value = (settings and settings.chatHistory) or
@@ -93,8 +93,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM),
-            warning = GetString(SI_BETTERUI_REMOVE_DELETE_WARNING),
+            name = GetString(rawget(_G, "SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM")),
+            warning = GetString(rawget(_G, "SI_BETTERUI_REMOVE_DELETE_WARNING")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
                 if not settings or settings.removeDeleteDialog == nil then
@@ -114,8 +114,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
         {
             type = "editbox",
-            name = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED),
-            tooltip = GetString(SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_MOUSE_SCROLL_SPEED")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUSE_SCROLL_SPEED_TOOLTIP")),
             getFunc = function()
                 local settings = GetModuleSettings("CIM")
                 local value = (settings and settings.rhScrollSpeed) or GetMetadataDefault("CIM", "rhScrollSpeed", 50)
@@ -135,8 +135,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
         {
             type = "button",
-            name = GetString(SI_BETTERUI_GENERAL_RESET),
-            tooltip = GetString(SI_BETTERUI_GENERAL_RESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
             func = function()
                 ResetGeneralInterfaceGeneralSettings()
             end,
@@ -147,13 +147,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     local marketIntegrationControls = {
         {
             type = "description",
-            text = GetString(SI_BETTERUI_MARKET_INTEGRATION_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_DESC")),
             width = "full",
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_SHOW_MARKET_PRICE),
-            tooltip = GetString(SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_SHOW_MARKET_PRICE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_MARKET_PRICE_TOOLTIP")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
                 if not settings then return true end
@@ -172,8 +172,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "dropdown",
-            name = GetString(SI_BETTERUI_MARKET_PRICE_PRIORITY),
-            tooltip = GetString(SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_PRIORITY")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_MARKET_PRICE_PRIORITY_TOOLTIP")),
             choices = marketPriorityChoices,
             choicesValues = marketPriorityValues,
             getFunc = function()
@@ -197,7 +197,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_GS_ERROR_SUPPRESS),
+            name = GetString(rawget(_G, "SI_BETTERUI_GS_ERROR_SUPPRESS")),
             tooltip = tooltipGuildStoreError,
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
@@ -218,7 +218,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_ATT_INTEGRATION),
+            name = GetString(rawget(_G, "SI_BETTERUI_ATT_INTEGRATION")),
             tooltip = tooltipATT,
             getFunc = function()
                 if ArkadiusTradeTools == nil then
@@ -248,7 +248,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_MM_INTEGRATION),
+            name = GetString(rawget(_G, "SI_BETTERUI_MM_INTEGRATION")),
             tooltip = tooltipMM,
             getFunc = function()
                 if MasterMerchant == nil then
@@ -278,7 +278,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_TTC_INTEGRATION),
+            name = GetString(rawget(_G, "SI_BETTERUI_TTC_INTEGRATION")),
             tooltip = tooltipTTC,
             getFunc = function()
                 if TamrielTradeCentre == nil then
@@ -311,13 +311,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     local enhancedTooltipControls = {
         {
             type = "description",
-            text = GetString(SI_BETTERUI_ENHANCED_TOOLTIPS_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_ENHANCED_TOOLTIPS_DESC")),
             width = "full",
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS),
-            tooltip = GetString(SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_TOOLTIP_ENHANCEMENTS_TOOLTIP")),
             sortAlwaysFirst = true,
             getFunc = function()
                 local settings = GetModuleSettings("CIM")
@@ -357,8 +357,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = styleTraitIcon .. GetString(SI_BETTERUI_SHOW_STYLE_TRAIT),
-            tooltip = GetString(SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP),
+            name = styleTraitIcon .. GetString(rawget(_G, "SI_BETTERUI_SHOW_STYLE_TRAIT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
                 if not settings then
@@ -387,8 +387,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "checkbox",
-            name = knowledgeStatusIcon .. GetString(SI_BETTERUI_SHOW_KNOWLEDGE_STATUS),
-            tooltip = GetString(SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP),
+            name = knowledgeStatusIcon .. GetString(rawget(_G, "SI_BETTERUI_SHOW_KNOWLEDGE_STATUS")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP")),
             getFunc = function()
                 local settings = GetModuleSettings("GeneralInterface")
                 if not settings then
@@ -417,8 +417,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE),
-            tooltip = GetString(SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_TOOLTIP_FONT_SIZE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP")),
             min = BETTERUI.CIM.Font.SIZE_MIN or 12,
             max = BETTERUI.CIM.Font.SIZE_MAX or 48,
             step = 1,
@@ -451,8 +451,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         },
         {
             type = "button",
-            name = GetString(SI_BETTERUI_ENHANCED_TOOLTIPS_RESET),
-            tooltip = GetString(SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_ENHANCED_TOOLTIPS_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_ENHANCED_TOOLTIPS_RESET_TOOLTIP")),
             func = function()
                 ResetEnhancedTooltipSettings()
             end,
@@ -462,8 +462,8 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
     table.insert(marketIntegrationControls, {
         type = "button",
-        name = GetString(SI_BETTERUI_MARKET_INTEGRATION_RESET),
-        tooltip = GetString(SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP),
+        name = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_RESET")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_RESET_TOOLTIP")),
         func = function()
             ResetMarketIntegrationSettings()
         end,
@@ -478,13 +478,13 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 
     table.insert(generalControls, {
         type = "submenu",
-        name = GetString(SI_BETTERUI_MARKET_INTEGRATION_HEADER),
+        name = GetString(rawget(_G, "SI_BETTERUI_MARKET_INTEGRATION_HEADER")),
         controls = marketIntegrationControls,
     })
 
     table.insert(generalControls, {
         type = "submenu",
-        name = GetString(SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER),
+        name = GetString(rawget(_G, "SI_BETTERUI_ENHANCED_TOOLTIPS_HEADER")),
         controls = enhancedTooltipControls,
     })
 

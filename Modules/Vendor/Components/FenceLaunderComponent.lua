@@ -65,7 +65,7 @@ end
 -- ============================================================================
 
 function FenceLaunder:GetPrimaryActionName()
-    return GetString(SI_ITEM_ACTION_LAUNDER)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER"))
 end
 
 function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
@@ -100,7 +100,7 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     local cost = GetLaunderCost(bagId, slotIndex)
     if not vendorInstance:CanAfford(cost) then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_AFFORD))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 

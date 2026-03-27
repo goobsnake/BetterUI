@@ -67,17 +67,17 @@ function Narration.NarrateItemEntry(selectedData)
 
     -- Equipped status
     if selectedData.isEquippedInCurrentCategory or selectedData.isEquippedInAnotherCategory then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_SCREEN_NARRATION_EQUIPPED)))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_SCREEN_NARRATION_EQUIPPED"))))
     end
 
     -- Junk status
     if selectedData.isJunk then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_ITEM_ACTION_MARK_AS_NOT_JUNK)))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_NOT_JUNK"))))
     end
 
     -- New item status
     if selectedData.brandNew then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_INVENTORY_NEW_ICON_TOOLTIP)))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_INVENTORY_NEW_ICON_TOOLTIP"))))
     end
 
     return narrations
@@ -144,9 +144,9 @@ end
 function Narration.NarrateBankingMode(mode)
     local narrations = {}
     if mode == BETTERUI.Banking.LIST_DEPOSIT then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_BANK_DEPOSIT)))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_BANK_DEPOSIT"))))
     elseif mode == BETTERUI.Banking.LIST_WITHDRAW then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(SI_BANK_WITHDRAW)))
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_BANK_WITHDRAW"))))
     end
     return narrations
 end

@@ -26,7 +26,7 @@ end
 --- @return nil
 function BETTERUI.Inventory.Class:InitializeCategoryList()
     self.categoryList = self:AddList("Category", SetupCategoryList)
-    self.categoryList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
+    self.categoryList:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
 
     -- Match the tooltip to the selected data because it looks nicer
     --- @param list table
@@ -90,7 +90,7 @@ function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFu
     if not isListEmpty then
         local name
         if filterType == nil then
-            name = GetString(SI_BETTERUI_INV_ITEM_ALL)
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL"))
         else
             name = GetString("SI_ITEMFILTERTYPE", filterType)
         end

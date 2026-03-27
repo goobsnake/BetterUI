@@ -123,16 +123,16 @@ function BETTERUI.CIM.Keybinds.GetXButtonName(self)
 
     if ctx.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
         if ctx.isQuickslottable then
-            return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+            return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
         elseif not ctx.isQuestItem and ctx.isGear then
-            return GetString(SI_BETTERUI_INV_SWITCH_INFO)
+            return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
         elseif ctx.isQuestItem and ctx.meetsUsage then
-            return GetString(SI_ITEM_ACTION_USE)
+            return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
         else
-            return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+            return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
         end
     elseif ctx.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-        return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+        return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     end
 
     return ""

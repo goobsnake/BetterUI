@@ -38,16 +38,16 @@ local fenceEnableLaunder = false
 
 -- Regular vendor tabs (Buy, Sell, Repair, Buyback)
 local VENDOR_TABS = {
-    { mode = MODE.BUY,     name = function() return GetString(SI_BETTERUI_VENDOR_TAB_BUY) end },
-    { mode = MODE.SELL,    name = function() return GetString(SI_BETTERUI_VENDOR_TAB_SELL) end },
-    { mode = MODE.REPAIR,  name = function() return GetString(SI_BETTERUI_VENDOR_TAB_REPAIR) end },
-    { mode = MODE.BUYBACK, name = function() return GetString(SI_BETTERUI_VENDOR_TAB_BUYBACK) end },
+    { mode = MODE.BUY,     name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
+    { mode = MODE.SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL")) end },
+    { mode = MODE.REPAIR,  name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
+    { mode = MODE.BUYBACK, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUYBACK")) end },
 }
 
 -- Fence tabs (Sell Stolen, Launder)
 local FENCE_TABS = {
-    { mode = MODE.FENCE_SELL,    name = function() return GetString(SI_BETTERUI_VENDOR_TAB_FENCE_SELL) end },
-    { mode = MODE.FENCE_LAUNDER, name = function() return GetString(SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER) end },
+    { mode = MODE.FENCE_SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")) end },
+    { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
 }
 
 -- ============================================================================
@@ -92,7 +92,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 if component and component.GetPrimaryActionName then
                     return component:GetPrimaryActionName(vendorInstance)
                 end
-                return GetString(SI_GAMEPAD_SELECT_OPTION)
+                return GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION"))
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
@@ -113,7 +113,7 @@ local function BuildCoreKeybinds(vendorInstance)
         },
         -- Back / Exit (keybind B / GAMEPAD_BUTTON_2)
         {
-            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
                 -- Close the interaction
@@ -129,7 +129,7 @@ local function BuildTabKeybinds(vendorInstance)
         -- Switch tabs left (LB / GAMEPAD_BUTTON_5)
         {
             --Narration
-            name = GetString(SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION),
+            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION")),
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             callback = function()
                 vendorInstance:CycleTabs(-1)
@@ -142,7 +142,7 @@ local function BuildTabKeybinds(vendorInstance)
         -- Switch tabs right (RB / GAMEPAD_BUTTON_6)
         {
             --Narration
-            name = GetString(SI_GAMEPAD_PAGED_LIST_PAGE_RIGHT_NARRATION),
+            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_RIGHT_NARRATION")),
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             callback = function()
                 vendorInstance:CycleTabs(1)

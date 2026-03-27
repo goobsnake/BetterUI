@@ -288,7 +288,7 @@ function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 
     if isItemStolen then
-        return GetString(SI_BETTERUI_STOLEN)
+        return GetString(rawget(_G, "SI_BETTERUI_STOLEN"))
     end
 
     if itemData.equipType == EQUIP_TYPE_INVALID then

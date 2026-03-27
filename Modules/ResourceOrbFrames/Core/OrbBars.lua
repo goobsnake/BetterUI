@@ -326,7 +326,7 @@ function CastBar:Initialize(parent)
         [COST_TYPE_STAMINA] = select(1, GetUnitPower("player", COST_TYPE_STAMINA)) or 0,
     }
     self:ApplyFillStyle(self.currentFillColor, self.currentDepthColor)
-    self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
+    self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR")))
 
     -- Note: EVENT_SPELL_CASTING_START/STOP don't exist in ESO API.
     -- Casting is tracked via EVENT_ACTION_SLOT_ABILITY_USED below which uses GetAbilityCastInfo().
@@ -461,7 +461,7 @@ function MountStaminaBar:Initialize(parent)
         MOUNT.FILL_TEXTURE or BARS.FILL_TEXTURE,
         MOUNT.TEXTURE_BOUNDS, MOUNT.FILL_REGION)
     self:SetColor(0, 0.8, 0.2, 1)
-    self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
+    self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
 
     if IsMounted() then
         local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)

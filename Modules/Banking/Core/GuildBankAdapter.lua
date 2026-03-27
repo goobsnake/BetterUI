@@ -58,7 +58,7 @@ function GuildBank.GetSelectedGuildName()
             return name
         end
     end
-    return GetString(SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER)
+    return GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER"))
 end
 
 -------------------------------------------------------------------------------------------------
@@ -103,10 +103,10 @@ function GuildBank.GetPermissionDenialReason(mode)
     local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
     if mode == LIST_WITHDRAW and not GuildBank.CanWithdraw() then
-        return GetString(SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS)
+        return GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_WITHDRAW_PERMISSIONS"))
     elseif mode == LIST_DEPOSIT and not GuildBank.CanDeposit() then
         local minMembers = GetGuildBankMinDepositMembers and GetGuildBankMinDepositMembers() or 10
-        return zo_strformat(GetString(SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS), minMembers)
+        return zo_strformat(GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_NO_DEPOSIT_PERMISSIONS")), minMembers)
     end
 
     return nil
@@ -171,7 +171,7 @@ function GuildBank.GetHeaderTitle()
         local guildName = GuildBank.GetSelectedGuildName()
         return "|c0066FF" .. guildName .. " Bank|r"
     end
-    return "|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r"
+    return "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r"
 end
 
 -------------------------------------------------------------------------------------------------
@@ -340,7 +340,7 @@ function GuildBank.RegisterGuildSelectorDialog()
             end,
         },
         title = {
-            text = GetString(SI_TRADING_HOUSE_GUILD_LABEL),
+            text = GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")),
         },
         setup = function(dialog)
             dialog:setupFunc()
@@ -349,7 +349,7 @@ function GuildBank.RegisterGuildSelectorDialog()
         buttons = {
             {
                 keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
                     local selected = dialog.entryList and dialog.entryList:GetTargetData()
                     if selected and selected.guildId then
@@ -364,7 +364,7 @@ function GuildBank.RegisterGuildSelectorDialog()
             },
             {
                 keybind = "DIALOG_NEGATIVE",
-                text = GetString(SI_GAMEPAD_BACK_OPTION),
+                text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             },
         },
     }

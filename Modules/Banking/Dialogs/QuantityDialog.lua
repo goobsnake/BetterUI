@@ -99,11 +99,11 @@ local function SetupSliderKeybindHints(dialog)
     -- Contextual labels based on action type
     local isDeposit = dialog.data and dialog.data.isDeposit
     local leftLabel = isDeposit
-        and GetString(SI_BETTERUI_SLIDER_KEEPS)
-        or GetString(SI_BETTERUI_SLIDER_STAYS)
+        and GetString(rawget(_G, "SI_BETTERUI_SLIDER_KEEPS"))
+        or GetString(rawget(_G, "SI_BETTERUI_SLIDER_STAYS"))
     local rightLabel = isDeposit
-        and GetString(SI_BETTERUI_SLIDER_DEPOSIT)
-        or GetString(SI_BETTERUI_SLIDER_WITHDRAW)
+        and GetString(rawget(_G, "SI_BETTERUI_SLIDER_DEPOSIT"))
+        or GetString(rawget(_G, "SI_BETTERUI_SLIDER_WITHDRAW"))
     dialog._minTextLabel:SetText(leftLabel .. ":")
     dialog._maxTextLabel:SetText(rightLabel .. ":")
 
@@ -136,9 +136,9 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         title = {
             text = function(dialog)
                 if dialog and dialog.data and dialog.data.isDeposit then
-                    return GetString(SI_BETTERUI_BANK_DEPOSIT_QUANTITY) or "Deposit How Many?"
+                    return GetString(rawget(_G, "SI_BETTERUI_BANK_DEPOSIT_QUANTITY")) or "Deposit How Many?"
                 else
-                    return GetString(SI_BETTERUI_BANK_WITHDRAW_QUANTITY) or "Withdraw How Many?"
+                    return GetString(rawget(_G, "SI_BETTERUI_BANK_WITHDRAW_QUANTITY")) or "Withdraw How Many?"
                 end
             end,
         },
@@ -146,9 +146,9 @@ function BETTERUI.Banking.InitializeQuantityDialog()
         mainText = {
             text = function(dialog)
                 if dialog and dialog.data and dialog.data.isDeposit then
-                    return GetString(SI_BETTERUI_BANK_DEPOSIT_PROMPT) or "Select the amount to deposit"
+                    return GetString(rawget(_G, "SI_BETTERUI_BANK_DEPOSIT_PROMPT")) or "Select the amount to deposit"
                 else
-                    return GetString(SI_BETTERUI_BANK_WITHDRAW_PROMPT) or "Select the amount to withdraw"
+                    return GetString(rawget(_G, "SI_BETTERUI_BANK_WITHDRAW_PROMPT")) or "Select the amount to withdraw"
                 end
             end,
         },
@@ -177,15 +177,15 @@ function BETTERUI.Banking.InitializeQuantityDialog()
 
         additionalInputNarrationFunction = function()
             return ZO_GetHorizontalDirectionalInputNarrationData(
-                GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION),
-                GetString(SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION)
+                GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SPLIT_STACK_LEFT_NARRATION")),
+                GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SPLIT_STACK_RIGHT_NARRATION"))
             )
         end,
 
         buttons = {
             {
                 keybind = "DIALOG_PRIMARY",
-                text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                 callback = function(dialog)
                     if not dialog or not dialog.data then return end
 
@@ -200,14 +200,14 @@ function BETTERUI.Banking.InitializeQuantityDialog()
             },
             {
                 keybind = "DIALOG_NEGATIVE",
-                text = GetString(SI_DIALOG_CANCEL),
+                text = GetString(rawget(_G, "SI_DIALOG_CANCEL")),
                 callback = function(dialog)
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_BANK_QUANTITY_DIALOG)
                 end,
             },
             {
                 keybind = "DIALOG_SECONDARY",
-                text = GetString(SI_BETTERUI_BANK_SLIDER_MIN),
+                text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MIN")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
                         dialog.slider:SetValue(dialog.data.sliderMin or 1)
@@ -216,7 +216,7 @@ function BETTERUI.Banking.InitializeQuantityDialog()
             },
             {
                 keybind = "DIALOG_TERTIARY",
-                text = GetString(SI_BETTERUI_BANK_SLIDER_MAX),
+                text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MAX")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
                         dialog.slider:SetValue(dialog.data.sliderMax or 1)

@@ -119,7 +119,7 @@ function CastBar:Update()
 
         if current < 0 then current = 0 end
         if current > max then current = max end
-        local fallbackLabel = GetString(SI_BETTERUI_LABEL_CAST_BAR)
+        local fallbackLabel = GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR"))
         if self.showCountdown then
             self.label:SetText(string.format("%s (%.1fs)", self.abilityName or fallbackLabel, remaining))
         else
@@ -134,7 +134,7 @@ function CastBar:Update()
     else
         if settings.castBarAlwaysShow then
             self.control:SetHidden(false)
-            self.label:SetText(GetString(SI_BETTERUI_LABEL_CAST_BAR))
+            self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_CAST_BAR")))
             if self.fill then self.fill:SetHidden(true) end
         else
             self.control:SetHidden(true)
@@ -240,7 +240,7 @@ function MountStaminaBar:Update()
         self:UpdateVisuals(current, max, MOUNT.FILL_INSET_X or 35,
             MOUNT.FILL_INSET_Y or 55, w, h)
     else
-        self.label:SetText(GetString(SI_BETTERUI_LABEL_MOUNT_STAMINA))
+        self.label:SetText(GetString(rawget(_G, "SI_BETTERUI_LABEL_MOUNT_STAMINA")))
         if self.fill then self.fill:SetHidden(true) end
     end
 end

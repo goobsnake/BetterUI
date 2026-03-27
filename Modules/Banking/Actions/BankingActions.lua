@@ -95,8 +95,8 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             -- Add custom "Withdraw Stack" / "Deposit Stack" action for stacked items
             if targetData and targetData.stackCount and targetData.stackCount > 1 then
                 local actionName = (self.currentMode == LIST_WITHDRAW)
-                    and GetString(SI_BETTERUI_BANK_WITHDRAW_MAX)
-                    or GetString(SI_BETTERUI_BANK_DEPOSIT_MAX)
+                    and GetString(rawget(_G, "SI_BETTERUI_BANK_WITHDRAW_MAX"))
+                    or GetString(rawget(_G, "SI_BETTERUI_BANK_DEPOSIT_MAX"))
                 local stackCount = targetData.stackCount
 
                 local entryData = ZO_GamepadEntryData:New(actionName)
@@ -114,7 +114,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
 
             -- Add "Sort" entry for header sort mode access
             if self.list and not self.list:IsEmpty() and self.EnterHeaderSortMode then
-                local sortEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_HEADER_SORT))
+                local sortEntry = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")))
                 sortEntry:SetIconTintOnSelection(true)
                 sortEntry.isSortAction = true
                 sortEntry.sortContext = self
@@ -128,7 +128,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             end
 
             -- Move "Get Help" to end of list (should always be last action)
-            local getHelpName = GetString(SI_ITEM_ACTION_REPORT_ITEM)
+            local getHelpName = GetString(rawget(_G, "SI_ITEM_ACTION_REPORT_ITEM"))
             local getHelpIndex = nil
             for i, entry in ipairs(parametricList) do
                 if entry.entryData and entry.entryData.GetText and entry.entryData:GetText() == getHelpName then
@@ -177,15 +177,15 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             local selectedAction = self.itemActions and self.itemActions.selectedAction or nil
             if not selectedAction then return end
             local selectedName = ZO_InventorySlotActions:GetRawActionName(selectedAction)
-            if selectedName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
+            if selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
                 BETTERUI.CIM.HandleLinkToChat(self:GetList().selectedData)
-            elseif selectedName == GetString(SI_ITEM_ACTION_BANK_WITHDRAW) or
-                selectedName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT) then
+            elseif selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_WITHDRAW")) or
+                selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")) then
                 local selectedData = self.list and self.list:GetSelectedData()
                 if selectedData then
                     local stackCount = selectedData.stackCount or 1
                     if stackCount > 1 then
-                        local isDeposit = (selectedName == GetString(SI_ITEM_ACTION_BANK_DEPOSIT))
+                        local isDeposit = (selectedName == GetString(rawget(_G, "SI_ITEM_ACTION_BANK_DEPOSIT")))
                         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                         self:SaveListPosition()
                         self:ShowQuantityDialog(isDeposit)

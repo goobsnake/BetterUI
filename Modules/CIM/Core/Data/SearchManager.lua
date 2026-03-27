@@ -154,7 +154,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     return {
         {
             name = function()
-                return GetString(SI_GAMEPAD_SELECT_OPTION)
+                return GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION"))
             end,
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_PRIMARY",
@@ -172,9 +172,9 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             name = function()
                 local hasText = context and context.searchQuery and tostring(context.searchQuery) ~= ""
                 if hasText then
-                    return GetString(SI_BETTERUI_CLEAR_SEARCH) or GetString(SI_GAMEPAD_SELECT_OPTION)
+                    return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH")) or GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION"))
                 end
-                return GetString(SI_GAMEPAD_BACK_OPTION)
+                return GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION"))
             end,
             alignment = KEYBIND_STRIP_ALIGN_RIGHT,
             keybind = "UI_SHORTCUT_NEGATIVE",
@@ -197,7 +197,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
         },
         {
             name = function()
-                return GetString(SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN) or "Down"
+                return GetString(rawget(_G, "SI_GAMEPAD_SCRIPTS_KEYBIND_DOWN")) or "Down"
             end,
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             keybind = "UI_SHORTCUT_DOWN",

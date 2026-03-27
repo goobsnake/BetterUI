@@ -240,7 +240,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
         KEYBIND_STRIP:AddKeybindButtonGroup(self.currencySelectorKeybinds)
     else
         -- No, display an alert
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(SI_BETTERUI_BANK_NO_FUNDS))
+        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(rawget(_G, "SI_BETTERUI_BANK_NO_FUNDS")))
     end
 end
 

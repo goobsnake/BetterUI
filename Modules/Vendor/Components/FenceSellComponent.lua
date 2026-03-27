@@ -72,7 +72,7 @@ end
 
 --- @return string
 function FenceSell:GetPrimaryActionName()
-    return GetString(SI_ITEM_ACTION_SELL)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
 --- @param vendorInstance BETTERUI.Vendor.Class

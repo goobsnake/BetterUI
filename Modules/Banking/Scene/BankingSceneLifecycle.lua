@@ -42,7 +42,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
     else
         self.isGuildBankMode = false
-        self:SetTitle("|c0066FF" .. GetString(SI_BETTERUI_BANK_TITLE) .. "|r")
+        self:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")
     end
 
     self.bankCategories = self:ComputeVisibleBankCategories()

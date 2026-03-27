@@ -365,7 +365,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     self.batchAbortRequested = false
     self.batchSuppressUiUpdates = suppressUiUpdates and true or nil
 
-    local displayName = actionName or GetString(SI_BETTERUI_BATCH_ACTIONS)
+    local displayName = actionName or GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
     if self._msConfig and self._msConfig.refreshKeybinds then
         self._msConfig.refreshKeybinds(self)
     end
@@ -407,15 +407,15 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         ClearQueuedStillProcessingAnnouncements()
 
         if showProgress or stopReason then
-            local completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PROCESSING_COMPLETE), processedCount)
+            local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")), processedCount)
             if stopReason == "bagFull" then
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_BAG_FULL), processedCount, totalItems)
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_BAG_FULL")), processedCount, totalItems)
             elseif stopReason == "sceneExit" then
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT), sceneExitLabel or "Scene", processedCount, totalItems)
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT")), sceneExitLabel or "Scene", processedCount, totalItems)
             elseif stopReason == "aborted" then
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_ABORTED_COMPLETE), processedCount, totalItems)
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_COMPLETE")), processedCount, totalItems)
             elseif processedCount < totalItems then
-                completeText = zo_strformat(GetString(SI_BETTERUI_BATCH_PARTIAL_SUCCESS), processedCount, totalItems)
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")), processedCount, totalItems)
             end
             BatchOverlay.Show(displayName, completeText)
             BatchOverlay.Hide((stopReason and 4000) or 2000)

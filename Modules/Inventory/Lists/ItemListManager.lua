@@ -122,7 +122,7 @@ function BETTERUI.Inventory.Class:InitializeItemList()
     -- D-pad Up at top of list should focus the search box, not enter header mode.
     -- See keybind UI_SHORTCUT_QUINARY in InventoryKeybinds.lua for Y Hold entry point.
 
-    local emptyText = GetString(SI_BETTERUI_EMPTY_LIST)
+    local emptyText = GetString(rawget(_G, "SI_BETTERUI_EMPTY_LIST"))
     local listControl = self.itemList and self.itemList.control
     if listControl and listControl.GetNamedChild then
         local noItemsLabel = listControl:GetNamedChild("NoItemsLabel")
@@ -458,9 +458,9 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 
     -- Update empty-state text based on search context
     if self.searchQuery and tostring(self.searchQuery) ~= "" then
-        self.itemList:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+        self.itemList:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
     else
-        self.itemList:SetNoItemText(GetString(SI_BETTERUI_EMPTY_LIST))
+        self.itemList:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_EMPTY_LIST")))
     end
 
     self.itemList:Clear()
@@ -734,7 +734,7 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
         GAMEPAD_TOOLTIPS:LayoutItemStatComparison(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId,
             selectedItemData.slotIndex, selectedEquipSlot)
         GAMEPAD_TOOLTIPS:SetStatusLabelText(GAMEPAD_LEFT_TOOLTIP,
-            GetString(SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE))
+            GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ITEM_COMPARE_TOOLTIP_TITLE")))
     elseif selectedItemData ~= nil and selectedItemData.bagId ~= nil and selectedItemData.slotIndex ~= nil then
         -- Fallback: Show standard tooltip for non-comparable items
         GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedItemData.bagId, selectedItemData.slotIndex)

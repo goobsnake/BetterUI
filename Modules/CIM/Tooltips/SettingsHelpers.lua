@@ -105,7 +105,7 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
         addonListParts[#addonListParts + 1] = addonDisplayNames[addonGlobal] or addonGlobal
     end
     local addonList = table.concat(addonListParts, ", ")
-    local reason = zo_strformat(GetString(SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP), addonList)
+    local reason = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_ADDON_NOT_DETECTED_TOOLTIP")), addonList)
     return baseText .. "\n\n" .. reason
 end
 

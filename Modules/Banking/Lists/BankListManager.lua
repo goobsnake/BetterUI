@@ -25,8 +25,8 @@ Description: Builds the full list of bank categories.
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
-            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
-            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+            { key = "all",        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL")),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
+            { key = "furnishing", name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_FURNISHING")), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
         }
     end
 
@@ -170,8 +170,8 @@ function BETTERUI.Banking.Class:RefreshList()
         self:UpdateHeaderTitle()
     end
 
-    local modeText = self.currentMode == LIST_WITHDRAW and GetString(SI_BETTERUI_BANKING_WITHDRAW)
-        or GetString(SI_BETTERUI_BANKING_DEPOSIT)
+    local modeText = self.currentMode == LIST_WITHDRAW and GetString(rawget(_G, "SI_BETTERUI_BANKING_WITHDRAW"))
+        or GetString(rawget(_G, "SI_BETTERUI_BANKING_DEPOSIT"))
     modeText = zo_strformat("<<Z:1>>", modeText)
 
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
@@ -181,10 +181,10 @@ function BETTERUI.Banking.Class:RefreshList()
     if currentUsedBank == BAG_BANK or isGuildBankActive then
         if not activeCategory or activeCategory.key == "all" then
             local labelByCurrency = {
-                [CURT_MONEY] = GetString(SI_BETTERUI_CURRENCY_GOLD),
-                [CURT_TELVAR_STONES] = GetString(SI_BETTERUI_CURRENCY_TEL_VAR),
-                [CURT_ALLIANCE_POINTS] = GetString(SI_BETTERUI_CURRENCY_ALLIANCE_POINT),
-                [CURT_WRIT_VOUCHERS] = GetString(SI_BETTERUI_CURRENCY_WRIT_VOUCHER),
+                [CURT_MONEY] = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_GOLD")),
+                [CURT_TELVAR_STONES] = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_TEL_VAR")),
+                [CURT_ALLIANCE_POINTS] = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_ALLIANCE_POINT")),
+                [CURT_WRIT_VOUCHERS] = GetString(rawget(_G, "SI_BETTERUI_CURRENCY_WRIT_VOUCHER")),
             }
 
             -- Guild bank only supports gold
@@ -216,18 +216,18 @@ function BETTERUI.Banking.Class:RefreshList()
     elseif self.currentMode == LIST_WITHDRAW then
         if GetNumBagUsedSlots(currentUsedBank) == 0 then
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE_EMPTY) .. "|r" })
+                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE_EMPTY")) .. "|r" })
         else
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE) .. "|r" })
+                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE")) .. "|r" })
         end
     else
         if GetNumBagUsedSlots(BAG_BACKPACK) == 0 then
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER_EMPTY) .. "|r" })
+                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_PLAYER_EMPTY")) .. "|r" })
         else
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_PLAYER) .. "|r" })
+                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_PLAYER")) .. "|r" })
         end
     end
 
@@ -348,9 +348,9 @@ function BETTERUI.Banking.Class:RefreshList()
     end
 
     if self.searchQuery and self.searchQuery ~= "" then
-        self.list:SetNoItemText(GetString(SI_BETTERUI_SEARCH_NO_RESULTS))
+        self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
     else
-        self.list:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_EMPTY))
+        self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
     end
 
     self.list:Commit()

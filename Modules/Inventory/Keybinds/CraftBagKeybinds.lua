@@ -162,18 +162,18 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
             return ""
         end
         if target and self.multiSelectManager:IsSelected(target) then
-            return GetString(SI_BETTERUI_DESELECT_ITEM)
+            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
         end
         local count = self.multiSelectManager:GetSelectedCount()
-        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
     end
 
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
         if target and self.craftBagMultiSelectManager:IsSelected(target) then
-            return GetString(SI_BETTERUI_DESELECT_ITEM)
+            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
         end
         local count = self.craftBagMultiSelectManager:GetSelectedCount()
-        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
     end
 
     if self.itemActions and self.itemActions.actionName then
@@ -181,14 +181,14 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
     end
 
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
-        return GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+        return GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"))
     end
 
     if target and target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
-        return GetString(SI_ITEM_ACTION_EQUIP)
+        return GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP"))
     end
 
-    return GetString(SI_ITEM_ACTION_USE)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
 end
 
 --- @param self Control
@@ -255,10 +255,10 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         local slotActions = self.itemActions.slotActions
         if slotActions._betterui_primaryOverride then
             slotActions._betterui_primaryOverride()
-        elseif actionName == GetString(SI_ITEM_ACTION_USE)
-            or actionName == GetString(SI_ITEM_ACTION_SHOW_MAP)
-            or actionName == GetString(SI_ITEM_ACTION_START_SKILL_RESPEC)
-            or actionName == GetString(SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+        elseif actionName == GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
+            or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_MAP"))
+            or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
+            or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC")) then
             ExecuteTargetUse(GetCurrentTarget(self))
         else
             slotActions:DoPrimaryAction()
@@ -281,7 +281,7 @@ end
 --- @return string
 function InventoryKeybinds.GetSecondaryKeybindName(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
-        return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+        return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     end
 
     local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
@@ -292,20 +292,20 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
     if actionContext.isQuickslottable then
         local slotNum = GetAssignedQuickslot(actionContext.target, actionContext.isQuestItem)
         if slotNum then
-            return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN)
+            return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN"))
         end
-        return GetString(SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN)
+        return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
     end
 
     if not actionContext.isQuestItem and actionContext.isEquipment then
-        return GetString(SI_BETTERUI_INV_SWITCH_INFO)
+        return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
     end
 
     if actionContext.isUsableQuest then
-        return GetString(SI_ITEM_ACTION_USE)
+        return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
     end
 
-    return GetString(SI_ITEM_ACTION_LINK_TO_CHAT)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
 end
 
 --- @param self Control

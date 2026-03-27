@@ -38,7 +38,7 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
         -- Match inventory: use default title color (white), no custom color tags
         self:SetTitle(zo_strformat("<<1>>", cat.name))
     else
-        self.titleControl:SetText(GetString(SI_BETTERUI_BANK_TITLE))
+        self.titleControl:SetText(GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")))
     end
     -- Reposition the search control so it sits under the header/title (above the list)
     if self.PositionSearchControl then
@@ -78,7 +78,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     self.bankHeaderData = self.bankHeaderData or {}
     self.bankHeaderData.titleText = function()
         local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
-        return (cat and cat.name) or GetString(SI_BETTERUI_INV_ITEM_ALL)
+        return (cat and cat.name) or GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL"))
     end
     self.bankHeaderData.tabBarData = { parent = self }
     -- Carousel configuration for banking - uses constants from BetterUI.CONST.lua

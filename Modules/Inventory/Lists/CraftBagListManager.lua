@@ -80,7 +80,7 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
         false,
         "BETTERUI_GamepadItemSubEntryTemplate"
     )
-    self.craftBagList:SetNoItemText(GetString(SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY))
+    self.craftBagList:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_CRAFT_BAG_EMPTY")))
     self.craftBagList:SetAlignToScreenCenter(true, 30)
 
     self.craftBagList:SetSortFunction(BETTERUI_CraftList_DefaultItemSortComparator)
@@ -115,11 +115,11 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
     local title
     local description
     if HasCraftBagAccess() then
-        title = GetString(SI_ESO_PLUS_STATUS_UNLOCKED)
-        description = GetString(SI_CRAFT_BAG_STATUS_ESO_PLUS_UNLOCKED_DESCRIPTION)
+        title = GetString(rawget(_G, "SI_ESO_PLUS_STATUS_UNLOCKED"))
+        description = GetString(rawget(_G, "SI_CRAFT_BAG_STATUS_ESO_PLUS_UNLOCKED_DESCRIPTION"))
     else
-        title = GetString(SI_ESO_PLUS_STATUS_LOCKED)
-        description = GetString(SI_CRAFT_BAG_STATUS_LOCKED_DESCRIPTION)
+        title = GetString(rawget(_G, "SI_ESO_PLUS_STATUS_LOCKED"))
+        description = GetString(rawget(_G, "SI_CRAFT_BAG_STATUS_LOCKED_DESCRIPTION"))
     end
 
     GAMEPAD_TOOLTIPS:LayoutTitleAndDescriptionTooltip(GAMEPAD_LEFT_TOOLTIP, title, description)

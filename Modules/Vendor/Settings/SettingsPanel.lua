@@ -43,18 +43,18 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     -- ========================================================================
     optionsData[#optionsData + 1] = {
         type = "header",
-        name = GetString(SI_BETTERUI_VENDOR_GENERAL_HEADER),
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_GENERAL_HEADER")),
     }
     optionsData[#optionsData + 1] = {
         type = "description",
-        text = GetString(SI_BETTERUI_VENDOR_GENERAL_DESC),
+        text = GetString(rawget(_G, "SI_BETTERUI_VENDOR_GENERAL_DESC")),
     }
 
     -- Carousel Navigation
     optionsData[#optionsData + 1] = {
         type = "checkbox",
-        name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
-        tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+        name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP")),
         getFunc = function()
             return Vendor.GetSetting("enableCarousel") ~= false
         end,
@@ -67,8 +67,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     -- Batch Junk Sell
     optionsData[#optionsData + 1] = {
         type = "checkbox",
-        name = GetString(SI_BETTERUI_VENDOR_BATCH_JUNK_SELL),
-        tooltip = GetString(SI_BETTERUI_VENDOR_BATCH_JUNK_SELL_TOOLTIP),
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_BATCH_JUNK_SELL")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_BATCH_JUNK_SELL_TOOLTIP")),
         getFunc = function()
             return Vendor.GetSetting("enableBatchJunkSell") ~= false
         end,
@@ -95,22 +95,22 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     -- ========================================================================
     optionsData[#optionsData + 1] = {
         type = "header",
-        name = GetString(SI_BETTERUI_VENDOR_FONT_HEADER),
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_FONT_HEADER")),
     }
     optionsData[#optionsData + 1] = {
         type = "description",
-        text = GetString(SI_BETTERUI_VENDOR_FONT_DESC),
+        text = GetString(rawget(_G, "SI_BETTERUI_VENDOR_FONT_DESC")),
     }
 
     -- Name Column Font
     optionsData[#optionsData + 1] = {
         type = "submenu",
-        name = GetString(SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU),
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU")),
         controls = {
             {
                 type = "dropdown",
-                name = GetString(SI_BETTERUI_VENDOR_NAME_FONT),
-                tooltip = GetString(SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP")),
                 choices = Vendor.FONT_CHOICES,
                 choicesValues = Vendor.FONT_VALUES,
                 getFunc = function()
@@ -123,8 +123,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             },
             {
                 type = "slider",
-                name = GetString(SI_BETTERUI_VENDOR_NAME_FONT_SIZE),
-                tooltip = GetString(SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SIZE")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP")),
                 min = 10,
                 max = 32,
                 step = 1,
@@ -138,8 +138,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             },
             {
                 type = "dropdown",
-                name = GetString(SI_BETTERUI_VENDOR_NAME_FONT_STYLE),
-                tooltip = GetString(SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_STYLE")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP")),
                 choices = Vendor.FONTSTYLE_CHOICES,
                 choicesValues = Vendor.FONTSTYLE_VALUES,
                 getFunc = function()
@@ -153,8 +153,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             -- Name Font Reset
             {
                 type = "button",
-                name = GetString(SI_BETTERUI_NAME_FONT_RESET),
-                tooltip = GetString(SI_BETTERUI_NAME_FONT_RESET_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET_TOOLTIP")),
                 func = function()
                     Vendor.SetSetting("nameFont", Vendor.DEFAULTS.nameFont)
                     Vendor.SetSetting("nameFontSize", Vendor.DEFAULTS.nameFontSize)
@@ -168,12 +168,12 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     -- Other Columns Font
     optionsData[#optionsData + 1] = {
         type = "submenu",
-        name = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU),
+        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU")),
         controls = {
             {
                 type = "dropdown",
-                name = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT),
-                tooltip = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP")),
                 choices = Vendor.FONT_CHOICES,
                 choicesValues = Vendor.FONT_VALUES,
                 getFunc = function()
@@ -186,8 +186,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             },
             {
                 type = "slider",
-                name = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE),
-                tooltip = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP")),
                 min = 10,
                 max = 32,
                 step = 1,
@@ -201,8 +201,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             },
             {
                 type = "dropdown",
-                name = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE),
-                tooltip = GetString(SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP")),
                 choices = Vendor.FONTSTYLE_CHOICES,
                 choicesValues = Vendor.FONTSTYLE_VALUES,
                 getFunc = function()
@@ -216,8 +216,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
             -- Column Font Reset
             {
                 type = "button",
-                name = GetString(SI_BETTERUI_COLUMN_FONT_RESET),
-                tooltip = GetString(SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP),
+                name = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET")),
+                tooltip = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP")),
                 func = function()
                     Vendor.SetSetting("columnFont", Vendor.DEFAULTS.columnFont)
                     Vendor.SetSetting("columnFontSize", Vendor.DEFAULTS.columnFontSize)

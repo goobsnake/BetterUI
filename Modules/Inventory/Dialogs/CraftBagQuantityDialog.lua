@@ -88,11 +88,11 @@ local function SetupSliderKeybindHints(dialog)
     -- Contextual labels based on action type
     local isStow = dialog.data and dialog.data.isStow
     local leftLabel = isStow
-        and GetString(SI_BETTERUI_SLIDER_KEEPS)
-        or GetString(SI_BETTERUI_SLIDER_STAYS)
+        and GetString(rawget(_G, "SI_BETTERUI_SLIDER_KEEPS"))
+        or GetString(rawget(_G, "SI_BETTERUI_SLIDER_STAYS"))
     local rightLabel = isStow
-        and GetString(SI_BETTERUI_SLIDER_STOW)
-        or GetString(SI_BETTERUI_SLIDER_RETRIEVE)
+        and GetString(rawget(_G, "SI_BETTERUI_SLIDER_STOW"))
+        or GetString(rawget(_G, "SI_BETTERUI_SLIDER_RETRIEVE"))
     dialog._minTextLabel:SetText(leftLabel .. ":")
     dialog._maxTextLabel:SetText(rightLabel .. ":")
 
@@ -136,18 +136,18 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
         title = {
             text = function(dialog)
                 if dialog.data and dialog.data.isStow then
-                    return GetString(SI_BETTERUI_STOW_QUANTITY)
+                    return GetString(rawget(_G, "SI_BETTERUI_STOW_QUANTITY"))
                 else
-                    return GetString(SI_BETTERUI_RETRIEVE_QUANTITY)
+                    return GetString(rawget(_G, "SI_BETTERUI_RETRIEVE_QUANTITY"))
                 end
             end,
         },
         mainText = {
             text = function(dialog)
                 if dialog.data and dialog.data.isStow then
-                    return GetString(SI_BETTERUI_STOW_PROMPT)
+                    return GetString(rawget(_G, "SI_BETTERUI_STOW_PROMPT"))
                 else
-                    return GetString(SI_BETTERUI_RETRIEVE_PROMPT)
+                    return GetString(rawget(_G, "SI_BETTERUI_RETRIEVE_PROMPT"))
                 end
             end,
         },
@@ -219,7 +219,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
             },
             {
                 keybind = "DIALOG_SECONDARY",
-                text = GetString(SI_BETTERUI_BANK_SLIDER_MIN),
+                text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MIN")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
                         dialog.slider:SetValue(dialog.data.sliderMin or 1)
@@ -228,7 +228,7 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
             },
             {
                 keybind = "DIALOG_TERTIARY",
-                text = GetString(SI_BETTERUI_BANK_SLIDER_MAX),
+                text = GetString(rawget(_G, "SI_BETTERUI_BANK_SLIDER_MAX")),
                 callback = function(dialog)
                     if dialog and dialog.slider then
                         dialog.slider:SetValue(dialog.data.sliderMax or 1)

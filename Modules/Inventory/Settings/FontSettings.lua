@@ -91,22 +91,22 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
     return {
         {
             type = "header",
-            name = GetString(SI_BETTERUI_INV_FONT_HEADER),
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_FONT_HEADER")),
             width = "full",
         },
         {
             type = "description",
-            text = GetString(SI_BETTERUI_INV_FONT_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_INV_FONT_DESC")),
             width = "full",
         },
         {
             type = "submenu",
-            name = GetString(SI_BETTERUI_INV_NAME_FONT_SUBMENU),
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_SUBMENU")),
             controls = {
                 {
                     type = "dropdown",
-                    name = GetString(SI_BETTERUI_INV_NAME_FONT),
-                    tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_TOOLTIP")),
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
@@ -130,8 +130,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "slider",
-                    name = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_SIZE")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_SIZE_TOOLTIP")),
                     min = minFontSize,
                     max = maxFontSize,
                     step = 1,
@@ -156,8 +156,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "dropdown",
-                    name = GetString(SI_BETTERUI_INV_NAME_FONT_STYLE),
-                    tooltip = GetString(SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_STYLE")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_NAME_FONT_STYLE_TOOLTIP")),
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
@@ -180,8 +180,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_NAME_FONT_RESET),
-                    tooltip = GetString(SI_BETTERUI_NAME_FONT_RESET_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET_TOOLTIP")),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
                         local s = GetInventorySettings()
@@ -200,12 +200,12 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
         },
         {
             type = "submenu",
-            name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SUBMENU),
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_SUBMENU")),
             controls = {
                 {
                     type = "dropdown",
-                    name = GetString(SI_BETTERUI_INV_COLUMN_FONT),
-                    tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_TOOLTIP")),
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
@@ -229,8 +229,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "slider",
-                    name = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE),
-                    tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_SIZE")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_SIZE_TOOLTIP")),
                     min = minFontSize,
                     max = maxFontSize,
                     step = 1,
@@ -255,8 +255,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "dropdown",
-                    name = GetString(SI_BETTERUI_INV_COLUMN_FONT_STYLE),
-                    tooltip = GetString(SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_STYLE")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_COLUMN_FONT_STYLE_TOOLTIP")),
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
@@ -279,8 +279,8 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                 },
                 {
                     type = "button",
-                    name = GetString(SI_BETTERUI_COLUMN_FONT_RESET),
-                    tooltip = GetString(SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP),
+                    name = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET")),
+                    tooltip = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP")),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
                         local s = GetInventorySettings()

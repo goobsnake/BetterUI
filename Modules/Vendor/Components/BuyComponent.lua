@@ -33,7 +33,7 @@ end
 -- ============================================================================
 
 function Buy:GetPrimaryActionName()
-    return GetString(SI_TRADING_HOUSE_PURCHASE)
+    return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE"))
 end
 
 function Buy:IsPrimaryActionEnabled(vendorInstance)
@@ -59,13 +59,13 @@ function Buy:OnPrimaryAction(vendorInstance)
     local currencyType = selectedData.currencyType or CURT_MONEY
     if not vendorInstance:CanAfford(price, currencyType) then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_AFFORD))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not vendorInstance:HasInventorySpace() then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_CARRY))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return
     end
 

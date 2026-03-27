@@ -84,20 +84,20 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	local optionsTable = {
 		{
 			type = "header",
-			name = GetString(SI_BETTERUI_INV_GENERAL_HEADER),
+			name = GetString(rawget(_G, "SI_BETTERUI_INV_GENERAL_HEADER")),
 			width = "full",
 		},
 		{
 			type = "description",
-			text = GetString(SI_BETTERUI_INV_GENERAL_DESC),
+			text = GetString(rawget(_G, "SI_BETTERUI_INV_GENERAL_DESC")),
 			width = "full",
 		},
 		-- Quick Destroy
 		{
 			type = "checkbox",
-			name = "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t " .. GetString(SI_BETTERUI_QUICK_DESTROY),
-			tooltip = GetString(SI_BETTERUI_QUICK_DESTROY_TOOLTIP),
-			warning = GetString(SI_BETTERUI_QUICK_DESTROY_WARNING),
+			name = "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t " .. GetString(rawget(_G, "SI_BETTERUI_QUICK_DESTROY")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_QUICK_DESTROY_TOOLTIP")),
+			warning = GetString(rawget(_G, "SI_BETTERUI_QUICK_DESTROY_WARNING")),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("quickDestroy")
 			end,
@@ -108,9 +108,9 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		{
 			type = "checkbox",
 			name = "|t24:24:EsoUI/Art/Miscellaneous/ESO_Icon_Warning.dds|t " ..
-			GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY),
-			tooltip = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP),
-			warning = GetString(SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING),
+			GetString(rawget(_G, "SI_BETTERUI_ENABLE_BATCH_DESTROY")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_BATCH_DESTROY_TOOLTIP")),
+			warning = GetString(rawget(_G, "SI_BETTERUI_ENABLE_BATCH_DESTROY_WARNING")),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("enableBatchDestroy")
 			end,
@@ -119,8 +119,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV),
-			tooltip = GetString(SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP),
+			name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP")),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("enableCarousel")
 			end,
@@ -139,8 +139,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE),
-			tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP),
+			name = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TYPE")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TYPE_TOOLTIP")),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("useTriggersForSkip")
 			end,
@@ -152,8 +152,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		},
 		{
 			type = "editbox",
-			name = GetString(SI_BETTERUI_TRIGGER_SKIP),
-			tooltip = GetString(SI_BETTERUI_TRIGGER_SKIP_TOOLTIP),
+			name = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_TRIGGER_SKIP_TOOLTIP")),
 			getFunc = function()
 				local value = BETTERUI.Inventory.GetSetting("triggerSpeed")
 				return value and tostring(value) or "10"
@@ -171,8 +171,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		},
 		{
 			type = "checkbox",
-			name = GetString(SI_BETTERUI_BOE_PROTECTION),
-			tooltip = GetString(SI_BETTERUI_BOE_PROTECTION_TOOLTIP),
+			name = GetString(rawget(_G, "SI_BETTERUI_BOE_PROTECTION")),
+			tooltip = GetString(rawget(_G, "SI_BETTERUI_BOE_PROTECTION_TOOLTIP")),
 			getFunc = function()
 				return BETTERUI.Inventory.GetSetting("bindOnEquipProtection")
 			end,
@@ -184,8 +184,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	-- Continue with remaining options
 	table.insert(optionsTable, {
 		type = "checkbox",
-		name = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK),
-		tooltip = GetString(SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP),
+		name = GetString(rawget(_G, "SI_BETTERUI_ENABLE_COMPANION_JUNK")),
+		tooltip = GetString(rawget(_G, "SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP")),
 		getFunc = function()
 			return BETTERUI.Inventory.GetSetting("enableCompanionJunk") == true
 		end,
@@ -200,8 +200,8 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	})
 	table.insert(optionsTable, {
 		type = "button",
-		name = GetString(SI_BETTERUI_GENERAL_RESET),
-		tooltip = GetString(SI_BETTERUI_GENERAL_RESET_TOOLTIP),
+		name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
+		tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
 		func = function()
 			ResetInventoryGeneralSettings()
 		end,

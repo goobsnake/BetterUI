@@ -38,7 +38,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
         alignment = KEYBIND_STRIP_ALIGN_CENTER,
         -- A Button - Toggle Sort
         {
-            name = GetString(SI_BETTERUI_HEADER_SORT), -- "SORT"
+            name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")), -- "SORT"
             keybind = "UI_SHORTCUT_PRIMARY",
             visible = function()
                 return controller:IsActive()
@@ -54,7 +54,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
         },
         -- B Button - Exit Header Mode
         {
-            name = GetString(SI_GAMEPAD_BACK_OPTION),
+            name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             visible = function()
                 return controller:IsActive()
@@ -68,7 +68,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
         -- X Button - Clear Sort
         {
             ---@diagnostic disable-next-line: undefined-global
-            name = GetString(SI_BETTERUI_CLEAR_SORT),
+            name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
                 if not controller:IsActive() then return false end

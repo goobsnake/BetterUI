@@ -33,7 +33,7 @@ end
 -- ============================================================================
 
 function Buyback:GetPrimaryActionName()
-    return GetString(SI_ITEM_ACTION_BUYBACK)
+    return GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK"))
 end
 
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
@@ -55,13 +55,13 @@ function Buyback:OnPrimaryAction(vendorInstance)
     local price = selectedData.price or 0
     if not vendorInstance:CanAfford(price) then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_AFFORD))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not vendorInstance:HasInventorySpace() then
         ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
-            GetString(SI_BETTERUI_VENDOR_CANNOT_CARRY))
+            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return
     end
 

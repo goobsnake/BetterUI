@@ -156,10 +156,10 @@ function Localization.GetFontCompatibilityWarning(fontPath)
     if Localization.IsFontWesternOnly(fontPath) then
         local langGroup = Localization.GetCurrentLanguageGroup()
         if langGroup == "cjk" then
-            return GetString(SI_BETTERUI_FONT_WARNING_CJK) or
+            return GetString(rawget(_G, "SI_BETTERUI_FONT_WARNING_CJK")) or
                 "This font may not display Chinese/Japanese characters correctly."
         elseif langGroup == "cyrillic" then
-            return GetString(SI_BETTERUI_FONT_WARNING_CYRILLIC) or
+            return GetString(rawget(_G, "SI_BETTERUI_FONT_WARNING_CYRILLIC")) or
                 "This font may not display Russian characters correctly."
         end
     end

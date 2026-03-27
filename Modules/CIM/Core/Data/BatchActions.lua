@@ -116,7 +116,7 @@ function BatchActions.BatchLock(self)
         return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), LOCK_TOGGLE_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
 end
 
 --- Performs batch unlock on all selected items (throttled).
@@ -149,7 +149,7 @@ function BatchActions.BatchUnlock(self)
         return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), LOCK_TOGGLE_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")), LOCK_TOGGLE_BATCH_OPTIONS)
 end
 
 --- Performs batch mark-as-junk on all selected items (throttled).
@@ -188,7 +188,7 @@ function BatchActions.BatchMarkAsJunk(self)
         return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_MARK_AS_JUNK), JUNK_TOGGLE_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
 end
 
 --- Performs batch unmark-as-junk on all selected items (throttled).
@@ -222,7 +222,7 @@ function BatchActions.BatchUnmarkAsJunk(self)
         return "queued"
     end, function()
         self:ExitSelectionMode()
-    end, GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), JUNK_TOGGLE_BATCH_OPTIONS)
+    end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
 end
 
 -------------------------------------------------------------------------------------------------
@@ -316,22 +316,22 @@ end
 --- @param self table The module instance (for batch method callbacks)
 function BatchActions.AppendCommonBatchEntries(parametricList, counts, self)
     if counts.canLockCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), counts.canLockCount)
+        local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), counts.canLockCount)
         table.insert(parametricList, BatchActions.CreateDialogEntry(label, function() self:BatchLock() end))
     end
 
     if counts.lockedCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), counts.lockedCount)
+        local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_LOCKED")), counts.lockedCount)
         table.insert(parametricList, BatchActions.CreateDialogEntry(label, function() self:BatchUnlock() end))
     end
 
     if counts.canMarkJunkCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_MARK_AS_JUNK), counts.canMarkJunkCount)
+        local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_JUNK")), counts.canMarkJunkCount)
         table.insert(parametricList, BatchActions.CreateDialogEntry(label, function() self:BatchMarkAsJunk() end))
     end
 
     if counts.canUnmarkJunkCount > 0 then
-        local label = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), counts.canUnmarkJunkCount)
+        local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")), counts.canUnmarkJunkCount)
         table.insert(parametricList, BatchActions.CreateDialogEntry(label, function() self:BatchUnmarkAsJunk() end))
     end
 end

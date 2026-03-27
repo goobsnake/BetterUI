@@ -80,11 +80,11 @@ function Class:ShowBatchActionsMenu()
             title = {
                 text = function(dialog)
                     local count = dialog and dialog.data and dialog.data.selectedCount or 0
-                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
+                    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
                 end,
             },
             mainText = {
-                text = GetString(SI_BETTERUI_BATCH_ACTIONS_DESC),
+                text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
             },
             setup = function(dialog)
                 dialog:setupFunc()
@@ -93,7 +93,7 @@ function Class:ShowBatchActionsMenu()
             buttons = {
                 {
                     keybind = "DIALOG_PRIMARY",
-                    text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                     callback = function(dialog)
                         local selected = dialog.entryList and
                             BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
@@ -104,7 +104,7 @@ function Class:ShowBatchActionsMenu()
                 },
                 {
                     keybind = "DIALOG_NEGATIVE",
-                    text = GetString(SI_GAMEPAD_BACK_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
                             if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
@@ -121,7 +121,7 @@ function Class:ShowBatchActionsMenu()
 
     -- Select All (always first)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        GetString(SI_BETTERUI_SELECT_ALL),
+        GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")),
         function() self:SelectAllItems() end
     ))
 
@@ -132,7 +132,7 @@ function Class:ShowBatchActionsMenu()
     local batchDestroyEnabled = BETTERUI.Inventory.GetSetting("enableBatchDestroy") == true
     if batchDestroyEnabled and canDestroyCount > 0 then
         table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_DESTROY), canDestroyCount),
+            zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")), canDestroyCount),
             function() self:BatchDestroy() end
         ))
     end
@@ -140,14 +140,14 @@ function Class:ShowBatchActionsMenu()
     -- Stow (only if craftbag-eligible items exist) - Inventory-specific
     if canStowCount > 0 then
         table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-            zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG), canStowCount),
+            zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG")), canStowCount),
             function() self:BatchStow() end
         ))
     end
 
     -- Deselect All (always last)
     table.insert(parametricList, MultiSelectMixin.CreateDialogEntry(
-        zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount),
+        zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount),
         function()
             ZO_Dialogs_ReleaseDialog("BETTERUI_BATCH_ACTIONS_DIALOG")
             zo_callLater(function() self:ExitSelectionMode() end, 50)
@@ -239,11 +239,11 @@ function Class:ShowCraftBagBatchActionsMenu()
             title = {
                 text = function(dialog)
                     local count = dialog and dialog.data and dialog.data.selectedCount or 0
-                    return zo_strformat(GetString(SI_BETTERUI_SELECTED_COUNT), count)
+                    return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECTED_COUNT")), count)
                 end,
             },
             mainText = {
-                text = GetString(SI_BETTERUI_BATCH_ACTIONS_DESC),
+                text = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS_DESC")),
             },
             setup = function(dialog)
                 dialog:setupFunc()
@@ -252,7 +252,7 @@ function Class:ShowCraftBagBatchActionsMenu()
             buttons = {
                 {
                     keybind = "DIALOG_PRIMARY",
-                    text = GetString(SI_GAMEPAD_SELECT_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_SELECT_OPTION")),
                     callback = function(dialog)
                         local selected = dialog.entryList and
                             BETTERUI.Inventory.Utils.SafeGetTargetData(dialog.entryList)
@@ -263,7 +263,7 @@ function Class:ShowCraftBagBatchActionsMenu()
                 },
                 {
                     keybind = "DIALOG_NEGATIVE",
-                    text = GetString(SI_GAMEPAD_BACK_OPTION),
+                    text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
                             if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
@@ -279,7 +279,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     local parametricList = {}
 
     -- Select All
-    local selectAllEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_SELECT_ALL))
+    local selectAllEntry = ZO_GamepadEntryData:New(GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL")))
     selectAllEntry:SetIconTintOnSelection(true)
     selectAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
     selectAllEntry.callback = function()
@@ -291,7 +291,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     })
 
     -- Retrieve
-    local retrieveLabel = zo_strformat("<<1>> (<<2>>)", GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG), selectedCount)
+    local retrieveLabel = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")), selectedCount)
     local retrieveEntry = ZO_GamepadEntryData:New(retrieveLabel)
     retrieveEntry:SetIconTintOnSelection(true)
     retrieveEntry.setup = ZO_SharedGamepadEntry_OnSetup
@@ -304,7 +304,7 @@ function Class:ShowCraftBagBatchActionsMenu()
     })
 
     -- Deselect All
-    local deselectLabel = zo_strformat("<<1>> (<<2>>)", GetString(SI_BETTERUI_DESELECT_ALL), selectedCount)
+    local deselectLabel = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL")), selectedCount)
     local deselectEntry = ZO_GamepadEntryData:New(deselectLabel)
     deselectEntry:SetIconTintOnSelection(true)
     deselectEntry.setup = ZO_SharedGamepadEntry_OnSetup

@@ -14,8 +14,8 @@ local CategoryManager = BETTERUI.Banking.CategoryManager
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
-            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
-            { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+            { key = "all",        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL")),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
+            { key = "furnishing", name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_FURNISHING")), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
         }
     end
 
@@ -122,7 +122,7 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
     if cat and cat.name then
         self:SetTitle(zo_strformat("<<1>>", cat.name))
     else
-        self.titleControl:SetText(GetString(SI_BETTERUI_BANK_TITLE))
+        self.titleControl:SetText(GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")))
     end
     if self.PositionSearchControl then
         self:PositionSearchControl()
@@ -141,7 +141,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     self.bankHeaderData = self.bankHeaderData or {}
     self.bankHeaderData.titleText = function()
         local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
-        return (cat and cat.name) or GetString(SI_BETTERUI_INV_ITEM_ALL)
+        return (cat and cat.name) or GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL"))
     end
     self.bankHeaderData.tabBarData = { parent = self }
     local isCarousel = BETTERUI.Settings.Modules["Banking"].enableCarousel

@@ -43,13 +43,13 @@ function BETTERUI.Nameplates.GetSettingsOptions()
     return {
         {
             type = "description",
-            text = GetString(SI_BETTERUI_NAMEPLATES_DESC),
+            text = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_DESC")),
             width = "full",
         },
         {
             type = "checkbox",
-            name = GetString(SI_BETTERUI_NAMEPLATES_ENABLED),
-            tooltip = GetString(SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_ENABLED")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_ENABLED_TOOLTIP")),
             default = BETTERUI.CIM.Settings.GetSettingDefault(
                 "Nameplates",
                 "m_enabled",
@@ -71,8 +71,8 @@ function BETTERUI.Nameplates.GetSettingsOptions()
         },
         {
             type = "dropdown",
-            name = GetString(SI_BETTERUI_NAMEPLATES_FONT),
-            tooltip = GetString(SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_FONT")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_FONT_TOOLTIP")),
             choices = BETTERUI.CIM.Font.Localization.GetFilteredFontChoices(
                 BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_CHOICES or {},
                 BETTERUI.Nameplates and BETTERUI.Nameplates.FONT_VALUES or {}
@@ -102,8 +102,8 @@ function BETTERUI.Nameplates.GetSettingsOptions()
         },
         {
             type = "dropdown",
-            name = GetString(SI_BETTERUI_NAMEPLATES_STYLE),
-            tooltip = GetString(SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_STYLE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_STYLE_TOOLTIP")),
             choices = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_CHOICES or {},
             choicesValues = BETTERUI.Nameplates and BETTERUI.Nameplates.FONTSTYLE_VALUES or {},
             default = BETTERUI.Nameplates and BETTERUI.Nameplates.DEFAULTS.style,
@@ -126,8 +126,8 @@ function BETTERUI.Nameplates.GetSettingsOptions()
         },
         {
             type = "slider",
-            name = GetString(SI_BETTERUI_NAMEPLATES_SIZE),
-            tooltip = GetString(SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SIZE")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_SIZE_TOOLTIP")),
             min = NAMEPLATE_SIZE_MIN,
             max = NAMEPLATE_SIZE_MAX,
             step = 1,
@@ -152,8 +152,8 @@ function BETTERUI.Nameplates.GetSettingsOptions()
         },
         {
             type = "button",
-            name = GetString(SI_BETTERUI_NAMEPLATES_RESET),
-            tooltip = GetString(SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP),
+            name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_RESET_TOOLTIP")),
             func = function()
                 local settings = EnsureNameplateSettings()
                 if settings and BETTERUI.Nameplates then
