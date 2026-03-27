@@ -35,6 +35,7 @@ end
 --- @param callback function The callback to execute
 --- @param ... any Arguments to pass to the callback
 --- @return boolean success True if execution succeeded
+--- @return any result The callback result or error message
 function BETTERUI.CIM.SafeExecuteCallback(eventName, callback, ...)
     return BETTERUI.CIM.SafeExecute("Callback: " .. eventName, callback, ...)
 end
