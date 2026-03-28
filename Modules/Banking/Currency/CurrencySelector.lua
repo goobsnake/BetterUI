@@ -219,7 +219,8 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     end
 end
 
----@return nil\nfunction BETTERUI.Banking.Class:HideSelector()
+---@return nil
+function BETTERUI.Banking.Class:HideSelector()
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
     self.list:Activate()

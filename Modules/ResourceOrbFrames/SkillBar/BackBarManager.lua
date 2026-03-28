@@ -32,6 +32,10 @@ local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
 
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
+
+--[[
 Function: CacheBackBarControls
 Caches all back bar control references for performance.
 References: Called during addon initialization after controls are created.

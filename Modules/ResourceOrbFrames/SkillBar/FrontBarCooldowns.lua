@@ -25,7 +25,11 @@ end
 local m_effectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
 local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
 
-local function BuildCooldownStateKey(slotIndex, hotbarCategory) = Utils.GetFrontBarButtonControl
+local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
+
+local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
 -- QUICKSLOT COUNT + EMPTY STATE
 

@@ -31,6 +31,8 @@ local NON_COST_FAILURE_CAST_HOLD_MS = 250
 SkillBar._frontBarButtonCache = m_buttonCache
 
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
+    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+end
 
 local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
     local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
