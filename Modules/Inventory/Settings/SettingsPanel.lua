@@ -44,9 +44,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	end
 
 	local function ResetInventoryGeneralSettings()
-		if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
-			BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Inventory", "general")
-		else
+		if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Inventory", "general") then
 			BETTERUI.Inventory.SetSetting("quickDestroy", false)
 			BETTERUI.Inventory.SetSetting("enableBatchDestroy", false)
 			BETTERUI.Inventory.SetSetting("enableCarousel", true)
@@ -225,9 +223,7 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	end
 
 	-- Alphabetize top-level General settings and all submenu settings.
-	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
-		BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
-	end
+	BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
 
 	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)

@@ -412,10 +412,10 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
 	-- Prefer shared helper if available
-	if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-		BETTERUI.Interface.Window.ClearSearchText(self)
-	elseif self.ClearSearchText then
-		self:ClearSearchText()
+	if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
+		if self.ClearSearchText then
+			self:ClearSearchText()
+		end
 	end
 end
 

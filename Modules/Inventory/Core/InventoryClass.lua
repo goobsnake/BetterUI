@@ -216,10 +216,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
     control:SetHandler("OnUpdate", OnUpdate)
 
     -- Add gamepad text search support using the shared helper
-    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.AddSearch then
+    local addSearch = BETTERUI.CIM.TryResolve("Interface.Window.AddSearch")
+    if addSearch then
         self.textSearchKeybindStripDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor(self)
 
-        BETTERUI.Interface.Window.AddSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
+        addSearch(self, self.textSearchKeybindStripDescriptor, function(editOrText)
             -- Normalize the OnTextChanged argument like Banking does
             local query
             if type(editOrText) == "string" then

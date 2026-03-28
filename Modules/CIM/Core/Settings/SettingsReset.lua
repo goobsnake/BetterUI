@@ -64,7 +64,7 @@ local function BuildModuleDefaults(moduleName, moduleNamespace)
         if success and type(result) == "table" then
             moduleSettings = result
         end
-    elseif BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
+    elseif BETTERUI.CIM.TryResolve("Defaults.ApplyModuleDefaults") then
         moduleSettings = BETTERUI.Defaults.ApplyModuleDefaults(moduleName, moduleSettings)
     end
 
@@ -101,9 +101,7 @@ local function ResetSettingsStore(store)
         store.Modules[moduleName] = BuildModuleDefaults(moduleName, moduleNamespace)
     end
 
-    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyFirstInstallDefaults then
-        BETTERUI.Defaults.ApplyFirstInstallDefaults(store)
-    end
+    BETTERUI.CIM.TryCall("Defaults.ApplyFirstInstallDefaults", store)
 
     store.firstInstall = false
 end
@@ -144,15 +142,13 @@ function BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
     BETTERUI.Settings = targetStore
 
     local nameplatesSettings = targetStore.Modules and targetStore.Modules["Nameplates"]
-    if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged and
+    if BETTERUI.CIM.TryResolve("Nameplates.OnEnabledChanged") and
         (type(nameplatesSettings) ~= "table" or nameplatesSettings.m_enabled ~= true) then
         -- Nameplate font overrides can persist until explicitly restored.
         BETTERUI.Nameplates.OnEnabledChanged(false, true)
     end
 
-    if BETTERUI.CIM and BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.ResetToDefaults then
-        BETTERUI.CIM.FeatureFlags.ResetToDefaults()
-    end
+    BETTERUI.CIM.TryCall("CIM.FeatureFlags.ResetToDefaults")
 
     if BETTERUI.UpdateCIMState then
         BETTERUI.UpdateCIMState()

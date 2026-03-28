@@ -27,14 +27,19 @@ function BETTERUI.CIM.SafeExecuteCallback(eventName, callback, ...)
     return BETTERUI.CIM.SafeExecute("Callback: " .. eventName, callback, ...)
 end
 
---- Resolve a dotted path on BETTERUI and call it if the leaf is a function.
---- Replaces scattered `if BETTERUI.X and BETTERUI.X.Y then BETTERUI.X.Y(...) end` guards.
-function BETTERUI.CIM.TryCall(path, ...)
+--- Resolve a dotted path on BETTERUI and return the leaf value (or nil).
+function BETTERUI.CIM.TryResolve(path)
     local node = BETTERUI
     for segment in path:gmatch("[^%.]+") do
         node = node[segment]
-        if node == nil then return false, nil end
+        if node == nil then return nil end
     end
-    if type(node) ~= "function" then return false, nil end
-    return true, node(...)
+    return node
+end
+
+--- Resolve a dotted path on BETTERUI and call it if the leaf is a function.
+function BETTERUI.CIM.TryCall(path, ...)
+    local fn = BETTERUI.CIM.TryResolve(path)
+    if type(fn) ~= "function" then return false, nil end
+    return true, fn(...)
 end

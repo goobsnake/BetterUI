@@ -182,9 +182,7 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) then
         BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG,
             function(...)
-                if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity then
-                    BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
-                else
+                if not BETTERUI.CIM.TryCall("Inventory.Dialogs.TryRetrieveWithQuantity", inventorySlot) then
                     TryMoveToInventoryOrCraftBag(inventorySlot, BAG_BACKPACK)
                 end
             end, inventorySlot)

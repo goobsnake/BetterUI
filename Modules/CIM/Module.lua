@@ -50,8 +50,9 @@ function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS
 
-    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
-        m_options = BETTERUI.Defaults.ApplyModuleDefaults("CIM", m_options)
+    local ok, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", "CIM", m_options)
+    if ok then
+        m_options = result
     else
         if m_options["enhanceCompat"] == nil then m_options["enhanceCompat"] = false end
         if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = defaults.DEFAULT_RH_SCROLL_SPEED end
@@ -59,8 +60,8 @@ function BETTERUI.CIM.InitModule(m_options)
         if m_options["enableTooltipEnhancements"] == nil then m_options["enableTooltipEnhancements"] = true end
     end
 
-    local minFontSize = (BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.SIZE_MIN) or 12
-    local maxFontSize = (BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.SIZE_MAX) or 48
+    local minFontSize = BETTERUI.CIM.TryResolve("CIM.Font.SIZE_MIN") or 12
+    local maxFontSize = BETTERUI.CIM.TryResolve("CIM.Font.SIZE_MAX") or 48
     m_options["rhScrollSpeed"] = ClampInteger(m_options["rhScrollSpeed"], 1, 1000, defaults.DEFAULT_RH_SCROLL_SPEED)
     m_options["tooltipSize"] = ClampInteger(m_options["tooltipSize"], minFontSize, maxFontSize, defaults.DEFAULT_TOOLTIP_SIZE)
 

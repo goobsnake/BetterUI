@@ -52,9 +52,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.m_enabled = value
-                if BETTERUI.Nameplates and BETTERUI.Nameplates.OnEnabledChanged then
-                    BETTERUI.Nameplates.OnEnabledChanged(value)
-                end
+                BETTERUI.CIM.TryCall("Nameplates.OnEnabledChanged", value)
             end,
             width = "full",
         },
@@ -81,9 +79,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.font = value
-                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                    BETTERUI.Nameplates.ApplyCurrentSettings()
-                end
+                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",
@@ -106,9 +102,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.style = value
-                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                    BETTERUI.Nameplates.ApplyCurrentSettings()
-                end
+                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",
@@ -132,9 +126,7 @@ function BETTERUI.Nameplates.GetSettingsOptions()
                 if not settings then return end
 
                 settings.size = value
-                if BETTERUI.Nameplates and BETTERUI.Nameplates.ApplyCurrentSettings then
-                    BETTERUI.Nameplates.ApplyCurrentSettings()
-                end
+                BETTERUI.CIM.TryCall("Nameplates.ApplyCurrentSettings")
             end,
             disabled = function() return not IsNameplateEnabled() end,
             width = "full",

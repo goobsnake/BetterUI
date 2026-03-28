@@ -36,9 +36,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     end
 
     local function ResetBankingGeneralSettings()
-        if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
-            BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Banking", "general")
-        else
+        if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Banking", "general") then
             BETTERUI.Banking.SetSetting("enableCarousel", true)
             BETTERUI.Banking.SetSetting("useTriggersForSkip", false)
             BETTERUI.Banking.SetSetting("triggerSpeed", 10)
@@ -171,9 +169,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     end
 
     -- Alphabetize top-level General settings and all submenu settings.
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
-        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
-    end
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
 
     LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
     LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)

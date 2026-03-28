@@ -447,10 +447,11 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	if moduleNamespace._setupComplete then return true end
 
 	-- Validate using CIM interface validation if available
-	if BETTERUI.CIM and BETTERUI.CIM.Interfaces and BETTERUI.CIM.Interfaces.ValidateModule then
+	local validateFn = BETTERUI.CIM.TryResolve("CIM.Interfaces.ValidateModule")
+	if validateFn then
 		-- Temporarily add name for validation (modules don't store their own name)
 		local tempModule = { name = moduleName, Setup = moduleNamespace.Setup }
-		local valid, err = BETTERUI.CIM.Interfaces.ValidateModule(tempModule)
+		local valid, err = validateFn(tempModule)
 		if not valid then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' failed validation: %s", moduleName, tostring(err)))
 			return false

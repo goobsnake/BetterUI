@@ -28,18 +28,22 @@ local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings or function(
 --- Returns the table of LAM settings options for General Interface.
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS and BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT then
-        styleTraitIcon = zo_iconFormat(BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT, 24, 24) .. " "
+    local traitIcon = BETTERUI.CIM.TryResolve("CIM.CONST.ICONS.RESEARCHABLE_TRAIT")
+    if traitIcon then
+        styleTraitIcon = zo_iconFormat(traitIcon, 24, 24) .. " "
     end
     local knowledgeStatusIcon = ""
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS and BETTERUI.CIM.CONST.ICONS.BOOK_UNKNOWN then
-        knowledgeStatusIcon = zo_iconFormat(BETTERUI.CIM.CONST.ICONS.BOOK_UNKNOWN, 24, 24) .. " "
+    local bookIcon = BETTERUI.CIM.TryResolve("CIM.CONST.ICONS.BOOK_UNKNOWN")
+    if bookIcon then
+        knowledgeStatusIcon = zo_iconFormat(bookIcon, 24, 24) .. " "
     end
 
     local marketPriorityChoices = {}
     local marketPriorityValues = {}
-    if BETTERUI.CIM and BETTERUI.CIM.MarketIntegration and BETTERUI.CIM.MarketIntegration.GetPriorityChoices then
-        marketPriorityChoices, marketPriorityValues = BETTERUI.CIM.MarketIntegration.GetPriorityChoices()
+    local ok, choices, values = BETTERUI.CIM.TryCall("CIM.MarketIntegration.GetPriorityChoices")
+    if ok then
+        marketPriorityChoices = choices
+        marketPriorityValues = values
     end
 
     local tooltipGuildStoreError = BuildAddonDependencyTooltip(
@@ -428,7 +432,7 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
                     val = settings.tooltipSize or val
                 end
 
-                if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.GetSizeValue then
+                if BETTERUI.CIM.TryResolve("CIM.Font.GetSizeValue") then
                     return BETTERUI.CIM.Font.GetSizeValue(val)
                 end
                 return val
@@ -469,11 +473,9 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
         width = "half",
     })
 
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
-        BETTERUI.CIM.Settings.SortSettingsAlphabetically(generalControls, false)
-        BETTERUI.CIM.Settings.SortSettingsAlphabetically(marketIntegrationControls, false)
-        BETTERUI.CIM.Settings.SortSettingsAlphabetically(enhancedTooltipControls, false)
-    end
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", generalControls, false)
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", marketIntegrationControls, false)
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", enhancedTooltipControls, false)
 
     table.insert(generalControls, {
         type = "submenu",
@@ -493,8 +495,9 @@ end
 --- Initializes General Interface default settings.
 function BETTERUI.GeneralInterface.InitModule(m_options)
     m_options = m_options or {}
-    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
-        m_options = BETTERUI.Defaults.ApplyModuleDefaults("GeneralInterface", m_options)
+    local ok2, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", "GeneralInterface", m_options)
+    if ok2 then
+        m_options = result
     else
         if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
         if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end

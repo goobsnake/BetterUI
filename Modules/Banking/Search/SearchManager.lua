@@ -10,10 +10,10 @@ local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 --- Clears the text search input and resets the query.
 function BETTERUI.Banking.Class:ClearSearchInput()
     self.searchQuery = ""
-    if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
-        BETTERUI.Interface.Window.ClearSearchText(self)
-    elseif self.ClearSearchText then
-        self:ClearSearchText()
+    if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
+        if self.ClearSearchText then
+            self:ClearSearchText()
+        end
     end
 end
 
@@ -152,7 +152,7 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
 
-        if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
+        if BETTERUI.CIM.TryResolve("Interface.Window.OnEnterHeader") then
             BETTERUI.Interface.Window.OnEnterHeader(self)
         end
 
@@ -173,8 +173,8 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
                 EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
             end
         end)
-    elseif BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.OnEnterHeader then
-        BETTERUI.Interface.Window.OnEnterHeader(self)
+    else
+        BETTERUI.CIM.TryCall("Interface.Window.OnEnterHeader", self)
     end
 end
 

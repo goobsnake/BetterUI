@@ -26,7 +26,8 @@ local function Init(mId, moduleName)
 	local optionsTable = {}
 
 	-- General Interface settings (flat section, consistent with Inventory/Banking)
-	if BETTERUI.GeneralInterface and BETTERUI.GeneralInterface.GetSettingsOptions then
+	local getSettingsOpts = BETTERUI.CIM.TryResolve("GeneralInterface.GetSettingsOptions")
+	if getSettingsOpts then
 		table.insert(optionsTable, {
 			type = "header",
 			name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_INTERFACE_GENERAL_HEADER")),
@@ -47,7 +48,8 @@ local function Init(mId, moduleName)
 	end
 
 	-- Nameplate Settings Submenu
-	if BETTERUI.Nameplates and BETTERUI.Nameplates.GetSettingsOptions then
+	local getNameplateOpts = BETTERUI.CIM.TryResolve("Nameplates.GetSettingsOptions")
+	if getNameplateOpts then
 		table.insert(optionsTable, {
 			type = "submenu",
 			name = GetString(rawget(_G, "SI_BETTERUI_NAMEPLATES_HEADER")),
@@ -56,14 +58,10 @@ local function Init(mId, moduleName)
 	end
 
 	-- Alphabetize top-level submenu rows (e.g., Enhanced Nameplates / Enhanced Tooltips).
-	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically then
-		BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsTable)
-	end
+	BETTERUI.CIM.TryCall("CIM.Settings.SortTopLevelSubmenusAlphabetically", optionsTable)
 
 	-- Alphabetize top-level General settings and all submenu settings.
-	if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
-		BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
-	end
+	BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
 
 	LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
 	LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)

@@ -334,8 +334,8 @@ function ActionHandlers.OnConfirm(self, dialog)
     if selectedRow and selectedRow.isStowStackAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
-        if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.StowFullStack then
-            BETTERUI.Inventory.Dialogs.StowFullStack(itemTarget)
+        if itemTarget then
+            BETTERUI.CIM.TryCall("Inventory.Dialogs.StowFullStack", itemTarget)
         end
         return
     end
@@ -344,8 +344,8 @@ function ActionHandlers.OnConfirm(self, dialog)
     if selectedRow and selectedRow.isRetrieveStackAction then
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
-        if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.RetrieveFullStack then
-            BETTERUI.Inventory.Dialogs.RetrieveFullStack(itemTarget)
+        if itemTarget then
+            BETTERUI.CIM.TryCall("Inventory.Dialogs.RetrieveFullStack", itemTarget)
         end
         return
     end

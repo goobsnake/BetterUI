@@ -136,9 +136,7 @@ end
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
-        if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.TryStowWithQuantity then
-            BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
-        else
+        if not BETTERUI.CIM.TryCall("Inventory.Dialogs.TryStowWithQuantity", inventorySlot) then
             BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
         end
     end

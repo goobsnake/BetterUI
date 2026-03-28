@@ -299,9 +299,9 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
-                            if BETTERUI.Banking.Window then
-                                KEYBIND_STRIP:UpdateKeybindButtonGroup(
-                                    BETTERUI.Banking.Window.coreKeybinds)
+                            local window = BETTERUI.CIM.TryResolve("Banking.Window")
+                            if window then
+                                KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
                             end
                         end, 50)
                     end,

@@ -116,9 +116,7 @@ function BETTERUI.Inventory.Setup()
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
 
 	-- Initialize the Craft Bag quantity dialog for stow/retrieve operations
-	if BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog then
-		BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
-	end
+	BETTERUI.CIM.TryCall("Inventory.Dialogs.InitializeCraftBagQuantityDialog")
 
 	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag
 	-- This is the ONLY guard needed - it blocks at the source
@@ -182,15 +180,13 @@ function BETTERUI.Inventory.Setup()
 	end
 
 	-- Register narration for Inventory scene (ACC-001)
-	if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
-		BETTERUI.CIM.Narration.RegisterListNarration(
-			"gamepadInventory",
-			function()
-				return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData
-			end,
-			function()
-				return GetString(rawget(_G, "SI_BETTERUI_INV_TITLE"))
-			end
-		)
-	end
+	BETTERUI.CIM.TryCall("CIM.Narration.RegisterListNarration",
+		"gamepadInventory",
+		function()
+			return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData
+		end,
+		function()
+			return GetString(rawget(_G, "SI_BETTERUI_INV_TITLE"))
+		end
+	)
 end

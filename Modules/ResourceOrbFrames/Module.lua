@@ -18,15 +18,12 @@ local function Init(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Resource Orb Frames Settings")
 
     local function Apply()
-        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-            BETTERUI.ResourceOrbFrames.ApplySettings()
-        end
+        BETTERUI.CIM.TryCall("ResourceOrbFrames.ApplySettings")
     end
 
     local moduleDefaults = {}
-    if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.GetDefaults then
-        moduleDefaults = BETTERUI.ResourceOrbFrames.GetDefaults()
-    end
+    local ok, defaults = BETTERUI.CIM.TryCall("ResourceOrbFrames.GetDefaults")
+    if ok then moduleDefaults = defaults end
 
     local function Default(key, fallback)
         local value = moduleDefaults[key]
@@ -76,9 +73,7 @@ local function Init(mId, moduleName)
                 settings[entry.key] = Default(entry.key, entry.value)
             end
         end
-        if BETTERUI.ResourceOrbFrames and BETTERUI.ResourceOrbFrames.ApplySettings then
-            BETTERUI.ResourceOrbFrames.ApplySettings()
-        end
+        BETTERUI.CIM.TryCall("ResourceOrbFrames.ApplySettings")
     end
 
     -- Accessor with live update
@@ -276,14 +271,10 @@ local function Init(mId, moduleName)
     BuildSubmenus.ApplySubmenuSectionOrdering(optionsTable)
 
     -- Alphabetize top-level submenu rows, then alphabetize settings inside each section/submenu.
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically then
-        BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsTable)
-    end
+    BETTERUI.CIM.TryCall("CIM.Settings.SortTopLevelSubmenusAlphabetically", optionsTable)
 
     -- Alphabetize top-level General settings and all submenu settings.
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
-        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsTable, true)
-    end
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
 
     LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
     LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)

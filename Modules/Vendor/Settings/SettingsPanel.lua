@@ -65,8 +65,9 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     }
 
     -- ICON SETTINGS
-    if BETTERUI.CIM and BETTERUI.CIM.IconSettingsFactory then
-        local iconOptions = BETTERUI.CIM.IconSettingsFactory.CreateIconSettingsGroup(moduleName)
+    local iconFactory = BETTERUI.CIM.TryResolve("CIM.IconSettingsFactory")
+    if iconFactory then
+        local iconOptions = iconFactory.CreateIconSettingsGroup(moduleName)
         if iconOptions then
             for _, opt in ipairs(iconOptions) do
                 optionsData[#optionsData + 1] = opt

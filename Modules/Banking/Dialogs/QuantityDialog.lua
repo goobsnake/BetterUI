@@ -179,8 +179,9 @@ function BETTERUI.Banking.InitializeQuantityDialog()
 
                     local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
 
-                    if BETTERUI.Banking.Window and BETTERUI.Banking.Window.MoveItem then
-                        BETTERUI.Banking.Window:MoveItem(BETTERUI.Banking.Window.list, quantity)
+                    local window = BETTERUI.CIM.TryResolve("Banking.Window")
+                    if window and window.MoveItem then
+                        window:MoveItem(window.list, quantity)
                     end
 
                     ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_BANK_QUANTITY_DIALOG)

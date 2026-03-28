@@ -24,10 +24,8 @@ end
 --- Refreshes the inventory and banking lists if their scenes are showing.
 local function RefreshInventoryAndBankingLists()
     local inventoryWindow = GAMEPAD_INVENTORY
-    local inventorySceneShowing = true
-    if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsInventorySceneShowing then
-        inventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing()
-    end
+    local _, inventorySceneShowing = BETTERUI.CIM.TryCall("CIM.Utils.IsInventorySceneShowing")
+    if inventorySceneShowing == nil then inventorySceneShowing = true end
 
     if inventorySceneShowing
         and inventoryWindow
@@ -38,10 +36,8 @@ local function RefreshInventoryAndBankingLists()
     end
 
     local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
-    local bankingSceneShowing = true
-    if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsBankingSceneShowing then
-        bankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing()
-    end
+    local _, bankingSceneShowing = BETTERUI.CIM.TryCall("CIM.Utils.IsBankingSceneShowing")
+    if bankingSceneShowing == nil then bankingSceneShowing = true end
 
     if bankingSceneShowing and bankingWindow and bankingWindow.RefreshList then
         bankingWindow:RefreshList()
@@ -50,9 +46,8 @@ end
 
 --- Gets the default value for a setting from metadata.
 local function GetMetadataDefault(moduleName, settingKey, fallback)
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.GetSettingDefault then
-        return BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallback)
-    end
+    local ok, result = BETTERUI.CIM.TryCall("CIM.Settings.GetSettingDefault", moduleName, settingKey, fallback)
+    if ok then return result end
     return fallback
 end
 
@@ -130,9 +125,9 @@ end
 
 --- Resets the general settings for the GeneralInterface module.
 local function ResetGeneralInterfaceGeneralSettings()
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
-        BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "general")
-        BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("CIM", "generalInterfaceGeneral")
+    local ok = BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "general")
+    if ok then
+        BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "CIM", "generalInterfaceGeneral")
     else
         local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
         local cimSettings = EnsureModuleSettings("CIM")
@@ -155,9 +150,7 @@ end
 
 --- Resets the market integration settings to defaults.
 local function ResetMarketIntegrationSettings()
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
-        BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "marketIntegration")
-    else
+    if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "marketIntegration") then
         local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
         if generalInterfaceSettings then
             generalInterfaceSettings.showMarketPrice =
@@ -180,9 +173,9 @@ end
 
 --- Resets the enhanced tooltip settings to defaults.
 local function ResetEnhancedTooltipSettings()
-    if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
-        BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
-        BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("CIM", "enhancedTooltips")
+    local ok = BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "GeneralInterface", "enhancedTooltips")
+    if ok then
+        BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "CIM", "enhancedTooltips")
     else
         local generalInterfaceSettings = EnsureModuleSettings("GeneralInterface")
         local cimSettings = EnsureModuleSettings("CIM")
