@@ -167,6 +167,7 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
     if ok then
         m_options = result
     elseif type(fallbackDefaults) == "table" then
+        d("[BetterUI] " .. tostring(moduleKey) .. ": ApplyModuleDefaults unavailable, using fallbacks")
         for key, value in pairs(fallbackDefaults) do
             if m_options[key] == nil then
                 m_options[key] = value
