@@ -290,6 +290,8 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 }
 
+--- @param value any Value to deep clone (handles nested tables)
+--- @return any clone Deep copy of the value
 local function CloneDefaultValue(value)
     if type(value) ~= "table" then
         return value

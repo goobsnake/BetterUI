@@ -19,6 +19,9 @@ local m_combatIconPulseControl = nil
 
 local FindControl = BETTERUI.ControlUtils.FindControl
 
+--- @param parent table UI control with GetNamedChild method
+--- @param name string Child control suffix
+--- @return table|nil child Named child control, or nil
 local function GetNamedChildDirect(parent, name)
     if parent and parent.GetNamedChild then
         return parent:GetNamedChild(name)
@@ -28,6 +31,11 @@ end
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+--- @param value any Value to clamp (coerced via tonumber)
+--- @param minValue number Lower bound
+--- @param maxValue number Upper bound
+--- @param fallback number Value used when tonumber(value) is nil
+--- @return number clamped Clamped numeric result
 local function Clamp(value, minValue, maxValue, fallback)
     local numberValue = tonumber(value)
     if not numberValue then
@@ -60,6 +68,7 @@ function CombatIndicators.ResolveFrontBarContainer(rootFrame)
     return nil
 end
 
+--- @return string path Virtual texture path for the combat mode icon
 local function ResolveCombatIconTexturePath()
     if type(BETTERUI_COMBAT_ICON_TEXTURE) == "string" and BETTERUI_COMBAT_ICON_TEXTURE ~= "" then
         return BETTERUI_COMBAT_ICON_TEXTURE
@@ -82,6 +91,9 @@ local function ResolveCombatIconTexturePath()
     return "EsoUI/Art/LFG/LFG_icon_dps.dds"
 end
 
+--- @param rootFrame table Root ResourceOrbFrames control
+--- @param frontBarContainer table|nil Front bar container control
+--- @return table|nil control Combat icon texture control (created if absent)
 local function EnsureCombatIconControl(rootFrame, frontBarContainer)
     if not rootFrame then
         return nil
@@ -122,6 +134,9 @@ function CombatIndicators.GetCombatIndicatorControls(rootFrame)
     return glow, icon
 end
 
+--- @param rootFrame table Root ResourceOrbFrames control
+--- @param frontBarContainer table|nil Front bar container
+--- @return table|nil quickslotButton Quickslot button control, or nil
 local function ResolveQuickslotButton(rootFrame, frontBarContainer)
     local rootName = rootFrame and rootFrame.GetName and rootFrame:GetName() or nil
     local frontBarName = frontBarContainer and frontBarContainer.GetName and frontBarContainer:GetName() or nil
@@ -161,6 +176,11 @@ local function ResolveQuickslotButton(rootFrame, frontBarContainer)
     return nil
 end
 
+--- @param rootFrame table Root ResourceOrbFrames control
+--- @return table|nil anchor BgMiddle control for anchor fallback
+--- @return number|nil x Quickslot X offset
+--- @return number|nil y Quickslot Y offset
+--- @return number|nil size Button size in pixels
 local function ResolveQuickslotAnchorFallback(rootFrame)
     if not rootFrame or not BETTERUI_ORB_FRAMES or not BETTERUI_ORB_FRAMES.bars then
         return nil
@@ -196,6 +216,8 @@ local function StopCombatIconPulse()
     end
 end
 
+--- @param iconControl table UI texture control
+--- @return table|nil timeline Ping-pong alpha animation timeline
 local function EnsureCombatIconPulseTimeline(iconControl)
     if not iconControl then
         return nil
@@ -300,6 +322,8 @@ local function AnchorCombatIcon(rootFrame, iconControl)
     iconControl:SetDesaturation(0)
 end
 
+--- @param rootFrame table Root ResourceOrbFrames control
+--- @return table targets Array of glow controls for visible front bar buttons
 local function GetGlowTargets(rootFrame)
     local targets = {}
     if not rootFrame then

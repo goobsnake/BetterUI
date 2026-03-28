@@ -118,6 +118,9 @@ local WESTERN_ONLY_FONTS = {
 BETTERUI.CIM.Font.SIZE_MIN = 12
 BETTERUI.CIM.Font.SIZE_MAX = 48
 
+--- @param sizeValue any Font size value to clamp (coerced via tonumber)
+--- @param fallback number Default size when value is non-numeric
+--- @return number size Clamped font size within FONT_SIZE_MIN..FONT_SIZE_MAX
 local function ClampFontSize(sizeValue, fallback)
     local numeric = tonumber(sizeValue)
     if not numeric then

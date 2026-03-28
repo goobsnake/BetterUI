@@ -66,6 +66,9 @@ local ICON_SUBMENU_DESCRIPTION_STRING_ID = SI_BETTERUI_ICON_SUBMENU_DESC
 local ICON_SUBMENU_RESET_STRING_ID = SI_BETTERUI_ICON_SUBMENU_RESET
 local ICON_SUBMENU_RESET_TOOLTIP_STRING_ID = SI_BETTERUI_ICON_SUBMENU_RESET_TOOLTIP
 
+--- @param nameStringId number|nil String ID constant, or nil to use text fallback
+--- @param text string|nil Fallback display string
+--- @return string display Resolved display string
 local function ResolveDisplayString(nameStringId, text)
     if nameStringId then
         return GetString(nameStringId)
@@ -73,6 +76,8 @@ local function ResolveDisplayString(nameStringId, text)
     return text or ""
 end
 
+--- @param iconDef table Icon definition with iconKey field
+--- @return string|nil texture Icon texture path from CIM.CONST.ICONS, or nil
 local function GetIconTexture(iconDef)
     local iconTable = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS
     if not iconTable or not iconDef.iconKey then
@@ -81,6 +86,10 @@ local function GetIconTexture(iconDef)
     return iconTable[iconDef.iconKey]
 end
 
+--- @param iconDef table Icon definition
+--- @param nameStringId number|nil String ID for display name
+--- @param nameText string|nil Fallback display name text
+--- @return string formatted Display name with optional icon prefix
 local function FormatSettingName(iconDef, nameStringId, nameText)
     local baseName = ResolveDisplayString(nameStringId, nameText)
     local iconTexture = GetIconTexture(iconDef)
@@ -93,6 +102,10 @@ local function FormatSettingName(iconDef, nameStringId, nameText)
     return baseName
 end
 
+--- @param moduleName string Module name for settings lookup
+--- @param iconDef table Icon definition with key and optional defaultValue
+--- @return any defaultValue Resolved default value (from metadata or iconDef)
+--- @return table|nil metadata Settings metadata entry, if found
 local function GetIconToggleDefault(moduleName, iconDef)
     local metadata = BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, iconDef.key)
     local defaultValue = iconDef.defaultValue

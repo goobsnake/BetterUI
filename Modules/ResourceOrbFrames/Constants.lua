@@ -338,6 +338,13 @@ BETTERUI_ORB_FRAMES = {
 -- ============================================================================
 
 -- Namespaced bar configuration (replaces former BETTERUI_*_BAR_* globals)
+--- @param barWidth number Bar width in pixels
+--- @param barHeight number Bar height in pixels
+--- @param fillWidthScale number Fill region width as fraction of bar (0..1)
+--- @param fillHeightScale number Fill region height as fraction of bar (0..1)
+--- @param fillOffsetX number|nil Pixel offset from bar center (default 0)
+--- @param fillOffsetY number|nil Pixel offset from bar center (default 0)
+--- @return table region Normalized region {left, right, top, bottom} in 0..1 range
 local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fillHeightScale, fillOffsetX, fillOffsetY)
     -- Converts developer-friendly scale/offset values into normalized UV-like region bounds [0..1].
     local halfWidth = (fillWidthScale or 1) * 0.5

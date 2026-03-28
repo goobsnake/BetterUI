@@ -53,6 +53,8 @@ local function IsModuleToggleEnabled(settings, key)
     return settings and settings[key] ~= false
 end
 
+--- @param settings table Module settings
+--- @return string key Priority order key for PRIORITY_ORDERS lookup
 local function GetPriorityKey(settings)
     if not settings then
         return "mm_att_ttc"
@@ -65,6 +67,10 @@ local function GetPriorityKey(settings)
     return key
 end
 
+--- @param itemLink string ESO item link
+--- @param stackCount number Stack size multiplier
+--- @param settings table Module settings (checks mmIntegration toggle)
+--- @return number price Total MasterMerchant price, 0 if unavailable
 local function FetchMasterMerchantPrice(itemLink, stackCount, settings)
     if MasterMerchant == nil or not IsModuleToggleEnabled(settings, "mmIntegration") then
         return 0
@@ -78,6 +84,10 @@ local function FetchMasterMerchantPrice(itemLink, stackCount, settings)
     return 0
 end
 
+--- @param itemLink string ESO item link
+--- @param stackCount number Stack size multiplier
+--- @param settings table Module settings (checks attIntegration toggle)
+--- @return number price Total Arkadius Trade Tools price, 0 if unavailable
 local function FetchArkadiusPrice(itemLink, stackCount, settings)
     if ArkadiusTradeTools == nil or not IsModuleToggleEnabled(settings, "attIntegration") then
         return 0
@@ -97,6 +107,10 @@ local function FetchArkadiusPrice(itemLink, stackCount, settings)
     return 0
 end
 
+--- @param itemLink string ESO item link
+--- @param stackCount number Stack size multiplier
+--- @param settings table Module settings (checks ttcIntegration toggle)
+--- @return number price Total TTC price, 0 if unavailable
 local function FetchTTCPrice(itemLink, stackCount, settings)
     if TamrielTradeCentre == nil or not IsModuleToggleEnabled(settings, "ttcIntegration") then
         return 0

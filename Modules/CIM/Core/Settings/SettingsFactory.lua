@@ -18,6 +18,8 @@ if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
 -- SETTINGS SORT HELPERS
 -- ============================================================================
 
+--- @param name string Raw LAM submenu name (may contain ESO color/texture markup)
+--- @return string normalized Lowercase name with markup stripped and whitespace collapsed
 local function NormalizeSubmenuSortName(name)
     if type(name) ~= "string" then
         return ""
@@ -37,6 +39,9 @@ local function NormalizeSubmenuSortName(name)
     return string.lower(normalized)
 end
 
+--- @param controls table LAM controls array (mutated in place)
+--- @param startIndex number First index of the contiguous submenu range
+--- @param endIndex number Last index of the contiguous submenu range
 local function SortSubmenuRangeByName(controls, startIndex, endIndex)
     local range = {}
     for i = startIndex, endIndex do
@@ -105,6 +110,8 @@ local SORTABLE_SETTING_TYPES = {
     -- Intentionally exclude "button" so reset controls stay in authored bottom position.
 }
 
+--- @param name string Raw setting control name (may contain ESO markup and warning symbols)
+--- @return string normalized Lowercase name with markup and symbols stripped
 local function NormalizeSettingSortName(name)
     if type(name) ~= "string" then
         return ""
@@ -126,6 +133,8 @@ local function NormalizeSettingSortName(name)
     return string.lower(normalized)
 end
 
+--- @param control table LAM control definition
+--- @return boolean sortable True if the control type is in the sortable set
 local function IsSortableSettingControl(control)
     if type(control) ~= "table" then
         return false
@@ -137,6 +146,9 @@ local function IsSortableSettingControl(control)
     return type(control.name) == "string"
 end
 
+--- @param controls table LAM controls array (mutated in place)
+--- @param startIndex number First index of the contiguous sortable range
+--- @param endIndex number Last index of the contiguous sortable range
 local function SortSettingControlRange(controls, startIndex, endIndex)
     local range = {}
     for i = startIndex, endIndex do

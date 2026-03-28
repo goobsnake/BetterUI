@@ -18,6 +18,8 @@ local function ClearActiveTooltip(control)
     end
 end
 
+--- @param hotbarCategory number|nil Hotbar category constant
+--- @return table|nil hotbar ACTION_BAR_ASSIGNMENT_MANAGER hotbar object, or nil
 local function ResolveHotbarForTooltip(hotbarCategory)
     if not ACTION_BAR_ASSIGNMENT_MANAGER then
         return nil
@@ -37,6 +39,13 @@ local function ResolveHotbarForTooltip(hotbarCategory)
     return nil
 end
 
+--- @param control table Button UI control to show tooltip for
+--- @param slotIndex number Action bar slot index
+--- @param hotbarCategory number Hotbar category constant
+--- @param point number Anchor point constant
+--- @param offsetX number Tooltip X offset
+--- @param offsetY number Tooltip Y offset
+--- @return boolean shown True if a tooltip was successfully displayed
 local function TryShowSlotDataTooltip(control, slotIndex, hotbarCategory, point, offsetX, offsetY)
     if not control or not slotIndex then
         return false

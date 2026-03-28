@@ -29,6 +29,8 @@ local function GetTextureRootPath()
     return "BetterUI/Modules/ResourceOrbFrames/Textures"
 end
 
+--- @param filename string Texture filename relative to the Textures directory
+--- @return string path Full virtual path for SetTexture()
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", GetTextureRootPath(), filename)
 end

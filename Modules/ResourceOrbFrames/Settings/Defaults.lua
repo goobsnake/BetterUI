@@ -68,6 +68,11 @@ end
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 
+--- @param value any Value to clamp (coerced via tonumber)
+--- @param minValue number Lower bound
+--- @param maxValue number Upper bound
+--- @param fallback number Value used when tonumber(value) is nil
+--- @return number clamped Clamped numeric result
 local function ClampNumber(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then

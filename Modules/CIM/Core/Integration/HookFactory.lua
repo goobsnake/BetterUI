@@ -13,6 +13,10 @@ Function: createHookInternal (local)
 Creates method hooks with configurable execution position.
 References: Used by BETTERUI.PreHook, BETTERUI.PostHook, BETTERUI.ReplaceHook
 ]]
+--- @param control table UI object to hook
+--- @param method string Method name to hook
+--- @param fn function Hook callback
+--- @param position string "before"|"after"|"replace" execution order
 local function createHookInternal(control, method, fn, position)
     if control == nil then return end
     local originalMethod = control[method]

@@ -30,20 +30,25 @@ local NON_COST_FAILURE_CAST_HOLD_MS = 250
 -- Expose button cache to sibling modules (FrontBarCooldowns, FrontBarPressFeedback)
 SkillBar._frontBarButtonCache = m_buttonCache
 
+--- @param slotIndex number Action bar slot index
+--- @param hotbarCategory number Hotbar category constant
+--- @return string key Composite cache key "slotIndex_hotbarCategory"
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
-    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
-end
 
---------------------------------------------------------------------------------
--- USABILITY FAILURE LATCHING
---------------------------------------------------------------------------------
-
+--- @param slotIndex number Action bar slot index
+--- @param hotbarCategory number Hotbar category constant
+--- @return boolean hasFailure True if slot has target or range failure
 local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
     local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
     local hasRangeFailure = ActionSlotHasRangeFailure and ActionSlotHasRangeFailure(slotIndex, hotbarCategory) or false
     return hasTargetFailure or hasRangeFailure
 end
 
+--- @param slotStateKey string Composite slot+hotbar cache key
+--- @param hasTargetOrRangeFailure boolean Current frame's target/range failure state
+--- @param isCasting boolean Whether the player is currently casting
+--- @param nowMs number Current game time in milliseconds
+--- @return boolean latched True if failure is active or within the cast-hold window
 local function ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeFailure, isCasting, nowMs)
     if hasTargetOrRangeFailure then
         m_targetFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
@@ -57,6 +62,11 @@ local function ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeF
     return false
 end
 
+--- @param slotStateKey string Composite slot+hotbar cache key
+--- @param hasStateFailure boolean Current frame's non-cost failure state
+--- @param isCasting boolean Whether the player is currently casting
+--- @param nowMs number Current game time in milliseconds
+--- @return boolean latched True if failure is active or within the cast-hold window
 local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure, isCasting, nowMs)
     if hasStateFailure then
         m_nonCostFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
@@ -70,6 +80,9 @@ local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure,
     return false
 end
 
+--- @param slotIndex number Action bar slot index
+--- @param hotbarCategory number Hotbar category constant
+--- @return boolean insufficient True if this is the ultimate slot and player lacks the cost
 local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     local ultimateSlotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
     if slotIndex ~= ultimateSlotIndex then return false end
@@ -80,6 +93,9 @@ local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     return currentUltimate < abilityCost
 end
 
+--- @param slotIndex number Action bar slot index
+--- @param hotbarCategory number Hotbar category constant
+--- @return boolean suppress True if a long cooldown or effect is active (avoids flicker)
 local function ShouldSuppressUnusableOverlayForCooldown(slotIndex, hotbarCategory)
     local remainMs, durationMs, isGlobalCooldown = GetSlotCooldownInfo(slotIndex, hotbarCategory)
     if remainMs and remainMs > 0 and durationMs and durationMs > 1500 and not isGlobalCooldown then

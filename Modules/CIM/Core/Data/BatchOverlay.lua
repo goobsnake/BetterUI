@@ -112,6 +112,8 @@ end
 -- OVERLAY CONSTRUCTION HELPERS
 -------------------------------------------------------------------------------------------------
 
+--- @param backgroundContainer table Parent UI control for the announcement frame
+--- @return table|nil frame CT_BACKDROP control (cached on container), or nil
 local function EnsureBatchAnnouncementFrame(backgroundContainer)
     if not backgroundContainer then
         return nil
@@ -155,6 +157,8 @@ local function EnsureBatchAnnouncementFrame(backgroundContainer)
     return frame
 end
 
+--- @param backgroundContainer table Parent UI control
+--- @return table|nil band Callout band control with fill texture child, or nil
 local function EnsureBatchAnnouncementCalloutBand(backgroundContainer)
     if not backgroundContainer then
         return nil
@@ -191,6 +195,10 @@ local function EnsureBatchAnnouncementCalloutBand(backgroundContainer)
     return calloutBand
 end
 
+--- @param label table UI label control
+--- @param minimumWidth number|nil Minimum width fallback for empty labels
+--- @return number width Measured or estimated text width
+--- @return number height Measured text height
 local function GetAnnouncementLabelBounds(label, minimumWidth)
     if not label then
         return 0, 0
@@ -211,6 +219,8 @@ local function GetAnnouncementLabelBounds(label, minimumWidth)
     return textWidth, textHeight
 end
 
+--- @param value any Raw status value (string, number, function, or nil)
+--- @return string text Resolved string representation of the value
 local function ResolveBatchStatusTextValue(value)
     if type(value) == "function" then
         -- Phase: resolve-status-text
@@ -232,6 +242,7 @@ end
 -- OVERLAY CREATION
 -------------------------------------------------------------------------------------------------
 
+--- @return table overlay The singleton batch status overlay state table
 local function EnsureBatchStatusOverlay()
     local overlay = BATCH_STATUS_OVERLAY
     if overlay.control then
