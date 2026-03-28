@@ -54,9 +54,9 @@ local DEFAULTS = {
     -- (Other defaults handled in GetModuleSettings or specific components)
 }
 
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames", DEFAULTS)
-end
+-- Use canonical Utils.GetModuleSettings for the standard no-defaults path.
+-- This file also needs a DEFAULTS-aware accessor for initialization.
+local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
 
 local FindControl = BETTERUI.ControlUtils.FindControl
 

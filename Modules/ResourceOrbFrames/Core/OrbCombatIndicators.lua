@@ -27,9 +27,7 @@ local function GetNamedChildDirect(parent, name)
     return nil
 end
 
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
 
 local function Clamp(value, minValue, maxValue, fallback)
     local numberValue = tonumber(value)

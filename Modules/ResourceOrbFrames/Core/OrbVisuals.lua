@@ -24,10 +24,7 @@ local ORB_CONFIG = {
 
 -- Local helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
-
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
 
 local function GetTextureRootPath()
     return "BetterUI/Modules/ResourceOrbFrames/Textures"

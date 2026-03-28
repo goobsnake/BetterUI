@@ -12,39 +12,8 @@ descriptor factories for the name and column rendering.
 -- Module initialization
 BETTERUI.Vendor = BETTERUI.Vendor or {}
 
--- Font choices/values now use CIM shared definitions (see CIM/Core/FontDefinitions.lua)
-BETTERUI.Vendor.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
-BETTERUI.Vendor.FONT_VALUES = BETTERUI.CIM.Font.VALUES
-BETTERUI.Vendor.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
-BETTERUI.Vendor.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
-BETTERUI.Vendor.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
-
--- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
-do
-    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Vendor")
-    BETTERUI.Vendor.GetNameFontDescriptor = descriptors.name
-    BETTERUI.Vendor.GetColumnFontDescriptor = descriptors.column
-end
-
---- Settings Accessor Protocol:
---- GetSetting(key) -> value: Returns saved setting value or default
---- SetSetting(key, value): Persists setting and triggers change notification
----
---- Retrieves a setting value for the Vendor module.
---- @param key string The setting key.
---- @return any The setting value or module default.
-function BETTERUI.Vendor.GetSetting(key)
-	if key == nil then return nil end
-	local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault("Vendor", key) or nil
-	return BETTERUI.GetSetting("Vendor", key, defaultValue)
-end
-
---- Sets a setting value for the Vendor module.
---- @param key string The setting key.
---- @param value any The value to set.
-function BETTERUI.Vendor.SetSetting(key, value)
-	BETTERUI.SetSetting("Vendor", key, value)
-end
+-- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+BETTERUI.CIM.RegisterModuleAccessors("Vendor")
 
 --[[
 Function: BETTERUI.Vendor.InitModule

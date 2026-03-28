@@ -20,9 +20,7 @@ local CI = BETTERUI.ResourceOrbFrames.CombatIndicators or {}
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
 
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
 
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame

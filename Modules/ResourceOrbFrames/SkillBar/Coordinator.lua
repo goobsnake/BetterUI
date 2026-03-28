@@ -19,9 +19,7 @@ local m_swapTimeline = nil
 -- Helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
 
-local function GetModuleSettings()
-    return BETTERUI.GetModuleSettings("ResourceOrbFrames")
-end
+local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
 
 -- ============================================================================
 -- MAIN BAR & LAYOUT ORCHESTRATION

@@ -19,39 +19,8 @@ descriptor factories for the name and column rendering.
 -- Module initialization
 BETTERUI.Banking = BETTERUI.Banking or {}
 
--- Font choices/values now use CIM shared definitions (see CIM/Core/FontDefinitions.lua)
-BETTERUI.Banking.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
-BETTERUI.Banking.FONT_VALUES = BETTERUI.CIM.Font.VALUES
-BETTERUI.Banking.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
-BETTERUI.Banking.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
-BETTERUI.Banking.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
-
--- Font descriptor closures via CIM factory (see CIM/Core/FontDefinitions.lua)
-do
-    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors("Banking")
-    BETTERUI.Banking.GetNameFontDescriptor = descriptors.name
-    BETTERUI.Banking.GetColumnFontDescriptor = descriptors.column
-end
-
---- Settings Accessor Protocol:
---- GetSetting(key) -> value: Returns saved setting value or default
---- SetSetting(key, value): Persists setting and triggers change notification
----
---- Retrieves a setting value for the Banking module.
---- @param key string The setting key.
---- @return any The setting value or module default.
-function BETTERUI.Banking.GetSetting(key)
-	if key == nil then return nil end
-	local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault("Banking", key) or nil
-	return BETTERUI.GetSetting("Banking", key, defaultValue)
-end
-
---- Sets a setting value for the Banking module.
---- @param key string The setting key.
---- @param value any The value to set.
-function BETTERUI.Banking.SetSetting(key, value)
-	BETTERUI.SetSetting("Banking", key, value)
-end
+-- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+BETTERUI.CIM.RegisterModuleAccessors("Banking")
 
 -- Settings registration moved to Banking/Settings/SettingsPanel.lua
 

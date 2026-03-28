@@ -136,3 +136,38 @@ function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
     end
     return rounded
 end
+
+--- Wires standard font aliases and GetSetting/SetSetting accessors onto a module namespace.
+--- Eliminates identical boilerplate across Banking, Inventory, and Vendor Module.lua files.
+---
+--- Usage (in Module.lua):
+---   BETTERUI.CIM.RegisterModuleAccessors("Banking")
+---
+--- @param moduleName string The module name (e.g. "Banking", "Inventory", "Vendor")
+function BETTERUI.CIM.RegisterModuleAccessors(moduleName)
+    local ns = BETTERUI[moduleName]
+    if not ns then return end
+
+    -- Font aliases
+    ns.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
+    ns.FONT_VALUES = BETTERUI.CIM.Font.VALUES
+    ns.FONTSTYLE_CHOICES = BETTERUI.CIM.Font.STYLE_CHOICES
+    ns.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
+    ns.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
+
+    -- Font descriptor closures
+    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors(moduleName)
+    ns.GetNameFontDescriptor = descriptors.name
+    ns.GetColumnFontDescriptor = descriptors.column
+
+    -- Settings accessors
+    ns.GetSetting = function(key)
+        if key == nil then return nil end
+        local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault(moduleName, key) or nil
+        return BETTERUI.GetSetting(moduleName, key, defaultValue)
+    end
+
+    ns.SetSetting = function(key, value)
+        BETTERUI.SetSetting(moduleName, key, value)
+    end
+end
