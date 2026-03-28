@@ -352,12 +352,12 @@ local function NormalizeSectionSortName(name)
     end
 
     local normalized = name
-    normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
-    normalized = normalized:gsub("|r", "")
-    normalized = normalized:gsub("|t[^|]+|t", "")
-    normalized = normalized:gsub("%s+", " ")
-    normalized = normalized:gsub("^%s+", "")
-    normalized = normalized:gsub("%s+$", "")
+    normalized = normalized:gsub("|c%x%x%x%x%x%x", "") -- strip ESO color codes (|cRRGGBB)
+    normalized = normalized:gsub("|r", "")               -- strip color reset tags
+    normalized = normalized:gsub("|t[^|]+|t", "")        -- strip texture tags (|t...|t)
+    normalized = normalized:gsub("%s+", " ")             -- collapse whitespace
+    normalized = normalized:gsub("^%s+", "")             -- trim leading
+    normalized = normalized:gsub("%s+$", "")             -- trim trailing
 
     if zo_strlower then
         return zo_strlower(normalized)
