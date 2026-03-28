@@ -5,47 +5,10 @@ Purpose: Core initialization for the Common Interface Module (CIM).
          and parametric scroll lists used across BetterUI.
 ]]
 
---- CIM (Common Interface Module) — Shared Infrastructure Layer
----
---- Architecture Overview:
---- CIM provides the shared foundation for all BetterUI gamepad interface modules.
---- It is organized into focused subsystems:
----
---- Core/       — Window framework, interfaces, settings, runtime setup, utilities
---- Actions/    — Shared action abstractions, slot actions, dialog utilities
---- Keybinds/   — Keybind management, action context tracking
---- Tooltips/   — Tooltip rendering, shared tooltip infrastructure
---- Sorting/    — Shared sorting algorithms and comparators
---- Filters/    — Filter framework and filter implementations
---- Templates/  — Shared XML template setup functions
----
---- Ownership: CIM owns cross-cutting concerns. Feature-specific concerns
---- belong in their respective modules (Banking, Inventory, Vendor).
-
-
--- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 
---- Initializes default settings for the Common Interface Module.
----
---- Purpose: Callback for module initialization via BETTERUI.ModuleOptions().
---- Mechanics: Applies default values for CIM-specific settings (tooltip size,
----   scroll speed, etc.) and clamps values to valid ranges.
---- References: Called by BetterUI.lua during addon initialization.
----
---- INIT CONTRACT: Module InitModule functions follow the signature:
----   function InitModule(m_options) -> table
---- This matches the call in BETTERUI.ModuleOptions() which passes only m_options.
---- The module namespace (e.g., BETTERUI.CIM) is NOT passed; modules access
---- their namespace directly via the global BETTERUI table.
----
---- Standard InitModule Signature (implemented by all modules):
----   param m_options table|nil The raw settings table to be initialized
----   return table The modified options table with default values applied
----
---- Wrapper Function (caller):
----   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
----
+---@param m_options table|nil Raw settings table to initialize
+---@return table Modified options with defaults applied
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS

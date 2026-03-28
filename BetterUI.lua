@@ -31,10 +31,6 @@ if BETTERUI == nil then BETTERUI = {} end
 
 local SAVED_VARS_SCHEMA_VERSION = 2.89
 
--- ============================================================================
--- MODULE REGISTRY
--- ============================================================================
-
 ---@class ModuleRegistryEntry
 ---@field name string The unique name of the module (used for settings keys)
 ---@field namespace string The namespace key in BETTERUI table
@@ -75,10 +71,6 @@ local MODULE_REGISTRY = {
 	},
 	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames", dependsOnCIM = true },
 }
-
--- ============================================================================
--- NAMESPACE INITIALIZATION (Required before module files load)
--- ============================================================================
 
 -- Core addon metadata
 BETTERUI.name = "BetterUI"
