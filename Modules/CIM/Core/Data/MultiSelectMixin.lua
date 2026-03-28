@@ -54,7 +54,7 @@ local BatchActions = BETTERUI.CIM.BatchActions
 --- @param target table The module class instance
 --- @param config CIM.MultiSelectConfig Module-specific callback/config bag
 function Mixin.Apply(target, config)
-    target._msConfig = config
+    target._multiSelectConfig = config
 end
 
 -------------------------------------------------------------------------------------------------
@@ -68,7 +68,7 @@ function Mixin.EnterSelectionMode(self)
     self.isInSelectionMode = true
     self.multiSelectManager:EnterSelectionMode()
 
-    local list = self._msConfig.getList(self)
+    local list = self._multiSelectConfig.getList(self)
     local target = nil
     if list then
         if list.GetSelectedData then
@@ -81,8 +81,8 @@ function Mixin.EnterSelectionMode(self)
         self.multiSelectManager:ToggleSelection(target)
     end
 
-    self._msConfig.refreshKeybinds(self)
-    self._msConfig.refreshList(self)
+    self._multiSelectConfig.refreshKeybinds(self)
+    self._multiSelectConfig.refreshList(self)
 end
 
 function Mixin.ExitSelectionMode(self)
@@ -101,8 +101,8 @@ function Mixin.ExitSelectionMode(self)
     end
 
     if BatchConfig.IsBatchSceneShowing(self) then
-        self._msConfig.refreshKeybinds(self)
-        self._msConfig.refreshList(self)
+        self._multiSelectConfig.refreshKeybinds(self)
+        self._multiSelectConfig.refreshList(self)
     end
 end
 
@@ -122,7 +122,7 @@ function Mixin.OnSelectionCountChanged(self, selectedCount)
     end
 
     if BatchConfig.IsBatchSceneShowing(self) then
-        self._msConfig.refreshKeybinds(self)
+        self._multiSelectConfig.refreshKeybinds(self)
     end
 end
 
@@ -148,12 +148,12 @@ function Mixin.RequestBatchAbort(self)
     end
 
     self.batchAbortRequested = true
-    if type(self._msBatchWakeHandler) == "function" then
-        self._msBatchWakeHandler()
+    if type(self._multiSelectBatchWakeHandler) == "function" then
+        self._multiSelectBatchWakeHandler()
     end
 
-    if BatchConfig.IsBatchSceneShowing(self) and self._msConfig and self._msConfig.refreshKeybinds then
-        self._msConfig.refreshKeybinds(self)
+    if BatchConfig.IsBatchSceneShowing(self) and self._multiSelectConfig and self._multiSelectConfig.refreshKeybinds then
+        self._multiSelectConfig.refreshKeybinds(self)
     end
 
     return true
@@ -279,7 +279,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
     local function ClearPendingContinuation()
         waitToken = waitToken + 1
-        self_ref._msBatchWakeHandler = nil
+        self_ref._multiSelectBatchWakeHandler = nil
     end
 
     local function ResetInventoryAckState()
@@ -314,7 +314,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             ClearPendingContinuation()
             resumeFn()
         end
-        self_ref._msBatchWakeHandler = Continue
+        self_ref._multiSelectBatchWakeHandler = Continue
         zo_callLater(Continue, zo_max(0, delayMs))
     end
 
@@ -327,8 +327,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             end
         end
         ackReceivedForAction = true
-        if waitingForInventoryAck and type(self_ref._msBatchWakeHandler) == "function" then
-            self_ref._msBatchWakeHandler()
+        if waitingForInventoryAck and type(self_ref._multiSelectBatchWakeHandler) == "function" then
+            self_ref._multiSelectBatchWakeHandler()
         end
     end
 
@@ -366,8 +366,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     self.batchSuppressUiUpdates = suppressUiUpdates and true or nil
 
     local displayName = actionName or GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS"))
-    if self._msConfig and self._msConfig.refreshKeybinds then
-        self._msConfig.refreshKeybinds(self)
+    if self._multiSelectConfig and self._multiSelectConfig.refreshKeybinds then
+        self._multiSelectConfig.refreshKeybinds(self)
     end
 
     local estimatedDurationMs = nil
@@ -401,8 +401,8 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             pipelineToken = pipelineToken,
         }
 
-        if BatchConfig.IsBatchSceneShowing(self_ref) and self_ref._msConfig and self_ref._msConfig.refreshKeybinds then
-            self_ref._msConfig.refreshKeybinds(self_ref)
+        if BatchConfig.IsBatchSceneShowing(self_ref) and self_ref._multiSelectConfig and self_ref._multiSelectConfig.refreshKeybinds then
+            self_ref._multiSelectConfig.refreshKeybinds(self_ref)
         end
         ClearQueuedStillProcessingAnnouncements()
 
@@ -440,7 +440,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
 
         self_ref.batchAbortRequested = nil
         self_ref.batchSuppressUiUpdates = nil
-        self_ref._msBatchWakeHandler = nil
+        self_ref._multiSelectBatchWakeHandler = nil
         stillProcessingWaitUntilMs = 0
         stillProcessingAnnouncementActive = false
         BatchOverlay.StopLayoutPulse()

@@ -17,20 +17,8 @@ local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 local MultiSelectMixin                = BETTERUI.CIM.MultiSelectMixin
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
---- @param itemData table
---- @return number bagId, number slotIndex
-local function ExtractSlot(itemData)
-    local rawData = itemData.dataSource or itemData
-    return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
-end
-
---- @param bagId number
---- @param slotIndex number
---- @return boolean
-local function HasItemAtSlot(bagId, slotIndex)
-    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
-    return (stackCount or 0) > 0
-end
+local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
+local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 
 --- @param itemData table
 --- @param bagId number

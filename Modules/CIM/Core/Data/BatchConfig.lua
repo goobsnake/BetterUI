@@ -242,8 +242,8 @@ end
 --- @param self table
 --- @return boolean
 function BatchConfig.IsBatchSceneShowing(self)
-    if self and self._msConfig and self._msConfig.isSceneShowing then
-        return self._msConfig.isSceneShowing(self) == true
+    if self and self._multiSelectConfig and self._multiSelectConfig.isSceneShowing then
+        return self._multiSelectConfig.isSceneShowing(self) == true
     end
 
     if self and self.IsSceneShowing then
@@ -262,8 +262,8 @@ function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
         return batchOptions.sceneExitLabel
     end
 
-    if self and self._msConfig and type(self._msConfig.getSceneExitLabel) == "function" then
-        local configLabel = self._msConfig.getSceneExitLabel(self)
+    if self and self._multiSelectConfig and type(self._multiSelectConfig.getSceneExitLabel) == "function" then
+        local configLabel = self._multiSelectConfig.getSceneExitLabel(self)
         if type(configLabel) == "string" and configLabel ~= "" then
             return configLabel
         end
