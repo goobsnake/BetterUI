@@ -54,7 +54,9 @@ $excludeItems = @(
     'docs',
     'README.md',
     'LICENSE.md',
-    '.luarc.json'
+    '.luarc.json',
+    '.agent_workspace',
+    '.luacheckrc'
 )
 
 if (-not (Test-Path -LiteralPath $SourceDir -PathType Container)) {
