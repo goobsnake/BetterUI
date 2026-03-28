@@ -822,19 +822,4 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
     }
 }
 
--- ============================================================================
--- BACKWARDS COMPATIBILITY ALIASES
--- ============================================================================
 
--- Tooltip legacy aliases REMOVED (2026-02-02)
--- Consumers migrated to use BETTERUI.CIM.CONST.* paths:
---   - CIM/Core/TooltipLayout.lua
---   - Inventory/Module.lua
---   - Inventory/UI/TooltipUtils.lua
-
--- Legacy BETTERUI.CONST.* aliases REMOVED (2026-03-28)
--- All consumers migrated to module-scoped CONST paths:
---   LAYOUT/COLORS/TOOLTIP/ICONS/CIM → BETTERUI.CIM.CONST.*
---   INVENTORY → BETTERUI.Inventory.CONST.*
---   ORBS → BETTERUI.ResourceOrbFrames.CONST.*
---   DEFAULT_TRIGGER_SPEED → BETTERUI.CIM.CONST.DEFAULTS.DEFAULT_TRIGGER_SPEED

@@ -370,21 +370,3 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
         BACKUP_HAND_X = -155
     }
 }
-
--- ============================================================================
--- BACKWARDS COMPATIBILITY ALIASES
--- ============================================================================
-
--- Tooltip legacy aliases REMOVED (2026-02-02)
--- Consumers migrated to use BETTERUI.CIM.CONST.* paths:
---   - CIM/Core/TooltipLayout.lua
---   - Inventory/Module.lua
---   - Inventory/UI/TooltipUtils.lua
-
--- BETTERUI.CONST.* namespace aliases REMOVED (2026-03-14)
--- All Lua consumers migrated to canonical BETTERUI.CIM.CONST.* paths:
---   - CIM/Module.lua → BETTERUI.CIM.CONST.DEFAULTS
---   - CIM/Tooltips/Tooltips.lua → BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS
---   - CIM/UI/GenericHeader.lua → BETTERUI.CIM.CONST.COLORS, BETTERUI.CIM.CONST.ICONS
---   - Inventory/Lists/InventoryList.lua → BETTERUI.CIM.CONST.ICONS
---   - Inventory/UI/TooltipUtils.lua → BETTERUI.CIM.CONST.LAYOUT.TOOLTIP

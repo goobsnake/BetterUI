@@ -100,9 +100,6 @@ BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}
 BETTERUI.GenericFooter = BETTERUI.GenericFooter or {}
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--- Legacy namespace (deprecated — consumers migrated to module-scoped CONST paths)
-BETTERUI.CONST = BETTERUI.CONST or {}
-
 -- Engine helper references
 BETTERUI.WindowManager = GetWindowManager()
 BETTERUI.EventManager = GetEventManager()
