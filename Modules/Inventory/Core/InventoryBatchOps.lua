@@ -60,6 +60,7 @@ local function CanDestroyInventoryItem(itemData)
     local rawData = itemData.dataSource or itemData
     local bagId = rawData.bagId or itemData.bagId
     local slotIndex = rawData.slotIndex or itemData.slotIndex
+    if not bagId or not slotIndex then return false end
     local slotType = rawData.slotType or itemData.slotType
     return BETTERUI.CIM.ProtectionPolicy.CanDestroyItem(bagId, slotIndex, slotType)
 end

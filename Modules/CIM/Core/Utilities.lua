@@ -6,6 +6,7 @@ Purpose: Core utility functions for the BetterUI addon.
 
 -- DEBUG LOGGING
 
+---@param str string Message to display in chat with [BETTERUI] prefix
 function BETTERUI.Debug(str)
     if BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.IsEnabled and not BETTERUI.CIM.Debug.IsEnabled() then
         return

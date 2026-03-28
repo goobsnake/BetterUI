@@ -10,14 +10,15 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
 
+--- @param inventorySlot table the slot data table (may have .dataSource wrapper)
 --- @return boolean ok true if the item was used
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryUseItem(inventorySlot)
+    if not inventorySlot then
+        return false, "no_slot"
+    end
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
-        if not inventorySlot then
-            return false, "no_slot"
-        end
         -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
         -- (this matches how the base game's TryUseQuestItem works in inventoryslot.lua:420)
         -- Do NOT hide the scene manually — ESO's engine handles the scene transition
@@ -43,8 +44,11 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
 --- @return boolean ok true if the item was transferred
+--- @param inventorySlot table the slot data table
+--- @return boolean ok true if the item was transferred
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryBankItem(inventorySlot)
+    if not inventorySlot then return false, "no_slot" end
     if not PLAYER_INVENTORY:IsBanking() then return false, "not_banking" end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
@@ -85,6 +89,8 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     end
 end
 
+--- @param inventorySlot table the slot data table
+--- @param targetBag number destination bag constant (BAG_VIRTUAL, BAG_BACKPACK, etc.)
 --- @return boolean ok true if the item was moved
 --- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)

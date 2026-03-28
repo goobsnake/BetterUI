@@ -17,8 +17,11 @@ local BatchActions = BETTERUI.CIM.BatchActions
 -- HELPERS
 
 --- Helper: extract bagId/slotIndex from item data (handles dataSource wrapper).
---- @private
+---@param itemData table Item data or dataSource-wrapped entry
+---@return number|nil bagId
+---@return number|nil slotIndex
 local function ExtractSlot(itemData)
+    if not itemData then return nil, nil end
     local rawData = itemData.dataSource or itemData
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
 end

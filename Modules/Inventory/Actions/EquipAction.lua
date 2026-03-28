@@ -137,13 +137,16 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         end
     end
 
-    local equipType = inventorySlot.dataSource.equipType
-    local bagId = inventorySlot.dataSource.bagId
-    local slotIndex = inventorySlot.dataSource.slotIndex
+    local ds = inventorySlot and inventorySlot.dataSource
+    if not ds then return end
+
+    local equipType = ds.equipType
+    local bagId = ds.bagId
+    local slotIndex = ds.slotIndex
 
     -- POSITION PRESERVATION: Save uniqueId at action START, before inventory callbacks corrupt data
     -- This ensures we stay focused on THIS item after equip (it moves to BAG_WORN)
-    local uid = inventorySlot.dataSource.uniqueId or GetItemUniqueId(bagId, slotIndex)
+    local uid = ds.uniqueId or GetItemUniqueId(bagId, slotIndex)
     if uid then
         self._preserveUniqueId = uid
     end
@@ -234,14 +237,16 @@ end
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     local function ReleaseDialog(data, mainSlot)
-        local equipType = data[1].dataSource.equipType
-        local bound = IsItemBound(data[1].dataSource.bagId, data[1].dataSource.slotIndex)
-        local equipItemLink = GetItemLink(data[1].dataSource.bagId, data[1].dataSource.slotIndex)
+        local ds = data[1] and data[1].dataSource
+        if not ds then return end
+        local equipType = ds.equipType
+        local bound = IsItemBound(ds.bagId, ds.slotIndex)
+        local equipItemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local bindType = GetItemLinkBindType(equipItemLink)
 
         local equipItemCallback = function()
             -- data[2] indicates primary bar selection (true = front bar, false = back bar)
-            DoEquipMove(data[1].dataSource.bagId, data[1].dataSource.slotIndex, equipType, mainSlot, data[2])
+            DoEquipMove(ds.bagId, ds.slotIndex, equipType, mainSlot, data[2])
         end
 
         ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI.Inventory.Dialogs.EQUIP_SLOT)
@@ -269,10 +274,18 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_EQUIPSLOT"))
     end
 
+    local function GetDialogEquipType(dialog)
+        local entry = dialog.data and dialog.data[1]
+        local ds = entry and entry.dataSource
+        return ds and ds.equipType
+    end
+
     local function GetDialogMainText(dialog)
-        local equipType = dialog.data[1].dataSource.equipType
-        local itemName = GetItemName(dialog.data[1].dataSource.bagId, dialog.data[1].dataSource.slotIndex)
-        local itemLink = GetItemLink(dialog.data[1].dataSource.bagId, dialog.data[1].dataSource.slotIndex)
+        local ds = dialog.data[1] and dialog.data[1].dataSource
+        if not ds then return "" end
+        local equipType = ds.equipType
+        local itemName = GetItemName(ds.bagId, ds.slotIndex)
+        local itemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local itemQuality = GetItemLinkFunctionalQuality(itemLink)
         local itemColor = GetItemQualityColor(itemQuality)
         itemName = itemColor:Colorize(itemName)
@@ -317,7 +330,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             {
                 keybind = "DIALOG_PRIMARY",
                 text = function(dialog)
-                    local equipType = dialog.data[1].dataSource.equipType
+                    local equipType = GetDialogEquipType(dialog)
                     if equipType == EQUIP_TYPE_ONE_HAND then
                         return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_MAIN"))
                     elseif
@@ -339,7 +352,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             {
                 keybind = "DIALOG_SECONDARY",
                 text = function(dialog)
-                    local equipType = dialog.data[1].dataSource.equipType
+                    local equipType = GetDialogEquipType(dialog)
                     if equipType == EQUIP_TYPE_ONE_HAND then
                         return GetString(rawget(_G, "SI_BETTERUI_INV_EQUIP_PROMPT_BACKUP"))
                     elseif
@@ -355,7 +368,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     return ""
                 end,
                 visible = function(dialog)
-                    local equipType = dialog.data[1].dataSource.equipType
+                    local equipType = GetDialogEquipType(dialog)
                     if equipType == EQUIP_TYPE_ONE_HAND or equipType == EQUIP_TYPE_RING then
                         return true
                     end
@@ -374,8 +387,8 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                     if GetUnitLevel("player") < GetWeaponSwapUnlockedLevel() then
                         return false
                     end
-                    local equipType = dialog.data[1].dataSource.equipType
-                    return equipType ~= EQUIP_TYPE_RING
+                    local equipType = GetDialogEquipType(dialog)
+                    return equipType ~= nil and equipType ~= EQUIP_TYPE_RING
                 end,
                 callback = function(dialog)
                     dialog.data[2] = not dialog.data[2]

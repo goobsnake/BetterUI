@@ -6,7 +6,9 @@ Purpose: Provides safe module settings access with automatic nil-checking.
 
 if not BETTERUI then BETTERUI = {} end
 
---- Gets settings for a module with automatic nil-safety.
+---@param moduleName string Module name key (e.g. "Inventory", "Banking")
+---@param defaults table|nil Fallback table if module settings are absent
+---@return table settings The module's settings table, or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
         return BETTERUI.Settings.Modules[moduleName]
@@ -17,6 +19,8 @@ end
 --- Ensures the settings table exists for a module, creating it if necessary.
 --- Unlike GetModuleSettings, the returned reference is persisted in BETTERUI.Settings.Modules,
 --- so callers may write through it. Use this for mutation patterns; use GetModuleSettings for reads.
+---@param moduleName string Module name key
+---@return table|nil settings The module settings table, or nil if BETTERUI.Settings is absent
 function BETTERUI.EnsureModuleSettings(moduleName)
     if not BETTERUI.Settings then return nil end
     if not BETTERUI.Settings.Modules then
@@ -28,7 +32,10 @@ function BETTERUI.EnsureModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
---- Gets a specific setting value with fallback.
+---@param moduleName string Module name key
+---@param key string Setting key within the module
+---@param default any Fallback value if the setting is nil
+---@return any value The setting value, or default
 function BETTERUI.GetSetting(moduleName, key, default)
     local settings = BETTERUI.GetModuleSettings(moduleName)
     if settings[key] ~= nil then
@@ -37,7 +44,9 @@ function BETTERUI.GetSetting(moduleName, key, default)
     return default
 end
 
---- Sets a specific setting value and emits the standard setting-changed callback.
+---@param moduleName string Module name key
+---@param key string Setting key to write (must not be nil)
+---@param value any Value to store
 function BETTERUI.SetSetting(moduleName, key, value)
     if key == nil then return end
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
