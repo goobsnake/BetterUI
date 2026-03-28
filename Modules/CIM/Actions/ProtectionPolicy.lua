@@ -46,6 +46,11 @@ end
 
 -- PROTECTION CHECKS
 
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@param slotType number|nil ESO slot type constant
+---@return boolean allowed true if item can be destroyed
+---@return string|nil reason DENY reason code on failure
 function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
         return false, Policy.DENY.NO_ITEM
@@ -66,6 +71,10 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     return true
 end
 
+---@param bagId number
+---@param slotIndex number
+---@return boolean allowed
+---@return string|nil reason
 function Policy.CanJunkItem(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -85,6 +94,10 @@ function Policy.CanJunkItem(bagId, slotIndex)
     return true
 end
 
+---@param bagId number
+---@param slotIndex number
+---@return boolean allowed
+---@return string|nil reason
 function Policy.CanUnjunkItem(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -96,6 +109,11 @@ function Policy.CanUnjunkItem(bagId, slotIndex)
     return true
 end
 
+---@param bagId number
+---@param slotIndex number
+---@param targetBag number|nil Target bag for the transfer
+---@return boolean allowed
+---@return string|nil reason
 function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
         return false, Policy.DENY.NO_ITEM
@@ -130,6 +148,10 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     return true
 end
 
+---@param bagId number
+---@param slotIndex number
+---@return boolean allowed
+---@return string|nil reason
 function Policy.CanDepositToFurnitureVault(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM

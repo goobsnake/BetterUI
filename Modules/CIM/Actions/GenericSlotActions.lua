@@ -124,6 +124,8 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     end
 end
 
+---@param inventorySlot table Inventory slot data with bagId/slotIndex
+---@return boolean canMove true if item can transfer to craft bag
 function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
@@ -133,6 +135,10 @@ end
 -- These functions provide shared action setup logic that was previously
 -- duplicated in Inventory/Actions/SlotActions.lua.
 
+---@param slotActions table Action list builder
+---@param actionStringId number ESO string constant (e.g. SI_ITEM_ACTION_USE)
+---@param callback function Fallback action callback
+---@param inventorySlot table Inventory slot data
 function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
     local actionName = GetString(actionStringId)
     if actionStringId == SI_ITEM_ACTION_USE then
@@ -146,6 +152,9 @@ function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, i
     end
 end
 
+---@param slotActions table Action list builder
+---@param inventorySlot table Inventory slot data
+---@param canUseItem boolean Whether the item is usable
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
@@ -183,6 +192,7 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     end
 end
 
+---@param slotActions table Action list with m_slotActions array
 function BETTERUI.CIM.DeduplicateActions(slotActions)
     local seen = {}
     for i = #slotActions.m_slotActions, 1, -1 do

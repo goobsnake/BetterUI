@@ -65,6 +65,8 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 --- All functions below are individually annotated with EmmyLua param/return tags.
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
 
+---@param list table|nil List control with GetTargetData method or selectedData field
+---@return table|nil data The target data from the list, or nil
 function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     if not list then return nil end
     if list.GetTargetData then
@@ -74,6 +76,9 @@ function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     return list.selectedData
 end
 
+---@param newValue number Value to wrap
+---@param maxValue number Upper bound (wraps to 1)
+---@return number wrapped Value clamped to [1, maxValue] with wrap-around
 function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
     if newValue < 1 then
         return maxValue
@@ -102,6 +107,9 @@ function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
         ZO_SORT_ORDER_UP)
 end
 
+---@param bagId number Bag to search
+---@param itemLink string Item link to find a stackable slot for
+---@return number|nil slotIndex Index of a stackable slot, or nil if none found
 function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
     local bagSize = GetBagSize(bagId)
     for i = 0, bagSize - 1 do
@@ -116,6 +124,10 @@ function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
     return nil
 end
 
+---@param fromBagId number Source bag
+---@param fromSlotIndex number Source slot
+---@param toBagId number Destination bag
+---@return number|nil slotIndex Best destination slot (stackable or empty), or nil
 function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex, toBagId)
     if not fromBagId or not fromSlotIndex or not toBagId then
         return nil
