@@ -9,40 +9,31 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 -- ─── Private Helpers ────────────────────────────────────────────────────────
 
---- @return number|nil bagId
---- @return number|nil slotIndex
+--- Finds the first empty slot in a personal or house bank bag.
+--- Guild bank deposits are handled separately by MoveItem before this is called.
+--- @return number|nil bagId The bank bag the empty slot was found in, or nil
+--- @return number|nil slotIndex The empty slot index, or nil
 local function FindEmptySlotInBank()
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        local targetBag = GuildBank.GetDepositTargetBag()
-        local emptySlotIndex = FindFirstEmptySlotInBag(targetBag)
-        if emptySlotIndex ~= nil then
-            return targetBag, emptySlotIndex
-        else
-            return targetBag, nil
-        end
-    end
-
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    if (IsHouseBankBag(GetBankingBag()) == false) then
-        local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
-        local emptySlotIndexSubscriber = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
-        if emptySlotIndexBank ~= nil then
-            return BAG_BANK, emptySlotIndexBank
-            -- Use API directly instead of relying on global 'esoSubscriber' variable
-        elseif IsESOPlusSubscriber() and emptySlotIndexSubscriber ~= nil then
-            return BAG_SUBSCRIBER_BANK, emptySlotIndexSubscriber
-        else
-            return nil
-        end
-    else
+    if IsHouseBankBag(GetBankingBag()) then
         local emptySlotIndex = FindFirstEmptySlotInBag(currentUsedBank)
         if emptySlotIndex ~= nil then
             return currentUsedBank, emptySlotIndex
-        else
-            return currentUsedBank, nil
+        end
+        return nil, nil
+    end
+
+    local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
+    if emptySlotIndexBank ~= nil then
+        return BAG_BANK, emptySlotIndexBank
+    end
+    if IsESOPlusSubscriber() then
+        local emptySlotIndexSubscriber = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
+        if emptySlotIndexSubscriber ~= nil then
+            return BAG_SUBSCRIBER_BANK, emptySlotIndexSubscriber
         end
     end
+    return nil, nil
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag

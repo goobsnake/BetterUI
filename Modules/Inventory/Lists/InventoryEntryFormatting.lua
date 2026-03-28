@@ -45,15 +45,7 @@ local function GetActiveListModuleName()
     return "Inventory"
 end
 
---- @param moduleName string
---- @return table|nil settings
-local function GetModuleSettings(moduleName)
-    local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return nil
-    end
-    return modules[moduleName]
-end
+local GetModuleSettings = BETTERUI.GetModuleSettings
 
 --- @return boolean shouldShow
 local function ShouldShowMarketPrice()

@@ -107,16 +107,7 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
     return baseText .. "\n\n" .. reason
 end
 
---- Gets the settings table for a specific module.
---- @param moduleName string The module name
---- @return table|nil settings The module settings or nil
-local function GetModuleSettings(moduleName)
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return nil
-    end
-    return modules[moduleName]
-end
+local GetModuleSettings = BETTERUI.GetModuleSettings
 
 --- Ensures the settings table exists for a module, creating if necessary.
 --- @param moduleName string The module name

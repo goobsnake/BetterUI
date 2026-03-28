@@ -24,92 +24,68 @@ BETTERUI.CIM.RegisterModuleAccessors("Inventory")
 function BETTERUI.Inventory.InitModule(m_options)
     m_options = m_options or {}
     ---@cast m_options table
-    -- Apply centralized defaults from DefaultsRegistry
-    if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then
-        m_options = BETTERUI.Defaults.ApplyModuleDefaults("Inventory", m_options)
-    else
-        -- Fallback if DefaultsRegistry not loaded yet
-        if m_options["quickDestroy"] == nil then m_options["quickDestroy"] = false end
-        if m_options["enableBatchDestroy"] == nil then m_options["enableBatchDestroy"] = false end
-        if m_options["enableCarousel"] == nil then m_options["enableCarousel"] = true end
-        if m_options["useTriggersForSkip"] == nil then m_options["useTriggersForSkip"] = false end
-        if m_options["triggerSpeed"] == nil then m_options["triggerSpeed"] = 10 end
-        if m_options["bindOnEquipProtection"] == nil then m_options["bindOnEquipProtection"] = true end
-        if m_options["enableCompanionJunk"] == nil then m_options["enableCompanionJunk"] = false end
-        if m_options["showIconEnchantment"] == nil then m_options["showIconEnchantment"] = true end
-        if m_options["showIconSetGear"] == nil then m_options["showIconSetGear"] = true end
-        if m_options["showIconUnboundItem"] == nil then m_options["showIconUnboundItem"] = true end
-        if m_options["showIconResearchableTrait"] == nil then m_options["showIconResearchableTrait"] = true end
-        if m_options["showIconUnknownRecipe"] == nil then m_options["showIconUnknownRecipe"] = true end
-        if m_options["showIconUnknownBook"] == nil then m_options["showIconUnknownBook"] = true end
-    end
-
-    -- Defaults from FontSettings (accessed globally if available, otherwise local defaults)
-    local funcDefaults = BETTERUI.Inventory.DEFAULTS or {
-        nameFont = "$(GAMEPAD_MEDIUM_FONT)",
-        nameFontSize = 24,
-        nameFontStyle = "",
-        columnFont = "$(GAMEPAD_MEDIUM_FONT)",
-        columnFontSize = 24,
-        columnFontStyle = "",
+    local defaults = BETTERUI.Inventory.DEFAULTS
+    local fallbackDefaults = {
+        quickDestroy = false,
+        enableBatchDestroy = false,
+        enableCarousel = true,
+        useTriggersForSkip = false,
+        triggerSpeed = 10,
+        bindOnEquipProtection = true,
+        enableCompanionJunk = false,
+        showIconEnchantment = true,
+        showIconSetGear = true,
+        showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
     }
 
-    m_options["nameFont"] = m_options["nameFont"] or funcDefaults.nameFont
-    m_options["nameFontSize"] = m_options["nameFontSize"] or funcDefaults.nameFontSize
-    m_options["nameFontStyle"] = m_options["nameFontStyle"] or funcDefaults.nameFontStyle
-    m_options["columnFont"] = m_options["columnFont"] or funcDefaults.columnFont
-    m_options["columnFontSize"] = m_options["columnFontSize"] or funcDefaults.columnFontSize
-    m_options["columnFontStyle"] = m_options["columnFontStyle"] or funcDefaults.columnFontStyle
+    m_options = BETTERUI.CIM.InitModuleDefaults("Inventory", m_options, defaults, fallbackDefaults,
+        function(options)
+            -- Currency defaults should match the canonical "default" preset.
+            local defaultCurrencyPreset = BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS.default
+            if type(defaultCurrencyPreset) == "table" then
+                for key, value in pairs(defaultCurrencyPreset) do
+                    if options[key] == nil then
+                        options[key] = value
+                    end
+                end
+            else
+                -- Fallback defaults if preset table is unavailable.
+                if options["showCurrencyGold"] == nil then options["showCurrencyGold"] = true end
+                if options["showCurrencyAlliancePoints"] == nil then options["showCurrencyAlliancePoints"] = true end
+                if options["showCurrencyTelVar"] == nil then options["showCurrencyTelVar"] = true end
+                if options["showCurrencyCrownGems"] == nil then options["showCurrencyCrownGems"] = true end
+                if options["showCurrencyCrowns"] == nil then options["showCurrencyCrowns"] = true end
+                if options["showCurrencyTransmute"] == nil then options["showCurrencyTransmute"] = true end
+                if options["showCurrencyWritVouchers"] == nil then options["showCurrencyWritVouchers"] = true end
+                if options["showCurrencyTradeBars"] == nil then options["showCurrencyTradeBars"] = true end
+                if options["showCurrencyUndauntedKeys"] == nil then options["showCurrencyUndauntedKeys"] = true end
+                if options["showCurrencyOutfitTokens"] == nil then options["showCurrencyOutfitTokens"] = true end
+                if options["showCurrencySeals"] == nil then options["showCurrencySeals"] = true end
+                if options["showCurrencyTomePoints"] == nil then options["showCurrencyTomePoints"] = false end
 
-
-    -- Currency defaults should match the canonical "default" preset (same behavior as reset).
-    local defaultCurrencyPreset = BETTERUI.CURRENCY_PRESETS and BETTERUI.CURRENCY_PRESETS.default
-    if type(defaultCurrencyPreset) == "table" then
-        for key, value in pairs(defaultCurrencyPreset) do
-            if m_options[key] == nil then
-                m_options[key] = value
+                if options["orderCurrencyGold"] == nil then options["orderCurrencyGold"] = 1 end
+                if options["orderCurrencyAlliancePoints"] == nil then options["orderCurrencyAlliancePoints"] = 2 end
+                if options["orderCurrencyTelVar"] == nil then options["orderCurrencyTelVar"] = 3 end
+                if options["orderCurrencyUndauntedKeys"] == nil then options["orderCurrencyUndauntedKeys"] = 4 end
+                if options["orderCurrencyTransmute"] == nil then options["orderCurrencyTransmute"] = 5 end
+                if options["orderCurrencyCrowns"] == nil then options["orderCurrencyCrowns"] = 6 end
+                if options["orderCurrencyCrownGems"] == nil then options["orderCurrencyCrownGems"] = 7 end
+                if options["orderCurrencyWritVouchers"] == nil then options["orderCurrencyWritVouchers"] = 8 end
+                if options["orderCurrencyTradeBars"] == nil then options["orderCurrencyTradeBars"] = 9 end
+                if options["orderCurrencyOutfitTokens"] == nil then options["orderCurrencyOutfitTokens"] = 10 end
+                if options["orderCurrencySeals"] == nil then options["orderCurrencySeals"] = 11 end
+                if options["orderCurrencyTomePoints"] == nil then options["orderCurrencyTomePoints"] = 12 end
             end
-        end
-    else
-        -- Fallback defaults if preset table is unavailable.
-        if m_options["showCurrencyGold"] == nil then m_options["showCurrencyGold"] = true end
-        if m_options["showCurrencyAlliancePoints"] == nil then m_options["showCurrencyAlliancePoints"] = true end
-        if m_options["showCurrencyTelVar"] == nil then m_options["showCurrencyTelVar"] = true end
-        if m_options["showCurrencyCrownGems"] == nil then m_options["showCurrencyCrownGems"] = true end
-        if m_options["showCurrencyCrowns"] == nil then m_options["showCurrencyCrowns"] = true end
-        if m_options["showCurrencyTransmute"] == nil then m_options["showCurrencyTransmute"] = true end
-        if m_options["showCurrencyWritVouchers"] == nil then m_options["showCurrencyWritVouchers"] = true end
-        if m_options["showCurrencyTradeBars"] == nil then m_options["showCurrencyTradeBars"] = true end
-        if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
-        if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
-        if m_options["showCurrencySeals"] == nil then m_options["showCurrencySeals"] = true end
-        if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = false end
 
-        if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
-        if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
-        if m_options["orderCurrencyTelVar"] == nil then m_options["orderCurrencyTelVar"] = 3 end
-        if m_options["orderCurrencyUndauntedKeys"] == nil then m_options["orderCurrencyUndauntedKeys"] = 4 end
-        if m_options["orderCurrencyTransmute"] == nil then m_options["orderCurrencyTransmute"] = 5 end
-        if m_options["orderCurrencyCrowns"] == nil then m_options["orderCurrencyCrowns"] = 6 end
-        if m_options["orderCurrencyCrownGems"] == nil then m_options["orderCurrencyCrownGems"] = 7 end
-        if m_options["orderCurrencyWritVouchers"] == nil then m_options["orderCurrencyWritVouchers"] = 8 end
-        if m_options["orderCurrencyTradeBars"] == nil then m_options["orderCurrencyTradeBars"] = 9 end
-        if m_options["orderCurrencyOutfitTokens"] == nil then m_options["orderCurrencyOutfitTokens"] = 10 end
-        if m_options["orderCurrencySeals"] == nil then m_options["orderCurrencySeals"] = 11 end
-        if m_options["orderCurrencyTomePoints"] == nil then m_options["orderCurrencyTomePoints"] = 12 end
-    end
-
-    if m_options["currencyPreset"] == nil then m_options["currencyPreset"] = "default" end
-    if m_options["currencyOrder"] == nil then
-        m_options["currencyOrder"] =
-        "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
-    end
-
-
-    -- Persisted font sizes may exceed current slider caps from prior versions.
-    if BETTERUI.CIM and BETTERUI.CIM.Font and BETTERUI.CIM.Font.NormalizeModuleFontSettings then
-        BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, funcDefaults)
-    end
+            if options["currencyPreset"] == nil then options["currencyPreset"] = "default" end
+            if options["currencyOrder"] == nil then
+                options["currencyOrder"] =
+                "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
+            end
+        end)
 
     return m_options
 end
