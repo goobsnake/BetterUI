@@ -51,17 +51,7 @@ local function ResolveBarTexturePath(textureFile)
     return ResolveTexturePath(textureFile)
 end
 
-local function CloneColor(color)
-    if type(color) ~= "table" then
-        return nil
-    end
-    return {
-        color[1] or 1,
-        color[2] or 1,
-        color[3] or 1,
-        color[4] or 1,
-    }
-end
+local CloneColor = BETTERUI.CloneColor
 
 local function GetCastBarFillStyle(styleKey)
     local style = CAST_BAR_ORB_FILL_STYLES[styleKey]
@@ -312,8 +302,8 @@ function CastBar:Initialize(parent)
     self.isChanneled = false
     self.startTime = 0
     self.defaultFillColor, self.defaultDepthColor = GetCastBarFillStyle(nil)
-    self.currentFillColor = CloneColor(self.defaultFillColor) or { 1, 1, 0.4, 1 }
-    self.currentDepthColor = CloneColor(self.defaultDepthColor) or { 0.45, 0.45, 0.18, 1 }
+    self.currentFillColor = CloneColor(self.defaultFillColor, { 1, 1, 0.4, 1 })
+    self.currentDepthColor = CloneColor(self.defaultDepthColor, { 0.45, 0.45, 0.18, 1 })
     self.pendingPowerProbeStartMs = 0
     self.lastKnownPowerValues = {
         [COST_TYPE_HEALTH] = select(1, GetUnitPower("player", COST_TYPE_HEALTH)) or 0,

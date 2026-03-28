@@ -69,21 +69,11 @@ local function GetActiveNameFontSize(moduleName)
     return BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
 end
 
-local function Clamp(value, minValue, maxValue)
-    if value < minValue then
-        return minValue
-    end
-    if value > maxValue then
-        return maxValue
-    end
-    return value
-end
-
 local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
     local ratio = fontSize / baseFontSize
     local scaled = math.floor((INLINE_STATUS_ICON_BASE_SIZE * ratio * (weightMultiplier or 1.0)) + 0.5)
-    return Clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
+    return zo_clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
 end
 
 local function BuildInlineIconTag(texturePath, iconSize)

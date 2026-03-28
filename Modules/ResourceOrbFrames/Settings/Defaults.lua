@@ -64,23 +64,9 @@ local function GetDefaults()
     }
 end
 
--- Import shared utility (canonical definition in SettingsAccessor.lua)
+-- Import shared utilities (canonical definitions in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
-
-local function ClampNumber(value, minValue, maxValue, fallback)
-    local numeric = tonumber(value)
-    if not numeric then
-        return fallback
-    end
-
-    if numeric < minValue then
-        return minValue
-    end
-    if numeric > maxValue then
-        return maxValue
-    end
-    return numeric
-end
+local ClampNumber = BETTERUI.ClampNumber
 
 local function NormalizeNumericSettings(m_options, defaults)
     if type(m_options) ~= "table" then

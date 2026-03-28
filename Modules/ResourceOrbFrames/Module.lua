@@ -46,21 +46,7 @@ local function InitSettingsPanel(mId, moduleName)
         return BETTERUI.EnsureModuleSettings("ResourceOrbFrames")
     end
 
-    local function CloneColor(value, fallback)
-        local source = value
-        if type(source) ~= "table" then
-            source = fallback
-        end
-        if type(source) ~= "table" then
-            return { 1, 1, 1, 1 }
-        end
-        return {
-            source[1] or 1,
-            source[2] or 1,
-            source[3] or 1,
-            source[4] or 1,
-        }
-    end
+    local CloneColor = BETTERUI.CloneColor
 
     --[[
     Function: ResetSettingsGroup

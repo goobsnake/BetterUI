@@ -128,6 +128,38 @@ function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
     return rounded
 end
 
+--- Clamps a numeric value within [minValue, maxValue] without rounding, falling back if non-numeric.
+function BETTERUI.ClampNumber(value, minValue, maxValue, fallback)
+    local numeric = tonumber(value)
+    if not numeric then
+        return fallback
+    end
+    if numeric < minValue then
+        return minValue
+    end
+    if numeric > maxValue then
+        return maxValue
+    end
+    return numeric
+end
+
+--- Deep-copies an RGBA color table {r, g, b, a}, falling back if value is not a table.
+function BETTERUI.CloneColor(value, fallback)
+    local source = value
+    if type(source) ~= "table" then
+        source = fallback
+    end
+    if type(source) ~= "table" then
+        return { 1, 1, 1, 1 }
+    end
+    return {
+        source[1] or 1,
+        source[2] or 1,
+        source[3] or 1,
+        source[4] or 1,
+    }
+end
+
 --- Wires standard font aliases and GetSetting/SetSetting accessors onto a module namespace.
 --- Eliminates identical boilerplate across Banking, Inventory, and Vendor Module.lua files.
 ---

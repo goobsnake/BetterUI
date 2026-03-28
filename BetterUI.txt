@@ -89,7 +89,6 @@ Modules\CIM\Core\Window\TooltipLayout.lua
 Modules\CIM\Core\Data\SearchManager.lua
 Modules\CIM\Core\Integration\NarrationHelper.lua
 Modules\CIM\Core\Window\WindowClass.lua
-Modules\CIM\Core\Integration\InterfaceLibrary.lua
 Modules\CIM\Core\Window\GenericWindow.lua
 Modules\CIM\Actions\GenericSlotActions.lua
 Modules\CIM\Actions\ProtectionPolicy.lua

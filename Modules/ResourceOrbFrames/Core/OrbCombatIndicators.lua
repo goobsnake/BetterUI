@@ -28,19 +28,7 @@ end
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
-local function Clamp(value, minValue, maxValue, fallback)
-    local numberValue = tonumber(value)
-    if not numberValue then
-        numberValue = fallback
-    end
-    if numberValue < minValue then
-        return minValue
-    end
-    if numberValue > maxValue then
-        return maxValue
-    end
-    return numberValue
-end
+local ClampNumber = BETTERUI.ClampNumber
 
 function CombatIndicators.ResolveFrontBarContainer(rootFrame)
     if not rootFrame then
@@ -210,9 +198,9 @@ local function EnsureCombatIconPulseTimeline(iconControl)
         return m_combatIconPulseTimeline
     end
 
-    local pulseDurationMs = Clamp(BETTERUI_COMBAT_ICON_PULSE_DURATION_MS, 100, 2500, 700)
-    local minAlpha = Clamp(BETTERUI_COMBAT_ICON_PULSE_MIN_ALPHA, 0, 1, 0.45)
-    local maxAlpha = Clamp(BETTERUI_COMBAT_ICON_PULSE_MAX_ALPHA, minAlpha, 1, 1.0)
+    local pulseDurationMs = ClampNumber(BETTERUI_COMBAT_ICON_PULSE_DURATION_MS, 100, 2500, 700)
+    local minAlpha = ClampNumber(BETTERUI_COMBAT_ICON_PULSE_MIN_ALPHA, 0, 1, 0.45)
+    local maxAlpha = ClampNumber(BETTERUI_COMBAT_ICON_PULSE_MAX_ALPHA, minAlpha, 1, 1.0)
 
     local timeline = ANIMATION_MANAGER:CreateTimeline()
     local anim = timeline:InsertAnimation(ANIMATION_ALPHA, iconControl, 0)
@@ -252,9 +240,9 @@ local function ApplyCombatIconTint(iconControl, isEnabled)
         return
     end
 
-    local tintR = Clamp(BETTERUI_COMBAT_ICON_TINT_R, 0, 1, 1.0)
-    local tintG = Clamp(BETTERUI_COMBAT_ICON_TINT_G, 0, 1, 0.2)
-    local tintB = Clamp(BETTERUI_COMBAT_ICON_TINT_B, 0, 1, 0.2)
+    local tintR = ClampNumber(BETTERUI_COMBAT_ICON_TINT_R, 0, 1, 1.0)
+    local tintG = ClampNumber(BETTERUI_COMBAT_ICON_TINT_G, 0, 1, 0.2)
+    local tintB = ClampNumber(BETTERUI_COMBAT_ICON_TINT_B, 0, 1, 0.2)
     iconControl:SetColor(tintR, tintG, tintB, 1)
 end
 
