@@ -341,6 +341,7 @@ local function GetGlowTargets(rootFrame)
 end
 
 --- Stops all active combat glow animations and hides glow controls.
+---@return nil
 function CombatIndicators.HideAllCombatGlows()
     for control, timeline in pairs(m_combatGlowTimelinesByControl) do
         if timeline and timeline.IsPlaying and timeline:IsPlaying() then

@@ -252,6 +252,10 @@ end
 
 --- Configures the status indicator (New icon) and equipped icon for an entry.
 --- Purpose: Visual feedback for item state.
+---@param statusIndicator table Status indicator control
+---@param equippedIcon table Equipped icon control
+---@param data table ZO_GamepadEntryData with dataSource
+---@return nil
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     -- Guard against non-item entries (currency rows, headers)
     if not data or not data.dataSource then
@@ -293,6 +297,11 @@ end
 
 --- Sets up the main icon for a shared gamepad entry, including stacking counts and cooldown overlays.
 --- Purpose: Renders the primary item icon.
+---@param icon table Icon control element
+---@param stackCountLabel table Stack count label control
+---@param data table ZO_GamepadEntryData with icon, tinting, and desaturation data
+---@param selected boolean Whether the entry is currently selected
+---@return nil
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
         -- Guard against non-item entries (currency rows, headers) that don't have item methods
@@ -382,6 +391,9 @@ local function ApplyCooldown(control, remaining, duration, style)
 end
 
 --- High-level setup for cooldown indicators on an item entry.
+---@param control table UI control with a .cooldown child
+---@param data table Entry data containing cooldownRemaining, cooldownDuration, cooldownIcon
+---@return nil
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"
     if control.cooldown then

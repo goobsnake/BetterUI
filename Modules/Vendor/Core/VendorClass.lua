@@ -115,6 +115,7 @@ end
 -- LIST MANAGEMENT
 
 --- Clears and rebuilds the list from the active component's BuildList.
+---@return nil
 function BETTERUI.Vendor.Class:RefreshList()
     if self._suppressListUpdates then
         self._isDirty = true
@@ -137,12 +138,14 @@ function BETTERUI.Vendor.Class:RefreshList()
 end
 
 --- Suppresses list refreshes until FlushListUpdates is called.
+---@return nil
 function BETTERUI.Vendor.Class:SuppressListUpdates()
     self._suppressListUpdates = true
     self._isDirty = false
 end
 
 --- Releases suppressed list updates and refreshes if dirty.
+---@return nil
 function BETTERUI.Vendor.Class:FlushListUpdates()
     self._suppressListUpdates = false
     if self._isDirty then
@@ -186,6 +189,7 @@ end
 
 
 --- Initializes the unified footer controller for currency/capacity display.
+---@return nil
 function BETTERUI.Vendor.Class:SetupUnifiedFooter()
     local footerContainer = self.control and self.control.container and
         self.control.container:GetNamedChild("FooterContainer")

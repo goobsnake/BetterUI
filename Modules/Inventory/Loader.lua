@@ -26,6 +26,9 @@ BETTERUI.Inventory.Settings = {}
 BETTERUI.Inventory.ClassMixins = {}
 
 --- Registers a mixin to be applied to the Inventory class.
+---@param name string Mixin function name
+---@param func function Mixin function implementation
+---@return nil
 function BETTERUI.Inventory.RegisterMixin(name, func)
     BETTERUI.Inventory.ClassMixins[name] = func
 end

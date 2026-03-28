@@ -28,6 +28,8 @@ end
 --- Purpose: Callback for module initialization.
 --- Mechanics: Pass-through; module is controlled by Master Settings m_enabled.
 ---
+---@param m_options table Module options table
+---@return table m_options Unchanged options table
 function BETTERUI.Writs.InitModule(m_options)
     return m_options
 end
@@ -81,6 +83,7 @@ end
 --- 3. Registers callbacks for Station Interact (Start/End) and Craft Completed.
 --- 4. Hides panel initially.
 --- References: Called from `BetterUI.lua` during addon initialization.
+---@return nil
 function BETTERUI.Writs.Setup()
     local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_Writs_TLW")
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")

@@ -97,6 +97,7 @@ local function SetupSliderKeybindHints(dialog)
 end
 
 --- Registers the quantity selection dialog for Craft Bag operations.
+---@return nil
 function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
     -- Only register once (CIM registry handles duplicate check)
     if BETTERUI.CIM.Dialogs.IsRegistered(BETTERUI_CRAFTBAG_QUANTITY_DIALOG) then
@@ -233,6 +234,9 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
 end
 
 --- Displays the quantity selection dialog for stow/retrieve operations.
+---@param inventorySlot table|nil Inventory slot control reference
+---@param isStow boolean Whether the operation is stowing (true) or retrieving (false)
+---@return nil
 function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, isStow)
     if not inventorySlot then return end
 
@@ -267,22 +271,30 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
 end
 
 --- Attempts to stow an item to the Craft Bag, prompting for quantity if stacked.
+---@param inventorySlot table|nil Inventory slot control reference
+---@return nil
 function BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, true)
 end
 
 --- Attempts to retrieve an item from the Craft Bag, prompting for quantity if stacked.
+---@param inventorySlot table|nil Inventory slot control reference
+---@return nil
 function BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, false)
 end
 
 --- Immediately stows the full stack to the Craft Bag without prompting.
+---@param inventorySlot table|nil Inventory slot control reference
+---@return nil
 function BETTERUI.Inventory.Dialogs.StowFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
 end
 
 --- Immediately retrieves the full stack from the Craft Bag without prompting.
+---@param inventorySlot table|nil Inventory slot control reference
+---@return nil
 function BETTERUI.Inventory.Dialogs.RetrieveFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK)

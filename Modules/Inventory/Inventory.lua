@@ -49,6 +49,7 @@ local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
 -- This hook intercepts the call, re-issues it via CallSecureProtected(), and returns true
 -- to cancel the original unprotected native execution path.
 --- Initializes secure wheel hooks for the assignable utility wheel.
+---@return nil
 function BETTERUI.Inventory.InitializeSecureWheelHooks()
 	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
 		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
@@ -92,6 +93,7 @@ end
 -- REMAINING CLASS METHODS
 
 --- Toggles the tooltip detailed info mode.
+---@return nil
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
 	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -100,6 +102,8 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 end
 
 --- Per-frame update handler for delayed list refreshes and tooltip updates.
+---@param currentFrameTimeSeconds number|nil Frame timestamp, or nil for manual update
+---@return nil
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
@@ -322,6 +326,7 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 end
 
 --- Clears the text search UI and internal state.
+---@return nil
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
@@ -334,6 +339,7 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 end
 
 --- Refreshes the footer display.
+---@return nil
 function BETTERUI.Inventory.Class:RefreshFooter()
 	if BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter:Refresh()
@@ -341,6 +347,7 @@ function BETTERUI.Inventory.Class:RefreshFooter()
 end
 
 --- Selects the current category and switches to the appropriate list.
+---@return nil
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 	if not catTarget or not catTarget.onClickDirection then
@@ -351,6 +358,7 @@ function BETTERUI.Inventory.Class:Select()
 end
 
 --- Switches between item list and craft bag list.
+---@return nil
 function BETTERUI.Inventory.Class:Switch()
 	if self:GetCurrentList() == self.craftBagList then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)
@@ -360,6 +368,11 @@ function BETTERUI.Inventory.Class:Switch()
 end
 
 --- Creates a new parametric list for the inventory scene.
+---@param name string List identifier
+---@param callbackParam function|nil Selection change callback
+---@param listClass table|nil List class to instantiate
+---@param ... any Additional arguments passed to list constructor
+---@return table list The created list instance
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	local listContainer = CreateControlFromVirtual(
 		"$(parent)" .. name,
@@ -376,6 +389,8 @@ function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 end
 
 --- Checks if the given inventory slot is locked.
+---@param inventorySlot table Inventory slot data
+---@return boolean isLocked Whether the slot is locked
 function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	if not inventorySlot then
 		return false

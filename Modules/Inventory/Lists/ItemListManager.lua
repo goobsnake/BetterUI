@@ -67,6 +67,7 @@ end
 
 --- Initializes the Item List.
 --- Purpose: Creates the scroll list and sets up sorting/padding.
+---@return nil
 function BETTERUI.Inventory.Class:InitializeItemList()
     self.itemList = self:AddList("Items", SetupItemList, BETTERUI_VerticalParametricScrollList)
 

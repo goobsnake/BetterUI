@@ -35,6 +35,7 @@ end
 
 --- Initializes the craft bag list.
 --- Purpose: Sets up the visual scroll list for the craft bag.
+---@return nil
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
     local function OnSelectedDataCallback(list, selectedData)
         if selectedData ~= nil and self.scene:IsShowing() then
@@ -83,6 +84,7 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 end
 
 --- Refreshes the Craft Bag list content.
+---@return nil
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
     if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
         return
@@ -95,6 +97,7 @@ function BETTERUI.Inventory.Class:RefreshCraftBagList()
 end
 
 --- Configure the tooltip for the Craft Bag header.
+---@return nil
 function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
     local title
     local description
@@ -110,6 +113,8 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
 end
 
 --- Counts items in the Craft Bag matching a filter type for category badge display.
+---@param filterType number|nil Filter type constant, or nil for all items
+---@return number count Number of items matching the filter
 function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCount(filterType)
     local count = 0
     local virtualItems = SHARED_INVENTORY:GetBagCache(BAG_VIRTUAL)

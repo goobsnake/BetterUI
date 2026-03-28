@@ -10,6 +10,9 @@ local INVENTORY_ITEM_LIST = "itemList"
 
 --- Handles scene state changes (SHOWING, HIDING, HIDDEN).
 --- Purpose: Manages initialization deferral, visualization layers, list activation, and state cleanup.
+---@param oldState number Previous scene state constant
+---@param newState number New scene state constant
+---@return nil
 function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 	if newState == SCENE_SHOWING then
 		self:PerformDeferredInitialize()

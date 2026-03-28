@@ -16,6 +16,9 @@ local m_customActions = {}
 --- Registers a custom slot action from an external addon.
 --- Actions appear in the Y-menu when the visibility function returns true.
 ---
+---@param id string Unique action identifier
+---@param config table Action config with name, callback, and optional visibilityFunction/options
+---@return boolean success Whether the action was registered
 function BETTERUI.Inventory.RegisterSlotAction(id, config)
     if not id or not config or not config.name or not config.callback then
         BETTERUI.Debug("RegisterSlotAction: missing required id, name, or callback")
@@ -26,6 +29,8 @@ function BETTERUI.Inventory.RegisterSlotAction(id, config)
 end
 
 --- Unregisters a previously registered custom slot action.
+---@param id string Action identifier to unregister
+---@return nil
 function BETTERUI.Inventory.UnregisterSlotAction(id)
     m_customActions[id] = nil
 end
@@ -249,6 +254,8 @@ end
 --- 5. Injects custom addon actions.
 --- 6. Deduplicates the action list.
 ---
+---@param inventorySlot table Inventory slot data to discover actions for
+---@return nil
 function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
     local slotActions = self.slotActions
     slotActions:Clear()
@@ -321,6 +328,10 @@ end
 --- Sets up the ZO_InventorySlotActions instance, hooks the primary action mechanism,
 --- and wires keybind commands for the A button and optional mouse-over binds.
 ---
+---@param alignmentOverride number|nil Keybind strip alignment override
+---@param additionalMouseOverbinds table|nil Additional mouse-over keybind names
+---@param useKeybindStrip boolean|nil Whether to use keybind strip (default: true)
+---@return nil
 function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additionalMouseOverbinds, useKeybindStrip)
     self.alignment = KEYBIND_STRIP_ALIGN_RIGHT
 
@@ -389,6 +400,7 @@ end
 
 --- Returns the underlying ZO_InventorySlotActions object.
 --- Required for the Y-actions dialog to iterate through available actions.
+---@return table slotActions The ZO_InventorySlotActions instance
 function BETTERUI.Inventory.SlotActions:GetSlotActions()
     return self.slotActions
 end

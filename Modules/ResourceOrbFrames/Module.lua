@@ -270,6 +270,7 @@ local function InitSettingsPanel(mId, moduleName)
 end
 
 --- Sets up the Resource Orb Frames module.
+---@return nil
 function BETTERUI.ResourceOrbFrames.Setup()
     InitSettingsPanel("ResourceOrbFrames", "Resource Orb Frames")
 end

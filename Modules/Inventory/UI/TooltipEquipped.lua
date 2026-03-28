@@ -16,6 +16,9 @@ param: tooltipType (string) - The type of tooltip (GAMEPAD_LEFT_TOOLTIP etc).
 param: equipSlot (number) - The equipment slot index.
 ]]
 --- Intercepts and customizes the 'Equipped' tooltip header.
+---@param tooltipType string Tooltip type identifier (e.g., GAMEPAD_LEFT_TOOLTIP)
+---@param equipSlot number Equipment slot index
+---@return nil
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)

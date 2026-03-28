@@ -6,6 +6,12 @@ Purpose: Handles item equipping logic, including "Bind on Equip" protection,
 
 -- SHARED EQUIP HELPER
 
+---@param bagId number Source bag ID
+---@param slotIndex number Source slot index
+---@param equipType number Equipment type constant
+---@param mainSlot boolean|nil True for main hand/ring1, false for off hand/ring2
+---@param isPrimary boolean|nil True for primary bar, false for backup bar
+---@return nil
 local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     local targetPrimary = (isPrimary ~= false)
 
@@ -40,6 +46,7 @@ local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
+---@return boolean success Whether the patch was applied
 local function AttemptCompanionEquipPatch()
     local class = _G["ZO_CompanionEquipment_Gamepad"]
     if not class then
@@ -78,6 +85,7 @@ local function AttemptCompanionEquipPatch()
     return true
 end
 
+---@return boolean success Whether the companion equip patch is applied
 local function EnsureCompanionEquipPatched()
     if AttemptCompanionEquipPatch() then
         if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
@@ -125,6 +133,9 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 --- 5. Handles Costumes vs Gear.
 --- References: Called from "A" keybind (Equip).
 ---
+---@param inventorySlot table Inventory slot data for the item to equip
+---@param isCallingFromActionDialog boolean|nil Whether called from Y-menu dialog
+---@return nil
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
     -- Y-MENU FIX: The engine's gamepad_equip handler calls TryEquipItem(inventorySlot) without the
     -- isCallingFromActionDialog parameter, so we check if action dialog IS showing instead.
@@ -235,6 +246,7 @@ end
 -- EQUIP SLOT DIALOG
 
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
+---@return nil
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
     local function ReleaseDialog(data, mainSlot)
         local ds = data[1] and data[1].dataSource

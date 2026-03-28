@@ -61,6 +61,7 @@ Function: BETTERUI.Vendor.Setup
 Lifecycle hook to setup the Vendor module.
 References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
+---@return nil
 function BETTERUI.Vendor.Setup()
 	BETTERUI.Vendor.Settings.RegisterPanel("Vendor", "Vendor")
 	BETTERUI.Vendor.Init()

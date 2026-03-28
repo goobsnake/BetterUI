@@ -72,6 +72,7 @@ InventoryKeybinds.IsQuickslottable = IsQuickslottable
 InventoryKeybinds.GetXButtonActionContext = GetXButtonActionContext
 
 --- Initializes the main inventory keybind strip.
+---@return nil
 function BETTERUI.Inventory.Class:InitializeKeybindStrip()
     if not self.multiSelectManager then
         self.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(

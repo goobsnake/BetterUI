@@ -40,6 +40,7 @@ end
 --- Purpose: Allows splitting stacks when moving to/from bank.
 --- Mechanics: Registers `ZO_GAMEPAD_SPLIT_STACK_DIALOG` with custom callback to `PickupInventoryItem`.
 --- References: Called by Initialize.
+---@return nil
 function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 	BETTERUI.CIM.Dialogs.Register(ZO_GAMEPAD_SPLIT_STACK_DIALOG, {
 		canQueue = true,

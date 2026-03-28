@@ -175,6 +175,7 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
 end
 
 --- Updates the header title to show the current tab name.
+---@return nil
 function BETTERUI.Vendor.Class:UpdateTabHeader()
     local tabs = GetActiveTabs()
     local currentMode = self:GetCurrentMode()
@@ -264,6 +265,7 @@ end
 -- INITIALIZATION
 
 --- Initializes the Vendor module.
+---@return nil
 function BETTERUI.Vendor.Init()
     if Vendor.initialized then return end
 

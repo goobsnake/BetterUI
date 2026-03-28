@@ -426,6 +426,7 @@ function ResourceOrbFrames.Initialize(control)
 end
 
 --- Applies current settings to the orb frames, toggling visibility and layout.
+---@return nil
 function ResourceOrbFrames.ApplySettings()
     local settings = GetSettings()
     if not m_rootFrame then return end

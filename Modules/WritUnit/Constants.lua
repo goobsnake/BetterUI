@@ -65,6 +65,7 @@ BETTERUI.Writs.CONST = {
 }
 
 --- Retrieves the pattern set for the current game client language.
+---@return table patterns Array of {pattern=string, craftType=number} entries
 function BETTERUI.Writs.CONST.GetLocalizedPatterns()
     local lang = GetCVar("language.2") or "en"
     return BETTERUI.Writs.CONST.PATTERNS_LOCALIZED[lang] or BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["en"]

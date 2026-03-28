@@ -126,6 +126,9 @@ Used By: DefaultSortComparator for gamepad inventory sorting.
 ]]
 BETTERUI.Inventory.CONST.SORT_SCHEMA = BETTERUI.CIM.CONST.SORT_SCHEMA
 
+---@param left table Left item data
+---@param right table Right item data
+---@return boolean result True if left should sort before right
 function BETTERUI.Inventory.DefaultSortComparator(left, right)
     return BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
 end

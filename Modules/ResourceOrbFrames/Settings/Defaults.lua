@@ -114,6 +114,8 @@ end
 --- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
 --- Mechanics: Checks each setting key; if missing, assigns default value.
 ---
+---@param m_options table|nil Module options table (created if nil)
+---@return table m_options Options table with defaults applied
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = GetDefaults()

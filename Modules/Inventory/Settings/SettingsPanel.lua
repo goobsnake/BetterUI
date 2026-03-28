@@ -10,6 +10,9 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 
 --- Initializes the settings panel for the Inventory module.
+---@param mId number Module ID
+---@param moduleName string Module display name
+---@return nil
 function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 

@@ -19,6 +19,8 @@ BETTERUI.CIM.RegisterModuleAccessors("Inventory")
 --- Wrapper Function (caller in BetterUI.lua):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
+---@param m_options table|nil Module options table
+---@return table m_options Initialized options with defaults applied
 function BETTERUI.Inventory.InitModule(m_options)
     m_options = m_options or {}
     ---@cast m_options table

@@ -93,6 +93,8 @@ local function InsertTargetLink(target)
     end
 end
 
+---@param self table Inventory class instance
+---@return table|nil targetList The active list for the current action mode
 function InventoryKeybinds.GetActionsTargetList(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return self.craftBagList
@@ -103,6 +105,8 @@ function InventoryKeybinds.GetActionsTargetList(self)
     return nil
 end
 
+---@param self table Inventory class instance
+---@return boolean hasTarget Whether a valid actions target exists
 function InventoryKeybinds.HasStableActionsTarget(self)
     local targetList = InventoryKeybinds.GetActionsTargetList(self)
     if not targetList then
@@ -132,6 +136,8 @@ function InventoryKeybinds.HasStableActionsTarget(self)
     return true
 end
 
+---@param self table Inventory class instance
+---@return string name Localized keybind label for primary action
 function InventoryKeybinds.GetPrimaryKeybindName(self)
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE
         and self.actionMode ~= InventoryConst.CRAFT_BAG_ACTION_MODE then
@@ -174,6 +180,8 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
     return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
 end
 
+---@param self table Inventory class instance
+---@return boolean visible Whether the primary keybind should be shown
 function InventoryKeybinds.IsPrimaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -202,6 +210,8 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
     return GetCurrentTarget(self) ~= nil
 end
 
+---@param self table Inventory class instance
+---@return nil
 function InventoryKeybinds.HandlePrimaryKeybind(self)
     if self:IsBatchProcessing() then
         return
@@ -257,6 +267,8 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     end
 end
 
+---@param self table Inventory class instance
+---@return string name Localized keybind label for secondary action
 function InventoryKeybinds.GetSecondaryKeybindName(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
@@ -286,6 +298,8 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
     return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
 end
 
+---@param self table Inventory class instance
+---@return boolean visible Whether the secondary keybind should be shown
 function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -306,6 +320,8 @@ function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     return false
 end
 
+---@param self table Inventory class instance
+---@return nil
 function InventoryKeybinds.HandleSecondaryKeybind(self)
     if self:IsBatchProcessing() then
         return
@@ -362,6 +378,8 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
     InsertTargetLink(actionContext.target)
 end
 
+---@param self table Inventory class instance
+---@return boolean visible Whether the tertiary keybind should be shown
 function InventoryKeybinds.IsTertiaryKeybindVisible(self)
     if self:IsBatchProcessing() then
         return true
@@ -378,6 +396,8 @@ function InventoryKeybinds.IsTertiaryKeybindVisible(self)
     return InventoryKeybinds.HasStableActionsTarget(self)
 end
 
+---@param self table Inventory class instance
+---@return nil
 function InventoryKeybinds.HandleTertiaryKeybind(self)
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
@@ -402,6 +422,8 @@ function InventoryKeybinds.HandleTertiaryKeybind(self)
     self:ShowActions()
 end
 
+---@param self table Inventory class instance
+---@return boolean visible Whether the multi-select entry keybind should be shown
 function InventoryKeybinds.IsMultiSelectEntryVisible(self)
     if self:IsBatchProcessing() then
         return false
@@ -427,6 +449,8 @@ function InventoryKeybinds.IsMultiSelectEntryVisible(self)
     return false
 end
 
+---@param self table Inventory class instance
+---@return nil
 function InventoryKeybinds.HandleMultiSelectEntry(self)
     if self:IsBatchProcessing() then
         return

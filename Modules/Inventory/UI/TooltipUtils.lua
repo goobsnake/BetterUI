@@ -10,6 +10,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 -- Dependencies (ensure these globals are available)
 
 --- Configures the visual style of native tooltips.
+---@return nil
 function BETTERUI.Inventory.ApplyTooltipStyles()
     local tooltipSize = BETTERUI.GetSetting("CIM", "tooltipSize", 24)
 

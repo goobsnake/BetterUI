@@ -13,6 +13,9 @@ local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 -- LOCAL HELPERS (shared by all handlers)
 
 --- Silently toggle junk state for an item target and update UI.
+---@param self table Inventory class instance
+---@param isJunk boolean Whether to mark or unmark as junk
+---@return nil
 local function ToggleJunkState(self, isJunk)
     -- Guard: craft bag items cannot be marked as junk
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
@@ -51,6 +54,8 @@ local function ToggleJunkState(self, isJunk)
 end
 
 --- Resolve the current item target based on action mode.
+---@param self table Inventory class instance
+---@return table|nil target Current inventory slot data or nil
 local function ResolveCurrentTarget(self)
     local actionMode = self.actionMode
     if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -68,6 +73,10 @@ end
 
 --- Populates the Y-menu action dialog with contextual actions for the selected item.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_SETUP callback.
+---@param self table Inventory class instance
+---@param dialog table Dialog control
+---@param data table Dialog data
+---@return nil
 function ActionHandlers.OnSetup(self, dialog, data)
     if not self.scene:IsShowing() then return end
 
@@ -275,6 +284,8 @@ end
 
 --- Restores keybinds and refreshes state after the Y-menu dialog closes.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_FINISH callback.
+---@param self table Inventory class instance
+---@return nil
 function ActionHandlers.OnFinish(self)
     if not self.scene:IsShowing() then return end
 
@@ -305,6 +316,9 @@ end
 
 --- Handles A-button press inside the Y-menu dialog to execute the selected action.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM callback.
+---@param self table Inventory class instance
+---@param dialog table Dialog control
+---@return nil
 function ActionHandlers.OnConfirm(self, dialog)
     if not (self.scene and self.scene:IsShowing()) then return end
 

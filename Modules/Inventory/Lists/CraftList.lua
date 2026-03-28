@@ -22,6 +22,8 @@ BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
 --- Sets the sort function for the craft bag list.
 --- Called by OnHeaderSortChanged when user sorts by column header.
+---@param sortFunction function Sort comparator function
+---@return nil
 function BETTERUI.Inventory.CraftList:SetSortFunction(sortFunction)
     self.sortFunction = sortFunction
 end
@@ -34,6 +36,8 @@ end
 --- - If `filterType` is a number: Matches that specific type.
 --- - If `filterType` is nil/false: Matches EVERYTHING ("All" category).
 ---
+---@param filterType table|number|nil Filter type constant, table of filter types, or nil for all
+---@return function comparator Filter function accepting itemData and returning boolean
 function GetFilterComparator(filterType)
     return function(itemData)
         if filterType then

@@ -24,6 +24,7 @@ local WRIT_CONTEXT_SHOW = "Writs:Show"
 --- Purpose: Avoids repeated global lookups in Show() each time panel is displayed.
 --- Mechanics: Stores references to UI controls at startup.
 --- References: Called during addon initialization.
+---@return nil
 function BETTERUI.Writs.CacheControls()
 	m_writNameLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritName
 	m_writDescLabel = BETTERUI_WritsPanelSlotContainerExtractionSlotWritDesc
@@ -39,6 +40,8 @@ end
 --- - Applies **Green** (00FF00) if complete, **Grey** (CCCCCC) if incomplete.
 --- - Returns a concatenated string of objectives.
 ---
+---@param qId number Quest journal index
+---@return string writConcate Formatted color-coded objectives string
 function BETTERUI.Writs.Get(qId)
 	local writLines = {}
 	local writConcate = ''
@@ -70,6 +73,7 @@ end
 --- - Iterates `MAX_JOURNAL_QUESTS`.
 --- - Matches Quest Name against patterns defined in Constants.lua.
 --- - Maps the matching Quest ID to the corresponding `CRAFTING_TYPE_XXX` constant in `BETTERUI.Writs.List`.
+---@return nil
 function BETTERUI.Writs.Update()
 	BETTERUI.Writs.List = {}
 	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_UPDATE, function()
@@ -110,6 +114,8 @@ end
 --- - If found, updates cached controls with quest name and objectives.
 --- - Sets Panel to Visible.
 ---
+---@param writType number CRAFTING_TYPE_* constant for the station
+---@return nil
 function BETTERUI.Writs.Show(writType)
 	BETTERUI.CIM.SafeExecute(WRIT_CONTEXT_SHOW, function()
 		BETTERUI.Writs.Update()
@@ -132,6 +138,7 @@ end
 --- Hides the Writ panel.
 ---
 --- Purpose: Cleanly removes the UI overlay.
+---@return nil
 function BETTERUI.Writs.Hide()
 	if m_writsPanel then
 		m_writsPanel:SetHidden(true)

@@ -12,6 +12,8 @@ local MODULES = BETTERUI.CIM.CONST.MODULES
 --- Generates a stable string key for a category entry.
 --- @param categoryData table Category entry data from the category list
 --- @return string key Unique category key
+---@param categoryData table Category entry data
+---@return string|nil key Unique category key for position tracking
 function BETTERUI.Inventory.GetCategoryKey(categoryData)
     return BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
 end
@@ -20,6 +22,9 @@ end
 --- @param self BetterUI_InventoryClass
 --- @param key string|nil Category key to search for
 --- @return number|nil index 1-based index in categoryList.dataList
+---@param self table Inventory class instance
+---@param key string Category key to find
+---@return number|nil index Category list index for the given key
 function BETTERUI.Inventory.FindCategoryIndexByKey(self, key)
     if not key or not self.categoryList or not self.categoryList.dataList then return nil end
     for i, d in ipairs(self.categoryList.dataList) do
@@ -32,6 +37,8 @@ end
 
 --- Restores the list position and selection from saved state.
 --- @param self BetterUI_InventoryClass
+---@param self table Inventory class instance
+---@return nil
 function BETTERUI.Inventory.ToSavedPosition(self)
     -- Determine if we're on inventory or craft bag based on current category
     local catData = self.categoryList and self.categoryList.selectedData
@@ -118,6 +125,8 @@ end
 
 --- Saves the current list position and selection.
 --- @param self BetterUI_InventoryClass
+---@param self table Inventory class instance
+---@return nil
 function BETTERUI.Inventory.SaveListPosition(self)
     -- Guard against nil state
     if not self.categoryList or not self.categoryList.selectedData then return end

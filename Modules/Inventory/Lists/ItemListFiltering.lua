@@ -23,6 +23,9 @@ end
 --- @param filteredEquipSlot number|nil
 --- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
 --- @return fun(itemData: table): boolean
+---@param filteredEquipSlot number|nil Equipment slot to filter by
+---@param nonEquipableFilterType number|nil Non-equipment filter type
+---@return function comparator Filter function for item data
 function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
     return function(itemData)
         if nonEquipableFilterType then
@@ -41,6 +44,7 @@ function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot,
 end
 
 --- Refreshes the item list based on the selected category and filter.
+---@return nil
 function BETTERUI.Inventory.Class:RefreshItemList()
     -- Skip refresh during batch processing to prevent flickering
     if self:IsBatchProcessing() then
@@ -265,6 +269,8 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 end
 
 --- Updates the left tooltip for the selected item.
+---@param selectedData table|nil Selected item data for tooltip display
+---@return nil
 function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
     if not selectedData or not selectedData.dataSource or not selectedData.dataSource.bagId then
         if GAMEPAD_TOOLTIPS then
@@ -364,6 +370,8 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 end
 
 --- Updates the comparison tooltip (displayed in the Left Tooltip window in BetterUI).
+---@param selectedData table|nil Selected item data for right tooltip
+---@return nil
 function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
     local selectedItemData = selectedData
     local selectedEquipSlot
