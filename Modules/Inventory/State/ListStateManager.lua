@@ -10,7 +10,18 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
+--- @class ListActivationConfig
+--- @field savedCategoryKey string|nil Saved category key for position restoration
+--- @field isCraftBag boolean Whether this is a craft bag list
+--- @field refreshListFn fun(self: BetterUI_InventoryClass) Refresh function for this list
+--- @field savedPositionsByKey table<string, number>|nil Saved item positions per category
+--- @field savedItemUniqueByKey table<string, userdata>|nil Saved item unique IDs per category
+--- @field actionMode number|nil Action mode constant
+
 --- Activates a list, restoring its saved category and item positions.
+--- @param self BetterUI_InventoryClass
+--- @param listControl table UI scroll list control
+--- @param config ListActivationConfig
 local function ActivateListWithState(self, listControl, config)
     self:SetCurrentList(listControl)
     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
@@ -95,6 +106,8 @@ local function ActivateListWithState(self, listControl, config)
 end
 
 --- Switches the active list between Inventory and Craft Bag.
+--- @param self BetterUI_InventoryClass
+--- @param listDescriptor number LIST_TYPES constant
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then
         return

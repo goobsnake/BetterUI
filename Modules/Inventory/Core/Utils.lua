@@ -5,11 +5,18 @@ Purpose: Shared utility functions for the Inventory module.
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
+
+--- @class InventoryUtils
+--- @field OnTabNext fun(parent: table, successful: boolean)
+--- @field OnTabPrev fun(parent: table, successful: boolean)
+--- @field SafeGetTargetData fun(list: table): table|nil
 BETTERUI.Inventory.Utils = {}
 
 --- Callback for Right Bumper (Next) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
+--- @param parent table Inventory instance with categoryList
+--- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabNext(parent, successful)
     if not successful then return end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then
@@ -38,6 +45,8 @@ end
 --- Callback for Left Bumper (Previous) navigation.
 --- Usage: Passed to BETTERUI_TabBarScrollList in GenericHeader
 --- Rationale: Delegates to CIM.HeaderNavigation.CycleCategory for shared behavior.
+--- @param parent table Inventory instance with categoryList
+--- @param successful boolean Whether the bumper press was successful
 function BETTERUI.Inventory.Utils.OnTabPrev(parent, successful)
     if not successful then return end
     if not parent.categoryList or not parent.categoryList.dataList or #parent.categoryList.dataList == 0 then

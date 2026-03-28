@@ -11,6 +11,18 @@ Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization 
 -- Banking uses BETTERUI.Interface.Window (ZO_Object) because it requires more
 -- control over the scene lifecycle. This is intentional based on module needs.
 -- See: docs/ARCHITECTURE.md for inheritance diagram
+--- @class BetterUI_InventoryClass : ZO_GamepadInventory
+--- @field itemMetaCache table<number, table<number, table>>
+--- @field itemList table Scroll list for backpack items
+--- @field craftBagList table Scroll list for craft bag items
+--- @field categoryList table Scroll list for category tabs
+--- @field header table Header UI control
+--- @field scene table ZO_Scene instance
+--- @field currentlySelectedData table|nil Currently selected entry data
+--- @field isInHeaderSortMode boolean Whether header sort mode is active
+--- @field headerSortControllers table<string, table> Per-list sort controllers
+--- @field searchQuery string|nil Active search query
+--- @field mainKeybindStripDescriptor table Keybind strip descriptor
 BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
@@ -43,7 +55,9 @@ BETTERUI.Inventory.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 -- CACHING & DATA MANAGEMENT
 
+--- @type table<string|number, table>
 local g_slotDataCache = {}
+--- @type boolean
 local g_slotDataCacheDirty = true
 
 --- Invalidates the slot data cache.
@@ -53,6 +67,8 @@ function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
 end
 
 --- Invalidates cached item metadata for a specific bag/slot.
+--- @param bagId number|nil Bag ID, or nil to clear all
+--- @param slotIndex number|nil Slot index, or nil to clear entire bag
 function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     if not self.itemMetaCache then self.itemMetaCache = {} end
     if not bagId then
@@ -66,12 +82,16 @@ function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     end
 end
 
+--- @param bags number[] Bag IDs to generate key for
+--- @return string cacheKey Concatenated bag IDs
 local function GetBagCacheKey(bags)
     if #bags == 1 then return bags[1] end
     return table.concat(bags, ",")
 end
 
 --- Gets cached slot data for the specified bags.
+--- @param ... number Variable bag IDs (BAG_BACKPACK, BAG_WORN, etc.)
+--- @return table slotData Array of slot data entries
 function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = { ... }
     table.sort(bags) -- Ensure consistent key

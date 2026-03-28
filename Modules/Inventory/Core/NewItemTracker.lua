@@ -27,17 +27,27 @@ USAGE:
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
+
+--- @class NewItemTrackerModule
+--- @field PrepareForClear fun(bagId: number, slotIndex: number)
+--- @field PrepareFromSelectedData fun(selectedData: table)
+--- @field CommitPendingClears fun()
+--- @field ClearImmediate fun(bagId: number, slotIndex: number)
+--- @field GetPendingCount fun(): number
+--- @field Reset fun()
 BETTERUI.Inventory.NewItemTracker = {}
 
 local NewItemTracker = BETTERUI.Inventory.NewItemTracker
 
--- Staged items waiting to have "new" status cleared on next scene hide
--- Format: { [uniqueKey] = { bagId = N, slotIndex = N } }
+--- @type table<string, {bagId: number, slotIndex: number}>
 local pendingClears = {}
 
 -- KEY GENERATION
 
 --- Generates a unique key for a bag/slot combination.
+--- @param bagId number
+--- @param slotIndex number
+--- @return string
 local function MakeKey(bagId, slotIndex)
     return tostring(bagId) .. "_" .. tostring(slotIndex)
 end
@@ -46,6 +56,8 @@ end
 
 --- Stage an item for "new" status clearing when the scene hides.
 --- Called when a user selects/views an item in the inventory list.
+--- @param bagId number
+--- @param slotIndex number
 function NewItemTracker.PrepareForClear(bagId, slotIndex)
     if not bagId or not slotIndex then return end
     local key = MakeKey(bagId, slotIndex)
@@ -54,6 +66,7 @@ end
 
 --- Stage an item from selectedData (ZO_GamepadEntryData or item table).
 --- Convenience wrapper for list selection callbacks.
+--- @param selectedData table ZO_GamepadEntryData or item table with bagId/slotIndex
 function NewItemTracker.PrepareFromSelectedData(selectedData)
     if not selectedData then return end
     local bagId = selectedData.bagId or (selectedData.dataSource and selectedData.dataSource.bagId)
@@ -80,6 +93,8 @@ end
 
 --- Immediately clear "new" status for a specific item.
 --- Used when an item is moved, destroyed, or explicitly acted upon.
+--- @param bagId number
+--- @param slotIndex number
 function NewItemTracker.ClearImmediate(bagId, slotIndex)
     if not bagId or not slotIndex then return end
     if not SHARED_INVENTORY then return end
@@ -96,7 +111,7 @@ function NewItemTracker.ClearImmediate(bagId, slotIndex)
 end
 
 --- Returns the number of items pending "new" status clear.
---- Useful for debugging.
+--- @return number
 function NewItemTracker.GetPendingCount()
     local count = 0
     for _ in pairs(pendingClears) do

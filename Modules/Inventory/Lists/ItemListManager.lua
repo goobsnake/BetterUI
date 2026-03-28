@@ -13,11 +13,15 @@ local WouldEquipmentBeHidden = WouldEquipmentBeHidden
 local FindActionSlotMatchingItem = FindActionSlotMatchingItem
 local Id64ToString = Id64ToString
 
+--- @param left {uniqueId: userdata}
+--- @param right {uniqueId: userdata}
+--- @return boolean
 local function MenuEntryTemplateEquality(left, right)
     -- Convert to string to ensure consistent comparison even if userdata instances differ
     return Id64ToString(left.uniqueId) == Id64ToString(right.uniqueId)
 end
 
+--- @param list table Scroll list instance
 local function SetupItemList(list)
     list:AddDataTemplate(
         "BETTERUI_GamepadItemSubEntryTemplate",
@@ -34,10 +38,15 @@ local function SetupItemList(list)
     )
 end
 
+--- @param itemData table
+--- @return boolean
 local function IsStolenItem(itemData)
     return itemData.stolen
 end
 
+--- @param filteredEquipSlot number|nil
+--- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
+--- @return fun(itemData: table): boolean
 local function GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
     return function(itemData)
         if nonEquipableFilterType then
@@ -129,6 +138,9 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 end
 
 --- Checks if the item list would be empty for the current filter.
+--- @param filteredEquipSlot number|nil
+--- @param nonEquipableFilterType number|nil
+--- @return boolean
 function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipableFilterType)
     local baseComparator = GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
 
@@ -152,6 +164,8 @@ function BETTERUI.Inventory.Class:IsItemListEmpty(filteredEquipSlot, nonEquipabl
 end
 
 --- Counts items matching a filter type for category badge display.
+--- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
+--- @return number count
 function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
     local baseComparator = GetItemDataFilterComparator(nil, nonEquipableFilterType)
     local count = 0
@@ -180,6 +194,7 @@ function BETTERUI.Inventory.Class:GetCategoryItemCount(nonEquipableFilterType)
 end
 
 --- Checks for any junk items in the backpack.
+--- @return boolean
 function BETTERUI.Inventory.Class:HasAnyJunkInBackpack()
     -- Prefer shared inventory cache
     local backpack = self:GetCachedSlotData(BAG_BACKPACK)

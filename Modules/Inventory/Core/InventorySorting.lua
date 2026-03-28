@@ -8,6 +8,13 @@ local CompareNils = BETTERUI.CIM.Utils.CompareNils
 -- HEADER SORT MODE
 -- Column definitions for header sort navigation
 -- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
+--- @class SortColumnDef
+--- @field name string Display name ("NAME", "TYPE", etc.)
+--- @field key string Internal identifier
+--- @field sortKey string Data field used for comparisons
+--- @field defaultDirection? string "ascending" or "descending"
+
+--- @type SortColumnDef[]
 local INVENTORY_SORT_COLUMNS = {
     { name = "NAME",  key = "name",  sortKey = "name" },
     { name = "TYPE",  key = "type",  sortKey = "bestGamepadItemCategoryName" },
@@ -17,6 +24,8 @@ local INVENTORY_SORT_COLUMNS = {
 }
 
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
+--- @param data table Item data or dataSource wrapper
+--- @return string|nil traitName Uppercased trait name or nil
 local function GetTraitSortValue(data)
     if not data then return nil end
     local itemData = data.dataSource or data
@@ -44,6 +53,9 @@ local function GetTraitSortValue(data)
 end
 
 --- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
+--- @param data table Item data or dataSource wrapper
+--- @return number priority Sort priority group (1=alpha, 2=numeric, 3=blank)
+--- @return string|number value Sort value within group
 local function GetStatSortValue(data)
     if not data then return 3, "" end
     local statValue = data.statValue
@@ -62,6 +74,8 @@ local function GetStatSortValue(data)
 end
 
 --- Helper: Get value sort value (market price first, then vendor price)
+--- @param data table Item data or dataSource wrapper
+--- @return number price Market price or vendor price
 local function GetValueSortValue(data)
     if not data then return 0 end
     local itemData = data.dataSource or data
@@ -85,6 +99,9 @@ local function GetValueSortValue(data)
 end
 
 --- Creates sort comparator for a column with the specified direction
+--- @param sortKey string The data field to sort by
+--- @param ascending boolean Whether to sort ascending
+--- @return fun(left: table, right: table): boolean comparator
 local function CreateColumnSortComparator(sortKey, ascending)
     -- TRAIT: Alphabetical with blanks after "z"
     if sortKey == "trait" then

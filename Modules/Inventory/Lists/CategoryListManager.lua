@@ -6,6 +6,7 @@ Purpose: Manages the Category list (tabs) for the Inventory module.
 local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
+--- @param list table Scroll list instance
 local function SetupCategoryList(list)
     list:AddDataTemplate(
         "BETTERUI_GamepadItemEntryTemplate",
@@ -69,6 +70,10 @@ end
 --- 3. Adds entry to both CategoryList (hidden logic) and Header (visual tab bar).
 --- References: Called by RefreshCategoryList.
 ---
+--- Adds a new category entry to the category list if it contains items.
+--- @param filterType number|nil ITEMFILTERTYPE_* constant
+--- @param iconFile string Texture path for the category icon
+--- @param FilterFunct fun(itemData: table, filterType: number): boolean|nil
 function BETTERUI.Inventory.Class:NewCategoryItem(filterType, iconFile, FilterFunct)
     if FilterFunct == nil then
         FilterFunct = ZO_InventoryUtils_DoesNewItemMatchFilterType

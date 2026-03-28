@@ -13,11 +13,16 @@ local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 local Id64ToString = Id64ToString
 
+--- @param itemData table
+--- @return boolean
 local function IsStolenItem(itemData)
     return itemData.stolen
 end
 
 --- Gets a comparator function for filtering item data.
+--- @param filteredEquipSlot number|nil
+--- @param nonEquipableFilterType number|nil ITEMFILTERTYPE_* constant
+--- @return fun(itemData: table): boolean
 function BETTERUI.Inventory.Class:GetItemDataFilterComparator(filteredEquipSlot, nonEquipableFilterType)
     return function(itemData)
         if nonEquipableFilterType then

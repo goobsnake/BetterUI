@@ -176,6 +176,8 @@ function BETTERUI.CIM.RegisterModuleAccessors(moduleName)
     local ns = BETTERUI[moduleName]
     if not ns then return end
 
+    assert(BETTERUI.CIM.Font, "BetterUI: CIM.Font must load before RegisterModuleAccessors is called for " .. moduleName)
+
     -- Font aliases
     ns.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
     ns.FONT_VALUES = BETTERUI.CIM.Font.VALUES

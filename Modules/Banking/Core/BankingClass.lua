@@ -24,6 +24,13 @@ BETTERUI.Banking.lastUsedBank                  = 0
 BETTERUI.Banking.currentUsedBank               = 0
 BETTERUI.Banking.esoSubscriber                 = nil
 
+--- Returns the currently active bank bag ID, falling back to BAG_BANK if unset.
+--- Cross-module callers should use this instead of reading currentUsedBank directly.
+---@return number bankBagId The active bank bag constant (e.g., BAG_BANK, BAG_SUBSCRIBER_BANK, BAG_GUILDBANK)
+function BETTERUI.Banking.GetCurrentBank()
+    return BETTERUI.Banking.currentUsedBank or BAG_BANK
+end
+
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
 assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")

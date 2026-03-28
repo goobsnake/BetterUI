@@ -13,6 +13,21 @@ USAGE:
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}
+
+--- @class StatComparisonResult
+--- @field equipSlot number EQUIP_SLOT_* constant
+--- @field equippedLink string|nil Currently equipped item link
+--- @field deltas table Stat differences {armorRating, weaponDamage, level, quality}
+--- @field lines string[] Color-coded display lines
+--- @field isUpgrade boolean Whether the candidate is an upgrade
+--- @field candidateEnchant string|nil Candidate enchantment description
+--- @field equippedEnchant string|nil Equipped enchantment description
+--- @field candidateSet string|nil Candidate set name
+--- @field equippedSet string|nil Equipped set name
+
+--- @class StatComparisonModule
+--- @field Compare fun(candidateLink: string, candidateBagId: number, candidateSlotIndex: number): StatComparisonResult|nil
+--- @field FormatForTooltip fun(result: StatComparisonResult|nil): string
 BETTERUI.Inventory.StatComparison = {}
 
 local StatComparison = BETTERUI.Inventory.StatComparison
@@ -28,6 +43,8 @@ local COLOR_RESET    = "|r"
 
 --- Determines the equip slot for an item link.
 --- Returns the primary equip slot, handling main-hand / off-hand / two-hand logic.
+--- @param itemLink string
+--- @return number|nil equipSlot EQUIP_SLOT_* constant or nil
 local function GetEquipSlotForItem(itemLink)
     if not itemLink or itemLink == "" then return nil end
 
@@ -55,6 +72,10 @@ local function GetEquipSlotForItem(itemLink)
 end
 
 --- Formats a stat delta with color coding.
+--- @param delta number The stat difference
+--- @param label string Display label for the stat
+--- @param isHigherBetter boolean Whether a positive delta is an improvement
+--- @return string coloredText Color-coded formatted text
 local function FormatDelta(delta, label, isHigherBetter)
     if delta == 0 then
         return COLOR_NEUTRAL .. label .. ": " .. "0" .. COLOR_RESET
@@ -74,6 +95,8 @@ end
 -- STAT EXTRACTION
 
 --- Extracts key stats from an item link for comparison.
+--- @param itemLink string
+--- @return {armorRating: number, weaponDamage: number, weaponSpeed: number, level: number, quality: number}
 local function ExtractStats(itemLink)
     if not itemLink or itemLink == "" then
         return { armorRating = 0, weaponDamage = 0, weaponSpeed = 0, level = 0, quality = 0 }
@@ -104,6 +127,8 @@ end
 -- ENCHANTMENT EXTRACTION
 
 --- Extracts enchantment summary from an item link.
+--- @param itemLink string
+--- @return string|nil description Enchantment description or nil
 local function GetEnchantmentSummary(itemLink)
     if not itemLink or itemLink == "" then return nil end
     local hasEnchant, _, enchantDesc = GetItemLinkEnchantInfo(itemLink)
@@ -116,6 +141,8 @@ end
 -- SET BONUS EXTRACTION
 
 --- Extracts set name from an item link.
+--- @param itemLink string
+--- @return string|nil setName Set name or nil
 local function GetSetName(itemLink)
     if not itemLink or itemLink == "" then return nil end
     local hasSet, setName = GetItemLinkSetInfo(itemLink)
@@ -128,6 +155,10 @@ end
 -- MAIN COMPARISON
 
 --- Compare a candidate item against the currently equipped item in the same slot.
+--- @param candidateLink string Item link of the candidate item
+--- @param candidateBagId number Bag ID of the candidate
+--- @param candidateSlotIndex number Slot index of the candidate
+--- @return StatComparisonResult|nil result Comparison result or nil if not applicable
 function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotIndex)
     if not candidateLink or candidateLink == "" then return nil end
 
@@ -252,6 +283,8 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
 end
 
 --- Format the comparison result as a single string for tooltip display.
+--- @param result StatComparisonResult|nil Comparison result from Compare()
+--- @return string formattedText Concatenated display lines
 function StatComparison.FormatForTooltip(result)
     if not result or not result.lines then return "" end
     return table.concat(result.lines, "  ")

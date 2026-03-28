@@ -25,6 +25,7 @@ KEY RESPONSIBILITIES:
 local INLINE_STATUS_ICON_BASE_SIZE = BETTERUI.Inventory.CONST.ICON_SIZE_SMALL
 local INLINE_STATUS_ICON_MIN_SIZE = 12
 local INLINE_STATUS_ICON_MAX_SIZE = 32
+--- @type table<string, number> Visual weight multipliers for inline status icons
 local INLINE_STATUS_ICON_WEIGHT = {
     LOCKED = 1.1,
     BOP = 1.05,
@@ -37,6 +38,8 @@ local INLINE_STATUS_ICON_WEIGHT = {
     BOOK_UNKNOWN = 1.0,
 }
 
+--- Returns the active module name based on which scene is showing.
+--- @return string moduleName "Banking" or "Inventory"
 local function GetActiveListModuleName()
     if BETTERUI.Utils.IsBankingSceneShowing() then
         return "Banking"
@@ -46,6 +49,7 @@ end
 
 local GetModuleSettings = BETTERUI.GetModuleSettings
 
+--- @return boolean show Whether market prices should be shown
 local function ShouldShowMarketPrice()
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
     if generalInterfaceSettings.showMarketPrice ~= nil then
@@ -61,6 +65,8 @@ local function ShouldShowMarketPrice()
     return true
 end
 
+--- @param moduleName string Module name ("Inventory" or "Banking")
+--- @return number fontSize
 local function GetActiveNameFontSize(moduleName)
     local settings = GetModuleSettings(moduleName)
     if settings and settings.nameFontSize then
@@ -69,6 +75,9 @@ local function GetActiveNameFontSize(moduleName)
     return BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
 end
 
+--- @param fontSize number Current font size
+--- @param weightMultiplier number|nil Icon weight multiplier
+--- @return number iconSize Scaled and clamped icon size
 local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
     local ratio = fontSize / baseFontSize
@@ -76,10 +85,17 @@ local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     return zo_clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
 end
 
+--- @param texturePath string DDS texture path for the icon
+--- @param iconSize number Size in pixels
+--- @return string tag Inline texture tag string
 local function BuildInlineIconTag(texturePath, iconSize)
     return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
 end
 
+--- @param moduleSettings table Module settings table
+--- @param key string Setting key
+--- @param defaultValue boolean Default value if not set
+--- @return boolean
 local function GetIconToggleSetting(moduleSettings, key, defaultValue)
     if moduleSettings and moduleSettings[key] ~= nil then
         return moduleSettings[key]
@@ -88,7 +104,9 @@ local function GetIconToggleSetting(moduleSettings, key, defaultValue)
 end
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
---- Purpose: Formats the main text label for an inventory item.
+--- @param label table UI label control
+--- @param data table ZO_GamepadEntryData with dataSource
+--- @param selected boolean Whether the entry is currently selected
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine active module context (Inventory vs Banking)

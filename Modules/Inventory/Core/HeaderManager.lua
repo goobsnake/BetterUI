@@ -6,6 +6,7 @@ Purpose: Manages the inventory header, tab switches, and search focus integratio
 local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
+--- @param self BetterUI_InventoryClass
 local function InitializeHeader(self)
     local function UpdateTitleText()
         return GetString(
@@ -59,6 +60,8 @@ local function InitializeHeader(self)
     BETTERUI.GenericFooter.Initialize(self)
 end
 
+--- @param self BetterUI_InventoryClass
+--- @param index number 1-based category index
 local function OnCategoryClicked(self, index)
     if not index or not self.categoryList then return end
 
@@ -81,11 +84,13 @@ local function OnCategoryClicked(self, index)
     self:ToSavedPosition()
 end
 
+--- @param self BetterUI_InventoryClass
 local function ActivateHeader(self)
     ZO_GamepadGenericHeader_Activate(self.header)
     self.header.tabBar:SetSelectedIndexWithoutAnimation(self.categoryList.selectedIndex, true, false)
 end
 
+--- @param self BetterUI_InventoryClass
 local function OnEnterHeader(self)
     -- Exit header sort mode cleanly when navigating up to the Search/Header area
     if self.isInHeaderSortMode and self.ExitHeaderSortMode then
@@ -108,6 +113,7 @@ local function OnEnterHeader(self)
     end
 end
 
+--- @param self BetterUI_InventoryClass
 local function OnLeaveHeader(self)
     if ZO_GamepadInventory and ZO_GamepadInventory.OnLeaveHeader then
         ZO_GamepadInventory.OnLeaveHeader(self)
@@ -129,6 +135,7 @@ local function OnLeaveHeader(self)
     end)
 end
 
+--- @param self BetterUI_InventoryClass
 local function EnsureHeaderKeybindsActive(self)
     local tabBar = self.header and self.header.tabBar
     if tabBar then
@@ -143,6 +150,7 @@ local function EnsureHeaderKeybindsActive(self)
     end
 end
 
+--- @param self BetterUI_InventoryClass
 local function ExitSearchFocus(self)
     -- Skip if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then

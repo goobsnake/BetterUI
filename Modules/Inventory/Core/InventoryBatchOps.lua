@@ -35,7 +35,7 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
 end
 
 local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
-    local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+    local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
     if targetBankBag == BAG_BANK then
         if DoesBagHaveSpaceFor(BAG_BANK, bagId, slotIndex) then
             return BAG_BANK
@@ -235,7 +235,7 @@ function Class:BatchDeposit()
     for _, itemData in ipairs(selectedItems) do
         local bagId, slotIndex = ExtractSlot(itemData)
         if bagId and slotIndex and HasItemAtSlot(bagId, slotIndex) then
-            local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+            local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
             if IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then
                 items[#items + 1] = itemData
             end
@@ -245,7 +245,7 @@ function Class:BatchDeposit()
 
     self:ProcessBatchThrottled(items, function(bagId, slotIndex, itemData)
         if not HasItemAtSlot(bagId, slotIndex) then return true end
-        local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
+        local targetBankBag = BETTERUI.Banking and BETTERUI.Banking.GetCurrentBank() or BAG_BANK
         if not IsInventoryDepositSupported(bagId, slotIndex, targetBankBag) then return true end
         local destinationBag = ResolveInventoryDepositTargetBag(bagId, slotIndex)
         if not destinationBag then return false end
