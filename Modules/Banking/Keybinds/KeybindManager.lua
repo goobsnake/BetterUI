@@ -164,7 +164,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     return
                 end
                 if cost > GetCarriedCurrencyAmount(CURT_MONEY) then
-                    ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil, GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
+                    BETTERUI.CIM.UserAlertText("Banking.Keybinds", GetString(rawget(_G, "SI_BUY_BANK_SPACE_CANNOT_AFFORD")))
                 else
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.mainKeybindStripDescriptor)
                     DisplayBankUpgrade()
