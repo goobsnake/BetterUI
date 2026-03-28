@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/UnifiedFooter.lua
 Purpose: Unified footer controller with mode switching.
          Extends GenericFooter to support different display modes for Inventory vs Banking.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -- ============================================================================
@@ -30,12 +28,6 @@ BETTERUI.CIM.UnifiedFooter.MODE = {
 ---@field mode number Current display mode
 local UnifiedFooterController = ZO_Object:Subclass()
 
---[[
-Function: UnifiedFooterController:New
-Description: Creates a new UnifiedFooterController instance.
-param: control (Control) - The XML control to manage.
-return: UnifiedFooterController
-]]
 --- @param control Control The XML control to manage
 --- @return table UnifiedFooterController instance
 function UnifiedFooterController:New(control)
@@ -66,11 +58,6 @@ function UnifiedFooterController:SetupFooter(footerControl)
     self._initialized = true
 end
 
---[[
-Function: UnifiedFooterController:SetMode
-Description: Sets the footer display mode and refreshes if needed.
-param: mode (number) - One of BETTERUI.CIM.UnifiedFooter.MODE values.
-]]
 --- @param mode number One of BETTERUI.CIM.UnifiedFooter.MODE values
 function UnifiedFooterController:SetMode(mode)
     if self.mode ~= mode then
@@ -79,11 +66,6 @@ function UnifiedFooterController:SetMode(mode)
     end
 end
 
---[[
-Function: UnifiedFooterController:GetMode
-Description: Returns the current footer display mode.
-return: number - Current mode value.
-]]
 --- @return number mode Current mode value
 function UnifiedFooterController:GetMode()
     return self.mode
@@ -156,12 +138,6 @@ end
 
 BETTERUI.CIM.UnifiedFooter.Controller = UnifiedFooterController
 
---[[
-Function: BETTERUI.CIM.UnifiedFooter.Create
-Description: Factory function to create a UnifiedFooterController.
-param: control (Control) - The XML control to manage.
-return: UnifiedFooterController
-]]
 --- @param control Control The XML control to manage
 --- @return table UnifiedFooterController instance
 function BETTERUI.CIM.UnifiedFooter.Create(control)

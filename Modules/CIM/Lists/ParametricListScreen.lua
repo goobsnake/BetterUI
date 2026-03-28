@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Lists/ParametricListScreen.lua
 Purpose: Enhanced Gamepad List Screen Wrapper.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- ============================================================================

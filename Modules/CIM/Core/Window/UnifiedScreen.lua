@@ -5,8 +5,6 @@ Purpose: Unified base class for Inventory and Banking screens.
          - Footer mode switching (CURRENCY vs BANKING)
          - Shared initialization patterns
          - Common refresh hooks
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -- ============================================================================

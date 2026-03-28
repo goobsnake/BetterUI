@@ -1,8 +1,6 @@
 --[[
 File: Modules/Banking/Core/RefreshIntegration.lua
 Purpose: Integrates ListRefreshManager with Banking module for unified refresh handling.
-Author: BetterUI Team
-Last Modified: 2026-01-31
 
 Used By: Banking.lua, BankListManager.lua
 Dependencies: CIM/Lists/ListRefreshManager.lua

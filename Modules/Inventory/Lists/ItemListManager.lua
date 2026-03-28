@@ -2,8 +2,6 @@
 File: Modules/Inventory/Lists/ItemListManager.lua
 Purpose: Manages the main item list (Backpack) for the Inventory module.
          Contains filtering, sorting, refreshing, and tooltip logic for items.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -- Localize frequently used globals

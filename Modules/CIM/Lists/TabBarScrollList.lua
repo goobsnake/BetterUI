@@ -2,8 +2,6 @@
 File: Modules/CIM/Lists/TabBarScrollList.lua
 Purpose: Tab Bar (Carousel) Scroll List implementation.
          Handles circular navigation and LB/RB shoulder button logic.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- ============================================================================

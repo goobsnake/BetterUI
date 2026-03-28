@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/ControlUtils.lua
 Purpose: Shared UI control utilities used across BetterUI modules.
-Author: BetterUI Team
-Last Modified: 2026-01-22
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end

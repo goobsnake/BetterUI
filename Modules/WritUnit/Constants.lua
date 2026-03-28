@@ -2,7 +2,6 @@
 File: Modules/WritUnit/Constants.lua
 Purpose: Constants for the Daily Writ Module.
          Includes pattern matching definitions for writ quest detection.
-Last Modified: 2026-01-22
 ]]
 
 if not BETTERUI.Writs then BETTERUI.Writs = {} end

@@ -1,8 +1,6 @@
 --[[
 File: Modules/Inventory/Module.lua
 Purpose: Entry point and settings configuration for the Inventory module.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 -- Module initialization

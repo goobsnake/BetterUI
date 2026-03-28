@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/ResearchCache.lua
 Purpose: Caches player's crafting research knowledge for efficient lookup.
          Avoids expensive API calls during list rendering.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 -- Initialize research traits table if not already present
@@ -15,13 +13,6 @@ end
 -- RESEARCH CACHE
 -- ============================================================================
 
---[[
-Function: BETTERUI.GetResearch
-Populates the ResearchTraits cache.
-           Stores boolean status (known/unknown) in BETTERUI.ResearchTraits.
-References: Called on initialization and when research completes.
-param: forceRefresh (boolean) - If true, ignores existing cache and rebuilds data.
-]]
 --- @param forceRefresh boolean|nil If true, ignores existing cache and rebuilds data
 function BETTERUI.GetResearch(forceRefresh)
     if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then

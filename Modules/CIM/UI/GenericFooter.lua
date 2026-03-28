@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/GenericFooter.lua
 Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
          Displays bag/bank capacity and various currencies (Gold, AP, Tel Var, etc.).
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 

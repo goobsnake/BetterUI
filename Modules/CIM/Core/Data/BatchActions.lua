@@ -6,8 +6,6 @@ Purpose: Common batch operations (Lock, Unlock, Junk, Unjunk) and
          then delegates to ProcessBatchThrottled on the module instance.
 
 Extracted from: MultiSelectMixin.lua (batch operations concern)
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/OrbBars.lua
 Purpose: Implements rectangular bar frames (XP, Cast, Mount Stamina).
          Contains BetterUIBarFrame and its subclasses.
-Last Modified: 2026-02-13
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

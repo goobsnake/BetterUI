@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/HeaderSortIntegration.lua
 Purpose: Integrates HeaderSortController with parametric scroll lists.
          Hooks HitBeginningOfList callback to enter header sort mode.
-Author: BetterUI Team
-Last Modified: 2026-01-30
 
 USAGE:
     1. Create HeaderSortController with column definitions

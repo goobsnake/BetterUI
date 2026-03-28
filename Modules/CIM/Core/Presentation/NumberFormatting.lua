@@ -2,22 +2,12 @@
 File: Modules/CIM/Core/NumberFormatting.lua
 Purpose: Number formatting utilities for the BetterUI addon.
          Provides comma formatting, abbreviation (K/M/B), and rounding functions.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 -- ============================================================================
 -- ROUNDING
 -- ============================================================================
 
---[[
-Function: BETTERUI.roundNumber
-Rounds a number to a specified number of decimal places.
-References: Used internally by AbbreviateNumber and other UI formatting logic.
-param: number (number) - The value to round.
-param: decimals (number) - The number of decimal places to keep.
-return: number|string - The rounded number, formatted as a string (via string.format), or 0 if inputs invalid.
-]]
 --- @param number number The value to round
 --- @param decimals number The number of decimal places to keep
 --- @return string|number rounded The rounded number string, or 0 if invalid
@@ -34,14 +24,6 @@ end
 -- COMMA FORMATTING
 -- ============================================================================
 
---[[
-Function: BETTERUI.DisplayNumber
-Formats a number with comma separators (e.g., 1234567 -> 1,234,567).
-References: Used by AbbreviateNumber and general UI display elements.
-Credits: Bart Kiers
-param: number (number) - The number to format.
-return: string - The formatted string with commas.
-]]
 --- @param number number|string The number to format
 --- @return string formatted The number string with comma separators
 function BETTERUI.DisplayNumber(number)
@@ -57,18 +39,6 @@ end
 -- ABBREVIATION (K/M/B)
 -- ============================================================================
 
---[[
-Function: BETTERUI.FormatNumber
-Abbreviates large numbers using k/m/b suffixes.
-           Supports options for case (upper/lower suffixes) and decimal handling.
-References: Used by ResourceOrbs, Currency displays, Inventory values.
-param: value (number) - The number to format.
-param: options (table|nil) - Optional settings: {case="upper"|"lower", style="smart"|"fixed", decimals=number}
-  - case: "upper" for K/M/B, "lower" for k/m/b (default: "lower")
-  - style: "smart" adjusts decimals by magnitude, "fixed" uses specified decimals (default: "smart")
-  - decimals: fixed decimal places when style="fixed" (default: 2)
-return: string - The formatted abbreviated number string.
-]]
 --- @param value number The number to format
 --- @param options? {case?: "upper"|"lower", style?: "smart"|"fixed", decimals?: number} Optional formatting settings
 --- @return string formatted The abbreviated number string
@@ -122,13 +92,6 @@ function BETTERUI.FormatNumber(value, options)
     return sign .. string.format(fmt, num) .. suffix
 end
 
---[[
-Function: BETTERUI.AbbreviateNumber
-Abbreviates large numbers using k/m/b suffixes (lowercase).
-param: n (number) - The number to abbreviate.
-param: defaultDecimals (number|nil) - Optional decimal places (ignored - uses smart decimals).
-return: string - The abbreviated number string.
-]]
 --- @param n number The number to abbreviate
 --- @param defaultDecimals? number Optional decimal places (ignored)
 --- @return string abbreviated The abbreviated number string
@@ -137,12 +100,6 @@ function BETTERUI.AbbreviateNumber(n, defaultDecimals)
     return BETTERUI.FormatNumber(n, { case = "lower", style = "smart" })
 end
 
---[[
-Function: BETTERUI.FormatAbbreviatedNumber
-Formats a number into abbreviated form (K, M, B) with uppercase.
-param: value (number) - The number to format.
-return: string - Formatted string like "1.12K", "12.3K", "123K", "1.23M".
-]]
 --- @param value number The number to format
 --- @return string formatted The abbreviated uppercase number string
 function BETTERUI.FormatAbbreviatedNumber(value)

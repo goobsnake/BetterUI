@@ -2,7 +2,6 @@
 ---@module "Modules.Banking.Currency.CurrencySelector"
 File: Modules/Banking/Currency/CurrencySelector.lua
 Purpose: Handles banking currency tooltip display and currency selector transfer flow.
-Author: BetterUI Team
 ]]
 
 BETTERUI.Banking.CurrencySelector = BETTERUI.Banking.CurrencySelector or {}

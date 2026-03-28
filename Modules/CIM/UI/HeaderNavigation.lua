@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/HeaderNavigation.lua
 Purpose: Shared header navigation functions for category cycling.
          Provides consistent navigation behavior for Inventory and Banking.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -- ============================================================================
@@ -20,12 +18,6 @@ local NavState = BETTERUI.CIM.NavigationState
 -- NAVIGATION STATE INITIALIZATION
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.HeaderNavigation.GetOrCreateState
-Gets or creates navigation state for a module instance.
-param: instance (table) - The module instance.
-return: table - The navigation state object.
-]]
 --- @param instance table The module instance
 --- @return table state The navigation state object
 function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
@@ -39,22 +31,6 @@ end
 -- CATEGORY CYCLING
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.HeaderNavigation.CycleCategory
-Cycles category selection via shoulder buttons (LB/RB).
-  1. Saves current position before switching.
-  2. Calculates new index with wrap-around.
-  3. Sets cycling flag to prevent duplicate saves.
-  4. Drives selection via tabBar if available, otherwise updates manually.
-param: instance (table) - The module instance (e.g., Inventory or Banking).
-param: delta (number) - Direction: +1 for next, -1 for prev.
-param: options (table) - Configuration:
-  - categories: array of category data
-  - getCurrentIndex: function() → current index
-  - setCurrentIndex: function(idx) → sets new index
-  - tabBar: optional tabBar to drive selection
-  - onRefresh: function() → called to refresh after change
-]]
 --- @param instance table The module instance
 --- @param delta number Direction: +1 for next, -1 for prev
 --- @param options table Configuration options
@@ -92,19 +68,6 @@ end
 -- COALESCED SELECTION HANDLER
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler
-Creates a debounced onSelectedChanged callback for category headers.
-  1. Saves position before switch (unless already done by CycleCategory).
-  2. Uses NavigationState for token-based coalescing.
-  3. Waits for delay before applying the category change.
-param: options (table) - Configuration:
-  - delay: coalesce delay in ms (default: 100)
-  - onSave: function(instance) → called to save position
-  - onApply: function(instance, newIndex) → called to apply category
-  - sceneCheck: function() → returns true if scene still visible
-return: function(list, selectedData) - Callback for onSelectedChanged.
-]]
 --- @param options table Configuration options
 --- @return function callback The debounced callback function
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)

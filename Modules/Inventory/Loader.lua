@@ -3,8 +3,6 @@ File: Modules/Inventory/Loader.lua
 Purpose: Central loader for the Inventory module.
          Initializes the namespace and sets up forward declarations
          to handle cross-file dependencies in the decomposed structure.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 if not BETTERUI then BETTERUI = {} end

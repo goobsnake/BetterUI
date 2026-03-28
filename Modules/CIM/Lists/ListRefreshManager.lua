@@ -2,8 +2,6 @@
 File: Modules/CIM/Lists/ListRefreshManager.lua
 Purpose: Unified list refresh management with batching, position restoration,
          and dirty state coalescing to eliminate scattered RefreshList implementations.
-Author: BetterUI Team
-Last Modified: 2026-01-31
 
 Used By: Inventory/Lists/ItemListManager.lua, Banking/Banking.lua
 Dependencies: BatchProcessor.lua, GenericListManager.lua
@@ -32,14 +30,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
     return obj
 end
 
---[[
-Function: Initialize
-Initializes the refresh manager.
-param: options (table|nil) - Configuration:
-  - coalesceDelay (number): Delay in ms before executing queued refresh (default: 80)
-  - useBatching (boolean): Whether to use batch processing (default: false)
-  - batchProcessor (table): BatchProcessor instance (required if useBatching is true)
-]]
 --- @param options table|nil Configuration options
 function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     options = options or {}
@@ -53,11 +43,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     self.savedUniqueId = nil
 end
 
---[[
-Function: SavePosition
-Saves the current list position for later restoration.
-param: list (table) - The parametric list to save position from.
-]]
 --- @param list table The parametric list
 function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     if not list then return end
@@ -71,13 +56,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     end
 end
 
---[[
-Function: RestorePosition
-Attempts to restore position after a refresh.
-             Tries to find the item by uniqueId first, then falls back to index.
-param: list (table) - The parametric list to restore position on.
-return: boolean - True if position was restored.
-]]
 --- @param list table The parametric list
 --- @return boolean success True if position was restored
 function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
@@ -120,13 +98,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     return false
 end
 
---[[
-Function: QueueRefresh
-Queues a refresh with coalescing to prevent rapid redraws.
-param: list (table) - The parametric list to refresh.
-param: refreshFn (function) - The function that performs the actual data refresh.
-param: savePosition (boolean) - Whether to save position before refresh (default: true).
-]]
 --- @param list table The parametric list
 --- @param refreshFn function The refresh function
 --- @param savePosition boolean Whether to save position
@@ -151,12 +122,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     end, self.coalesceDelay)
 end
 
---[[
-Function: ExecuteRefresh
-Immediately executes a refresh with optional position restoration.
-param: list (table) - The parametric list to refresh.
-param: refreshFn (function) - The function that performs the actual data refresh.
-]]
 --- @param list table The parametric list
 --- @param refreshFn function The refresh function
 function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
@@ -183,11 +148,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     self.isDirty = false
 end
 
---[[
-Function: IsDirty
-Returns whether a refresh is pending.
-return: boolean - True if a refresh is queued.
-]]
 --- @return boolean isDirty True if refresh is queued
 function BETTERUI.CIM.Lists.ListRefreshManager:IsDirty()
     return self.isDirty

@@ -2,7 +2,6 @@
 ---@module "Modules.Banking.Categories.CategoryManager"
 File: Modules/Banking/Categories/CategoryManager.lua
 Purpose: Centralizes banking category construction, matching, cycling, and header rebuilding.
-Author: BetterUI Team
 ]]
 
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW

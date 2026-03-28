@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/IconSettingsFactory.lua
 Purpose: Shared factory for generating icon visibility toggle LAM settings.
          Eliminates duplicate settings code between Banking and Inventory.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -130,16 +128,6 @@ local function ResetIconCustomizationSettings(moduleName, refreshFn)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Settings.CreateIconToggleOptions
-Creates LAM checkbox options for icon visibility toggles.
-  1. Iterates through ICON_DEFINITIONS
-  2. Creates a checkbox for each with get/set functions targeting the module settings
-  3. Includes live refresh callback via refreshFn
-param: moduleName (string) - The module name key in BETTERUI.Settings.Modules (e.g., "Banking", "Inventory")
-param: refreshFn (function) - Function to call after setting change for live refresh
-return: table - Array of LAM checkbox options
-]]
 --- @param moduleName string The module name key in BETTERUI.Settings.Modules
 --- @param refreshFn function Function to call after setting change for live refresh
 --- @return table[] options Array of LAM checkbox options

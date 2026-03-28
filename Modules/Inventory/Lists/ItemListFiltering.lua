@@ -1,8 +1,6 @@
 --[[
 File: Modules/Inventory/Lists/ItemListFiltering.lua
 Purpose: Handles inventory item filtering, search matching, refresh, and tooltip updates.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 BETTERUI = BETTERUI or {}

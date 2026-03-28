@@ -4,8 +4,6 @@ Purpose: Server pacing configuration, timing constants, and shared utility
          helpers for the multi-select batch processing pipeline.
 
 Extracted from: MultiSelectMixin.lua (config/helpers concern)
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

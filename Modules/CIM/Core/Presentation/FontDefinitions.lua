@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/FontDefinitions.lua
 Purpose: Shared font definitions and utility functions for inventory/banking modules.
          Provides centralized font arrays, defaults, and descriptor builders.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -143,12 +141,6 @@ end
 -- UTILITY FUNCTIONS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.Font.GetSizeValue
-Converts a font size setting to a numeric pixel value.
-param: sizeValue (string|number) - The size setting value.
-return: number - The font size in pixels.
-]]
 --- @param sizeValue string|number The size setting value
 --- @return number fontSize The font size in pixels
 function BETTERUI.CIM.Font.GetSizeValue(sizeValue)
@@ -222,14 +214,6 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
     return m_options
 end
 
---[[
-Function: BETTERUI.CIM.Font.BuildDescriptor
-Builds an ESO font descriptor string from path, size, and style.
-param: fontPath (string) - The font file path.
-param: fontSize (number) - The font size in pixels.
-param: fontStyle (string|nil) - The font style suffix (optional).
-return: string - ESO font descriptor (path|size|style).
-]]
 --- @param fontPath string The font file path
 --- @param fontSize number The font size in pixels
 --- @param fontStyle string|nil The font style suffix (optional)
@@ -242,13 +226,6 @@ function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Font.GetModuleFontDescriptor
-Gets a font descriptor for a specific module using its settings.
-param: moduleName (string) - The module key in BETTERUI.Settings.Modules (e.g., "Banking", "Inventory").
-param: fontType (string) - "name" or "column" to specify which font setting to retrieve.
-return: string - ESO font descriptor (path|size|style).
-]]
 --- @param moduleName string The module key in BETTERUI.Settings.Modules
 --- @param fontType "name"|"column" Which font setting to retrieve
 --- @return string descriptor ESO font descriptor (path|size|style)

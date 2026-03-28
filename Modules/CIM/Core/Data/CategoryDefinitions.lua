@@ -6,7 +6,6 @@ Purpose: Centralized configuration for inventory categories and craft bag filter
 
          Also provides shared category definitions for Banking module to eliminate
          duplication between Banking.lua's BANK_CATEGORY_DEFS and Inventory categories.
-Last Modified: 2026-01-27
 
 KNOWN DEPENDENCY BOUNDARY VIOLATION:
   This CIM (base module) file creates BETTERUI.Inventory namespace entries, which

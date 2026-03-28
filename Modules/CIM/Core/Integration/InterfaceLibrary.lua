@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/InterfaceLibrary.lua
 Purpose: Loader/namespace for CIM interface components.
          Actual implementations are in Core/ subdirectory.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 
 -- The implementations have been extracted to:
 --   - Core/KeybindHelpers.lua  - EnsureKeybindGroupAdded utility

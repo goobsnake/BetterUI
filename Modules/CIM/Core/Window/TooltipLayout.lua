@@ -1,20 +1,12 @@
 --[[
 File: Modules/CIM/Core/TooltipLayout.lua
 Purpose: Tooltip panel width and positioning utilities.
-Author: BetterUI Team
-Last Modified: 2026-02-02
 
 
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 
---[[
-Function: BETTERUI.CIM.SetTooltipWidth
-Sets tooltip panel width and repositions the left tooltip.
-param: width (number) - The new width of the background fragment.
-References: Called during scene state changes (SceneStateChange) in WindowClass.
-]]
 --- @param width number The new width of the background fragment
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width

@@ -3,7 +3,6 @@ File: Modules/ResourceOrbFrames/Core/OrbOverlays.lua
 Purpose: Overlay-specific sizing helpers for resource orbs.
          Layout, pool setup, and shield setup are defined canonically in OrbVisuals.lua,
          which is loaded immediately before this file (BetterUI.txt lines 124-125).
-Last Modified: 2026-03-25
 ]]
 
 -- OrbOverlays previously re-defined Visuals.UpdateOrbLayout, Visuals.SetupPowerPools,

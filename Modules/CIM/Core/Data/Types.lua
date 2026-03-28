@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/Types.lua
 Purpose: Shared EmmyLua type definitions for BetterUI.
          Provides centralized type annotations used across all modules.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 
 This file should be loaded early in the CIM module load order.
 It defines types that are referenced by annotations throughout the codebase.

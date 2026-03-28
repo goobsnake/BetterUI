@@ -2,8 +2,6 @@
 File: Modules/Banking/Lists/BankRowSetup.lua
 Purpose: Configures banking row templates, currency row rendering, and selection handling.
          Split from BankListManager.lua to keep list management isolated from row setup logic.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -26,10 +24,6 @@ local CURRENCY_LABEL_PULSE_MAX_SCALE = 1.03
 -- ROW SETUP HELPERS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: SetupLabelListing
-Description: Template setup for simple label rows (e.g. headers or currency).
-]]
 --- @param control Control
 --- @param data table
 function BETTERUI.Banking.Class.SetupLabelListing(control, data)

@@ -4,8 +4,6 @@ Purpose: Enhanced tooltip display for equipped items.
          Provides the UpdateTooltipEquippedText function with custom header,
          trait/price/knowledge status, and native fallback.
          Split from TooltipUtils.lua for maintainability.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end

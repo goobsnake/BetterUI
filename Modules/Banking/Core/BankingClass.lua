@@ -2,8 +2,6 @@
 File: Modules/Banking/Core/BankingClass.lua
 Purpose: Core class definition and module-scope state for the Banking module.
          Establishes the Banking class skeleton and shared constants.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 
 This file is part of the Banking module decomposition. It contains:
 1. Module-scope constants (LIST_WITHDRAW, LIST_DEPOSIT, bank state)
@@ -55,23 +53,12 @@ Description: Main class for the Banking module window.
 ]]
 BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
---[[
-Function: BETTERUI.Banking.Class:New
-Description: Creates a new instance of the Banking window class.
-param: ... (any) - Arguments passed to the parent constructor.
-return: table - The new Banking Class instance.
-]]
 --- @param ... any Arguments passed to the parent constructor
 --- @return table instance The new Banking Class instance
 function BETTERUI.Banking.Class:New(...)
     return BETTERUI.CIM.GenericWindow.New(self, ...)
 end
 
---[[
-Function: BETTERUI.Banking.Class:IsSceneShowing
-Description: Checks if the banking scene is currently showing.
-return: boolean - True if the banking scene is currently showing.
-]]
 --- @return boolean showing True if the banking scene is showing
 function BETTERUI.Banking.Class:IsSceneShowing()
     return BETTERUI.Utils.IsBankingSceneShowing()

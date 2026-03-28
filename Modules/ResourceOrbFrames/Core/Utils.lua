@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/Core/Utils.lua
 Purpose: Centralized utilities for the Resource Orb Frames module, resolving duplicates.
-Author: BetterUI Team
-Last Modified: 2026-03-09
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

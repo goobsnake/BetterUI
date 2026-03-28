@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/OrbAnimations.lua
 Purpose: Handles generic animations for the Resource Orb Frames module.
          Includes frame dimension animations (scale/offset) and combat glow helpers.
-Last Modified: 2026-01-23
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/SkillBar/BackBarManager.lua
 Purpose: Manages the Back Bar layout, updates, and cooldown tracking.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end

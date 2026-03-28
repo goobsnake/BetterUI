@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/PerformanceProfiler.lua
 Purpose: Performance profiling utilities for BetterUI debug mode.
          Provides timing hooks, counters, and metrics for optimization.
-Author: BetterUI Team
-Last Modified: 2026-02-07
 
 STATUS: DORMANT - Kept for future performance debugging needs.
   This module has zero active consumers and is intentionally not integrated.
@@ -29,11 +27,6 @@ local startTimes = {}
 -- CORE API
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.Profiler.Enable
-Description: Enables performance profiling.
-Rationale: Profiling has overhead; only enable when debugging performance.
-]]
 --- @param enabled boolean Whether to enable profiling
 function BETTERUI.CIM.Profiler.Enable(enabled)
     profilerEnabled = enabled
@@ -42,31 +35,17 @@ function BETTERUI.CIM.Profiler.Enable(enabled)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Profiler.IsEnabled
-Description: Checks if profiling is currently enabled.
-]]
 --- @return boolean enabled
 function BETTERUI.CIM.Profiler.IsEnabled()
     return profilerEnabled
 end
 
---[[
-Function: BETTERUI.CIM.Profiler.StartTiming
-Description: Starts a timing measurement for a named operation.
-Rationale: Mark the beginning of a code section to measure.
-]]
 --- @param name string The operation identifier
 function BETTERUI.CIM.Profiler.StartTiming(name)
     if not profilerEnabled then return end
     startTimes[name] = GetGameTimeMilliseconds()
 end
 
---[[
-Function: BETTERUI.CIM.Profiler.EndTiming
-Description: Ends a timing measurement and records the duration.
-Rationale: Mark the end of a code section and accumulate metrics.
-]]
 --- @param name string The operation identifier
 --- @return number|nil elapsed Milliseconds elapsed, or nil if profiling disabled
 function BETTERUI.CIM.Profiler.EndTiming(name)
@@ -92,19 +71,11 @@ function BETTERUI.CIM.Profiler.EndTiming(name)
     return elapsed
 end
 
---[[
-Function: BETTERUI.CIM.Profiler.GetTimings
-Description: Returns all accumulated timing data.
-]]
 --- @return table<string, {totalMs: number, count: number, minMs: number, maxMs: number}> timings
 function BETTERUI.CIM.Profiler.GetTimings()
     return timings
 end
 
---[[
-Function: BETTERUI.CIM.Profiler.GetCounters
-Description: Returns all counter values.
-]]
 --- @return table<string, number> counters
 function BETTERUI.CIM.Profiler.GetCounters()
     return counters
@@ -160,11 +131,6 @@ end
 -- CONVENIENCE MACROS
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.Profiler.Wrap
-Description: Wraps a function with automatic timing.
-Rationale: Easy way to profile existing functions without modifying them.
-]]
 --- @param name string The timing identifier
 --- @param fn function The function to wrap
 --- @return function wrapped The wrapped function

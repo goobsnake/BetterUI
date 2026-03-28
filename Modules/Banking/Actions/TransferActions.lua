@@ -2,8 +2,6 @@
 File: Modules/Banking/Actions/TransferActions.lua
 Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
          Extracted from Banking.lua to separate action logic from core UI.
-Author: BetterUI Team
-Last Modified: 2026-01-24
 ]]
 
 -------------------------------------------------------------------------------------------------

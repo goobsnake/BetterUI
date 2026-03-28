@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Lists/HorizontalScrollList.lua
 Purpose: Horizontal Scroll List implementations (Standard and Parametric).
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- ============================================================================

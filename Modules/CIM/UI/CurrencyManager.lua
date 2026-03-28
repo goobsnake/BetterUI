@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/UI/CurrencyManager.lua
 Purpose: Shared currency definitions, formatting, and layout logic.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 
 This module provides:
   - CURRENCY_DEFS: Single source of truth for all currency metadata
@@ -202,14 +200,6 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     return formatted
 end
 
---[[
-Function: BETTERUI.CIM.Currency.GetLabelControl
-Retrieves a label control from the footer by name.
-           GetNamedChild. This function handles both cases for compatibility.
-param: footer (table) - The footer control object
-param: labelName (string) - Name of the label to retrieve
-return: control|nil - The label control or nil if not found
-]]
 --- @param footer table The footer control object
 --- @param labelName string Name of the label to retrieve
 --- @return Control|nil label The label control or nil
@@ -222,15 +212,6 @@ function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     return footer._controlCache[labelName]
 end
 
---[[
-Function: BETTERUI.CIM.Currency.UpdateLabels
-Updates all currency labels in the footer with current values.
-           compatibility), checks user visibility settings, then formats and sets text.
-           Currencies with nil apiConst (e.g., Tome Points on old clients) are hidden.
-param: footer (table) - The footer control object
-param: invSettings (table) - Inventory settings containing currency visibility flags
-return: boolean - True if any labels changed
-]]
 --- @param footer table The footer control object
 --- @param invSettings table Inventory settings containing currency visibility flags
 --- @return boolean changed True if any labels changed
@@ -315,19 +296,6 @@ function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     return visible
 end
 
---[[
-Function: BETTERUI.CIM.Currency.PositionLabels
-Dynamically positions currency labels in the footer using a proper justified layout.
-            Fixed column widths waste space or cause overlap. A justified layout spreads
-            currencies evenly across the *current* footer width, maximizing readability
-            and adapting to any combination of selected currencies (4, 8, 12, etc.).
-  1.  Calculates the maximum text width for each column (comparing Row 1 and Row 2).
-  2.  Computes available horizontal space (Total Width - Anchors - Padding).
-  3.  Determines the necessary gapSize to evenly distribute columns (Space-Between).
-  4.  Iterates through columns, setting anchors with the calculated dynamic gap.
-param: footer (table) - The footer control object
-param: invSettings (table) - Inventory settings containing currency visibility flags
-]]
 --- @param footer table The footer control object
 --- @param invSettings table Inventory settings containing currency visibility flags
 function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)

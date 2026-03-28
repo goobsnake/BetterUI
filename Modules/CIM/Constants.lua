@@ -3,7 +3,6 @@ File: Modules/CIM/Constants.lua
 Purpose: Constants for the Common Interface Module (CIM).
          Includes Currency Footer configuration, Header/Footer layout geometry, Carousel settings,
          and shared UI constants migrated from BetterUI.CONST.lua.
-Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end

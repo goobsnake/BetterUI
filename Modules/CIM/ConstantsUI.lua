@@ -3,8 +3,6 @@ File: Modules/CIM/ConstantsUI.lua
 Purpose: UI layout constants, backward-compatibility aliases, color definitions,
          icon paths, sort schema, and header layout geometry.
          Split from Constants.lua for maintainability.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 ---@diagnostic disable: lowercase-global, undefined-global

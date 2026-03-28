@@ -2,8 +2,6 @@
 File: Modules/ResourceOrbFrames/Module.lua
 Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
-Author: BetterUI Team
-Last Modified: 2026-02-13
 ]]
 
 local LAM = LibAddonMenu2

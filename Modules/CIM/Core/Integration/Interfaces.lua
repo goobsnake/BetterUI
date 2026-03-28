@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/Interfaces.lua
 Purpose: Defines strict interface contracts for BetterUI module implementations.
          Provides type-checking and validation for module registrations.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -40,11 +38,6 @@ BETTERUI.CIM.Interfaces = {}
 -- INTERFACE VALIDATION
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.Interfaces.ValidateModule
-Description: Validates that a module table conforms to the ModuleInterface.
-Called by: Module registration system during addon initialization.
-]]
 --- @param module table The module to validate
 --- @param requiredFields? string[] Optional additional required fields
 --- @return boolean valid True if module conforms to interface

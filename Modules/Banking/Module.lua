@@ -1,8 +1,6 @@
 --[[
 File: Modules/Banking/Module.lua
 Purpose: Entry point and settings configuration for the Banking module.
-Authors: BUI Team
-Last Modified: 2026-01-16
 
 Registers the Banking panel in the BetterUI addon settings and provides font
 descriptor factories for the name and column rendering.

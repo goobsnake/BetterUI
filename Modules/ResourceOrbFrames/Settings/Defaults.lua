@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/Settings/Defaults.lua
 Purpose: Default settings for Resource Orb Frames module.
-Author: BetterUI Team
-Last Modified: 2026-02-13
 ]]
 
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}

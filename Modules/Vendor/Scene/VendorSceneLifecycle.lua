@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Scene/VendorSceneLifecycle.lua
 Purpose: Scene lifecycle management for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Manages what happens when the vendor scene shows and hides:
 - On show: adds keybind groups, sets up footer, refreshes list

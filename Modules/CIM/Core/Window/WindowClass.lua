@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Core/WindowClass.lua
 Purpose: Base window class for gamepad inventory/banking screens.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 
 
 Provides core abstractions shared across BetterUI's gamepad screens,

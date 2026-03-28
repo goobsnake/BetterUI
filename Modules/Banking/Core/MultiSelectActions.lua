@@ -4,8 +4,6 @@ Purpose: Banking-specific multi-select batch operations.
          BatchTransfer (withdraw/deposit), ShowBatchActionsMenu, and SelectAllItems.
          Common operations (lock, unlock, junk, throttled processing) are provided
          by CIM.MultiSelectMixin via BankingClass.lua delegates.
-Author: BetterUI Team
-Last Modified: 2026-02-09
 ]]
 
 -------------------------------------------------------------------------------------------------

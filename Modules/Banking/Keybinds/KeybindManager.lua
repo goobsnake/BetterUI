@@ -2,8 +2,6 @@
 File: Modules/Banking/Keybinds/KeybindManager.lua
 Purpose: Manages keybind descriptors and registration for the Banking module.
          Extracted from Banking.lua.
-Author: BetterUI Team
-Last Modified: 2026-02-07
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -14,13 +12,6 @@ local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
 
---[[
-Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
-Description: Creates trigger keybinds for fast scrolling the list.
-Note: Delegates to shared CIM factory for consistency.
-param: list (table) - The list control.
-return: table, table - Left and Right trigger keybind descriptors.
-]]
 --- @param list table
 --- @return table leftTrigger
 --- @return table rightTrigger

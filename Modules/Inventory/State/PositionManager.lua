@@ -2,8 +2,6 @@
 File: Modules/Inventory/State/PositionManager.lua
 Purpose: Manages the persistence of inventory list positions and selection states.
          Delegates core logic to BETTERUI.CIM.PositionManager for shared behavior.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end

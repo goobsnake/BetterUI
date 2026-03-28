@@ -2,7 +2,6 @@
 File: Modules/CIM/Tooltips/Tooltips.lua
 Purpose: Enriches item tooltips with useful information.
          Integrates market pricing, research status, and font scaling.
-Last Modified: 2026-01-28
 
 FEATURES:
 1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).

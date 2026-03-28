@@ -2,8 +2,6 @@
 File: Modules/CIM/Lists/BatchProcessor.lua
 Purpose: Shared batch processing utilities for inventory-style lists.
          Provides incremental list population to prevent UI freezing on large datasets.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 
 Used By: Inventory/Lists/ItemListManager.lua, Banking (future)
 ]]
@@ -31,14 +29,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:New(...)
     return obj
 end
 
---[[
-Function: Initialize
-Initializes the batch processor.
-param: options (table|nil) - Configuration:
-  - initialBatchSize (number): Items to process in first batch (default: 50)
-  - remainingBatchSize (number): Items per subsequent batch (default: 200)
-  - batchDelay (number): Delay between batches in ms (default: 10)
-]]
 --- @param options table|nil Configuration options
 function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     options = options or {}
@@ -55,16 +45,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     self.isActiveCheck = nil
 end
 
---[[
-Function: Start
-Starts batch processing a dataset.
-param: data (table) - Array of items to process.
-param: options (table) - Processing configuration:
-  - context (table): Arbitrary context passed to callbacks
-  - onProcessItem (function): Called for each item: fn(item, index, context)
-  - onComplete (function): Called when all items processed: fn(context)
-  - isActiveCheck (function): Returns true if processing should continue
-]]
 --- @param data table Array of items to process
 --- @param options table Processing configuration
 function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
@@ -170,11 +150,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.isActiveCheck = nil
 end
 
---[[
-Function: IsActive
-Returns true if batch processing is in progress.
-return: boolean
-]]
 --- @return boolean active True if batch processing is in progress
 function BETTERUI.CIM.Lists.BatchProcessor:IsActive()
     return self.pendingData ~= nil

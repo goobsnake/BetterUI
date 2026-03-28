@@ -2,7 +2,6 @@
 File: Modules/Inventory/Core/MixinLoader.lua
 Purpose: Centralized loader for applying mixins to the Inventory Class.
          Ensures mixins are applied AFTER all files have been loaded.
-Last Modified: 2026-01-26
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end

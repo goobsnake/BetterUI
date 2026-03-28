@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/ResourceOrbFrames.lua
 Purpose: Core Orchestrator for the Resource Orb Frames module.
          Coordinates Visuals, Bars, Skills, and Events.
-Last Modified: 2026-02-13
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

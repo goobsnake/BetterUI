@@ -3,8 +3,6 @@ File: Modules/CIM/Actions/ProtectionPolicy.lua
 Purpose: Centralized item protection policy checks for inventory, banking, and batch operations.
          Encapsulates IsItemPlayerLocked, BOP, bound, stolen, and junk eligibility checks
          to eliminate duplication across consumer modules.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -40,12 +38,6 @@ end
 -- PROTECTION CHECKS
 -- ============================================================================
 
---[[
-Function: Policy.CanDestroyItem
-Description: Checks if an item can be destroyed.
-             Requires: item exists, not player-locked, passes ZO destroy check.
-Called by: InventoryBatchOps, ItemActionHandlers (indirectly via ZO)
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @param slotType? number Optional slot type for ZO validation
@@ -68,13 +60,6 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     return true
 end
 
---[[
-Function: Policy.CanJunkItem
-Description: Checks if an item can be marked as junk.
-             Requires: item exists, can be junked by engine, not locked,
-             not a craft bag item, and (if companion) companion junk enabled.
-Called by: ItemActionHandlers.ToggleJunkState, ItemActionHandlers.OnSetup
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean canJunk
@@ -97,12 +82,6 @@ function Policy.CanJunkItem(bagId, slotIndex)
     return true
 end
 
---[[
-Function: Policy.CanUnjunkItem
-Description: Checks if an item can be unmarked as junk.
-             Only restriction is craft bag items cannot be unjunked (they're never junk).
-Called by: ItemActionHandlers.ToggleJunkState
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean canUnjunk
@@ -114,13 +93,6 @@ function Policy.CanUnjunkItem(bagId, slotIndex)
     return bagId ~= BAG_VIRTUAL
 end
 
---[[
-Function: Policy.CanTransferItem
-Description: Checks if an item can be transferred to a target bag.
-             Validates stolen status, BOP restrictions, bound status,
-             and guild bank specific restrictions.
-Called by: MultiSelectActions.IsDepositSupportedForBank, TransferActions
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @param targetBag? number Optional target bag (e.g., BAG_GUILDBANK)
@@ -159,12 +131,6 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     return true
 end
 
---[[
-Function: Policy.CanDepositToFurnitureVault
-Description: Checks if an item can be deposited to the furniture vault.
-             Gemmable crown items cannot be deposited.
-Called by: InventoryBatchOps, MultiSelectActions
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean canDeposit
@@ -184,12 +150,6 @@ function Policy.CanDepositToFurnitureVault(bagId, slotIndex)
     return true
 end
 
---[[
-Function: Policy.CanStowToCraftBag
-Description: Checks if an item can be stowed to the craft bag.
-             Requires: craft bag access, item is virtualizable, not stolen.
-Called by: InventoryBatchOps.BatchStow
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean canStow
@@ -209,11 +169,6 @@ function Policy.CanStowToCraftBag(bagId, slotIndex)
     return true
 end
 
---[[
-Function: Policy.IsItemPlayerLocked
-Description: Wrapper for IsItemPlayerLocked with nil safety.
-Called by: Any module needing lock status
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean isLocked
@@ -224,12 +179,6 @@ function Policy.IsItemPlayerLocked(bagId, slotIndex)
     return IsItemPlayerLocked(bagId, slotIndex) == true
 end
 
---[[
-Function: Policy.IsProtected
-Description: Comprehensive protection check for UI action visibility.
-             Returns true if the item has any protection that should prevent actions.
-Called by: ItemActionHandlers for action filtering
-]]
 --- @param bagId number
 --- @param slotIndex number
 --- @return boolean isProtected

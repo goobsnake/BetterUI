@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Components/RepairComponent.lua
 Purpose: Repair tab component for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Handles listing damaged items and repairing them (individual or repair all).
 Uses GetItemCondition to find damaged items, RepairItem for individual repair,

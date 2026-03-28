@@ -2,8 +2,6 @@
 File: Modules/CIM/Keybinds/ActionContext.lua
 Purpose: Provides frame-based caching for keybind action context lookups.
          Reduces redundant API calls in keybind descriptors.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -18,21 +16,6 @@ BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 local cachedFrame = -1    -- Frame number when cache was last computed
 local cachedContext = nil -- The cached context data
 
---[[
-Function: BETTERUI.CIM.Keybinds.GetXButtonActionContext
-Description: Returns cached action context for X-button keybind decisions.
-             Context is computed once per frame and reused across name/visible/callback.
-Rationale: Eliminates 3x redundant GetItemFilterTypeInfo, ZO_InventoryUtils calls
-           that were happening in InventoryKeybinds.lua lines 116-226.
-param: self (table) - The inventory/banking class instance.
-return: table - Action context with fields:
-        - target: The selected item data
-        - filterType: The item's filter type (WEAPONS, ARMOR, etc.)
-        - isQuestItem: Whether it's a quest item
-        - isQuickslottable: Whether it can be quickslotted
-        - meetsUsage: Whether it meets usage requirements
-        - actionMode: Current action mode constant
-]]
 --- @param self table The inventory/banking class instance
 --- @return table context The action context with fields for keybind decisions
 function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
@@ -110,12 +93,6 @@ function BETTERUI.CIM.Keybinds.InvalidateActionContext()
     cachedContext = nil
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.GetXButtonName
-Description: Returns the X-button label based on cached action context.
-param: self (table) - The inventory class instance.
-return: string - The localized button label.
-]]
 --- @param self table The inventory class instance
 --- @return string label The localized button label
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)
@@ -138,12 +115,6 @@ function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     return ""
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.GetXButtonVisible
-Description: Returns X-button visibility based on cached action context.
-param: self (table) - The inventory class instance.
-return: boolean - Whether the X-button should be visible.
-]]
 --- @param self table The inventory class instance
 --- @return boolean visible Whether the X-button should be visible
 function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)

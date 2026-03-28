@@ -2,8 +2,6 @@
 File: Modules/CIM/Lists/VerticalScrollList.lua
 Purpose: Vertical Parametric Scroll List implementation.
          Extends ZO_ParametricScrollList with custom gradient fading.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- ─── Constants ───────────────────────────────────────────────────────────────

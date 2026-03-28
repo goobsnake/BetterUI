@@ -2,8 +2,6 @@
 File: Modules/CIM/SettingsAccessor.lua
 Purpose: Provides safe module settings access with automatic nil-checking.
          Eliminates repetitive nil checks when accessing BETTERUI.Settings.Modules.
-Author: BetterUI Team
-Last Modified: 2026-01-23
 ]]
 
 if not BETTERUI then BETTERUI = {} end

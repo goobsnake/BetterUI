@@ -2,8 +2,6 @@
 File: Modules/ResourceOrbFrames/SkillBar/Coordinator.lua
 Purpose: Coordinator for the Skill Bar system. Manages overall layout orchestration and animations,
          delegating specific bar logic to sub-modules (FrontBarManager, BackBarManager, etc.).
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Dialogs/DialogRegistry.lua
 Purpose: Centralized dialog registration and management.
-Author: BetterUI Team
-Last Modified: 2026-02-02
 
 Used By: Inventory, Banking dialog initialization
 Dependencies: ZO_Dialogs_RegisterCustomDialog
@@ -34,14 +32,6 @@ BETTERUI.CIM.Dialogs.Registry = {
     _dialogs = {},
 }
 
---[[
-Function: BETTERUI.CIM.Dialogs.Register
-Description: Registers a dialog with ZO_Dialogs and tracks it in the registry.
-param: dialogName (string) - The unique dialog name.
-param: dialogInfo (table) - The dialog configuration table.
-param: options (table|nil) - Optional: { overwrite = false }
-return: boolean - True if registration succeeded.
-]]
 --- @param dialogName string The unique dialog name
 --- @param dialogInfo table The dialog configuration table
 --- @param options table|nil Optional configuration
@@ -70,24 +60,12 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     return true
 end
 
---[[
-Function: BETTERUI.CIM.Dialogs.IsRegistered
-Description: Checks if a dialog is registered.
-param: dialogName (string) - The dialog name to check.
-return: boolean - True if registered.
-]]
 --- @param dialogName string The dialog name to check
 --- @return boolean registered True if registered
 function BETTERUI.CIM.Dialogs.IsRegistered(dialogName)
     return BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] ~= nil
 end
 
---[[
-Function: BETTERUI.CIM.Dialogs.Show
-Description: Shows a registered dialog.
-param: dialogName (string) - The dialog name to show.
-param: data (table|nil) - Optional data to pass to the dialog.
-]]
 --- @param dialogName string The dialog name to show
 --- @param data table|nil Optional data to pass to the dialog
 function BETTERUI.CIM.Dialogs.Show(dialogName, data)
@@ -103,11 +81,6 @@ function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Dialogs.GetAll
-Description: Returns all registered dialog names.
-return: table - Array of dialog names.
-]]
 --- @return table dialogNames Array of registered dialog names
 function BETTERUI.CIM.Dialogs.GetAll()
     local names = {}

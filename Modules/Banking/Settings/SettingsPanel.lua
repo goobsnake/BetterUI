@@ -2,8 +2,6 @@
 File: Modules/Banking/Settings/SettingsPanel.lua
 Purpose: Extracted LAM settings panel for Banking module.
          Matches Inventory's structure with dedicated Settings folder.
-Author: BetterUI Team
-Last Modified: 2026-02-08
 ]]
 
 local LAM = LibAddonMenu2
@@ -11,12 +9,6 @@ local LAM = LibAddonMenu2
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Banking.Settings = BETTERUI.Banking.Settings or {}
 
---[[
-Function: BETTERUI.Banking.Settings.RegisterPanel
-Description: Registers the Banking settings panel with LibAddonMenu.
-param: mId (string) - The module ID suffix.
-param: moduleName (string) - The display name for the panel.
-]]
 --- @param mId string The module ID suffix
 --- @param moduleName string The display name for the panel
 function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)

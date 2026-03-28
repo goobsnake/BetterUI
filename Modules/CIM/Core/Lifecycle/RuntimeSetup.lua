@@ -14,8 +14,6 @@ Mechanics:
 Migration History:
     See MIGRATIONS section below for detailed migration documentation.
 
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 -- ============================================================================

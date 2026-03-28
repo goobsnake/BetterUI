@@ -2,8 +2,6 @@
 File: Modules/Inventory/InventoryTooltipUtils.lua
 Purpose: specialized tooltip logic for the Inventory module.
          Extracted from Inventory.lua to reduce file size.
-Author: BetterUI Team
-Last Modified: 2026-02-07
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end

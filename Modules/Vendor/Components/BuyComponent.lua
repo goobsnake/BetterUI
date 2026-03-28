@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Components/BuyComponent.lua
 Purpose: Buy tab component for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Handles listing store items and purchasing them.
 Uses GetNumStoreItems/GetStoreEntryInfo to populate the list.

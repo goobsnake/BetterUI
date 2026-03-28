@@ -3,8 +3,6 @@ File: Modules/CIM/Core/SceneLifecycleManager.lua
 Purpose: Unified scene lifecycle management for all BetterUI modules.
          Consolidates scene state change handling, keybind management,
          task cleanup, and event registry management.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -26,14 +24,6 @@ Fields:
 
 -- Type annotation for SceneLifecycleConfig is in Types.lua
 
---[[
-Function: BETTERUI.CIM.SceneLifecycle.Register
-Description: Registers scene lifecycle handlers for a screen.
-Rationale: Consolidates scene state change handling across all modules,
-           reducing duplicate handler code and ensuring consistent cleanup.
-param: screen (table) - The screen instance with a `scene` field.
-param: config (SceneLifecycleConfig) - Configuration for lifecycle handling.
-]]
 --- @param screen table The screen instance (has `scene` field)
 --- @param config SceneLifecycleConfig
 function BETTERUI.CIM.SceneLifecycle.Register(screen, config)

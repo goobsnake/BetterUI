@@ -2,8 +2,6 @@
 File: Modules/Inventory/Dialogs/CraftBagQuantityDialog.lua
 Purpose: Manages the quantity dialog for Craft Bag stow/retrieve operations.
          Displays a slider allowing users to select how many items to stow or retrieve.
-Author: BetterUI Team
-Last Modified: 2026-02-06
 ]]
 
 -- Dialog name constant
@@ -20,10 +18,6 @@ end
 -- Maximum items that can be transferred in a single operation (ESO game limit)
 local MAX_STACK_TRANSFER = 200
 
---[[
-Function: BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog
-Registers the quantity selection dialog for Craft Bag operations.
-]]
 --- @param dialog table
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end

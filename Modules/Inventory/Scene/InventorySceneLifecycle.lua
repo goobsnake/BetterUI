@@ -2,8 +2,6 @@
 File: Modules/Inventory/Scene/InventorySceneLifecycle.lua
 Purpose: Scene state change handler for the Inventory module.
          Manages SHOWING, HIDING, and HIDDEN lifecycle transitions.
-Author: BetterUI Team (extracted from Inventory.lua)
-Last Modified: 2026-03-14
 ]]
 
 -- Constants (must match Inventory.lua)

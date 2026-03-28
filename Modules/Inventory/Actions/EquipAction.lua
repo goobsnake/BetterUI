@@ -2,8 +2,6 @@
 File: Modules/Inventory/Actions/EquipAction.lua
 Purpose: Handles item equipping logic, including "Bind on Equip" protection,
          equipment slot selection dialogs (e.g. Ring 1 vs Ring 2), and companion equipment patching.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 --------------------------------------------------------------------------------

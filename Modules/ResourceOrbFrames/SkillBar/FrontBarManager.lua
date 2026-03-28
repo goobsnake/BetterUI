@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua
 Purpose: Manages the Front Bar layout, updates, keybinds, and usability.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 
 Related modules (loaded before this file):
   FrontBarPressFeedback.lua — Press feedback bounce/flash system

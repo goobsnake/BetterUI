@@ -5,8 +5,6 @@ Purpose: Batch status overlay UI for multi-select operations.
          during throttled batch processing.
 
 Extracted from: MultiSelectMixin.lua (overlay concern)
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}

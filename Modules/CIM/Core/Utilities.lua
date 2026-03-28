@@ -2,20 +2,12 @@
 File: Modules/CIM/Core/Utilities.lua
 Purpose: Core utility functions for the BetterUI addon.
          Provides debug logging, module status checks, and icon safety wrappers.
-Author: BetterUI Team
-Last Modified: 2026-02-07
 ]]
 
 -- ============================================================================
 -- DEBUG LOGGING
 -- ============================================================================
 
---[[
-Function: BETTERUI.Debug
-Prints a debug message to chat with BetterUI prefix.
-References: Used globally throughout the addon for debug logging.
-param: str (string) - The message string to display.
-]]
 --- @param str string The message string to display
 --- @return any d() return value
 function BETTERUI.Debug(str)
@@ -58,13 +50,6 @@ function BETTERUI.GetModuleEnabled(moduleName)
     return false
 end
 
---[[
-Function: BETTERUI.SetModuleEnabled
-Sets the session-enabled status of a specific BetterUI module.
-References: Used during module cleanup/load-guards to soft-disable modules.
-param: moduleName (string) - The key of the module in BETTERUI.Settings.Modules.
-param: enabled (boolean) - True to enable, false to disable for this session.
-]]
 --- @param moduleName string The key of the module in BETTERUI.Settings.Modules
 --- @param enabled boolean True to enable, false to disable for this session
 function BETTERUI.SetModuleEnabled(moduleName, enabled)
@@ -77,13 +62,6 @@ end
 -- ICON UTILITIES
 -- ============================================================================
 
---[[
-Function: BETTERUI.SafeIcon
-Safely returns an icon path string.
-References: Used by Inventory, Banking, and Writ lists to ensure icon validity.
-param: iconPath (string|nil) - The path to the icon texture.
-return: string - The icon path or an empty string.
-]]
 --- @param iconPath string|nil The path to the icon texture
 --- @return string path The icon path or empty string
 function BETTERUI.SafeIcon(iconPath)
@@ -115,13 +93,6 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 --- All functions below are individually annotated with EmmyLua param/return tags.
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
 
---[[
-Function: BETTERUI.CIM.Utils.SafeGetTargetData
-Safe helper for GetTargetData calls (guards against lists without method).
-References: Used by Inventory, Banking for safe list selection access.
-param: list (table) - The list object to query.
-return: table|nil - The target data of the list.
-]]
 --- @param list table|nil The list object to query
 --- @return table|nil targetData The target data of the list
 function BETTERUI.CIM.Utils.SafeGetTargetData(list)
@@ -133,14 +104,6 @@ function BETTERUI.CIM.Utils.SafeGetTargetData(list)
     return list.selectedData
 end
 
---[[
-Function: BETTERUI.CIM.Utils.WrapValue
-Wraps a value around min/max bounds for circular navigation.
-References: Used for category cycling in header navigation.
-param: newValue (number) - The value to wrap.
-param: maxValue (number) - The maximum value (1 is implicit minimum).
-return: number - The wrapped value.
-]]
 --- @param newValue number The value to wrap
 --- @param maxValue number The maximum value (1 is implicit minimum)
 --- @return number wrappedValue The wrapped value within [1, maxValue]
@@ -154,14 +117,6 @@ function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
     return newValue
 end
 
---[[
-Function: BETTERUI.CIM.Utils.DefaultSortComparator
-Custom comparison function for sorting gamepad inventory-style lists.
-References: Used by Inventory and Banking list sorting.
-param: left (table) - The first item data.
-param: right (table) - The second item data.
-return: boolean - True if 'left' should appear before 'right'.
-]]
 --- @param left table The first item data
 --- @param right table The second item data
 --- @return boolean result True if 'left' should appear before 'right'
@@ -170,14 +125,6 @@ function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
         ZO_SORT_ORDER_UP)
 end
 
---[[
-Function: BETTERUI.CIM.Utils.FindStackableSlotInBag
-Finds a slot with a stackable item matching the given item link that has room for more items.
-References: Used by Banking TransferActions for item stacking during transfers.
-param: bagId (number) - The bag ID to search.
-param: itemLink (string) - The item link to match against.
-return: number|nil - The slot index of a stackable slot, or nil if none found.
-]]
 --- @param bagId number The bag ID to search
 --- @param itemLink string The item link to match against
 --- @return number|nil slotIndex The slot index of a stackable slot, or nil
@@ -195,18 +142,6 @@ function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
     return nil
 end
 
---[[
-Function: BETTERUI.CIM.Utils.ResolveMoveDestinationSlot
-Resolves an explicit destination slot for inventory moves.
-           avoid nil-slot transfer behavior under throttled processing.
-  1) Prefer first empty slot in destination bag.
-  2) If none, try stackable slot matching source item link.
-References: Used by Banking/Inventory multi-select batch move paths.
-param: fromBagId (number) - Source bag id.
-param: fromSlotIndex (number) - Source slot index.
-param: toBagId (number) - Destination bag id.
-return: number|nil - Destination slot index or nil when unresolved.
-]]
 --- @param fromBagId number Source bag id
 --- @param fromSlotIndex number Source slot index
 --- @param toBagId number Destination bag id
@@ -227,12 +162,6 @@ function BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(fromBagId, fromSlotIndex,
     return FindFirstEmptySlotInBag(toBagId)
 end
 
---[[
-Function: BETTERUI.CIM.Utils.SetExternalToolbarHidden
-Toggles visibility of external addon toolbars (e.g., wykkydsToolbar).
-References: Used by Inventory, Banking during scene state changes.
-param: hidden (boolean) - True to hide, false to show.
-]]
 --- @param hidden boolean True to hide, false to show
 function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     if wykkydsToolbar then
@@ -240,13 +169,6 @@ function BETTERUI.CIM.Utils.SetExternalToolbarHidden(hidden)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Utils.GetHouseBankTraitMatches
-Returns the total count of researchable trait matches across all house banks.
-References: Used by CIM/Tooltips/Tooltips.lua for research status display.
-param: itemLink (string) - The item link to check.
-return: number - Total count of matching researchable items across all house banks.
-]]
 --- @param itemLink string The item link to check
 --- @return number total Total count of matching items across house banks
 function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
@@ -264,12 +186,6 @@ function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     return total
 end
 
---[[
-Function: BETTERUI.CIM.Utils.IsBankingSceneShowing
-Checks if the gamepad banking scene is currently visible.
-References: Used by Banking, Inventory for scene-guarded operations.
-return: boolean - True if the banking scene is showing.
-]]
 --- @return boolean showing True if the banking scene is showing
 function BETTERUI.CIM.Utils.IsBankingSceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_banking']
@@ -279,40 +195,12 @@ function BETTERUI.CIM.Utils.IsBankingSceneShowing()
     return guildScene and guildScene:IsShowing()
 end
 
---[[
-Function: BETTERUI.CIM.Utils.IsInventorySceneShowing
-Checks if the gamepad inventory root scene is currently visible.
-References: Used by Inventory module for scene-guarded operations.
-return: boolean - True if the inventory scene is showing.
-]]
 --- @return boolean showing True if the inventory scene is showing
 function BETTERUI.CIM.Utils.IsInventorySceneShowing()
     local scene = SCENE_MANAGER.scenes['gamepad_inventory_root']
     return scene and scene:IsShowing()
 end
 
---[[
-Function: BETTERUI.CIM.Utils.SafeCall
-Safely calls a method on an object if both exist.
-           scene state transitions). NOT for masking bugs - investigate and fix root causes.
-References: Used for defensive coding in scene transitions and optional UI elements.
-param: obj (table|nil) - The object to call the method on.
-param: methodName (string) - The name of the method to call.
-param: ... (any) - Additional arguments to pass to the method.
-return: any|nil - The return value of the method, or nil if not called.
-
-Usage Guidelines:
-  ✅ Use for optional UI controls that may not exist in all contexts
-  ✅ Use during scene transitions where state is uncertain
-  ❌ Do NOT use to hide bugs - investigate and fix root causes instead
-
-Example:
-  -- Good: Optional control may not exist
-  BETTERUI.CIM.Utils.SafeCall(self.optionalButton, "SetHidden", true)
-
-  -- Bad: Hiding a nil error that should be fixed upstream
-  BETTERUI.CIM.Utils.SafeCall(self.requiredList, "RefreshList") -- Fix why list is nil!
-]]
 --- @param obj table|nil The object to call the method on
 --- @param methodName string The name of the method to call
 --- @param ... any Additional arguments to pass to the method

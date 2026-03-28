@@ -1,8 +1,6 @@
 --[[
 File: Modules/Banking/Banking.lua
 Purpose: Implements the comprehensive banking interface for BetterUI.
-Author: BetterUI Team
-Last Modified: 2026-02-08
 
 This module completely replaces the default gamepad banking interface with a feature-rich,
 inventory-like experience. It supports advanced filtering, searching, custom categories,
@@ -91,18 +89,6 @@ Description: Updates the tooltip for currency rows.
 ]]
 
 
---[[
-Function: BETTERUI.Banking.Class:Initialize
-Description: Initializes the banking module components.
-  - Initializes base GenericInterface window.
-  - Registers keybind descriptors (Core, Currency, Actions).
-  - Sets up the Actions Dialog for item operations.
-  - Hooks into EVENT_INVENTORY_SINGLE_SLOT_UPDATE for dynamic list updates.
-  - Configures the text search header and its focus logic.
-References: Called by BETTERUI.Banking.Init().
-param: tlw_name (string) - Top level window name.
-param: scene_name (string) - Scene name.
-]]
 --- @param tlw_name string Top level window name
 --- @param scene_name string Scene name
 --- @return nil

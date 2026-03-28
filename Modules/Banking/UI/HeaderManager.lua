@@ -2,19 +2,12 @@
 File: Modules/Banking/UI/HeaderManager.lua
 Purpose: Manages the banking header UI (categories, tabs, title).
          Uses CIM.HeaderNavigation for shared navigation logic.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.Banking.Class:CycleCategory
-Description: Cycles the selected category via shoulder buttons (Left/Right).
-param: delta (number) - Direction (+1 or -1).
-]]
 --- @param delta number Direction (+1 or -1)
 function BETTERUI.Banking.Class:CycleCategory(delta)
     BETTERUI.CIM.HeaderNavigation.CycleCategory(self, delta, {

@@ -2,8 +2,6 @@
 File: Modules/Banking/Search/SearchManager.lua
 Purpose: Canonical search/header focus boundary for BETTERUI.Banking.Class.
          All banking search interactions should route through this module.
-Author: BetterUI Team
-Last Modified: 2026-03-26
 ]]
 
 -------------------------------------------------------------------------------------------------

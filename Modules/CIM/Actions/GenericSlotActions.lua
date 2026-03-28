@@ -2,8 +2,6 @@
 File: Modules/CIM/Actions/GenericSlotActions.lua
 Purpose: Shared slot action logic for Inventory and Banking modules.
          Provides abstractions for common item actions (split stack, link to chat, etc.).
-Author: BetterUI Team
-Last Modified: 2026-01-26
 
 STATUS: ORPHANED / FOUNDATION CODE
 ----------------------------------
@@ -57,10 +55,6 @@ function BETTERUI.CIM.GenericSlotActions:AddAction(name, callback, options)
     self.actionsByName[name] = action
 end
 
---[[
-Function: BETTERUI.CIM.GenericSlotActions:ClearActions
-Clears all registered actions.
-]]
 --- @return nil
 function BETTERUI.CIM.GenericSlotActions:ClearActions()
     self.actions = {}

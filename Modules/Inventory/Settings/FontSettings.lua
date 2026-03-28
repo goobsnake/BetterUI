@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/Settings/FontSettings.lua
 Purpose: Manages font definitions and the font customization UI.
-Last Modified: 2026-02-08
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}

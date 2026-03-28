@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/SortManager.lua
 Purpose: Unified sort system for BetterUI inventory and banking lists.
          Provides consistent sort options across modules without code duplication.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -46,12 +44,6 @@ local SORT_TYPE_NAMES = {
 local SORT_TYPES = BETTERUI.CIM.SortManager.SORT_TYPES
 local SORT_ORDER = BETTERUI.CIM.SortManager.SORT_ORDER
 
---[[
-Function: GetItemQualityValue
-Description: Returns numeric quality value for sorting (higher = better).
-param: itemData (table) - Item data with quality info.
-return: number - Quality value (0-5).
-]]
 --- @param itemData table|nil Item data with quality info
 --- @return number quality Quality value (0-5)
 local function GetItemQualityValue(itemData)
@@ -68,12 +60,6 @@ local function GetItemQualityValue(itemData)
     return 0
 end
 
---[[
-Function: GetItemValue
-Description: Returns vendor sell value for sorting.
-param: itemData (table) - Item data.
-return: number - Vendor value.
-]]
 --- @param itemData table|nil Item data
 --- @return number value Vendor value
 local function GetItemValue(itemData)
@@ -88,12 +74,6 @@ local function GetItemValue(itemData)
     return 0
 end
 
---[[
-Function: GetItemLevel
-Description: Returns required/actual level for sorting.
-param: itemData (table) - Item data.
-return: number - Item level.
-]]
 --- @param itemData table|nil Item data
 --- @return number level Item level
 local function GetItemLevel(itemData)

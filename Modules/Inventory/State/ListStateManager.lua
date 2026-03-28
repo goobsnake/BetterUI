@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/State/ListStateManager.lua
 Purpose: Manages high-level transitions between item lists (Backpack, Craft Bag, Categories).
-Author: BetterUI Team
 ]]
 
 -- Local aliases for list type constants (migrated from bare globals)

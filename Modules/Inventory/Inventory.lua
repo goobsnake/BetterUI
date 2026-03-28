@@ -14,8 +14,6 @@ Purpose: Orchestration layer for BetterUI Inventory system.
          - Keybinds/InventoryKeybinds.lua - Keybind strip
          - State/PositionManager.lua - Position save/restore
          - State/ListStateManager.lua - SwitchActiveList
-Author: BetterUI Team
-Last Modified: 2026-02-08
 ]]
 
 

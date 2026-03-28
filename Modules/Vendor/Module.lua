@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Module.lua
 Purpose: Entry point and settings configuration for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Registers the Vendor panel in the BetterUI addon settings and provides font
 descriptor factories for the name and column rendering.

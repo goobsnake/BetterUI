@@ -4,8 +4,6 @@ Purpose: Manages the custom Gamepad Header logic for BetterUI.
          Provides a standardized header with a parametric tab bar (carousel),
          dynamic title, and equipment slot tracking.
          Replaces stock ZO_GamepadGenericHeader functionality.
-Author: BetterUI Team
-Last Modified: 2026-01-19
 ]]
 
 
@@ -127,12 +125,6 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
---[[
-Function: BETTERUI.GenericHeader.AddToList
-Add an entry to the tab bar list.
-param: control (table) - The header control.
-param: data (table) - The entry data.
-]]
 --- @param control table The header control
 --- @param data table The entry data
 function BETTERUI.GenericHeader.AddToList(control, data)

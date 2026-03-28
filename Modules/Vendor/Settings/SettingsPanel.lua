@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Settings/SettingsPanel.lua
 Purpose: LibAddonMenu2 settings panel for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Registers:
   - General settings (carousel navigation, batch junk sell)
@@ -20,12 +18,6 @@ Vendor.Settings = Vendor.Settings or {}
 -- PANEL REGISTRATION
 -- ============================================================================
 
---[[
-Function: Vendor.Settings.RegisterPanel
-Description: Registers the Vendor settings panel with LibAddonMenu2.
-param: mId (string) - Unique settings panel id suffix.
-param: moduleName (string) - Human-readable panel name.
-]]
 --- @param mId string Panel id suffix
 --- @param moduleName string Human-readable panel name
 function Vendor.Settings.RegisterPanel(mId, moduleName)

@@ -2,8 +2,6 @@
 File: Modules/Inventory/Core/Utils.lua
 Purpose: Shared utility functions for the Inventory module.
          Delegates common functions to CIM.Utils for shared behavior.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}

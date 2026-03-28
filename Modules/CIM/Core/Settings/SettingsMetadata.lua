@@ -3,8 +3,6 @@ File: Modules/CIM/Core/SettingsMetadata.lua
 Purpose: Settings metadata registry and default/reset management.
          Defines per-module setting metadata (labels, tooltips, defaults, dependencies).
          Provides lookup, default retrieval, and group-based reset functions.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -- ============================================================================

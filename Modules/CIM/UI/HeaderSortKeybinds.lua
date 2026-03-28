@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/HeaderSortKeybinds.lua
 Purpose: Keybind factory for HeaderSortController.
          Extracted from HeaderSortController.lua to stay under 600 lines.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -25,12 +23,6 @@ end
 -- SORT FUNCTION HELPERS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: HeaderSortController:GetSortComparator
-Description: Returns a comparator function for the active sort column.
-             Respects ascending/descending direction.
-return: function|nil - Comparator function or nil if no sort active.
-]]
 --- @return function|nil comparator Sort comparator function or nil
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     if not EnsureControllerReady() then return nil end
@@ -59,15 +51,6 @@ end
 -- KEYBIND FACTORY
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: HeaderSortController:CreateKeybindDescriptor
-Description: Creates a keybind descriptor for header sort mode.
-              Includes A to toggle sort, B to exit, LB/RB for column navigation, and hidden Down/Up for D-pad exit/search.
-             Centralizes keybind creation to avoid duplication in Inventory/Banking.
-param: exitCallback (function) - Called when user presses B or Down to exit header mode.
-param: navigateUpCallback (function, optional) - Called when user presses Up to navigate to search.
-return: table - Keybind descriptor for KEYBIND_STRIP:AddKeybindButtonGroup
-]]
 --- @param exitCallback function Called when exiting header mode
 --- @param navigateUpCallback function|nil Called when navigating up to search box
 --- @return table keybindDescriptor

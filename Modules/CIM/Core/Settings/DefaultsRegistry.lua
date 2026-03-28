@@ -3,8 +3,6 @@ File: Modules/CIM/Core/DefaultsRegistry.lua
 Purpose: Centralized default values for all BetterUI modules.
          Single source of truth for settings defaults, first-install states,
          and destructive setting identification.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 
 Key Responsibilities:
 1. Define default module enable states for first-time installations

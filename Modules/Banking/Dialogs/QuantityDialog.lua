@@ -3,8 +3,6 @@ File: Modules/Banking/Dialogs/QuantityDialog.lua
 Purpose: Implements a proper modal dialog for partial stack withdraw/deposit operations.
          Uses ESO's GAMEPAD_DIALOGS.ITEM_SLIDER pattern (same as gamepad split stack).
          Replaces the legacy inline spinner overlay on the item list.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 --[[
@@ -26,14 +24,6 @@ Description: Registers the quantity selection dialog for banking operations.
   - dialog.data contains: bagId, slotIndex, sliderMin, sliderMax, sliderStartValue, isDeposit, itemLink
   - OnSliderValueChanged updates the split preview labels
   - Primary button callback calls MoveItem with selected quantity
-]]
---[[
-Function: SetupSliderKeybindHints
-Description: Creates (lazily) and updates inline keybind hint labels in a slider dialog.
-           numbers so users can discover the shortcuts without looking at the keybind strip.
-  - Creates four label controls once: icons anchored above icon1/icon2, text below sliderValue1/sliderValue2
-  - Uses ZO_Keybindings_GetHighestPriorityBindingStringFromAction for device-appropriate icons
-  - Called from dialog setup so labels refresh each time the dialog opens
 ]]
 --- @param dialog table
 local function SetupSliderKeybindHints(dialog)
@@ -227,14 +217,6 @@ function BETTERUI.Banking.InitializeQuantityDialog()
     })
 end
 
---[[
-Function: BETTERUI.Banking.Class:ShowQuantityDialog
-Description: Shows the quantity selection dialog for partial stack moves.
-  - Gets selected item data from list
-  - Validates stackCount > 1 (otherwise just move the single item)
-  - Configures dialog with item info and calls ZO_Dialogs_ShowGamepadDialog
-param: isDeposit (boolean) - True if depositing to bank, false if withdrawing.
-]]
 --- @param isDeposit boolean True if depositing to bank, false if withdrawing
 function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     local list = self:GetList()

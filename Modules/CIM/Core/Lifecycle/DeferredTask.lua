@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/DeferredTask.lua
 Purpose: Managed deferred task execution with automatic cancellation.
          Replaces raw zo_callLater with trackable, cancellable tasks.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 
 Usage:
     -- Schedule a task (auto-cancels previous task with same ID)

@@ -2,8 +2,6 @@
 File: Modules/CIM/ParametricScrollListTemplates.lua
 Purpose: Base definitions for BetterUI Scroll Lists.
          Contains sound mappings and global constants used by list classes.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- Tab bar movement types (extends ZO_PARAMETRIC_MOVEMENT_TYPES)

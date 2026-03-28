@@ -2,28 +2,12 @@
 File: Modules/CIM/Lists/ItemDataProcessor.lua
 Purpose: Shared factory for creating item entry data for inventory/banking lists.
          Eliminates duplicate entry creation code between modules.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 -------------------------------------------------------------------------------------------------
 -- ITEM ENTRY DATA FACTORY
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.CreateItemEntryData
-Creates a ZO_GamepadEntryData for display in inventory/banking scroll lists.
-  1. Creates new ZO_GamepadEntryData with item name and icon
-  2. Initializes visual data (quality colors, icons)
-  3. Sets up cooldown info if applicable
-  4. Copies slot metadata required for Y-menu action discovery
-  5. Copies category and junk/equipped status
-param: itemData (table) - Raw item data from SHARED_INVENTORY or similar.
-param: options (table) - Optional configuration:
-    - isQuestItem (boolean): If true, uses quest cooldown APIs instead of item cooldown.
-    - visualDataInit (function): Custom visual data initializer (defaults to BETTERUI.Inventory.Class.InitializeInventoryVisualData).
-return: ZO_GamepadEntryData - The entry data ready for list:AddEntry().
-]]
 --- @param itemData table Raw item data from SHARED_INVENTORY or similar
 --- @param options table|nil Optional configuration
 --- @return ZO_GamepadEntryData|nil data The entry data ready for list:AddEntry()
@@ -86,15 +70,6 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     return data
 end
 
---[[
-Function: BETTERUI.CIM.AddItemEntryToList
-Helper to add an item entry to a list with optional category header.
-param: list (table) - The scroll list to add to.
-param: data (ZO_GamepadEntryData) - The entry data.
-param: currentCategoryName (string|nil) - The current category name for header comparison.
-param: useHeaders (boolean) - Whether to use AutoCategory-style headers.
-return: string - The new current category name (for tracking).
-]]
 --- @param list table The scroll list to add to
 --- @param data ZO_GamepadEntryData The entry data
 --- @param currentCategoryName string|nil The current category name for header comparison

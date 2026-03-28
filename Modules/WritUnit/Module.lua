@@ -2,8 +2,6 @@
 File: Modules/WritUnit/Module.lua
 Purpose: Entry point for the Writ tracking module.
          Displays daily writ progress when the user interacts with a crafting station.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 
 Key Responsibilities:
   1. Lifecycle Management: Registers event listeners for crafting station interactions.

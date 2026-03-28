@@ -2,7 +2,6 @@
 File: Modules/Inventory/Constants.lua
 Purpose: Constants for the Inventory module.
          Includes search bar positioning, list entry icon sizing, and sort schema.
-Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
@@ -135,16 +134,6 @@ Used By: DefaultSortComparator for gamepad inventory sorting.
 ]]
 BETTERUI.Inventory.CONST.SORT_SCHEMA = BETTERUI.CIM.CONST.SORT_SCHEMA
 
---[[
-Function: BETTERUI.Inventory.DefaultSortComparator
-Description: Custom comparison function for sorting gamepad inventory items.
-             Delegates to CIM shared comparator for consistency with Banking.
-Defines a specific sort order: Type -> Name -> Level -> CP -> Icon -> ID.
-References: Used by the gamepad inventory list (Sort Comparator).
-param: left (table) - The first item data.
-param: right (table) - The second item data.
-return: boolean - True if 'left' should appear before 'right'.
-]]
 --- @param left table
 --- @param right table
 --- @return boolean

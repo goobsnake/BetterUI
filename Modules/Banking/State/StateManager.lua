@@ -2,8 +2,6 @@
 File: Modules/Banking/State/StateManager.lua
 Purpose: Manages persistence and state transitions for the banking module.
          Delegates position persistence to CIM.PositionManager.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -18,11 +16,6 @@ local MODULES       = BETTERUI.CIM.CONST.MODULES
 -- HELPER FUNCTIONS (local)
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: GetCurrentBankBag (local)
-Description: Determines the current bank bag ID.
-return: number - BAG_BANK or the specific house bank bag ID.
-]]
 --- @return number
 local function GetCurrentBankBag()
     if IsHouseBankBag(GetBankingBag()) then
@@ -31,12 +24,6 @@ local function GetCurrentBankBag()
     return BAG_BANK
 end
 
---[[
-Function: GetModeKey (local)
-Description: Returns the mode string key for CIM PositionManager namespacing.
-param: mode (number) - LIST_WITHDRAW or LIST_DEPOSIT.
-return: string - "Withdraw" or "Deposit".
-]]
 --- @param mode number LIST_WITHDRAW or LIST_DEPOSIT
 --- @return string
 local function GetModeModuleKey(mode)
@@ -220,12 +207,6 @@ function BETTERUI.Banking.Class:ReturnToSaved()
     self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
 end
 
---[[
-Function: BETTERUI.Banking.Class:UpdateSingleItem
-Description: Handles single slot updates (item add/remove/change).
-param: bagId (number) - The bag ID.
-param: slotIndex (number) - The slot index.
-]]
 --- @param bagId number
 --- @param slotIndex number
 function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
@@ -234,29 +215,12 @@ function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
     self:RefreshList()
 end
 
---[[
-Function: BETTERUI.Banking.Class:RemoveItemStack
-Description: Handles item stack removal.
-param: itemIndex (number) - The index of the item being removed.
-]]
 --- @param itemIndex number
 function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
     -- Avoid directly mutating the parametric list while it may be moving; just refresh.
     self:RefreshList()
 end
 
---[[
-Function: BETTERUI.Banking.Class:ToggleList
-Description: Toggles between Withdraw and Deposit modes.
-  1. Saves current list position.
-  2. Captures current category key to attempt restoration in new mode.
-  3. Updates `currentMode` (LIST_WITHDRAW <-> LIST_DEPOSIT).
-  4. Recomputes visible categories for the new mode.
-  5. Updates Header Title and Footer Colors/Rotation.
-  6. Refreshes Keybinds.
-References: Called by "Y" Keybind (Secondary).
-param: toWithdraw (boolean) - True if switching to Withdraw mode, False for Deposit.
-]]
 --- @param toWithdraw boolean True if switching to Withdraw mode
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     -- Exit multi-select mode when switching between Withdraw/Deposit

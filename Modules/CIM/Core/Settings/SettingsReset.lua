@@ -1,7 +1,6 @@
 --[[
 File: Modules/CIM/Core/SettingsReset.lua
 Purpose: Shared helper for resetting all BetterUI settings back to defaults.
-Author: BetterUI Team
 ]]
 
 if not BETTERUI then BETTERUI = {} end

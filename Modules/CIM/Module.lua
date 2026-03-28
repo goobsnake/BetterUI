@@ -3,8 +3,6 @@ File: Modules/CIM/Module.lua
 Purpose: Core initialization for the Common Interface Module (CIM).
          CIM provides shared UI components like generic headers, footers,
          and parametric scroll lists used across BetterUI.
-Author: BetterUI Team
-Last Modified: 2026-02-08
 ]]
 
 --- CIM (Common Interface Module) — Shared Infrastructure Layer

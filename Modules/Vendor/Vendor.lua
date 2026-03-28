@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Vendor.lua
 Purpose: Main orchestrator for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 This file handles:
 1. Creating the Vendor class instance and scene
@@ -159,11 +157,6 @@ end
 -- TAB CYCLING
 -- ============================================================================
 
---[[
-Function: BETTERUI.Vendor.Class:CycleTabs
-Description: Cycles through tabs in the given direction.
-param: direction (number) - +1 for next, -1 for previous.
-]]
 --- @param direction number +1 for next tab, -1 for previous tab
 function BETTERUI.Vendor.Class:CycleTabs(direction)
     local tabs = GetActiveTabs()

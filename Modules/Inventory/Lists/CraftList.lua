@@ -2,7 +2,6 @@
 File: Modules/Inventory/Lists/CraftList.lua
 Purpose: Implements the specific list logic for the ESO Plus Craft Bag.
          Subclasses BETTERUI.Inventory.List.
-Last Modified: 2026-01-26
 
 KEY RESPONSIBILITIES:
 1.  Filtering (GetFilterComparator):

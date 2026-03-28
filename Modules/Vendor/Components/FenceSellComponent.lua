@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Components/FenceSellComponent.lua
 Purpose: Fence Sell Stolen tab component for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Handles selling stolen items to the fence.
 KEY SAFETY GUARDS:

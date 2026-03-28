@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/SceneCleanup.lua
 Purpose: Shared scene cleanup utilities to ensure proper DIRECTIONAL_INPUT release
          when scenes are hidden. Consolidates cleanup patterns from Banking and Inventory.
-Author: BetterUI Team
-Last Modified: 2026-01-31
 ]]
 
 -- Create namespace if not exists

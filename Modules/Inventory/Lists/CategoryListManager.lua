@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/Lists/CategoryListManager.lua
 Purpose: Manages the Category list (tabs) for the Inventory module.
-Author: BetterUI Team
 ]]
 
 local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM

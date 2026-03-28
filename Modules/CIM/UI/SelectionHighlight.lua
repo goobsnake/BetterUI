@@ -3,8 +3,6 @@ File: Modules/CIM/UI/SelectionHighlight.lua
 Purpose: Provides a gradient highlight bar for selected inventory/banking rows.
          Gradient is defined in XML via FadeGradient element for reliability.
          This Lua just shows/hides the SelectionBar.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 -- Ensure namespace exists

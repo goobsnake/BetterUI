@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/Settings/CurrencySettings.lua
 Purpose: Manages currency visibility and ordering settings using a data-driven approach.
-Last Modified: 2026-01-28
 ]]
 
 BETTERUI.Inventory = BETTERUI.Inventory or {}

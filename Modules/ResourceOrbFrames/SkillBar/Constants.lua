@@ -2,8 +2,6 @@
 File: Modules/ResourceOrbFrames/SkillBar/Constants.lua
 Purpose: Shared constants for SkillBar managers (FrontBar, BackBar, Ultimate, Tooltips).
          Consolidates duplicate slot mapping arrays that were repeated 5+ times.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

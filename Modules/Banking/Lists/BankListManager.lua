@@ -2,8 +2,6 @@
 File: Modules/Banking/Lists/BankListManager.lua
 Purpose: Manages banking list categories, filtering, sorting, and refresh logic.
          Row setup/rendering lives in BankRowSetup.lua.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -16,10 +14,6 @@ local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
 -- HELPER FUNCTIONS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BuildAllBankCategories
-Description: Builds the full list of bank categories.
-]]
 --- @param isFurnitureVault boolean
 --- @return table
 local function BuildAllBankCategories(isFurnitureVault)
@@ -46,10 +40,6 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
---[[
-Function: DoesItemMatchBankCategory
-Description: Wrapper for the shared category matching function.
-]]
 --- @param itemData table
 --- @param category table
 --- @return boolean
@@ -59,13 +49,6 @@ end
 
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 
---[[
-Function: ResolveBagsAndSlotType
-Description: Determines which bags to scan and the appropriate slot type
-             based on the current banking mode (withdraw vs deposit).
-param: self (table) - The Banking class instance.
-return: bags (table), slotType (number)
-]]
 --- @return table bags
 --- @return number slotType
 local function ResolveBagsAndSlotType(self)

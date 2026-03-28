@@ -5,8 +5,6 @@ Purpose: Slash command registration for BetterUI developer debug tools.
          DISABLED BY DEFAULT - Commands check IsEnabled internally.
 
 Extracted from: DeveloperDebug.lua (command registration concern)
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 local Debug = BETTERUI.CIM.Debug

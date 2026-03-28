@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/Core/OrbEvents.lua
 Purpose: Manages periodic updates (ticks), event registrations, and scene handlers.
          Combat indicator visuals are in OrbCombatIndicators.lua.
-Last Modified: 2026-03-14
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

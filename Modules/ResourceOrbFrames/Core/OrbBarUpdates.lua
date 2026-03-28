@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/Core/OrbBarUpdates.lua
 Purpose: Implements update/refresh behavior for rectangular bar frames.
          Continues the class definitions declared in OrbBars.lua.
-Last Modified: 2026-03-14
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

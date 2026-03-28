@@ -3,7 +3,6 @@ File: Modules/Inventory/Actions/ItemActionsDialog.lua
 Purpose: Wires up the "Y-Action" menu (Action Dialog) for inventory items.
          Hooks the native ZO_GAMEPAD_INVENTORY_ACTION_DIALOG.
          Handler implementations live in ItemActionHandlers.lua (loaded before this file).
-Last Modified: 2026-03-14
 ]]
 
 

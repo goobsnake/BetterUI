@@ -2,8 +2,6 @@
 File: Modules/CIM/Actions/ActionDialogUtils.lua
 Purpose: Shared action dialog utilities for Inventory and Banking modules.
          Provides factories for quickslot entries, action entry population, and common handlers.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -37,16 +35,6 @@ function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
 
---[[
-Function: BETTERUI.CIM.BuildQuickslotDialogEntries
-Populates the parametric list with quickslot wheel entries.
-  1. Clears the parametric list.
-  2. Adds "Remove" entry if item is already assigned to a slot.
-  3. Adds entries for each of the 8 quickslot positions in clockwise order.
-param: dialog (table) - The dialog object containing the parametricList.
-param: target (table) - The target item data (bagId, slotIndex).
-return: table - { hasUnassign = boolean, assignedIndex = number|nil, orderedSlots = table }
-]]
 --- @param dialog table The dialog object containing the parametricList
 --- @param target table The target item data (bagId, slotIndex)
 --- @return table result Information about the populated entries
@@ -142,15 +130,6 @@ end
 -- ACTION ENTRY POPULATION
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.PopulateActionEntries
-Populates the parametric list with discovered slot actions.
-param: parametricList (table) - The dialog's parametric list to populate.
-param: slotActions (object) - The slot actions object with GetNumSlotActions/GetSlotAction.
-param: options (table|nil) - Configuration options:
-  - hideDestroy (boolean): Hide Destroy/Delete actions.
-  - filterCallback (function): Optional function(actionName) returning true to include action.
-]]
 --- @param parametricList table The dialog's parametric list to populate
 --- @param slotActions table The slot actions object with GetNumSlotActions/GetSlotAction
 --- @param options table|nil Configuration options

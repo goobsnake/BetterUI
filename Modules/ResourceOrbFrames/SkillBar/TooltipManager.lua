@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/SkillBar/TooltipManager.lua
 Purpose: Manages tooltip interactions for skill bar buttons.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end

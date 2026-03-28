@@ -2,7 +2,6 @@
 File: Modules/ResourceOrbFrames/Core/OrbCombatIndicators.lua
 Purpose: Combat indicator visuals (glows, icons, pulse animations) for the ResourceOrbFrames module.
          Split from OrbEvents.lua for maintainability.
-Last Modified: 2026-03-14
 ]]
 
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end

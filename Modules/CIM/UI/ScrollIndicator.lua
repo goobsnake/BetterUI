@@ -2,8 +2,6 @@
 File: Modules/CIM/UI/ScrollIndicator.lua
 Purpose: Public API for the parametric list scroll indicator.
          Internal constants, helpers, and control creation are in ScrollIndicatorControls.lua.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -- Ensure namespace exists

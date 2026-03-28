@@ -2,8 +2,6 @@
 File: Modules/Inventory/Core/InventoryClass.lua
 Purpose: Defines the primary BETTERUI.Inventory.Class structure, initialization logic,
          header management, and high-level caching mechanisms.
-Author: BetterUI Team
-Last Modified: 2026-02-07
 ]]
 
 -- Architecture Note: BetterUI.Inventory subclasses ZO_GamepadInventory directly to:

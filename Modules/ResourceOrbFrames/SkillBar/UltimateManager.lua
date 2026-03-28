@@ -1,8 +1,6 @@
 --[[
 File: Modules/ResourceOrbFrames/SkillBar/UltimateManager.lua
 Purpose: Manages the Ultimate meter updates and ready animations.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.ResourceOrbFrames.SkillBar then BETTERUI.ResourceOrbFrames.SkillBar = {} end

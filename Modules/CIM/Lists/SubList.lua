@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Lists/SubList.lua
 Purpose: Nested Menu Support (Sub-lists).
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 -- ============================================================================

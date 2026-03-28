@@ -3,8 +3,6 @@ File: Modules/CIM/Core/DeveloperDebug.lua
 Purpose: Consolidated developer debug module for BetterUI.
          Provides diagnostic commands, debug flags, and development utilities.
          DISABLED BY DEFAULT - Enable via DEBUG_LOGGING feature flag or BETTERUI_DEBUG global.
-Author: BetterUI Team
-Last Modified: 2026-02-08
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -35,11 +33,6 @@ BETTERUI.CIM.Debug.FLAGS = {
 -- CORE API
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.Debug.IsEnabled
-Checks if debug mode is enabled.
-References: Called by all debug utilities before executing.
-]]
 --- @return boolean enabled True if debug mode is active
 function BETTERUI.CIM.Debug.IsEnabled()
     -- Check global flag first (backward compatibility)
@@ -65,11 +58,6 @@ function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
     return BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS == true
 end
 
---[[
-Function: BETTERUI.CIM.Debug.Log
-Conditional debug logging that respects debug mode state.
-References: Used throughout codebase for development logging.
-]]
 --- @param message string The message to log
 --- @param category? string Optional category prefix (e.g., "Scene", "List")
 function BETTERUI.CIM.Debug.Log(message, category)
@@ -79,10 +67,6 @@ function BETTERUI.CIM.Debug.Log(message, category)
     BETTERUI.Debug(prefix .. message)
 end
 
---[[
-Function: BETTERUI.CIM.Debug.SetFlag
-Sets a debug sub-flag.
-]]
 --- @param flagName string The flag name from FLAGS table
 --- @param enabled boolean The new state
 function BETTERUI.CIM.Debug.SetFlag(flagName, enabled)

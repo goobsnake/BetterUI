@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Components/SellComponent.lua
 Purpose: Sell tab component for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Handles listing inventory items that can be sold and selling them.
 Includes batch junk sell support (Sell All Junk keybind).

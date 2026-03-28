@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/Lists/CraftBagListManager.lua
 Purpose: Manages the Craft Bag list for the Inventory module.
-Author: BetterUI Team
 ]]
 
 --- @param left table

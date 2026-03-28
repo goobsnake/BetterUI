@@ -2,8 +2,6 @@
 File: Modules/CIM/Keybinds/GenericKeybinds.lua
 Purpose: Shared keybind descriptor factories for Inventory and Banking modules.
          Provides reusable keybind definitions to reduce duplication.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -13,13 +11,6 @@ if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 -- KEYBIND FACTORY FUNCTIONS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.Keybinds.CreateBackKeybind
-Creates a standard back navigation keybind.
-Used By: Common utility, not currently in production use.
-param: callback (function|nil) - Custom callback. If nil, uses standard back navigation.
-return: table - Keybind descriptor for back navigation.
-]]
 --- @param callback function|nil Custom callback for the back action
 --- @return table keybind Keybind descriptor for back navigation
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
@@ -34,14 +25,6 @@ function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     }
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.CreateStackAllKeybind
-Creates a "Stack All" keybind for a specific bag.
-Used By: Inventory/Keybinds/InventoryKeybinds.lua
-param: bagId (number) - The bag to stack items in.
-param: visibleFn (function|nil) - Optional visibility function.
-return: table - Keybind descriptor for stack all action.
-]]
 --- @param bagId number The bag to stack items in
 --- @param visibleFn function|nil Optional visibility function
 --- @return table keybind Keybind descriptor for stack all action
@@ -58,14 +41,6 @@ function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     }
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.CreateActionsKeybind
-Creates an "Actions" keybind (Y-button menu).
-Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
-param: showActionsFn (function) - Function to call to show the actions menu.
-param: visibleFn (function|nil) - Optional visibility function.
-return: table - Keybind descriptor for actions menu.
-]]
 --- @param showActionsFn function Function to call to show the actions menu
 --- @param visibleFn function|nil Optional visibility function
 --- @return table keybind Keybind descriptor for actions menu
@@ -80,16 +55,6 @@ function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     }
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.CreateClearSearchKeybind
-Creates a "Clear Search" keybind.
-             Only visible when search box contains text (via hasTextFn).
-Used By: Inventory/Keybinds/InventoryKeybinds.lua, Banking/Keybinds/KeybindManager.lua
-param: clearSearchFn (function) - Function to call to clear the search.
-param: visibleFn (function|nil) - Optional base visibility function.
-param: hasTextFn (function|nil) - Optional function returning true if search has text. If nil, always shows.
-return: table - Keybind descriptor for clear search action.
-]]
 --- @param clearSearchFn function Function to call to clear the search
 --- @param visibleFn function|nil Optional base visibility function
 --- @param hasTextFn function|nil Optional function returning true if search has text
@@ -120,12 +85,6 @@ end
 -- KEYBIND GROUP HELPERS
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.Keybinds.AddBackNavigation
-Adds back navigation keybind(s) to a keybind group.
-param: keybindGroup (table) - The keybind group to add to.
-param: navigationType (number|nil) - Navigation type. Defaults to GAME_NAVIGATION_TYPE_BUTTON.
-]]
 --- @param keybindGroup table The keybind group to add to
 --- @param navigationType number|nil Navigation type constant
 function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
@@ -145,15 +104,6 @@ function BETTERUI.CIM.Keybinds.AddTriggerKeybinds(keybindGroup, list)
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindGroup, list)
 end
 
---[[
-Function: BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds
-Creates LT/RT keybinds for fast scrolling with configurable speed.
-param: listOrGetter (table|function) - The parametric scroll list, or a function returning it.
-param: useCategoryJumpGetter (function|boolean|nil) - Optional. Getter for category jump mode.
-param: speedGetter (function|nil) - Optional. Returns the trigger speed for this module.
-param: enabledGetter (function|nil) - Optional. Returns whether triggers are enabled. Nil = always enabled.
-return: table, table - Left trigger and right trigger keybind descriptors.
-]]
 --- @param listOrGetter table|function The parametric scroll list, or a function returning it
 --- @param useCategoryJumpGetter function|boolean|nil Optional. Getter function returning boolean if category jump should be used instead of speed skip.
 --- @param speedGetter function|nil Optional. Returns the number of lines to skip per trigger press.

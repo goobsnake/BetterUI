@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/MarketIntegration.lua
 Purpose: Integration with third-party trade addons for price data.
          Supports MasterMerchant, Arkadius Trade Tools, and Tamriel Trade Centre.
-Author: BetterUI Team
-Last Modified: 2026-01-27
 ]]
 
 -- ============================================================================
@@ -153,16 +151,6 @@ function MarketIntegration.GetPriorityOrder(settings)
     return PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc
 end
 
---[[
-Function: BETTERUI.GetMarketPrice
-Retrieves the market price of an item from third-party trade addons.
-           Calls the specific addon's API to fetch price data.
-           Returns the average price multiplied by stack size.
-References: Used by BetterUI.Tooltips and Inventory rows to show value.
-param: itemLink (string) - The item link.
-param: stackCount (number) - The stack size (defaults to 1).
-return: number - The calculated total price, or 0 if unavailable.
-]]
 --- @param itemLink string The item link
 --- @param stackCount number|nil The stack size (defaults to 1)
 --- @return number totalPrice The calculated total price, or 0 if unavailable

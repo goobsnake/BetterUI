@@ -3,8 +3,6 @@ File: Modules/CIM/Core/FontLocalization.lua
 Purpose: Font localization utility for language-aware font handling.
          Provides detection of user language, font compatibility checks,
          and centralized Western-only font list for migration logic.
-Author: BetterUI Team
-Last Modified: 2026-02-05
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -51,60 +49,28 @@ Localization.LANGUAGE_GROUPS = {
     zh = "cjk",
 }
 
---[[
-Function: Localization.GetCurrentLanguage
-Description: Returns the user's current game language code.
-Rationale: ESO stores language preference in CVar "language.2".
-return: string - Language code (e.g., "en", "de", "jp", "zh", "ru")
-]]
 --- @return string languageCode The current game language code
 function Localization.GetCurrentLanguage()
     return GetCVar("language.2") or "en"
 end
 
---[[
-Function: Localization.GetCurrentLanguageGroup
-Description: Returns the script group for the current language.
-Rationale: Groups languages by their glyph requirements for font selection.
-return: string - "western", "cyrillic", or "cjk"
-]]
 --- @return "western"|"cyrillic"|"cjk" group The script group for the current language
 function Localization.GetCurrentLanguageGroup()
     local lang = Localization.GetCurrentLanguage()
     return Localization.LANGUAGE_GROUPS[lang] or "western"
 end
 
---[[
-Function: Localization.IsEnglish
-Description: Returns whether the current language is English.
-Rationale: Used to skip migration for English users who have full font compatibility.
-return: boolean - True if current language is English
-]]
 --- @return boolean isEnglish True if current language is English
 function Localization.IsEnglish()
     return Localization.GetCurrentLanguage() == "en"
 end
 
---[[
-Function: Localization.IsFontWesternOnly
-Description: Checks if a font path is Western-only (lacks CJK/Cyrillic support).
-Rationale: Used by migration logic to determine if a font needs upgrading.
-param: fontPath (string) - The font file path to check.
-return: boolean - True if the font only supports Western characters.
-]]
 --- @param fontPath string The font file path to check
 --- @return boolean isWesternOnly True if font only supports Western characters
 function Localization.IsFontWesternOnly(fontPath)
     return Localization.WESTERN_ONLY_FONTS[fontPath] == true
 end
 
---[[
-Function: Localization.IsFontLocalizedForLanguage
-Description: Checks if a font path is compatible with the user's current language.
-Rationale: Fonts using $(...) variables or not in WESTERN_ONLY_FONTS are considered safe.
-param: fontPath (string) - The font file path to check.
-return: boolean - True if the font is compatible with the current language.
-]]
 --- @param fontPath string The font file path to check
 --- @return boolean isLocalized True if font is compatible with current language
 function Localization.IsFontLocalizedForLanguage(fontPath)
@@ -122,13 +88,6 @@ function Localization.IsFontLocalizedForLanguage(fontPath)
     return not Localization.IsFontWesternOnly(fontPath)
 end
 
---[[
-Function: Localization.GetLocalizedFontDefault
-Description: Returns the appropriate localized font variable for a context.
-Rationale: Different UI contexts may prefer different font weights.
-param: context (string) - "medium" for lists, "bold" for nameplates/headers.
-return: string - The localized font variable.
-]]
 --- @param context "medium"|"bold" The font weight context
 --- @return string fontVariable The localized font variable
 function Localization.GetLocalizedFontDefault(context)
@@ -139,13 +98,6 @@ function Localization.GetLocalizedFontDefault(context)
     end
 end
 
---[[
-Function: Localization.GetFontCompatibilityWarning
-Description: Returns a warning string if host font is not compatible with current language.
-Rationale: Used in settings tooltips to warn users about incompatible font choices.
-param: fontPath (string) - The font file path to check.
-return: string|nil - Warning message or nil if font is compatible.
-]]
 --- @param fontPath string The font file path to check
 --- @return string|nil warning Warning message or nil if compatible
 function Localization.GetFontCompatibilityWarning(fontPath)
@@ -167,14 +119,6 @@ function Localization.GetFontCompatibilityWarning(fontPath)
     return nil
 end
 
---[[
-Function: Localization.GetFilteredFontChoices
-Description: Returns font choice names filtered for the current language.
-Rationale: Non-English users should only see fonts compatible with their language.
-param: sourceChoices (table) - Array of font choice display names.
-param: sourceValues (table) - Array of font path values (parallel to sourceChoices).
-return: table - Filtered array of font choice names.
-]]
 --- @param sourceChoices table Array of font choice display names
 --- @param sourceValues table Array of font path values
 --- @return table filteredChoices Filtered array of font choice names
@@ -195,14 +139,6 @@ function Localization.GetFilteredFontChoices(sourceChoices, sourceValues)
     return filtered
 end
 
---[[
-Function: Localization.GetFilteredFontValues
-Description: Returns font path values filtered for the current language.
-Rationale: Non-English users should only see fonts compatible with their language.
-param: sourceChoices (table) - Array of font choice display names.
-param: sourceValues (table) - Array of font path values (parallel to sourceChoices).
-return: table - Filtered array of font path values.
-]]
 --- @param sourceChoices table Array of font choice display names
 --- @param sourceValues table Array of font path values
 --- @return table filteredValues Filtered array of font path values
@@ -222,14 +158,6 @@ function Localization.GetFilteredFontValues(sourceChoices, sourceValues)
     return filtered
 end
 
---[[
-Function: Localization.GetFilteredFontArrays
-Description: Returns both filtered choices and values for current language.
-Rationale: Convenience function for settings panels that need both arrays.
-param: sourceChoices (table) - Array of font choice display names.
-param: sourceValues (table) - Array of font path values.
-return: table, table - Filtered choices and values arrays.
-]]
 --- @param sourceChoices table Array of font choice display names
 --- @param sourceValues table Array of font path values
 --- @return table filteredChoices, table filteredValues

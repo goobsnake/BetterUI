@@ -3,8 +3,6 @@ File: Modules/CIM/Core/EventRegistry.lua
 Purpose: Centralized event registration with cleanup support.
          Tracks all EVENT_MANAGER registrations to enable proper cleanup
          when modules are disabled or scenes are hidden.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 
 Usage:
     -- Register an event with tracking

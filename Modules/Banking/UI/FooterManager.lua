@@ -2,8 +2,6 @@
 File: Modules/Banking/UI/FooterManager.lua
 Purpose: Manages the banking footer UI (capacity info, currency display).
          Extracted from Banking.lua.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -------------------------------------------------------------------------------------------------

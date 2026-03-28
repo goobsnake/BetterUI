@@ -2,8 +2,6 @@
 File: Modules/CIM/Lists/GenericListManager.lua
 Purpose: Shared list management logic for Inventory and Banking modules.
          Provides sorting, filtering, position tracking, and caching utilities.
-Author: BetterUI Team
-Last Modified: 2026-01-26
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -29,12 +27,6 @@ end
 -- POSITION MANAGEMENT
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.GenericListManager:SavePosition
-Saves the current list position for later restoration.
-param: categoryKey (string) - The category to save position for.
-param: position (number) - The scroll position to save.
-]]
 --- @param categoryKey string The category to save position for
 --- @param position number The position to save
 function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
@@ -43,12 +35,6 @@ function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     end
 end
 
---[[
-Function: BETTERUI.CIM.GenericListManager:RestorePosition
-Restores a previously saved list position.
-param: categoryKey (string) - The category to restore position for.
-return: number|nil - The saved position, or nil if not found.
-]]
 --- @param categoryKey string The category to restore position for
 --- @return number|nil position The saved position or nil if not found
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
@@ -97,13 +83,6 @@ end
 -- SORTING COMPARATORS (Static Functions)
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.SortByName
-Alphabetical name comparator.
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
 --- @param left table First item data
 --- @param right table Second item data
 --- @return boolean result True if left should come before right
@@ -147,13 +126,6 @@ function BETTERUI.CIM.SortByLevel(left, right)
     return leftLevel > rightLevel
 end
 
---[[
-Function: BETTERUI.CIM.SortByValue
-Sell price comparator (higher value first).
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
 --- @param left table First item data
 --- @param right table Second item data
 --- @return boolean result True if left should come before right
@@ -223,13 +195,6 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
     return filtered
 end
 
---[[
-Function: BETTERUI.CIM.GenericListManager:BuildSortFunction
-Creates a multi-key comparator from an array of sort functions.
-           stopping at the first one that produces a difference.
-param: sortKeys (table) - Array of sort functions to chain.
-return: function - Combined comparator function.
-]]
 --- @param sortKeys table Array of sort functions to chain
 --- @return function comparator Combined comparator function
 function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)

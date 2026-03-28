@@ -2,8 +2,6 @@
 File: Modules/CIM/Core/FeatureFlags.lua
 Purpose: Runtime feature flag system for BetterUI.
          Enables gradual rollout, A/B testing, and safe feature toggling.
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -65,11 +63,6 @@ local flagOverrides = {}
 -- CORE API
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.FeatureFlags.IsEnabled
-Checks if a feature flag is enabled.
-References: Called throughout the addon to gate feature-specific code.
-]]
 --- @param flagName string The feature flag identifier
 --- @return boolean enabled True if the feature is enabled
 function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
@@ -101,11 +94,6 @@ function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
     return false
 end
 
---[[
-Function: BETTERUI.CIM.FeatureFlags.SetEnabled
-Sets a feature flag's enabled state (persisted to saved variables).
-References: Settings panels, debug slash commands.
-]]
 --- @param flagName string The feature flag identifier
 --- @param enabled boolean The new enabled state
 function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
@@ -115,11 +103,6 @@ function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
     flagStateCache[flagName] = nil -- Clear cache to force re-read
 end
 
---[[
-Function: BETTERUI.CIM.FeatureFlags.SetOverride
-Sets a temporary runtime override for a feature flag.
-References: Debug commands, unit tests.
-]]
 --- @param flagName string The feature flag identifier
 --- @param enabled boolean|nil The override state, or nil to clear override
 function BETTERUI.CIM.FeatureFlags.SetOverride(flagName, enabled)
@@ -135,10 +118,6 @@ function BETTERUI.CIM.FeatureFlags.ClearOverrides()
     flagOverrides = {}
 end
 
---[[
-Function: BETTERUI.CIM.FeatureFlags.GetAllFlags
-Returns all defined feature flags with their current states.
-]]
 --- @return table<string, {definition: FeatureFlagDefinition, enabled: boolean}> flags
 function BETTERUI.CIM.FeatureFlags.GetAllFlags()
     local result = {}

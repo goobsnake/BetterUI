@@ -2,8 +2,6 @@
 File: Modules/Inventory/Actions/SlotActions.lua
 Purpose: Manages the "Action Controller" for inventory slots, determining
          what happens when the user presses the Primary Action key (usually 'A').
-Author: BetterUI Team
-Last Modified: 2026-01-28
 ]]
 
 --------------------------------------------------------------------------------

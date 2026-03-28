@@ -3,8 +3,6 @@ File: Modules/CIM/Core/SettingsFactory.lua
 Purpose: Settings sort helpers, panel factory, and font settings factory.
          Provides alphabetical sorting for LAM controls, module panel creation,
          and font submenu option generation.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 
 Note: Settings metadata registry and default/reset functions are in SettingsMetadata.lua.
 ]]

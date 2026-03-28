@@ -4,8 +4,6 @@ Purpose: Dialog registrations for Inventory operations:
          - Split Stack
          - Confirm Destroy Item
          - Confirm Destroy Armory Item
-Author: BetterUI Team (extracted from Inventory.lua)
-Last Modified: 2026-03-14
 ]]
 
 --- @param targetBag number

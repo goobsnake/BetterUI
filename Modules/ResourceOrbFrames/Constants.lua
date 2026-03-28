@@ -2,8 +2,6 @@
 File: Modules/ResourceOrbFrames/Constants.lua
 Purpose: Defines all static constants for the ResourceOrbFrames module.
          Centralizes layout dimensions, positioning offsets, and configuration values.
-Author: BetterUI Team
-Last Modified: 2026-02-12
 ]]
 
 

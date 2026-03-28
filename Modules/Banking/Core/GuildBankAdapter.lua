@@ -3,8 +3,6 @@ File: Modules/Banking/Core/GuildBankAdapter.lua
 Purpose: Guild bank detection, permission checks, and mode switching.
          Provides a permission-aware adapter between ESO's guild bank
          system and BetterUI's Banking module.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 
 KEY MECHANICS:
 1.  **Detection**: Detects when the player interacts with a guild banker

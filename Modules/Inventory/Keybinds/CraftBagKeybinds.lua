@@ -2,8 +2,6 @@
 File: Modules/Inventory/Keybinds/CraftBagKeybinds.lua
 Purpose: Hosts craft bag and cross-list keybind helpers used by the
          main inventory keybind strip.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 local InventoryKeybinds = BETTERUI.Inventory.Keybinds

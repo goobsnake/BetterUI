@@ -1,7 +1,6 @@
 --[[
 File: Modules/Inventory/Core/HeaderManager.lua
 Purpose: Manages the inventory header, tab switches, and search focus integration.
-Author: BetterUI Team
 ]]
 
 local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY

@@ -1,8 +1,6 @@
 --[[
 File: Modules/Vendor/Components/FenceLaunderComponent.lua
 Purpose: Fence Launder tab component for the Vendor module.
-Authors: BUI Team
-Last Modified: 2026-03-14
 
 Handles laundering stolen items at the fence.
 KEY MECHANICS:

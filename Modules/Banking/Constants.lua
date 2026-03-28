@@ -2,7 +2,6 @@
 File: Modules/Banking/Constants.lua
 Purpose: Constants for the Banking module.
          Includes search bar positioning and carousel overrides.
-Last Modified: 2026-01-28
 ]]
 
 if not BETTERUI.Banking then BETTERUI.Banking = {} end

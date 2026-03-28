@@ -1,8 +1,6 @@
 --[[
 File: Modules/CIM/Core/SafeExecute.lua
 Purpose: Provides safe execution wrapper for error-prone operations.
-Author: BetterUI Team
-Last Modified: 2026-01-29
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end

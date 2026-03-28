@@ -3,8 +3,6 @@ File: Modules/CIM/UI/ScrollIndicatorControls.lua
 Purpose: Internal constants, state, mouse interaction helpers, and control creation
          for the parametric list scroll indicator.
          Split from ScrollIndicator.lua for maintainability.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 -- Ensure namespace exists

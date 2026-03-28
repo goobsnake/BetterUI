@@ -1,8 +1,6 @@
 --[[
 File: Modules/Inventory/Keybinds/InventoryKeybinds.lua
 Purpose: Defines the main inventory keybind strip and shared item-list helpers.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 local InventoryConst = BETTERUI.Inventory.CONST

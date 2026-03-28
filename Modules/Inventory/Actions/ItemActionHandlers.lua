@@ -3,8 +3,6 @@ File: Modules/Inventory/Actions/ItemActionHandlers.lua
 Purpose: Action dialog callback handlers (Setup, Finish, Confirm) for the Y-button inventory menu.
          Extracted from ItemActionsDialog.lua to keep both files under 600 lines.
          All handlers take `self` (the Inventory.Class instance) as their first argument.
-Author: BetterUI Team
-Last Modified: 2026-03-14
 ]]
 
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
