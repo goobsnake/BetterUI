@@ -32,7 +32,7 @@ local COLOR_RESET    = "|r"
 
 --- Determines the equip slot for an item link.
 --- Returns the primary equip slot, handling main-hand / off-hand / two-hand logic.
---- @param itemLink string
+--- @param itemLink string|nil
 --- @return number|nil equipSlot
 local function GetEquipSlotForItem(itemLink)
     if not itemLink or itemLink == "" then return nil end
@@ -120,7 +120,7 @@ end
 -------------------------------------------------------------------------------------------------
 
 --- Extracts enchantment summary from an item link.
---- @param itemLink string
+--- @param itemLink string|nil
 --- @return string|nil enchantmentDesc A brief description of the enchantment
 local function GetEnchantmentSummary(itemLink)
     if not itemLink or itemLink == "" then return nil end
@@ -136,7 +136,7 @@ end
 -------------------------------------------------------------------------------------------------
 
 --- Extracts set name from an item link.
---- @param itemLink string
+--- @param itemLink string|nil
 --- @return string|nil setName
 local function GetSetName(itemLink)
     if not itemLink or itemLink == "" then return nil end
@@ -152,7 +152,7 @@ end
 -------------------------------------------------------------------------------------------------
 
 --- Compare a candidate item against the currently equipped item in the same slot.
---- @param candidateLink string Item link of the candidate
+--- @param candidateLink string|nil Item link of the candidate
 --- @param candidateBagId number Bag ID of the candidate
 --- @param candidateSlotIndex number Slot index in the bag
 --- @return table|nil result Comparison result with fields: equipSlot, equippedLink, deltas, lines, isUpgrade

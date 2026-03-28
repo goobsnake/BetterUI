@@ -13,6 +13,8 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 -- Inventory and Banking modules. They handle secure API calls.
 
 --- @param inventorySlot table Inventory slot data with bagId/slotIndex
+--- @note Side effects: Consumes the item via CallSecureProtected("UseItem"),
+---   UseQuestTool, or UseQuestItem. May trigger scene transitions.
 function BETTERUI.CIM.TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
@@ -38,6 +40,9 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
 end
 
 --- @param inventorySlot table The inventory slot data
+--- @note Side effects: Moves items between inventory and bank via
+---   CallSecureProtected("PickupInventoryItem") and CallSecureProtected("PlaceInTransfer").
+---   May trigger UI alerts on failure (inventory full, stolen item, bank full).
 function BETTERUI.CIM.TryBankItem(inventorySlot)
     if not PLAYER_INVENTORY:IsBanking() then return end
 
@@ -76,6 +81,8 @@ end
 
 --- @param inventorySlot table The inventory slot data
 --- @param targetBag number BAG_BACKPACK or BAG_VIRTUAL
+--- @note Side effects: Transfers items between inventory and craft bag via
+---   CallSecureProtected("RequestMoveItem"). May trigger UI alerts on failure.
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bag then return end

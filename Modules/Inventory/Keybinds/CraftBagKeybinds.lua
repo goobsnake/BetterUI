@@ -20,7 +20,7 @@ local function GetCurrentTarget(self)
     return nil
 end
 
---- @param target table
+--- @param target table|nil
 --- @return number|nil
 local function GetQuestItemId(target)
     if not target then
@@ -38,7 +38,7 @@ local function GetQuestItemId(target)
     return nil
 end
 
---- @param target table
+--- @param target table|nil
 --- @param isQuestItem boolean
 --- @return number|nil
 local function GetAssignedQuickslot(target, isQuestItem)

@@ -97,7 +97,7 @@ local BANKING_SORT_COLUMNS = {
 
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
 --- Returns uppercase trait name for consistent sorting
---- @param data table Item data
+--- @param data table|nil Item data
 --- @return string|nil Trait name (uppercase) or nil if no trait
 local function GetTraitSortValue(data)
     if not data then return nil end
@@ -138,7 +138,7 @@ end
 
 --- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
 --- Returns: sortPriority (1=alpha, 2=numeric, 3=blank), sortValue
---- @param data table Item data
+--- @param data table|nil Item data
 --- @return number priority Sort priority (1=alpha, 2=numeric, 3=blank)
 --- @return string|number value Value to compare within priority
 local function GetStatSortValue(data)
@@ -168,7 +168,7 @@ local function GetStatSortValue(data)
 end
 
 --- Helper: Get value sort value (market price first, then vendor price)
---- @param data table Item data
+--- @param data table|nil Item data
 --- @return number price Best available price
 local function GetValueSortValue(data)
     if not data then return 0 end

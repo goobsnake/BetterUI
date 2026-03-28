@@ -49,19 +49,14 @@ local GetModuleSettings = BETTERUI.GetModuleSettings
 
 --- @return boolean shouldShow
 local function ShouldShowMarketPrice()
-    local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return true
-    end
-
-    local generalInterfaceSettings = modules["GeneralInterface"]
-    if generalInterfaceSettings and generalInterfaceSettings.showMarketPrice ~= nil then
+    local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
+    if generalInterfaceSettings.showMarketPrice ~= nil then
         return generalInterfaceSettings.showMarketPrice
     end
 
     -- Legacy fallback for pre-migration saved variables.
-    local inventorySettings = modules["Inventory"]
-    if inventorySettings and inventorySettings.showMarketPrice ~= nil then
+    local inventorySettings = GetModuleSettings("Inventory")
+    if inventorySettings.showMarketPrice ~= nil then
         return inventorySettings.showMarketPrice
     end
 

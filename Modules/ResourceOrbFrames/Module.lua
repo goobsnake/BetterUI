@@ -39,11 +39,7 @@ local function Init(mId, moduleName)
     end
 
     local function GetResourceOrbSettings()
-        local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-        if not modules then
-            return nil
-        end
-        return modules["ResourceOrbFrames"]
+        return BETTERUI.GetModuleSettings("ResourceOrbFrames")
     end
 
     local function EnsureResourceOrbSettings()

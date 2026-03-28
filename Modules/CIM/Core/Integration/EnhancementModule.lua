@@ -101,7 +101,7 @@ function BETTERUI.GeneralInterface.Setup()
 	Init("General", "General Interface")
 
 	-- Only apply hooks/logic if Tooltips module is enabled
-	if not BETTERUI.Settings.Modules["GeneralInterface"].m_enabled then return end
+	if not BETTERUI.GetModuleEnabled("GeneralInterface") then return end
 
 	if IsPrivateFunction('IsInUI') then
 		ZO_IsIngameUI = function()
@@ -119,9 +119,7 @@ function BETTERUI.GeneralInterface.Setup()
 				if not origCallback then break end
 				descriptor["callback"] = function()
 					-- Guard: settings may be nil if accessed before SavedVars load completes
-					local moduleSettings = BETTERUI.Settings
-						and BETTERUI.Settings.Modules
-						and BETTERUI.Settings.Modules["GeneralInterface"]
+					local moduleSettings = BETTERUI.GetModuleSettings("GeneralInterface")
 					if moduleSettings and moduleSettings.removeDeleteDialog then
 						self:Delete() -- Skip confirmation
 					else
@@ -210,7 +208,7 @@ function BETTERUI.GeneralInterface.Setup()
 		if tooltipControl and tooltipControl.AddTopLinesToTopSection then
 			local originalAddTopLines = tooltipControl.AddTopLinesToTopSection
 			tooltipControl.AddTopLinesToTopSection = function(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
-				local settings = BETTERUI.Settings.Modules["CIM"]
+				local settings = BETTERUI.GetModuleSettings("CIM")
 				local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
 				if enhancementsEnabled then
 					-- Skip native labels — BetterUI's custom label handles them
@@ -230,7 +228,7 @@ function BETTERUI.GeneralInterface.Setup()
 	if scene then
 		scene:RegisterCallback("StateChange", function(oldState, newState)
 			-- Check setting at runtime to support live toggle
-			if not BETTERUI.Settings.Modules["GeneralInterface"].guildStoreErrorSuppress then
+			if not BETTERUI.GetModuleSettings("GeneralInterface").guildStoreErrorSuppress then
 				return -- Setting disabled, no-op
 			end
 			if newState == SCENE_SHOWING then

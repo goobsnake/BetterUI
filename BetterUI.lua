@@ -101,7 +101,9 @@ BETTERUI.GenericFooter = BETTERUI.GenericFooter or {}
 BETTERUI.Interface = BETTERUI.Interface or {}
 
 -- Engine helper references
+---@type userdata
 BETTERUI.WindowManager = GetWindowManager()
+---@type userdata
 BETTERUI.EventManager = GetEventManager()
 
 -- Research traits cache (populated by CIM/Core/ResearchCache.lua)
@@ -161,7 +163,7 @@ function BETTERUI.InitModuleOptions()
 
 --- Normalizes a module toggle name for sorting by removing color codes, textures,
 --- whitespace, and language-specific "Enable" prefixes.
---- @param name string The raw toggle name to normalize
+--- @param name string|nil The raw toggle name to normalize
 --- @return string normalized The normalized sort key
 local function NormalizeModuleToggleSortName(name)
 		if type(name) ~= "string" then

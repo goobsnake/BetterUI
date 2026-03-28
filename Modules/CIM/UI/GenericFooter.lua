@@ -54,7 +54,6 @@ end
 ---
 --- References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
 function BETTERUI.GenericFooter:Refresh()
-    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
     local invSettings = BETTERUI.GetModuleSettings("Inventory")
     local footer = self.footer
     if not footer._stringCache then footer._stringCache = {} end

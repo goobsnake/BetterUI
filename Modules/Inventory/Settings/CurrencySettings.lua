@@ -110,13 +110,9 @@ local CURRENCY_DATA = {
     },
 }
 
---- @return table|nil settings
+--- @return table settings
 local function GetInventorySettings()
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return nil
-    end
-    return modules["Inventory"]
+    return BETTERUI.GetModuleSettings("Inventory")
 end
 
 --- @return table|nil settings
@@ -168,7 +164,6 @@ end
 --- @return boolean canEnable
 local function CanEnableMoreCurrencies()
     local inv = GetInventorySettings()
-    if not inv then return false end
 
     local count = 0
     for _, data in ipairs(CURRENCY_DATA) do
@@ -196,7 +191,6 @@ end
 
 local function RecomputeCurrencyOrderString()
     local inv = GetInventorySettings()
-    if not inv then return end
 
     local items = {}
     for _, data in ipairs(CURRENCY_DATA) do

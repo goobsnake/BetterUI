@@ -360,8 +360,8 @@ function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup
         return
     end
 
-    local settings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName]
-    if type(settings) ~= "table" then
+    local settings = BETTERUI.GetModuleSettings(moduleName)
+    if not next(settings) then
         return
     end
 

@@ -18,9 +18,7 @@ local function SafeExecuteWrits(context, fn, ...)
 end
 
 local function IsWritsModuleEnabled()
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    local writsSettings = modules and modules["Writs"]
-    return writsSettings and writsSettings.m_enabled == true
+    return BETTERUI.GetModuleEnabled("Writs")
 end
 
 --- Initializes the Writs module settings.
@@ -43,7 +41,6 @@ end
 --- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
 --- @param sameStation boolean Whether interacting with same station type.
---- @return nil
 local function OnCraftStation(eventCode, craftId, sameStation)
     if not IsWritsModuleEnabled() then return end
 
@@ -59,7 +56,6 @@ end
 --- Mechanics: Calls `BETTERUI.Writs.Hide` to remove the overlay.
 ---
 --- @param eventCode number The event code.
---- @return nil
 local function OnCloseCraftStation(eventCode)
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.Hide)
 end
@@ -72,7 +68,6 @@ end
 ---
 --- @param eventCode number The event code (unused but required by ESO API).
 --- @param craftId number The crafting ID (usually matching the station type).
---- @return nil
 local function OnCraftItem(eventCode, craftId)
     if not IsWritsModuleEnabled() then return end
 
@@ -92,7 +87,6 @@ end
 --- 3. Registers callbacks for Station Interact (Start/End) and Craft Completed.
 --- 4. Hides panel initially.
 --- References: Called from `BetterUI.lua` during addon initialization.
---- @return nil
 function BETTERUI.Writs.Setup()
     local tlw = BETTERUI.WindowManager:CreateTopLevelWindow("BETTERUI_Writs_TLW")
     local BETTERUI_WP = BETTERUI.WindowManager:CreateControlFromVirtual("BETTERUI_WritsPanel", tlw, "BETTERUI_WritsPanel")

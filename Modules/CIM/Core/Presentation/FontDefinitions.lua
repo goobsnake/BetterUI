@@ -233,7 +233,7 @@ end
 --- @param fontType "name"|"column" Which font setting to retrieve
 --- @return string descriptor ESO font descriptor (path|size|style)
 function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
-    local settings = BETTERUI.Settings.Modules[moduleName]
+    local settings = BETTERUI.GetModuleSettings(moduleName)
     local defaults = BETTERUI.CIM.Font.DEFAULTS
 
     local fontPath, fontSize, fontStyle

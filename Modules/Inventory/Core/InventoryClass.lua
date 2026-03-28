@@ -51,7 +51,6 @@ local g_slotDataCache = {}
 local g_slotDataCacheDirty = true
 
 --- Invalidates the slot data cache.
---- @return nil
 function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
     g_slotDataCacheDirty = true
     g_slotDataCache = {}
@@ -73,8 +72,8 @@ function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     end
 end
 
---- @param bags table
---- @return any
+--- @param bags table Array of bag IDs
+--- @return number|string key Single bag ID or comma-separated string
 local function GetBagCacheKey(bags)
     if #bags == 1 then return bags[1] end
     return table.concat(bags, ",")

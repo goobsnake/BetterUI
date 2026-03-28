@@ -285,11 +285,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
     local filteredChoices, filteredValues = Localization.GetFilteredFontArrays(fontChoices, fontValues)
 
     local function getSettings()
-        local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-        if not modules then
-            return nil
-        end
-        return modules[moduleName]
+        return BETTERUI.GetModuleSettings(moduleName)
     end
 
     local function ensureSettings()

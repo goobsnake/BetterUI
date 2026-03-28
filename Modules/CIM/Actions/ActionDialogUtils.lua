@@ -167,7 +167,7 @@ end
 -- LINK TO CHAT HANDLER
 -------------------------------------------------------------------------------------------------
 
---- @param targetData table The item data containing bagId and slotIndex
+--- @param targetData table|nil The item data containing bagId and slotIndex
 --- @return boolean success True if link was inserted
 function BETTERUI.CIM.HandleLinkToChat(targetData)
     if not targetData then return false end

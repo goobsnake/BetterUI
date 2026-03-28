@@ -170,9 +170,6 @@ end
 --- @return number totalPrice The calculated total price, or 0 if unavailable
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
-    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then
-        return 0
-    end
     -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys
     local tooltipSettings = BETTERUI.GetModuleSettings("GeneralInterface")
     if not tooltipSettings or not next(tooltipSettings) then

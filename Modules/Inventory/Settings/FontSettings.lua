@@ -27,9 +27,7 @@ end
 
 --- @return boolean isEnabled
 local function IsCIMEnabled()
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    local cimSettings = modules and modules["CIM"]
-    return cimSettings and cimSettings.m_enabled == true
+    return BETTERUI.GetModuleEnabled("CIM")
 end
 
 local function RefreshInventoryList()
