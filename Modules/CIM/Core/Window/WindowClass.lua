@@ -74,12 +74,6 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
 
     self.header.columns = {}
 
-    -- Note: Scene creation moved to subclass responsibility (e.g., Banking module)
-    -- Subclasses should call:
-    --   local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, interaction)
-    --   self:InitializeFragment()
-    --   self:InitializeScene(scene)
-
     self:InitializeList()
 end
 

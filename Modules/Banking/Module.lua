@@ -13,8 +13,6 @@ BETTERUI.Banking = BETTERUI.Banking or {}
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Banking")
 
--- Settings registration moved to Banking/Settings/SettingsPanel.lua
-
 --- Initializes defaults and migrates legacy settings for the Banking module.
 ---
 --- INIT CONTRACT: This function implements the standard InitModule signature.

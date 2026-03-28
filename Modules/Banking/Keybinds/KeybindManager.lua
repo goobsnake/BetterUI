@@ -461,13 +461,9 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(self.currencySelectorKeybinds, GAME_NAVIGATION_TYPE_BUTTON,
         function() self:HideSelector() end)
 
-    -- removed unused self.triggerSpinnerBinds placeholder
     local leftTrigger, rightTrigger = self:CreateListTriggerKeybindDescriptors(function() return self.list end)
     table.insert(self.coreKeybinds, leftTrigger)
     table.insert(self.coreKeybinds, rightTrigger)
-
-    -- NOTE: spinnerKeybindStripDescriptor has been removed.
-    -- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG modal dialog.
 end
 
 --- Triggers the selection callback to update keybinds for the current selection.

@@ -88,9 +88,6 @@ function BETTERUI.Inventory.InitModule(m_options)
     return m_options
 end
 
--- Settings registration moved to Inventory/Settings/SettingsPanel.lua
-
-
 -- MODULE SETUP
 
 --- Lifecycle hook: registers settings and initializes the Inventory module.

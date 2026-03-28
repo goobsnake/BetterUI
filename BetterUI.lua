@@ -124,12 +124,6 @@ function BETTERUI.UpdateCIMState()
 end
 
 --- Initializes the module options panel in the settings menu.
----
---- Purpose: Registers the add-on settings panel using LibAddonMenu2.
---- Mechanics: Construct a table of options including checkboxes for each module.
----            Registers the panel and options with LAM.
---- References: Called during BETTERUI.Initialize.
----
 function BETTERUI.InitModuleOptions()
 	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
 
@@ -416,17 +410,7 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 	return m_namespace
 end
 
---[[
-Function: BETTERUI.ValidateAndSetupModule
-Description: Validates and initializes a module listed in MODULE_REGISTRY.
-Rationale: Only modules in MODULE_REGISTRY participate in the Setup() lifecycle.
-           Scaffold modules (future features) should NOT define Setup() — they only
-           establish namespace tables and utility functions.
-Mechanism: Uses CIM.Interfaces.ValidateModule if available, falls back to basic check.
-param: moduleName (string) - The name of the module for logging
-param: moduleNamespace (table) - The module's namespace table
-return: boolean - True if module was successfully set up
-]]
+--- Validates and calls Setup() on a module. Falls back to basic check if CIM validation unavailable.
 local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	if not moduleNamespace then
 		BETTERUI.Debug(string.format("[Validation] Module '%s' namespace is nil", moduleName))

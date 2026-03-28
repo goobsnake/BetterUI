@@ -87,16 +87,7 @@ function BETTERUI.Inventory.InitializeSecureWheelHooks()
 	end
 end
 
--- GetEquipSlotForEquipType extracted to Core/InventoryClass.lua
--- GetCategoryKey, FindCategoryIndexByKey extracted to State/PositionManager.lua
--- SafeGetTargetData moved to InventoryUtils.lua
--- SaveListPosition, ToSavedPosition extracted to State/PositionManager.lua (injected via Mixins)
--- InitializeCategoryList, NewCategoryItem, RefreshCategoryList extracted to Lists/CategoryListManager.lua
--- IsItemListEmpty, HasAnyJunkInBackpack, RefreshItemList extracted to Lists/ItemListManager.lua
--- TryEquipItem, InitializeEquipSlotDialog extracted to Actions/EquipAction.lua
--- RefreshCraftBagList, LayoutCraftBagTooltip extracted to Lists/CraftBagListManager.lua
--- InitializeHeader, OnCategoryClicked extracted to Core/HeaderManager.lua
--- RefreshHeader, PositionSearchControl extracted to Core/InventoryClass.lua
+
 
 -- REMAINING CLASS METHODS
 
@@ -108,38 +99,7 @@ function BETTERUI.Inventory.Class:SwitchInfo()
 	end
 end
 
--- UpdateItemLeftTooltip, UpdateRightTooltip, InitializeItemList extracted to Lists/ItemListManager.lua
--- InitializeCraftBagList extracted to Lists/CraftBagListManager.lua
--- InitializeItemActions, InitializeActionsDialog extracted to Actions/ItemActionsDialog.lua
--- TryDestroyItem, HookDestroyItem, HookActionDialog extracted to Actions/ItemActionsDialog.lua
-
-
--- OnStateChanged extracted to Scene/InventorySceneLifecycle.lua
--- BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
-
---- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
----
---- Purpose: Prompts the user when equipping items where the target slot is ambiguous.
---- Mechanics:
---- - Registers `BETTERUI.Inventory.Dialogs.EQUIP_SLOT`.
---- - Uses `GAMEPAD_DIALOGS.BASIC` style.
---- - Dynamic Main Text updates based on item type (One-Handed, Ring, etc.).
---- - Provides two primary buttons (e.g. "Main Hand" / "Off Hand").
---- References: Called during `TryEquipItem`.
----
-
--- InitializeEquipSlotDialog moved to Actions/EquipAction.lua
-
-
---- Per-frame update handler.
----
---- Purpose: Manages delayed list refreshes and visual updates.
---- Mechanics:
---- - Checks `nextUpdateTimeSeconds` to throttle updates.
---- - Refreshes the active list (Item vs Craft Bag) if dirty.
---- - Updates tooltips if in "Category Action" mode.
---- References: Called by native `OnUpdate` handler.
----
+--- Per-frame update handler for delayed list refreshes and tooltip updates.
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
@@ -361,52 +321,6 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self:SwitchActiveList(INVENTORY_ITEM_LIST)
 end
 
---- Initializes the Inventory object.
----
---- Purpose: Sets up the root scene, registers update loops, and hooks into visual layer changes.
---- Mechanics:
---- - Creates `ZO_Scene` ("gamepad_inventory_root").
---- - Initializes Parametric List logic.
---- - hooks `OnUpdate` and `EVENT_VISUAL_LAYER_CHANGED`.
---- - Sets up the "Search" control logic (Focus hooks, Key handlers).
---- References: Called by Module.lua.
----
-
--- Initialize extracted to Core/InventoryClass.lua
--- BETTERUI.Inventory.Class:Initialize
-
-
---- Refreshes the header information (Money, AP, Tel Var, Capacity).
----
---- Purpose: Updates the top bar with current currency and bag space.
---- Mechanics:
---- - Builds header data dynamically based on Settings (can hide currencies).
---- - Refreshes GenericHeader.
---- - Updates Equipment Slot indicators (Main/Backup).
---- - Repositions Search Control.
---- References: Called on Currency Update or List Switch.
----
--- RefreshHeader extracted to Core/InventoryClass.lua
--- BETTERUI.Inventory.Class:RefreshHeader
-
-
---- Positions the text search control in the header.
----
---- Purpose: Ensures the search input sits correctly within the custom header geometry.
---- Mechanics: Finds the "TitleContainer" or equivalent anchor and offsets the control.
---- References: Called by RefreshHeader.
----
-
--- PositionSearchControl extracted to Core/InventoryClass.lua
--- BETTERUI.Inventory.Class:PositionSearchControl
-
-
---- Centralized helper to clear the text search UI and internal state.
----
---- Purpose: Resets search query and UI.
---- Mechanics: Clears `self.searchQuery` and calls `BETTERUI.Interface.Window.ClearSearchText`.
---- References: Called when hiding scene or when "Clear" keybind is pressed.
----
 --- Clears the text search UI and internal state.
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
@@ -445,39 +359,6 @@ function BETTERUI.Inventory.Class:Switch()
 	end
 end
 
---- Switches the active list between Inventory and Craft Bag.
----
---- Purpose: Core context switcher.
---- Mechanics:
---- 1. **Snapshot**: Saves current list position and selection unique ID.
---- 2. **Switch**: Updates `currentListType` (Item List vs Craft Bag).
---- 3. **Restore**:
----    - Sets Active List.
----    - Restores Category Tab from saved state.
----    - Restores Item Selection from saved state (Index or UniqueID).
---- 4. **Refresh**: Triggers Header and Keybind updates.
---- References: Called by Tab Navigation and Scene Entry.
----
--- SwitchActiveList moved to State/ListStateManager.lua
-
-
---- Activates the generic header control.
----
---- Purpose: Sets focus to the header.
---- Mechanics: Calls `ZO_GamepadGenericHeader_Activate` and syncs the tab bar selection.
----
-
--- Header and Search focus overrides moved to Core/HeaderManager.lua
-
-
---- Creates a new parametric list for the inventory scene.
----
---- Purpose: Helper to instantiate `BETTERUI_VerticalParametricScrollList`.
---- Mechanics:
---- - Creates control from virtual template.
---- - Initializes and setups list logic.
---- - Adds to `self.lists`.
----
 --- Creates a new parametric list for the inventory scene.
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	local listContainer = CreateControlFromVirtual(
@@ -506,11 +387,5 @@ function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	end
 	return false
 end
-
--- InitializeKeybindStrip extracted to Keybinds/InventoryKeybinds.lua
-
--- BETTERUI_TryPlaceInventoryItemInEmptySlot, InitializeSplitStackDialog,
--- InitializeConfirmDestroyDialog, InitializeConfirmDestroyArmoryItemDialog
--- extracted to Dialogs/InventoryDialogs.lua
 
 

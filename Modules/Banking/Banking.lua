@@ -34,18 +34,7 @@ local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 
--- SHARED CATEGORY AND UTILITY REFERENCES
--- Use centralized category definitions from CIM module to eliminate duplication.
--- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
-
-
--- Class definition moved to Core/BankingClass.lua (loaded first in manifest)
--- BETTERUI.Banking.Class is already defined there via BETTERUI.Interface.Window:Subclass()
--- BETTERUI.Banking.Class:New() is also defined there
-
--- State methods (CurrentUsedBank, LastUsedBank) defined in State/StateManager.lua
--- Footer methods (RefreshFooter, RefreshCurrencyTooltip) defined below or in UI/
 
 
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
@@ -257,12 +246,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end)
     end
 
-    -- Scene showing handler moved to OnSceneShowing method.
-    -- SceneLifecycleManager in base Window class calls OnSceneShowing hook.
-
-    -- Scene hidden handler moved to OnSceneHidden method.
-    -- SceneLifecycleManager in base Window class calls OnSceneHidden hook.
-
     local selectorContainer = self.control:GetNamedChild("Container"):GetNamedChild("InputContainer")
     self.selector = ZO_CurrencySelector_Gamepad:New(selectorContainer:GetNamedChild("Selector"))
     self.selector:SetClampValues(true)
@@ -290,23 +273,12 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
         end
     end
 
-    -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug
-
-
-    -- Always-running event listeners, these don't add much overhead
+    -- Always-running event listeners
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
 
--- NOTE: Scene lifecycle methods (OnSceneShowing, OnSceneHiding, OnSceneHidden),
--- UpdateExternalAddons, and keyboard shortcut interception have been moved to
--- Scene/BankingSceneLifecycle.lua (loaded before this file in manifest).
 
--- NOTE: RefreshItemActions and InitializeActionsDialog have been moved to
--- Actions/BankingActions.lua (loaded before this file in manifest).
-
--- NOTE: ActivateSpinner and DeactivateSpinner have been removed.
--- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG (see Dialogs/QuantityDialog.lua)
 
 --- Global initialization for the Banking module using BetterUI.Window.
 function BETTERUI.Banking.Init()

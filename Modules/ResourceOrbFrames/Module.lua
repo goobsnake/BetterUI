@@ -198,8 +198,6 @@ local function InitSettingsPanel(mId, moduleName)
         },
     }
 
-    -- Submenu definitions extracted to Settings/SettingsSubmenus.lua
-    -- Build them by passing accessor references
     local BuildSubmenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
     local submenuAccessors = {
         -- Settings helpers

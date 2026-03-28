@@ -20,14 +20,6 @@ end
 -- ACTION DIALOG INITIALIZATION (Wiring Only)
 
 --- Initializes the actions dialog (Y-button menu).
----
---- Purpose: Registers BETTERUI_EVENT_ACTION_DIALOG_* callbacks using module-level
----          handlers from ItemActionHandlers.lua.
----
---- The three handlers (Setup, Finish, Confirm) were extracted to
---- ItemActionHandlers.lua to keep both files under 600 lines.
---- They receive `self` (the Inventory.Class instance) via closure capture here.
---- Initializes the actions dialog (Y-button menu).
 function BETTERUI.Inventory.Class:InitializeActionsDialog()
     local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 

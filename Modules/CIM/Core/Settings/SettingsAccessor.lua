@@ -64,13 +64,8 @@ function BETTERUI.CreateSettingAccessors(moduleName, callback)
     return function(key, default)
         local getFunc = function()
             local settings = BETTERUI.Settings.Modules[moduleName]
-            -- Nil check settings table
-            if not settings then return default end
-            -- Return valid value or default
-            if settings[key] ~= nil then
-                return settings[key]
-            end
-            return default
+            if not settings or settings[key] == nil then return default end
+            return settings[key]
         end
 
         local setFunc = function(value)
