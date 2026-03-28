@@ -95,6 +95,13 @@ local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     return "skip"
 end
 
+-- Expose helpers for unit testing (tools/tests/test_banking_transfer.lua)
+BETTERUI.Banking._TransferHelpers = {
+    ResolveStackCount = ResolveStackCount,
+    IsDepositSupportedForBank = IsDepositSupportedForBank,
+    ResolveDepositTargetBag = ResolveDepositTargetBag,
+}
+
 local BANK_TRANSFER_BATCH_OPTIONS = {
     serverBound = true,
     awaitInventoryAck = true,
