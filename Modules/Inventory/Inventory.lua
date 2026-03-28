@@ -49,8 +49,11 @@ BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 -- SECURE SYSTEM HOOKS
 --------------------------------------------------------------------------------
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
--- Globally hooks the assignable utility wheel to ensure untrusted callstacks
--- from our add-on keybinds don't crash when they reach protected assignment CAPI.
+-- ESO secure environment: utility wheel slot assignment uses CallSecureProtected(),
+-- which requires the callstack to originate from trusted (engine-side) code. Add-on
+-- keybinds produce untrusted callstacks that crash the native TryAssignPendingToSelectedEntry.
+-- This hook intercepts the call, re-issues it via CallSecureProtected(), and returns true
+-- to cancel the original unprotected native execution path.
 --- Initializes secure wheel hooks for the assignable utility wheel.
 --- @return nil
 function BETTERUI.Inventory.InitializeSecureWheelHooks()
