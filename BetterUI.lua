@@ -129,9 +129,7 @@ function BETTERUI.UpdateCIMState()
 		BETTERUI.GetModuleEnabled("Inventory") or
 		BETTERUI.GetModuleEnabled("Banking") or
 		BETTERUI.GetModuleEnabled("Vendor")
-	if BETTERUI.Settings.Modules["CIM"] then
-		BETTERUI.Settings.Modules["CIM"].m_enabled = shouldEnable
-	end
+	BETTERUI.SetSetting("CIM", "m_enabled", shouldEnable)
 end
 
 --- Initializes the module options panel in the settings menu.
@@ -206,8 +204,7 @@ local function NormalizeModuleToggleSortName(name)
 				return modules and modules["Banking"] and modules["Banking"].m_enabled or false
 			end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Banking"] = BETTERUI.Settings.Modules["Banking"] or {}
-				BETTERUI.Settings.Modules["Banking"].m_enabled = value
+				BETTERUI.SetSetting("Banking", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -223,8 +220,7 @@ local function NormalizeModuleToggleSortName(name)
 				return modules and modules["Vendor"] and modules["Vendor"].m_enabled or false
 			end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Vendor"] = BETTERUI.Settings.Modules["Vendor"] or {}
-				BETTERUI.Settings.Modules["Vendor"].m_enabled = value
+				BETTERUI.SetSetting("Vendor", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -240,8 +236,7 @@ local function NormalizeModuleToggleSortName(name)
 				return modules and modules["GeneralInterface"] and modules["GeneralInterface"].m_enabled or false
 			end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["GeneralInterface"] = BETTERUI.Settings.Modules["GeneralInterface"] or {}
-				BETTERUI.Settings.Modules["GeneralInterface"].m_enabled = value
+				BETTERUI.SetSetting("GeneralInterface", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -257,8 +252,7 @@ local function NormalizeModuleToggleSortName(name)
 				return modules and modules["Inventory"] and modules["Inventory"].m_enabled or false
 			end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Inventory"] = BETTERUI.Settings.Modules["Inventory"] or {}
-				BETTERUI.Settings.Modules["Inventory"].m_enabled = value
+				BETTERUI.SetSetting("Inventory", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",
@@ -273,8 +267,7 @@ local function NormalizeModuleToggleSortName(name)
 				return BETTERUI.GetModuleEnabled("ResourceOrbFrames")
 			end,
 			setFunc = function(value)
-				if not BETTERUI.Settings.Modules["ResourceOrbFrames"] then BETTERUI.Settings.Modules["ResourceOrbFrames"] = {} end
-				BETTERUI.Settings.Modules["ResourceOrbFrames"].m_enabled = value
+				BETTERUI.SetSetting("ResourceOrbFrames", "m_enabled", value)
 			end,
 			width = "full",
 			requiresReload = true,
@@ -289,8 +282,7 @@ local function NormalizeModuleToggleSortName(name)
 				return modules and modules["Writs"] and modules["Writs"].m_enabled or false
 			end,
 			setFunc = function(value)
-				BETTERUI.Settings.Modules["Writs"] = BETTERUI.Settings.Modules["Writs"] or {}
-				BETTERUI.Settings.Modules["Writs"].m_enabled = value
+				BETTERUI.SetSetting("Writs", "m_enabled", value)
 			end,
 			width = "full",
 			requiresReload = true,

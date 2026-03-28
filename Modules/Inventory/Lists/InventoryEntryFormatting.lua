@@ -16,7 +16,7 @@ KEY RESPONSIBILITIES:
 3.  Status Indicators (BETTERUI_IconSetup):
     *   Manages the "New Item" status indicator and "Equipped" checkmarks.
 
-4.  Cooldown Rendering (BETTERUI_Cooldown, BETTERUI_CooldownSetup):
+4.  Cooldown Rendering (ApplyCooldown, BETTERUI_CooldownSetup):
     *   Draws cooldown timers on items (e.g. potions).
 ]]
 
@@ -378,24 +378,39 @@ end
 --- Purpose: Renders the radial or vertical swipe for cooldowns.
 --- Mechanics: Wraps `control.cooldown:StartCooldown`.
 ---
+--- Cooldown display style presets.
+local COOLDOWN_STYLE = {
+    VERTICAL = {
+        cooldownType = CD_TYPE_VERTICAL_REVEAL,
+        timeType = CD_TIME_TYPE_TIME_UNTIL,
+        useLeadingEdge = USE_LEADING_EDGE,
+        alpha = 1,
+        desaturation = 1,
+        preservePreviousCooldown = PRESERVE_PREVIOUS_COOLDOWN,
+    },
+    RADIAL = {
+        cooldownType = CD_TYPE_RADIAL,
+        timeType = CD_TIME_TYPE_TIME_UNTIL,
+        useLeadingEdge = DONT_USE_LEADING_EDGE,
+        alpha = 0.85,
+        desaturation = 0,
+        preservePreviousCooldown = OVERWRITE_PREVIOUS_COOLDOWN,
+    },
+}
+
+--- Applies a cooldown visual to a control using a style preset.
 --- @param control table The control to apply the cooldown to.
 --- @param remaining number The remaining time in milliseconds.
 --- @param duration number The total duration in milliseconds.
---- @param cooldownType number The visual type of the cooldown (e.g., radial, vertical).
---- @param timeType number The time type (e.g., time until).
---- @param useLeadingEdge boolean Whether to show a leading edge visual.
---- @param alpha number The transparency of the cooldown overlay.
---- @param desaturation number The desaturation level.
---- @param preservePreviousCooldown boolean Whether to keep the existing cooldown if active.
-function BETTERUI_Cooldown(control, remaining, duration, cooldownType, timeType, useLeadingEdge, alpha, desaturation,
-                           preservePreviousCooldown)
+--- @param style table A COOLDOWN_STYLE preset with cooldownType, timeType, useLeadingEdge, alpha, desaturation, preservePreviousCooldown.
+local function ApplyCooldown(control, remaining, duration, style)
     local inCooldownNow = remaining > 0 and duration > 0
     if inCooldownNow then
         local timeLeftOnPreviousCooldown = control.cooldown:GetTimeLeft()
-        if not preservePreviousCooldown or timeLeftOnPreviousCooldown == 0 then
-            control.cooldown:SetDesaturation(desaturation)
-            control.cooldown:SetAlpha(alpha)
-            control.cooldown:StartCooldown(remaining, duration, cooldownType, timeType, useLeadingEdge)
+        if not style.preservePreviousCooldown or timeLeftOnPreviousCooldown == 0 then
+            control.cooldown:SetDesaturation(style.desaturation)
+            control.cooldown:SetAlpha(style.alpha)
+            control.cooldown:StartCooldown(remaining, duration, style.cooldownType, style.timeType, style.useLeadingEdge)
         end
     else
         control.cooldown:ResetCooldown()
@@ -419,11 +434,9 @@ function BETTERUI_CooldownSetup(control, data)
         if data.cooldownIcon then
             control.cooldown:SetFillColor(ZO_SELECTED_TEXT:UnpackRGBA())
             control.cooldown:SetVerticalCooldownLeadingEdgeHeight(4)
-            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_VERTICAL_REVEAL, CD_TIME_TYPE_TIME_UNTIL,
-                USE_LEADING_EDGE, 1, 1, PRESERVE_PREVIOUS_COOLDOWN)
+            ApplyCooldown(control, remaining, duration, COOLDOWN_STYLE.VERTICAL)
         else
-            BETTERUI_Cooldown(control, remaining, duration, CD_TYPE_RADIAL, CD_TIME_TYPE_TIME_UNTIL,
-                DONT_USE_LEADING_EDGE, 0.85, 0, OVERWRITE_PREVIOUS_COOLDOWN)
+            ApplyCooldown(control, remaining, duration, COOLDOWN_STYLE.RADIAL)
         end
     end
 end
