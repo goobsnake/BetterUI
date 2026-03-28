@@ -28,6 +28,7 @@ BETTERUI.Banking.esoSubscriber                 = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
+assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")
 BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manager:New()
 
 -------------------------------------------------------------------------------------------------
