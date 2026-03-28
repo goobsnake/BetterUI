@@ -3,6 +3,7 @@
 -- Extracted from InventoryClass.lua for maintainability.
 
 local Class = BETTERUI.Inventory.Class
+local CompareNils = BETTERUI.CIM.Utils.CompareNils
 
 -- HEADER SORT MODE
 -- Column definitions for header sort navigation
@@ -90,9 +91,8 @@ local function CreateColumnSortComparator(sortKey, ascending)
         return function(left, right)
             local leftVal = GetTraitSortValue(left)
             local rightVal = GetTraitSortValue(right)
-            if leftVal == nil and rightVal == nil then return false end
-            if leftVal == nil then return false end
-            if rightVal == nil then return true end
+            local nilResult = CompareNils(leftVal, rightVal, true)
+            if nilResult ~= nil then return nilResult end
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end
     end
@@ -134,9 +134,8 @@ local function CreateColumnSortComparator(sortKey, ascending)
     return function(left, right)
         local leftVal = left[sortKey]
         local rightVal = right[sortKey]
-        if leftVal == nil and rightVal == nil then return false end
-        if leftVal == nil then return not ascending end
-        if rightVal == nil then return ascending end
+        local nilResult = CompareNils(leftVal, rightVal, ascending)
+        if nilResult ~= nil then return nilResult end
         if type(leftVal) == "string" and type(rightVal) == "string" then
             if ascending then return leftVal < rightVal else return leftVal > rightVal end
         end

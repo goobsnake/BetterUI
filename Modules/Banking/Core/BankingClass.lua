@@ -28,6 +28,7 @@ BETTERUI.Banking.esoSubscriber                 = nil
 -- Using module-specific instance prevents ID collisions with other modules
 assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")
 BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manager:New()
+local CompareNils = BETTERUI.CIM.Utils.CompareNils
 
 -- SHARED CATEGORY REFERENCES
 -- Use centralized category definitions from CIM module to eliminate duplication.
@@ -190,9 +191,8 @@ local function CreateColumnSortComparator(sortKey, ascending)
             local rightVal = GetTraitSortValue(right)
 
             -- Blanks (nil) always sort last regardless of direction
-            if leftVal == nil and rightVal == nil then return false end
-            if leftVal == nil then return false end -- left is blank, goes after right
-            if rightVal == nil then return true end -- right is blank, left goes first
+            local nilResult = CompareNils(leftVal, rightVal, true)
+            if nilResult ~= nil then return nilResult end
 
             -- Alphabetical comparison
             local leftUpper = tostring(leftVal):upper()
@@ -269,9 +269,8 @@ local function CreateColumnSortComparator(sortKey, ascending)
         local rightVal = right[sortKey]
 
         -- Handle nil values
-        if leftVal == nil and rightVal == nil then return false end
-        if leftVal == nil then return not ascending end
-        if rightVal == nil then return ascending end
+        local nilResult = CompareNils(leftVal, rightVal, ascending)
+        if nilResult ~= nil then return nilResult end
 
         -- String comparison for text columns
         if type(leftVal) == "string" and type(rightVal) == "string" then

@@ -84,6 +84,19 @@ function BETTERUI.CIM.Utils.WrapValue(newValue, maxValue)
     return newValue
 end
 
+--- Handles nil values in sort comparators.
+--- Returns a boolean if either value is nil, or nil when both are non-nil.
+---@param leftVal any
+---@param rightVal any
+---@param nilGoesLast boolean When true, nil sorts after non-nil values
+---@return boolean|nil
+function BETTERUI.CIM.Utils.CompareNils(leftVal, rightVal, nilGoesLast)
+    if leftVal == nil and rightVal == nil then return false end
+    if leftVal == nil then return not nilGoesLast end
+    if rightVal == nil then return nilGoesLast end
+    return nil
+end
+
 function BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "sortPriorityName", BETTERUI.CIM.CONST.SORT_SCHEMA,
         ZO_SORT_ORDER_UP)
