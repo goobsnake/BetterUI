@@ -14,20 +14,25 @@ local Sell = Vendor.SellComponent
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
 -- PRIMARY ACTION
 
+---@return string name Localized sell action label
 function Sell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if the selected item can be sold
 function Sell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -41,6 +46,7 @@ function Sell:IsPrimaryActionEnabled(vendorInstance)
     return sellPrice > 0
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -59,6 +65,7 @@ end
 
 -- BATCH JUNK SELL
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
@@ -86,6 +93,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Sell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

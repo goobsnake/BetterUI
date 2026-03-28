@@ -17,10 +17,12 @@ Vendor.FenceSellComponent = FenceSell
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -28,6 +30,9 @@ end
 -- HELPERS
 
 --- Get remaining fence sells and total allowed
+---@return number remaining Available sell transactions
+---@return number total Maximum sell transactions
+---@return number resetTimeSeconds Seconds until transaction reset
 local function GetRemainingSells()
     if GetFenceSellTransactionInfo then
         local totalSells, sellsUsed, resetTimeSeconds = GetFenceSellTransactionInfo()
@@ -39,6 +44,9 @@ local function GetRemainingSells()
 end
 
 --- Check if item is artifact quality (cannot be sold to fence)
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@return boolean isArtifact True if item is artifact quality or higher
 local function IsArtifactItem(bagId, slotIndex)
     if GetItemFunctionalQuality then
         local funcQuality = GetItemFunctionalQuality(bagId, slotIndex)
@@ -50,10 +58,13 @@ end
 
 -- PRIMARY ACTION
 
+---@return string name Localized sell action label
 function FenceSell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if fence sell is possible
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -67,6 +78,7 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     return true
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -96,6 +108,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
@@ -158,6 +171,7 @@ end
 -- FOOTER INFO
 
 --- Returns footer text showing remaining sells and reset timer
+---@return string text Formatted text showing remaining sells and timer
 function FenceSell:GetFooterText()
     local remaining, total, resetTimeSeconds = GetRemainingSells()
     local text = zo_strformat(SI_BETTERUI_FENCE_SELLS_REMAINING, remaining, total)

@@ -66,6 +66,12 @@ local function TryShowSlotDataTooltip(control, slotIndex, hotbarCategory, point,
 end
 
 --- Sets up standard tooltip behavior for a button.
+---@param control table Button control to attach tooltip handlers to
+---@param slotIndex number Action bar slot index
+---@param category number Hotbar category constant
+---@param point number Anchor point constant
+---@param offsetX number Tooltip X offset
+---@param offsetY number Tooltip Y offset
 local function SetupButtonTooltip(control, slotIndex, category, point, offsetX, offsetY)
     if not control then return end
 

@@ -47,6 +47,11 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     return true
 end
 
+--- Resolves where to deposit an item, returning a bag ID or a sentinel string.
+---@param bagId number Source bag ID
+---@param slotIndex number Source slot index
+---@param currentUsedBank number|nil Target bank bag (defaults to BAG_BANK)
+---@return number|"unbankable"|"skip" targetBag Bag constant, or "unbankable"/"skip" sentinel
 local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then

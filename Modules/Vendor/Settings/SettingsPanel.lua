@@ -16,6 +16,8 @@ Vendor.Settings = Vendor.Settings or {}
 
 -- PANEL REGISTRATION
 
+---@param mId string Module identifier for LAM panel registration
+---@param moduleName string Display name for the settings panel
 function Vendor.Settings.RegisterPanel(mId, moduleName)
     local panelData = {
         type = "panel",

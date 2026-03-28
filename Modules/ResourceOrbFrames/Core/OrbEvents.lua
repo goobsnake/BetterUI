@@ -21,6 +21,7 @@ local m_hasRegisteredCombatIndicators = false
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+---@param rootFrame table|nil Root frame to refresh, or nil to use cached frame
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame
     if not targetRootFrame then
@@ -33,6 +34,8 @@ function Events.RefreshCombatIndicators(rootFrame)
     end
 end
 
+--- Registers combat state events and applies initial combat indicator state.
+---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupCombatIndicators(rootFrame)
     m_combatIndicatorRootFrame = rootFrame
     if not m_combatIndicatorRootFrame then
@@ -99,6 +102,9 @@ local function DeferredEnforceHide(delayMs)
     end, delayMs or 50)
 end
 
+--- Creates HUD scene fragments and registers death/scene-change handlers.
+---@param rootFrame table Root ResourceOrbFrames control
+---@return function UpdateDeathFragment Callback to manually refresh death visibility
 function Events.SetupVisibilityFragments(rootFrame)
     local fragment = ZO_HUDFadeSceneFragment:New(rootFrame)
     HUD_SCENE:AddFragment(fragment)
@@ -168,6 +174,11 @@ function Events.SetupVisibilityFragments(rootFrame)
     return UpdateDeathFragment
 end
 
+--- Registers periodic update ticks for status, cooldowns, and orb animation.
+---@param rootFrame table Root ResourceOrbFrames control
+---@param pools table<number, BetterUIOrbBar> Power pool instances keyed by powerType
+---@param shieldBar BetterUIShieldBar|nil Shield bar instance
+---@param castBar table|nil Cast bar instance with isCasting field
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     -- Core status tick (100ms): usability and ultimate meters/text.
     local function CoreStatusTick()
@@ -215,6 +226,8 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     EVENT_MANAGER:RegisterForUpdate(NAME .. "OrbAnimation", 33, AnimationTick)
 end
 
+--- Registers HUD/HUDUI scene-showing callbacks to keep native action bar hidden.
+---@param rootFrame table Root ResourceOrbFrames control
 function Events.SetupSceneHandlers(rootFrame)
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end

@@ -15,6 +15,8 @@ BETTERUI.CIM.RegisterModuleAccessors("Vendor")
 
 -- Initializes defaults and migrates legacy settings for the Vendor module.
 -- Called by BETTERUI.ModuleOptions() via pcall with m_options.
+---@param m_options table|nil Module options from saved variables
+---@return table m_options Initialized options with defaults applied
 function BETTERUI.Vendor.InitModule(m_options)
 	m_options = m_options or {}
 	---@cast m_options table
@@ -35,6 +37,8 @@ function BETTERUI.Vendor.InitModule(m_options)
 end
 
 --- Gets junk sell value summary for batch sell UX.
+---@return number totalValue Total gold value of all junk items
+---@return number itemCount Number of junk items in backpack
 function BETTERUI.Vendor.GetJunkSellSummary()
 	local totalValue = 0
 	local itemCount = 0

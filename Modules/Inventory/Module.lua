@@ -51,31 +51,37 @@ function BETTERUI.Inventory.InitModule(m_options)
                 end
             else
                 -- Fallback defaults if preset table is unavailable.
-                if options["showCurrencyGold"] == nil then options["showCurrencyGold"] = true end
-                if options["showCurrencyAlliancePoints"] == nil then options["showCurrencyAlliancePoints"] = true end
-                if options["showCurrencyTelVar"] == nil then options["showCurrencyTelVar"] = true end
-                if options["showCurrencyCrownGems"] == nil then options["showCurrencyCrownGems"] = true end
-                if options["showCurrencyCrowns"] == nil then options["showCurrencyCrowns"] = true end
-                if options["showCurrencyTransmute"] == nil then options["showCurrencyTransmute"] = true end
-                if options["showCurrencyWritVouchers"] == nil then options["showCurrencyWritVouchers"] = true end
-                if options["showCurrencyTradeBars"] == nil then options["showCurrencyTradeBars"] = true end
-                if options["showCurrencyUndauntedKeys"] == nil then options["showCurrencyUndauntedKeys"] = true end
-                if options["showCurrencyOutfitTokens"] == nil then options["showCurrencyOutfitTokens"] = true end
-                if options["showCurrencySeals"] == nil then options["showCurrencySeals"] = true end
-                if options["showCurrencyTomePoints"] == nil then options["showCurrencyTomePoints"] = false end
-
-                if options["orderCurrencyGold"] == nil then options["orderCurrencyGold"] = 1 end
-                if options["orderCurrencyAlliancePoints"] == nil then options["orderCurrencyAlliancePoints"] = 2 end
-                if options["orderCurrencyTelVar"] == nil then options["orderCurrencyTelVar"] = 3 end
-                if options["orderCurrencyUndauntedKeys"] == nil then options["orderCurrencyUndauntedKeys"] = 4 end
-                if options["orderCurrencyTransmute"] == nil then options["orderCurrencyTransmute"] = 5 end
-                if options["orderCurrencyCrowns"] == nil then options["orderCurrencyCrowns"] = 6 end
-                if options["orderCurrencyCrownGems"] == nil then options["orderCurrencyCrownGems"] = 7 end
-                if options["orderCurrencyWritVouchers"] == nil then options["orderCurrencyWritVouchers"] = 8 end
-                if options["orderCurrencyTradeBars"] == nil then options["orderCurrencyTradeBars"] = 9 end
-                if options["orderCurrencyOutfitTokens"] == nil then options["orderCurrencyOutfitTokens"] = 10 end
-                if options["orderCurrencySeals"] == nil then options["orderCurrencySeals"] = 11 end
-                if options["orderCurrencyTomePoints"] == nil then options["orderCurrencyTomePoints"] = 12 end
+                local fallbackDefaults = {
+                    showCurrencyGold = true,
+                    showCurrencyAlliancePoints = true,
+                    showCurrencyTelVar = true,
+                    showCurrencyCrownGems = true,
+                    showCurrencyCrowns = true,
+                    showCurrencyTransmute = true,
+                    showCurrencyWritVouchers = true,
+                    showCurrencyTradeBars = true,
+                    showCurrencyUndauntedKeys = true,
+                    showCurrencyOutfitTokens = true,
+                    showCurrencySeals = true,
+                    showCurrencyTomePoints = false,
+                    orderCurrencyGold = 1,
+                    orderCurrencyAlliancePoints = 2,
+                    orderCurrencyTelVar = 3,
+                    orderCurrencyUndauntedKeys = 4,
+                    orderCurrencyTransmute = 5,
+                    orderCurrencyCrowns = 6,
+                    orderCurrencyCrownGems = 7,
+                    orderCurrencyWritVouchers = 8,
+                    orderCurrencyTradeBars = 9,
+                    orderCurrencyOutfitTokens = 10,
+                    orderCurrencySeals = 11,
+                    orderCurrencyTomePoints = 12,
+                }
+                for key, value in pairs(fallbackDefaults) do
+                    if options[key] == nil then
+                        options[key] = value
+                    end
+                end
             end
 
             if options["currencyPreset"] == nil then options["currencyPreset"] = "default" end

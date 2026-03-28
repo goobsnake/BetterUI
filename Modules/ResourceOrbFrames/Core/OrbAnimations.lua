@@ -16,6 +16,10 @@ local m_lastOffsetX = nil
 local m_lastOffsetY = nil
 
 --- Animates the root frame's scale and position.
+---@param rootFrame table Root ResourceOrbFrames control
+---@param targetScale number Target scale value
+---@param targetOffsetX number Target horizontal offset
+---@param targetOffsetY number Target vertical offset (positive = up)
 function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, targetOffsetY)
     if not rootFrame then return end
 
@@ -81,26 +85,33 @@ function Animations.AnimateDimensions(rootFrame, targetScale, targetOffsetX, tar
 end
 
 --- Updates state without animating (instant set).
---- Use this during initialization to sync state.
+---@param scale number Current scale
+---@param offsetX number Current X offset
+---@param offsetY number Current Y offset
 function Animations.SetState(scale, offsetX, offsetY)
     m_lastScale = scale
     m_lastOffsetX = offsetX
     m_lastOffsetY = offsetY
 end
 
+---@return number|nil scale Last animated scale, or nil if uninitialized
 function Animations.GetLastScale()
     return m_lastScale
 end
 
+---@return number|nil offsetX Last animated X offset, or nil
 function Animations.GetLastOffsetX()
     return m_lastOffsetX
 end
 
+---@return number|nil offsetY Last animated Y offset, or nil
 function Animations.GetLastOffsetY()
     return m_lastOffsetY
 end
 
 --- Creates a looping ping-pong alpha animation for combat glow.
+---@param control table UI control to animate
+---@return table timeline Animation timeline instance
 function Animations.CreateCombatGlow(control)
     local timeline = ANIMATION_MANAGER:CreateTimeline()
     local anim = timeline:InsertAnimation(ANIMATION_ALPHA, control, 0)

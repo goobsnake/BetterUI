@@ -30,7 +30,10 @@ local fenceEnableLaunder = false
 
 -- TAB DEFINITIONS
 
+---@alias VendorTabDef {mode: number, name: fun(): string}
+
 -- Regular vendor tabs (Buy, Sell, Repair, Buyback)
+---@type VendorTabDef[]
 local VENDOR_TABS = {
     { mode = MODE.BUY,     name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
     { mode = MODE.SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL")) end },
@@ -39,6 +42,7 @@ local VENDOR_TABS = {
 }
 
 -- Fence tabs (Sell Stolen, Launder)
+---@type VendorTabDef[]
 local FENCE_TABS = {
     { mode = MODE.FENCE_SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")) end },
     { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
@@ -47,6 +51,7 @@ local FENCE_TABS = {
 -- GET ACTIVE TABS
 
 --- Returns the tab list for the current interaction type.
+---@return VendorTabDef[] tabs Active tab definitions
 local function GetActiveTabs()
     if isFenceInteraction then
         local tabs = {}
@@ -67,6 +72,8 @@ end
 
 -- KEYBINDS
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return table keybindGroup Core keybind descriptor group
 local function BuildCoreKeybinds(vendorInstance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -108,6 +115,8 @@ local function BuildCoreKeybinds(vendorInstance)
     }
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return table keybindGroup Tab navigation keybind descriptor group
 local function BuildTabKeybinds(vendorInstance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -142,6 +151,7 @@ end
 
 -- TAB CYCLING
 
+---@param direction number -1 for left, 1 for right
 function BETTERUI.Vendor.Class:CycleTabs(direction)
     local tabs = GetActiveTabs()
     if #tabs <= 1 then return end
@@ -200,6 +210,9 @@ local function OnOpenStore()
     end
 end
 
+---@param _ any Unused event code
+---@param enableSell boolean|nil Whether fence sell is enabled (default true)
+---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     isFenceInteraction = true
     fenceEnableSell = (enableSell ~= false)     -- default true
@@ -330,11 +343,13 @@ end
 -- PUBLIC API
 
 --- Check if the Vendor module has been initialized.
+---@return boolean initialized True if Init() has completed
 function BETTERUI.Vendor.IsInitialized()
     return Vendor.initialized == true
 end
 
 --- Check if a store is currently open.
+---@return boolean isOpen True if the vendor scene is showing
 function BETTERUI.Vendor.IsStoreOpen()
     if Vendor.instance and Vendor.instance:IsSceneShowing() then
         return true

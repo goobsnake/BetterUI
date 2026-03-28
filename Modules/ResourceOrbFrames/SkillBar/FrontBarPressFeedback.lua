@@ -87,6 +87,11 @@ local function ConfigureBounceTimelineSize(timeline, width, height, shrinkScale,
 end
 
 --- Stores base frame/icon sizes for press feedback bounce normalization.
+---@param buttonControl table Button control to store sizes on
+---@param frameWidth number Base frame width
+---@param frameHeight number Base frame height
+---@param iconWidth number Base icon width
+---@param iconHeight number Base icon height
 local function SetPressFeedbackBaseSize(buttonControl, frameWidth, frameHeight, iconWidth, iconHeight)
     if not buttonControl then return end
     buttonControl.betterUIPressFeedbackBaseFrameWidth = frameWidth
@@ -245,6 +250,11 @@ end
 
 -- PLAY FEEDBACK FOR SLOT
 
+--- Plays press feedback animation for a specific action bar slot.
+---@param rootFrame table|nil Root frame (uses cached if nil)
+---@param slotIndex number Action bar slot index
+---@param hotbarCategory number|nil Hotbar category (defaults to active)
+---@param bypassUsableGate boolean|nil Skip usability checks
 local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -291,6 +301,8 @@ end
 
 -- HOOK INSTALLATION
 
+--- Installs ZO_ActionBar_OnActionButtonUp hook for press feedback.
+---@param rootFrame table|nil Root frame (uses cached if nil)
 local function SetupFrontBarPressFeedbackHooks(rootFrame)
     m_pressFeedbackRootFrame = rootFrame or m_pressFeedbackRootFrame
     if m_pressFeedbackHooksInstalled then return end

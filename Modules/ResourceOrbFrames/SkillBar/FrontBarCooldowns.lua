@@ -37,6 +37,9 @@ local function GetQuickslotCountAnchorOffsets()
     return keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY
 end
 
+--- Positions the quickslot count label relative to button or keybind text.
+---@param buttonControl table Quickslot button control
+---@param countText table|nil Count label control (resolved from button if nil)
 local function AnchorQuickslotCountText(buttonControl, countText)
     if not buttonControl then return end
     local label = countText or buttonControl:GetNamedChild("CountText")
@@ -53,6 +56,13 @@ local function AnchorQuickslotCountText(buttonControl, countText)
     label:SetVerticalAlignment(TEXT_ALIGN_TOP)
 end
 
+--- Updates quickslot stack count and empty-slot visuals.
+---@param buttonControl table Quickslot button control
+---@param children table|nil Cached child control references
+---@param settings table Module settings
+---@param slotIndex number Action bar slot index
+---@param hotbarCategory number Hotbar category constant
+---@return boolean hasItem Whether the slot contains an item
 local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settings, slotIndex, hotbarCategory)
     if not buttonControl then return false end
     local slotType = GetSlotType(slotIndex, hotbarCategory)
@@ -160,6 +170,8 @@ end
 
 -- UPDATE FRONT BAR COOLDOWNS (per-frame)
 
+--- Updates cooldown overlays and text for all front bar buttons.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarCooldowns(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end

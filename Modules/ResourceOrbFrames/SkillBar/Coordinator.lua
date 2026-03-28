@@ -21,6 +21,7 @@ local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 -- MAIN BAR & LAYOUT ORCHESTRATION
 
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBarPositions(rootFrame)
     local actionBarContainer = FindControl(rootFrame, 'ActionBarContainer')
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -49,6 +50,8 @@ local function UpdateBarPositions(rootFrame)
     backBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, m_backBarBaseX, m_backBarBaseY)
 end
 
+--- Updates main action bar dimensions and hides native weapon swap.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateMainBarLayout(rootFrame)
     local isGamePad = IsInGamepadPreferredMode()
     local slots = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
@@ -63,6 +66,9 @@ local function UpdateMainBarLayout(rootFrame)
     end
 end
 
+--- Applies the BetterUI template skin to the action bar and updates sub-bars.
+---@param rootFrame table Root ResourceOrbFrames control
+---@param layout table Layout config with abilitySlotOffsetX
 local function ApplyActionBarSkin(rootFrame, layout)
     local isGamePad = IsInGamepadPreferredMode()
     local template = isGamePad and 'ResourceOrbFrames_Double_Gamepad' or 'ResourceOrbFrames_Double_Keyboard'
@@ -122,6 +128,8 @@ local function StopWeaponSwapAnimation(rootFrame)
     SkillBar.UpdateFrontBar(rootFrame)
 end
 
+--- Plays the weapon-swap slide animation for front and back bars.
+---@param rootFrame table Root ResourceOrbFrames control
 local function WeaponSwapAnimation(rootFrame)
     local settings = GetSettings()
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
@@ -192,6 +200,7 @@ local function WeaponSwapAnimation(rootFrame)
     m_swapTimeline:PlayFromStart()
 end
 
+---@return boolean isAnimating Whether a weapon swap animation is in progress
 local function IsWeaponSwapAnimating()
     return m_swapTimeline and m_swapTimeline:IsPlaying()
 end

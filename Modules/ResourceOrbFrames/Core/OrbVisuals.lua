@@ -33,15 +33,31 @@ local function ResolveTexturePath(filename)
     return string.format("%s/%s", GetTextureRootPath(), filename)
 end
 
--- BetterUIOrbBar Class
+---@class BetterUIOrbBar : ZO_Object
+---@field control table Parent UI control
+---@field fog table Fill texture control
+---@field fog2 table Background fill texture control
+---@field label table|nil Text label control
+---@field powerType number ESO POWERTYPE_* constant
+---@field currentValue number Current resource value
+---@field minValue number Minimum resource value
+---@field maxValue number Maximum resource value
+---@field baseCoordLeft number Left texture coordinate base
+---@field baseCoordRight number Right texture coordinate base
+---@field baseAnchorX number Base anchor X offset
+---@field animState table Animation state for flow effects
 BetterUIOrbBar = ZO_Object:Subclass()
 
+---@param ... any Forwarded to Initialize
+---@return BetterUIOrbBar
 function BetterUIOrbBar:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
     return obj
 end
 
+---@param control table Parent UI control
+---@param powerType number ESO POWERTYPE_* constant
 function BetterUIOrbBar:Initialize(control, powerType)
     self.control = control
     self.fog = FindControl(control, 'Fog')
@@ -64,32 +80,42 @@ function BetterUIOrbBar:Initialize(control, powerType)
     }
 end
 
+---@param value number New resource value to display
 function BetterUIOrbBar:UpdateValue(value)
     self.currentValue = value
     self:RefreshVisuals()
     self:RefreshLabel()
 end
 
+---@param value number New resource value
 function BetterUIOrbBar:SetValue(value)
     self:UpdateValue(value)
 end
 
+---@param min number Minimum range value
+---@param max number Maximum range value
 function BetterUIOrbBar:SetMinMax(min, max)
     self:SetRange(min, max)
 end
 
+---@return number value Current resource value
 function BetterUIOrbBar:GetValue()
     return self.currentValue
 end
 
+---@return number min Minimum value
+---@return number max Maximum value
 function BetterUIOrbBar:GetMinMax()
     return self.minValue, self.maxValue
 end
 
+---@return number max Maximum value
 function BetterUIOrbBar:GetMax()
     return self.maxValue
 end
 
+---@param min number Minimum resource value
+---@param max number Maximum resource value
 function BetterUIOrbBar:SetRange(min, max)
     self.minValue = min
     self.maxValue = max
@@ -213,9 +239,15 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     end
 end
 
--- BetterUIShieldBar Class
+---@class BetterUIShieldBar : BetterUIOrbBar
+---@field fillWidth number|nil Shield fill width override
+---@field fillHeight number|nil Shield fill height override
+---@field fillOffsetX number|nil Shield fill X offset
+---@field fillOffsetY number|nil Shield fill Y offset
 BetterUIShieldBar = BetterUIOrbBar:Subclass()
 
+---@param ... any Forwarded to Initialize
+---@return BetterUIShieldBar
 function BetterUIShieldBar:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
@@ -252,6 +284,7 @@ end
 
 -- Visual Management Functions
 
+---@param rootFrame table Root ResourceOrbFrames control
 function Visuals.UpdateFrameDimensions(rootFrame)
     if not rootFrame then return end
     local settings = GetSettings()
@@ -288,6 +321,7 @@ function Visuals.UpdateFrameDimensions(rootFrame)
     rootFrame:SetDimensions(frameCfg.width, frameCfg.height)
 end
 
+---@param rootFrame table Root ResourceOrbFrames control
 function Visuals.ApplyThemeVisuals(rootFrame)
     if not rootFrame then return end
     local settings = GetSettings()
@@ -366,6 +400,9 @@ local ScaleForBorder = BETTERUI.ResourceOrbFrames.Utils.ScaleForBorder
 local CalculateBorderSizes = BETTERUI.ResourceOrbFrames.Utils.CalculateBorderSizes
 local CalculateFillDimensions = BETTERUI.ResourceOrbFrames.Utils.CalculateFillDimensions
 
+---@param rootFrame table Root ResourceOrbFrames control
+---@param pools table<number, BetterUIOrbBar> Power type to orb bar mapping
+---@param shieldBar BetterUIShieldBar|nil Shield bar instance
 function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')
     if not bgMiddle then return end
@@ -559,6 +596,8 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
 end
 
 -- Setup Functions
+---@param rootFrame table Root ResourceOrbFrames control
+---@return table<number, BetterUIOrbBar> pools Power type to orb bar mapping
 function Visuals.SetupPowerPools(rootFrame)
 
     local pools = {
@@ -619,6 +658,9 @@ function Visuals.SetupPowerPools(rootFrame)
     return pools
 end
 
+---@param rootFrame table Root ResourceOrbFrames control
+---@param pools table<number, BetterUIOrbBar> Power pools for health max fallback
+---@return BetterUIShieldBar shieldBar The created shield bar instance
 function Visuals.SetupShieldBar(rootFrame, pools)
     local shieldBar = BetterUIShieldBar:New(FindControl(rootFrame, 'OrbShield'), ATTRIBUTE_VISUAL_POWER_SHIELDING)
 

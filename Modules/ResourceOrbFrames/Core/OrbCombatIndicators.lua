@@ -30,6 +30,9 @@ local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local ClampNumber = BETTERUI.ClampNumber
 
+--- Resolves the front bar container control from the root frame.
+---@param rootFrame table Root ResourceOrbFrames control
+---@return table|nil frontBarContainer The front bar container, or nil
 function CombatIndicators.ResolveFrontBarContainer(rootFrame)
     if not rootFrame then
         return nil
@@ -98,6 +101,10 @@ local function EnsureCombatIconControl(rootFrame, frontBarContainer)
     return m_combatIconControl
 end
 
+--- Gets the glow and icon combat indicator controls.
+---@param rootFrame table Root ResourceOrbFrames control
+---@return table|nil glow Glow texture control, or nil
+---@return table|nil icon Icon texture control, or nil
 function CombatIndicators.GetCombatIndicatorControls(rootFrame)
     if not rootFrame then
         return nil, nil
@@ -333,6 +340,7 @@ local function GetGlowTargets(rootFrame)
     return targets
 end
 
+--- Stops all active combat glow animations and hides glow controls.
 function CombatIndicators.HideAllCombatGlows()
     for control, timeline in pairs(m_combatGlowTimelinesByControl) do
         if timeline and timeline.IsPlaying and timeline:IsPlaying() then
@@ -387,6 +395,10 @@ end
 --- Internal state for tracking combat transitions
 CombatIndicators._lastCombatState = nil
 
+--- Applies or removes combat indicator visuals (glows, icons, audio cues).
+---@param rootFrame table Root ResourceOrbFrames control
+---@param isInCombat boolean Whether the player is in combat
+---@param playAudioCue boolean Whether to play audio on combat state change
 function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
     local settings = GetSettings()
     local glow, icon = CombatIndicators.GetCombatIndicatorControls(rootFrame)

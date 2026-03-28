@@ -86,6 +86,8 @@ local function RefreshAllData()
     if m_mountStaminaBar then m_mountStaminaBar:Update() end
 end
 
+---@param updateOrbs boolean Whether to update orb frame layout
+---@param updateSkills boolean Whether to update skill bar layout
 local function ApplyLayout(updateOrbs, updateSkills)
     if not m_rootFrame or not m_isInitialized then return end
 
@@ -183,12 +185,13 @@ end
 -- INITIALIZATION HELPERS
 
 --- Reads front bar config live from settings (avoids stale closure references).
+---@return table|nil config Custom front bar configuration, or nil
 local function GetFrontBarConfig()
     return BETTERUI_ORB_FRAMES and BETTERUI_ORB_FRAMES.bars and BETTERUI_ORB_FRAMES.bars.customFrontBar
 end
 
 --- Replays front bar handlers (keybinds, press feedback, tooltips).
---- Called during initial setup and after gamepad mode switch.
+---@param control table Root ResourceOrbFrames control
 local function SetupFrontBarHandlers(control)
     if SkillBar.SetupFrontBarKeybinds then
         SkillBar.SetupFrontBarKeybinds(control)
@@ -210,6 +213,7 @@ local function SuppressNativeBars()
 end
 
 --- Registers all dynamic event callbacks after initial component setup.
+---@param control table Root ResourceOrbFrames control
 local function RegisterDynamicEvents(control)
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
@@ -320,6 +324,7 @@ end
 
 -- INITIALIZATION
 
+---@param control table Root ResourceOrbFrames control
 local function SetupModule(control)
     m_rootFrame = control
 
@@ -384,6 +389,8 @@ end
 
 -- PUBLIC INTERFACE
 
+--- Initializes the ResourceOrbFrames module from the XML OnInitialized handler.
+---@param control table Root UI control created from XML template
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
 
@@ -418,6 +425,7 @@ function ResourceOrbFrames.Initialize(control)
     end)
 end
 
+--- Applies current settings to the orb frames, toggling visibility and layout.
 function ResourceOrbFrames.ApplySettings()
     local settings = GetSettings()
     if not m_rootFrame then return end
@@ -448,7 +456,8 @@ function ResourceOrbFrames.ApplySettings()
     end
 end
 
--- Global XML Handler (Bridge)
+--- Global XML Handler (Bridge)
+---@param control table Root UI control from XML
 function ResourceOrbFrames_Initialize(control)
     ResourceOrbFrames.Initialize(control)
 end

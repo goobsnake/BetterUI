@@ -8,6 +8,11 @@ if not BETTERUI.ResourceOrbFrames.Utils then BETTERUI.ResourceOrbFrames.Utils = 
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 
+---@param value any Value to clamp (converted via tonumber)
+---@param minValue number Minimum allowed text size
+---@param maxValue number Maximum allowed text size
+---@param fallback number Value returned when input is not a number
+---@return number size Clamped and rounded text size
 function Utils.ClampTextSize(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then
@@ -26,12 +31,14 @@ end
 Utils.FindControl = BETTERUI.ControlUtils.FindControl
 
 --- Module settings accessor alias for brevity in ResourceOrbFrames code.
+---@return table|nil settings Module settings table, or nil if not loaded
 function Utils.GetSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end
 
 --- Attaches a tooltip to an orb control showing current/max resource power.
---- Shared utility to eliminate duplication between OrbOverlays and OrbVisuals.
+---@param control table|nil UI control to attach tooltip handlers to
+---@param powerType number ESO POWERTYPE_* constant
 function Utils.AddOrbTooltip(control, powerType)
     if not control then return end
     control:SetMouseEnabled(true)
@@ -44,7 +51,12 @@ function Utils.AddOrbTooltip(control, powerType)
 end
 
 --- Calculates border sizes for left/right orbs based on hide state and scaling.
---- Shared utility to eliminate duplication between OrbOverlays and OrbVisuals.
+---@param cfg table Orb frames configuration table (BETTERUI_ORB_FRAMES)
+---@param settings table Module settings from saved variables
+---@return number leftSize Computed left orb border size
+---@return number rightSize Computed right orb border size
+---@return number leftVisibleScale Left orb visible scale factor
+---@return number rightVisibleScale Right orb visible scale factor
 function Utils.CalculateBorderSizes(cfg, settings)
     local hideLeft = settings.hideLeftOrnament or false
     local hideRight = settings.hideRightOrnament or false
@@ -69,6 +81,10 @@ function Utils.CalculateBorderSizes(cfg, settings)
 end
 
 --- Scales a positional value relative to a border size ratio.
+---@param value number|any Value to scale
+---@param borderSize number Current border size
+---@param baseBorderSize number Reference border size for ratio calculation
+---@return number scaled Scaled value (0 if input is not a number)
 function Utils.ScaleForBorder(value, borderSize, baseBorderSize)
     if type(value) ~= "number" then
         return 0
@@ -80,6 +96,10 @@ function Utils.ScaleForBorder(value, borderSize, baseBorderSize)
 end
 
 --- Calculates fill dimensions for all orb resource types.
+---@param cfg table Orb frames configuration table
+---@param leftBorderSize number Computed left orb border size
+---@param rightBorderSize number Computed right orb border size
+---@return table fills Table with health/shield/magicka/stamina/resource dimension entries
 function Utils.CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
     local leftBaseSize = cfg.orbs.left.borderSize or leftBorderSize
     local rightBaseSize = cfg.orbs.right.borderSize or rightBorderSize
@@ -121,6 +141,10 @@ function Utils.CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
 end
 
 --- Updates the dimensions and anchor of a custom overlay control.
+---@param parent table|nil Parent UI control
+---@param cfgName string Overlay configuration key name
+---@param baseSize number Base size to scale from
+---@param cfg table Orb frames configuration table
 function Utils.UpdateOverlaySize(parent, cfgName, baseSize, cfg)
     if not parent then return end
     local overlayName = parent:GetName() .. "CustomOverlay"
@@ -135,6 +159,9 @@ function Utils.UpdateOverlaySize(parent, cfgName, baseSize, cfg)
 end
 
 --- Safely gets a named child control from a parent.
+---@param parent table|nil Parent UI control with GetNamedChild method
+---@param name string Child control name suffix
+---@return table|nil child The child control, or nil
 function Utils.GetNamedChildDirect(parent, name)
     if parent and parent.GetNamedChild then
         return parent:GetNamedChild(name)
@@ -143,6 +170,10 @@ function Utils.GetNamedChildDirect(parent, name)
 end
 
 --- Gets a front bar button control with fallback resolution for special buttons.
+---@param rootFrame table Root ResourceOrbFrames control
+---@param frontBarContainer table Front bar container control
+---@param buttonName string Button name to resolve (e.g. "QuickslotButton")
+---@return table|nil control The resolved button control, or nil
 function Utils.GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
     local GetNamedChildDirect = Utils.GetNamedChildDirect
     local FindControl = Utils.FindControl

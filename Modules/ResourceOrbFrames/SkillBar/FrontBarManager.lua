@@ -85,6 +85,8 @@ end
 
 -- CONTROL CACHING
 
+--- Caches front bar button controls and their children for efficient lookup.
+---@param rootFrame table Root ResourceOrbFrames control
 local function CacheFrontBarControls(rootFrame)
     if not rootFrame then return end
     m_frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -120,6 +122,7 @@ end
 
 -- HIDE NATIVE ACTION BAR
 
+--- Hides the native ESO action bar and timer.
 local function HideNativeActionBar()
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
         ZO_ActionBar1:SetHidden(true)
@@ -132,6 +135,8 @@ end
 
 -- UPDATE FRONT BAR (icons, slot data, highlights)
 
+--- Updates front bar button icons, slot data, and highlights.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBar(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -178,6 +183,9 @@ end
 
 -- UPDATE USABILITY OVERLAY
 
+--- Updates unusable overlays on front bar buttons based on cost/state/target failures.
+---@param rootFrame table Root ResourceOrbFrames control
+---@param isCasting boolean Whether the player is currently casting
 local function UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -220,6 +228,8 @@ end
 
 -- TOOLTIPS
 
+--- Sets up tooltip handlers on front bar ability buttons.
+---@param rootFrame table Root ResourceOrbFrames control
 local function SetupFrontBarTooltips(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -244,6 +254,8 @@ end
 
 -- KEYBINDS
 
+--- Sets up keybind labels on front bar buttons.
+---@param rootFrame table Root ResourceOrbFrames control
 local function SetupFrontBarKeybinds(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -320,6 +332,8 @@ end
 
 -- LAYOUT
 
+--- Updates front bar button sizes, positions, and anchor layout.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarLayout(rootFrame)
     local settingsCfg = GetSettings().customFrontBar
     if not settingsCfg or not settingsCfg.m_enabled then return end
@@ -444,6 +458,8 @@ end
 
 -- QUICKSLOT + COMPANION UPDATES
 
+--- Updates quickslot button icon, count, and tooltip.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarQuickslot(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
@@ -470,6 +486,8 @@ local function UpdateFrontBarQuickslot(rootFrame)
     end
 end
 
+--- Updates companion button visibility, icon, and tooltip.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarCompanion(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")

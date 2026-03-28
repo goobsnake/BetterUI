@@ -20,9 +20,11 @@ end
 --- Unlike GetModuleSettings, the returned reference is persisted in BETTERUI.Settings.Modules,
 --- so callers may write through it. Use this for mutation patterns; use GetModuleSettings for reads.
 ---@param moduleName string Module name key
----@return table|nil settings The module settings table, or nil if BETTERUI.Settings is absent
+---@return table settings The module settings table (always non-nil)
 function BETTERUI.EnsureModuleSettings(moduleName)
-    if not BETTERUI.Settings then return nil end
+    if not BETTERUI.Settings then
+        BETTERUI.Settings = {}
+    end
     if not BETTERUI.Settings.Modules then
         BETTERUI.Settings.Modules = {}
     end

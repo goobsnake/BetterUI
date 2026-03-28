@@ -24,6 +24,8 @@ local ExperienceBar = Bars.ExperienceBar
 local MountStaminaBar = Bars.MountStaminaBar
 local FoodBuffTracker = Bars.FoodBuffTracker
 
+---@param fillColor table|nil Fill colour {r,g,b,a}
+---@param depthColor table|nil Depth/gradient colour {r,g,b,a}
 function CastBar:ApplyFillStyle(fillColor, depthColor)
     self.currentFillColor = fillColor or self.defaultFillColor
     self.currentDepthColor = depthColor or self.defaultDepthColor
@@ -44,6 +46,13 @@ function CastBar:ApplyFillStyle(fillColor, depthColor)
     )
 end
 
+---@param unitTag string Unit tag (e.g. "player")
+---@param abilityName string Display name of the ability
+---@param castDuration number Cast duration in milliseconds
+---@param isChanneled boolean Whether the ability is channeled
+---@param showCountdown boolean Whether to display countdown text
+---@param castFillColor table|nil Fill colour override {r,g,b,a}
+---@param castDepthColor table|nil Depth colour override {r,g,b,a}
 function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, showCountdown, castFillColor,
                              castDepthColor)
     if unitTag ~= "player" then return end
@@ -63,6 +72,8 @@ function CastBar:OnCastStart(unitTag, abilityName, castDuration, isChanneled, sh
     if self.fill then self.fill:SetHidden(false) end
 end
 
+---@param unitTag string Unit tag (e.g. "player")
+---@param wasInterrupted boolean Whether the cast was interrupted
 function CastBar:OnCastStop(unitTag, wasInterrupted)
     if unitTag ~= "player" then return end
     self.isCasting = false
@@ -72,6 +83,7 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
     self:Update()
 end
 
+--- Updates cast bar visibility, fill, and label text each frame.
 function CastBar:Update()
     local settings = GetSettings()
     if not settings.castBarEnabled then
@@ -141,6 +153,7 @@ function CastBar:Update()
     end
 end
 
+--- Updates XP/Champion bar fill and label text.
 function ExperienceBar:Update()
     if not self.control then return end
     local settings = GetSettings()
@@ -199,6 +212,7 @@ function ExperienceBar:Update()
     self:UpdateVisuals(current, effectiveMax, insetX, insetY, w, h)
 end
 
+--- Updates mount stamina bar fill, label, and mounted state.
 function MountStaminaBar:Update()
     local settings = GetSettings()
     if not settings.mountStaminaBarEnabled then
@@ -243,16 +257,25 @@ function MountStaminaBar:Update()
     end
 end
 
+--- Placeholder update for food buff tracker.
 function FoodBuffTracker:Update()
     -- Logic available in repo if needed, minimal placeholder here to prevent errors if referenced
     if self.control and self.control.SetValue then self.control:SetValue(0) end
 end
 
 -- Export Factory Functions
+---@param parent table Parent control
+---@return CastBar
 function Bars.CreateCastBar(parent) return CastBar:New(parent) end
 
+---@param parent table Parent control
+---@return ExperienceBar
 function Bars.CreateExperienceBar(parent) return ExperienceBar:New(parent) end
 
+---@param parent table Parent control
+---@return MountStaminaBar
 function Bars.CreateMountStaminaBar(parent) return MountStaminaBar:New(parent) end
 
+---@param control table UI control
+---@return FoodBuffTracker
 function Bars.CreateFoodTracker(control) return FoodBuffTracker:New(control) end

@@ -15,20 +15,25 @@ local Repair = Vendor.RepairComponent
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
 -- PRIMARY ACTION
 
+---@return string name Localized repair action label
 function Repair:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_REPAIR"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if repair is affordable and needed
 function Repair:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -37,6 +42,7 @@ function Repair:IsPrimaryActionEnabled(vendorInstance)
     return repairCost > 0 and vendorInstance:CanAfford(repairCost)
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -59,6 +65,7 @@ end
 
 -- REPAIR ALL
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:RepairAll(vendorInstance)
     local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
     if repairAllCost <= 0 then return end
@@ -82,6 +89,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Repair:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

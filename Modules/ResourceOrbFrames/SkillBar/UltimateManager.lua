@@ -31,6 +31,7 @@ local function ApplyUltimateTextAnchor(ultimateButtonControl, ultimateTextContro
     ultimateTextControl:SetAnchor(BOTTOM, ultimateButtonControl, BOTTOM, offsetX, offsetY)
 end
 
+---@param btn table Ultimate button control with readyBurst/readyLoop children
 local function PlayUltimateReadyAnimations(btn)
     local readyBurst = btn.readyBurst
     local readyLoop = btn.readyLoop
@@ -73,6 +74,7 @@ local function PlayUltimateReadyAnimations(btn)
     end
 end
 
+---@param btn table Ultimate button control
 local function StopUltimateReadyAnimations(btn)
     if btn.readyBurstTimeline then
         btn.readyBurstTimeline:Stop()
@@ -84,6 +86,8 @@ local function StopUltimateReadyAnimations(btn)
     if btn.glow then btn.glow:SetAlpha(0) end
 end
 
+--- Updates the ultimate fill sprites and triggers ready animations.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarUltimateMeter(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
@@ -154,6 +158,8 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
     end
 end
 
+--- Updates the ultimate count text label.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarUltimateNumber(rootFrame)
     local settings = GetSettings()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')

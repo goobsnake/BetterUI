@@ -37,6 +37,7 @@ Caches all back bar control references for performance.
 References: Called during addon initialization after controls are created.
 param: rootFrame (control) - The root ResourceOrbFrames control
 ]]
+---@param rootFrame table Root ResourceOrbFrames control
 local function CacheBackBarControls(rootFrame)
     if not rootFrame then return end
 
@@ -150,6 +151,8 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
     return percentComplete
 end
 
+--- Updates back bar button icons and visibility.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -200,6 +203,8 @@ local function UpdateBackBar(rootFrame)
     backBarContainer:SetHidden(false)
 end
 
+--- Updates back bar button sizes, positions, and anchor layout.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBarLayout(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -291,6 +296,8 @@ local function UpdateBackBarLayout(rootFrame)
     end
 end
 
+--- Sets up tooltip handlers for back bar buttons.
+---@param rootFrame table Root ResourceOrbFrames control
 local function SetupBackBarTooltips(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
@@ -305,6 +312,8 @@ local function SetupBackBarTooltips(rootFrame)
     end
 end
 
+--- Updates back bar cooldown overlays, text, and reveal animations.
+---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBarCooldowns(rootFrame)
     local activePair = GetActiveWeaponPairInfo()
     local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY

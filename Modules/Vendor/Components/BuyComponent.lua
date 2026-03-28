@@ -8,26 +8,39 @@ Uses GetNumStoreItems/GetStoreEntryInfo to populate the list.
 
 local Vendor = BETTERUI.Vendor
 
+---@class VendorComponent
+---@field Activate fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
+---@field Deactivate fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
+---@field GetPrimaryActionName fun(self: VendorComponent, vendorInstance?: BETTERUI.Vendor.Class): string
+---@field IsPrimaryActionEnabled fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class): boolean
+---@field OnPrimaryAction fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
+---@field BuildList fun(self: VendorComponent, vendorInstance: BETTERUI.Vendor.Class)
+
 -- COMPONENT TABLE
 Vendor.BuyComponent = {}
 local Buy = Vendor.BuyComponent
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:Deactivate(vendorInstance)
     -- No cleanup needed for Buy mode
 end
 
 -- PRIMARY ACTION
 
+---@return string name Localized action label
 function Buy:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if a buy action is possible
 function Buy:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -39,6 +52,7 @@ function Buy:IsPrimaryActionEnabled(vendorInstance)
         and vendorInstance:HasInventorySpace()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -67,6 +81,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

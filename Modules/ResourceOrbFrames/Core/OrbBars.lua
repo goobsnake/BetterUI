@@ -166,9 +166,19 @@ local function ResolveCastBarFillColorByPowerType(powerType)
     return nil, nil
 end
 
--- BetterUIBarFrame Class (Base)
+---@class BetterUIBarFrame : ZO_Object
+---@field control table UI control
+---@field fill table Fill texture control
+---@field backdrop table Backdrop texture control
+---@field label table Label control
+---@field backdropTextureFile string Backdrop texture path
+---@field fillTextureFile string Fill texture path
+---@field backdropTextureBounds table|nil Texture coordinate bounds
+---@field fillRegion table|nil Normalized fill region {left, right, top, bottom}
 BetterUIBarFrame = ZO_Object:Subclass()
 
+---@param control table UI control to wrap
+---@return BetterUIBarFrame
 function BetterUIBarFrame:New(control)
     local obj = ZO_Object.New(self)
     -- Assign to instance, not class prototype
@@ -176,6 +186,13 @@ function BetterUIBarFrame:New(control)
     return obj
 end
 
+---@param name string Control name
+---@param parent table Parent control
+---@param backdropTextureFile string|nil Backdrop texture filename
+---@param fillTextureFile string|nil Fill texture filename
+---@param backdropTextureBounds table|nil Texture coordinate bounds
+---@param fillRegion table|nil Normalized fill region {left, right, top, bottom}
+---@return table control The created control
 function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillTextureFile, backdropTextureBounds,
                                      fillRegion)
     local control = WINDOW_MANAGER:CreateControl(name, parent, CT_CONTROL)
@@ -207,6 +224,10 @@ function BetterUIBarFrame:Initialize(name, parent, backdropTextureFile, fillText
     return control
 end
 
+---@param r number Red (0-1)
+---@param g number Green (0-1)
+---@param b number Blue (0-1)
+---@param a number Alpha (0-1)
 function BetterUIBarFrame:SetColor(r, g, b, a)
     if self.fill then self.fill:SetColor(r, g, b, a) end
 end
@@ -219,6 +240,11 @@ local function IsValidRegion(region)
         and type(region.bottom) == "number"
 end
 
+---@param barWidth number Total bar width
+---@param barHeight number Total bar height
+---@param extraOffsetX number|nil Additional X offset
+---@param extraOffsetY number|nil Additional Y offset
+---@return number offsetX, number offsetY Label anchor offsets
 function BetterUIBarFrame:GetLabelAnchorOffsets(barWidth, barHeight, extraOffsetX, extraOffsetY)
     local offsetX = extraOffsetX or 0
     local offsetY = extraOffsetY or 0
@@ -233,6 +259,12 @@ function BetterUIBarFrame:GetLabelAnchorOffsets(barWidth, barHeight, extraOffset
     return offsetX, offsetY
 end
 
+---@param current number Current value
+---@param max number Maximum value
+---@param insetX number Horizontal fill inset
+---@param insetY number Vertical fill inset
+---@param barWidth number Total bar width
+---@param barHeight number Total bar height
 function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, barHeight)
     if not self.control or self.control:IsHidden() then return end
 
@@ -280,15 +312,30 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     end
 end
 
--- Cast Bar Class
+---@class CastBar : BetterUIBarFrame
+---@field isCasting boolean Whether a cast is in progress
+---@field duration number Cast duration in seconds
+---@field postCastHold number Hold time after cast completes
+---@field showCountdown boolean Whether to show countdown text
+---@field isChanneled boolean Whether the cast is a channeled ability
+---@field startTime number Timestamp when cast started
+---@field defaultFillColor table Default fill colour {r,g,b,a}
+---@field defaultDepthColor table Default depth colour {r,g,b,a}
+---@field currentFillColor table Active fill colour {r,g,b,a}
+---@field currentDepthColor table Active depth colour {r,g,b,a}
+---@field pendingPowerProbeStartMs number Timestamp for power-probe window
+---@field lastKnownPowerValues table<number, number> Cached power values by type
 local CastBar = BetterUIBarFrame:Subclass()
 
+---@param parent table Parent control
+---@return CastBar
 function CastBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
+---@param parent table Parent control
 function CastBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUICastBar", parent,
         CAST.BACKDROP_TEXTURE or "CastBar.dds",
@@ -409,15 +456,18 @@ function CastBar:Initialize(parent)
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
--- Experience Bar Class
+---@class ExperienceBar : BetterUIBarFrame
 local ExperienceBar = BetterUIBarFrame:Subclass()
 
+---@param parent table Parent control
+---@return ExperienceBar
 function ExperienceBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
+---@param parent table Parent control
 function ExperienceBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIXPBar", parent,
         XP.BACKDROP_TEXTURE or "Bar.dds",
@@ -427,15 +477,20 @@ function ExperienceBar:Initialize(parent)
     self:SetColor(0.1, 0.85, 0.8, 1)
 end
 
--- Mount Stamina Bar Class
+---@class MountStaminaBar : BetterUIBarFrame
+---@field currentValue number Current mount stamina
+---@field maxValue number Maximum mount stamina
 local MountStaminaBar = BetterUIBarFrame:Subclass()
 
+---@param parent table Parent control
+---@return MountStaminaBar
 function MountStaminaBar:New(parent)
     local obj = ZO_Object.New(self)
     obj:Initialize(parent)
     return obj
 end
 
+---@param parent table Parent control
 function MountStaminaBar:Initialize(parent)
     BetterUIBarFrame.Initialize(self, "BetterUIMountStaminaBar", parent,
         MOUNT.BACKDROP_TEXTURE or "MountBar.dds",
@@ -466,6 +521,7 @@ function MountStaminaBar:Initialize(parent)
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
+---@param isMounted boolean Whether the player is mounted
 function MountStaminaBar:OnMountedStateChanged(isMounted)
     if isMounted then
         local current, max = GetUnitPower("player", COMBAT_MECHANIC_FLAGS_MOUNT_STAMINA)
@@ -474,9 +530,12 @@ function MountStaminaBar:OnMountedStateChanged(isMounted)
     end
 end
 
--- Food Buff Tracker (Legacy/Unused but kept for safety)
+---@class FoodBuffTracker : ZO_Object
+---@field control table UI control
 local FoodBuffTracker = ZO_Object:Subclass()
 
+---@param control table UI control
+---@return FoodBuffTracker
 function FoodBuffTracker:New(control)
     local obj = ZO_Object.New(self)
     obj.control = control

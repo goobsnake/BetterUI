@@ -14,6 +14,8 @@ local Vendor = BETTERUI.Vendor
 Vendor.SceneLifecycle = {}
 
 --- Registers scene state callbacks for showing/hiding the vendor.
+---@param sceneName string Scene name to register callbacks for
+---@param vendorInstance BETTERUI.Vendor.Class Vendor class instance
 function Vendor.SceneLifecycle.Register(sceneName, vendorInstance)
     if not sceneName or not vendorInstance then return end
 
@@ -32,6 +34,7 @@ function Vendor.SceneLifecycle.Register(sceneName, vendorInstance)
 end
 
 --- Called when the vendor scene begins showing.
+---@param vendorInstance BETTERUI.Vendor.Class
 function Vendor.SceneLifecycle.OnShowing(vendorInstance)
     if not vendorInstance then return end
 
@@ -57,6 +60,7 @@ function Vendor.SceneLifecycle.OnShowing(vendorInstance)
 end
 
 --- Called when the vendor scene begins hiding.
+---@param vendorInstance BETTERUI.Vendor.Class
 function Vendor.SceneLifecycle.OnHiding(vendorInstance)
     if not vendorInstance then return end
 
@@ -80,6 +84,7 @@ function Vendor.SceneLifecycle.OnHiding(vendorInstance)
 end
 
 --- Called when the vendor scene is fully hidden.
+---@param vendorInstance BETTERUI.Vendor.Class
 function Vendor.SceneLifecycle.OnHidden(vendorInstance)
     if not vendorInstance then return end
 

@@ -14,20 +14,25 @@ local Buyback = Vendor.BuybackComponent
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
 -- PRIMARY ACTION
 
+---@return string name Localized buyback action label
 function Buyback:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if buyback is affordable and inventory has space
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -36,6 +41,7 @@ function Buyback:IsPrimaryActionEnabled(vendorInstance)
     return vendorInstance:CanAfford(price) and vendorInstance:HasInventorySpace()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -62,6 +68,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function Buyback:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end

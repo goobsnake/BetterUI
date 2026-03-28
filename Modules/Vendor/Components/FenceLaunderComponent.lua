@@ -17,10 +17,12 @@ local FenceLaunder = Vendor.FenceLaunderComponent
 
 -- ACTIVATE / DEACTIVATE
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceLaunder:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceLaunder:Deactivate(vendorInstance)
     -- No cleanup needed
 end
@@ -28,6 +30,9 @@ end
 -- HELPERS
 
 --- Get remaining fence launders and total allowed
+---@return number remaining Available launder transactions
+---@return number total Maximum launder transactions
+---@return number resetTimeSeconds Seconds until transaction reset
 local function GetRemainingLaunders()
     if GetFenceLaunderTransactionInfo then
         local totalLaunders, laundersUsed, resetTimeSeconds = GetFenceLaunderTransactionInfo()
@@ -39,6 +44,9 @@ local function GetRemainingLaunders()
 end
 
 --- Get launder cost for an item
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@return number cost Launder cost in gold
 local function GetLaunderCost(bagId, slotIndex)
     if GetItemLaunderPrice then
         return GetItemLaunderPrice(bagId, slotIndex) or 0
@@ -48,10 +56,13 @@ end
 
 -- PRIMARY ACTION
 
+---@return string name Localized launder action label
 function FenceLaunder:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER"))
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
+---@return boolean enabled True if launder is affordable and transactions remain
 function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -68,6 +79,7 @@ function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     return vendorInstance:CanAfford(cost)
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceLaunder:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -98,6 +110,7 @@ end
 
 -- LIST BUILDING
 
+---@param vendorInstance BETTERUI.Vendor.Class
 function FenceLaunder:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
@@ -148,6 +161,7 @@ end
 -- FOOTER INFO
 
 --- Returns footer text showing remaining launders and reset timer
+---@return string text Formatted text showing remaining launders and timer
 function FenceLaunder:GetFooterText()
     local remaining, total, resetTimeSeconds = GetRemainingLaunders()
     local text = zo_strformat(SI_BETTERUI_FENCE_LAUNDERS_REMAINING, remaining, total)
