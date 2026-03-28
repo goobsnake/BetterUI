@@ -95,7 +95,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 s:RefreshItemList()
             end,
             isSceneShowing = function()
-                return BETTERUI.CIM.Utils.IsInventorySceneShowing()
+                return BETTERUI.Utils.IsInventorySceneShowing()
             end,
             getSceneExitLabel = function()
                 return GetString(rawget(_G, "SI_BETTERUI_SCENE_INVENTORY"))

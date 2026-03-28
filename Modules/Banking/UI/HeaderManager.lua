@@ -99,7 +99,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
             instance:RefreshList()
         end,
         sceneCheck = function()
-            return BETTERUI.CIM.Utils.IsBankingSceneShowing()
+            return BETTERUI.Utils.IsBankingSceneShowing()
         end,
     })
     -- Wrap to pass self as first argument (onSelectedChanged receives list, selectedData)

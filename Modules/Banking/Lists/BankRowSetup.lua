@@ -286,7 +286,7 @@ end
 --- @param selectedData table|nil
 function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    if not BETTERUI.Utils.IsBankingSceneShowing() then
         return
     end
 

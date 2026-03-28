@@ -215,7 +215,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Hook into the actual edit box using the consolidated SearchFocusMixin
     -- This replaces ~70 lines of duplicate code (previously duplicated in InventoryClass.lua)
     BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, {
-        isSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing,
+        isSceneShowing = BETTERUI.Utils.IsBankingSceneShowing,
         onTextChanged = function(window, txt)
             window.searchQuery = txt
             window:RefreshList()
@@ -285,13 +285,13 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
 
     local function UpdateCurrency_Handler()
         -- Only update UI/keybinds when the banking scene is actually visible
-        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        if not BETTERUI.Utils.IsBankingSceneShowing() then
             return
         end
 
         -- Currency transfers emit both carried+banked events; coalesce to one UI refresh.
         BETTERUI.Banking.Tasks:Schedule("currencyUiRefresh", CURRENCY_UI_REFRESH_DELAY_MS, function()
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+            if not BETTERUI.Utils.IsBankingSceneShowing() then
                 return
             end
 

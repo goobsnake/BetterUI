@@ -39,7 +39,7 @@ local INLINE_STATUS_ICON_WEIGHT = {
 
 --- @return string moduleName
 local function GetActiveListModuleName()
-    if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    if BETTERUI.Utils.IsBankingSceneShowing() then
         return "Banking"
     end
     return "Inventory"

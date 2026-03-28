@@ -74,4 +74,4 @@ Function: BETTERUI.Inventory.Utils.SafeGetTargetData
 Description: Safe helper for GetTargetData calls (guards against lists without method).
 Rationale: Delegates to CIM.Utils.SafeGetTargetData for shared implementation.
 ]]
-BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+BETTERUI.Inventory.Utils.SafeGetTargetData = BETTERUI.Utils.SafeGetTargetData

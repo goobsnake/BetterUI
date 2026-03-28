@@ -133,7 +133,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
 
     -- Handle market price display
     if ShouldShowMarketPrice() and
-        (BETTERUI.CIM.Utils.IsBankingSceneShowing() or BETTERUI.CIM.Utils.IsInventorySceneShowing()) then
+        (BETTERUI.Utils.IsBankingSceneShowing() or BETTERUI.Utils.IsInventorySceneShowing()) then
         local marketPrice, isAverage = BETTERUI.GetMarketPrice(itemLink, data.stackCount)
         if marketPrice and marketPrice > 0 then
             valueControl:SetColor(isAverage and 1 or 1, isAverage and 0.5 or 0.75, isAverage and 0.5 or 0, 1)

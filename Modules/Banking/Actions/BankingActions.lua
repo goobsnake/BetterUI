@@ -79,7 +79,7 @@ end
 --- @return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogSetup(dialog)
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        if BETTERUI.Utils.IsBankingSceneShowing() then
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
                 self.itemActions:SetSelectedAction(selectedData and selectedData.action)
             end)
@@ -146,7 +146,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     end
 
     local function ActionDialogFinish()
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        if BETTERUI.Utils.IsBankingSceneShowing() then
             if not self.isInHeaderSortMode then
                 self:AddKeybinds()
             end
@@ -155,7 +155,7 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     end
 
     local function ActionDialogButtonConfirm(dialog)
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+        if BETTERUI.Utils.IsBankingSceneShowing() then
             local selectedEntry = dialog.entryList and dialog.entryList:GetTargetData()
             if selectedEntry and selectedEntry.isBetterUIStackTransfer then
                 local stackCount = selectedEntry.stackCount or 1

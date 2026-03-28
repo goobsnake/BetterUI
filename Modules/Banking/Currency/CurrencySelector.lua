@@ -83,7 +83,7 @@ local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
 end
 
 function CurrencySelector.RefreshCurrencyTooltip(self)
-    if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
+    if not BETTERUI.Utils.IsBankingSceneShowing() then return end
     local list = self:GetList()
     if not list or not list.selectedData or not list.selectedData.currencyType then return end
 

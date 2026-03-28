@@ -54,7 +54,7 @@ function BETTERUI.Inventory.HookActionDialog()
             -- Intercept Destroy/Delete to route through BetterUI confirm dialog
             local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
                 or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
-            local inBankScene = BETTERUI.CIM.Utils.IsBankingSceneShowing()
+            local inBankScene = BETTERUI.Utils.IsBankingSceneShowing()
             if not (isDestroy and inBankScene) then
                 -- When in the companion equipment scene, hide the 'Link to Chat' action to avoid insecure SendChatMessage calls
                 if actionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) and isCompanionSceneShowing then
@@ -103,9 +103,9 @@ function BETTERUI.Inventory.HookActionDialog()
             -- Normal BetterUI override path when enabled/visible
             -- Check both Inventory and Banking scenes with proper nil guards
             local invShowing = BETTERUI.GetModuleEnabled("Inventory")
-                and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+                and BETTERUI.Utils.IsInventorySceneShowing()
             local bankShowing = BETTERUI.GetModuleEnabled("Banking")
-                and BETTERUI.CIM.Utils.IsBankingSceneShowing()
+                and BETTERUI.Utils.IsBankingSceneShowing()
 
             if invShowing or bankShowing then
                 -- Fire callback for BetterUI modules to populate the dialog
@@ -127,11 +127,11 @@ function BETTERUI.Inventory.HookActionDialog()
             if
                 (
                     BETTERUI.GetModuleEnabled("Inventory")
-                    and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+                    and BETTERUI.Utils.IsInventorySceneShowing()
                 )
                 or (
                     BETTERUI.GetModuleEnabled("Banking")
-                    and BETTERUI.CIM.Utils.IsBankingSceneShowing()
+                    and BETTERUI.Utils.IsBankingSceneShowing()
                 )
             then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
@@ -157,11 +157,11 @@ function BETTERUI.Inventory.HookActionDialog()
                     if
                         (
                             BETTERUI.GetModuleEnabled("Inventory")
-                            and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+                            and BETTERUI.Utils.IsInventorySceneShowing()
                         )
                         or (
                             BETTERUI.GetModuleEnabled("Banking")
-                            and BETTERUI.CIM.Utils.IsBankingSceneShowing()
+                            and BETTERUI.Utils.IsBankingSceneShowing()
                         )
                     then
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
@@ -180,14 +180,14 @@ function BETTERUI.Inventory.HookActionDialog()
                             end
                             -- 2. Fall back to dialog's entry list selection
                             if dialog.entryList and dialog.entryList.GetTargetData then
-                                return BETTERUI.CIM.Utils.SafeGetTargetData(dialog.entryList)
+                                return BETTERUI.Utils.SafeGetTargetData(dialog.entryList)
                             end
                             return nil
                         end
 
                         -- Check if the selected row is a BetterUI Destroy entry
                         local selectedRow = dialog.entryList and
-                            BETTERUI.CIM.Utils.SafeGetTargetData(dialog.entryList)
+                            BETTERUI.Utils.SafeGetTargetData(dialog.entryList)
                         if selectedRow and selectedRow.isBetterUIDestroy then
                             local targetData = ResolveTargetDataFromDialog()
                             if targetData then

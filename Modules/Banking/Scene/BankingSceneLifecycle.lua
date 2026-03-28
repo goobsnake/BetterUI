@@ -85,7 +85,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     -- Register for SHARED_INVENTORY callbacks
     local function OnInventoryUpdated(bagId, slotIndex)
-        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
+        if not BETTERUI.Utils.IsBankingSceneShowing() then return end
         local currentUsedBank = BETTERUI.Banking.currentUsedBank
         local relevantBags
         if self.currentMode == LIST_WITHDRAW then
@@ -109,7 +109,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         if not isRelevant then return end
 
         BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", SHARED_INVENTORY_UPDATE_DELAY_MS, function()
-            if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+            if BETTERUI.Utils.IsBankingSceneShowing() then
                 self.isDirty = true
                 self:RefreshList()
             end
@@ -122,10 +122,10 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     -- Re-activate list and refresh after any gamepad dialog fully closes
     self._onDialogHiddenCallback = function()
-        if BETTERUI.CIM.Utils.IsBankingSceneShowing() and self.list then
+        if BETTERUI.Utils.IsBankingSceneShowing() and self.list then
             self._suppressListUpdates = false
             BETTERUI.Banking.Tasks:Schedule("dialogHiddenRefresh", 50, function()
-                if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+                if BETTERUI.Utils.IsBankingSceneShowing() then
                     self.bankCategories = self:ComputeVisibleBankCategories()
                     self:RefreshList()
                 end

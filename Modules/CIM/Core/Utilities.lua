@@ -323,3 +323,12 @@ function BETTERUI.CIM.Utils.SafeCall(obj, methodName, ...)
     end
     return nil
 end
+
+-- Root-level facade: scene-check utilities promoted out of CIM namespace.
+-- Consumers should use BETTERUI.Utils.* instead of BETTERUI.CIM.Utils.* for
+-- cross-module utilities that don't logically belong to CIM's scope.
+BETTERUI.Utils = BETTERUI.Utils or {}
+BETTERUI.Utils.IsBankingSceneShowing = BETTERUI.CIM.Utils.IsBankingSceneShowing
+BETTERUI.Utils.IsInventorySceneShowing = BETTERUI.CIM.Utils.IsInventorySceneShowing
+BETTERUI.Utils.SafeGetTargetData = BETTERUI.CIM.Utils.SafeGetTargetData
+BETTERUI.Utils.SafeCall = BETTERUI.CIM.Utils.SafeCall

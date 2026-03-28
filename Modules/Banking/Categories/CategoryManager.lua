@@ -161,7 +161,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
             instance:RefreshList()
         end,
         sceneCheck = function()
-            return BETTERUI.CIM.Utils.IsBankingSceneShowing()
+            return BETTERUI.Utils.IsBankingSceneShowing()
         end,
     })
     self.bankHeaderData.onSelectedChanged = function(list, selectedData)

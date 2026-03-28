@@ -74,7 +74,7 @@ return: boolean - True if the banking scene is currently showing.
 ]]
 --- @return boolean showing True if the banking scene is showing
 function BETTERUI.Banking.Class:IsSceneShowing()
-    return BETTERUI.CIM.Utils.IsBankingSceneShowing()
+    return BETTERUI.Utils.IsBankingSceneShowing()
 end
 
 --[[

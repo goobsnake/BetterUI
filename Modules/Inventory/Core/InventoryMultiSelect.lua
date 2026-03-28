@@ -178,7 +178,7 @@ function Class:OnCraftBagSelectionCountChanged(selectedCount)
         return
     end
 
-    if not self.isInHeaderSortMode and BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+    if not self.isInHeaderSortMode and BETTERUI.Utils.IsInventorySceneShowing() then
         self:RefreshKeybinds()
     end
 end
@@ -211,7 +211,7 @@ function Class:ExitCraftBagSelectionMode()
         self.craftBagMultiSelectManager:ExitSelectionMode()
     end
 
-    if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+    if BETTERUI.Utils.IsInventorySceneShowing() then
         if not self.isInHeaderSortMode then
             self:RefreshKeybinds()
         end

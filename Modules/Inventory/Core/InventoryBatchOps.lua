@@ -385,7 +385,7 @@ function Class:InitializeBatchDestroyDialog()
                             return "queued"
                         end, function()
                             inventoryInstance:ExitSelectionMode()
-                            if BETTERUI.CIM.Utils.IsInventorySceneShowing() then
+                            if BETTERUI.Utils.IsInventorySceneShowing() then
                                 inventoryInstance:RefreshHeader(BLOCK_TABBAR_CALLBACK)
                             end
                         end, GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")), DESTROY_BATCH_OPTIONS)

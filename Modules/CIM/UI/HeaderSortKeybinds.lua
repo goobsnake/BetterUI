@@ -9,21 +9,17 @@ Last Modified: 2026-03-14
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.UI then BETTERUI.CIM.UI = {} end
 
--- Strict Load Guard: Only proceed if HeaderSort is enabled and the controller class exists.
--- Soft-disables module for this session if prerequisites are not met, avoiding hard crash.
-local function IsHeaderSortPrerequisiteMet()
-    if not BETTERUI.GetModuleEnabled("HeaderSort") then return false end
-    if not BETTERUI.CIM.UI.HeaderSortController then return false end
-    return true
-end
+-- Deferred reference: resolved on first use rather than at parse time,
+-- removing the hard dependency on load order between Controller and Keybinds.
+local SORT_DIRECTION
 
-if not IsHeaderSortPrerequisiteMet() then
-    BETTERUI.SetModuleEnabled("HeaderSort", false)
-    return
+local function EnsureControllerReady()
+    if SORT_DIRECTION then return true end
+    local controller = BETTERUI.CIM.UI.HeaderSortController
+    if not controller then return false end
+    SORT_DIRECTION = controller.SORT_DIRECTION
+    return SORT_DIRECTION ~= nil
 end
-
--- Reference sort direction constants from the controller class
-local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
 
 -------------------------------------------------------------------------------------------------
 -- SORT FUNCTION HELPERS
@@ -37,6 +33,8 @@ return: function|nil - Comparator function or nil if no sort active.
 ]]
 --- @return function|nil comparator Sort comparator function or nil
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
+    if not EnsureControllerReady() then return nil end
+
     local column, direction = self:GetActiveSortColumn()
     if not column or direction == SORT_DIRECTION.NONE then
         return nil

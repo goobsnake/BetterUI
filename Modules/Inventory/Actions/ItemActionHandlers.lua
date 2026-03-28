@@ -176,7 +176,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
         local action = actions:GetSlotAction(i)
         local actionName = actions:GetRawActionName(action)
 
-        local hideDestroy = BETTERUI.CIM.Utils.IsBankingSceneShowing()
+        local hideDestroy = BETTERUI.Utils.IsBankingSceneShowing()
         local isDestroy = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY")))
             or (SI_ITEM_ACTION_DELETE and actionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE")))
         local hideMarkJunk = false
@@ -248,7 +248,7 @@ function ActionHandlers.OnSetup(self, dialog, data)
         currentList = self.craftBagList
         sortContext = self
         showSortEntry = true
-    elseif BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    elseif BETTERUI.Utils.IsBankingSceneShowing() then
         local bankingClass = BETTERUI.Banking and BETTERUI.Banking.Class
         if bankingClass and bankingClass.list then
             currentList = bankingClass.list

@@ -358,7 +358,7 @@ function BETTERUI.Banking.Class:RefreshList()
     local entryCount = (self.list and self.list.dataList and #self.list.dataList) or 0
     if entryCount == 0 then
         self.list:Deactivate()
-    elseif BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+    elseif BETTERUI.Utils.IsBankingSceneShowing() then
         self.list:Activate()
     end
 

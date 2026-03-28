@@ -23,10 +23,8 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 
     local function RefreshBankingWindowList()
-        if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsBankingSceneShowing then
-            if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-                return
-            end
+        if not BETTERUI.Utils.IsBankingSceneShowing() then
+            return
         end
 
         local bankingWindow = BETTERUI.Banking and BETTERUI.Banking.Window
