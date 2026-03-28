@@ -1,165 +1,10 @@
 --[[
-File: Modules/CIM/Actions/GenericSlotActions.lua
-Purpose: Shared slot action logic for Inventory and Banking modules.
-         Provides abstractions for common item actions (split stack, link to chat, etc.).
-
-STATUS: ORPHANED / FOUNDATION CODE
-----------------------------------
-This file is NOT currently used by Inventory/Banking modules. They use:
-  - BETTERUI.Inventory.SlotActions (inherits ZO_ItemSlotActionsController)
-  - Direct action handlers in Inventory/Actions/SlotActions.lua
-
-The GenericSlotActions class and helper functions here provide a foundation for
-future refactoring but have no active consumers in the current codebase.
-
-DECISION: Retained for future use. If no integration occurs by v4.0, consider:
-  - Option A: Integrate into Inventory/Banking to replace duplicate logic
-  - Option B: Remove and rely on ZO_ItemSlotActionsController patterns
-
-REFERENCED BY: None (verified via file_grep search)
+Purpose: Shared slot action helpers for Inventory and Banking modules.
+         Provides item action implementations (use, bank, craft bag stow/retrieve)
+         and common action-list utilities (deduplication, secure wrapping).
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
-
---[[
-Class: BETTERUI.CIM.GenericSlotActions
-Base class for slot action management.
-]]
-BETTERUI.CIM.GenericSlotActions = ZO_Object:Subclass()
-
-function BETTERUI.CIM.GenericSlotActions:New(...)
-    local obj = ZO_Object.New(self)
-    obj:Initialize(...)
-    return obj
-end
-
-function BETTERUI.CIM.GenericSlotActions:Initialize()
-    self.actions = {}
-    self.actionsByName = {}
-end
-
--------------------------------------------------------------------------------------------------
--- ACTION MANAGEMENT
--------------------------------------------------------------------------------------------------
-
---- @param name string The display name of the action
---- @param callback function The function to execute when triggered
---- @param options table|nil Optional configuration
-function BETTERUI.CIM.GenericSlotActions:AddAction(name, callback, options)
-    local action = {
-        name = name,
-        callback = callback,
-        options = options or {},
-    }
-    table.insert(self.actions, action)
-    self.actionsByName[name] = action
-end
-
---- @return nil
-function BETTERUI.CIM.GenericSlotActions:ClearActions()
-    self.actions = {}
-    self.actionsByName = {}
-end
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:GetAction
-Retrieves a specific action by name.
-param: actionName (string) - The name of the action to retrieve.
-return: table|nil - The action table, or nil if not found.
-]]
-function BETTERUI.CIM.GenericSlotActions:GetAction(actionName)
-    return self.actionsByName[actionName]
-end
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:HasAction
-Checks if an action exists by name.
-param: actionName (string) - The name of the action to check.
-return: boolean - True if the action exists.
-]]
-function BETTERUI.CIM.GenericSlotActions:HasAction(actionName)
-    return self.actionsByName[actionName] ~= nil
-end
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:GetActionCount
-Returns the number of registered actions.
-return: number - The count of actions.
-]]
-function BETTERUI.CIM.GenericSlotActions:GetActionCount()
-    return #self.actions
-end
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:GetActions
-Returns the list of all registered actions.
-return: table - Array of action tables.
-]]
-function BETTERUI.CIM.GenericSlotActions:GetActions()
-    return self.actions
-end
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:ExecuteAction
-Executes an action by name.
-param: actionName (string) - The name of the action to execute.
-return: boolean - True if the action was found and executed.
-]]
-function BETTERUI.CIM.GenericSlotActions:ExecuteAction(actionName)
-    local action = self.actionsByName[actionName]
-    if action and action.callback then
-        action.callback()
-        return true
-    end
-    return false
-end
-
--------------------------------------------------------------------------------------------------
--- COMMON ACTIONS BUILDER
--------------------------------------------------------------------------------------------------
-
---[[
-Function: BETTERUI.CIM.GenericSlotActions:BuildCommonActions
-Populates standard actions for an inventory slot.
-param: inventorySlot (table) - The inventory slot data.
-param: options (table|nil) - Optional configuration.
-  - includeLinkToChat (boolean): Whether to add Link to Chat action (default: true).
-  - includeSplitStack (boolean): Whether to add Split Stack action (default: true).
-]]
-function BETTERUI.CIM.GenericSlotActions:BuildCommonActions(inventorySlot, options)
-    options = options or {}
-    local includeLinkToChat = options.includeLinkToChat ~= false
-    local includeSplitStack = options.includeSplitStack ~= false
-
-    self:ClearActions()
-
-    if not inventorySlot then return end
-
-    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bag or not slot then return end
-
-    -- Link to Chat action
-    if includeLinkToChat then
-        local itemLink = GetItemLink(bag, slot)
-        if itemLink and itemLink ~= "" then
-            self:AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")), function()
-                ZO_LinkHandler_InsertLink(zo_strformat("<<2>>", SI_TOOLTIP_ITEM_NAME, itemLink))
-            end)
-        end
-    end
-
-    -- Split Stack action (only for stackable items with stack > 1)
-    if includeSplitStack then
-        local stackSize = GetSlotStackSize(bag, slot)
-        if stackSize and stackSize > 1 then
-            self:AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_SPLIT_STACK")), function()
-                if ZO_InventorySlot_TrySplitStack then
-                    ZO_InventorySlot_TrySplitStack(inventorySlot)
-                end
-            end)
-        end
-    end
-end
 
 -- ============================================================================
 -- SHARED ITEM ACTION HELPERS
@@ -167,12 +12,7 @@ end
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
 
---[[
-Function: BETTERUI.CIM.TryUseItem
-Attempts to use an item from the specified inventory slot.
-Used By: Inventory/Actions/SlotActions.lua
-param: inventorySlot (table) - The inventory slot data with bagId/slotIndex.
-]]
+--- @param inventorySlot table Inventory slot data with bagId/slotIndex
 function BETTERUI.CIM.TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
@@ -234,13 +74,8 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     end
 end
 
---[[
-Function: BETTERUI.CIM.TryMoveToCraftBag
-Moves an item between Backpack and Craft Bag.
-Used By: Inventory/Actions/SlotActions.lua
-param: inventorySlot (table) - The inventory slot data.
-param: targetBag (number) - BAG_BACKPACK or BAG_VIRTUAL.
-]]
+--- @param inventorySlot table The inventory slot data
+--- @param targetBag number BAG_BACKPACK or BAG_VIRTUAL
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if not bag then return end
@@ -288,15 +123,10 @@ end
 -- These functions provide shared action setup logic that was previously
 -- duplicated in Inventory/Actions/SlotActions.lua.
 
---[[
-Function: BETTERUI.CIM.SetupSecureAction
-Wraps an action in a secure call if necessary (primarily for USE actions).
-Used By: Inventory/Actions/SlotActions.lua
-param: slotActions (table) - The slot actions object.
-param: actionStringId (number) - The action string ID constant.
-param: callback (function) - The callback to execute.
-param: inventorySlot (table) - The inventory slot data.
-]]
+--- @param slotActions table The slot actions object
+--- @param actionStringId number Action string ID constant
+--- @param callback function The callback to execute
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
     local actionName = GetString(actionStringId)
     if actionStringId == SI_ITEM_ACTION_USE then
@@ -310,14 +140,9 @@ function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, i
     end
 end
 
---[[
-Function: BETTERUI.CIM.HandleCraftBagActions
-Configures actions related to the Craft Bag (Stow/Retrieve).
-Used By: Inventory/Actions/SlotActions.lua
-param: slotActions (table) - The slot actions object.
-param: inventorySlot (table) - The inventory slot data.
-param: canUseItem (boolean) - Whether the item is also usable (adds USE as secondary).
-]]
+--- @param slotActions table The slot actions object
+--- @param inventorySlot table The inventory slot data
+--- @param canUseItem boolean Whether the item is also usable (adds USE as secondary)
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
@@ -339,14 +164,9 @@ function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseIt
     end
 end
 
---[[
-Function: BETTERUI.CIM.SecureOpenSkills
-Wraps the "Open Skills" action callback in a secure call.
-           which causes tainting errors. This wrapper ensures CallSecureProtected is used.
-Used By: Inventory/Actions/SlotActions.lua
-param: slotActions (table) - The slot actions object.
-param: inventorySlot (table) - The inventory slot data.
-]]
+--- Wraps "Open Skills" callback in CallSecureProtected to prevent tainting errors.
+--- @param slotActions table The slot actions object
+--- @param inventorySlot table The inventory slot data
 function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     local INDEX_ACTION_CALLBACK = 2
     for i, action in ipairs(slotActions.m_slotActions) do
@@ -364,13 +184,7 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     end
 end
 
---[[
-Function: BETTERUI.CIM.DeduplicateActions
-Removes duplicate entries from the slot actions list.
-           ensures the Y-button actions menu doesn't show duplicates.
-Used By: Inventory/Actions/SlotActions.lua
-param: slotActions (table) - The slot actions object to deduplicate.
-]]
+--- @param slotActions table The slot actions object to deduplicate
 function BETTERUI.CIM.DeduplicateActions(slotActions)
     local seen = {}
     for i = #slotActions.m_slotActions, 1, -1 do
@@ -386,29 +200,18 @@ function BETTERUI.CIM.DeduplicateActions(slotActions)
     end
 end
 
---[[
-Function: BETTERUI.CIM.IsSlotInCraftBag
-Checks if the inventory slot represents an item inside the Craft Bag.
-Used By: Inventory/Actions/SlotActions.lua, CIM.ResolveCraftBagState
-param: inventorySlot (table) - The inventory slot data.
-return: boolean - True if the item is in the Craft Bag.
-]]
+--- @param inventorySlot table The inventory slot data
+--- @return boolean inCraftBag True if the item is in the Craft Bag
 function BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     return slotType == SLOT_TYPE_CRAFT_BAG_ITEM
 end
 
---[[
-Function: BETTERUI.CIM.ResolveCraftBagState
-Determines the correct primary action based on Craft Bag context.
-           show "Stow" if eligible.
-Used By: Inventory/Actions/SlotActions.lua
-param: slotActions (table) - The slot actions object.
-param: inventorySlot (table) - The inventory slot data.
-param: primaryAction (string) - The current primary action name.
-param: canUseItem (boolean) - Whether the item is also usable.
-return: string - The resolved action name for display.
-]]
+--- @param slotActions table The slot actions object
+--- @param inventorySlot table The inventory slot data
+--- @param primaryAction string The current primary action name
+--- @param canUseItem boolean Whether the item is also usable
+--- @return string actionName The resolved action name for display
 function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
     local retrieveActionName = GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"))
     local stowActionName = GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG"))
