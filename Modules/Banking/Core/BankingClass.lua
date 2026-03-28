@@ -37,6 +37,8 @@ BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manag
 -- These were previously defined locally as BANK_CATEGORY_DEFS and BANK_CATEGORY_ICONS.
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
 -------------------------------------------------------------------------------------------------
+assert(BETTERUI.Inventory and BETTERUI.Inventory.Categories, "BetterUI: Inventory.Categories must load before Banking/Core/BankingClass")
+assert(BETTERUI.CIM and BETTERUI.CIM.GenericWindow, "BetterUI: CIM.GenericWindow must load before Banking/Core/BankingClass")
 BETTERUI.Banking.CATEGORY_DEFS                 = BETTERUI.Inventory.Categories.Bank
 
 -- Reference to shared interface utilities

@@ -42,6 +42,7 @@ BETTERUI.Vendor.MODE = {
 -- ============================================================================
 -- MODULE-SCOPE TASK MANAGER (for coalescing list refreshes)
 -- ============================================================================
+assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Vendor/Core/VendorClass")
 BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 -- ============================================================================

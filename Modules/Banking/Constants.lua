@@ -41,6 +41,7 @@ BETTERUI.Banking.CONST.CAROUSEL = {
 -- ============================================================================
 
 -- Use centralized CIM search bar constants (eliminates duplication with Inventory)
+assert(BETTERUI.CIM and BETTERUI.CIM.GetSearchBarConstants, "BetterUI: CIM must load before Banking/Constants")
 local searchConst = BETTERUI.CIM.GetSearchBarConstants("BANKING")
 
 --[[

@@ -39,6 +39,7 @@ end
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
 -- Using module-specific instance prevents ID collisions with other modules
+assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Inventory/Core/InventoryClass")
 BETTERUI.Inventory.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 
