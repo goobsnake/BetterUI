@@ -62,50 +62,12 @@ local function ResolveBagsAndSlotType(self)
     return bags, SLOT_TYPE_BANK_ITEM
 end
 
+-- Expose helpers for use by CategoryManager (loads later)
+BETTERUI.Banking.BuildAllBankCategories = BuildAllBankCategories
+BETTERUI.Banking.ResolveBagsAndSlotType = ResolveBagsAndSlotType
+
 -- LIST MANAGEMENT
-
---- Computes the subset of categories that contain items for the current bank mode.
-function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
-    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
-    local allCategories = BuildAllBankCategories(isFurnitureVault)
-    local visibility = {}
-    local itemCounts = {}
-
-    for _, category in ipairs(allCategories) do
-        visibility[category.key] = false
-        itemCounts[category.key] = 0
-    end
-    visibility["all"] = true
-
-    local bags = ResolveBagsAndSlotType(self)
-
-    local function IsNotStolenItem(itemData)
-        return not itemData.stolen
-    end
-
-    local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
-    local totalItems = 0
-    for i = 1, #data do
-        local itemData = data[i]
-        totalItems = totalItems + 1
-        for _, category in ipairs(allCategories) do
-            if category.key ~= "all" and DoesItemMatchBankCategory(itemData, category) then
-                visibility[category.key] = true
-                itemCounts[category.key] = itemCounts[category.key] + 1
-            end
-        end
-    end
-    itemCounts["all"] = totalItems
-
-    local visibleCategories = {}
-    for _, category in ipairs(allCategories) do
-        if visibility[category.key] then
-            category.itemCount = itemCounts[category.key]
-            visibleCategories[#visibleCategories + 1] = category
-        end
-    end
-    return visibleCategories
-end
+-- Note: ComputeVisibleBankCategories is defined in CategoryManager.lua (loads after this file)
 
 --- Refreshes the banking list contents.
 function BETTERUI.Banking.Class:RefreshList()

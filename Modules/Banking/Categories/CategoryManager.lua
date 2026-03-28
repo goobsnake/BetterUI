@@ -4,61 +4,15 @@ File: Modules/Banking/Categories/CategoryManager.lua
 Purpose: Centralizes banking category construction, matching, cycling, and header rebuilding.
 ]]
 
-local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
-local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
-
 BETTERUI.Banking.CategoryManager = BETTERUI.Banking.CategoryManager or {}
 local CategoryManager = BETTERUI.Banking.CategoryManager
 
-local function BuildAllBankCategories(isFurnitureVault)
-    if isFurnitureVault then
-        return {
-            { key = "all",        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL")),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
-            { key = "furnishing", name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_FURNISHING")), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
-        }
-    end
-
-    local out = {}
-    for i = 1, #BANK_CATEGORY_DEFS do
-        local def = BANK_CATEGORY_DEFS[i]
-        if not def.optional or (def.optional and def.filterType ~= nil) then
-            out[#out + 1] = {
-                key = def.key,
-                name = GetString(def.nameStringId),
-                filterType = def.filterType,
-                special = def.special,
-                iconFile = def.iconFile,
-            }
-        end
-    end
-    return out
-end
+-- Reuse helpers defined in BankListManager.lua (loads before this file)
+local BuildAllBankCategories = BETTERUI.Banking.BuildAllBankCategories
+local ResolveBagsAndSlotType = BETTERUI.Banking.ResolveBagsAndSlotType
 
 local function DoesItemMatchBankCategory(itemData, category)
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
-end
-
-local function ResolveBagsAndSlotType(self)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        if self.currentMode == LIST_WITHDRAW then
-            return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
-        else
-            return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-        end
-    end
-    if self.currentMode == LIST_WITHDRAW then
-        local bags
-        if currentUsedBank == BAG_BANK then
-            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-        else
-            bags = { currentUsedBank }
-        end
-        return bags, SLOT_TYPE_BANK_ITEM
-    else
-        return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-    end
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)
