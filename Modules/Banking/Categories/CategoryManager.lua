@@ -7,17 +7,13 @@ Purpose: Centralizes banking category construction, matching, cycling, and heade
 BETTERUI.Banking.CategoryManager = BETTERUI.Banking.CategoryManager or {}
 local CategoryManager = BETTERUI.Banking.CategoryManager
 
--- Reuse helpers defined in BankListManager.lua (loads before this file)
-local BuildAllBankCategories = BETTERUI.Banking.BuildAllBankCategories
-local ResolveBagsAndSlotType = BETTERUI.Banking.ResolveBagsAndSlotType
-
 local function DoesItemMatchBankCategory(itemData, category)
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)
     local isFurnitureVault = IsFurnitureVault(GetBankingBag())
-    local allCategories = BuildAllBankCategories(isFurnitureVault)
+    local allCategories = BETTERUI.Banking.BuildAllBankCategories(isFurnitureVault)
     local visibility = {}
     local itemCounts = {}
 
@@ -27,7 +23,7 @@ function CategoryManager.ComputeVisibleBankCategories(self)
     end
     visibility["all"] = true
 
-    local bags = ResolveBagsAndSlotType(self)
+    local bags = BETTERUI.Banking.ResolveBagsAndSlotType(self)
     local function IsNotStolenItem(itemData)
         return not itemData.stolen
     end

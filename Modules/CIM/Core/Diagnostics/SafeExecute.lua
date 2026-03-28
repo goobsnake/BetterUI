@@ -78,3 +78,13 @@ function BETTERUI.CIM.UserNotifyText(context, messageText, sound)
     BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(messageText)))
     ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageText)
 end
+
+--- Unified user-facing informational notification (non-error).
+--- Wraps ZO_AlertNoSuppression for consistent logging of user feedback.
+---@param context string Descriptive label for logging (e.g., "Buy:CannotAfford")
+---@param messageText string The user-facing alert message text
+---@param sound? number Sound constant (default: nil for silent)
+function BETTERUI.CIM.UserAlertText(context, messageText, sound)
+    BETTERUI.Debug(string.format("[UserAlert] %s: %s", context, tostring(messageText)))
+    ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, sound, messageText)
+end

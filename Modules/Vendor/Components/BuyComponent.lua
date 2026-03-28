@@ -64,13 +64,13 @@ function Buy:OnPrimaryAction(vendorInstance)
     local price = selectedData.price or 0
     local currencyType = selectedData.currencyType or CURT_MONEY
     if not vendorInstance:CanAfford(price, currencyType) then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not vendorInstance:HasInventorySpace() then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Buy:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return
     end

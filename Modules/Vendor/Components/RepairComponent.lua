@@ -55,7 +55,7 @@ function Repair:OnPrimaryAction(vendorInstance)
     if repairCost <= 0 then return end
 
     if not vendorInstance:CanAfford(repairCost) then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Repair:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
@@ -71,7 +71,7 @@ function Repair:RepairAll(vendorInstance)
     if repairAllCost <= 0 then return end
 
     if not vendorInstance:CanAfford(repairAllCost) then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Repair:CannotAffordAll",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end

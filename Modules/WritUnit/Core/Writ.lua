@@ -40,13 +40,13 @@ end
 --- - Applies **Green** (00FF00) if complete, **Grey** (CCCCCC) if incomplete.
 --- - Returns a concatenated string of objectives.
 ---
----@param qId number Quest journal index
+---@param questId number Quest journal index
 ---@return string writConcate Formatted color-coded objectives string
-function BETTERUI.Writs.Get(qId)
+function BETTERUI.Writs.Get(questId)
 	local writLines = {}
 	local writConcate = ''
-	for lineId = 1, GetJournalQuestNumConditions(qId, 1) do
-		local writLine, current, maximum, isFailCondition, complete, _, isVisible = GetJournalQuestConditionInfo(qId, 1, lineId)
+	for lineId = 1, GetJournalQuestNumConditions(questId, 1) do
+		local writLine, current, maximum, isFailCondition, complete, _, isVisible = GetJournalQuestConditionInfo(questId, 1, lineId)
 		-- Skip empty, invisible, or fail conditions
 		if writLine ~= '' and isVisible ~= false and not isFailCondition then
 			local colour
@@ -80,24 +80,24 @@ function BETTERUI.Writs.Update()
 		-- Resolve localized patterns once per scan (not per quest) — avoids
 		-- repeated GetCVar("language.2") calls inside a hot loop
 		local patterns = BETTERUI.Writs.CONST.GetLocalizedPatterns()
-		for qId = 1, MAX_JOURNAL_QUESTS do
-			if IsValidQuestIndex(qId) then
-				if GetJournalQuestType(qId) == QUEST_TYPE_CRAFTING then
-				local qName, _, _, _, _, _ = GetJournalQuestInfo(qId)
+		for questId = 1, MAX_JOURNAL_QUESTS do
+			if IsValidQuestIndex(questId) then
+				if GetJournalQuestType(questId) == QUEST_TYPE_CRAFTING then
+				local questName, _, _, _, _, _ = GetJournalQuestInfo(questId)
 					local currentWrit                       = -1
-					local q                                 = string.lower(qName or "")
+					local questNameLower                    = string.lower(questName or "")
 					-- Use patterns from Constants.lua for maintainability
 					-- Order matters: last match wins as in the original chain
 					for i = 1, #patterns do
-						local pat = patterns[i].pattern
+						local patternStr = patterns[i].pattern
 						local craft = patterns[i].craftType
-						if string.find(q, pat, 1, true) then
+						if string.find(questNameLower, patternStr, 1, true) then
 							currentWrit = craft
 						end
 					end
 
 					if currentWrit ~= -1 then
-						BETTERUI.Writs.List[currentWrit] = { id = qId, writLines = BETTERUI.Writs.Get(qId) }
+						BETTERUI.Writs.List[currentWrit] = { id = questId, writLines = BETTERUI.Writs.Get(questId) }
 					end
 				end
 			end
@@ -121,10 +121,10 @@ function BETTERUI.Writs.Show(writType)
 		BETTERUI.Writs.Update()
 		if BETTERUI.Writs.List[writType] == nil then return end
 
-		local qName, _, _, _, _, _ = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
+		local questName, _, _, _, _, _ = GetJournalQuestInfo(BETTERUI.Writs.List[writType].id)
 		-- Use cached control references for performance
 		if m_writNameLabel then
-			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", qName))
+			m_writNameLabel:SetText(zo_strformat("|c0066ff[BETTERUI]|r <<1>>", questName))
 		end
 		if m_writDescLabel then
 			m_writDescLabel:SetText(zo_strformat("<<1>>", BETTERUI.Writs.List[writType].writLines))

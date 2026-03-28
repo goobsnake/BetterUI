@@ -52,13 +52,13 @@ function Buyback:OnPrimaryAction(vendorInstance)
     -- Validate affordability
     local price = selectedData.price or 0
     if not vendorInstance:CanAfford(price) then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Buyback:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
 
     if not vendorInstance:HasInventorySpace() then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Buyback:CannotCarry",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY")))
         return
     end

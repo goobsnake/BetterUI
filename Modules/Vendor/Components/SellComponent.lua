@@ -69,7 +69,7 @@ end
 function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
     if itemCount <= 0 then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("Sell:NoJunk",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_JUNK")))
         return
     end

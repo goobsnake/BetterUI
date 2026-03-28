@@ -95,7 +95,7 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     -- Re-check affordability
     local cost = GetLaunderCost(bagId, slotIndex)
     if not vendorInstance:CanAfford(cost) then
-        ZO_AlertNoSuppression(UI_ALERT_CATEGORY_ALERT, nil,
+        BETTERUI.CIM.UserAlertText("FenceLaunder:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
         return
     end
