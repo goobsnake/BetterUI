@@ -36,11 +36,7 @@ function UnifiedFooterController:New(control)
     return obj
 end
 
---[[
-Function: UnifiedFooterController:Initialize
-Description: Initializes the footer controller.
-param: control (Control) - The XML control to manage.
-]]
+--- @param control Control The XML control to manage
 function UnifiedFooterController:Initialize(control)
     self.control = control
     self.footer = nil
@@ -48,11 +44,7 @@ function UnifiedFooterController:Initialize(control)
     self._initialized = false
 end
 
---[[
-Function: UnifiedFooterController:SetupFooter
-Description: Links the Lua controller to the XML footer control.
-param: footerControl (Control) - The footer container control.
-]]
+--- @param footerControl Control The footer container control
 function UnifiedFooterController:SetupFooter(footerControl)
     self.footer = footerControl
     self._initialized = true
@@ -71,11 +63,7 @@ function UnifiedFooterController:GetMode()
     return self.mode
 end
 
---[[
-Function: UnifiedFooterController:Refresh
-Description: Refreshes the footer based on current mode.
-             Delegates to GenericFooter for currency/capacity updates.
-]]
+--- Refreshes the footer based on current mode.
 function UnifiedFooterController:Refresh()
     if not self._initialized or not self.footer then return end
 
@@ -97,12 +85,7 @@ function UnifiedFooterController:Refresh()
     self:ApplyModeStyles()
 end
 
---[[
-Function: UnifiedFooterController:ApplyModeStyles
-Description: Applies mode-specific styling or visibility changes.
-             Currently both modes show the same elements, but this provides
-             an extension point for future differentiation.
-]]
+--- Applies mode-specific styling or visibility changes.
 function UnifiedFooterController:ApplyModeStyles()
     if not self.footer then return end
 
@@ -123,11 +106,7 @@ function UnifiedFooterController:ApplyModeStyles()
     end
 end
 
---[[
-Function: UnifiedFooterController:IsInitialized
-Description: Returns whether the footer has been set up.
-return: boolean
-]]
+--- @return boolean initialized Whether the footer has been set up
 function UnifiedFooterController:IsInitialized()
     return self._initialized
 end

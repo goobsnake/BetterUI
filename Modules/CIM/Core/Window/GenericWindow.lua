@@ -8,11 +8,6 @@ Purpose: A specialized base class for Inventory-like windows (Banking, Backpack)
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
---[[
-Class: BETTERUI.CIM.GenericWindow
-Intermediate base class for Inventory and Banking windows.
-Inherits from BETTERUI.Interface.Window.
-]]
 --- @class BETTERUI.CIM.GenericWindow : BETTERUI.Interface.Window
 --- @field categoryPositions table<string, number> Map of category keys to saved positions
 --- @field currentCategoryKey string|nil The current category identifier
@@ -78,10 +73,7 @@ function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     return self.categoryPositions[key] or 1
 end
 
---[[
-Function: BETTERUI.CIM.GenericWindow:ClearCategoryPositions
-Clears all saved category positions.
-]]
+--- Clears all saved category positions.
 function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
     self.categoryPositions = {}
 end
@@ -114,10 +106,7 @@ end
 -- KEYBIND MANAGEMENT
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive
-Ensures header tab bar keybinds are active.
-]]
+--- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
     if self.headerGeneric and self.headerGeneric.tabBar then
         local tabBar = self.headerGeneric.tabBar
@@ -138,10 +127,7 @@ function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
     end
 end
 
---[[
-Function: BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds
-Standard keybind refresh pattern.
-]]
+--- Standard keybind refresh pattern.
 function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     if not KEYBIND_STRIP then return end
 
@@ -158,18 +144,12 @@ end
 -- PLACEHOLDER METHODS (Override in subclasses)
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.GenericWindow:UpdateHeaderTitle
-Placeholder for updating header title based on category.
-]]
+--- Placeholder for updating header title based on category.
 function BETTERUI.CIM.GenericWindow:UpdateHeaderTitle()
     -- Subclasses should override
 end
 
---[[
-Function: BETTERUI.CIM.GenericWindow:RefreshFooter
-Placeholder for updating footer info.
-]]
+--- Placeholder for updating footer info.
 function BETTERUI.CIM.GenericWindow:RefreshFooter()
     -- Subclasses should override
 end

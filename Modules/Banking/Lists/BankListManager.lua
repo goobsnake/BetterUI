@@ -78,10 +78,6 @@ end
 -- LIST MANAGEMENT
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: ComputeVisibleBankCategories
-Description: Compute the subset of categories that actually contain items for the current bank mode.
-]]
 --- Computes the subset of categories that contain items for the current bank mode.
 --- @return table visibleCategories
 function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
@@ -126,12 +122,7 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     return visibleCategories
 end
 
---[[
-Function: BETTERUI.Banking.Class:RefreshList
-Description: Refreshes the banking list contents.
-]]
 --- Refreshes the banking list contents.
---- @return nil
 function BETTERUI.Banking.Class:RefreshList()
     if not self.list then
         return

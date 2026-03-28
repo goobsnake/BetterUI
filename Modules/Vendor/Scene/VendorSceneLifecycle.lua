@@ -15,12 +15,9 @@ local Vendor = BETTERUI.Vendor
 -- ============================================================================
 Vendor.SceneLifecycle = {}
 
---[[
-Function: Vendor.SceneLifecycle.Register
-Description: Registers scene state callbacks for showing/hiding the vendor.
-param: sceneName (string) - The scene name.
-param: vendorInstance (table) - The VendorClass instance.
-]]
+--- Registers scene state callbacks for showing/hiding the vendor.
+--- @param sceneName string The scene name
+--- @param vendorInstance table The VendorClass instance
 function Vendor.SceneLifecycle.Register(sceneName, vendorInstance)
     if not sceneName or not vendorInstance then return end
 
@@ -38,11 +35,7 @@ function Vendor.SceneLifecycle.Register(sceneName, vendorInstance)
     end)
 end
 
---[[
-Function: Vendor.SceneLifecycle.OnShowing
-Description: Called when the vendor scene begins showing.
-             Adds keybinds, sets up footer, refreshes the list.
-]]
+--- Called when the vendor scene begins showing.
 function Vendor.SceneLifecycle.OnShowing(vendorInstance)
     if not vendorInstance then return end
 
@@ -67,11 +60,7 @@ function Vendor.SceneLifecycle.OnShowing(vendorInstance)
     vendorInstance:UpdateTabHeader()
 end
 
---[[
-Function: Vendor.SceneLifecycle.OnHiding
-Description: Called when the vendor scene begins hiding.
-             Removes keybinds and cancels deferred tasks.
-]]
+--- Called when the vendor scene begins hiding.
 function Vendor.SceneLifecycle.OnHiding(vendorInstance)
     if not vendorInstance then return end
 
@@ -94,11 +83,7 @@ function Vendor.SceneLifecycle.OnHiding(vendorInstance)
     vendorInstance._isDirty = false
 end
 
---[[
-Function: Vendor.SceneLifecycle.OnHidden
-Description: Called when the vendor scene is fully hidden.
-             Deactivates the current component.
-]]
+--- Called when the vendor scene is fully hidden.
 function Vendor.SceneLifecycle.OnHidden(vendorInstance)
     if not vendorInstance then return end
 

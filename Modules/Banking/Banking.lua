@@ -65,33 +65,12 @@ local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescri
 -- BETTERUI.Banking.Class is already defined there via BETTERUI.Interface.Window:Subclass()
 -- BETTERUI.Banking.Class:New() is also defined there
 
---[[
-Function: BETTERUI.Banking.Class:CurrentUsedBank
-Description: Updates the 'currentUsedBank' state.
-]]
-
-
---[[
-Function: BETTERUI.Banking.Class:LastUsedBank
-Description: Updates the 'lastUsedBank' state.
-]]
-
-
---[[
-Function: BETTERUI.Banking.Class:RefreshFooter
-Description: Refreshes the footer information (Space Used, Currency).
-]]
-
-
---[[
-Function: BETTERUI.Banking.Class:RefreshCurrencyTooltip
-Description: Updates the tooltip for currency rows.
-]]
+-- State methods (CurrentUsedBank, LastUsedBank) defined in State/StateManager.lua
+-- Footer methods (RefreshFooter, RefreshCurrencyTooltip) defined below or in UI/
 
 
 --- @param tlw_name string Top level window name
 --- @param scene_name string Scene name
---- @return nil
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
@@ -352,15 +331,7 @@ end
 -- NOTE: ActivateSpinner and DeactivateSpinner have been removed.
 -- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG (see Dialogs/QuantityDialog.lua)
 
---[[
-Function: BETTERUI.Banking.Init
-Description: Global initialization for the Banking module using BetterUI.Window.
-  1. Instantiates `BETTERUI.Banking.Class`.
-  2. Sets the default title.
-  3. Configures List Columns (Name, Trait, etc.).
-  4. Registers the scene with SCENE_MANAGER.
-References: Called by BETTERUI.Banking.Setup().
-]]
+--- Global initialization for the Banking module using BetterUI.Window.
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", BETTERUI_BANKING_SCENE_NAME)
     BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")

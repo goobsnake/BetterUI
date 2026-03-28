@@ -24,12 +24,7 @@ function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     end)
 end
 
---[[
-Function: BETTERUI.Banking.Class:UpdateActions
-Description: Updates the active item actions based on current selection.
-]]
 --- Updates the active item actions based on current selection.
---- @return nil
 function BETTERUI.Banking.Class:UpdateActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     -- itemActions:SetInventorySlot directly manipulates KEYBIND_STRIP, bypassing guards
@@ -52,12 +47,7 @@ function BETTERUI.Banking.Class:UpdateActions()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:AddKeybinds
-Description: Registers the banking keybind groups.
-]]
 --- Registers the banking keybind groups.
---- @return nil
 function BETTERUI.Banking.Class:AddKeybinds()
     if self.textSearchKeybindStripDescriptor then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
@@ -70,28 +60,15 @@ function BETTERUI.Banking.Class:AddKeybinds()
     self:EnsureHeaderKeybindsActive()
 end
 
---[[
-Function: BETTERUI.Banking.Class:RemoveKeybinds
-Description: Unregisters the banking keybind groups.
-]]
 --- Unregisters the banking keybind groups.
---- @return nil
 function BETTERUI.Banking.Class:RemoveKeybinds()
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.withdrawDepositKeybinds)
     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
 end
 
---[[
-Function: BETTERUI.Banking.Class:InitializeKeybind
-Description: Initializes the keybind descriptors for the banking module.
-  - `coreKeybinds`: Navigation (Triggers), List Toggle (Y), Search Clear (Quaternary).
-  - `withdrawDepositKeybinds`: Primary Action (A) for moving items.
-  - `currencyKeybinds`: Primary Action (A) for opening currency selector.
-  - `spinnerKeybinds`: Confirm/Cancel for partial stack moves.
-References: Called during Initialize.
-]]
 --- Initializes the keybind descriptors for the banking module.
---- @return nil
+--- Wires coreKeybinds (navigation), withdrawDepositKeybinds (item moves),
+--- currencyKeybinds (currency selector), and text search keybinds.
 function BETTERUI.Banking.Class:InitializeKeybind()
     if not BETTERUI.GetModuleEnabled("Banking") then
         return
@@ -498,12 +475,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
     -- Quantity selection now uses BETTERUI_BANK_QUANTITY_DIALOG modal dialog.
 end
 
---[[
-Function: BETTERUI.Banking.Class:RefreshActiveKeybinds
-Description: Manually triggers the selection callback to update keybinds.
-]]
---- Manually triggers the selection callback to update keybinds.
---- @return nil
+--- Triggers the selection callback to update keybinds for the current selection.
 function BETTERUI.Banking.Class:RefreshActiveKeybinds()
     if not (self.selectedDataCallback and self.list) then return end
     local selectedControl = nil

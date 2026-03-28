@@ -52,12 +52,8 @@ local FENCE_TABS = {
 -- GET ACTIVE TABS
 -- ============================================================================
 
---[[
-Function: GetActiveTabs
-Description: Returns the tab list for the current interaction type.
-             For fence, filters by enableSell/enableLaunder flags.
-return: table - Array of tab definitions.
-]]
+--- Returns the tab list for the current interaction type.
+--- @return table tabs Array of tab definitions
 local function GetActiveTabs()
     if isFenceInteraction then
         local tabs = {}
@@ -180,10 +176,7 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
     self:UpdateTabHeader()
 end
 
---[[
-Function: BETTERUI.Vendor.Class:UpdateTabHeader
-Description: Updates the header title to show the current tab name.
-]]
+--- Updates the header title to show the current tab name.
 function BETTERUI.Vendor.Class:UpdateTabHeader()
     local tabs = GetActiveTabs()
     local currentMode = self:GetCurrentMode()
@@ -273,12 +266,7 @@ end
 -- INITIALIZATION
 -- ============================================================================
 
---[[
-Function: BETTERUI.Vendor.Init
-Description: Initializes the Vendor module.
-             Creates scene, registers events, registers components,
-             and aliases the native gamepad_store scene.
-]]
+--- Initializes the Vendor module.
 function BETTERUI.Vendor.Init()
     if Vendor.initialized then return end
 

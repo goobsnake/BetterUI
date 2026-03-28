@@ -14,14 +14,7 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 -- LIST REFRESH MANAGER CLASS
 -- ============================================================================
 
---[[
-Class: BETTERUI.CIM.Lists.ListRefreshManager
-Manages list refreshes with automatic position restoration.
-             Combines batch processing with coalescing to prevent UI stuttering.
-  1. QueueRefresh() marks the list dirty and schedules coalesced refresh.
-  2. ExecuteRefresh() performs the actual refresh with optional batching.
-  3. RestorePosition() attempts to re-select the previously selected item.
-]]
+--- Manages list refreshes with automatic position restoration.
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
 
 function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
@@ -136,10 +129,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     self:RestorePosition(list)
 end
 
---[[
-Function: Cancel
-Cancels any pending queued refresh.
-]]
+--- Cancels any pending queued refresh.
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     if self.pendingRefreshCallId then
         zo_removeCallLater(self.pendingRefreshCallId)
@@ -153,19 +143,12 @@ function BETTERUI.CIM.Lists.ListRefreshManager:IsDirty()
     return self.isDirty
 end
 
---[[
-Function: MarkDirty
-Marks the list as needing refresh without queuing.
-             Useful when external events should trigger refresh on next show.
-]]
+--- Marks the list as needing refresh without queuing.
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
 end
 
---[[
-Function: ClearDirty
-Clears the dirty flag without executing refresh.
-]]
+--- Clears the dirty flag without executing refresh.
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false
 end

@@ -19,12 +19,7 @@ function BETTERUI.Banking.Class:CycleCategory(delta)
     })
 end
 
---[[
-Function: BETTERUI.Banking.Class:UpdateHeaderTitle
-Description: Updates the header title text to match the current category.
-]]
 --- Updates the header title text to match the current category.
---- @return nil
 function BETTERUI.Banking.Class:UpdateHeaderTitle()
     local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     if cat and cat.name then
@@ -39,12 +34,7 @@ function BETTERUI.Banking.Class:UpdateHeaderTitle()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:EnsureHeaderKeybindsActive
-Description: Activates the category tab bar keybinds.
-]]
 --- Activates the category tab bar keybinds.
---- @return nil
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if tabBar and tabBar.keybindStripDescriptor then
@@ -52,19 +42,7 @@ function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:RebuildHeaderCategories
-Description: Rebuilds the banking category header.
-  - Configures the generic header data (Title, Carousel Config).
-  - Defines the `onSelectedChanged` callback to handle tab navigation with coalescence.
-  - Clears andRepopulates the Generic Header list with `bankCategories`.
-  - Selects the current category (handling animation suppression if needed).
-  - Updates Keybinds.
-  - Links the Text Search control to the Header Focus chain.
-References: Called on Initialize, ToggleList, and Slot Updates.
-]]
 --- Rebuilds the banking category header.
---- @return nil
 function BETTERUI.Banking.Class:RebuildHeaderCategories()
     if not (self.header and self.bankCategories) then return end
     -- Prepare header data and entries

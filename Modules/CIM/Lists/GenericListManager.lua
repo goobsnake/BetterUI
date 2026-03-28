@@ -6,10 +6,7 @@ Purpose: Shared list management logic for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
---[[
-Class: BETTERUI.CIM.GenericListManager
-Base class for list management logic shared across inventory-like windows.
-]]
+--- Base class for list management logic shared across inventory-like windows.
 BETTERUI.CIM.GenericListManager = ZO_Object:Subclass()
 
 function BETTERUI.CIM.GenericListManager:New(...)
@@ -41,10 +38,7 @@ function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
     return self.savedPositions[categoryKey]
 end
 
---[[
-Function: BETTERUI.CIM.GenericListManager:ClearSavedPositions
-Clears all saved list positions.
-]]
+--- Clears all saved list positions.
 function BETTERUI.CIM.GenericListManager:ClearSavedPositions()
     self.savedPositions = {}
 end
@@ -53,13 +47,10 @@ end
 -- ITEM CACHING
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.GenericListManager:CacheItemLinkData
-Caches expensive item link data to avoid repeated API calls.
-param: itemData (table) - The item data table to cache into.
-param: bagId (number) - The bag ID.
-param: slotIndex (number) - The slot index.
-]]
+--- Caches expensive item link data to avoid repeated API calls.
+--- @param itemData table The item data table to cache into
+--- @param bagId number The bag ID
+--- @param slotIndex number The slot index
 function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slotIndex)
     if itemData.cached_itemLink then return end
 
@@ -92,26 +83,19 @@ function BETTERUI.CIM.SortByName(left, right)
     return leftName < rightName
 end
 
---[[
-Function: BETTERUI.CIM.SortByQuality
-Quality tier comparator (higher quality first).
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByQuality(left, right)
     local leftQuality = left.displayQuality or left.quality or 0
     local rightQuality = right.displayQuality or right.quality or 0
     return leftQuality > rightQuality
 end
 
---[[
-Function: BETTERUI.CIM.SortByLevel
-Level/CP requirement comparator (higher level first).
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
+--- Level/CP requirement comparator (higher level first).
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByLevel(left, right)
     local leftLevel = left.requiredLevel or 0
     local rightLevel = right.requiredLevel or 0
@@ -135,26 +119,19 @@ function BETTERUI.CIM.SortByValue(left, right)
     return leftValue > rightValue
 end
 
---[[
-Function: BETTERUI.CIM.SortBySlotIndex
-Bag slot order comparator.
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortBySlotIndex(left, right)
     local leftSlot = left.slotIndex or 0
     local rightSlot = right.slotIndex or 0
     return leftSlot < rightSlot
 end
 
---[[
-Function: BETTERUI.CIM.SortByBagAndSlot
-Sorts by bag ID first, then slot index.
-param: left (table) - First item data.
-param: right (table) - Second item data.
-return: boolean - True if left should come before right.
-]]
+--- Sorts by bag ID first, then slot index.
+--- @param left table First item data
+--- @param right table Second item data
+--- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByBagAndSlot(left, right)
     local leftBag = left.bagId or 0
     local rightBag = right.bagId or 0
@@ -170,13 +147,10 @@ end
 -- FILTERING UTILITIES (Instance Methods)
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.GenericListManager:ApplyTextFilter
-Filters item list by name substring (case-insensitive).
-param: items (table) - Array of item data tables.
-param: searchQuery (string) - The search string to match.
-return: table - Filtered array of items matching the query.
-]]
+--- Filters item list by name substring (case-insensitive).
+--- @param items table Array of item data tables
+--- @param searchQuery string The search string to match
+--- @return table filtered Filtered array of items matching the query
 function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
     if not searchQuery or searchQuery == "" then
         return items
@@ -227,14 +201,10 @@ end
 -- UTILITY FUNCTIONS (Static)
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.MenuEntryTemplateEquality
-Equality function for parametric list templates.
-             Used to determine if two list entries represent the same item.
-param: left (table) - First entry.
-param: right (table) - Second entry.
-return: boolean - True if entries are equal.
-]]
+--- Equality function for parametric list templates.
+--- @param left table First entry
+--- @param right table Second entry
+--- @return boolean equal True if entries represent the same item
 function BETTERUI.CIM.MenuEntryTemplateEquality(left, right)
     return left.uniqueId == right.uniqueId
 end

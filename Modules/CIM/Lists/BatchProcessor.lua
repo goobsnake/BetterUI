@@ -13,14 +13,7 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 -- BATCH PROCESSOR CLASS
 -- ============================================================================
 
---[[
-Class: BETTERUI.CIM.Lists.BatchProcessor
-Manages incremental list population for large datasets.
-  1. Start() initializes batch state with data and options.
-  2. ProcessBatch() handles one batch of items.
-  3. zo_callLater schedules the next batch.
-  4. OnComplete callback fires when all items are processed.
-]]
+--- Manages incremental list population for large datasets.
 BETTERUI.CIM.Lists.BatchProcessor = ZO_Object:Subclass()
 
 function BETTERUI.CIM.Lists.BatchProcessor:New(...)
@@ -69,10 +62,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
     self:ProcessBatch()
 end
 
---[[
-Function: ProcessBatch
-Processes one batch of items.
-]]
+--- Processes one batch of items.
 function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
     if not self.pendingData then return end
 
@@ -125,10 +115,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
     end
 end
 
---[[
-Function: Cancel
-Cancels any pending batch operations.
-]]
+--- Cancels any pending batch operations.
 function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
     if self.batchCallId then
         zo_removeCallLater(self.batchCallId)
@@ -137,10 +124,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
     self:Reset()
 end
 
---[[
-Function: Reset
-Resets internal state.
-]]
+--- Resets internal state.
 function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.pendingData = nil
     self.pendingIndex = nil

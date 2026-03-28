@@ -13,11 +13,8 @@ if not BETTERUI.CIM.ScrollIndicator then BETTERUI.CIM.ScrollIndicator = {} end
 -- CONSTANTS
 -- ============================================================================
 
---[[
-Constant: SCROLL_INDICATOR
-Visual configuration for the scroll indicator.
-Direction: offsetX positive = RIGHT, offsetY positive = DOWN
-]]
+--- Visual configuration for the scroll indicator.
+--- Direction: offsetX positive = RIGHT, offsetY positive = DOWN
 local SCROLL_INDICATOR = {
     TRACK = {
         WIDTH = 14,                                        -- Reduced by 1/5
@@ -49,10 +46,6 @@ local indicatorInstances = {}
 -- MOUSE INTERACTION CONSTANTS
 -- ============================================================================
 
---[[
-Constant: MOUSE_INTERACTION
-Configuration for mouse click and drag behavior.
-]]
 local MOUSE_INTERACTION = {
     ARROW_REPEAT_DELAY_MS = 400,    -- Initial delay before repeat starts
     ARROW_REPEAT_INTERVAL_MS = 150, -- Interval between repeated scrolls
@@ -62,16 +55,8 @@ local MOUSE_INTERACTION = {
 -- INTERNAL HELPER FUNCTIONS - MOUSE INTERACTION
 -- ============================================================================
 
---[[
-Function: StartArrowRepeat
-Starts repeating scroll in the given direction while arrow is held.
-param: instance (table) - The scroll indicator instance.
-param: direction (number) - -1 for up (MovePrevious), +1 for down (MoveNext).
-]]
---- Starts repeating scroll in the given direction while arrow is held.
 --- @param instance table The scroll indicator instance
---- @param direction number -1 for up, +1 for down
---- @return nil
+--- @param direction number -1 for up (MovePrevious), +1 for down (MoveNext)
 local function StartArrowRepeat(instance, direction)
     if not instance or not instance.listObject then return end
 
@@ -102,14 +87,7 @@ local function StartArrowRepeat(instance, direction)
     end, MOUSE_INTERACTION.ARROW_REPEAT_DELAY_MS)
 end
 
---[[
-Function: StopArrowRepeat
-Stops the arrow repeat scrolling.
-param: instance (table) - The scroll indicator instance.
-]]
---- Stops the arrow repeat scrolling.
 --- @param instance table The scroll indicator instance
---- @return nil
 local function StopArrowRepeat(instance)
     if not instance then return end
 
@@ -120,14 +98,7 @@ local function StopArrowRepeat(instance)
     EVENT_MANAGER:UnregisterForUpdate(updateName)
 end
 
---[[
-Function: SetupArrowMouseHandlers
-Sets up mouse click handlers for the up and down arrows.
-param: instance (table) - The scroll indicator instance.
-]]
---- Sets up mouse click handlers for the up and down arrows.
 --- @param instance table The scroll indicator instance
---- @return nil
 local function SetupArrowMouseHandlers(instance)
     if not instance or not instance.controls then return end
 
@@ -177,19 +148,10 @@ local function SetupArrowMouseHandlers(instance)
     end)
 end
 
---[[
-Function: GetSelectableBounds
-Resolves the first/last selectable indices for a list.
-           causes the thumb to stop short of visual extremes.
-param: instance (table) - The scroll indicator instance.
-param: totalItems (number) - Total entries currently in the list.
-return: number, number - firstSelectableIndex, lastSelectableIndex
-]]
---- Resolves the first/last selectable indices for a list.
 --- @param instance table The scroll indicator instance
 --- @param totalItems number Total entries currently in the list
---- @return number firstSelectableIndex The first selectable index
---- @return number lastSelectableIndex The last selectable index
+--- @return number firstSelectableIndex
+--- @return number lastSelectableIndex
 local function GetSelectableBounds(instance, totalItems)
     local firstSelectableIndex = 1
     local lastSelectableIndex = totalItems
@@ -211,14 +173,7 @@ local function GetSelectableBounds(instance, totalItems)
     return firstSelectableIndex, lastSelectableIndex
 end
 
---[[
-Function: SetupThumbDragHandlers
-Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
-param: instance (table) - The scroll indicator instance.
-]]
---- Sets up mouse drag handlers for the thumb to enable drag-to-scroll.
 --- @param instance table The scroll indicator instance
---- @return nil
 local function SetupThumbDragHandlers(instance)
     if not instance or not instance.controls then return end
 
@@ -331,13 +286,6 @@ local function ApplyThumbTexture(thumb)
     thumb:SetTextureCoords(coords.left, coords.right, coords.top, coords.bottom)
 end
 
---[[
-Function: CreateIndicatorControls
-Creates the visual controls for the scroll indicator.
-param: listControl (table) - The parametric list control to attach to.
-return: table - Table containing references to created controls.
-]]
---- Creates the visual controls for the scroll indicator.
 --- @param listControl table The parametric list control to attach to
 --- @param offsetX number|nil Horizontal offset from list right edge
 --- @param offsetTopY number|nil Top vertical offset

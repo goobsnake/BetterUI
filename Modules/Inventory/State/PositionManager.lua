@@ -9,10 +9,6 @@ if not BETTERUI.Inventory.State then BETTERUI.Inventory.State = {} end
 -- Module identifier constants from CIM
 local MODULES = BETTERUI.CIM.CONST.MODULES
 
---[[
-Function: GetCategoryKey
-Generates a stable string key for a category entry.
-]]
 --- Generates a stable string key for a category entry.
 --- @param categoryData table The category data
 --- @return string key The category key
@@ -20,10 +16,6 @@ function BETTERUI.Inventory.GetCategoryKey(categoryData)
     return BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
 end
 
---[[
-Function: FindCategoryIndexByKey
-Finds the index of a category in the list by its unique key.
-]]
 --- Finds the index of a category in the list by its unique key.
 --- @param self table The Inventory class instance
 --- @param key string The category key to find
@@ -38,13 +30,6 @@ function BETTERUI.Inventory.FindCategoryIndexByKey(self, key)
     return nil
 end
 
---[[
-Function: ToSavedPosition
-Restores the list position and selection from saved state.
-Uses CIM.PositionManager to retrieve saved uniqueId/index,
-sets currentlySelectedData before RefreshItemList so batch
-processing restores to the correct position.
-]]
 --- Restores the list position and selection from saved state.
 --- @param self table The Inventory class instance
 function BETTERUI.Inventory.ToSavedPosition(self)
@@ -131,10 +116,6 @@ function BETTERUI.Inventory.ToSavedPosition(self)
     end
 end
 
---[[
-Function: SaveListPosition
-Saves the current list position and selection.
-]]
 --- Saves the current list position and selection.
 --- @param self table The Inventory class instance
 function BETTERUI.Inventory.SaveListPosition(self)

@@ -16,17 +16,8 @@ local DIVIDER_PIPPED = ZO_GAMEPAD_HEADER_CONTROLS.DIVIDER_PIPPED
 
 -- Height of the info label area (historical reference, unused)
 
---[[
-Function: TabBar_Setup
-Configures the visual state of a tab icon (hidden label, tinted icon).
-param: control (table) - The list entry control.
-param: data (table) - The data associated with this entry.
-param: selected (boolean) - Is this entry currently selected?
-param: selectedDuringRebuild (boolean) - (unused)
-param: enabled (boolean) - (unused)
-param: activated (boolean) - (unused)
-References: Used as the setup callback for BETTERUI_TabBarScrollList.
-]]
+--- Configures the visual state of a tab icon (hidden label, tinted icon).
+--- Used as the setup callback for BETTERUI_TabBarScrollList.
 local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enabled, activated)
     local countBadge = control:GetNamedChild("CountBadge")
     local icon = control:GetNamedChild("Icon")
@@ -73,14 +64,7 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
     end
 end
 
---[[
-Function: BETTERUI.GenericHeader.Initialize
-Initializes the header control and caches child references.
-param: control (table) - The header control.
-param: createTabBar (number) - Flag to indicate if tab bar should be shown/created.
-param: layout (any) - Layout info (unused explicitly here).
-References: Called by Inventory and Banking initialization.
-]]
+--- Initializes the header control and caches child references.
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
     local titleContainer = control:GetNamedChild("TitleContainer")
     control.controls =
@@ -102,16 +86,9 @@ end
 
 local TEXT_ALIGN_RIGHT = 2
 
---[[
-Function: TabBar_OnDataChanged
-Callback handler for when a tab is selected.
-param: list (table) - The scroll list control.
-param: selectedData (table) - The new selected data item.
-param: oldSelectedData (table) - The previous selected data item.
-param: reselectingDuringRebuild (boolean) - True during list rebuilds.
--- NOTE: categoryList can now be injected via selectedData.categoryList for Banking/Vendor reuse.
---       Fallback to GAMEPAD_INVENTORY for backwards compatibility.
-]]
+--- Tab selection callback. Syncs categoryList selection index.
+--- categoryList can be injected via selectedData.categoryList for Banking/Vendor reuse;
+--- falls back to GAMEPAD_INVENTORY.
 local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselectingDuringRebuild)
     if selectedData then
         -- Injected categoryList allows reuse in Banking/Vendor screens
@@ -131,15 +108,11 @@ function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
 
---[[
-Function: UpdateEquipText
-Updates equipment slot text styling for main or backup bar.
-param: control (table) - Header control
-param: controlName (string) - Name of the child label control
-param: slotStringKey (number) - String identifier for the slot name
-param: isActive (boolean) - Whether this slot's bar is active
-param: hideIfLocked (boolean) - Whether to hide if weapon swap is locked
-]]
+--- @param control table Header control
+--- @param controlName string Name of the child label control
+--- @param slotStringKey number String identifier for the slot name
+--- @param isActive boolean Whether this slot's bar is active
+--- @param hideIfLocked boolean Whether to hide if weapon swap is locked
 local function UpdateEquipText(control, controlName, slotStringKey, isActive, hideIfLocked)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild(controlName)
     if not equipControl then return end
@@ -155,22 +128,14 @@ local function UpdateEquipText(control, controlName, slotStringKey, isActive, hi
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
---[[
-Function: BETTERUI.GenericHeader.SetEquipText
-Set the primary equip text in the header (Main Hand).
-param: control (table) - Header control.
-param: isEquipMain (boolean) - True if Main Hand is the active weapon bar.
-]]
+--- @param control table Header control
+--- @param isEquipMain boolean True if Main Hand is the active weapon bar
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     UpdateEquipText(control, "EquipText", SI_BETTERUI_INV_EQUIPSLOT_MAIN, isEquipMain, false)
 end
 
---[[
-Function: BETTERUI.GenericHeader.SetBackupEquipText
-Set the backup equip text in the header (Back Up).
-param: control (table) - Header control.
-param: isEquipMain (boolean) - True if Main Hand is active (Backup is inactive).
-]]
+--- @param control table Header control
+--- @param isEquipMain boolean True if Main Hand is active (Backup shown as inactive)
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     UpdateEquipText(control, "BackupEquipText", SI_BETTERUI_INV_EQUIPSLOT_BACKUP, not isEquipMain, true)
 end
@@ -183,14 +148,10 @@ function BETTERUI.GenericHeader.SetTitleText(control, titleText)
     titleTextControl:SetText(titleText)
 end
 
---[[
-Function: UpdateEquippedIcons
-Updates equipment icons for main or backup bar.
-param: control (table) - Header control
-param: iconNames (table) - Table mapping 'main', 'off', 'poison' to child control names
-param: iconsData (table) - Table with 'main', 'off', 'poison' texture paths
-param: hideIfLocked (boolean) - Whether to hide if weapon swap is locked
-]]
+--- @param control table Header control
+--- @param iconNames table Table mapping 'main', 'off', 'poison' to child control names
+--- @param iconsData table Table with 'main', 'off', 'poison' texture paths
+--- @param hideIfLocked boolean Whether to hide if weapon swap is locked
 local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     local titleContainer = control:GetNamedChild("TitleContainer")
     if not titleContainer then return end
@@ -219,14 +180,10 @@ local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     end
 end
 
---[[
-Function: BETTERUI.GenericHeader.SetEquippedIcons
-Populate current equipped icons for the main bar.
-param: control (table) - The header control.
-param: equipMain (string) - Texture path for main hand icon.
-param: equipOff (string) - Texture path for off hand icon.
-param: equipPoison (string) - Texture path for poison icon.
-]]
+--- @param control table The header control
+--- @param equipMain string Texture path for main hand icon
+--- @param equipOff string Texture path for off hand icon
+--- @param equipPoison string Texture path for poison icon
 function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "MainHandIcon", off = "OffHandIcon", poison = "PoisonIcon" },
@@ -234,14 +191,10 @@ function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, e
         false)
 end
 
---[[
-Function: BETTERUI.GenericHeader.SetBackupEquippedIcons
-Populate current equipped icons for the backup bar.
-param: control (table) - The header control.
-param: equipMain (string) - Texture path for main hand icon.
-param: equipOff (string) - Texture path for off hand icon.
-param: equipPoison (string) - Texture path for poison icon.
-]]
+--- @param control table The header control
+--- @param equipMain string Texture path for main hand icon
+--- @param equipOff string Texture path for off hand icon
+--- @param equipPoison string Texture path for poison icon
 function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "BackupMainHandIcon", off = "BackupOffHandIcon", poison = "BackupPoisonIcon" },

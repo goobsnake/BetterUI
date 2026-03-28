@@ -34,22 +34,12 @@ end
 -- BANK STATE TRACKING
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.Banking.Class:CurrentUsedBank
-Description: Updates the 'currentUsedBank' state.
-]]
 --- Updates the currentUsedBank state.
---- @return nil
 function BETTERUI.Banking.Class:CurrentUsedBank()
     BETTERUI.Banking.currentUsedBank = GetCurrentBankBag()
 end
 
---[[
-Function: BETTERUI.Banking.Class:LastUsedBank
-Description: Updates the 'lastUsedBank' state.
-]]
 --- Updates the lastUsedBank state.
---- @return nil
 function BETTERUI.Banking.Class:LastUsedBank()
     BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
 end
@@ -58,13 +48,7 @@ end
 -- POSITION PERSISTENCE
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.Banking.Class:SaveListPosition
-Description: Saves the current scroll position of the list.
-References: Called before RefreshList, ToggleList, or Mode Switches.
-]]
 --- Saves the current scroll position of the list.
---- @return nil
 function BETTERUI.Banking.Class:SaveListPosition()
     if not self.list then return end
     -- Save per-mode position (for legacy compatibility)
@@ -84,11 +68,6 @@ function BETTERUI.Banking.Class:SaveListPosition()
     end
 end
 
---[[
-Function: BETTERUI.Banking.Class:HandleEmptyList (helper)
-Description: Manages keybind and tooltip state when list is empty.
-return: boolean - True if list was empty and handled, false otherwise.
-]]
 --- Manages keybind and tooltip state when list is empty.
 --- @return boolean handled True if list was empty and handled
 function BETTERUI.Banking.Class:HandleEmptyList()
@@ -111,11 +90,6 @@ function BETTERUI.Banking.Class:HandleEmptyList()
     return false
 end
 
---[[
-Function: BETTERUI.Banking.Class:GetRestoredPosition
-Description: Retrieves the saved position for the current category/mode.
-return: number - The position to restore (1 if none saved).
-]]
 --- Retrieves the saved position for the current category/mode.
 --- @return number position The position to restore (1 if none saved)
 function BETTERUI.Banking.Class:GetRestoredPosition()
@@ -134,11 +108,6 @@ function BETTERUI.Banking.Class:GetRestoredPosition()
     )
 end
 
---[[
-Function: BETTERUI.Banking.Class:HandleBankSwitch
-Description: Handles the case where the player switched to a different bank.
-return: boolean - True if bank switch was handled, false if no switch occurred.
-]]
 --- Handles the case where the player switched to a different bank.
 --- @return boolean handled True if bank switch was handled
 function BETTERUI.Banking.Class:HandleBankSwitch()
@@ -170,18 +139,7 @@ function BETTERUI.Banking.Class:HandleBankSwitch()
     return true
 end
 
---[[
-Function: BETTERUI.Banking.Class:ReturnToSaved
-Description: Restores the saved list position.
-  1. Updates current bank state.
-  2. Handles empty list case with keybind management.
-  3. Handles mode toggle case (skip to top).
-  4. Handles bank switch case.
-  5. Restores normal position from CIM.
-References: Called at the end of RefreshList.
-]]
 --- Restores the saved list position.
---- @return nil
 function BETTERUI.Banking.Class:ReturnToSaved()
     self:CurrentUsedBank()
 

@@ -25,12 +25,8 @@ local QUICKSLOT_LABELS = {
     [8] = "South",
 }
 
---[[
-Function: BETTERUI.CIM.GetQuickslotLabel
-Returns a human-readable directional label for a quickslot index.
-param: slotIndex (number) - The quickslot index (1-8).
-return: string - The directional label.
-]]
+--- @param slotIndex number The quickslot index (1-8)
+--- @return string label The directional label
 function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
@@ -103,12 +99,8 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     }
 end
 
---[[
-Function: BETTERUI.CIM.SetQuickslotDialogSelection
-Sets the initial selection in the quickslot dialog.
-param: dialog (table) - The dialog object.
-param: quickslotInfo (table) - Result from BuildQuickslotDialogEntries.
-]]
+--- @param dialog table The dialog object
+--- @param quickslotInfo table Result from BuildQuickslotDialogEntries
 function BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
     if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
         local offset = quickslotInfo.hasUnassign and 1 or 0
@@ -175,12 +167,8 @@ end
 -- LINK TO CHAT HANDLER
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: BETTERUI.CIM.HandleLinkToChat
-Links an item to chat from target data.
-param: targetData (table) - The item data containing bagId and slotIndex.
-return: boolean - True if link was inserted, false otherwise.
-]]
+--- @param targetData table The item data containing bagId and slotIndex
+--- @return boolean success True if link was inserted
 function BETTERUI.CIM.HandleLinkToChat(targetData)
     if not targetData then return false end
 

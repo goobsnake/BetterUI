@@ -150,15 +150,9 @@ end
 -- HELPER FUNCTIONS
 -- ============================================================================
 
---[[
-Function: BETTERUI.CIM.Currency.GetValue
-Retrieves the current amount of a currency for display.
-           (GetPlayerStoredCurrencyAmount) while others are account-wide (GetCurrencyAmount
-           with CURRENCY_LOCATION_ACCOUNT). This function abstracts that complexity.
-           def.location for account-wide currencies, otherwise uses default GetCurrencyAmount.
-param: def (table) - Currency definition from CURRENCY_DEFS containing apiConst, location, useStoredAmount
-return: number - The currency amount
-]]
+--- Retrieves the current amount of a currency for display.
+--- @param def table Currency definition from CURRENCY_DEFS
+--- @return number amount The currency amount
 function BETTERUI.CIM.Currency.GetValue(def)
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
@@ -169,14 +163,10 @@ function BETTERUI.CIM.Currency.GetValue(def)
     end
 end
 
---[[
-Function: BETTERUI.CIM.Currency.FormatLabel
-Formats a currency label with localized text, color, value, and icon.
-           fallback), formats via string concatenation with color codes and icon markup.
-param: def (table) - Currency definition from CURRENCY_DEFS
-param: amount (number) - The currency amount to display
-return: string - Formatted label text with color codes and icon
-]]
+--- Formats a currency label with localized text, color, value, and icon.
+--- @param def table Currency definition from CURRENCY_DEFS
+--- @param amount number The currency amount to display
+--- @return string formatted Formatted label text with color codes and icon
 function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
@@ -259,12 +249,9 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     return anyChanged
 end
 
---[[
-Function: BETTERUI.CIM.Currency.GetVisibleOrder
-Build ordered list of visible currency definitions based on user settings.
-param: invSettings (table) - Inventory settings containing currency order and visibility flags
-return: table - Array of visible currency definitions in user-specified order
-]]
+--- Build ordered list of visible currency definitions based on user settings.
+--- @param invSettings table Inventory settings containing currency order and visibility flags
+--- @return table visible Array of visible currency definitions in user-specified order
 function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local orderStr = invSettings.currencyOrder or
         "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"

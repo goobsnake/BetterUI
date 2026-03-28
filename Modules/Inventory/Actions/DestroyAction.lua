@@ -30,14 +30,8 @@ local function ForceDestroyItemSafely(bagId, slotIndex)
     return ok
 end
 
---- Attempts to destroy an item, dealing with junk status and user confirmation settings.
----
---- Purpose: Safer replacement for `DestroyItem`.
---- Mechanics:
---- 1. Checks if item is Junk or `force` flag is true.
---- 2. If so, destroys immediately (fixing sound and refreshing cache).
---- 3. Returns true if destroyed, false if confirmation (UI) is needed.
---- References: Called by Hooked Destroy and Action Dialog.
+--- Safer replacement for raw DestroyItem. Destroys immediately when forced,
+--- otherwise returns false to signal that a confirmation dialog is needed.
 --- @param bagId number The bag containing the item
 --- @param slotIndex number The slot index within the bag
 --- @param force boolean Whether to force destruction without confirmation

@@ -54,10 +54,9 @@ function BETTERUI.CIM.UI.HeaderSortController:New(listControl, columns, onSortCh
     return obj
 end
 
---[[
-Function: HeaderSortController:Initialize
-Description: Initializes the controller state.
-]]
+--- @param listControl table The list control
+--- @param columns table Column definitions
+--- @param onSortChangedCallback function Sort change callback
 function BETTERUI.CIM.UI.HeaderSortController:Initialize(listControl, columns, onSortChangedCallback)
     self.listControl = listControl
     self.columns = columns or {}
@@ -91,10 +90,7 @@ function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
     return true
 end
 
---[[
-Function: HeaderSortController:ExitHeaderMode
-Description: Exits header navigation mode.
-]]
+--- Exits header navigation mode.
 function BETTERUI.CIM.UI.HeaderSortController:ExitHeaderMode()
     self.isHeaderModeActive = false
     self:UpdateVisuals()
@@ -271,11 +267,7 @@ end
 -- VISUAL UPDATES
 -------------------------------------------------------------------------------------------------
 
---[[
-Function: HeaderSortController:UpdateVisuals
-Description: Updates column header visual indicators (highlights and arrows).
-             Call this after any state change.
-]]
+--- Updates column header visual indicators (highlights and arrows).
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     for i, column in ipairs(self.columns) do
         if column.labelControl then
