@@ -172,13 +172,13 @@ function BETTERUI.Banking.Class:OnSceneHidden()
         self.selector:Deactivate()
     end
 
-    -- Use shared CIM cleanup for input state
+    -- Shared CIM cleanup: input state, lists, search
     BETTERUI.CIM.SceneCleanup.CleanupInputState(self)
-
-    -- Deactivate lists to release DIRECTIONAL_INPUT
     BETTERUI.CIM.SceneCleanup.DeactivateLists(self)
+    BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
     self.confirmationMode = false
 
+    -- Remove all keybind groups
     if KEYBIND_STRIP then
         local keybindGroups = {
             self.textSearchKeybindStripDescriptor,
@@ -202,30 +202,25 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     self:UpdateExternalAddons(false)
 
-    -- Unregister SHARED_INVENTORY callbacks
-    if self._inventoryFullUpdateCallback then
-        SHARED_INVENTORY:UnregisterCallback("FullInventoryUpdate", self._inventoryFullUpdateCallback)
-        self._inventoryFullUpdateCallback = nil
-    end
-    if self._inventorySingleSlotCallback then
-        SHARED_INVENTORY:UnregisterCallback("SingleSlotInventoryUpdate", self._inventorySingleSlotCallback)
-        self._inventorySingleSlotCallback = nil
-    end
-    if self._onDialogHiddenCallback then
-        CALLBACK_MANAGER:UnregisterCallback("OnGamepadDialogHidden", self._onDialogHiddenCallback)
-        self._onDialogHiddenCallback = nil
+    -- Unregister all scene-scoped callbacks
+    local callbacks = {
+        { SHARED_INVENTORY, "FullInventoryUpdate", "_inventoryFullUpdateCallback" },
+        { SHARED_INVENTORY, "SingleSlotInventoryUpdate", "_inventorySingleSlotCallback" },
+        { CALLBACK_MANAGER, "OnGamepadDialogHidden", "_onDialogHiddenCallback" },
+    }
+    for _, entry in ipairs(callbacks) do
+        local manager, event, field = entry[1], entry[2], entry[3]
+        if self[field] then
+            manager:UnregisterCallback(event, self[field])
+            self[field] = nil
+        end
     end
 
-    -- Clear search state using shared helper
-    BETTERUI.CIM.SceneCleanup.ClearSearchState(self)
-
-    -- Unregister guild bank events
+    -- Unregister guild bank events and reset state
     local ns = BETTERUI_GUILD_BANKING_SCENE_NAME or "BETTERUI_GUILD_BANKING"
     for _, event in ipairs(GUILD_BANK_EVENTS) do
         EVENT_MANAGER:UnregisterForEvent(ns, event)
     end
-
-    -- Reset guild bank loading state
     if self.isGuildBankMode and BETTERUI.Banking.GuildBank then
         BETTERUI.Banking.GuildBank.SetLoading(false)
     end

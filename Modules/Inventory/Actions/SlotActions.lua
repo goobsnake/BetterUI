@@ -207,30 +207,29 @@ end
 
 --- Injects custom registered actions from external addons into the slot actions list.
 local function InjectCustomActions(slotActions, inventorySlot)
+    local SafeExecute = BETTERUI.CIM.SafeExecute
     for actionId, customAction in pairs(m_customActions) do
+        local actionCtx = "SlotActions.custom:" .. tostring(actionId)
         local visible = true
         if customAction.visibilityFunction then
-            local ok, result = pcall(customAction.visibilityFunction, inventorySlot)
+            local ok, result = SafeExecute(actionCtx .. ".visibility", customAction.visibilityFunction, inventorySlot)
             visible = ok and result
         end
         if visible then
             local name = customAction.name
             if type(name) == "function" then
-                local ok, result = pcall(name, inventorySlot)
+                local ok, result = SafeExecute(actionCtx .. ".name", name, inventorySlot)
                 name = ok and result or nil
             end
             if name then
                 slotActions:AddSlotAction(
                     name,
                     function()
-                        local ok, err = pcall(customAction.callback, inventorySlot)
-                        if not ok then
-                            BETTERUI.Debug("Custom action '" .. tostring(actionId) .. "' error: " .. tostring(err))
-                        end
+                        SafeExecute(actionCtx .. ".callback", customAction.callback, inventorySlot)
                     end,
                     "secondary",
                     customAction.visibilityFunction and function()
-                        local ok, result = pcall(customAction.visibilityFunction, inventorySlot)
+                        local ok, result = SafeExecute(actionCtx .. ".visibility", customAction.visibilityFunction, inventorySlot)
                         return ok and result
                     end or nil,
                     customAction.options

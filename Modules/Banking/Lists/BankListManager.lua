@@ -41,26 +41,25 @@ end
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 
 local function ResolveBagsAndSlotType(self)
-    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local isWithdraw = (self.currentMode == LIST_WITHDRAW)
     local GuildBank = BETTERUI.Banking.GuildBank
-    if GuildBank and GuildBank.IsGuildBankMode() then
-        if self.currentMode == LIST_WITHDRAW then
-            return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
-        else
-            return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
-        end
-    end
-    if self.currentMode == LIST_WITHDRAW then
-        local bags
-        if currentUsedBank == BAG_BANK then
-            bags = { BAG_BANK, BAG_SUBSCRIBER_BANK }
-        else
-            bags = { currentUsedBank }
-        end
-        return bags, SLOT_TYPE_BANK_ITEM
-    else
+
+    -- Deposit always reads from backpack
+    if not isWithdraw then
         return { BAG_BACKPACK }, SLOT_TYPE_GAMEPAD_INVENTORY_ITEM
     end
+
+    -- Withdraw from guild bank
+    if GuildBank and GuildBank.IsGuildBankMode() then
+        return { BAG_GUILDBANK }, SLOT_TYPE_GUILD_BANK_ITEM
+    end
+
+    -- Withdraw from personal bank (includes subscriber bank)
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local bags = (currentUsedBank == BAG_BANK)
+        and { BAG_BANK, BAG_SUBSCRIBER_BANK }
+        or  { currentUsedBank }
+    return bags, SLOT_TYPE_BANK_ITEM
 end
 
 -- LIST MANAGEMENT
