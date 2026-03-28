@@ -21,6 +21,7 @@ end
 
 -- SORT FUNCTION HELPERS
 
+---@return fun(left: table, right: table): boolean|nil
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     if not EnsureControllerReady() then return nil end
 
@@ -46,6 +47,9 @@ end
 
 -- KEYBIND FACTORY
 
+---@param exitCallback fun()
+---@param navigateUpCallback fun()?
+---@return table
 function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback, navigateUpCallback)
     local controller = self
 

@@ -7,6 +7,7 @@ Purpose: Keybind utility functions shared across BetterUI modules.
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
+---@param descriptor table?
 function BETTERUI.Interface.EnsureKeybindGroupAdded(descriptor)
     if not descriptor or not KEYBIND_STRIP then return end
     local groups = KEYBIND_STRIP.keybindButtonGroups or {}

@@ -14,6 +14,8 @@ local NavState = BETTERUI.CIM.NavigationState
 
 -- NAVIGATION STATE INITIALIZATION
 
+---@param instance table
+---@return table
 function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     if not instance._navState then
         instance._navState = NavState.Create()
@@ -23,6 +25,10 @@ end
 
 -- CATEGORY CYCLING
 
+---@param instance table
+---@param delta integer
+---@param options {categories: table[], getCurrentIndex: fun(): integer, tabBar: table?, setCurrentIndex: fun(idx: integer)?, onRefresh: fun()?}
+---@return nil
 function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     if not options.categories or #options.categories < 2 then return end
 
@@ -55,6 +61,8 @@ end
 
 -- COALESCED SELECTION HANDLER
 
+---@param options {delay: integer?, onSave: fun(instance: table)?}
+---@return fun(instance: table, list: table, selectedData: table)
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
     local delay = options.delay or BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 

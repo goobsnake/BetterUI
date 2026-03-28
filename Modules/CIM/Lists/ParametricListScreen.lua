@@ -9,15 +9,17 @@ Purpose: Enhanced Gamepad List Screen Wrapper.
 BETTERUI_Gamepad_ParametricList_Screen = ZO_Gamepad_ParametricList_Screen:Subclass()
 
 --- Creates a new Gamepad Parametric List Screen.
----
---- Note: We pass ... to the parent's New, which handles Initialize automatically.
----
+---@param ... any
+---@return table
 function BETTERUI_Gamepad_ParametricList_Screen:New(...)
     return ZO_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
 --- Initializes the screen.
----
+---@param control table
+---@param createTabBar boolean?
+---@param activateOnShow boolean?
+---@param scene table?
 function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar, activateOnShow, scene)
     control.owner = self
     self.control = control
@@ -50,7 +52,8 @@ function BETTERUI_Gamepad_ParametricList_Screen:Initialize(control, createTabBar
 end
 
 --- Sets whether lists use trigger keybinds.
----
+---@param addListTriggerKeybinds boolean
+---@param optionalHeaderComparator fun(a: table, b: table): boolean|nil
 function BETTERUI_Gamepad_ParametricList_Screen:SetListsUseTriggerKeybinds(addListTriggerKeybinds,
                                                                            optionalHeaderComparator)
     self.addListTriggerKeybinds = addListTriggerKeybinds

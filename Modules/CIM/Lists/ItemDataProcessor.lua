@@ -6,6 +6,9 @@ Purpose: Shared factory for creating item entry data for inventory/banking lists
 
 -- ITEM ENTRY DATA FACTORY
 
+---@param itemData table
+---@param options {visualDataInit: fun(self: table, data: table)?, isQuestItem: boolean?}?
+---@return table?
 function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     options = options or {}
 
@@ -65,6 +68,11 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     return data
 end
 
+---@param list table
+---@param data table
+---@param currentCategoryName string?
+---@param useHeaders boolean?
+---@return string? currentCategoryName
 function BETTERUI.CIM.AddItemEntryToList(list, data, currentCategoryName, useHeaders)
     local template = "BETTERUI_GamepadItemSubEntryTemplate"
 

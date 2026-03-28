@@ -9,14 +9,21 @@ local SUB_LIST_CENTER_OFFSET = -50
 BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass()
 
 --- Creates a new sub-list (nested menu) instance.
----
+---@param control table
+---@param parentList table
+---@param parentKeybinds table
+---@param onDataChosen fun(data: table?)
+---@return table
 function BETTERUI_VerticalParametricScrollListSubList:New(control, parentList, parentKeybinds, onDataChosen)
     local manager = BETTERUI_VerticalParametricScrollList.New(self, control, parentList, parentKeybinds, onDataChosen)
     return manager
 end
 
 --- Initializes the sub-list.
----
+---@param control table
+---@param parentList table
+---@param parentKeybinds table
+---@param onDataChosen fun(data: table?)
 function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parentList, parentKeybinds, onDataChosen)
     BETTERUI_VerticalParametricScrollList.Initialize(self, control)
     self.parentList = parentList
@@ -28,7 +35,7 @@ function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parent
 end
 
 --- Commits selection and triggers callback.
----
+---@param dontReselect boolean?
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)

@@ -25,6 +25,12 @@ local CreateIndicatorControls = I.CreateIndicatorControls or function() return {
 --- Initializes the scroll indicator for a parametric list.
 --- Optionally sets up mouse interaction if listObject is provided.
 ---
+---@param listControl table
+---@param offsetX number?
+---@param offsetTopY number?
+---@param offsetBottomY number?
+---@param listObject table?
+---@return table? instance
 function ScrollIndicator.Initialize(listControl, offsetX, offsetTopY, offsetBottomY, listObject)
     if not listControl then return nil end
 
@@ -90,6 +96,11 @@ end
 --- Updates the scroll indicator position and visibility.
 --- Shows/hides arrows and track based on whether scrolling is possible.
 ---
+---@param listControl table
+---@param currentIndex integer
+---@param totalItems integer
+---@param visibleItems integer
+---@return nil
 function ScrollIndicator.Update(listControl, currentIndex, totalItems, visibleItems)
     if not listControl then return end
 
@@ -190,6 +201,8 @@ end
 
 --- Hides the scroll indicator completely.
 ---
+---@param listControl table
+---@return nil
 function ScrollIndicator.Hide(listControl)
     if not listControl then return end
 
@@ -203,6 +216,8 @@ end
 
 --- Shows the scroll indicator (if scrolling is possible).
 ---
+---@param listControl table
+---@return nil
 function ScrollIndicator.Show(listControl)
     if not listControl then return end
 
@@ -218,6 +233,12 @@ end
 
 --- Sets custom anchors for the scroll track to position it relative to header/footer.
 ---
+---@param listControl table
+---@param topAnchorControl table?
+---@param bottomAnchorControl table?
+---@param topOffset number?
+---@param bottomOffset number?
+---@return nil
 function ScrollIndicator.SetTrackAnchors(listControl, topAnchorControl, bottomAnchorControl, topOffset, bottomOffset)
     if not listControl then return end
 
@@ -246,6 +267,9 @@ end
 
 --- Sets or updates the list object reference for mouse interaction.
 ---
+---@param listControl table
+---@param listObject table
+---@return nil
 function ScrollIndicator.SetListObject(listControl, listObject)
     if not listControl then return end
 
@@ -266,6 +290,8 @@ end
 
 --- Cleans up a scroll indicator instance, unregistering all event handlers.
 ---
+---@param listControl table
+---@return nil
 function ScrollIndicator.Destroy(listControl)
     if not listControl then return end
 

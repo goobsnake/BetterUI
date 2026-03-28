@@ -6,6 +6,11 @@ Purpose: Integration with AutoCategory addon for advanced inventory sorting.
 
 -- AUTOCATEGORY INTEGRATION
 
+---@param itemData table
+---@return boolean useCustomCategory
+---@return boolean matched
+---@return string categoryName
+---@return number categoryPriority
 function BETTERUI.GetCustomCategory(itemData)
     local useCustomCategory = false
     if AutoCategory and AutoCategory.Inited then

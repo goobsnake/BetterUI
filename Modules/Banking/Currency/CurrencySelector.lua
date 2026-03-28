@@ -9,6 +9,7 @@ local CurrencySelector = BETTERUI.Banking.CurrencySelector
 
 local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
 
+---@return {rows: {stat: string, value: string}[]}? details Bank upgrade details, or nil if not personal bank
 local function BuildBankUpgradeDetailsLines()
     local BANK_CAPACITY_ICON_TEXTURE = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
     local BANK_CAPACITY_ICON_SIZE = "90%"
@@ -57,6 +58,8 @@ local function BuildBankUpgradeDetailsLines()
     return details
 end
 
+---@param tooltip table The gamepad tooltip control
+---@param details {rows: {stat: string, value: string}[]}? The details from BuildBankUpgradeDetailsLines
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     if not tooltip or not details or not details.rows or #details.rows == 0 then
         return
@@ -81,6 +84,8 @@ local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     tooltip:AddSection(detailsMainSection)
 end
 
+---@param self BetterUIBankingClass
+---@return nil
 function CurrencySelector.RefreshCurrencyTooltip(self)
     if not BETTERUI.Utils.IsBankingSceneShowing() then return end
     local list = self:GetList()
@@ -147,10 +152,14 @@ function CurrencySelector.RefreshCurrencyTooltip(self)
     end
 end
 
+---@return nil
 function BETTERUI.Banking.Class:RefreshCurrencyTooltip()
     CurrencySelector.RefreshCurrencyTooltip(self)
 end
 
+---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
+---@param amount integer Amount to transfer
+---@return nil
 function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
@@ -168,6 +177,8 @@ function BETTERUI.Banking.Class:TransferSelectedCurrency(currencyType, amount)
     end
 end
 
+---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
+---@return nil
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -208,7 +219,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     end
 end
 
-function BETTERUI.Banking.Class:HideSelector()
+---@return nil\nfunction BETTERUI.Banking.Class:HideSelector()
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
     self.list:Activate()

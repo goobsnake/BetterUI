@@ -30,6 +30,10 @@ BETTERUI.CIM.Dialogs.Registry = {
     _dialogs = {},
 }
 
+---@param dialogName string
+---@param dialogInfo table
+---@param options {overwrite: boolean?}?
+---@return boolean
 function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     options = options or {}
 
@@ -54,10 +58,15 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     return true
 end
 
+---@param dialogName string
+---@return boolean
 function BETTERUI.CIM.Dialogs.IsRegistered(dialogName)
     return BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] ~= nil
 end
 
+---@param dialogName string
+---@param data table?
+---@return nil
 function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     if not BETTERUI.CIM.Dialogs.IsRegistered(dialogName) then
         BETTERUI.Debug(string.format("[Dialog] '%s' not registered", dialogName))
@@ -71,6 +80,7 @@ function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     end
 end
 
+---@return string[]
 function BETTERUI.CIM.Dialogs.GetAll()
     local names = {}
     for name, _ in pairs(BETTERUI.CIM.Dialogs.Registry._dialogs) do

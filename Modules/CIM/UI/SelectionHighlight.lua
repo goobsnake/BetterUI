@@ -19,6 +19,8 @@ local SelectionHighlight = BETTERUI.CIM.SelectionHighlight
 --- The gradient styling is pre-defined in XML (SharedTemplates.xml) using
 --- FadeGradient element, so we only need to toggle visibility here.
 ---
+---@param control table
+---@param selected boolean
 function SelectionHighlight.Setup(control, selected)
     if not control then return end
 

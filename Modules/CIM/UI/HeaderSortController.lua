@@ -33,12 +33,20 @@ local SORT_ARROW = {
 
 BETTERUI.CIM.UI.HeaderSortController = ZO_Object:Subclass()
 
+---@param listControl table
+---@param columns table[]?
+---@param onSortChangedCallback fun(key: string, direction: integer, sortFn: fun?)?
+---@return table
 function BETTERUI.CIM.UI.HeaderSortController:New(listControl, columns, onSortChangedCallback)
     local obj = ZO_Object.New(self)
     obj:Initialize(listControl, columns, onSortChangedCallback)
     return obj
 end
 
+---@param listControl table
+---@param columns table[]?
+---@param onSortChangedCallback fun(key: string, direction: integer, sortFn: fun?)?
+---@return nil
 function BETTERUI.CIM.UI.HeaderSortController:Initialize(listControl, columns, onSortChangedCallback)
     self.listControl = listControl
     self.columns = columns or {}
@@ -58,6 +66,7 @@ end
 
 -- STATE MANAGEMENT
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
     if #self.columns == 0 then
         return false
@@ -69,18 +78,20 @@ function BETTERUI.CIM.UI.HeaderSortController:EnterHeaderMode()
     return true
 end
 
---- Exits header navigation mode.
+---@return nil
 function BETTERUI.CIM.UI.HeaderSortController:ExitHeaderMode()
     self.isHeaderModeActive = false
     self:UpdateVisuals()
 end
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:IsActive()
     return self.isHeaderModeActive
 end
 
 -- NAVIGATION
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:NavigateLeft()
     if not self.isHeaderModeActive or #self.columns == 0 then
         return false
@@ -94,6 +105,7 @@ function BETTERUI.CIM.UI.HeaderSortController:NavigateLeft()
     return false
 end
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:NavigateRight()
     if not self.isHeaderModeActive or #self.columns == 0 then
         return false
@@ -107,16 +119,19 @@ function BETTERUI.CIM.UI.HeaderSortController:NavigateRight()
     return false
 end
 
+---@return integer
 function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumnIndex()
     return self.currentColumnIndex
 end
 
+---@return table?
 function BETTERUI.CIM.UI.HeaderSortController:GetCurrentColumn()
     return self.columns[self.currentColumnIndex]
 end
 
 -- SORTING
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
     if #self.columns == 0 then
         return false
@@ -125,6 +140,7 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSort()
     return self:ToggleSortForColumn(self.currentColumnIndex)
 end
 
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
     if #self.columns == 0 then
         return false
@@ -150,6 +166,8 @@ function BETTERUI.CIM.UI.HeaderSortController:ClearSort()
     return false
 end
 
+---@param columnIndex integer
+---@return boolean
 function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     if not columnIndex or columnIndex < 1 or columnIndex > #self.columns then
         return false
@@ -213,11 +231,15 @@ function BETTERUI.CIM.UI.HeaderSortController:ToggleSortForColumn(columnIndex)
     return true
 end
 
+---@param columnIndex integer?
+---@return integer direction
 function BETTERUI.CIM.UI.HeaderSortController:GetSortDirection(columnIndex)
     columnIndex = columnIndex or self.currentColumnIndex
     return self.sortDirections[columnIndex] or SORT_DIRECTION.NONE
 end
 
+---@return table? column
+---@return integer direction
 function BETTERUI.CIM.UI.HeaderSortController:GetActiveSortColumn()
     if not self.activeSortColumnIndex then
         return nil, SORT_DIRECTION.NONE
@@ -228,6 +250,7 @@ end
 -- VISUAL UPDATES
 
 --- Updates column header visual indicators (highlights and arrows).
+---@return nil
 function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     for i, column in ipairs(self.columns) do
         if column.labelControl then
@@ -269,6 +292,9 @@ function BETTERUI.CIM.UI.HeaderSortController:UpdateVisuals()
     end
 end
 
+---@param columnIndex integer
+---@param labelControl table
+---@return nil
 function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelControl)
     local column = self.columns[columnIndex]
     if not column then return end
@@ -317,6 +343,9 @@ function BETTERUI.CIM.UI.HeaderSortController:SetColumnLabel(columnIndex, labelC
     end)
 end
 
+---@param headerContainer table
+---@param columnNamePattern string?
+---@return nil
 function BETTERUI.CIM.UI.HeaderSortController:RefreshColumnLabels(headerContainer, columnNamePattern)
     if not headerContainer then return end
 

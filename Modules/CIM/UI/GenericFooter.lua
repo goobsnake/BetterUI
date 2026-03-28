@@ -30,6 +30,7 @@ end
 
 --- Initializes the footer control reference.
 --- Triggers an initial refresh if the control is ready.
+---@return nil
 function BETTERUI.GenericFooter:Initialize()
     if (self.footer == nil) then self.footer = self.control.container:GetNamedChild("FooterContainer").footer end
 
@@ -45,6 +46,7 @@ end
 --- 3. Dynamically positions currency labels based on user-defined order.
 ---
 --- References: Called on inventory updates (EVENT_INVENTORY_SINGLE_SLOT_UPDATE) and initialization.
+---@return nil
 function BETTERUI.GenericFooter:Refresh()
     local invSettings = BETTERUI.GetModuleSettings("Inventory")
     local footer = self.footer

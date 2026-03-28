@@ -47,23 +47,30 @@ Localization.LANGUAGE_GROUPS = {
     zh = "cjk",
 }
 
+---@return string
 function Localization.GetCurrentLanguage()
     return GetCVar("language.2") or "en"
 end
 
+---@return string
 function Localization.GetCurrentLanguageGroup()
     local lang = Localization.GetCurrentLanguage()
     return Localization.LANGUAGE_GROUPS[lang] or "western"
 end
 
+---@return boolean
 function Localization.IsEnglish()
     return Localization.GetCurrentLanguage() == "en"
 end
 
+---@param fontPath string?
+---@return boolean
 function Localization.IsFontWesternOnly(fontPath)
     return Localization.WESTERN_ONLY_FONTS[fontPath] == true
 end
 
+---@param fontPath string?
+---@return boolean
 function Localization.IsFontLocalizedForLanguage(fontPath)
     -- Font variables (e.g., $(GAMEPAD_MEDIUM_FONT)) are always localized
     if fontPath and string.sub(fontPath, 1, 2) == "$(" then
@@ -79,6 +86,8 @@ function Localization.IsFontLocalizedForLanguage(fontPath)
     return not Localization.IsFontWesternOnly(fontPath)
 end
 
+---@param context string?
+---@return string
 function Localization.GetLocalizedFontDefault(context)
     if context == "bold" then
         return "$(BOLD_FONT)"
@@ -87,6 +96,8 @@ function Localization.GetLocalizedFontDefault(context)
     end
 end
 
+---@param fontPath string?
+---@return string?
 function Localization.GetFontCompatibilityWarning(fontPath)
     if Localization.IsEnglish() then
         return nil
@@ -106,6 +117,9 @@ function Localization.GetFontCompatibilityWarning(fontPath)
     return nil
 end
 
+---@param sourceChoices string[]
+---@param sourceValues string[]
+---@return string[]
 function Localization.GetFilteredFontChoices(sourceChoices, sourceValues)
     -- English users get all fonts
     if Localization.IsEnglish() then
@@ -123,6 +137,9 @@ function Localization.GetFilteredFontChoices(sourceChoices, sourceValues)
     return filtered
 end
 
+---@param sourceChoices string[]
+---@param sourceValues string[]
+---@return string[]
 function Localization.GetFilteredFontValues(sourceChoices, sourceValues)
     -- English users get all fonts
     if Localization.IsEnglish() then
@@ -139,6 +156,10 @@ function Localization.GetFilteredFontValues(sourceChoices, sourceValues)
     return filtered
 end
 
+---@param sourceChoices string[]
+---@param sourceValues string[]
+---@return string[] filteredChoices
+---@return string[] filteredValues
 function Localization.GetFilteredFontArrays(sourceChoices, sourceValues)
     return Localization.GetFilteredFontChoices(sourceChoices, sourceValues),
         Localization.GetFilteredFontValues(sourceChoices, sourceValues)

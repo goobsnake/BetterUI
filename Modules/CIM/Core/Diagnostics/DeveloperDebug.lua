@@ -29,6 +29,7 @@ BETTERUI.CIM.Debug.FLAGS = {
 
 -- CORE API
 
+---@return boolean
 function BETTERUI.CIM.Debug.IsEnabled()
     -- Check global flag first (backward compatibility)
     if BETTERUI_DEBUG then
@@ -45,6 +46,7 @@ end
 
 --- Returns whether developer-only settings should be visible in LAM.
 --- Developers can enable this by setting SHOW_DEVELOPER_SETTINGS = true above.
+---@return boolean
 function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
     if BETTERUI_DEBUG then
         return true
@@ -52,6 +54,9 @@ function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
     return BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS == true
 end
 
+---@param message string
+---@param category string?
+---@return nil
 function BETTERUI.CIM.Debug.Log(message, category)
     if not BETTERUI.CIM.Debug.IsEnabled() then return end
 
@@ -59,6 +64,9 @@ function BETTERUI.CIM.Debug.Log(message, category)
     BETTERUI.Debug(prefix .. message)
 end
 
+---@param flagName string
+---@param enabled boolean
+---@return nil
 function BETTERUI.CIM.Debug.SetFlag(flagName, enabled)
     if BETTERUI.CIM.Debug.FLAGS[flagName] ~= nil then
         BETTERUI.CIM.Debug.FLAGS[flagName] = enabled

@@ -137,11 +137,16 @@ end
 
 -- UTILITY FUNCTIONS
 
+---@param sizeValue number?
+---@return integer
 function BETTERUI.CIM.Font.GetSizeValue(sizeValue)
     return ClampFontSize(sizeValue, BETTERUI.CIM.Font.DEFAULTS.nameFontSize)
 end
 
 --- Normalizes shared module font sizes to the active slider bounds.
+---@param m_options table
+---@param defaults table?
+---@return table m_options
 function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
     if type(m_options) ~= "table" then
         return m_options
@@ -158,6 +163,12 @@ function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
 end
 
 --- Shared module initialization helper for defaults and font migrations.
+---@param moduleKey string
+---@param m_options table?
+---@param defaults table?
+---@param fallbackDefaults table?
+---@param onBeforeFontMigration fun(opts: table, defs: table)?
+---@return table m_options
 function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbackDefaults, onBeforeFontMigration)
     if type(m_options) ~= "table" then
         m_options = {}
@@ -201,6 +212,10 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
     return m_options
 end
 
+---@param fontPath string
+---@param fontSize integer
+---@param fontStyle string?
+---@return string descriptor
 function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     if fontStyle and fontStyle ~= "" then
         return string.format("%s|%d|%s", fontPath, fontSize, fontStyle)
@@ -209,6 +224,9 @@ function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     end
 end
 
+---@param moduleName string
+---@param fontType string
+---@return string descriptor
 function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
     local settings = BETTERUI.GetModuleSettings(moduleName)
     local defaults = BETTERUI.CIM.Font.DEFAULTS
@@ -228,6 +246,8 @@ function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
 end
 
 --- Creates bound font descriptor closures for a module.
+---@param moduleName string
+---@return {name: fun(): string, column: fun(): string}
 function BETTERUI.CIM.Font.CreateModuleDescriptors(moduleName)
     return {
         name = function() return BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, "name") end,

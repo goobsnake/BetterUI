@@ -23,10 +23,15 @@ local QUICKSLOT_LABELS = {
     [8] = "South",
 }
 
+---@param slotIndex integer
+---@return string
 function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
 
+---@param dialog table
+---@param target table
+---@return {hasUnassign: boolean, assignedIndex: integer?, orderedSlots: integer[]}
 function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     local parametricList = dialog.info.parametricList
     ZO_ClearNumericallyIndexedTable(parametricList)
@@ -92,6 +97,9 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     }
 end
 
+---@param dialog table
+---@param quickslotInfo {hasUnassign: boolean, assignedIndex: integer?, orderedSlots: integer[]}
+---@return nil
 function BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
     if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
         local offset = quickslotInfo.hasUnassign and 1 or 0
@@ -111,6 +119,10 @@ end
 
 -- ACTION ENTRY POPULATION
 
+---@param parametricList table[]
+---@param slotActions table
+---@param options {hideDestroy: boolean?, filterCallback: fun(actionName: string): boolean?}?
+---@return nil
 function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options)
     options = options or {}
     local hideDestroy = options.hideDestroy
@@ -151,6 +163,8 @@ end
 
 -- LINK TO CHAT HANDLER
 
+---@param targetData table?
+---@return boolean
 function BETTERUI.CIM.HandleLinkToChat(targetData)
     if not targetData then return false end
 

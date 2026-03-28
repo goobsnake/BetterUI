@@ -127,6 +127,8 @@ local SOURCE_FETCHERS = {
 }
 
 --- Returns localized dropdown choices and values for market source priority.
+---@return string[] choices
+---@return string[] values
 function MarketIntegration.GetPriorityChoices()
     local choices = {}
     local values = {}
@@ -140,11 +142,16 @@ function MarketIntegration.GetPriorityChoices()
 end
 
 --- Returns the active source order keys for the saved market priority setting.
+---@param settings table?
+---@return string[] sourceOrder
 function MarketIntegration.GetPriorityOrder(settings)
     local key = GetPriorityKey(settings)
     return PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc
 end
 
+---@param itemLink string?
+---@param stackCount integer?
+---@return number
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
     -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys

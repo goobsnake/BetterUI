@@ -37,6 +37,9 @@ local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
 
+---@param tlw_name string Top-level window name
+---@param scene_name string Scene name for banking interface
+---@return nil
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
@@ -281,6 +284,7 @@ end
 
 
 --- Global initialization for the Banking module using BetterUI.Window.
+---@return nil
 function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window = BETTERUI.Banking.Class:New("BETTERUI_BankingWindow", BETTERUI_BANKING_SCENE_NAME)
     BETTERUI.Banking.Window:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r")

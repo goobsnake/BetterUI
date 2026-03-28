@@ -8,6 +8,8 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
+---@return integer? bag The bank bag ID, or nil if no space
+---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if IsHouseBankBag(GetBankingBag()) then
@@ -32,6 +34,9 @@ local function FindEmptySlotInBank()
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
+---@param list table The parametric list to get selected data from
+---@param quantity integer? Number of items to move (default 1)
+---@return nil
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil
     if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
@@ -164,6 +169,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 end
 
+---@param list table The parametric list
+---@return nil
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if not self.confirmationMode then
@@ -174,6 +181,8 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
+---@param currencyType integer ESO currency type constant (e.g. CURT_MONEY)
+---@return nil
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -217,6 +226,7 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
 end
 
 --- Hides the currency selector and restores the item list.
+---@return nil
 function BETTERUI.Banking.Class:HideSelector()
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
@@ -230,6 +240,7 @@ function BETTERUI.Banking.Class:HideSelector()
 end
 
 --- Shows the actions dialog for the selected item.
+---@return nil
 function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
 

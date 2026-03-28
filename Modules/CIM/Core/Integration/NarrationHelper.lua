@@ -32,6 +32,8 @@ end
 
 --- Builds narration text for an inventory/banking item entry.
 --- Narrates: name, quality, stack count, category, equipped/junk status, value.
+---@param selectedData table?
+---@return table[] narrations
 function Narration.NarrateItemEntry(selectedData)
     local narrations = {}
     if not selectedData then return narrations end
@@ -78,6 +80,8 @@ end
 -- SCENE TITLE NARRATION
 
 --- Builds narration for a scene title (e.g., "Bank", "Guild Bank: Guildname").
+---@param titleText string?
+---@return table[] narrations
 function Narration.NarrateSceneTitle(titleText)
     local narrations = {}
     -- Strip color codes for narration
@@ -91,6 +95,9 @@ end
 -- CATEGORY NARRATION
 
 --- Builds narration for a category header change.
+---@param categoryName string?
+---@param itemCount integer?
+---@return table[] narrations
 function Narration.NarrateCategory(categoryName, itemCount)
     local narrations = {}
     ZO_AppendNarration(narrations, SafeNarrate(categoryName))
@@ -103,6 +110,9 @@ end
 -- FOOTER/CURRENCY NARRATION
 
 --- Builds narration for currency display in footer.
+---@param currencyType integer?
+---@param amount integer?
+---@return table[] narrations
 function Narration.NarrateCurrency(currencyType, amount)
     local narrations = {}
     if not currencyType or not amount then return narrations end
@@ -115,6 +125,8 @@ end
 -- MODE NARRATION
 
 --- Builds narration for deposit/withdraw mode in Banking.
+---@param mode integer?
+---@return table[] narrations
 function Narration.NarrateBankingMode(mode)
     local narrations = {}
     if mode == BETTERUI.Banking.LIST_DEPOSIT then
@@ -128,6 +140,10 @@ end
 -- REGISTRATION HELPERS
 
 --- Registers a parametric list with SCREEN_NARRATION_MANAGER for item narration.
+---@param sceneName string
+---@param getSelectedDataFn fun(): table?
+---@param getTitleFn fun(): string?
+---@return nil
 function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleFn)
     if not SCREEN_NARRATION_MANAGER then return end
     if not sceneName or not getSelectedDataFn then return end

@@ -128,6 +128,10 @@ end
 
 --- Sets up header sort integration for a parametric scroll list.
 ---
+---@param list table
+---@param controller table
+---@param options table?
+---@return table integration
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
 
@@ -170,6 +174,9 @@ end
 
 --- Enters header sort navigation mode.
 ---
+---@param integration table
+---@param options table?
+---@return nil
 function HeaderSortIntegration.EnterHeaderMode(integration, options)
     if integration.isActive then return end
 
@@ -190,6 +197,9 @@ end
 
 --- Exits header sort navigation mode and returns to list.
 ---
+---@param integration table
+---@param options table?
+---@return nil
 function HeaderSortIntegration.ExitHeaderMode(integration, options)
     if not integration.isActive then return end
 
@@ -210,6 +220,8 @@ end
 
 --- Returns whether header mode is currently active for an integration.
 ---
+---@param integration table?
+---@return boolean
 function HeaderSortIntegration.IsActive(integration)
     return integration and integration.isActive
 end
@@ -220,6 +232,9 @@ end
 ---
 --- Purpose: This eliminates duplicate code across Inventory and Banking modules.
 ---
+---@param instance table
+---@param config table
+---@return nil
 function HeaderSortIntegration.ApplyMixin(instance, config)
     if not instance or not config then return end
 

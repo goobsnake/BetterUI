@@ -6,6 +6,9 @@ Purpose: Number formatting utilities for the BetterUI addon.
 
 -- ROUNDING
 
+---@param number number?
+---@param decimals integer?
+---@return string|integer
 function BETTERUI.roundNumber(number, decimals)
     if number ~= nil and decimals ~= nil then
         local power = 10 ^ decimals
@@ -17,6 +20,8 @@ end
 
 -- COMMA FORMATTING
 
+---@param number number
+---@return string
 function BETTERUI.DisplayNumber(number)
     local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
     -- reverse the int-string and append a comma to all blocks of 3 digits
@@ -28,6 +33,9 @@ end
 
 -- ABBREVIATION (K/M/B)
 
+---@param value number?
+---@param options {case: string?, style: string?, decimals: integer?}?
+---@return string
 function BETTERUI.FormatNumber(value, options)
     if not value or value == 0 then
         return "0"
@@ -78,11 +86,16 @@ function BETTERUI.FormatNumber(value, options)
     return sign .. string.format(fmt, num) .. suffix
 end
 
+---@param n number?
+---@param defaultDecimals integer?
+---@return string
 function BETTERUI.AbbreviateNumber(n, defaultDecimals)
     -- Legacy behavior: lowercase, smart decimals
     return BETTERUI.FormatNumber(n, { case = "lower", style = "smart" })
 end
 
+---@param value number?
+---@return string
 function BETTERUI.FormatAbbreviatedNumber(value)
     -- Legacy behavior: uppercase, smart decimals
     return BETTERUI.FormatNumber(value, { case = "upper", style = "smart" })

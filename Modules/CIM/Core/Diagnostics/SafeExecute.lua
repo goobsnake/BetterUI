@@ -68,3 +68,13 @@ function BETTERUI.CIM.UserNotify(context, messageStringId, sound)
     BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(GetString(messageStringId))))
     ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageStringId)
 end
+
+--- Unified user-facing error notification for pre-resolved text strings.
+--- Use when the error message is already a string (e.g., from IsEquipable's error return).
+---@param context string Descriptive label for error logging
+---@param messageText string The user-facing alert message text
+---@param sound? number Sound constant (default: SOUNDS.NEGATIVE_CLICK)
+function BETTERUI.CIM.UserNotifyText(context, messageText, sound)
+    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(messageText)))
+    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageText)
+end

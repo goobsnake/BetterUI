@@ -24,12 +24,16 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 --- @field isActiveCheck fun(): boolean|nil Guard to cancel if scene changes
 BETTERUI.CIM.Lists.BatchProcessor = ZO_Object:Subclass()
 
+---@param ... any
+---@return table
 function BETTERUI.CIM.Lists.BatchProcessor:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
     return obj
 end
 
+---@param options {initialBatchSize: integer?, remainingBatchSize: integer?, batchDelay: integer?}?
+---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     options = options or {}
     self.initialBatchSize = options.initialBatchSize or BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_INITIAL
@@ -45,6 +49,9 @@ function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     self.isActiveCheck = nil
 end
 
+---@param data table[]
+---@param options {context: table?, onProcessItem: fun(item: any, index: integer, context: table)?, onComplete: fun(context: table)?, isActiveCheck: fun(): boolean?}
+---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
     -- Cancel any existing batch
     self:Cancel()
@@ -121,6 +128,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:ProcessBatch()
 end
 
 --- Cancels any pending batch operations.
+---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
     if self.batchCallId then
         zo_removeCallLater(self.batchCallId)
@@ -130,6 +138,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:Cancel()
 end
 
 --- Resets internal state.
+---@return nil
 function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.pendingData = nil
     self.pendingIndex = nil
@@ -139,6 +148,7 @@ function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.isActiveCheck = nil
 end
 
+---@return boolean
 function BETTERUI.CIM.Lists.BatchProcessor:IsActive()
     return self.pendingData ~= nil
 end

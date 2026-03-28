@@ -65,6 +65,10 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
 end
 
 --- Initializes the header control and caches child references.
+---@param control table
+---@param createTabBar integer?
+---@param layout table?
+---@return nil
 function BETTERUI.GenericHeader.Initialize(control, createTabBar, layout)
     local titleContainer = control:GetNamedChild("TitleContainer")
     control.controls =
@@ -102,6 +106,9 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
+---@param control table
+---@param data table
+---@return nil
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
@@ -121,15 +128,24 @@ local function UpdateEquipText(control, controlName, slotStringKey, isActive, hi
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
+---@param control table
+---@param isEquipMain boolean
+---@return nil
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     UpdateEquipText(control, "EquipText", SI_BETTERUI_INV_EQUIPSLOT_MAIN, isEquipMain, false)
 end
 
+---@param control table
+---@param isEquipMain boolean
+---@return nil
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     UpdateEquipText(control, "BackupEquipText", SI_BETTERUI_INV_EQUIPSLOT_BACKUP, not isEquipMain, true)
 end
 
 --- Update the header title text.
+---@param control table
+---@param titleText string
+---@return nil
 function BETTERUI.GenericHeader.SetTitleText(control, titleText)
     local titleTextControl = control:GetNamedChild("TitleContainer"):GetNamedChild("Title")
     titleTextControl:SetText(titleText)
@@ -163,6 +179,11 @@ local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     end
 end
 
+---@param control table
+---@param equipMain string?
+---@param equipOff string?
+---@param equipPoison string?
+---@return nil
 function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "MainHandIcon", off = "OffHandIcon", poison = "PoisonIcon" },
@@ -170,6 +191,11 @@ function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, e
         false)
 end
 
+---@param control table
+---@param equipMain string?
+---@param equipOff string?
+---@param equipPoison string?
+---@return nil
 function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "BackupMainHandIcon", off = "BackupOffHandIcon", poison = "BackupPoisonIcon" },
@@ -183,6 +209,10 @@ end
 --- Mechanics: Updates title, initializes BETTERUI_TabBarScrollList if needed, and applies dynamic callbacks.
 --- References: Called whenever header data changes (e.g. switching between Inventory and CraftBag).
 ---
+---@param control table
+---@param data table
+---@param blockTabBarCallbacks boolean?
+---@return nil
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 

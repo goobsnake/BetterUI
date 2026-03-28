@@ -126,6 +126,9 @@ local function ResetIconCustomizationSettings(moduleName, refreshFn)
     end
 end
 
+---@param moduleName string
+---@param refreshFn fun()?
+---@return table[]
 function BETTERUI.CIM.Settings.CreateIconToggleOptions(moduleName, refreshFn)
     local options = {}
 
@@ -170,6 +173,9 @@ param: moduleName (string) - The module name key in BETTERUI.Settings.Modules.
 param: refreshFn (function) - Callback to refresh visible lists after settings changes.
 return: table - A LAM submenu option containing icon toggles.
 ]]
+---@param moduleName string
+---@param refreshFn fun()?
+---@return table
 function BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption(moduleName, refreshFn)
     local controls = {
         {

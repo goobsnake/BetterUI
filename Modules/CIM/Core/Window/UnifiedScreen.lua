@@ -16,15 +16,18 @@ BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 local MODE = BETTERUI.CIM.UnifiedFooter.MODE
 
 --- Creates a new UnifiedScreen instance.
----
---- Note: We pass ... to the parent's New, which handles Initialize automatically.
----
+---@param ... any
+---@return table
 function BETTERUI.CIM.UnifiedScreen:New(...)
     return BETTERUI_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
 --- Initializes the screen with unified footer support.
----
+---@param control table
+---@param createTabBar boolean?
+---@param activateOnShow boolean?
+---@param scene table?
+---@param footerMode integer?
 function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOnShow, scene, footerMode)
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, createTabBar, activateOnShow, scene)
 
@@ -51,7 +54,7 @@ function BETTERUI.CIM.UnifiedScreen:SetupUnifiedFooter()
 end
 
 --- Changes the footer display mode.
----
+---@param mode integer
 function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
     self.footerMode = mode
     if self.unifiedFooterController then
@@ -60,7 +63,7 @@ function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
 end
 
 --- Returns the current footer mode.
----
+---@return integer
 function BETTERUI.CIM.UnifiedScreen:GetFooterMode()
     return self.footerMode
 end
@@ -146,7 +149,7 @@ end
 -- KEYBIND MANAGEMENT METHODS
 
 --- Sets the active keybind group, removing any previous one.
----
+---@param keybindDescriptor table?
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
@@ -196,7 +199,7 @@ end
 -- SEARCH FOCUS LOGIC
 
 --- Initializes search focus behavior for the screen.
----
+---@param searchKeybindDescriptor table
 function BETTERUI.CIM.UnifiedScreen:SetupSearchFocus(searchKeybindDescriptor)
     self.searchKeybindDescriptor = searchKeybindDescriptor
     self._searchModeActive = false

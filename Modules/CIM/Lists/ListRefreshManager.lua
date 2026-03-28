@@ -22,12 +22,16 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 --- @field savedUniqueId string|nil Last saved item uniqueId for position restoration
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
 
+---@param ... any
+---@return table
 function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
     local obj = ZO_Object.New(self)
     obj:Initialize(...)
     return obj
 end
 
+---@param options {coalesceDelay: integer?, useBatching: boolean?, batchProcessor: table?}?
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     options = options or {}
     self.coalesceDelay = options.coalesceDelay or BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS
@@ -40,6 +44,8 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     self.savedUniqueId = nil
 end
 
+---@param list table
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     if not list then return end
 
@@ -52,6 +58,8 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     end
 end
 
+---@param list table
+---@return boolean
 function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     if not list then return false end
 
@@ -92,6 +100,10 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     return false
 end
 
+---@param list table
+---@param refreshFn fun()
+---@param savePosition boolean?
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
     if savePosition ~= false then
         self:SavePosition(list)
@@ -113,6 +125,9 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     end, self.coalesceDelay)
 end
 
+---@param list table
+---@param refreshFn fun()
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     self.isDirty = false
 
@@ -125,7 +140,7 @@ function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     self:RestorePosition(list)
 end
 
---- Cancels any pending queued refresh.
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     if self.pendingRefreshCallId then
         zo_removeCallLater(self.pendingRefreshCallId)
@@ -134,16 +149,17 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     self.isDirty = false
 end
 
+---@return boolean
 function BETTERUI.CIM.Lists.ListRefreshManager:IsDirty()
     return self.isDirty
 end
 
---- Marks the list as needing refresh without queuing.
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:MarkDirty()
     self.isDirty = true
 end
 
---- Clears the dirty flag without executing refresh.
+---@return nil
 function BETTERUI.CIM.Lists.ListRefreshManager:ClearDirty()
     self.isDirty = false
 end

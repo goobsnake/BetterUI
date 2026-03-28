@@ -147,6 +147,8 @@ end
 -- HELPER FUNCTIONS
 
 --- Retrieves the current amount of a currency for display.
+---@param def table
+---@return integer
 function BETTERUI.CIM.Currency.GetValue(def)
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
@@ -158,6 +160,9 @@ function BETTERUI.CIM.Currency.GetValue(def)
 end
 
 --- Formats a currency label with localized text, color, value, and icon.
+---@param def table
+---@param amount integer
+---@return string
 function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
@@ -181,6 +186,9 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     return formatted
 end
 
+---@param footer table
+---@param labelName string
+---@return table?
 function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     if not footer._controlCache then footer._controlCache = {} end
     if not footer._controlCache[labelName] then
@@ -190,6 +198,9 @@ function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     return footer._controlCache[labelName]
 end
 
+---@param footer table
+---@param invSettings table
+---@return boolean anyChanged
 function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     if not footer._valueCache then footer._valueCache = {} end
     local cache = footer._valueCache
@@ -235,6 +246,8 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
 end
 
 --- Build ordered list of visible currency definitions based on user settings.
+---@param invSettings table
+---@return table[] visible
 function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local orderStr = invSettings.currencyOrder or
         "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
@@ -266,6 +279,9 @@ function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     return visible
 end
 
+---@param footer table
+---@param invSettings table
+---@return nil
 function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
     local visible = BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local GetLabelControl = BETTERUI.CIM.Currency.GetLabelControl

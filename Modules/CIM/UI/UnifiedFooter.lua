@@ -18,12 +18,16 @@ BETTERUI.CIM.UnifiedFooter.MODE = {
 
 local UnifiedFooterController = ZO_Object:Subclass()
 
+---@param control table
+---@return table
 function UnifiedFooterController:New(control)
     local obj = ZO_Object.New(self)
     obj:Initialize(control)
     return obj
 end
 
+---@param control table
+---@return nil
 function UnifiedFooterController:Initialize(control)
     self.control = control
     self.footer = nil
@@ -31,11 +35,15 @@ function UnifiedFooterController:Initialize(control)
     self._initialized = false
 end
 
+---@param footerControl table
+---@return nil
 function UnifiedFooterController:SetupFooter(footerControl)
     self.footer = footerControl
     self._initialized = true
 end
 
+---@param mode integer
+---@return nil
 function UnifiedFooterController:SetMode(mode)
     if self.mode ~= mode then
         self.mode = mode
@@ -43,6 +51,7 @@ function UnifiedFooterController:SetMode(mode)
     end
 end
 
+---@return integer
 function UnifiedFooterController:GetMode()
     return self.mode
 end
@@ -91,6 +100,7 @@ function UnifiedFooterController:ApplyModeStyles()
     end
 end
 
+---@return boolean
 function UnifiedFooterController:IsInitialized()
     return self._initialized
 end
@@ -99,6 +109,8 @@ end
 
 BETTERUI.CIM.UnifiedFooter.Controller = UnifiedFooterController
 
+---@param control table
+---@return table
 function BETTERUI.CIM.UnifiedFooter.Create(control)
     return UnifiedFooterController:New(control)
 end

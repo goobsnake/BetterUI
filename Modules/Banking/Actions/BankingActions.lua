@@ -16,6 +16,7 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 --- Action Filtering
 
 --- Updates the context menu actions for the currently selected item.
+---@return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     if self.isInHeaderSortMode then
@@ -25,6 +26,8 @@ function BETTERUI.Banking.Class:RefreshItemActions()
     self.itemActions:SetInventorySlot(targetData)
 end
 
+---@param self BetterUIBankingClass
+---@param targetData table?
 local function EnsureTargetSlotType(self, targetData)
     if not targetData or targetData.slotType then
         return
@@ -37,6 +40,8 @@ local function EnsureTargetSlotType(self, targetData)
     end
 end
 
+---@param self BetterUIBankingClass
+---@param targetData table?
 local function RebuildDiscoveredActions(self, targetData)
     if not targetData then
         return
@@ -58,6 +63,8 @@ local function RebuildDiscoveredActions(self, targetData)
     self:RefreshItemActions()
 end
 
+---@param self BetterUIBankingClass
+---@param parametricList table
 local function PopulateFilteredActions(self, parametricList)
     local actions = self.itemActions:GetSlotActions()
     local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
@@ -69,6 +76,7 @@ end
 --- Dialog Setup
 
 --- Initializes the Y Button Actions Dialog with callbacks.
+---@return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogSetup(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
