@@ -1,5 +1,15 @@
 # Completed Improvements
 
+## [Completed] Second-Pass Audit Closeout + Language Maintenance Fix (2026-03-28)
+**Summary**: Performed requested second-pass deep verification and fixed additional misses: scene lifecycle task-manager routing/cancellation for Banking and Inventory, stale CIM template icon path, and strict-mode PowerShell `$Matches` collision in localization maintenance tooling.
+**Source Issue/Phase**: Post-refactor follow-up audit pass
+**Related Files/Tests**: `Modules/Banking/Banking.lua`, `Modules/CIM/Core/Window/WindowClass.lua`, `Modules/Inventory/Scene/InventorySceneLifecycle.lua`, `Modules/CIM/Templates/SharedTemplates.xml`, `Modules/ResourceOrbFrames/Core/OrbEvents.lua`, `tools/LanguageMaintenance.ps1`, `luacheck BetterUI.lua Modules lang tools/tests`, `lua tools/tests/run_all_tests.lua`, `mcp_test-runner_test_validate(luac_syntax)`, `pwsh -File tools/LanguageMaintenance.ps1 -Mode Audit`
+
+## [Completed] Refactor Audit + Manifest Integrity Pass (2026-03-28)
+**Summary**: Completed deep post-refactor audit from `99ac62a41af2d1e176ced6a5a221f5ab190192fd` to `HEAD`; validated Lua syntax and XML structure, verified manifest coverage/order, and fixed manifest/quality issues discovered during audit.
+**Source Issue/Phase**: Post-refactor verification sweep
+**Related Files/Tests**: `BetterUI.txt`, `Modules/GeneralInterface/Tooltips/Tooltips.lua`, `Modules/Inventory/Module.lua`, `Modules/ResourceOrbFrames/ResourceOrbFrames.lua`, `docs/publishing/changelog.txt`, `luacheck BetterUI.lua Modules lang tools/tests`, `lua tools/tests/run_all_tests.lua`, `mcp_test-runner_test_validate(luac_syntax)`
+
 ## [Completed] Guild Bank Validation and Commit (2026-03-14)
 **Summary**: Implemented comprehensive Guild Bank support via UI reuse. Fixed deposit restriction missing check for player-locked items and matched `TransferToGuildBank`/`TransferFromGuildBank` exact argument signatures.
 **Source Issue/Phase**: Guild Bank Integration

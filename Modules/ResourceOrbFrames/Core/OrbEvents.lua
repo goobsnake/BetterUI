@@ -21,6 +21,11 @@ local m_hasRegisteredCombatIndicators = false
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
+local function IsModuleEnabled()
+    local settings = GetSettings()
+    return not (settings and settings.m_enabled == false)
+end
+
 ---@param rootFrame table|nil Root frame to refresh, or nil to use cached frame
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame
@@ -182,6 +187,7 @@ end
 function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     -- Core status tick (100ms): usability and ultimate meters/text.
     local function CoreStatusTick()
+        if not IsModuleEnabled() then return end
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
             local isCasting = castBar and castBar.isCasting or false
@@ -194,6 +200,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
 
     -- Cooldown visual tick (16ms): smoother reveal animation for front/back bars.
     local function CooldownVisualTick()
+        if not IsModuleEnabled() then return end
         SkillBar.UpdateBackBarCooldowns(rootFrame)
         local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
         if frontBarCfg and frontBarCfg.m_enabled then
@@ -205,6 +212,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     -- Animation Tick (33ms = 30fps)
     local lastAnimTime = GetGameTimeMilliseconds()
     local function AnimationTick()
+        if not IsModuleEnabled() then return end
         local settings = GetSettings()
         if not settings.orbAnimFlow then return end
 

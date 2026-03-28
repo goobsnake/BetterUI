@@ -13,6 +13,17 @@ LOCALIZATION:
 
 INVENTORY & CRAFT BAG:
 6. Fixed: Category navigation (carousel LB/RB and tab clicks) no longer bleeds scroll position across categories — each category now correctly maintains its own independent saved position
+7. Fixed: Added missing Resource Orb texture assets to `BetterUI.txt` so all runtime-referenced Orb textures are explicitly listed in the addon manifest
+8. Improved: Completed full refactor audit verification gates (Lua syntax, XML well-formedness, manifest integrity, luacheck, and Lua regression harness)
+
+BANKING, INVENTORY & TEMPLATES:
+9. Fixed: Banking scene lifecycle now cancels module-scoped deferred tasks instead of shared CIM tasks, reducing stale callback risk across personal and guild bank scene transitions
+10. Fixed: Inventory scene lifecycle now cancels pending module deferred tasks on scene hide to prevent delayed callbacks from firing after scene exit
+11. Fixed: Corrected stale equipped icon texture path in shared CIM template to current `Modules/CIM/Images` asset location
+12. Fixed: Resource Orb periodic tick handlers now short-circuit when the module is disabled, reducing stale update risk during scene/input transitions
+
+TOOLING:
+13. Fixed: `tools/LanguageMaintenance.ps1` no longer collides with PowerShell automatic `$Matches` state under strict mode during audit scans
 [/INDENT]
 
 

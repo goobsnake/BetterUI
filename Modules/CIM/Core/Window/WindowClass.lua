@@ -298,7 +298,7 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
     -- Use SceneLifecycleManager for unified lifecycle handling
     BETTERUI.CIM.SceneLifecycle.Register(self, {
         keybinds = { self.coreKeybinds },
-        taskManager = BETTERUI.CIM.Tasks,
+        taskManager = self.taskManager or BETTERUI.CIM.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             -- Allow subclasses to extend via OnSceneShowing

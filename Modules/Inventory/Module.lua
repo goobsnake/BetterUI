@@ -53,7 +53,7 @@ function BETTERUI.Inventory.InitModule(m_options)
                 end
             else
                 -- Fallback defaults if preset table is unavailable.
-                local fallbackDefaults = {
+				local currencyFallbackDefaults = {
                     showCurrencyGold = true,
                     showCurrencyAlliancePoints = true,
                     showCurrencyTelVar = true,
@@ -79,7 +79,7 @@ function BETTERUI.Inventory.InitModule(m_options)
                     orderCurrencySeals = 11,
                     orderCurrencyTomePoints = 12,
                 }
-                for key, value in pairs(fallbackDefaults) do
+				for key, value in pairs(currencyFallbackDefaults) do
                     if options[key] == nil then
                         options[key] = value
                     end

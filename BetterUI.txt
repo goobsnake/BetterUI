@@ -119,6 +119,15 @@ Modules\ResourceOrbFrames\Core\Utils.lua
 Modules\ResourceOrbFrames\Templates\SkillBarTemplates.xml
 Modules\ResourceOrbFrames\Templates\OrbTemplates.xml
 Modules\ResourceOrbFrames\Templates\LayoutTemplates.xml
+Modules\ResourceOrbFrames\Textures\Bar.dds
+Modules\ResourceOrbFrames\Textures\CastBar.dds
+Modules\ResourceOrbFrames\Textures\MountBar.dds
+Modules\ResourceOrbFrames\Textures\OrbBorder.dds
+Modules\ResourceOrbFrames\Textures\OrbFill.dds
+Modules\ResourceOrbFrames\Textures\OrbOverlay_Shield.dds
+Modules\ResourceOrbFrames\Textures\OrbSplitter.dds
+Modules\ResourceOrbFrames\Textures\OrnamentLeft.dds
+Modules\ResourceOrbFrames\Textures\OrnamentRight.dds
 Modules\ResourceOrbFrames\Core\OrbAnimations.lua
 Modules\ResourceOrbFrames\Core\OrbVisuals.lua
 Modules\ResourceOrbFrames\Core\OrbOverlays.lua

@@ -207,8 +207,8 @@ function Invoke-LanguageAudit {
             continue
         }
 
-        $matches = [regex]::Matches($content, 'SI_BETTERUI_[A-Z0-9_]+')
-        foreach ($match in $matches) {
+        $foundMatches = [regex]::Matches($content, 'SI_BETTERUI_[A-Z0-9_]+')
+        foreach ($match in $foundMatches) {
             $strings.Add($match.Value) | Out-Null
         }
     }
@@ -308,10 +308,10 @@ function Invoke-LanguageAudit {
         "`n - - -   C h e c k i n g   $($langFile.Name)   - - -" | Add-Content -LiteralPath $OutputPath
 
         $content = Get-Content -LiteralPath $langFile.FullName -Raw
-        $matches = [regex]::Matches($content, 'ZO_CreateStringId\("([^"]+)",\s*"(.*)"\)')
+        $foundMatches = [regex]::Matches($content, 'ZO_CreateStringId\("([^"]+)",\s*"(.*)"\)')
 
         $count = 0
-        foreach ($match in $matches) {
+        foreach ($match in $foundMatches) {
             $key = $match.Groups[1].Value
             $value = $match.Groups[2].Value
             if ($enMap.ContainsKey($key) -and $value -eq $enMap[$key] -and $value.Length -gt 2) {

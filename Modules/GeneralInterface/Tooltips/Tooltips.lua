@@ -341,7 +341,7 @@ local function IsIncompatibleSceneActive()
 end
 
 
-function BETTERUI.InventoryHook(config, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
+function BETTERUI.InventoryHook(config, tooltipTypeArg, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local tooltipControl, tooltipType
     local layoutItemName, layoutItemDataFn
     local layoutBagName, layoutBagDataFn
@@ -360,7 +360,7 @@ function BETTERUI.InventoryHook(config, _tooltipType, method, linkFunc, method2,
     else
         -- Legacy positional call (backward compatibility)
         tooltipControl = config
-        tooltipType = _tooltipType
+        tooltipType = tooltipTypeArg
         layoutItemName = method or "LayoutItem"
         layoutItemDataFn = linkFunc
         layoutBagName = method2 or "LayoutBagItem"

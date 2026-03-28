@@ -165,7 +165,7 @@
 
                 <!-- Icon indicating the item is currently equipped -->
                 <Texture name="$(parent)EquippedMain"
-                    textureFile="BetterUI/Templates/Images/inv_equip.dds"
+                    textureFile="BetterUI/Modules/CIM/Images/inv_equip.dds"
                     excludeFromResizeToFitExtents="true" pixelRoundingEnabled="false">
                     <Dimensions x="28" y="BETTERUI_ICON_SIZE_MEDIUM" />
                     <Anchor point="RIGHT" relativeTo="$(parent)Icon" relativePoint="LEFT"

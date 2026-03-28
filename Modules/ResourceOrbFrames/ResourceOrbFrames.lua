@@ -43,17 +43,7 @@ assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask m
 local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
 ResourceOrbFrames.Tasks = ROFTasks
 
--- Defaults
-local DEFAULTS = {
-    m_enabled = true,
-    scale = 1.0,
-    offsetY = 0,
-    showQuickslotCount = true,
-    -- (Other defaults handled in GetModuleSettings or specific components)
-}
-
 -- Use canonical Utils.GetSettings for the standard no-defaults path.
--- This file also needs a DEFAULTS-aware accessor for initialization.
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local FindControl = BETTERUI.ControlUtils.FindControl

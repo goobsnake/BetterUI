@@ -45,6 +45,7 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS
 
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name)
+    self.taskManager = BETTERUI.Banking.Tasks
 
     -- Create banking scene
     BETTERUI_BANKING_SCENE = ZO_InteractScene:New(
@@ -338,7 +339,7 @@ function BETTERUI.Banking.Init()
     BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
     BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
         keybinds = { BETTERUI.Banking.Window.coreKeybinds },
-        taskManager = BETTERUI.CIM.Tasks,
+        taskManager = BETTERUI.Banking.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
             if screen.OnSceneShowing then

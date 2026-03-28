@@ -88,6 +88,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		-- search is handled via hold callbacks on X/Y; no separate A-based keybind group required
 	elseif newState == SCENE_HIDING then
 		ZO_InventorySlot_SetUpdateCallback(nil)
+		if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.CancelAll then
+			BETTERUI.Inventory.Tasks:CancelAll()
+		end
 		if self:IsBatchProcessing() then
 			self:RequestBatchAbort()
 		end
