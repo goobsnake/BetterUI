@@ -117,6 +117,14 @@ end
 
 --- Initializes ResourceOrbFrames default settings.
 ---
+--- INIT CONTRACT: This function implements the standard InitModule signature.
+--- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
+---
+--- Standard InitModule Signature (consistent across all modules):
+---
+--- Wrapper Function (caller in BetterUI.lua):
+---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
+---
 --- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
 --- Mechanics: Checks each setting key; if missing, assigns default value.
 ---

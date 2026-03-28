@@ -73,7 +73,7 @@ local MODULE_REGISTRY = {
 		namespace = "Nameplates",
 		depends = "GeneralInterface"
 	},
-	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames" },
+	{ name = "ResourceOrbFrames", namespace = "ResourceOrbFrames", dependsOnCIM = true },
 }
 
 -- ============================================================================
@@ -395,7 +395,8 @@ end
 ---   - InitModule only needs m_options because modules access their namespace
 ---     directly via the global BETTERUI table (e.g., BETTERUI.CIM.CONST)
 ---
---- See: CIM.InitModule, Inventory.InitModule, Banking.InitModule, Vendor.InitModule
+--- See: CIM.InitModule, Inventory.InitModule, Banking.InitModule, Vendor.InitModule,
+---      ResourceOrbFrames.InitModule
 ---
 --- @param m_namespace table The module's namespace table (e.g., BETTERUI.Inventory)
 --- @param m_options table The raw settings table to populate with defaults

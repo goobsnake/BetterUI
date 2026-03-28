@@ -6,15 +6,20 @@ Purpose: Configuration module for Resource Orb Frames.
 
 local LAM = LibAddonMenu2
 
+-- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
+BETTERUI.CIM.RegisterModuleAccessors("ResourceOrbFrames")
+
 --- Initializes the settings panel for Resource Orb Frames.
 ---
 --- Purpose: Creates a LibAddonMenu panel with all configurable options.
+--- Note: This is the LAM panel setup function, NOT the defaults-initialization
+---       function. Defaults are handled by InitModule in Settings/Defaults.lua.
 --- Attributes:
 --- - Settings for scale, offset, and textures.
 --- - Toggle options for ornaments, skill bar features, and overlays.
 --- - Customization for fonts (size/color) on all elements.
 ---
-local function Init(mId, moduleName)
+local function InitSettingsPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Resource Orb Frames Settings")
 
     local function Apply()
@@ -282,5 +287,5 @@ end
 
 --- Sets up the Resource Orb Frames module.
 function BETTERUI.ResourceOrbFrames.Setup()
-    Init("ResourceOrbFrames", "Resource Orb Frames")
+    InitSettingsPanel("ResourceOrbFrames", "Resource Orb Frames")
 end
