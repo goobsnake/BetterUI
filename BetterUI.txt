@@ -47,7 +47,6 @@ Modules\CIM\Core\Data\SortManager.lua
 Modules\CIM\Core\Diagnostics\SafeExecute.lua
 Modules\CIM\Core\Diagnostics\DeprecationRegistry.lua
 Modules\CIM\Core\Lifecycle\SceneLifecycleManager.lua
-Modules\CIM\Core\Data\CategoryDefinitions.lua
 Modules\CIM\Core\Data\MultiSelectManager.lua
 Modules\CIM\Core\Data\BatchConfig.lua
 Modules\CIM\Core\Data\BatchOverlay.lua
@@ -143,6 +142,7 @@ Modules\ResourceOrbFrames\Module.lua
 
 ; Module: Inventory Enhanced
 Modules\Inventory\Constants.lua
+Modules\Inventory\Core\CategoryDefinitions.lua
 Modules\Inventory\Core\Utils.lua
 Modules\Inventory\Loader.lua
 Modules\Inventory\Core\MixinLoader.lua
