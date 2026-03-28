@@ -435,8 +435,10 @@ end
 
 --[[
 Function: BETTERUI.ValidateAndSetupModule
-Description: Validates a module before calling its Setup function.
-Rationale: Enforces interface contracts to catch configuration errors early.
+Description: Validates and initializes a module listed in MODULE_REGISTRY.
+Rationale: Only modules in MODULE_REGISTRY participate in the Setup() lifecycle.
+           Scaffold modules (future features) should NOT define Setup() — they only
+           establish namespace tables and utility functions.
 Mechanism: Uses CIM.Interfaces.ValidateModule if available, falls back to basic check.
 param: moduleName (string) - The name of the module for logging
 param: moduleNamespace (table) - The module's namespace table
