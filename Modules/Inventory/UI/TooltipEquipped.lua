@@ -332,7 +332,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
 
                 -- Native tooltip labels (bag/bank counts, bound, stolen, set collection)
                 -- are suppressed at source via ZO_Tooltip.AddTopLinesToTopSection hook
-                -- in EnhancementModule.lua. No post-hoc hiding needed.
+                -- in GeneralInterface/Setup.lua. No post-hoc hiding needed.
             end
 
             -- 3. MARKET DATA (White Color)

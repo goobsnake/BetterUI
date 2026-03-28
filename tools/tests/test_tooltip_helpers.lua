@@ -132,6 +132,9 @@ BETTERUI = {
         EventRegistry = {
             Register = function() end,
         },
+        SafeExecute = function(_, fn, ...)
+            return pcall(fn, ...)
+        end,
     },
     CONST = {
         TOOLTIP = {
@@ -143,6 +146,12 @@ BETTERUI = {
     },
     Inventory = {},
 }
+
+function BETTERUI.GetSetting(moduleName, key, fallback)
+    local mod = BETTERUI.Settings.Modules[moduleName]
+    if mod and mod[key] ~= nil then return mod[key] end
+    return fallback
+end
 
 function BETTERUI.GetTooltipFontSize()
     return 24
@@ -195,7 +204,7 @@ end
 
 print("\n=== Tooltip Helper Tests ===\n")
 
-dofile("Modules/CIM/Tooltips/Tooltips.lua")
+dofile("Modules/GeneralInterface/Tooltips/Tooltips.lua")
 
 -- Helper to find a line containing a specific substring from a list
 local function findLine(lines, needle)

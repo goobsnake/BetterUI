@@ -4,7 +4,6 @@ Contains integration points, hooks, adapters, and bridges to external or cross-m
 
 Files:
 - AutoCategoryIntegration.lua
-- EnhancementModule.lua
 - HookFactory.lua
 - InterfaceLibrary.lua
 - Interfaces.lua

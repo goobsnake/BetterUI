@@ -1,8 +1,25 @@
 --[[
 File: Modules/CIM/Module.lua
 Purpose: Core initialization for the Common Interface Module (CIM).
-         CIM provides shared UI components like generic headers, footers,
-         and parametric scroll lists used across BetterUI.
+         CIM provides the shared UI framework that domain modules build upon.
+
+Internal organization:
+  Core/Data/          - Data models, navigation state, multi-select, search
+  Core/Diagnostics/   - SafeExecute, feature flags, debug tools, profiler
+  Core/Integration/   - Hook factory, market price, research cache, narration
+  Core/Lifecycle/     - Deferred tasks, event registry, scene management
+  Core/Presentation/  - Font definitions, number formatting, keybind helpers
+  Core/Settings/      - Defaults registry, settings factory, accessor, reset
+  Core/Window/        - Control utils, window classes, tooltip layout
+  Actions/            - Slot actions, protection policy, dialog utils
+  Keybinds/           - Generic keybind descriptors
+  Dialogs/            - Dialog registry
+  Lists/              - Scroll list templates, list managers, batch processor
+  UI/                 - Headers, footers, sort controls, currency manager
+  Templates/          - XML UI templates (headers, footers, scroll lists)
+
+Domain-specific features (Tooltips, Nameplates) have been extracted to
+Modules/GeneralInterface/ — CIM provides only cross-cutting infrastructure.
 ]]
 
 local ClampInteger = BETTERUI.ClampInteger

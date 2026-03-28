@@ -1,10 +1,8 @@
 --[[
     BetterUI Tooltip Settings
-    Description: Configuration options for BetterUI Tooltip enhancements.
-    Part of the General Interface module.
-    Last Modified: 2026-03-14
-
-    Note: Helper functions (utility, reset, addon dependency) are in SettingsHelpers.lua.
+    Configuration options for BetterUI Tooltip enhancements.
+    Part of the General Interface module (Modules/GeneralInterface/).
+    Helper functions (utility, reset, addon dependency) are in SettingsHelpers.lua.
 ]]
 
 if BETTERUI == nil then BETTERUI = {} end
@@ -490,25 +488,4 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
     })
 
     return generalControls
-end
-
---- Initializes General Interface default settings.
-function BETTERUI.GeneralInterface.InitModule(m_options)
-    m_options = m_options or {}
-    local ok2, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", "GeneralInterface", m_options)
-    if ok2 then
-        m_options = result
-    else
-        if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
-        if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end
-        if m_options["marketPricePriority"] == nil then m_options["marketPricePriority"] = "mm_att_ttc" end
-        if m_options["showStyleTrait"] == nil then m_options["showStyleTrait"] = true end
-        if m_options["showKnowledgeStatus"] == nil then m_options["showKnowledgeStatus"] = true end
-        if m_options["removeDeleteDialog"] == nil then m_options["removeDeleteDialog"] = false end
-        if m_options["guildStoreErrorSuppress"] == nil then m_options["guildStoreErrorSuppress"] = true end
-        if m_options["attIntegration"] == nil then m_options["attIntegration"] = true end
-        if m_options["mmIntegration"] == nil then m_options["mmIntegration"] = true end
-        if m_options["ttcIntegration"] == nil then m_options["ttcIntegration"] = true end
-    end
-    return m_options
 end

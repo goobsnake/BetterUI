@@ -81,7 +81,7 @@ end
 
 print("\n=== Nameplates Reset Tests ===\n")
 
-dofile("Modules/CIM/Nameplates/Nameplates.lua")
+dofile("Modules/GeneralInterface/Nameplates/Nameplates.lua")
 
 print("Test: Disabling nameplates restores original runtime fonts")
 BETTERUI.Nameplates.Setup()

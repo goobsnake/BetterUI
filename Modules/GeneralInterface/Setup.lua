@@ -1,11 +1,8 @@
--- BetterUI - CIM Enhancement Module
+-- BetterUI - General Interface Setup
 --
--- This module acts as the central configuration hub for various CIM enhancements (formerly General Interface).
--- It integrates with LibAddonMenu to provide settings for:
--- 1. Tooltips: Font size, MasterMerchant/TTC integration, and mail deletion confirmation.
--- 2. Nameplates: Enabling/disabling, font customization, and style adjustments.
--- 3. Resource Orb Frames: Configuration for the custom resource orb UI (Health/Magicka/Stamina).
---
+-- Module Setup() lifecycle: builds the LAM settings panel, registers tooltip
+-- hooks, and initializes Nameplates. Aggregates settings from Tooltips/ and
+-- Nameplates/ subdirectories.
 local LAM = LibAddonMenu2
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
