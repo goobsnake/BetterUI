@@ -10,37 +10,42 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
 
---- @note Side effects: Consumes the item via CallSecureProtected("UseItem"),
----   UseQuestTool, or UseQuestItem. May trigger scene transitions.
+--- @return boolean ok true if the item was used
+--- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryUseItem(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     if slotType == SLOT_TYPE_QUEST_ITEM then
-        if inventorySlot then
-            -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
-            -- (this matches how the base game's TryUseQuestItem works in inventoryslot.lua:420)
-            -- Do NOT hide the scene manually — ESO's engine handles the scene transition
-            -- (e.g., opening book reader, world map) and keeps inventory on the scene stack
-            -- so WasSceneOnStack returns true on re-entry, preserving category/position
-            if inventorySlot.toolIndex then
-                UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
-            elseif inventorySlot.conditionIndex then
-                UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
-            end
+        if not inventorySlot then
+            return false, "no_slot"
         end
+        -- UseQuestTool and UseQuestItem are NOT protected functions - call them directly
+        -- (this matches how the base game's TryUseQuestItem works in inventoryslot.lua:420)
+        -- Do NOT hide the scene manually — ESO's engine handles the scene transition
+        -- (e.g., opening book reader, world map) and keeps inventory on the scene stack
+        -- so WasSceneOnStack returns true on re-entry, preserving category/position
+        if inventorySlot.toolIndex then
+            UseQuestTool(inventorySlot.questIndex, inventorySlot.toolIndex)
+            return true
+        elseif inventorySlot.conditionIndex then
+            UseQuestItem(inventorySlot.questIndex, inventorySlot.stepIndex, inventorySlot.conditionIndex)
+            return true
+        end
+        return false, "no_quest_action"
     else
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         local usable, onlyFromActionSlot = IsItemUsable(bag, index)
         if usable and not onlyFromActionSlot then
             CallSecureProtected("UseItem", bag, index)
+            return true
         end
+        return false, "not_usable"
     end
 end
 
---- @note Side effects: Moves items between inventory and bank via
----   CallSecureProtected("PickupInventoryItem") and CallSecureProtected("PlaceInTransfer").
----   May trigger UI alerts on failure (inventory full, stolen item, bank full).
+--- @return boolean ok true if the item was transferred
+--- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryBankItem(inventorySlot)
-    if not PLAYER_INVENTORY:IsBanking() then return end
+    if not PLAYER_INVENTORY:IsBanking() then return false, "not_banking" end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) then
@@ -48,19 +53,23 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
         if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
             CallSecureProtected("PickupInventoryItem", bag, index)
             CallSecureProtected("PlaceInTransfer")
+            return true
         else
             ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+            return false, "inventory_full"
         end
     else
         -- Deposit
         if IsItemStolen(bag, index) then
             ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+            return false, "stolen"
         else
             local bankingBag = GetBankingBag()
             local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
             if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
                 CallSecureProtected("PickupInventoryItem", bag, index)
                 CallSecureProtected("PlaceInTransfer")
+                return true
             else
                 if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
                     if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
@@ -70,16 +79,17 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
                     end
                 end
                 ZO_AlertEvent(EVENT_BANK_IS_FULL)
+                return false, "bank_full"
             end
         end
     end
 end
 
---- @note Side effects: Transfers items between inventory and craft bag via
----   CallSecureProtected("RequestMoveItem"). May trigger UI alerts on failure.
+--- @return boolean ok true if the item was moved
+--- @return string|nil reason denial reason on failure
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if not bag then return end
+    if not bag then return false, "no_slot" end
 
     -- Maximum items that can be transferred in a single operation (ESO game limit)
     local MAX_STACK_TRANSFER = 200
@@ -98,16 +108,19 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bag, index, targetBag)
             if destinationSlot == nil then
                 ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
-                return
+                return false, "inventory_full"
             end
             CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
             CallSecureProtected("PlaceInInventory", targetBag, destinationSlot)
+            return true
         else
             ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+            return false, "inventory_full"
         end
     else
         CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
         CallSecureProtected("PlaceInInventory", targetBag, 0)
+        return true
     end
 end
 

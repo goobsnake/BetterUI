@@ -14,7 +14,9 @@ local function SafeExecuteWrits(context, fn, ...)
     if safeExecute then
         return safeExecute(context, fn, ...)
     end
-    return fn(...)
+    -- CIM.SafeExecute unavailable — fail safely instead of calling fn() unprotected
+    d("[BetterUI] WritUnit: SafeExecute unavailable for " .. tostring(context))
+    return false, "safe_execute_unavailable"
 end
 
 local function IsWritsModuleEnabled()
