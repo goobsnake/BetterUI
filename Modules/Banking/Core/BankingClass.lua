@@ -44,10 +44,19 @@ BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearch
 
 -- CLASS DEFINITION
 
---[[
-Class: BETTERUI.Banking.Class
-Description: Main class for the Banking module window.
-]]
+---@class BETTERUI.Banking.Class : BETTERUI.CIM.GenericWindow
+---@field LIST_WITHDRAW number List mode constant for withdraw view
+---@field LIST_DEPOSIT number List mode constant for deposit view
+---@field lastUsedBank number Last bank bag ID used
+---@field currentUsedBank number Currently active bank bag ID
+---@field esoSubscriber boolean|nil Whether player has ESO+ subscription
+---@field Tasks DeferredTaskManager Module-specific deferred task manager
+---@field CATEGORY_DEFS table Category definitions from Inventory.Categories.Bank
+---@field headerSortController table|nil Header sort controller instance
+---@field horizontalMovementController table|nil Movement controller for L/R navigation
+---@field multiSelectManager table|nil Multi-select manager instance
+---@field itemSortComparator function|nil Active sort comparator for item rows
+---@field unifiedFooterController table|nil Unified footer controller instance
 BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
 function BETTERUI.Banking.Class:New(...)

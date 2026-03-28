@@ -11,7 +11,17 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
 -- BATCH PROCESSOR CLASS
 
---- Manages incremental list population for large datasets.
+--- @class BETTERUI.CIM.Lists.BatchProcessor : ZO_Object
+--- @field initialBatchSize integer Items to process in first batch
+--- @field remainingBatchSize integer Items to process in subsequent batches
+--- @field batchDelay integer Delay between batches in ms
+--- @field pendingData table[]|nil Data array being processed
+--- @field pendingIndex integer|nil Current position in pendingData
+--- @field context table|nil Context passed to callbacks
+--- @field batchCallId number|nil zo_callLater handle for next batch
+--- @field onProcessItem fun(item: table, index: integer, context: table)|nil Per-item callback
+--- @field onComplete fun(context: table)|nil Completion callback
+--- @field isActiveCheck fun(): boolean|nil Guard to cancel if scene changes
 BETTERUI.CIM.Lists.BatchProcessor = ZO_Object:Subclass()
 
 function BETTERUI.CIM.Lists.BatchProcessor:New(...)

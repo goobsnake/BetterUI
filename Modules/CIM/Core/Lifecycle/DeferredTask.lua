@@ -21,11 +21,12 @@ BETTERUI.CIM.DeferredTask = {}
 
 -- DEFERRED TASK MANAGER CLASS
 
--- Class: DeferredTaskManager (extends ZO_Object)
--- Field: _tasks - table<string, number> Task ID -> zo_callLater ID mapping
+---@class DeferredTaskManager : ZO_Object
+---@field _tasks table<string, number> Task ID to zo_callLater ID mapping
 local DeferredTaskManager = ZO_Object:Subclass()
 
 --- Creates a new DeferredTaskManager instance.
+---@return DeferredTaskManager
 function DeferredTaskManager:New()
     local obj = ZO_Object.New(self)
     obj._tasks = {}
@@ -33,8 +34,9 @@ function DeferredTaskManager:New()
 end
 
 --- Schedule a deferred task with automatic previous-task cancellation.
---- If a task with the same ID is already pending, it will be cancelled
---- before scheduling the new one.
+---@param taskId string Unique identifier for the task
+---@param delayMs number Delay in milliseconds before execution
+---@param callback function Function to execute after delay
 function DeferredTaskManager:Schedule(taskId, delayMs, callback)
     -- Cancel any existing task with this ID to prevent duplicates
     self:Cancel(taskId)
@@ -49,6 +51,7 @@ function DeferredTaskManager:Schedule(taskId, delayMs, callback)
 end
 
 --- Cancel a pending task if it exists.
+---@param taskId string Task identifier to cancel
 function DeferredTaskManager:Cancel(taskId)
     local existingId = self._tasks[taskId]
     if existingId then
@@ -67,11 +70,14 @@ function DeferredTaskManager:CancelAll()
 end
 
 --- Check if a task is currently pending.
+---@param taskId string Task identifier to check
+---@return boolean pending True if the task is scheduled and not yet executed
 function DeferredTaskManager:IsPending(taskId)
     return self._tasks[taskId] ~= nil
 end
 
 --- Get the count of currently pending tasks.
+---@return number count Number of pending tasks
 function DeferredTaskManager:GetPendingCount()
     local count = 0
     for _, _ in pairs(self._tasks) do

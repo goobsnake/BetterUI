@@ -8,6 +8,11 @@ Purpose: A specialized base class for Inventory-like windows (Banking, Backpack)
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
+--- @class BETTERUI.CIM.GenericWindow : BETTERUI.Interface.Window
+--- @field categoryPositions table<string, integer> Saved scroll positions by category key
+--- @field currentCategoryKey string|nil Currently active category key
+--- @field headerGeneric table|nil Header control with tabBar reference
+--- @field list table|nil The active parametric scroll list
 BETTERUI.CIM.GenericWindow = BETTERUI.Interface.Window:Subclass()
 
 function BETTERUI.CIM.GenericWindow:New(...)
@@ -32,6 +37,8 @@ function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
     self.currentCategoryKey = categoryKey
 end
 
+--- @param categoryKey string|nil Category key (defaults to currentCategoryKey)
+--- @param position integer|nil Position to save (defaults to current list selection)
 function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     local key = categoryKey or self.currentCategoryKey
     if not key then return end
@@ -44,6 +51,8 @@ function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     self.categoryPositions[key] = pos or 1
 end
 
+--- @param categoryKey string|nil Category key (defaults to currentCategoryKey)
+--- @return integer position The saved position or 1 if none
 function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
     if not key then return 1 end

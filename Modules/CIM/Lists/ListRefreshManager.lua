@@ -12,7 +12,14 @@ if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
 -- LIST REFRESH MANAGER CLASS
 
---- Manages list refreshes with automatic position restoration.
+--- @class BETTERUI.CIM.Lists.ListRefreshManager : ZO_Object
+--- @field coalesceDelay integer Refresh coalescing delay in ms
+--- @field useBatching boolean Whether to use BatchProcessor for refreshes
+--- @field batchProcessor BETTERUI.CIM.Lists.BatchProcessor|nil Optional batch processor
+--- @field isDirty boolean Whether a refresh is pending
+--- @field pendingRefreshCallId number|nil zo_callLater handle for pending refresh
+--- @field savedPosition integer|nil Last saved scroll position
+--- @field savedUniqueId string|nil Last saved item uniqueId for position restoration
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
 
 function BETTERUI.CIM.Lists.ListRefreshManager:New(...)

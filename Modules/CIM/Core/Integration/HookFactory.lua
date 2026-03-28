@@ -36,14 +36,26 @@ end
 
 -- PUBLIC HOOK API
 
+--- Hooks a method to execute fn BEFORE the original. fn returning true aborts original.
+--- @param control table The object to hook
+--- @param method string Method name to hook
+--- @param fn fun(self: table, ...): boolean|nil Hook function
 function BETTERUI.PreHook(control, method, fn)
     createHookInternal(control, method, fn, "before")
 end
 
+--- Hooks a method to execute fn AFTER the original.
+--- @param control table The object to hook
+--- @param method string Method name to hook
+--- @param fn fun(self: table, ...) Hook function
 function BETTERUI.PostHook(control, method, fn)
     createHookInternal(control, method, fn, "after")
 end
 
+--- Replaces a method entirely with fn.
+--- @param control table The object to hook
+--- @param method string Method name to replace
+--- @param fn fun(self: table, ...) Replacement function
 function BETTERUI.ReplaceHook(control, method, fn)
     createHookInternal(control, method, fn, "replace")
 end

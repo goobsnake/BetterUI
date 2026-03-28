@@ -9,7 +9,36 @@ Extracted from: MultiSelectMixin.lua (config/helpers concern)
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.BatchConfig = BETTERUI.CIM.BatchConfig or {}
 
+---@class BETTERUI.CIM.BatchConfig
+---@field BATCH_THROTTLE_TIERS BatchThrottleTier[]
+---@field DEFAULT_BATCH_THROTTLE_TIERS BatchThrottleTier[]
+---@field BATCH_ETA_THRESHOLD number
+---@field DEFAULT_ACTION_COST_UNITS number
+---@field SERVER_COOLDOWN_EVERY number
+---@field SERVER_COOLDOWN_MS number
+---@field SERVER_MIN_DELAY_MS number
+---@field SERVER_MAX_DELAY_MS number
+---@field SERVER_ACK_TIMEOUT_MS number
+---@field SERVER_CHUNK_COST_UNITS number
+---@field SERVER_CHUNK_PAUSE_MS number
+---@field SERVER_AWAIT_INVENTORY_ACK boolean
+---@field SERVER_ADAPTIVE_DELAY boolean
+---@field SERVER_ADAPTIVE_THRESHOLD number
+---@field SERVER_ADAPTIVE_STEP_MS number
+---@field SERVER_JITTER_MS number
+---@field SERVER_RATE_WINDOW_MS number
+---@field SERVER_RATE_MAX_ACTIONS number
+---@field SERVER_BATCH_RECOVERY_STATE BatchRecoveryState
 local BatchConfig = BETTERUI.CIM.BatchConfig
+
+---@class BatchThrottleTier
+---@field MIN_ITEMS number
+---@field DELAY_MS number
+---@field SHOW_PROGRESS boolean
+
+---@class BatchRecoveryState
+---@field cooldownUntilMs number
+---@field serverActionTimes number[]
 
 -- THROTTLE TIER CONFIGURATION
 
@@ -98,6 +127,8 @@ BatchConfig.SERVER_BATCH_RECOVERY_STATE = {
 -- UTILITY FUNCTIONS
 
 --- Resolves the appropriate throttle tier for a given total item count.
+---@param totalItems number Total number of items in the batch
+---@return BatchThrottleTier tier The matching throttle tier
 function BatchConfig.ResolveBatchThrottleProfile(totalItems)
     for i = 1, #BatchConfig.BATCH_THROTTLE_TIERS do
         local tier = BatchConfig.BATCH_THROTTLE_TIERS[i]
@@ -110,6 +141,9 @@ function BatchConfig.ResolveBatchThrottleProfile(totalItems)
 end
 
 --- Resolves a boolean option with a fallback default.
+---@param value any Value to resolve (may be nil or non-boolean)
+---@param fallback boolean Default value when value is nil
+---@return boolean
 function BatchConfig.ResolveBooleanOption(value, fallback)
     if value == nil then
         return fallback
@@ -118,6 +152,9 @@ function BatchConfig.ResolveBooleanOption(value, fallback)
 end
 
 --- Resolves a positive integer option with a fallback default.
+---@param value any Value to resolve (may be nil or non-numeric)
+---@param fallback number Default value when value cannot be converted
+---@return number
 function BatchConfig.ResolvePositiveIntOption(value, fallback)
     local resolved = tonumber(value)
     if not resolved then
@@ -127,6 +164,8 @@ function BatchConfig.ResolvePositiveIntOption(value, fallback)
 end
 
 --- Resolves a signed jitter offset in range [-maxAbsMs, +maxAbsMs].
+---@param maxAbsMs number Maximum absolute jitter in milliseconds
+---@return number jitter Signed offset in [-maxAbsMs, +maxAbsMs]
 function BatchConfig.ResolveSignedJitter(maxAbsMs)
     if maxAbsMs <= 0 then
         return 0
@@ -138,6 +177,7 @@ function BatchConfig.ResolveSignedJitter(maxAbsMs)
 end
 
 --- Gets the current time in milliseconds using the best available API.
+---@return number nowMs Current time in milliseconds
 function BatchConfig.GetNowMs()
     if GetGameTimeMilliseconds then
         return GetGameTimeMilliseconds()
@@ -155,6 +195,9 @@ function BatchConfig.GetNowMs()
 end
 
 --- Prunes stale entries from the server action history.
+---@param nowMs number Current time in milliseconds
+---@param windowMs number Rate-limit window size in milliseconds
+---@return number[] history Pruned action timestamps
 function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     local history = BatchConfig.SERVER_BATCH_RECOVERY_STATE.serverActionTimes
     if not history then
@@ -179,12 +222,18 @@ function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
 end
 
 --- Records a server action timestamp.
+---@param nowMs number Current time in milliseconds
+---@param windowMs number Rate-limit window size in milliseconds
 function BatchConfig.RecordServerAction(nowMs, windowMs)
     local history = BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     history[#history + 1] = nowMs
 end
 
 --- Computes the delay needed before the next server action to stay within rate limits.
+---@param nowMs number Current time in milliseconds
+---@param windowMs number Rate-limit window size in milliseconds
+---@param maxActions number Maximum actions allowed in the window
+---@return number delayMs Delay in milliseconds before next action is allowed
 function BatchConfig.ComputeServerActionDelayMs(nowMs, windowMs, maxActions)
     if windowMs <= 0 or maxActions <= 0 then
         return 0
@@ -205,6 +254,8 @@ function BatchConfig.ComputeServerActionDelayMs(nowMs, windowMs, maxActions)
 end
 
 --- Checks whether the owning scene is visible for the given module instance.
+---@param self table Module instance with optional _multiSelectConfig or IsSceneShowing
+---@return boolean showing True if the batch scene is currently visible
 function BatchConfig.IsBatchSceneShowing(self)
     if self and self._multiSelectConfig and self._multiSelectConfig.isSceneShowing then
         return self._multiSelectConfig.isSceneShowing(self) == true
@@ -218,6 +269,9 @@ function BatchConfig.IsBatchSceneShowing(self)
 end
 
 --- Resolves the label shown when a batch is aborted due to scene exit.
+---@param self table Module instance with optional _multiSelectConfig
+---@param batchOptions table|nil Batch options with optional sceneExitLabel
+---@return string label Human-readable scene exit label
 function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
     if batchOptions and type(batchOptions.sceneExitLabel) == "string" and batchOptions.sceneExitLabel ~= "" then
         return batchOptions.sceneExitLabel
@@ -241,17 +295,25 @@ function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
 end
 
 --- Builds a unique slot key for deduplication.
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@return string key Unique key in "bagId:slotIndex" format
 function BatchConfig.BuildSlotKey(bagId, slotIndex)
     return tostring(bagId) .. ":" .. tostring(slotIndex)
 end
 
 --- Checks if there is an item at the given bag/slot.
+---@param bagId number Bag identifier
+---@param slotIndex number Slot index within the bag
+---@return boolean hasItem True if slot has a non-zero stack
 function BatchConfig.HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
 end
 
 --- Normalizes and deduplicates a list of batch items.
+---@param items table[] Array of item data tables with bagId/slotIndex
+---@return table[] normalized Deduplicated items with confirmed slot occupancy
 function BatchConfig.NormalizeBatchItems(items)
     local normalized = {}
     local seen = {}
@@ -274,6 +336,15 @@ function BatchConfig.NormalizeBatchItems(items)
 end
 
 --- Estimates the total batch duration in seconds.
+---@param totalItems number Number of items in the batch
+---@param delayMs number Per-item delay in milliseconds
+---@param cooldownEvery number|nil Items between server cooldowns
+---@param cooldownMs number|nil Duration of each server cooldown in milliseconds
+---@param totalCostUnits number|nil Total cost units (defaults to totalItems)
+---@param chunkCostUnits number|nil Cost units per chunk boundary
+---@param chunkPauseMs number|nil Pause duration at chunk boundaries
+---@param initialDelayMs number|nil Initial delay before first action
+---@return number seconds Estimated total batch duration
 function BatchConfig.EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs,
                                                    totalCostUnits, chunkCostUnits, chunkPauseMs, initialDelayMs)
     local itemCount = zo_max(totalItems, 0)
@@ -292,6 +363,8 @@ function BatchConfig.EstimateBatchDurationSeconds(totalItems, delayMs, cooldownE
 end
 
 --- Formats an estimated duration in seconds as a human-readable string.
+---@param estimatedSeconds number Duration in seconds
+---@return string formatted Human-readable duration string
 function BatchConfig.FormatEstimatedBatchDuration(estimatedSeconds)
     local roundedSeconds = zo_max(1, zo_ceil(estimatedSeconds or 0))
     if roundedSeconds < 60 then
@@ -304,6 +377,7 @@ function BatchConfig.FormatEstimatedBatchDuration(estimatedSeconds)
 end
 
 --- Resolves the batch abort keybinding markup for display.
+---@return string bindingMarkup Keybind display text or icon markup
 function BatchConfig.ResolveBatchAbortBindingMarkup()
     if not ZO_Keybindings_GetHighestPriorityBindingStringFromAction then
         return "Y"

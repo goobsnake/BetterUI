@@ -6,7 +6,9 @@ Purpose: Shared list management logic for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
---- Base class for list management logic shared across inventory-like windows.
+--- @class BETTERUI.CIM.GenericListManager : ZO_Object
+--- @field savedPositions table<string, integer> Saved scroll positions by category key
+--- @field itemCache table Cached item link data for avoiding repeated API calls
 BETTERUI.CIM.GenericListManager = ZO_Object:Subclass()
 
 function BETTERUI.CIM.GenericListManager:New(...)
@@ -22,12 +24,16 @@ end
 
 -- POSITION MANAGEMENT
 
+--- @param categoryKey string The category key to save for
+--- @param position integer The scroll position to save
 function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     if categoryKey then
         self.savedPositions[categoryKey] = position
     end
 end
 
+--- @param categoryKey string The category key to restore
+--- @return integer|nil position The saved position, or nil if none
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
     return self.savedPositions[categoryKey]
 end
@@ -40,6 +46,9 @@ end
 -- ITEM CACHING
 
 --- Caches expensive item link data to avoid repeated API calls.
+--- @param itemData table The item data to enrich with cached properties
+--- @param bagId integer The bag containing the item
+--- @param slotIndex integer The slot within the bag
 function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slotIndex)
     if itemData.cached_itemLink then return end
 
@@ -61,12 +70,18 @@ end
 
 -- SORTING COMPARATORS (Static Functions)
 
+--- @param left table Item data with name field
+--- @param right table Item data with name field
+--- @return boolean
 function BETTERUI.CIM.SortByName(left, right)
     local leftName = left.name or left.bestItemTypeName or ""
     local rightName = right.name or right.bestItemTypeName or ""
     return leftName < rightName
 end
 
+--- @param left table Item data with quality field
+--- @param right table Item data with quality field
+--- @return boolean
 function BETTERUI.CIM.SortByQuality(left, right)
     local leftQuality = left.displayQuality or left.quality or 0
     local rightQuality = right.displayQuality or right.quality or 0
@@ -115,6 +130,9 @@ end
 -- FILTERING UTILITIES (Instance Methods)
 
 --- Filters item list by name substring (case-insensitive).
+--- @param items table[] The items to filter
+--- @param searchQuery string|nil The search text
+--- @return table[] filteredItems Items matching the query
 function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
     if not searchQuery or searchQuery == "" then
         return items

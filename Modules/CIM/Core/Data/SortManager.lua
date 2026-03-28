@@ -5,7 +5,23 @@ Purpose: Unified sort system for BetterUI inventory and banking lists.
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
+
+---@class BETTERUI.CIM.SortManager
+---@field SORT_TYPES SortTypes
+---@field SORT_ORDER SortOrder
 BETTERUI.CIM.SortManager = {}
+
+---@class SortTypes
+---@field CATEGORY number
+---@field NAME number
+---@field QUALITY number
+---@field STACK_COUNT number
+---@field VALUE number
+---@field LEVEL number
+
+---@class SortOrder
+---@field ASCENDING number
+---@field DESCENDING number
 
 -- SORT TYPE CONSTANTS
 
@@ -79,6 +95,9 @@ end
 
 --- Creates a comparator function for table.sort().
 --- Single entry point for all sort comparisons, used by Inventory and Banking.
+---@param sortType number Sort type constant from SORT_TYPES
+---@param sortOrder number|nil Sort order constant from SORT_ORDER (default: ASCENDING)
+---@return fun(a: table, b: table): boolean comparator
 function BETTERUI.CIM.SortManager.CreateComparator(sortType, sortOrder)
     sortOrder = sortOrder or SORT_ORDER.ASCENDING
     local descending = (sortOrder == SORT_ORDER.DESCENDING)
@@ -127,6 +146,9 @@ function BETTERUI.CIM.SortManager.CreateComparator(sortType, sortOrder)
 end
 
 --- Sorts an array of item data in-place.
+---@param items table[]|nil Array of item data to sort
+---@param sortType number Sort type constant
+---@param sortOrder number|nil Sort order constant
 function BETTERUI.CIM.SortManager.SortItems(items, sortType, sortOrder)
     if not items or #items == 0 then return end
 
@@ -134,11 +156,14 @@ function BETTERUI.CIM.SortManager.SortItems(items, sortType, sortOrder)
     table.sort(items, comparator)
 end
 
+---@param sortType number Sort type constant
+---@return string name Human-readable sort type name
 function BETTERUI.CIM.SortManager.GetSortTypeName(sortType)
     return SORT_TYPE_NAMES[sortType] or "Unknown"
 end
 
 --- Returns all sort type constants with names for UI building.
+---@return {id: number, name: string}[] sortTypes Sorted array of sort type descriptors
 function BETTERUI.CIM.SortManager.GetAllSortTypes()
     local result = {}
     for id, name in pairs(SORT_TYPE_NAMES) do
@@ -150,6 +175,8 @@ end
 
 -- SETTINGS INTEGRATION
 
+---@param module string Module name key (e.g. "Inventory")
+---@return number sortType Current sort type for the module
 function BETTERUI.CIM.SortManager.GetCurrentSortType(module)
     local settings = BETTERUI.Settings and BETTERUI.Settings.SortOptions
     if settings and settings[module] then
@@ -158,6 +185,8 @@ function BETTERUI.CIM.SortManager.GetCurrentSortType(module)
     return SORT_TYPES.CATEGORY
 end
 
+---@param module string Module name key
+---@param sortType number Sort type constant to set
 function BETTERUI.CIM.SortManager.SetSortType(module, sortType)
     BETTERUI.Settings = BETTERUI.Settings or {}
     BETTERUI.Settings.SortOptions = BETTERUI.Settings.SortOptions or {}
@@ -165,6 +194,8 @@ function BETTERUI.CIM.SortManager.SetSortType(module, sortType)
     BETTERUI.Settings.SortOptions[module].sortType = sortType
 end
 
+---@param module string Module name key
+---@return number sortOrder Current sort order for the module
 function BETTERUI.CIM.SortManager.GetCurrentSortOrder(module)
     local settings = BETTERUI.Settings and BETTERUI.Settings.SortOptions
     if settings and settings[module] then
@@ -173,6 +204,8 @@ function BETTERUI.CIM.SortManager.GetCurrentSortOrder(module)
     return SORT_ORDER.ASCENDING
 end
 
+---@param module string Module name key
+---@param sortOrder number Sort order constant to set
 function BETTERUI.CIM.SortManager.SetSortOrder(module, sortOrder)
     BETTERUI.Settings = BETTERUI.Settings or {}
     BETTERUI.Settings.SortOptions = BETTERUI.Settings.SortOptions or {}

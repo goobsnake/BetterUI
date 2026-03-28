@@ -19,6 +19,7 @@ local activeInstance = nil
 
 --- Gets the currently active multi-select manager instance.
 --- Used by row setup functions to check selection state.
+--- @return BETTERUI.CIM.MultiSelectManager.Manager|nil
 function MultiSelectManager.GetActiveInstance()
     return activeInstance
 end
@@ -30,10 +31,18 @@ end
 
 -- CLASS DEFINITION
 
+--- @class BETTERUI.CIM.MultiSelectManager.Manager : ZO_Object
+--- @field list table The parametric list this manager operates on
+--- @field isActive boolean Whether multi-select mode is currently active
+--- @field selectedItems table<string, table> Map of uniqueId to selected item data
+--- @field selectionChangedCallback fun(count: integer)|nil Callback fired on selection changes
 local Manager = ZO_Object:Subclass()
 MultiSelectManager.Manager = Manager
 
 --- Creates a new MultiSelectManager instance
+--- @param list table The parametric scroll list to manage selections for
+--- @param selectionChangedCallback fun(count: integer)|nil Optional callback on selection changes
+--- @return BETTERUI.CIM.MultiSelectManager.Manager
 function Manager:New(list, selectionChangedCallback)
     local instance = ZO_Object.New(self)
     instance:Initialize(list, selectionChangedCallback)
@@ -100,6 +109,8 @@ end
 -- ITEM SELECTION
 
 --- Toggles selection state for an item
+--- @param itemData table The item data (or ZO_GamepadEntryData wrapper)
+--- @return boolean isNowSelected Whether the item is selected after toggle
 function Manager:ToggleSelection(itemData)
     if not itemData then return false end
 
@@ -125,6 +136,8 @@ function Manager:ToggleSelection(itemData)
 end
 
 --- Checks if an item is currently selected
+--- @param itemData table The item data to check
+--- @return boolean
 function Manager:IsSelected(itemData)
     if not itemData then return false end
 
@@ -232,6 +245,7 @@ end
 -- SELECTION QUERIES
 
 --- Gets the count of selected items
+--- @return integer
 function Manager:GetSelectedCount()
     local count = 0
     for _ in pairs(self.selectedItems) do
@@ -241,6 +255,7 @@ function Manager:GetSelectedCount()
 end
 
 --- Gets all selected items as an array
+--- @return table[]
 function Manager:GetSelectedItems()
     local items = {}
     for _, itemData in pairs(self.selectedItems) do
@@ -257,6 +272,8 @@ end
 -- BATCH OPERATIONS
 
 --- Performs a batch operation on all selected items
+--- @param operationFn fun(itemData: table): boolean|nil Operation to perform on each item
+--- @return integer processedCount Number of items successfully processed
 function Manager:BatchOperation(operationFn)
     if not operationFn then return 0 end
 
@@ -278,6 +295,8 @@ end
 --- Gets a unique identifier for an item
 --- Handles ZO_GamepadEntryData which wraps item data in dataSource
 --- Uses ESO's Id64ToString for reliable Id64 conversion
+--- @param itemData table The item data (raw or ZO_GamepadEntryData wrapper)
+--- @return string|nil uniqueId The unique identifier string, or nil if unresolvable
 function Manager:GetItemUniqueId(itemData)
     if not itemData then return nil end
 

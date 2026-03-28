@@ -12,6 +12,11 @@ BETTERUI.CIM.Interfaces = {}
 
 -- INTERFACE VALIDATION
 
+--- Validates that a module object meets the required interface contract.
+--- @param module table|nil The module to validate
+--- @param requiredFields string[]|nil Additional required field names
+--- @return boolean valid Whether the module passes validation
+--- @return string|nil errorMessage Description of the validation failure
 function BETTERUI.CIM.Interfaces.ValidateModule(module, requiredFields)
     if not module then
         return false, "Module is nil"
