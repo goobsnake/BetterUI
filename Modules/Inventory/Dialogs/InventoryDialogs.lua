@@ -32,7 +32,7 @@ local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 	else
 		local errorStringId = (targetBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL
 			or SI_INVENTORY_ERROR_BANK_FULL
-		ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+		BETTERUI.CIM.UserNotify("InventoryDialogs:NoSlot", errorStringId)
 	end
 end
 

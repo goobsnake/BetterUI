@@ -57,3 +57,14 @@ function BETTERUI.CIM.TryCall(path, ...)
     if type(fn) ~= "function" then return false, nil end
     return true, fn(...)
 end
+
+--- Unified user-facing error notification with structured logging.
+--- Combines ZO_Alert for user feedback with SafeExecute infrastructure for logging.
+--- Use this instead of calling ZO_Alert(UI_ALERT_CATEGORY_ERROR, ...) directly.
+---@param context string Descriptive label for error logging (e.g., "EquipAction:Equip")
+---@param messageStringId number String ID for the user-facing alert message
+---@param sound? number Sound constant (default: SOUNDS.NEGATIVE_CLICK)
+function BETTERUI.CIM.UserNotify(context, messageStringId, sound)
+    BETTERUI.Debug(string.format("[UserNotify] %s: %s", context, tostring(GetString(messageStringId))))
+    ZO_Alert(UI_ALERT_CATEGORY_ERROR, sound or SOUNDS.NEGATIVE_CLICK, messageStringId)
+end

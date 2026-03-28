@@ -185,14 +185,14 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
                                 local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bagId, slotIndex,
                                     BAG_BACKPACK)
                                 if destinationSlot == nil then
-                                    ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                                    BETTERUI.CIM.UserNotify("CraftBagDialog:NoSlot",
                                         SI_INVENTORY_ERROR_INVENTORY_FULL)
                                     return
                                 end
                                 CallSecureProtected("PickupInventoryItem", bagId, slotIndex, quantity)
                                 CallSecureProtected("PlaceInInventory", BAG_BACKPACK, destinationSlot)
                             else
-                                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK,
+                                BETTERUI.CIM.UserNotify("CraftBagDialog:Full",
                                     SI_INVENTORY_ERROR_INVENTORY_FULL)
                             end
                         end

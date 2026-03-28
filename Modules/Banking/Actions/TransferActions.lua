@@ -90,7 +90,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
                 TransferFromGuildBank(fromBagIndex)
             else
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+                BETTERUI.CIM.UserNotify("TransferActions:GuildWithdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
             end
         else
             if GetNumBagUsedSlots(BAG_GUILDBANK) < GetBagSize(BAG_GUILDBANK) then
@@ -98,7 +98,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 PlayItemSound(soundCategory, ITEM_SOUND_ACTION_PICKUP)
                 TransferToGuildBank(fromBag, fromBagIndex)
             else
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_BANK_FULL)
+                BETTERUI.CIM.UserNotify("TransferActions:GuildDeposit", SI_INVENTORY_ERROR_BANK_FULL)
             end
         end
         if not ZO_Dialogs_IsShowingDialog() then
@@ -135,7 +135,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                     beginCoalescedRefresh(100)
                 end
             else
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+                BETTERUI.CIM.UserNotify("TransferActions:NoStackSlot", errorStringId)
             end
         else
             local banks = { BAG_BANK, BAG_SUBSCRIBER_BANK }
@@ -158,7 +158,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
             else
                 local errorStringId = (toBag == BAG_BACKPACK) and SI_INVENTORY_ERROR_INVENTORY_FULL or
                     SI_INVENTORY_ERROR_BANK_FULL
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+                BETTERUI.CIM.UserNotify("TransferActions:NoBankSlot", errorStringId)
             end
         end
     end

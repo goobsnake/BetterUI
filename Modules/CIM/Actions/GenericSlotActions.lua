@@ -59,13 +59,13 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
             CallSecureProtected("PlaceInTransfer")
             return true
         else
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+            BETTERUI.CIM.UserNotify("TryTransferItem:Withdraw", SI_INVENTORY_ERROR_INVENTORY_FULL)
             return false, "inventory_full"
         end
     else
         -- Deposit
         if IsItemStolen(bag, index) then
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+            BETTERUI.CIM.UserNotify("TryTransferItem:Deposit", SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
             return false, "stolen"
         else
             local bankingBag = GetBankingBag()
@@ -113,14 +113,14 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
         if DoesBagHaveSpaceFor(targetBag, bag, index) then
             local destinationSlot = BETTERUI.CIM.Utils.ResolveMoveDestinationSlot(bag, index, targetBag)
             if destinationSlot == nil then
-                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+                BETTERUI.CIM.UserNotify("TryMoveToCraftBag:NoSlot", SI_INVENTORY_ERROR_INVENTORY_FULL)
                 return false, "inventory_full"
             end
             CallSecureProtected("PickupInventoryItem", bag, index, stackSize)
             CallSecureProtected("PlaceInInventory", targetBag, destinationSlot)
             return true
         else
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_INVENTORY_ERROR_INVENTORY_FULL)
+            BETTERUI.CIM.UserNotify("TryMoveToCraftBag:Full", SI_INVENTORY_ERROR_INVENTORY_FULL)
             return false, "inventory_full"
         end
     else
