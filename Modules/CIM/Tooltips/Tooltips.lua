@@ -1,13 +1,5 @@
---[[
-File: Modules/CIM/Tooltips/Tooltips.lua
-Purpose: Enriches item tooltips with useful information.
-         Integrates market pricing, research status, and font scaling.
-
-FEATURES:
-1. Market Pricing: Integrates with Tamriel Trade Centre (TTC), Master Merchant (MM), and Arkadius Trade Tools (ATT).
-2. Research Status: Indicates if an item's trait is researchable and where other copies are located.
-3. Optimization: Uses caching (ResearchableTraitCache) to minimize performance impact during inventory scans.
-]]
+-- Enriches item tooltips with market pricing, research status, and font scaling.
+-- Integrates with TTC, Master Merchant, and Arkadius Trade Tools.
 
 -- Guild store error suppression flag (namespaced to avoid _G pollution)
 BETTERUI.CIM._gsErrorSuppress = 0
@@ -16,10 +8,10 @@ BETTERUI.CIM._gsErrorSuppress = 0
 -- Performance optimization for trait research lookups. Building research info is expensive
 -- (requires iterating all items in a bag), so we cache results and invalidate on changes.
 --
--- OPTIMIZATION: Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
+-- Uses EVENT_INVENTORY_SINGLE_SLOT_UPDATE for targeted bag-specific invalidation
 -- instead of clearing the entire cache. See OnInventorySlotUpdate handler at end of file.
 --
--- NOTE (2026-01-28): BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
+-- BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
 -- SHARED_INVENTORY:GenerateFullSlotData handles virtual bag iteration transparently.
 local ResearchableTraitCache = {}
 local DEFAULT_FONT_SIZE = 24

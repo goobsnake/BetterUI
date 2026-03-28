@@ -174,7 +174,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     end
 
     -- Handle SelectionBar color based on multi-select state
-    -- CRITICAL: Must reset color when NOT multi-selected to handle control recycling.
+    -- Reset color when NOT multi-selected to handle control recycling.
     -- Controls are pooled and reused - the green color would persist on recycled controls otherwise.
     if selectionBar then
         if isMultiSelected then
@@ -216,12 +216,7 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     equipIconControl:SetDimensions(equipIconWidth, equipIconHeight)
 end
 
---- SHARED HELPER FUNCTIONS
---- Note: GetCategoryTypeFromWeaponType and GetBestItemCategoryDescription have been
---- consolidated into CIM/CategoryDefinitions.lua to eliminate code duplication
---- between Banking and Inventory modules.
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
---- Note: Uses shared implementation from CIM/CategoryDefinitions.lua
 function GetBestItemCategoryDescription(itemData)
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end

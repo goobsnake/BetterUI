@@ -276,5 +276,5 @@ function Class:OnHeaderSortChanged(listType, columnKey, direction)
     end
 end
 
--- NOTE: EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
+-- EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
 -- See InitializeHeaderSortController where ApplyMixin is called.

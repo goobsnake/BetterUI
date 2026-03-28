@@ -100,8 +100,6 @@ BETTERUI.Inventory.Categories.Bank = {
     { key = "junk",       nameStringId = SI_BETTERUI_INV_ITEM_JUNK,       filterType = nil,                          special = "junk",                                                              iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
 }
 
--- Note: BankIcons table removal - icons are now embedded above in 'iconFile'
-
 -- Inventory Categories (Backpack)
 -- Ordered list of categories for the main inventory
 BETTERUI.Inventory.Categories.Inventory = {

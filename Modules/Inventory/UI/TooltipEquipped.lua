@@ -330,7 +330,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
                     fullText = fullText .. kLine .. "\n"
                 end
 
-                -- NOTE: Native tooltip labels (bag/bank counts, bound, stolen, set collection)
+                -- Native tooltip labels (bag/bank counts, bound, stolen, set collection)
                 -- are suppressed at source via ZO_Tooltip.AddTopLinesToTopSection hook
                 -- in EnhancementModule.lua. No post-hoc hiding needed.
             end
@@ -404,7 +404,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
             local scrollChild = scrollContainer and scrollContainer:GetNamedChild("ScrollChild")
 
             -- Show price text for ALL items
-            -- NOTE: We add the price label as a sibling to the tooltip, NOT modifying tooltip anchors
+            -- We add the price label as a sibling to the tooltip, NOT modifying tooltip anchors
             -- This avoids anchor circular reference errors
             if priceText ~= "" and scrollChild then
                 -- Create/get the price label in the container (before tooltip in visual order)

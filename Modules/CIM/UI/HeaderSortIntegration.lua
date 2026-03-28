@@ -118,7 +118,7 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
                 end
             end,
         },
-        -- NOTE: Stick-direction keybinds (UI_SHORTCUT_LEFT_STICK_*) do not work in
+        -- Stick-direction keybinds (UI_SHORTCUT_LEFT_STICK_*) do not work in
         -- header sort mode because DIRECTIONAL_INPUT routes stick input to the game
         -- world when no list is actively consuming it. B button is the reliable exit.
     }

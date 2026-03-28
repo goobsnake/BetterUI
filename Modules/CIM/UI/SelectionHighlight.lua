@@ -16,7 +16,7 @@ local SelectionHighlight = BETTERUI.CIM.SelectionHighlight
 --- Shows/hides the selection highlight bar for an inventory/banking row.
 ---
 --- Purpose: Toggles selection highlight visibility.
---- Note: The gradient styling is pre-defined in XML (SharedTemplates.xml) using
+--- The gradient styling is pre-defined in XML (SharedTemplates.xml) using
 --- FadeGradient element, so we only need to toggle visibility here.
 ---
 function SelectionHighlight.Setup(control, selected)

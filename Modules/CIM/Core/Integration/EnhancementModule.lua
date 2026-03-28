@@ -183,9 +183,9 @@ function BETTERUI.GeneralInterface.Setup()
 	-- to reliably hide after-the-fact (ZO_ControlPool parents to GuiRoot, then re-parents
 	-- on acquire). Instead, we prevent them from being created in the first place.
 	--
-	-- IMPORTANT: ZO_Tooltip:Initialize uses zo_mixin(control, ..., self) which copies
+	-- ZO_Tooltip:Initialize uses zo_mixin(control, ..., self) which copies
 	-- all methods from ZO_Tooltip onto each control. Modifying ZO_Tooltip.AddTopLinesToTopSection
-	-- after initialization won't affect already-created controls. We must override the
+	-- after initialization won't affect already-created controls. Override the
 	-- method directly on each tooltip control instance.
 	local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
 	for _, tooltipType in ipairs(tooltipTypes) do

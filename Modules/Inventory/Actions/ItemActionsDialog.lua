@@ -48,8 +48,4 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         BETTERUI.Inventory.EnsureCompanionEquipPatched()
     end
 
-    -- NOTE: ESO_Dialogs registration removed - ActionDialogHooks.lua handles this registration
-    -- and includes proper scene detection for both Inventory and Banking.
-    -- The previous duplicate registration here overwrote ActionDialogHooks' version,
-    -- preventing Banking's Y-menu from working correctly.
 end

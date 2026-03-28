@@ -131,7 +131,7 @@ function BETTERUI.Inventory.Class:RefreshItemList()
                 end
             end
         else
-            -- OPTIMIZATION: Check if this is truly the "All Items" view (no filters)
+            -- Check if this is truly the "All Items" view (no filters)
             -- If specific filters are set (Weapons, Armor, etc.), we MUST use the comparator
             if filteredEquipSlot == nil and nonEquipableFilterType == nil then
                 -- "All Items" Case: Direct insert (fastest)
@@ -153,12 +153,12 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         end
     end
 
-    -- OPTIMIZATION: Do search filtering FIRST, before expensive per-item processing
+    -- Do search filtering FIRST, before expensive per-item processing
     -- This avoids doing API calls for items that won't even be displayed
     if self.searchQuery and tostring(self.searchQuery) ~= "" then
         local q = tostring(self.searchQuery):lower()
 
-        -- OPTIMIZATION: Reuse buffer table to avoid garbage creation
+        -- Reuse buffer table to avoid garbage creation
         if not self.searchMatches then self.searchMatches = {} end
         ZO_ClearNumericallyIndexedTable(self.searchMatches)
 
@@ -257,11 +257,6 @@ function BETTERUI.Inventory.Class:RefreshItemList()
 
     -- Run first batch immediately
     self:ProcessScrollListBatch()
-
-    -- NOTE: Loop body removed here as it is now handled by ProcessScrollListBatch
-
-    -- OPTIMIZATION: Removed redundant RefreshCategoryList() call here
-    -- SwitchActiveList already calls RefreshCategoryList before RefreshItemList
 end
 
 --- Updates the left tooltip for the selected item.

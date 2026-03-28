@@ -318,7 +318,7 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     track:SetDrawLevel(100) -- Background behind thumb
 
     -- Thumb (position indicator)
-    -- IMPORTANT: Must have a texture file for mouse hit detection to work
+    -- Must have a texture file for mouse hit detection to work
     local thumb = WINDOW_MANAGER:CreateControl(controlName .. "Thumb", container, CT_TEXTURE)
     ApplyThumbTexture(thumb)
     thumb:SetWidth(SCROLL_INDICATOR.THUMB.WIDTH)

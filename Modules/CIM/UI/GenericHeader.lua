@@ -47,7 +47,7 @@ local function TabBar_Setup(control, data, selected, selectedDuringRebuild, enab
 
     -- Display item count badge for selected tab only
     -- Count is populated by module's RefreshList via data.itemCount
-    -- NOTE: Must be AFTER base setup since that overwrites the label control
+    -- Must be AFTER base setup since that overwrites the label control
     if not countBadge then return end
     if not (selected and data.itemCount and data.itemCount > 0) then
         countBadge:SetHidden(true)
@@ -201,7 +201,7 @@ function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
         -- Create the Parametric Scroll List for the Tab Bar
         control.tabBar = BETTERUI_TabBarScrollList:New(tabBarControl, tabBarControl:GetNamedChild("LeftIcon"),
             tabBarControl:GetNamedChild("RightIcon"), tabBarData)
-        -- NOTE: Do NOT activate here - tabBar should only be activated when scene shows.
+        -- Do NOT activate here - tabBar should only be activated when scene shows.
         -- Activation during module setup causes DIRECTIONAL_INPUT registration before
         -- scene is visible, leading to joystick lock-up on startup.
         -- The tabBar will be activated by scene handlers (OnSceneShowing/ActivateHeader).

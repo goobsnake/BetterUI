@@ -287,7 +287,7 @@ function Manager:GetItemUniqueId(itemData)
     -- Try uniqueId first (most reliable - use rawData for consistency)
     local uniqueId = rawData.uniqueId or itemData.uniqueId
     if uniqueId then
-        -- CRITICAL: Use Id64ToString for ESO's Id64 userdata type.
+        -- Use Id64ToString for ESO's Id64 userdata type.
         -- Lua's tostring() produces inconsistent results for Id64.
         if Id64ToString then
             return Id64ToString(uniqueId)

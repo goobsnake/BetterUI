@@ -111,9 +111,9 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
 
     -- Update title to match
     self:UpdateHeaderTitle()
-    -- CRITICAL: Only activate header keybinds when scene is showing
+    -- Only activate header keybinds when scene is showing.
     -- Calling EnsureHeaderKeybindsActive during addon load (before scene shows)
-    -- registers with DIRECTIONAL_INPUT prematurely, causing joystick lock-up
+    -- registers with DIRECTIONAL_INPUT prematurely, causing joystick lock-up.
     if self.scene and self.scene:IsShowing() then
         self:EnsureHeaderKeybindsActive()
     end

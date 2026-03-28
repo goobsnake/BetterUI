@@ -381,13 +381,13 @@ function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
             end
         end
     end
-    -- NOTE: Keybinds are protected by UpdateActions guard which skips
+    -- Keybinds are protected by UpdateActions guard which skips
     -- itemActions:SetInventorySlot() when isInHeaderSortMode is true
 end
 
 --- Enters header sort navigation mode.
 --- Called when user presses D-pad Up at the first item in the list.
--- NOTE: EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
+-- EnterHeaderSortMode and ExitHeaderSortMode are injected by CIM mixin.
 -- See InitializeHeaderSortController where ApplyMixin is called.
 
 

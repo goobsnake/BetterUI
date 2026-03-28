@@ -12,15 +12,11 @@ create its own scene and call InitializeFragment/InitializeScene.
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
---- SECTION: Private Helpers
-
 --- Wraps an integer value within min/max bounds
 --- @private
 local function WrapInt(value, min, max)
     return (zo_floor(value) - min) % (max - min + 1) + min
 end
-
---- SECTION: Window Class Definition
 
 
 BETTERUI.Interface.Window = ZO_Object:Subclass()
@@ -42,7 +38,7 @@ end
 --- 3. Initializes the spinner and wraps its range function.
 --- 4. Sets up header navigation callbacks.
 ---
---- Note: Scene/fragment setup is NOT done here. Subclasses should:
+--- Scene/fragment setup is NOT done here. Subclasses should:
 --- 1. Create their own scene (e.g., ZO_InteractScene:New(...))
 --- 2. Call self:InitializeFragment()
 --- 3. Call self:InitializeScene(scene)
@@ -86,8 +82,6 @@ function BETTERUI.Interface.Window:Initialize(tlw_name, scene_name, virtualTempl
 
     self:InitializeList()
 end
-
---- SECTION: Spinner Management
 
 --- Sets the spinner's range and current value.
 ---
@@ -147,8 +141,6 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
     end
 end
 
---- SECTION: List Management
-
 --- Gets the current primary list.
 ---
 function BETTERUI.Interface.Window:GetList()
@@ -174,15 +166,11 @@ function BETTERUI.Interface.Window:InitializeList(listName)
 end
 
 --- Placeholder for list refresh logic.
---- Subclasses should override this to implement specific refresh behavior.
 function BETTERUI.Interface.Window:RefreshList()
-    -- Placeholder: subclasses should override for list refresh logic
 end
 
 --- Placeholder for selection change logic.
---- Subclasses should override this to handle item selection changes.
 function BETTERUI.Interface.Window:OnItemSelectedChange()
-    -- Placeholder: subclasses should override for selection change logic
 end
 
 --- Configures the main list template.
@@ -205,8 +193,6 @@ function BETTERUI.Interface.Window:AddEntryToList(data)
     self:GetList():Commit()
 end
 
---- SECTION: Keybind Management
-
 --- Initializes keybinds for the window.
 function BETTERUI.Interface.Window:InitializeKeybind()
     self.coreKeybinds = {
@@ -216,8 +202,6 @@ function BETTERUI.Interface.Window:InitializeKeybind()
 
     self.triggerSpinnerBinds = {}
 end
-
---- SECTION: Header and Column Management
 
 --- Adds a column header to the window.
 ---
@@ -271,8 +255,6 @@ function BETTERUI.Interface.Window:SetTitle(headerText)
     self.header:GetNamedChild("Header"):GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(headerText)
 end
 
---- SECTION: UI Refresh and Callbacks
-
 --- Refreshes the list and its visibility.
 function BETTERUI.Interface.Window:RefreshVisible()
     self:RefreshList()
@@ -284,8 +266,6 @@ end
 function BETTERUI.Interface.Window:SetOnSelectedDataChangedCallback(selectedDataCallback)
     self.selectedDataCallback = selectedDataCallback
 end
-
---- SECTION: Scene and Fragment Management
 
 --- Initializes scene fragments for the window.
 ---
@@ -341,7 +321,7 @@ function BETTERUI.Interface.Window:InitializeScene(scene)
 end
 
 --- Toggles the window's scene visibility.
---- Note: Subclasses must set self.sceneName during initialization for this to work.
+--- Subclasses must set self.sceneName during initialization for this to work.
 function BETTERUI.Interface.Window:ToggleScene()
     if self.sceneName then
         SCENE_MANAGER:Toggle(self.sceneName)
@@ -353,21 +333,11 @@ function BETTERUI.Interface.Window:ToggleScene()
     end
 end
 
---- SECTION: Navigation Handlers
-
---- Handler for Next Tab action.
---- Placeholder: subclasses should override for tab navigation.
 function BETTERUI.Interface.Window:OnTabNext()
-    -- Placeholder: subclasses should override for tab navigation
 end
 
---- Handler for Previous Tab action.
---- Placeholder: subclasses should override for tab navigation.
 function BETTERUI.Interface.Window:OnTabPrev()
-    -- Placeholder: subclasses should override for tab navigation
 end
-
---- SECTION: Mixin Integration
 
 --- Apply Search Mixin
 --- SearchManager.lua defines BETTERUI.Interface.SearchMixin with search-related methods.

@@ -39,7 +39,7 @@ BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 
 -- COMPANION EQUIP PATCH
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
--- NOTE: EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
+-- EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
 
 -- SECURE SYSTEM HOOKS
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad

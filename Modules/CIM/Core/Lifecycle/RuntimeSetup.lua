@@ -115,7 +115,7 @@ HOW TO ADD NEW MIGRATIONS:
 --- 4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
 ---
 --- References: Called by RuntimeSetup.Apply().
---- Note: These wrappers intentionally use BETTERUI.CIM.SafeExecute for ESO API stability.
+--- These wrappers intentionally use BETTERUI.CIM.SafeExecute for ESO API stability.
 local function ApplyAPIPatches()
     if patchesApplied then return end
 

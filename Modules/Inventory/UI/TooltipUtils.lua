@@ -122,6 +122,4 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     end
 end
 
--- NOTE: BETTERUI.Inventory.UpdateTooltipEquippedText has been moved to
--- Modules/Inventory/UI/TooltipEquipped.lua for maintainability.
 

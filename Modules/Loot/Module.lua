@@ -18,7 +18,7 @@ local Loot = BETTERUI.Loot
 -- Scene configuration
 Loot.SCENE_NAME = "BETTERUI_LOOT"
 
---- Placeholder: Gets market price context for a looted item.
+--- Gets market price context for a looted item.
 function Loot.GetMarketPriceContext(itemLink)
     if not itemLink or itemLink == "" then return nil end
 

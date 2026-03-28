@@ -23,14 +23,12 @@ BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
 
 -- Validated Globals for Core
--- NOTE: GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
+-- GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
 
 -- List type identifiers sourced from BETTERUI.Inventory.CONST.LIST_TYPES (see Inventory/Constants.lua)
 -- The global aliases (INVENTORY_CATEGORY_LIST, etc.) are created there for backward compatibility.
 
 -- Apply Mixins (populated by other modules like PositionManager)
--- Note: Consider creating BETTERUI.CIM.ApplyMixin() helper in a future refactor to DRY this pattern.
--- Deferred: Low priority since the pattern only exists in 2-3 locations currently.
 if BETTERUI.Inventory.ClassMixins then
     for name, func in pairs(BETTERUI.Inventory.ClassMixins) do
         BETTERUI.Inventory.Class[name] = func
@@ -184,11 +182,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
     end
 
     self:InitializeSplitStackDialog()
-
-    -- Note: We no longer call ToSavedPosition here after split stack.
-    -- The inventory update events (SingleSlotInventoryUpdate) will trigger refreshes naturally,
-    -- and the existing position restoration in RefreshItemList handles keeping the selection.
-    -- Calling ToSavedPosition here was causing redundant refreshes and flickering.
 
     -- Guard update loop so we only process while the inventory scene is visible.
     local function OnUpdate(updateControl, currentFrameTimeSeconds)

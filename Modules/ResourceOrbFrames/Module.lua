@@ -280,8 +280,6 @@ local function Init(mId, moduleName)
     LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
 end
 
--- Note: InitModule is now provided by Settings/Defaults.lua
-
 --- Sets up the Resource Orb Frames module.
 function BETTERUI.ResourceOrbFrames.Setup()
     Init("ResourceOrbFrames", "Resource Orb Frames")

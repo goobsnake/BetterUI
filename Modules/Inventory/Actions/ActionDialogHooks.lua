@@ -91,7 +91,7 @@ function BETTERUI.Inventory.HookActionDialog()
                - gamepad_banking → fires BETTERUI_EVENT_ACTION_DIALOG_SETUP for Banking
                - Other scenes → falls back to original ActionsDialogSetup
 
-            IMPORTANT: Do NOT register another ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG]
+            Do NOT register another ESO_Dialogs[ZO_GAMEPAD_INVENTORY_ACTION_DIALOG]
             elsewhere as it will overwrite this registration and break scene detection.
         ]]
         setup = function(dialog, data)

@@ -132,7 +132,7 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     local filteredDataTable = self:GenerateSlotTable()
 
     -- Apply text search filtering when requested (case-insensitive substring match on item name only)
-    -- NOTE: we intentionally exclude category/type fields from the craft-bag search so
+    -- Intentionally exclude category/type fields from the craft-bag search so
     -- short queries (single-character) don't match engine-provided type strings like "(Alchemy)".
     if searchQuery and tostring(searchQuery) ~= "" then
         local q = tostring(searchQuery):lower()

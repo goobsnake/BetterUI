@@ -13,23 +13,8 @@ BETTERUI.Vendor = BETTERUI.Vendor or {}
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Vendor")
 
---[[
-Function: BETTERUI.Vendor.InitModule
-Initializes defaults and migrates legacy settings for the Vendor module.
-
-INIT CONTRACT: This function implements the standard InitModule signature.
-It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
-
-Standard InitModule Signature (consistent across all modules):
-  @param m_options table|nil The raw settings table to be initialized
-  @return table The modified options table with default values applied
-
-Wrapper Function (caller in BetterUI.lua):
-  BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
-
-param: m_options (table|nil) - The raw settings table for this module.
-return: table - The initialized and migrated settings table.
-]]
+-- Initializes defaults and migrates legacy settings for the Vendor module.
+-- Called by BETTERUI.ModuleOptions() via pcall with m_options.
 function BETTERUI.Vendor.InitModule(m_options)
 	m_options = m_options or {}
 	---@cast m_options table
@@ -49,7 +34,7 @@ function BETTERUI.Vendor.InitModule(m_options)
 	return m_options
 end
 
---- Placeholder: Gets junk sell value summary for batch sell UX.
+--- Gets junk sell value summary for batch sell UX.
 function BETTERUI.Vendor.GetJunkSellSummary()
 	local totalValue = 0
 	local itemCount = 0

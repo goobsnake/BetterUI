@@ -299,9 +299,6 @@ local function NormalizeModuleToggleSortName(name)
 		table.insert(optionsTable, control)
 	end
 
-	-- NOTE: CIM toggle removed in v2.93 - CIM is now auto-managed internally
-	-- based on dependent modules (Inventory, Banking, GeneralInterface)
-
 	-- Developer-only feature flag controls (hidden for normal users)
 	local _, showDeveloperSettings = BETTERUI.CIM.TryCall("CIM.Debug.ShouldShowDeveloperSettings")
 
