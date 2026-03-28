@@ -55,6 +55,7 @@ local MODULE_REGISTRY = {
 	{
 		name = "Inventory",
 		namespace = "Inventory",
+		dependsOnCIM = true,
 		preSetup = function()
 			-- Pre-Setup hooks (must run before Setup)
 			BETTERUI.CIM.TryCall("Inventory.HookDestroyItem")
@@ -62,8 +63,8 @@ local MODULE_REGISTRY = {
 			return true
 		end
 	},
-	{ name = "Banking", namespace = "Banking" },
-	{ name = "Vendor", namespace = "Vendor" },
+	{ name = "Banking", namespace = "Banking", dependsOnCIM = true },
+	{ name = "Vendor", namespace = "Vendor", dependsOnCIM = true },
 
 	-- Independent modules
 	{ name = "Writs", namespace = "Writs" },
@@ -511,13 +512,8 @@ local function ShouldLoadModule(entry)
 	end
 
 	-- CIM-dependent modules require CIM to be enabled
-	-- Inventory, Banking, Vendor are CIM-dependent
-	if entry.name ~= "CIM" and entry.name ~= "Writs" and
-	   entry.name ~= "GeneralInterface" and entry.name ~= "Nameplates" and
-	   entry.name ~= "ResourceOrbFrames" then
-		if not BETTERUI.GetModuleEnabled("CIM") then
-			return false
-		end
+	if entry.dependsOnCIM and not BETTERUI.GetModuleEnabled("CIM") then
+		return false
 	end
 
 	return true

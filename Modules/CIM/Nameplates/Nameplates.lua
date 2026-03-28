@@ -109,8 +109,8 @@ end
 ---
 --- @return table Module settings table with font, style, size, enabled
 local function GetSettings()
-    if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Nameplates"] then
-        local settings = BETTERUI.Settings.Modules["Nameplates"]
+    local settings = BETTERUI.GetModuleSettings("Nameplates")
+    if settings and next(settings) then
         if type(settings.style) == "string" then
             settings.style = NormalizeStyleValue(settings.style)
         end

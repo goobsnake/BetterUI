@@ -39,7 +39,7 @@ end
 
 --- @return string
 local function GetCurrencyActionFontDescriptor()
-    local moduleSettings = BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules["Banking"]
+    local moduleSettings = BETTERUI.GetModuleSettings("Banking")
     local defaults = BETTERUI.CIM.Font.DEFAULTS
     local fontPath = (moduleSettings and moduleSettings.nameFont) or defaults.nameFont
     local fontSize = BETTERUI.CIM.Font.GetSizeValue((moduleSettings and moduleSettings.nameFontSize)

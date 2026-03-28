@@ -294,13 +294,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
     end
 
     local function isCIMDisabled()
-        return not (
-            BETTERUI
-            and BETTERUI.Settings
-            and BETTERUI.Settings.Modules
-            and BETTERUI.Settings.Modules["CIM"]
-            and BETTERUI.Settings.Modules["CIM"].m_enabled
-        )
+        return not BETTERUI.GetModuleEnabled("CIM")
     end
 
     local minFontSize = BETTERUI.CIM.Font.SIZE_MIN or 12

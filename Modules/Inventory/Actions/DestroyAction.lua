@@ -103,9 +103,7 @@ function BETTERUI.Inventory.HookDestroyItem()
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         if not bag or not index then return false end
 
-        local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-            and BETTERUI.Settings.Modules["Inventory"]
-            and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+        local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
 
         -- TryDestroyItem handles junk and force-destroy cases (returns true if destroyed)
         if BETTERUI.Inventory.TryDestroyItem(bag, index, quick) then

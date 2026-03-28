@@ -144,7 +144,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         return (cat and cat.name) or GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL"))
     end
     self.bankHeaderData.tabBarData = { parent = self }
-    local isCarousel = BETTERUI.Settings.Modules["Banking"].enableCarousel
+    local isCarousel = BETTERUI.GetSetting("Banking", "enableCarousel", false)
     self.bankHeaderData.carouselConfig = {
         enabled = isCarousel,
         startOffset = BETTERUI.Banking.CONST.CAROUSEL.startOffset,

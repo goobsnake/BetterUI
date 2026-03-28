@@ -172,9 +172,9 @@ function BETTERUI.GetMarketPrice(itemLink, stackCount)
         return 0
     end
     -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys
-    local tooltipSettings = BETTERUI.Settings.Modules["GeneralInterface"] or BETTERUI.Settings.Modules["Tooltips"]
-    if not tooltipSettings then
-        return 0
+    local tooltipSettings = BETTERUI.GetModuleSettings("GeneralInterface")
+    if not tooltipSettings or not next(tooltipSettings) then
+        tooltipSettings = BETTERUI.GetModuleSettings("Tooltips")
     end
     stackCount = stackCount or 1
 

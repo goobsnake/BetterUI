@@ -119,10 +119,7 @@ end
 --- Retrieves the user-configured tooltip font size.
 --- @return number The font size (e.g., 24, 32).
 function BETTERUI.GetTooltipFontSize()
-    local size = BETTERUI.Settings.Modules["CIM"] and BETTERUI.Settings.Modules["CIM"].tooltipSize
-    if not size then
-        return DEFAULT_FONT_SIZE
-    end
+    local size = BETTERUI.GetSetting("CIM", "tooltipSize", DEFAULT_FONT_SIZE)
     return size
 end
 
@@ -143,7 +140,7 @@ end
 --- @param iconSize number The desired icon size
 --- @return string|nil The formatted price string, or nil if data missing/addon disabled
 local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settingKey, itemLink, stackCount, iconSize)
-    if addonGlobal == nil or not BETTERUI.Settings.Modules["GeneralInterface"][settingKey] then
+    if addonGlobal == nil or not BETTERUI.GetSetting("GeneralInterface", settingKey, false) then
         return nil
     end
 
@@ -185,7 +182,7 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
         local iconSize = math.floor(fontSize * 0.7)
 
         -- TTC Integration (custom format to show both Avg and Suggested prices)
-        if TamrielTradeCentre and BETTERUI.Settings.Modules["GeneralInterface"].ttcIntegration then
+        if TamrielTradeCentre and BETTERUI.GetSetting("GeneralInterface", "ttcIntegration", false) then
             local itemInfo = TamrielTradeCentre_ItemInfo:New(itemLink)
             local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemInfo)
             if priceInfo then
@@ -255,7 +252,7 @@ end
 --- @return table: List of strings to display
 function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
-    if itemLink and itemLink ~= "" and BETTERUI.Settings.Modules["GeneralInterface"].showStyleTrait then
+    if itemLink and itemLink ~= "" and BETTERUI.GetSetting("GeneralInterface", "showStyleTrait", false) then
         local traitString
         local colors = BETTERUI.CIM.CONST.COLORS
 
@@ -299,8 +296,7 @@ function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
     if not itemLink or itemLink == "" then return lines end
 
     -- Respect the user's setting (default true when not set)
-    local giSettings = BETTERUI.Settings.Modules["GeneralInterface"]
-    if giSettings and giSettings.showKnowledgeStatus == false then return lines end
+    if BETTERUI.GetSetting("GeneralInterface", "showKnowledgeStatus", true) == false then return lines end
 
     local colors = BETTERUI.CIM.CONST.COLORS
     local icons  = BETTERUI.CIM.CONST.ICONS
@@ -523,8 +519,7 @@ function BETTERUI.InventoryHook(config, _tooltipType, method, linkFunc, method2,
             end
 
             -- 2. Get Settings
-            local settings = BETTERUI.Settings.Modules["CIM"]
-            local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
+            local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
             local fontSize = BETTERUI.GetTooltipFontSize()
             local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"

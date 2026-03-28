@@ -385,9 +385,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         if bag and slot then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local link = GetItemLink(bag, slot)
-            local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-                and BETTERUI.Settings.Modules["Inventory"]
-                and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+            local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
             if quick then
                 BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
             else
@@ -408,9 +406,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         if bag and slot then
             ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
             local link = GetItemLink(bag, slot)
-            local quick = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-                and BETTERUI.Settings.Modules["Inventory"]
-                and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+            local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
             if quick then
                 BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
             else

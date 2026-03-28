@@ -102,7 +102,7 @@ References: Called during Initialize.
 --- Initializes the keybind descriptors for the banking module.
 --- @return nil
 function BETTERUI.Banking.Class:InitializeKeybind()
-    if not BETTERUI.Settings.Modules["Banking"].m_enabled then
+    if not BETTERUI.GetModuleEnabled("Banking") then
         return
     end
 

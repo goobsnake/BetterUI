@@ -19,7 +19,7 @@ References: Called by BETTERUI.Inventory.Setup
 ]]
 --- Configures the visual style of native tooltips.
 function BETTERUI.Inventory.ApplyTooltipStyles()
-    local tooltipSize = BETTERUI.Settings.Modules["CIM"].tooltipSize or 24
+    local tooltipSize = BETTERUI.GetSetting("CIM", "tooltipSize", 24)
 
     -- Calculate derived sizes from base font size using centralized constants
     local baseFontSize = tooltipSize
@@ -76,7 +76,7 @@ function BETTERUI.Inventory.EnableTooltipMouseWheel()
         tip:SetMouseEnabled(true)
         tipScroll:SetMouseEnabled(true)
         tip:SetHandler("OnMouseWheel", function(self, delta)
-            local speed = (BETTERUI.Settings.Modules["CIM"].rhScrollSpeed) or 20
+            local speed = BETTERUI.GetSetting("CIM", "rhScrollSpeed", 20)
             local newScrollValue
             if delta > 0 then
                 newScrollValue = (self.scrollValue or 0) - speed

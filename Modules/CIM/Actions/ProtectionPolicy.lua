@@ -33,7 +33,7 @@ end
 
 --- @return boolean companionJunkEnabled
 local function IsCompanionJunkEnabled()
-    return BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+    return BETTERUI.GetSetting("Inventory", "enableCompanionJunk", false) == true
 end
 
 -- ============================================================================

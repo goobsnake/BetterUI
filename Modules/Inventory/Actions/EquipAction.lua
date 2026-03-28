@@ -177,7 +177,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         if
             not bound
             and bindType == BIND_TYPE_ON_EQUIP
-            and BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection
+            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", false)
         then
             local function promptForBindOnEquip()
                 ZO_Dialogs_ShowPlatformDialog(
@@ -270,7 +270,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         if
             not bound
             and bindType == BIND_TYPE_ON_EQUIP
-            and BETTERUI.Settings.Modules["Inventory"].bindOnEquipProtection
+            and BETTERUI.GetSetting("Inventory", "bindOnEquipProtection", false)
         then
             -- Use global DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION if defined, or safe default
             local delay = DIALOG_QUEUE_WORKAROUND_TIMEOUT_DURATION or 300

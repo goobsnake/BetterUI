@@ -82,7 +82,7 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     end
     self.bankHeaderData.tabBarData = { parent = self }
     -- Carousel configuration for banking - uses constants from BetterUI.CONST.lua
-    local isCarousel = BETTERUI.Settings.Modules["Banking"].enableCarousel
+    local isCarousel = BETTERUI.GetSetting("Banking", "enableCarousel", false)
     self.bankHeaderData.carouselConfig = {
         enabled = isCarousel,
         startOffset = BETTERUI.Banking.CONST.CAROUSEL.startOffset,

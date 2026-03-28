@@ -31,8 +31,7 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
     end
 
     -- Check Setting (consistent pattern: nil/missing → true, explicit false → false)
-    local settings = BETTERUI.Settings.Modules["CIM"]
-    local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
+    local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
 
     local fontSize = BETTERUI.GetTooltipFontSize()
     local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"

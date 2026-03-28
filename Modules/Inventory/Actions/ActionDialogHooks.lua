@@ -102,9 +102,9 @@ function BETTERUI.Inventory.HookActionDialog()
         setup = function(dialog, data)
             -- Normal BetterUI override path when enabled/visible
             -- Check both Inventory and Banking scenes with proper nil guards
-            local invShowing = BETTERUI.Settings.Modules["Inventory"].m_enabled
+            local invShowing = BETTERUI.GetModuleEnabled("Inventory")
                 and BETTERUI.CIM.Utils.IsInventorySceneShowing()
-            local bankShowing = BETTERUI.Settings.Modules["Banking"].m_enabled
+            local bankShowing = BETTERUI.GetModuleEnabled("Banking")
                 and BETTERUI.CIM.Utils.IsBankingSceneShowing()
 
             if invShowing or bankShowing then
@@ -126,11 +126,11 @@ function BETTERUI.Inventory.HookActionDialog()
         finishedCallback = function(dialog)
             if
                 (
-                    BETTERUI.Settings.Modules["Inventory"].m_enabled
+                    BETTERUI.GetModuleEnabled("Inventory")
                     and BETTERUI.CIM.Utils.IsInventorySceneShowing()
                 )
                 or (
-                    BETTERUI.Settings.Modules["Banking"].m_enabled
+                    BETTERUI.GetModuleEnabled("Banking")
                     and BETTERUI.CIM.Utils.IsBankingSceneShowing()
                 )
             then
@@ -156,11 +156,11 @@ function BETTERUI.Inventory.HookActionDialog()
                 callback = function(dialog)
                     if
                         (
-                            BETTERUI.Settings.Modules["Inventory"].m_enabled
+                            BETTERUI.GetModuleEnabled("Inventory")
                             and BETTERUI.CIM.Utils.IsInventorySceneShowing()
                         )
                         or (
-                            BETTERUI.Settings.Modules["Banking"].m_enabled
+                            BETTERUI.GetModuleEnabled("Banking")
                             and BETTERUI.CIM.Utils.IsBankingSceneShowing()
                         )
                     then
@@ -195,11 +195,7 @@ function BETTERUI.Inventory.HookActionDialog()
                                 if bag and slot then
                                     ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
                                     local itemLink = GetItemLink(bag, slot)
-                                    local quick = BETTERUI
-                                        and BETTERUI.Settings
-                                        and BETTERUI.Settings.Modules
-                                        and BETTERUI.Settings.Modules["Inventory"]
-                                        and BETTERUI.Settings.Modules["Inventory"].quickDestroy == true
+                                    local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
                                     if quick then
                                         BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
                                     else

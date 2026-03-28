@@ -30,7 +30,7 @@ local function InitializeHeader(self)
         },
     }
 
-    local isCarousel = BETTERUI.Settings.Modules["Inventory"].enableCarousel
+    local isCarousel = BETTERUI.GetSetting("Inventory", "enableCarousel", false)
 
     self.categoryHeaderData = {
         titleText = UpdateTitleText,
