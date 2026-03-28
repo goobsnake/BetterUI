@@ -29,15 +29,11 @@ local function GetTextureRootPath()
     return "BetterUI/Modules/ResourceOrbFrames/Textures"
 end
 
---- @param filename string Texture filename relative to the Textures directory
---- @return string path Full virtual path for SetTexture()
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", GetTextureRootPath(), filename)
 end
 
--------------------------------------------------------------------------------------------------
 -- BetterUIOrbBar Class
--------------------------------------------------------------------------------------------------
 BetterUIOrbBar = ZO_Object:Subclass()
 
 function BetterUIOrbBar:New(...)
@@ -168,8 +164,6 @@ function BetterUIOrbBar:RefreshVisuals()
     end
 end
 
---- @param deltaMs number Time since last update in milliseconds
---- @param settings table The module settings
 function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     if not self.fog or not self.animState then return end
 
@@ -219,9 +213,7 @@ function BetterUIOrbBar:UpdateAnimation(deltaMs, settings)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- BetterUIShieldBar Class
--------------------------------------------------------------------------------------------------
 BetterUIShieldBar = BetterUIOrbBar:Subclass()
 
 function BetterUIShieldBar:New(...)
@@ -258,11 +250,8 @@ function BetterUIShieldBar:RefreshVisuals()
         fillOffsetY)
 end
 
--------------------------------------------------------------------------------------------------
 -- Visual Management Functions
--------------------------------------------------------------------------------------------------
 
---- @param rootFrame Control The root control frame
 function Visuals.UpdateFrameDimensions(rootFrame)
     if not rootFrame then return end
     local settings = GetSettings()
@@ -299,7 +288,6 @@ function Visuals.UpdateFrameDimensions(rootFrame)
     rootFrame:SetDimensions(frameCfg.width, frameCfg.height)
 end
 
---- @param rootFrame Control The root control frame
 function Visuals.ApplyThemeVisuals(rootFrame)
     if not rootFrame then return end
     local settings = GetSettings()
@@ -570,9 +558,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- Setup Functions
--------------------------------------------------------------------------------------------------
 function Visuals.SetupPowerPools(rootFrame)
 
     local pools = {

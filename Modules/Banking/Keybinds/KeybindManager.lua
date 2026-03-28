@@ -4,17 +4,12 @@ Purpose: Manages keybind descriptors and registration for the Banking module.
          Extracted from Banking.lua.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS & STATE
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
 
---- @param list table
---- @return table leftTrigger
---- @return table rightTrigger
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
     return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()

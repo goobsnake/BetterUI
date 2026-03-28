@@ -4,11 +4,9 @@ Purpose: Tab Bar (Carousel) Scroll List implementation.
          Handles circular navigation and LB/RB shoulder button logic.
 ]]
 
--- ============================================================================
 -- CLASS: BETTERUI_TabBarScrollList
 -- The heart of BetterUI's category navigation using LB/RB.
 -- Implements Carousel Mode where items rotate circularly.
--- ============================================================================
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
 --[[
@@ -73,10 +71,6 @@ end
 --- - If Carousel Mode: Positions items relative to the selected item (Center), wrapping around.
 --- - If Normal Mode: Positions items linearly using the same offset constants (no wrapping).
 ---
---- @param continousTargetOffset number The floating point index of the selection.
---- @param initialUpdate boolean True if this is the first update.
---- @param reselectingDuringRebuild boolean True if reselecting.
---- @param blockSelectionChangedCallback boolean True to suppress callbacks.
 function BETTERUI_TabBarScrollList:UpdateAnchors(continousTargetOffset, initialUpdate, reselectingDuringRebuild,
                                                  blockSelectionChangedCallback)
     self.visibleControls, self.unseenControls = self.unseenControls, self.visibleControls
@@ -186,7 +180,6 @@ end
 -- Override these to handle the dual-callback nature of standard ZO lists vs Carousel mode
 --- Sets the data change callback.
 ---
---- @param callback function The user callback.
 function BETTERUI_TabBarScrollList:SetOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = callback -- For Carousel mode
 
@@ -211,7 +204,6 @@ end
 
 --- Removes the data change callback.
 ---
---- @param callback function The callback to remove.
 function BETTERUI_TabBarScrollList:RemoveOnSelectedDataChangedCallback(callback)
     self.onSelectedDataChangedCallback = nil
     if self._zo_selectedDataChangedWrapper then
@@ -243,7 +235,6 @@ end
 
 --- Commits changes.
 ---
---- @param dontReselect boolean|nil If true, don't reselect the current item.
 function BETTERUI_TabBarScrollList:Commit(dontReselect)
     -- Hide arrows if only 1 item
     if #self.dataList > 1 then
@@ -259,8 +250,6 @@ end
 
 --- Enables/Disables Pip (Dot) indicators.
 ---
---- @param enabled boolean True to enable.
---- @param divider table|nil The control to anchor pips to.
 function BETTERUI_TabBarScrollList:SetPipsEnabled(enabled, divider)
     self.pipsEnabled = enabled
     if not divider then
@@ -295,9 +284,6 @@ end
 
 --- Sets selection with animation.
 ---
---- @param selectedIndex number The index to select.
---- @param allowEvenIfDisabled boolean|nil If true, allow selection even if disabled.
---- @param forceAnimation boolean|nil If true, force animation.
 function BETTERUI_TabBarScrollList:SetSelectedIndex(selectedIndex, allowEvenIfDisabled, forceAnimation)
     -- BetterUI Fix: Capture old data BEFORE calling base class (which updates selectedData)
     local oldSelectedData = self.selectedData
@@ -319,9 +305,6 @@ end
 
 --- Sets selection immediately without animation.
 ---
---- @param selectedIndex number The index to select.
---- @param allowEvenIfDisabled boolean|nil If true, allow selection even if disabled.
---- @param dontCallSelectedDataChangedCallback boolean|nil If true, don't call the selection changed callback.
 function BETTERUI_TabBarScrollList:SetSelectedIndexWithoutAnimation(selectedIndex, allowEvenIfDisabled,
                                                                     dontCallSelectedDataChangedCallback)
     ZO_ParametricScrollList.SetSelectedIndexWithoutAnimation(self, selectedIndex, allowEvenIfDisabled,
@@ -334,9 +317,6 @@ end
 
 --- Moves to previous item.
 ---
---- @param allowWrapping boolean|nil If true, wrap to the last item if at the first.
---- @param suppressFailSound boolean|nil If true, suppress the fail sound.
---- @return boolean True if successful.
 function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingBackward()
     local succeeded = ZO_ParametricScrollList.MovePrevious(self)
@@ -359,9 +339,6 @@ end
 
 --- Moves to next item.
 ---
---- @param allowWrapping boolean|nil If true, wrap to the first item if at the last.
---- @param suppressFailSound boolean|nil If true, suppress the fail sound.
---- @return boolean True if successful.
 function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     ZO_ConveyorSceneFragment_SetMovingForward()
     local succeeded = ZO_ParametricScrollList.MoveNext(self)
@@ -382,14 +359,11 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
     return succeeded
 end
 
--- ============================================================================
 -- EVENT HANDLERS (Global)
 -- Called from XML via OnClicked, etc.
--- ============================================================================
 
 --- Global handler for Left Icon click.
 ---
---- @param buttonControl table The control clicked.
 function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -400,7 +374,6 @@ end
 
 --- Global handler for Right Icon click.
 ---
---- @param buttonControl table The control clicked.
 function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
@@ -418,7 +391,6 @@ end
 --- 3. Special Case: If in Inventory scene, dispatches directly to GAMEPAD_INVENTORY:OnCategoryClicked.
 --- 4. Default: Calls scrollList:SetSelectedIndex.
 ---
---- @param categoryControl table The UI control that was clicked.
 function BETTERUI_TabBar_OnCategoryIconClicked(categoryControl)
     local scrollList = nil
     -- Traverse up to find the scrollList owner

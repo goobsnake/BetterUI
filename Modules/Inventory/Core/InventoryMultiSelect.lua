@@ -5,10 +5,8 @@
 local Class = BETTERUI.Inventory.Class
 local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
---------------------------------------------------------------------------------
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
 -- The mixin is applied during InitializeKeybindStrip (InventoryKeybinds.lua).
---------------------------------------------------------------------------------
 
 --- Enters multi-select mode for the item list.
 function Class:EnterSelectionMode()
@@ -21,13 +19,11 @@ function Class:ExitSelectionMode()
 end
 
 --- Called when the selection count changes.
---- @param selectedCount number The new selection count
 function Class:OnSelectionCountChanged(selectedCount)
     MultiSelectMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
 --- Checks if currently in selection mode.
---- @return boolean isInSelectionMode True if in selection mode
 function Class:IsInSelectionMode()
     return MultiSelectMixin.IsInSelectionMode(self)
 end
@@ -158,12 +154,9 @@ function Class:ShowBatchActionsMenu()
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
 end
 
---------------------------------------------------------------------------------
 -- CRAFTBAG MULTI-SELECT MODE
---------------------------------------------------------------------------------
 
 --- Called when craft bag selection count changes.
---- @param selectedCount number The new selection count
 function Class:OnCraftBagSelectionCountChanged(selectedCount)
     if self.isInCraftBagSelectionMode and selectedCount > 0 then
         self.craftBagSelectedCount = selectedCount

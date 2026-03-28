@@ -22,7 +22,6 @@ BETTERUI.Inventory.CraftList = BETTERUI.Inventory.List:Subclass()
 
 --- Sets the sort function for the craft bag list.
 --- Called by OnHeaderSortChanged when user sorts by column header.
---- @param sortFunction function|nil The sort comparator function, or nil to reset to default.
 function BETTERUI.Inventory.CraftList:SetSortFunction(sortFunction)
     self.sortFunction = sortFunction
 end
@@ -35,8 +34,6 @@ end
 --- - If `filterType` is a number: Matches that specific type.
 --- - If `filterType` is nil/false: Matches EVERYTHING ("All" category).
 ---
---- @param filterType number|table|nil The filter type(s) to apply.
---- @return function A predicate function (itemData) -> boolean.
 function GetFilterComparator(filterType)
     return function(itemData)
         if filterType then
@@ -77,9 +74,6 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 --- Purpose: Sorts craft bag items.
 --- Mechanics: Category Name -> Type Name -> Name -> Level, etc.
 ---
---- @param left table: Left item data
---- @param right table: Right item data
---- @return boolean: True if left should come before right
 local function BETTERUI_CraftList_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
         ZO_SORT_ORDER_UP)
@@ -93,9 +87,6 @@ end
 --- - Applies `itemFilterFunction`.
 --- - Calculates and caches `bestGamepadItemCategoryName` and `bestItemTypeName`.
 ---
---- @param slotsTable table: The table to add to
---- @param inventoryType number: The inventory type
---- @param slotIndex number: The slot index
 function BETTERUI.Inventory.CraftList:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
@@ -127,8 +118,6 @@ end
 --- 5. **Entries**: Creates `ZO_GamepadEntryData`, sets headers on category change, and adds to list.
 --- 6. **Commit**: Renders the list.
 ---
---- @param filterType number|table The filter type(s) to apply.
---- @param searchQuery string|nil The text search query to filter by name.
 function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
     -- Update empty-state text based on search context
     if searchQuery and tostring(searchQuery) ~= "" then
@@ -162,7 +151,6 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
         end
         filteredDataTable = self.searchMatches
     end
-
 
 
     -- Sort the filtered data using custom sort function if set, otherwise default
@@ -209,7 +197,6 @@ function BETTERUI.Inventory.CraftList:RefreshList(filterType, searchQuery)
 end
 
 --- Processes a batch of craft bag items.
---- @return nil
 function BETTERUI.Inventory.CraftList:ProcessBatch()
     if not self.pendingBatchData or not self.list then return end
 

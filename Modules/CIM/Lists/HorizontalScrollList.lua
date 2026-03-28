@@ -3,29 +3,18 @@ File: Modules/CIM/Lists/HorizontalScrollList.lua
 Purpose: Horizontal Scroll List implementations (Standard and Parametric).
 ]]
 
--- ============================================================================
 -- CLASS: BETTERUI_HorizontalScrollList_Gamepad
 -- Basic Horizontal List (Non-Parametric) wrapper
--- ============================================================================
 BETTERUI_HorizontalScrollList_Gamepad = ZO_HorizontalScrollList:Subclass()
 
 --- Creates a new horizontal scroll list instance.
 ---
---- @param ... any Arguments for ZO_HorizontalScrollList:New.
---- @return table The new list instance.
 function BETTERUI_HorizontalScrollList_Gamepad:New(...)
     return ZO_HorizontalScrollList.New(self, ...)
 end
 
 --- Initializes the horizontal scroll list.
 ---
---- @param control table The list control.
---- @param templateName string The row template name.
---- @param numVisibleEntries number Number of visible entries.
---- @param setupFunction function Sub-function to setup each entry.
---- @param equalityFunction function Function to compare entries.
---- @param onCommitWithItemsFunction function Callback on commit with items.
---- @param onClearedFunction function Callback on list clear.
 function BETTERUI_HorizontalScrollList_Gamepad:Initialize(control, templateName, numVisibleEntries, setupFunction,
                                                           equalityFunction, onCommitWithItemsFunction, onClearedFunction)
     ZO_HorizontalScrollList.Initialize(self, control, templateName, numVisibleEntries, setupFunction, equalityFunction,
@@ -42,9 +31,6 @@ end
 --- - Applies Scale effect to center item using Lerp/Ease.
 --- - Updates Arrow button visibility/enabled state.
 ---
---- @param primaryControlOffsetX number Current X offset for the primary control.
---- @param initialUpdate boolean True if this is the first update.
---- @param reselectingDuringRebuild boolean True if reselecting.
 function BETTERUI_HorizontalScrollList_Gamepad:UpdateAnchors(primaryControlOffsetX, initialUpdate,
                                                              reselectingDuringRebuild)
     if self.isUpdatingAnchors then return end
@@ -105,7 +91,6 @@ end
 
 --- Sets the callback for activation state changes.
 ---
---- @param onActivatedChangedFunction function The callback.
 function BETTERUI_HorizontalScrollList_Gamepad:SetOnActivatedChangedFunction(onActivatedChangedFunction)
     self.onActivatedChangedFunction = onActivatedChangedFunction
     self.dirty = true
@@ -122,7 +107,6 @@ end
 
 --- Sets the active state of the list.
 ---
---- @param active boolean True to activate.
 function BETTERUI_HorizontalScrollList_Gamepad:SetActive(active)
     if (self.active ~= active) or self.dirty then
         self.active = active
@@ -154,19 +138,12 @@ function BETTERUI_HorizontalScrollList_Gamepad:Deactivate()
     self:SetActive(false)
 end
 
--- ============================================================================
 -- CLASS: BETTERUI_HorizontalParametricScrollList
 -- Base class for horizontal parametric lists.
--- ============================================================================
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
 --- Creates a new horizontal parametric scroll list.
 ---
---- @param control table The list control.
---- @param onActivatedChangedFunction function Callback for activation state changes.
---- @param onCommitWithItemsFunction function Callback on commit with items.
---- @param onClearedFunction function Callback on clear.
---- @return table The new list instance.
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction,
                                                      onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged

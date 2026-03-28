@@ -15,8 +15,6 @@ BETTERUI.CIM.RegisterModuleAccessors("Inventory")
 --- It is called by BETTERUI.ModuleOptions() via pcall with only m_options.
 ---
 --- Standard InitModule Signature (consistent across all modules):
----   @param m_options table|nil The raw settings table to be initialized
----   @return table The modified options table with default values applied
 ---
 --- Wrapper Function (caller in BetterUI.lua):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
@@ -93,10 +91,7 @@ end
 -- Settings registration moved to Inventory/Settings/SettingsPanel.lua
 
 
-
--- ============================================================================
 -- MODULE SETUP
--- ============================================================================
 
 --- Lifecycle hook: registers settings and initializes the Inventory module.
 --- Registers settings, replaces native GAMEPAD_INVENTORY, and configures tooltips.

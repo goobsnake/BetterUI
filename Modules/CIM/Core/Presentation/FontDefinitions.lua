@@ -4,9 +4,7 @@ Purpose: Shared font definitions and utility functions for inventory/banking mod
          Provides centralized font arrays, defaults, and descriptor builders.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED FONT DEFINITIONS
--------------------------------------------------------------------------------------------------
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Font then BETTERUI.CIM.Font = {} end
@@ -118,9 +116,6 @@ local WESTERN_ONLY_FONTS = {
 BETTERUI.CIM.Font.SIZE_MIN = 12
 BETTERUI.CIM.Font.SIZE_MAX = 48
 
---- @param sizeValue any Font size value to clamp (coerced via tonumber)
---- @param fallback number Default size when value is non-numeric
---- @return number size Clamped font size within FONT_SIZE_MIN..FONT_SIZE_MAX
 local function ClampFontSize(sizeValue, fallback)
     local numeric = tonumber(sizeValue)
     if not numeric then
@@ -140,20 +135,13 @@ local function ClampFontSize(sizeValue, fallback)
     return rounded
 end
 
--------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
--------------------------------------------------------------------------------------------------
 
---- @param sizeValue string|number The size setting value
---- @return number fontSize The font size in pixels
 function BETTERUI.CIM.Font.GetSizeValue(sizeValue)
     return ClampFontSize(sizeValue, BETTERUI.CIM.Font.DEFAULTS.nameFontSize)
 end
 
 --- Normalizes shared module font sizes to the active slider bounds.
---- @param m_options table Module settings table
---- @param defaults table|nil Optional module defaults table
---- @return table m_options The normalized settings table
 function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
     if type(m_options) ~= "table" then
         return m_options
@@ -170,12 +158,6 @@ function BETTERUI.CIM.Font.NormalizeModuleFontSettings(m_options, defaults)
 end
 
 --- Shared module initialization helper for defaults and font migrations.
---- @param moduleKey string Module key in settings registry
---- @param m_options table Module settings table
---- @param defaults table|nil Optional module font defaults table
---- @param fallbackDefaults table|nil Fallback defaults when DefaultsRegistry is unavailable
---- @param onBeforeFontMigration fun(options: table, moduleDefaults: table)|nil Optional module-specific migration callback
---- @return table m_options The initialized settings table
 function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbackDefaults, onBeforeFontMigration)
     if type(m_options) ~= "table" then
         m_options = {}
@@ -217,10 +199,6 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
     return m_options
 end
 
---- @param fontPath string The font file path
---- @param fontSize number The font size in pixels
---- @param fontStyle string|nil The font style suffix (optional)
---- @return string descriptor ESO font descriptor (path|size|style)
 function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     if fontStyle and fontStyle ~= "" then
         return string.format("%s|%d|%s", fontPath, fontSize, fontStyle)
@@ -229,9 +207,6 @@ function BETTERUI.CIM.Font.BuildDescriptor(fontPath, fontSize, fontStyle)
     end
 end
 
---- @param moduleName string The module key in BETTERUI.Settings.Modules
---- @param fontType "name"|"column" Which font setting to retrieve
---- @return string descriptor ESO font descriptor (path|size|style)
 function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
     local settings = BETTERUI.GetModuleSettings(moduleName)
     local defaults = BETTERUI.CIM.Font.DEFAULTS
@@ -251,8 +226,6 @@ function BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, fontType)
 end
 
 --- Creates bound font descriptor closures for a module.
---- @param moduleName string The module key in BETTERUI.Settings.Modules
---- @return table descriptors Table with `name` and `column` closure fields
 function BETTERUI.CIM.Font.CreateModuleDescriptors(moduleName)
     return {
         name = function() return BETTERUI.CIM.Font.GetModuleFontDescriptor(moduleName, "name") end,

@@ -180,9 +180,7 @@ local function UpdateFrontBarUltimateNumber(rootFrame)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
--------------------------------------------------------------------------------------------------
 SkillBar.PlayUltimateReadyAnimations = PlayUltimateReadyAnimations
 SkillBar.StopUltimateReadyAnimations = StopUltimateReadyAnimations
 SkillBar.UpdateFrontBarUltimateMeter = UpdateFrontBarUltimateMeter

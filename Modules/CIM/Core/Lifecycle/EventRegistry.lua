@@ -15,22 +15,13 @@ Usage:
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.EventRegistry = {}
 
--- ============================================================================
 -- INTERNAL STATE
--- ============================================================================
 
----@type table<string, table<number, string[]>> Module -> {eventId -> [namespaces]}
 local registrations = {}
 
--- ============================================================================
 -- CORE API
--- ============================================================================
 
 --- Register an event with tracking for later cleanup.
---- @param moduleName string Module identifier (e.g., "ResourceOrbFrames", "Inventory")
---- @param namespace string Event namespace (unique string for this registration)
---- @param eventId number ESO event constant (e.g., EVENT_POWER_UPDATE)
---- @param callback function Event handler function
 function BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, callback)
     -- Initialize module tracking if needed
     registrations[moduleName] = registrations[moduleName] or {}
@@ -44,12 +35,6 @@ function BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, cal
 end
 
 --- Register an event with a filter.
---- @param moduleName string Module identifier
---- @param namespace string Event namespace
---- @param eventId number ESO event constant
---- @param callback function Event handler function
---- @param filterType number Filter type constant
---- @param filterValue any Filter value
 function BETTERUI.CIM.EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
     -- Register the event first
     BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, callback)
@@ -60,8 +45,6 @@ end
 
 --- Unregister all events for a specific module.
 --- Call this when a module is disabled or its scene is hidden.
---- @param moduleName string Module identifier to clean up
---- @param suppressLog boolean|nil When true, skip debug/chat output for this cleanup
 function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName, suppressLog)
     local moduleRegs = registrations[moduleName]
     if not moduleRegs then return end
@@ -80,9 +63,6 @@ function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName, suppressLog)
 end
 
 --- Unregister a specific event for a module.
---- @param moduleName string Module identifier
---- @param namespace string The namespace to unregister
---- @param eventId number The event ID to unregister
 function BETTERUI.CIM.EventRegistry.Unregister(moduleName, namespace, eventId)
     local moduleRegs = registrations[moduleName]
     if not moduleRegs or not moduleRegs[eventId] then return end
@@ -109,8 +89,6 @@ function BETTERUI.CIM.EventRegistry.Unregister(moduleName, namespace, eventId)
 end
 
 --- Get the count of registered events for a module.
---- @param moduleName string Module identifier
---- @return number count Total number of event registrations
 function BETTERUI.CIM.EventRegistry.GetRegistrationCount(moduleName)
     local count = 0
     local moduleRegs = registrations[moduleName]

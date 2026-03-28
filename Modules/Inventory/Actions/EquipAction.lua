@@ -4,15 +4,8 @@ Purpose: Handles item equipping logic, including "Bind on Equip" protection,
          equipment slot selection dialogs (e.g. Ring 1 vs Ring 2), and companion equipment patching.
 ]]
 
---------------------------------------------------------------------------------
 -- SHARED EQUIP HELPER
---------------------------------------------------------------------------------
 
---- @param bagId number
---- @param slotIndex number
---- @param equipType number
---- @param mainSlot boolean
---- @param isPrimary boolean
 local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     local targetPrimary = (isPrimary ~= false)
 
@@ -39,9 +32,7 @@ local function DoEquipMove(bagId, slotIndex, equipType, mainSlot, isPrimary)
     end
 end
 
---------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCHING
---------------------------------------------------------------------------------
 
 local COMPANION_EQUIP_PATCH_EVENT_NAME = "BETTERUI_CompanionEquipPatch"
 local COMPANION_EQUIP_PATCH_RETRY_MS = 400
@@ -49,7 +40,6 @@ local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
---- @return boolean
 local function AttemptCompanionEquipPatch()
     local class = _G["ZO_CompanionEquipment_Gamepad"]
     if not class then
@@ -88,7 +78,6 @@ local function AttemptCompanionEquipPatch()
     return true
 end
 
---- @return boolean
 local function EnsureCompanionEquipPatched()
     if AttemptCompanionEquipPatch() then
         if EVENT_MANAGER and EVENT_MANAGER.UnregisterForEvent then
@@ -123,9 +112,7 @@ end
 -- Expose for external calls
 BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 
---------------------------------------------------------------------------------
 -- EQUIP LOGIC
---------------------------------------------------------------------------------
 
 --- Attempts to equip the selected item with BOE protection.
 ---
@@ -138,8 +125,6 @@ BETTERUI.Inventory.EnsureCompanionEquipPatched = EnsureCompanionEquipPatched
 --- 5. Handles Costumes vs Gear.
 --- References: Called from "A" keybind (Equip).
 ---
---- @param inventorySlot table The data of the item to equip
---- @param isCallingFromActionDialog boolean True if called from the actions dialog
 function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActionDialog)
     -- Y-MENU FIX: The engine's gamepad_equip handler calls TryEquipItem(inventorySlot) without the
     -- isCallingFromActionDialog parameter, so we check if action dialog IS showing instead.
@@ -244,14 +229,10 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
     end
 end
 
---------------------------------------------------------------------------------
 -- EQUIP SLOT DIALOG
---------------------------------------------------------------------------------
 
 --- Initializes the custom dialog for selecting equipment slots (e.g., Ring 1 vs Ring 2).
 function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
-    --- @param data table
-    --- @param mainSlot boolean
     local function ReleaseDialog(data, mainSlot)
         local equipType = data[1].dataSource.equipType
         local bound = IsItemBound(data[1].dataSource.bagId, data[1].dataSource.slotIndex)
@@ -284,14 +265,10 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         end
     end
 
-    --- @param isPrimary boolean
-    --- @return string
     local function GetDialogSwitchButtonText(isPrimary)
         return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_EQUIPSLOT"))
     end
 
-    --- @param dialog table
-    --- @return string
     local function GetDialogMainText(dialog)
         local equipType = dialog.data[1].dataSource.equipType
         local itemName = GetItemName(dialog.data[1].dataSource.bagId, dialog.data[1].dataSource.slotIndex)

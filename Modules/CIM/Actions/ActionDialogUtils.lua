@@ -6,9 +6,7 @@ Purpose: Shared action dialog utilities for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
--------------------------------------------------------------------------------------------------
 -- QUICKSLOT DIALOG UTILITIES
--------------------------------------------------------------------------------------------------
 
 -- Ordered clockwise starting at North: N, NE, E, SE, S, SW, W, NW
 local QUICKSLOT_ORDERED_SLOTS = { 4, 3, 2, 1, 8, 7, 6, 5 }
@@ -25,15 +23,10 @@ local QUICKSLOT_LABELS = {
     [8] = "South",
 }
 
---- @param slotIndex number The quickslot index (1-8)
---- @return string label The directional label
 function BETTERUI.CIM.GetQuickslotLabel(slotIndex)
     return QUICKSLOT_LABELS[slotIndex] or tostring(slotIndex)
 end
 
---- @param dialog table The dialog object containing the parametricList
---- @param target table The target item data (bagId, slotIndex)
---- @return table result Information about the populated entries
 function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     local parametricList = dialog.info.parametricList
     ZO_ClearNumericallyIndexedTable(parametricList)
@@ -99,8 +92,6 @@ function BETTERUI.CIM.BuildQuickslotDialogEntries(dialog, target)
     }
 end
 
---- @param dialog table The dialog object
---- @param quickslotInfo table Result from BuildQuickslotDialogEntries
 function BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
     if dialog.entryList and dialog.entryList.SetSelectedIndexWithoutAnimation then
         local offset = quickslotInfo.hasUnassign and 1 or 0
@@ -118,13 +109,8 @@ function BETTERUI.CIM.SetQuickslotDialogSelection(dialog, quickslotInfo)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- ACTION ENTRY POPULATION
--------------------------------------------------------------------------------------------------
 
---- @param parametricList table The dialog's parametric list to populate
---- @param slotActions table The slot actions object with GetNumSlotActions/GetSlotAction
---- @param options table|nil Configuration options
 function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options)
     options = options or {}
     local hideDestroy = options.hideDestroy
@@ -163,12 +149,8 @@ function BETTERUI.CIM.PopulateActionEntries(parametricList, slotActions, options
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- LINK TO CHAT HANDLER
--------------------------------------------------------------------------------------------------
 
---- @param targetData table|nil The item data containing bagId and slotIndex
---- @return boolean success True if link was inserted
 function BETTERUI.CIM.HandleLinkToChat(targetData)
     if not targetData then return false end
 

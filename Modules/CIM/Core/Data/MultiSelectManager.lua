@@ -4,16 +4,12 @@ Purpose: Manages multi-selection state for inventory and banking lists.
          Provides selection mode entry/exit, item toggle, and batch operations.
 ]]
 
---------------------------------------------------------------------------------
 -- NAMESPACE SETUP
---------------------------------------------------------------------------------
 
 BETTERUI.CIM.MultiSelectManager = {}
 local MultiSelectManager = BETTERUI.CIM.MultiSelectManager
 
---------------------------------------------------------------------------------
 -- CONSTANTS
---------------------------------------------------------------------------------
 
 -- Hold duration threshold in milliseconds for entering select mode
 MultiSelectManager.HOLD_THRESHOLD_MS = 500
@@ -23,33 +19,21 @@ local activeInstance = nil
 
 --- Gets the currently active multi-select manager instance.
 --- Used by row setup functions to check selection state.
---- @return table|nil instance The active manager or nil if none active
 function MultiSelectManager.GetActiveInstance()
     return activeInstance
 end
 
 --- Sets the active instance (called when entering/exiting selection mode).
---- @param instance table|nil The manager instance or nil
 function MultiSelectManager.SetActiveInstance(instance)
     activeInstance = instance
 end
 
---------------------------------------------------------------------------------
 -- CLASS DEFINITION
---------------------------------------------------------------------------------
 
---- @class MultiSelectManager
---- @field list table The parametric scroll list being managed
---- @field isActive boolean Whether selection mode is currently active
---- @field selectedItems table<string, table> Map of uniqueId -> itemData for selected items
---- @field selectionChangedCallback function Optional callback when selection changes
 local Manager = ZO_Object:Subclass()
 MultiSelectManager.Manager = Manager
 
 --- Creates a new MultiSelectManager instance
---- @param list table The parametric scroll list to manage
---- @param selectionChangedCallback function? Optional callback(selectedCount) when selection changes
---- @return table instance The new manager instance
 function Manager:New(list, selectionChangedCallback)
     local instance = ZO_Object.New(self)
     instance:Initialize(list, selectionChangedCallback)
@@ -57,8 +41,6 @@ function Manager:New(list, selectionChangedCallback)
 end
 
 --- Initializes the manager with the given list
---- @param list table The parametric scroll list
---- @param selectionChangedCallback function? Optional callback when selection changes
 function Manager:Initialize(list, selectionChangedCallback)
     self.list = list
     self.isActive = false
@@ -66,12 +48,9 @@ function Manager:Initialize(list, selectionChangedCallback)
     self.selectionChangedCallback = selectionChangedCallback
 end
 
---------------------------------------------------------------------------------
 -- SELECTION MODE CONTROL
---------------------------------------------------------------------------------
 
 --- Enters multi-select mode
---- @return boolean success True if mode was entered
 function Manager:EnterSelectionMode()
     if self.isActive then return false end
 
@@ -93,7 +72,6 @@ function Manager:EnterSelectionMode()
 end
 
 --- Exits multi-select mode and clears all selections
---- @return boolean success True if mode was exited
 function Manager:ExitSelectionMode()
     if not self.isActive then return false end
 
@@ -115,18 +93,13 @@ function Manager:ExitSelectionMode()
 end
 
 --- Checks if selection mode is currently active
---- @return boolean isActive
 function Manager:IsActive()
     return self.isActive
 end
 
---------------------------------------------------------------------------------
 -- ITEM SELECTION
---------------------------------------------------------------------------------
 
 --- Toggles selection state for an item
---- @param itemData table The item data to toggle
---- @return boolean isNowSelected True if item is now selected, false if deselected
 function Manager:ToggleSelection(itemData)
     if not itemData then return false end
 
@@ -152,8 +125,6 @@ function Manager:ToggleSelection(itemData)
 end
 
 --- Checks if an item is currently selected
---- @param itemData table The item data to check
---- @return boolean isSelected
 function Manager:IsSelected(itemData)
     if not itemData then return false end
 
@@ -164,7 +135,6 @@ function Manager:IsSelected(itemData)
 end
 
 --- Selects an item without toggling
---- @param itemData table The item data to select
 function Manager:Select(itemData)
     if not itemData then return end
 
@@ -182,7 +152,6 @@ function Manager:Select(itemData)
 end
 
 --- Deselects an item without toggling
---- @param itemData table The item data to deselect
 function Manager:Deselect(itemData)
     if not itemData then return end
 
@@ -210,7 +179,6 @@ end
 
 --- Selects all items in the specified list (or the stored list if none provided)
 --- Handles ZO_GamepadEntryData which wraps item data in dataSource
---- @param listOverride table? Optional list to use instead of stored self.list
 function Manager:SelectAll(listOverride)
     local targetList = listOverride or self.list
     if not targetList then return end
@@ -261,12 +229,9 @@ function Manager:SelectAll(listOverride)
     end
 end
 
---------------------------------------------------------------------------------
 -- SELECTION QUERIES
---------------------------------------------------------------------------------
 
 --- Gets the count of selected items
---- @return number count
 function Manager:GetSelectedCount()
     local count = 0
     for _ in pairs(self.selectedItems) do
@@ -276,7 +241,6 @@ function Manager:GetSelectedCount()
 end
 
 --- Gets all selected items as an array
---- @return table[] items Array of itemData tables
 function Manager:GetSelectedItems()
     local items = {}
     for _, itemData in pairs(self.selectedItems) do
@@ -286,18 +250,13 @@ function Manager:GetSelectedItems()
 end
 
 --- Checks if any items are selected
---- @return boolean hasSelections
 function Manager:HasSelections()
     return next(self.selectedItems) ~= nil
 end
 
---------------------------------------------------------------------------------
 -- BATCH OPERATIONS
---------------------------------------------------------------------------------
 
 --- Performs a batch operation on all selected items
---- @param operationFn function(itemData) Function to call for each selected item
---- @return number processedCount Number of items processed
 function Manager:BatchOperation(operationFn)
     if not operationFn then return 0 end
 
@@ -314,15 +273,11 @@ function Manager:BatchOperation(operationFn)
     return processedCount
 end
 
---------------------------------------------------------------------------------
 -- UTILITIES
---------------------------------------------------------------------------------
 
 --- Gets a unique identifier for an item
 --- Handles ZO_GamepadEntryData which wraps item data in dataSource
 --- Uses ESO's Id64ToString for reliable Id64 conversion
---- @param itemData table The item data (may be ZO_GamepadEntryData or raw slot data)
---- @return string|nil uniqueId The unique identifier or nil
 function Manager:GetItemUniqueId(itemData)
     if not itemData then return nil end
 
@@ -388,9 +343,7 @@ function Manager:RefreshSelections()
     end
 end
 
---------------------------------------------------------------------------------
 -- EXPORT TO NAMESPACE
---------------------------------------------------------------------------------
 
 -- Convenience factory function
 function MultiSelectManager.Create(list, selectionChangedCallback)

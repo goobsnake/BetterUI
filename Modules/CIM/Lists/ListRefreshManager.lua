@@ -10,9 +10,7 @@ Dependencies: BatchProcessor.lua, GenericListManager.lua
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
--- ============================================================================
 -- LIST REFRESH MANAGER CLASS
--- ============================================================================
 
 --- Manages list refreshes with automatic position restoration.
 BETTERUI.CIM.Lists.ListRefreshManager = ZO_Object:Subclass()
@@ -23,7 +21,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:New(...)
     return obj
 end
 
---- @param options table|nil Configuration options
 function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     options = options or {}
     self.coalesceDelay = options.coalesceDelay or BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS
@@ -36,7 +33,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Initialize(options)
     self.savedUniqueId = nil
 end
 
---- @param list table The parametric list
 function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     if not list then return end
 
@@ -49,8 +45,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:SavePosition(list)
     end
 end
 
---- @param list table The parametric list
---- @return boolean success True if position was restored
 function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     if not list then return false end
 
@@ -91,9 +85,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:RestorePosition(list)
     return false
 end
 
---- @param list table The parametric list
---- @param refreshFn function The refresh function
---- @param savePosition boolean Whether to save position
 function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, savePosition)
     if savePosition ~= false then
         self:SavePosition(list)
@@ -115,8 +106,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:QueueRefresh(list, refreshFn, sav
     end, self.coalesceDelay)
 end
 
---- @param list table The parametric list
---- @param refreshFn function The refresh function
 function BETTERUI.CIM.Lists.ListRefreshManager:ExecuteRefresh(list, refreshFn)
     self.isDirty = false
 
@@ -138,7 +127,6 @@ function BETTERUI.CIM.Lists.ListRefreshManager:Cancel()
     self.isDirty = false
 end
 
---- @return boolean isDirty True if refresh is queued
 function BETTERUI.CIM.Lists.ListRefreshManager:IsDirty()
     return self.isDirty
 end

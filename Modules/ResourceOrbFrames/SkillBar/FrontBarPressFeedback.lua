@@ -9,9 +9,7 @@ local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetSettings = Utils.GetSettings
 
---------------------------------------------------------------------------------
 -- PRESS FEEDBACK CONSTANTS
---------------------------------------------------------------------------------
 local PRESS_FEEDBACK_DEDUPE_WINDOW_MS = 140
 local PRESS_FEEDBACK_EDGE_FLASH_MS = 167
 local PRESS_FEEDBACK_EDGE_FLASH_ALPHA = 0.95
@@ -21,9 +19,7 @@ local BOUNCE_GROW_SCALE = 1.1
 local BOUNCE_FRAME_RESET_TIME_MS = 167
 local BOUNCE_ICON_RESET_TIME_MS = 100
 
---------------------------------------------------------------------------------
 -- PRESS FEEDBACK STATE
---------------------------------------------------------------------------------
 local m_pressFeedbackHooksInstalled = false
 local m_pressFeedbackRootFrame = nil
 local m_pressFeedbackLastPlayedMsByButton = {}
@@ -32,9 +28,6 @@ local m_pressFeedbackLastPlayedMsByButton = {}
 local m_frontBarContainer = nil
 local m_buttonCache = nil
 
---- @param parent table UI control with GetNamedChild method
---- @param name string Child control suffix
---- @return table|nil child Named child control, or nil
 local function GetNamedChildDirect(parent, name)
     if parent and parent.GetNamedChild then
         return parent:GetNamedChild(name)
@@ -42,10 +35,6 @@ local function GetNamedChildDirect(parent, name)
     return nil
 end
 
---- @param rootFrame table Root ResourceOrbFrames control
---- @param frontBarContainer table Front bar container control
---- @param buttonName string Button child name (e.g. "Button1", "QuickslotButton")
---- @return table|nil control Button control, or nil
 local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName)
     if buttonName == "QuickslotButton" or buttonName == "CompanionButton" then
         return GetNamedChildDirect(rootFrame, buttonName)
@@ -57,13 +46,8 @@ local function GetFrontBarButtonControl(rootFrame, frontBarContainer, buttonName
         or FindControl(frontBarContainer, buttonName)
 end
 
---------------------------------------------------------------------------------
 -- BUTTON NAME RESOLUTION
---------------------------------------------------------------------------------
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return string|nil buttonName Frontend button name, nil if slot unmapped
 local function ResolvePressFeedbackButtonName(slotIndex, hotbarCategory)
     if hotbarCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
         return "QuickslotButton"
@@ -85,9 +69,7 @@ local function ResolvePressFeedbackButtonName(slotIndex, hotbarCategory)
     return nil
 end
 
---------------------------------------------------------------------------------
 -- BOUNCE ANIMATION HELPERS
---------------------------------------------------------------------------------
 
 local function ConfigureBounceTimelineSize(timeline, width, height, shrinkScale, resetDurationMs)
     if not timeline then return end
@@ -113,9 +95,6 @@ local function SetPressFeedbackBaseSize(buttonControl, frameWidth, frameHeight, 
     buttonControl.betterUIPressFeedbackBaseIconHeight = iconHeight
 end
 
---- @param buttonControl table Button UI control
---- @param children table|nil Cached child controls
---- @return table|nil state Press feedback state attached to the button
 local function EnsurePressFeedbackState(buttonControl, children)
     if not buttonControl then return nil end
     local state = buttonControl.betterUIPressFeedback
@@ -230,13 +209,8 @@ local function PlayButtonPressFeedback(buttonControl, children, buttonName)
     end
 end
 
---------------------------------------------------------------------------------
 -- USABILITY GATE HELPERS
---------------------------------------------------------------------------------
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean|nil usable True if usable, false if not, nil if unavailable
 local function GetNativeActionBarUsableState(slotIndex, hotbarCategory)
     if type(slotIndex) ~= "number" or type(hotbarCategory) ~= "number" then return nil end
     if type(ZO_ActionBar_GetButton) ~= "function" then return nil end
@@ -246,9 +220,6 @@ local function GetNativeActionBarUsableState(slotIndex, hotbarCategory)
     return nil
 end
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean unusable True if any use-failure condition is detected
 local function HasFallbackPressUseFailure(slotIndex, hotbarCategory)
     if type(slotIndex) ~= "number" or type(hotbarCategory) ~= "number" then return true end
     local slotType = GetSlotType(slotIndex, hotbarCategory)
@@ -272,9 +243,7 @@ local function HasFallbackPressUseFailure(slotIndex, hotbarCategory)
     return hasItemCountFailure or hasCostFailure or hasStateFailure or hasTargetFailure or hasRangeFailure or hasInsufficientUltimate
 end
 
---------------------------------------------------------------------------------
 -- PLAY FEEDBACK FOR SLOT
---------------------------------------------------------------------------------
 
 local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
     local frontBarCfg = GetSettings().customFrontBar
@@ -320,9 +289,7 @@ local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCate
     PlayButtonPressFeedback(buttonControl, children, buttonName)
 end
 
---------------------------------------------------------------------------------
 -- HOOK INSTALLATION
---------------------------------------------------------------------------------
 
 local function SetupFrontBarPressFeedbackHooks(rootFrame)
     m_pressFeedbackRootFrame = rootFrame or m_pressFeedbackRootFrame
@@ -334,9 +301,7 @@ local function SetupFrontBarPressFeedbackHooks(rootFrame)
     m_pressFeedbackHooksInstalled = true
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
--------------------------------------------------------------------------------------------------
 SkillBar.SetPressFeedbackBaseSize = SetPressFeedbackBaseSize
 SkillBar.SetupFrontBarPressFeedbackHooks = SetupFrontBarPressFeedbackHooks
 SkillBar.PlayFrontBarPressFeedbackForSlot = PlayFrontBarPressFeedbackForSlot

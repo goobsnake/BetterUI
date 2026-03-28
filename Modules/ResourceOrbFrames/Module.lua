@@ -14,8 +14,6 @@ local LAM = LibAddonMenu2
 --- - Toggle options for ornaments, skill bar features, and overlays.
 --- - Customization for fonts (size/color) on all elements.
 ---
---- @param mId string The Module ID
---- @param moduleName string The display name of the module for the settings panel
 local function Init(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Resource Orb Frames Settings")
 

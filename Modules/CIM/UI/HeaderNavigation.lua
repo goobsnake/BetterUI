@@ -4,9 +4,7 @@ Purpose: Shared header navigation functions for category cycling.
          Provides consistent navigation behavior for Inventory and Banking.
 ]]
 
--- ============================================================================
 -- NAMESPACE INITIALIZATION
--- ============================================================================
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.HeaderNavigation = BETTERUI.CIM.HeaderNavigation or {}
@@ -14,12 +12,8 @@ BETTERUI.CIM.HeaderNavigation = BETTERUI.CIM.HeaderNavigation or {}
 -- Alias for NavigationState API
 local NavState = BETTERUI.CIM.NavigationState
 
--- ============================================================================
 -- NAVIGATION STATE INITIALIZATION
--- ============================================================================
 
---- @param instance table The module instance
---- @return table state The navigation state object
 function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     if not instance._navState then
         instance._navState = NavState.Create()
@@ -27,13 +21,8 @@ function BETTERUI.CIM.HeaderNavigation.GetOrCreateState(instance)
     return instance._navState
 end
 
--- ============================================================================
 -- CATEGORY CYCLING
--- ============================================================================
 
---- @param instance table The module instance
---- @param delta number Direction: +1 for next, -1 for prev
---- @param options table Configuration options
 function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     if not options.categories or #options.categories < 2 then return end
 
@@ -64,12 +53,8 @@ function BETTERUI.CIM.HeaderNavigation.CycleCategory(instance, delta, options)
     NavState.StopCycling(state)
 end
 
--- ============================================================================
 -- COALESCED SELECTION HANDLER
--- ============================================================================
 
---- @param options table Configuration options
---- @return function callback The debounced callback function
 function BETTERUI.CIM.HeaderNavigation.CreateCoalescedHandler(options)
     local delay = options.delay or BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 

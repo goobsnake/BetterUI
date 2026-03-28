@@ -35,26 +35,17 @@ local NewItemTracker = BETTERUI.Inventory.NewItemTracker
 -- Format: { [uniqueKey] = { bagId = N, slotIndex = N } }
 local pendingClears = {}
 
--------------------------------------------------------------------------------------------------
 -- KEY GENERATION
--------------------------------------------------------------------------------------------------
 
 --- Generates a unique key for a bag/slot combination.
---- @param bagId number
---- @param slotIndex number
---- @return string key
 local function MakeKey(bagId, slotIndex)
     return tostring(bagId) .. "_" .. tostring(slotIndex)
 end
 
--------------------------------------------------------------------------------------------------
 -- PUBLIC API
--------------------------------------------------------------------------------------------------
 
 --- Stage an item for "new" status clearing when the scene hides.
 --- Called when a user selects/views an item in the inventory list.
---- @param bagId number The bag containing the item
---- @param slotIndex number The slot index within the bag
 function NewItemTracker.PrepareForClear(bagId, slotIndex)
     if not bagId or not slotIndex then return end
     local key = MakeKey(bagId, slotIndex)
@@ -63,7 +54,6 @@ end
 
 --- Stage an item from selectedData (ZO_GamepadEntryData or item table).
 --- Convenience wrapper for list selection callbacks.
---- @param selectedData table Item data from list selection
 function NewItemTracker.PrepareFromSelectedData(selectedData)
     if not selectedData then return end
     local bagId = selectedData.bagId or (selectedData.dataSource and selectedData.dataSource.bagId)
@@ -90,8 +80,6 @@ end
 
 --- Immediately clear "new" status for a specific item.
 --- Used when an item is moved, destroyed, or explicitly acted upon.
---- @param bagId number The bag containing the item
---- @param slotIndex number The slot index within the bag
 function NewItemTracker.ClearImmediate(bagId, slotIndex)
     if not bagId or not slotIndex then return end
     if not SHARED_INVENTORY then return end
@@ -109,7 +97,6 @@ end
 
 --- Returns the number of items pending "new" status clear.
 --- Useful for debugging.
---- @return number count The number of pending clears
 function NewItemTracker.GetPendingCount()
     local count = 0
     for _ in pairs(pendingClears) do

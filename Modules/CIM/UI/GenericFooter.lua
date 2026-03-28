@@ -5,10 +5,8 @@ Purpose: Manages the Gamepad Bottom Bar (Footer) logic.
 ]]
 
 
--- ============================================================================
 -- LOCAL ALIASES
 -- Reference CurrencyManager functions for cleaner code
--- ============================================================================
 
 local Currency = nil -- Will be set after load order verification
 
@@ -19,22 +17,16 @@ local function EnsureCurrencyManager()
     return Currency
 end
 
--- ============================================================================
 -- HELPER FUNCTIONS
--- ============================================================================
 
 --- Retrieves a label control from the footer by name.
 --- Delegates to CurrencyManager's implementation for consistency.
 ---
---- @param footer table The footer control.
---- @param labelName string The name of the label to retrieve.
 local function GetLabelControl(footer, labelName)
     return EnsureCurrencyManager().GetLabelControl(footer, labelName)
 end
 
--- ============================================================================
 -- PUBLIC API
--- ============================================================================
 
 --- Initializes the footer control reference.
 --- Triggers an initial refresh if the control is ready.

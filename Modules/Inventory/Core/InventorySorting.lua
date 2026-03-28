@@ -4,9 +4,7 @@
 
 local Class = BETTERUI.Inventory.Class
 
---------------------------------------------------------------------------------
 -- HEADER SORT MODE
---------------------------------------------------------------------------------
 -- Column definitions for header sort navigation
 -- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
 local INVENTORY_SORT_COLUMNS = {
@@ -18,8 +16,6 @@ local INVENTORY_SORT_COLUMNS = {
 }
 
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
---- @param data table|nil Item data
---- @return string|nil Trait name (uppercase) or nil if no trait
 local function GetTraitSortValue(data)
     if not data then return nil end
     local itemData = data.dataSource or data
@@ -47,9 +43,6 @@ local function GetTraitSortValue(data)
 end
 
 --- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
---- @param data table|nil Item data
---- @return number priority Sort priority (1=alpha, 2=numeric, 3=blank)
---- @return string|number value Value to compare within priority
 local function GetStatSortValue(data)
     if not data then return 3, "" end
     local statValue = data.statValue
@@ -68,8 +61,6 @@ local function GetStatSortValue(data)
 end
 
 --- Helper: Get value sort value (market price first, then vendor price)
---- @param data table|nil Item data
---- @return number price Best available price
 local function GetValueSortValue(data)
     if not data then return 0 end
     local itemData = data.dataSource or data
@@ -93,9 +84,6 @@ local function GetValueSortValue(data)
 end
 
 --- Creates sort comparator for a column with the specified direction
---- @param sortKey string The key to sort by
---- @param ascending boolean True for ascending, false for descending
---- @return function
 local function CreateColumnSortComparator(sortKey, ascending)
     -- TRAIT: Alphabetical with blanks after "z"
     if sortKey == "trait" then
@@ -157,7 +145,6 @@ local function CreateColumnSortComparator(sortKey, ascending)
 end
 
 --- Initializes the header sort controller for this inventory instance.
---- @return nil
 function Class:InitializeHeaderSortController()
     if self.headerSortControllers then return end
 
@@ -204,7 +191,6 @@ function Class:InitializeHeaderSortController()
 end
 
 --- Links column header labels to the sort controller for visual feedback.
---- @return nil
 function Class:LinkColumnLabels()
     if not self.headerSortControllers then return end
 
@@ -247,9 +233,6 @@ function Class:LinkColumnLabels()
 end
 
 --- Called when sort direction changes on a column.
---- @param listType string "itemList" or "craftBagList"
---- @param columnKey string The column key
---- @param direction number Sort direction constant
 function Class:OnHeaderSortChanged(listType, columnKey, direction)
     local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
 

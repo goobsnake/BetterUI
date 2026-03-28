@@ -10,9 +10,7 @@ BETTERUI.CIM.ProtectionPolicy = {}
 
 local Policy = BETTERUI.CIM.ProtectionPolicy
 
--- ============================================================================
 -- DENY REASON CODES
--- ============================================================================
 -- Returned as a second value from policy checks: allowed, reason = Policy.CanXxx(...)
 -- Callers may ignore the reason (backward-compatible).
 
@@ -31,39 +29,23 @@ Policy.DENY = {
     GUILD_TRADEABLE = "guild_tradeable",
 }
 
--- ============================================================================
 -- LOCAL HELPERS
--- ============================================================================
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean hasItem
 local function HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean isCompanionItem
 local function IsCompanionItem(bagId, slotIndex)
     return GetItemActorCategory(bagId, slotIndex) == GAMEPLAY_ACTOR_CATEGORY_COMPANION
 end
 
---- @return boolean companionJunkEnabled
 local function IsCompanionJunkEnabled()
     return BETTERUI.GetSetting("Inventory", "enableCompanionJunk", false) == true
 end
 
--- ============================================================================
 -- PROTECTION CHECKS
--- ============================================================================
 
---- @param bagId number
---- @param slotIndex number
---- @param slotType? number Optional slot type for ZO validation
---- @return boolean canDestroy
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
         return false, Policy.DENY.NO_ITEM
@@ -84,10 +66,6 @@ function Policy.CanDestroyItem(bagId, slotIndex, slotType)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean canJunk
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanJunkItem(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -107,10 +85,6 @@ function Policy.CanJunkItem(bagId, slotIndex)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean canUnjunk
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanUnjunkItem(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -122,11 +96,6 @@ function Policy.CanUnjunkItem(bagId, slotIndex)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @param targetBag? number Optional target bag (e.g., BAG_GUILDBANK)
---- @return boolean canTransfer
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     if not bagId or not slotIndex or not HasItemAtSlot(bagId, slotIndex) then
         return false, Policy.DENY.NO_ITEM
@@ -161,10 +130,6 @@ function Policy.CanTransferItem(bagId, slotIndex, targetBag)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean canDeposit
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanDepositToFurnitureVault(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -181,10 +146,6 @@ function Policy.CanDepositToFurnitureVault(bagId, slotIndex)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean canStow
---- @return string|nil reason Deny reason from Policy.DENY, or nil if allowed
 function Policy.CanStowToCraftBag(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false, Policy.DENY.NO_ITEM
@@ -201,9 +162,6 @@ function Policy.CanStowToCraftBag(bagId, slotIndex)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean isLocked
 function Policy.IsItemPlayerLocked(bagId, slotIndex)
     if not bagId or not slotIndex then
         return false
@@ -211,10 +169,6 @@ function Policy.IsItemPlayerLocked(bagId, slotIndex)
     return IsItemPlayerLocked(bagId, slotIndex) == true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean isProtected
---- @return string|nil reason Deny reason from Policy.DENY, or nil if not protected
 function Policy.IsProtected(bagId, slotIndex)
     if not bagId or not slotIndex then
         return true, Policy.DENY.NO_ITEM

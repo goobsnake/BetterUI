@@ -9,11 +9,8 @@ if not BETTERUI.ResearchTraits then
     BETTERUI.ResearchTraits = {}
 end
 
--- ============================================================================
 -- RESEARCH CACHE
--- ============================================================================
 
---- @param forceRefresh boolean|nil If true, ignores existing cache and rebuilds data
 function BETTERUI.GetResearch(forceRefresh)
     if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then
         return -- Use cached data

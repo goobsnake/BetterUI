@@ -26,8 +26,6 @@ end
 --- Purpose: Callback for module initialization.
 --- Mechanics: Pass-through; module is controlled by Master Settings m_enabled.
 ---
---- @param m_options table The module options table.
---- @return table The initialized options table.
 function BETTERUI.Writs.InitModule(m_options)
     return m_options
 end
@@ -38,9 +36,6 @@ end
 --- Mechanics: Calls BETTERUI.Writs.Show with the station's craft ID.
 --- Note: eventCode check removed - ESO events never pass 0.
 ---
---- @param eventCode number The event code (unused but required by ESO API).
---- @param craftId number The crafting station ID (e.g., CRAFTING_TYPE_BLACKSMITHING).
---- @param sameStation boolean Whether interacting with same station type.
 local function OnCraftStation(eventCode, craftId, sameStation)
     if not IsWritsModuleEnabled() then return end
 
@@ -55,7 +50,6 @@ end
 --- Purpose: Triggered when user exits a crafting station.
 --- Mechanics: Calls `BETTERUI.Writs.Hide` to remove the overlay.
 ---
---- @param eventCode number The event code.
 local function OnCloseCraftStation(eventCode)
     SafeExecuteWrits("Writs:OnCloseCraftStation", BETTERUI.Writs.Hide)
 end
@@ -66,8 +60,6 @@ end
 --- Mechanics: Calls BETTERUI.Writs.Show to refresh progress (e.g., 1/3 -> 2/3).
 --- Note: eventCode check removed - ESO events never pass 0.
 ---
---- @param eventCode number The event code (unused but required by ESO API).
---- @param craftId number The crafting ID (usually matching the station type).
 local function OnCraftItem(eventCode, craftId)
     if not IsWritsModuleEnabled() then return end
 

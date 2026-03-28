@@ -9,9 +9,7 @@ Purpose: Internal constants, state, mouse interaction helpers, and control creat
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.ScrollIndicator then BETTERUI.CIM.ScrollIndicator = {} end
 
--- ============================================================================
 -- CONSTANTS
--- ============================================================================
 
 --- Visual configuration for the scroll indicator.
 --- Direction: offsetX positive = RIGHT, offsetY positive = DOWN
@@ -35,28 +33,20 @@ local SCROLL_INDICATOR = {
     },
 }
 
--- ============================================================================
 -- INTERNAL STATE
--- ============================================================================
 
 -- Cache for scroll indicator instances by list control
 local indicatorInstances = {}
 
--- ============================================================================
 -- MOUSE INTERACTION CONSTANTS
--- ============================================================================
 
 local MOUSE_INTERACTION = {
     ARROW_REPEAT_DELAY_MS = 400,    -- Initial delay before repeat starts
     ARROW_REPEAT_INTERVAL_MS = 150, -- Interval between repeated scrolls
 }
 
--- ============================================================================
 -- INTERNAL HELPER FUNCTIONS - MOUSE INTERACTION
--- ============================================================================
 
---- @param instance table The scroll indicator instance
---- @param direction number -1 for up (MovePrevious), +1 for down (MoveNext)
 local function StartArrowRepeat(instance, direction)
     if not instance or not instance.listObject then return end
 
@@ -87,7 +77,6 @@ local function StartArrowRepeat(instance, direction)
     end, MOUSE_INTERACTION.ARROW_REPEAT_DELAY_MS)
 end
 
---- @param instance table The scroll indicator instance
 local function StopArrowRepeat(instance)
     if not instance then return end
 
@@ -98,7 +87,6 @@ local function StopArrowRepeat(instance)
     EVENT_MANAGER:UnregisterForUpdate(updateName)
 end
 
---- @param instance table The scroll indicator instance
 local function SetupArrowMouseHandlers(instance)
     if not instance or not instance.controls then return end
 
@@ -148,10 +136,6 @@ local function SetupArrowMouseHandlers(instance)
     end)
 end
 
---- @param instance table The scroll indicator instance
---- @param totalItems number Total entries currently in the list
---- @return number firstSelectableIndex
---- @return number lastSelectableIndex
 local function GetSelectableBounds(instance, totalItems)
     local firstSelectableIndex = 1
     local lastSelectableIndex = totalItems
@@ -173,7 +157,6 @@ local function GetSelectableBounds(instance, totalItems)
     return firstSelectableIndex, lastSelectableIndex
 end
 
---- @param instance table The scroll indicator instance
 local function SetupThumbDragHandlers(instance)
     if not instance or not instance.controls then return end
 
@@ -270,13 +253,9 @@ local function SetupThumbDragHandlers(instance)
     instance.globalMouseUpEventName = updateName
 end
 
--- ============================================================================
 -- HELPER FUNCTIONS
--- ============================================================================
 
 --- Applies the texture and coordinates to the thumb control.
---- @param thumb table|nil The thumb texture control
---- @return nil
 local function ApplyThumbTexture(thumb)
     if not thumb then return end
 
@@ -286,11 +265,6 @@ local function ApplyThumbTexture(thumb)
     thumb:SetTextureCoords(coords.left, coords.right, coords.top, coords.bottom)
 end
 
---- @param listControl table The parametric list control to attach to
---- @param offsetX number|nil Horizontal offset from list right edge
---- @param offsetTopY number|nil Top vertical offset
---- @param offsetBottomY number|nil Bottom vertical offset
---- @return table controls Table containing references to created controls
 local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetBottomY)
     local controlName = listControl:GetName() .. "ScrollIndicator"
     local actualOffsetX = offsetX or SCROLL_INDICATOR.TRACK.OFFSET_X
@@ -369,9 +343,7 @@ local function CreateIndicatorControls(listControl, offsetX, offsetTopY, offsetB
     }
 end
 
--- ============================================================================
 -- EXPORT INTERNALS FOR PUBLIC API
--- ============================================================================
 
 BETTERUI.CIM.ScrollIndicator._Internals = {
     SCROLL_INDICATOR = SCROLL_INDICATOR,

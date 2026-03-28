@@ -9,9 +9,7 @@ Used By: Inventory/Lists/ItemListManager.lua, Banking (future)
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Lists then BETTERUI.CIM.Lists = {} end
 
--- ============================================================================
 -- BATCH PROCESSOR CLASS
--- ============================================================================
 
 --- Manages incremental list population for large datasets.
 BETTERUI.CIM.Lists.BatchProcessor = ZO_Object:Subclass()
@@ -22,7 +20,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:New(...)
     return obj
 end
 
---- @param options table|nil Configuration options
 function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     options = options or {}
     self.initialBatchSize = options.initialBatchSize or BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_INITIAL
@@ -38,8 +35,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:Initialize(options)
     self.isActiveCheck = nil
 end
 
---- @param data table Array of items to process
---- @param options table Processing configuration
 function BETTERUI.CIM.Lists.BatchProcessor:Start(data, options)
     -- Cancel any existing batch
     self:Cancel()
@@ -134,7 +129,6 @@ function BETTERUI.CIM.Lists.BatchProcessor:Reset()
     self.isActiveCheck = nil
 end
 
---- @return boolean active True if batch processing is in progress
 function BETTERUI.CIM.Lists.BatchProcessor:IsActive()
     return self.pendingData ~= nil
 end

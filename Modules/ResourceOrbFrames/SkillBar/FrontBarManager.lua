@@ -30,25 +30,14 @@ local NON_COST_FAILURE_CAST_HOLD_MS = 250
 -- Expose button cache to sibling modules (FrontBarCooldowns, FrontBarPressFeedback)
 SkillBar._frontBarButtonCache = m_buttonCache
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return string key Composite cache key "slotIndex_hotbarCategory"
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean hasFailure True if slot has target or range failure
 local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
     local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
     local hasRangeFailure = ActionSlotHasRangeFailure and ActionSlotHasRangeFailure(slotIndex, hotbarCategory) or false
     return hasTargetFailure or hasRangeFailure
 end
 
---- @param slotStateKey string Composite slot+hotbar cache key
---- @param hasTargetOrRangeFailure boolean Current frame's target/range failure state
---- @param isCasting boolean Whether the player is currently casting
---- @param nowMs number Current game time in milliseconds
---- @return boolean latched True if failure is active or within the cast-hold window
 local function ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeFailure, isCasting, nowMs)
     if hasTargetOrRangeFailure then
         m_targetFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
@@ -62,11 +51,6 @@ local function ResolveTargetFailureWithCastLatch(slotStateKey, hasTargetOrRangeF
     return false
 end
 
---- @param slotStateKey string Composite slot+hotbar cache key
---- @param hasStateFailure boolean Current frame's non-cost failure state
---- @param isCasting boolean Whether the player is currently casting
---- @param nowMs number Current game time in milliseconds
---- @return boolean latched True if failure is active or within the cast-hold window
 local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure, isCasting, nowMs)
     if hasStateFailure then
         m_nonCostFailureLastSeenMsBySlotCategory[slotStateKey] = nowMs
@@ -80,9 +64,6 @@ local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure,
     return false
 end
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean insufficient True if this is the ultimate slot and player lacks the cost
 local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     local ultimateSlotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
     if slotIndex ~= ultimateSlotIndex then return false end
@@ -93,9 +74,6 @@ local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     return currentUltimate < abilityCost
 end
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean suppress True if a long cooldown or effect is active (avoids flicker)
 local function ShouldSuppressUnusableOverlayForCooldown(slotIndex, hotbarCategory)
     local remainMs, durationMs, isGlobalCooldown = GetSlotCooldownInfo(slotIndex, hotbarCategory)
     if remainMs and remainMs > 0 and durationMs and durationMs > 1500 and not isGlobalCooldown then
@@ -105,9 +83,7 @@ local function ShouldSuppressUnusableOverlayForCooldown(slotIndex, hotbarCategor
     return effectRemaining and effectRemaining > 0
 end
 
---------------------------------------------------------------------------------
 -- CONTROL CACHING
---------------------------------------------------------------------------------
 
 local function CacheFrontBarControls(rootFrame)
     if not rootFrame then return end
@@ -142,9 +118,7 @@ local function CacheFrontBarControls(rootFrame)
     end
 end
 
---------------------------------------------------------------------------------
 -- HIDE NATIVE ACTION BAR
---------------------------------------------------------------------------------
 
 local function HideNativeActionBar()
     if ZO_ActionBar1 and ZO_ActionBar1.SetHidden then
@@ -156,9 +130,7 @@ local function HideNativeActionBar()
     end
 end
 
---------------------------------------------------------------------------------
 -- UPDATE FRONT BAR (icons, slot data, highlights)
---------------------------------------------------------------------------------
 
 local function UpdateFrontBar(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
@@ -204,9 +176,7 @@ local function UpdateFrontBar(rootFrame)
     frontBarContainer:SetHidden(false)
 end
 
---------------------------------------------------------------------------------
 -- UPDATE USABILITY OVERLAY
---------------------------------------------------------------------------------
 
 local function UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarCfg = GetSettings().customFrontBar
@@ -248,9 +218,7 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
     end
 end
 
---------------------------------------------------------------------------------
 -- TOOLTIPS
---------------------------------------------------------------------------------
 
 local function SetupFrontBarTooltips(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
@@ -274,9 +242,7 @@ local function SetupFrontBarTooltips(rootFrame)
     end
 end
 
---------------------------------------------------------------------------------
 -- KEYBINDS
---------------------------------------------------------------------------------
 
 local function SetupFrontBarKeybinds(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
@@ -352,9 +318,7 @@ local function SetupFrontBarKeybinds(rootFrame)
     end
 end
 
---------------------------------------------------------------------------------
 -- LAYOUT
---------------------------------------------------------------------------------
 
 local function UpdateFrontBarLayout(rootFrame)
     local settingsCfg = GetSettings().customFrontBar
@@ -478,9 +442,7 @@ local function UpdateFrontBarLayout(rootFrame)
     end
 end
 
---------------------------------------------------------------------------------
 -- QUICKSLOT + COMPANION UPDATES
---------------------------------------------------------------------------------
 
 local function UpdateFrontBarQuickslot(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -541,10 +503,8 @@ local function UpdateFrontBarCompanion(rootFrame)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
 -- Press feedback and cooldown exports are set by their respective sibling files.
--------------------------------------------------------------------------------------------------
 SkillBar.CacheFrontBarControls = CacheFrontBarControls
 SkillBar.HideNativeActionBar = HideNativeActionBar
 SkillBar.UpdateFrontBar = UpdateFrontBar

@@ -11,15 +11,11 @@ KEY MECHANICS:
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
 Vendor.FenceLaunderComponent = {}
 local FenceLaunder = Vendor.FenceLaunderComponent
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
 function FenceLaunder:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -29,14 +25,9 @@ function FenceLaunder:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
--- ============================================================================
 -- HELPERS
--- ============================================================================
 
 --- Get remaining fence launders and total allowed
---- @return number remaining
---- @return number total
---- @return number resetTimeSeconds
 local function GetRemainingLaunders()
     if GetFenceLaunderTransactionInfo then
         local totalLaunders, laundersUsed, resetTimeSeconds = GetFenceLaunderTransactionInfo()
@@ -48,9 +39,6 @@ local function GetRemainingLaunders()
 end
 
 --- Get launder cost for an item
---- @param bagId number
---- @param slotIndex number
---- @return number cost
 local function GetLaunderCost(bagId, slotIndex)
     if GetItemLaunderPrice then
         return GetItemLaunderPrice(bagId, slotIndex) or 0
@@ -58,9 +46,7 @@ local function GetLaunderCost(bagId, slotIndex)
     return 0
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
 function FenceLaunder:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER"))
@@ -110,9 +96,7 @@ function FenceLaunder:OnPrimaryAction(vendorInstance)
     LaunderItem(bagId, slotIndex, stackSize)
 end
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
 function FenceLaunder:BuildList(vendorInstance)
     local list = vendorInstance.list
@@ -161,12 +145,9 @@ function FenceLaunder:BuildList(vendorInstance)
     end
 end
 
--- ============================================================================
 -- FOOTER INFO
--- ============================================================================
 
 --- Returns footer text showing remaining launders and reset timer
---- @return string footerText
 function FenceLaunder:GetFooterText()
     local remaining, total, resetTimeSeconds = GetRemainingLaunders()
     local text = zo_strformat(SI_BETTERUI_FENCE_LAUNDERS_REMAINING, remaining, total)

@@ -18,9 +18,7 @@ Dialogs registered via this registry:
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Dialogs then BETTERUI.CIM.Dialogs = {} end
 
--- ============================================================================
 -- DIALOG REGISTRY
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.Dialogs.Registry
@@ -32,10 +30,6 @@ BETTERUI.CIM.Dialogs.Registry = {
     _dialogs = {},
 }
 
---- @param dialogName string The unique dialog name
---- @param dialogInfo table The dialog configuration table
---- @param options table|nil Optional configuration
---- @return boolean success True if registration succeeded
 function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     options = options or {}
 
@@ -60,14 +54,10 @@ function BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, options)
     return true
 end
 
---- @param dialogName string The dialog name to check
---- @return boolean registered True if registered
 function BETTERUI.CIM.Dialogs.IsRegistered(dialogName)
     return BETTERUI.CIM.Dialogs.Registry._dialogs[dialogName] ~= nil
 end
 
---- @param dialogName string The dialog name to show
---- @param data table|nil Optional data to pass to the dialog
 function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     if not BETTERUI.CIM.Dialogs.IsRegistered(dialogName) then
         BETTERUI.Debug(string.format("[Dialog] '%s' not registered", dialogName))
@@ -81,7 +71,6 @@ function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     end
 end
 
---- @return table dialogNames Array of registered dialog names
 function BETTERUI.CIM.Dialogs.GetAll()
     local names = {}
     for name, _ in pairs(BETTERUI.CIM.Dialogs.Registry._dialogs) do

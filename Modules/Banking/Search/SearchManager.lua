@@ -4,13 +4,10 @@ Purpose: Canonical search/header focus boundary for BETTERUI.Banking.Class.
          All banking search interactions should route through this module.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
--------------------------------------------------------------------------------------------------
 local EnsureKeybindGroupAdded = BETTERUI.Banking.EnsureKeybindGroupAdded
 
 --- Clears the text search input and resets the query.
---- @return nil
 function BETTERUI.Banking.Class:ClearSearchInput()
     self.searchQuery = ""
     if BETTERUI and BETTERUI.Interface and BETTERUI.Interface.Window and BETTERUI.Interface.Window.ClearSearchText then
@@ -21,13 +18,11 @@ function BETTERUI.Banking.Class:ClearSearchInput()
 end
 
 --- Backwards-compatible alias.
---- @return nil
 function BETTERUI.Banking.Class:ClearTextSearch()
     self:ClearSearchInput()
 end
 
 --- Checks whether the header/search control is currently focused.
---- @return boolean
 function BETTERUI.Banking.Class:IsHeaderFocused()
     if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
         return self.textSearchHeaderFocus:IsActive()
@@ -36,13 +31,11 @@ function BETTERUI.Banking.Class:IsHeaderFocused()
 end
 
 --- Backwards-compatible alias.
---- @return boolean
 function BETTERUI.Banking.Class:IsHeaderActive()
     return self:IsHeaderFocused()
 end
 
 --- Requests focus for the search/header control.
---- @return nil
 function BETTERUI.Banking.Class:RequestHeaderFocus()
     if self.OnHeaderEntered then
         self:OnHeaderEntered()
@@ -52,13 +45,11 @@ function BETTERUI.Banking.Class:RequestHeaderFocus()
 end
 
 --- Backwards-compatible alias.
---- @return nil
 function BETTERUI.Banking.Class:RequestEnterHeader()
     self:RequestHeaderFocus()
 end
 
 --- Enters text search mode.
---- @return nil
 function BETTERUI.Banking.Class:EnterSearchMode()
     if self._searchModeActive then return end
     self._searchModeActive = true
@@ -88,7 +79,6 @@ function BETTERUI.Banking.Class:EnterSearchMode()
 end
 
 --- Exits text search mode and restores standard keybinds.
---- @return nil
 function BETTERUI.Banking.Class:ExitSearchMode()
     if not self._searchModeActive then return end
     self._searchModeActive = false
@@ -117,13 +107,11 @@ function BETTERUI.Banking.Class:ExitSearchMode()
 end
 
 --- Backwards-compatible alias.
---- @return nil
 function BETTERUI.Banking.Class:LeaveSearchMode()
     self:ExitSearchMode()
 end
 
 --- Positions the search control beneath the header title.
---- @return nil
 function BETTERUI.Banking.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then return end
 
@@ -150,19 +138,16 @@ function BETTERUI.Banking.Class:PositionSearchControl()
 end
 
 --- Callback when search focus is lost.
---- @return nil
 function BETTERUI.Banking.Class:OnSearchFocusLost()
     self:ExitSearchMode()
 end
 
 --- Backwards-compatible alias.
---- @return nil
 function BETTERUI.Banking.Class:ExitSearchFocus()
     self:OnSearchFocusLost()
 end
 
 --- Callback when the header is entered (navigating up from list).
---- @return nil
 function BETTERUI.Banking.Class:OnHeaderEntered()
     if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
         self:EnterSearchMode()
@@ -194,14 +179,11 @@ function BETTERUI.Banking.Class:OnHeaderEntered()
 end
 
 --- Backwards-compatible alias.
---- @return nil
 function BETTERUI.Banking.Class:OnEnterHeader()
     self:OnHeaderEntered()
 end
 
 --- Handles search text updates.
---- @param editBox userdata Edit box control that exposes GetText().
---- @return nil
 function BETTERUI.Banking.Class:OnSearchTextChanged(editBox)
     if not (editBox and editBox.GetText) then return end
     self.searchQuery = editBox:GetText()

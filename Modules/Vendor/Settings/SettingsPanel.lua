@@ -14,12 +14,8 @@ local Vendor = BETTERUI.Vendor
 -- Ensure Settings namespace
 Vendor.Settings = Vendor.Settings or {}
 
--- ============================================================================
 -- PANEL REGISTRATION
--- ============================================================================
 
---- @param mId string Panel id suffix
---- @param moduleName string Human-readable panel name
 function Vendor.Settings.RegisterPanel(mId, moduleName)
     local panelData = {
         type = "panel",
@@ -30,9 +26,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
 
     local optionsData = {}
 
-    -- ========================================================================
     -- GENERAL SETTINGS
-    -- ========================================================================
     optionsData[#optionsData + 1] = {
         type = "header",
         name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_GENERAL_HEADER")),
@@ -70,9 +64,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         width = "full",
     }
 
-    -- ========================================================================
     -- ICON SETTINGS
-    -- ========================================================================
     if BETTERUI.CIM and BETTERUI.CIM.IconSettingsFactory then
         local iconOptions = BETTERUI.CIM.IconSettingsFactory.CreateIconSettingsGroup(moduleName)
         if iconOptions then
@@ -82,9 +74,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         end
     end
 
-    -- ========================================================================
     -- FONT SETTINGS
-    -- ========================================================================
     optionsData[#optionsData + 1] = {
         type = "header",
         name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_FONT_HEADER")),

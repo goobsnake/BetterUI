@@ -31,9 +31,6 @@ local DEFAULT_GAMEPAD_ITEM_SORT =
 
 --- Default item sort comparator for gamepad inventory.
 --- Purpose: Sorts items based on Best Category Name -> Name -> Level -> Champion Points -> Icon -> ID.
---- @param left table Left item data
---- @param right table Right item data
---- @return boolean shouldComeBefore True if left should come before right
 function BETTERUI_Inventory_DefaultItemSortComparator(left, right)
     return ZO_TableOrderingFunction(left, right, "bestGamepadItemCategoryName", DEFAULT_GAMEPAD_ITEM_SORT,
         ZO_SORT_ORDER_UP)
@@ -47,12 +44,6 @@ local GetActiveNameFontSize = _fmt.GetActiveNameFontSize
 
 --- Configures a shared gamepad inventory entry (row).
 --- Purpose: The main render function. Populates all displayed data for a row.
---- @param control table The UI control for the row
---- @param data table The data item to display
---- @param selected boolean True if the row is selected
---- @param reselectingDuringRebuild boolean True if preserving selection during rebuild
---- @param enabled boolean True if the row is enabled
---- @param active boolean True if the row is active
 function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectingDuringRebuild, enabled, active)
     BETTERUI_SharedGamepadEntryLabelSetup(control.label, data, selected)
     local moduleName = GetActiveListModuleName()
@@ -206,7 +197,6 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local fontSize = GetActiveNameFontSize(moduleName)
 
 
-
     -- Calculate icon dimensions based on font size (scales proportionally from default of 24px = 34px icon)
     local iconSize = math.floor(BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE *
         (fontSize / BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE) +
@@ -232,8 +222,6 @@ end
 --- between Banking and Inventory modules.
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
 --- Note: Uses shared implementation from CIM/CategoryDefinitions.lua
---- @param itemData table The item data
---- @return string category The localized category description
 function GetBestItemCategoryDescription(itemData)
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end
@@ -242,8 +230,6 @@ end
 BETTERUI.Inventory.List = ZO_GamepadInventoryList:Subclass()
 
 --- Creates a new Inventory List instance.
---- @param ... any Constructor arguments
---- @return table list The new list instance
 function BETTERUI.Inventory.List:New(...)
     local object = ZO_GamepadInventoryList.New(self, ...)
     return object
@@ -251,16 +237,6 @@ end
 
 --- Initializes the inventory list.
 --- Purpose: Sets up the parametric scroll list, data templates, and update callbacks.
---- @param control Control The UI control for the list
---- @param inventoryType number|table The inventory type(s)
---- @param slotType number The slot type
---- @param selectedDataCallback function|nil Callback when selected data changes
---- @param entrySetupCallback function|nil Callback for entry setup
---- @param categorizationFunction function|nil Function for item categorization
---- @param sortFunction function|nil Sort function override
---- @param useTriggers boolean|nil Whether to use trigger keybinds
---- @param template string|nil The entry template name
---- @param templateSetupFunction function|nil Custom template setup function
 function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, selectedDataCallback, entrySetupCallback,
                                             categorizationFunction, sortFunction, useTriggers, template,
                                             templateSetupFunction)
@@ -382,9 +358,6 @@ end
 
 --- Populates the slot table with item data from the inventory.
 --- Purpose: Filters and accepts items for the list.
---- @param slotsTable table The table to populate
---- @param inventoryType number The inventory type
---- @param slotIndex number The slot index
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or

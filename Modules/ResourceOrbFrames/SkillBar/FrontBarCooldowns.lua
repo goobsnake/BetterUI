@@ -25,19 +25,10 @@ end
 local m_effectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
 local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return string key Composite cache key "slotIndex_hotbarCategory"
 local function BuildCooldownStateKey(slotIndex, hotbarCategory) = Utils.GetFrontBarButtonControl
 
---------------------------------------------------------------------------------
 -- QUICKSLOT COUNT + EMPTY STATE
---------------------------------------------------------------------------------
 
---- @return number keybindOffsetX Offset from keybind label
---- @return number keybindOffsetY Offset from keybind label
---- @return number buttonOffsetX Offset from button control
---- @return number buttonOffsetY Offset from button control
 local function GetQuickslotCountAnchorOffsets()
     local keybindOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X or 0
     local keybindOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y or -2
@@ -62,12 +53,6 @@ local function AnchorQuickslotCountText(buttonControl, countText)
     label:SetVerticalAlignment(TEXT_ALIGN_TOP)
 end
 
---- @param buttonControl table Quickslot button UI control
---- @param children table|nil Cached child controls
---- @param settings table Module settings table
---- @param slotIndex number Quickslot slot index
---- @param hotbarCategory number Hotbar category constant
---- @return boolean isEmpty True if the quickslot item count is zero
 local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settings, slotIndex, hotbarCategory)
     if not buttonControl then return false end
     local slotType = GetSlotType(slotIndex, hotbarCategory)
@@ -97,18 +82,12 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     return isEmpty
 end
 
---------------------------------------------------------------------------------
 -- SMOOTHED COOLDOWN
---------------------------------------------------------------------------------
 
 local function ResetSmoothedCooldownRemaining(stateKey)
     if stateKey then m_cooldownVisualState[stateKey] = nil end
 end
 
---- @param stateKey string Cooldown state cache key
---- @param remainMs number Remaining cooldown in milliseconds
---- @param durationMs number Total cooldown duration in milliseconds
---- @return number smoothedMs Frame-smoothed remaining time to avoid visual jumps
 local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
     if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
         return remainMs
@@ -136,16 +115,8 @@ local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
     return smoothedRemainMs
 end
 
---------------------------------------------------------------------------------
 -- LINEAR COOLDOWN VISUALS
---------------------------------------------------------------------------------
 
---- @param cooldownEdge table|nil Edge highlight control
---- @param cooldownOverlay table|nil Desaturation overlay control
---- @param revealControl table|nil Control providing cooldownRevealWidth/Height
---- @param remainMs number|nil Remaining cooldown time
---- @param durationMs number|nil Total cooldown duration
---- @return number|nil percentComplete 0..1 completion fraction, nil if inputs invalid
 local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
     if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
         if cooldownEdge then cooldownEdge:SetHidden(true) end
@@ -187,9 +158,7 @@ local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealC
     return percentComplete
 end
 
---------------------------------------------------------------------------------
 -- UPDATE FRONT BAR COOLDOWNS (per-frame)
---------------------------------------------------------------------------------
 
 local function UpdateFrontBarCooldowns(rootFrame)
     local frontBarCfg = GetSettings().customFrontBar
@@ -334,9 +303,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
--------------------------------------------------------------------------------------------------
 SkillBar.UpdateFrontBarCooldowns = UpdateFrontBarCooldowns
 SkillBar.AnchorQuickslotCountText = AnchorQuickslotCountText
 SkillBar.UpdateQuickslotCountAndEmptyState = UpdateQuickslotCountAndEmptyState

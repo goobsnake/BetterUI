@@ -10,18 +10,13 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Inventory.Settings = BETTERUI.Inventory.Settings or {}
 
 --- Initializes the settings panel for the Inventory module.
---- @param mId string The module ID
---- @param moduleName string The display name of the module
 function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "Inventory Improvement Settings")
 
-	--- @return table inventoryWindow
 	local function GetInventoryWindow()
 		return GAMEPAD_INVENTORY
 	end
 
-	--- @param inv table
-	--- @return boolean isShowing
 	local function IsInventorySceneShowing(inv)
 		if not inv then return false end
 		if inv.scene and inv.scene.IsShowing then
@@ -37,7 +32,6 @@ function BETTERUI.Inventory.Settings.RegisterPanel(mId, moduleName)
 		end
 	end
 
-	--- @param _useCategoryJump any
 	local function ApplyTriggerMode(_useCategoryJump)
 		local inv = GetInventoryWindow()
 		if not inv then return end

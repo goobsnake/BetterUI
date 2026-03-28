@@ -7,12 +7,8 @@ Purpose: Shared keybind descriptor factories for Inventory and Banking modules.
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Keybinds then BETTERUI.CIM.Keybinds = {} end
 
--------------------------------------------------------------------------------------------------
 -- KEYBIND FACTORY FUNCTIONS
--------------------------------------------------------------------------------------------------
 
---- @param callback function|nil Custom callback for the back action
---- @return table keybind Keybind descriptor for back navigation
 function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -25,9 +21,6 @@ function BETTERUI.CIM.Keybinds.CreateBackKeybind(callback)
     }
 end
 
---- @param bagId number The bag to stack items in
---- @param visibleFn function|nil Optional visibility function
---- @return table keybind Keybind descriptor for stack all action
 function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -41,9 +34,6 @@ function BETTERUI.CIM.Keybinds.CreateStackAllKeybind(bagId, visibleFn)
     }
 end
 
---- @param showActionsFn function Function to call to show the actions menu
---- @param visibleFn function|nil Optional visibility function
---- @return table keybind Keybind descriptor for actions menu
 function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -55,10 +45,6 @@ function BETTERUI.CIM.Keybinds.CreateActionsKeybind(showActionsFn, visibleFn)
     }
 end
 
---- @param clearSearchFn function Function to call to clear the search
---- @param visibleFn function|nil Optional base visibility function
---- @param hasTextFn function|nil Optional function returning true if search has text
---- @return table keybind Keybind descriptor for clear search action
 function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn, hasTextFn)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -81,12 +67,8 @@ function BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(clearSearchFn, visibleFn
     }
 end
 
--------------------------------------------------------------------------------------------------
 -- KEYBIND GROUP HELPERS
--------------------------------------------------------------------------------------------------
 
---- @param keybindGroup table The keybind group to add to
---- @param navigationType number|nil Navigation type constant
 function BETTERUI.CIM.Keybinds.AddBackNavigation(keybindGroup, navigationType)
     ZO_Gamepad_AddBackNavigationKeybindDescriptors(
         keybindGroup,
@@ -104,12 +86,6 @@ function BETTERUI.CIM.Keybinds.AddTriggerKeybinds(keybindGroup, list)
     ZO_Gamepad_AddListTriggerKeybindDescriptors(keybindGroup, list)
 end
 
---- @param listOrGetter table|function The parametric scroll list, or a function returning it
---- @param useCategoryJumpGetter function|boolean|nil Optional. Getter function returning boolean if category jump should be used instead of speed skip.
---- @param speedGetter function|nil Optional. Returns the number of lines to skip per trigger press.
---- @param enabledGetter function|nil Optional. Returns whether triggers are enabled for this module.
---- @return table leftTrigger Left trigger keybind descriptor
---- @return table rightTrigger Right trigger keybind descriptor
 function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCategoryJumpGetter, speedGetter, enabledGetter)
 
     local function GetActualList(listWrapper)

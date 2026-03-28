@@ -14,7 +14,6 @@ BETTERUI.CIM.SceneCleanup = {}
 --- Rationale: Extracted from Banking and Inventory OnSceneHidden handlers to eliminate
 ---            code duplication and ensure consistent cleanup behavior.
 ---
---- @param screen table The screen instance (Banking.Class or Inventory.Class)
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if not screen then return end
 
@@ -85,7 +84,6 @@ end
 --- Rationale: Lists register with DIRECTIONAL_INPUT when active and must be
 ---            explicitly deactivated on scene hidden.
 ---
---- @param screen table The screen instance
 function BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, ...)
     if not screen then return end
 
@@ -116,7 +114,6 @@ end
 
 --- Clears search-related state and text when exiting a scene.
 ---
---- @param screen table The screen instance
 function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     if not screen then return end
 

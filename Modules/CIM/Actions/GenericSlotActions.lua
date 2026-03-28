@@ -6,13 +6,10 @@ Purpose: Shared slot action helpers for Inventory and Banking modules.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
--- ============================================================================
 -- SHARED ITEM ACTION HELPERS
--- ============================================================================
 -- These functions provide common item action implementations used by
 -- Inventory and Banking modules. They handle secure API calls.
 
---- @param inventorySlot table Inventory slot data with bagId/slotIndex
 --- @note Side effects: Consumes the item via CallSecureProtected("UseItem"),
 ---   UseQuestTool, or UseQuestItem. May trigger scene transitions.
 function BETTERUI.CIM.TryUseItem(inventorySlot)
@@ -39,7 +36,6 @@ function BETTERUI.CIM.TryUseItem(inventorySlot)
     end
 end
 
---- @param inventorySlot table The inventory slot data
 --- @note Side effects: Moves items between inventory and bank via
 ---   CallSecureProtected("PickupInventoryItem") and CallSecureProtected("PlaceInTransfer").
 ---   May trigger UI alerts on failure (inventory full, stolen item, bank full).
@@ -79,8 +75,6 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     end
 end
 
---- @param inventorySlot table The inventory slot data
---- @param targetBag number BAG_BACKPACK or BAG_VIRTUAL
 --- @note Side effects: Transfers items between inventory and craft bag via
 ---   CallSecureProtected("RequestMoveItem"). May trigger UI alerts on failure.
 function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
@@ -117,23 +111,15 @@ function BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, targetBag)
     end
 end
 
---- @param inventorySlot table The inventory slot data
---- @return boolean canMove True if item can be stowed
 function BETTERUI.CIM.CanItemMoveToCraftBag(inventorySlot)
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
     return HasCraftBagAccess() and CanItemBeVirtual(bag, index) and not IsItemStolen(bag, index)
 end
 
--- ============================================================================
 -- SHARED ACTION SETUP HELPERS
--- ============================================================================
 -- These functions provide shared action setup logic that was previously
 -- duplicated in Inventory/Actions/SlotActions.lua.
 
---- @param slotActions table The slot actions object
---- @param actionStringId number Action string ID constant
---- @param callback function The callback to execute
---- @param inventorySlot table The inventory slot data
 function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, inventorySlot)
     local actionName = GetString(actionStringId)
     if actionStringId == SI_ITEM_ACTION_USE then
@@ -147,9 +133,6 @@ function BETTERUI.CIM.SetupSecureAction(slotActions, actionStringId, callback, i
     end
 end
 
---- @param slotActions table The slot actions object
---- @param inventorySlot table The inventory slot data
---- @param canUseItem boolean Whether the item is also usable (adds USE as secondary)
 function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseItem)
     local stowCallback = function()
         -- Use quantity dialog for stacked items
@@ -172,8 +155,6 @@ function BETTERUI.CIM.HandleCraftBagActions(slotActions, inventorySlot, canUseIt
 end
 
 --- Wraps "Open Skills" callback in CallSecureProtected to prevent tainting errors.
---- @param slotActions table The slot actions object
---- @param inventorySlot table The inventory slot data
 function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     local INDEX_ACTION_CALLBACK = 2
     for i, action in ipairs(slotActions.m_slotActions) do
@@ -191,7 +172,6 @@ function BETTERUI.CIM.SecureOpenSkills(slotActions, inventorySlot)
     end
 end
 
---- @param slotActions table The slot actions object to deduplicate
 function BETTERUI.CIM.DeduplicateActions(slotActions)
     local seen = {}
     for i = #slotActions.m_slotActions, 1, -1 do
@@ -207,18 +187,11 @@ function BETTERUI.CIM.DeduplicateActions(slotActions)
     end
 end
 
---- @param inventorySlot table The inventory slot data
---- @return boolean inCraftBag True if the item is in the Craft Bag
 function BETTERUI.CIM.IsSlotInCraftBag(inventorySlot)
     local slotType = ZO_InventorySlot_GetType(inventorySlot)
     return slotType == SLOT_TYPE_CRAFT_BAG_ITEM
 end
 
---- @param slotActions table The slot actions object
---- @param inventorySlot table The inventory slot data
---- @param primaryAction string The current primary action name
---- @param canUseItem boolean Whether the item is also usable
---- @return string actionName The resolved action name for display
 function BETTERUI.CIM.ResolveCraftBagState(slotActions, inventorySlot, primaryAction, canUseItem)
     local retrieveActionName = GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"))
     local stowActionName = GetString(rawget(_G, "SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG"))

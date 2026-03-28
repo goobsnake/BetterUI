@@ -13,13 +13,11 @@ local Bars = nil
 local SkillBar = nil
 local Events = nil
 
--- ─── Constants ───────────────────────────────────────────────────────────────
 local NAME = "ResourceOrbFrames"
 local BARS  -- resolved after Constants.lua loads (in Initialize)
 local MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X = 350
 local BAR_FALLBACK_OFFSET_Y = -20
 
--- ─── Private Helpers ────────────────────────────────────────────────────────
 local m_rootFrame = nil
 local m_isInitialized = false
 local m_updateDeathFragment = nil
@@ -60,9 +58,7 @@ local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local FindControl = BETTERUI.ControlUtils.FindControl
 
--- =========================================================================
 -- UPDATE HELPERS
--- =========================================================================
 
 local function RefreshAllData()
     if not m_isInitialized then return end
@@ -184,9 +180,7 @@ local function ApplyFullLayout()
     ApplyLayout(true, true)
 end
 
--- =========================================================================
 -- INITIALIZATION HELPERS
--- =========================================================================
 
 --- Reads front bar config live from settings (avoids stale closure references).
 local function GetFrontBarConfig()
@@ -216,7 +210,6 @@ local function SuppressNativeBars()
 end
 
 --- Registers all dynamic event callbacks after initial component setup.
---- @param control Control The root control for the ResourceOrbFrames module.
 local function RegisterDynamicEvents(control)
     -- Layout force update (skip during weapon swap animation to prevent orb shifting)
     CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
@@ -325,9 +318,7 @@ local function RegisterDynamicEvents(control)
         end)
 end
 
--- =========================================================================
 -- INITIALIZATION
--- =========================================================================
 
 local function SetupModule(control)
     m_rootFrame = control
@@ -393,11 +384,8 @@ local function SetupModule(control)
     RegisterDynamicEvents(control)
 end
 
--- =========================================================================
 -- PUBLIC INTERFACE
--- =========================================================================
 
---- @param control Control The root control
 function ResourceOrbFrames.Initialize(control)
     m_rootFrame = control
 

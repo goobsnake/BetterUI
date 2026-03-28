@@ -12,9 +12,7 @@ BETTERUI.CIM.Debug = {}
 -- This is intentionally false for normal users.
 BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS = false
 
--- ============================================================================
 -- DEBUG FLAGS
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.Debug.FLAGS
@@ -29,11 +27,8 @@ BETTERUI.CIM.Debug.FLAGS = {
     CALLBACK_TRACING = false,  -- Log SafeExecuteCallback lifecycle
 }
 
--- ============================================================================
 -- CORE API
--- ============================================================================
 
---- @return boolean enabled True if debug mode is active
 function BETTERUI.CIM.Debug.IsEnabled()
     -- Check global flag first (backward compatibility)
     if BETTERUI_DEBUG then
@@ -50,7 +45,6 @@ end
 
 --- Returns whether developer-only settings should be visible in LAM.
 --- Developers can enable this by setting SHOW_DEVELOPER_SETTINGS = true above.
---- @return boolean show True when developer settings should be shown
 function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
     if BETTERUI_DEBUG then
         return true
@@ -58,8 +52,6 @@ function BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
     return BETTERUI.CIM.Debug.SHOW_DEVELOPER_SETTINGS == true
 end
 
---- @param message string The message to log
---- @param category? string Optional category prefix (e.g., "Scene", "List")
 function BETTERUI.CIM.Debug.Log(message, category)
     if not BETTERUI.CIM.Debug.IsEnabled() then return end
 
@@ -67,8 +59,6 @@ function BETTERUI.CIM.Debug.Log(message, category)
     BETTERUI.Debug(prefix .. message)
 end
 
---- @param flagName string The flag name from FLAGS table
---- @param enabled boolean The new state
 function BETTERUI.CIM.Debug.SetFlag(flagName, enabled)
     if BETTERUI.CIM.Debug.FLAGS[flagName] ~= nil then
         BETTERUI.CIM.Debug.FLAGS[flagName] = enabled
@@ -76,9 +66,7 @@ function BETTERUI.CIM.Debug.SetFlag(flagName, enabled)
     end
 end
 
--- ============================================================================
 -- INITIALIZATION
--- ============================================================================
 
 -- Sync SHIELD_OVERLAY debug flag from FeatureFlags system
 if BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.IsEnabled then

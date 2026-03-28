@@ -102,17 +102,10 @@ local function TabBar_OnDataChanged(list, selectedData, oldSelectedData, reselec
     end
 end
 
---- @param control table The header control
---- @param data table The entry data
 function BETTERUI.GenericHeader.AddToList(control, data)
     control.tabBar:AddEntry("BETTERUI_GamepadTabBarTemplate", data)
 end
 
---- @param control table Header control
---- @param controlName string Name of the child label control
---- @param slotStringKey number String identifier for the slot name
---- @param isActive boolean Whether this slot's bar is active
---- @param hideIfLocked boolean Whether to hide if weapon swap is locked
 local function UpdateEquipText(control, controlName, slotStringKey, isActive, hideIfLocked)
     local equipControl = control:GetNamedChild("TitleContainer"):GetNamedChild(controlName)
     if not equipControl then return end
@@ -128,30 +121,20 @@ local function UpdateEquipText(control, controlName, slotStringKey, isActive, hi
     equipControl:SetHorizontalAlignment(TEXT_ALIGN_RIGHT)
 end
 
---- @param control table Header control
---- @param isEquipMain boolean True if Main Hand is the active weapon bar
 function BETTERUI.GenericHeader.SetEquipText(control, isEquipMain)
     UpdateEquipText(control, "EquipText", SI_BETTERUI_INV_EQUIPSLOT_MAIN, isEquipMain, false)
 end
 
---- @param control table Header control
---- @param isEquipMain boolean True if Main Hand is active (Backup shown as inactive)
 function BETTERUI.GenericHeader.SetBackupEquipText(control, isEquipMain)
     UpdateEquipText(control, "BackupEquipText", SI_BETTERUI_INV_EQUIPSLOT_BACKUP, not isEquipMain, true)
 end
 
 --- Update the header title text.
---- @param control table The header control.
---- @param titleText string The new title text.
 function BETTERUI.GenericHeader.SetTitleText(control, titleText)
     local titleTextControl = control:GetNamedChild("TitleContainer"):GetNamedChild("Title")
     titleTextControl:SetText(titleText)
 end
 
---- @param control table Header control
---- @param iconNames table Table mapping 'main', 'off', 'poison' to child control names
---- @param iconsData table Table with 'main', 'off', 'poison' texture paths
---- @param hideIfLocked boolean Whether to hide if weapon swap is locked
 local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     local titleContainer = control:GetNamedChild("TitleContainer")
     if not titleContainer then return end
@@ -180,10 +163,6 @@ local function UpdateEquippedIcons(control, iconNames, iconsData, hideIfLocked)
     end
 end
 
---- @param control table The header control
---- @param equipMain string Texture path for main hand icon
---- @param equipOff string Texture path for off hand icon
---- @param equipPoison string Texture path for poison icon
 function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "MainHandIcon", off = "OffHandIcon", poison = "PoisonIcon" },
@@ -191,10 +170,6 @@ function BETTERUI.GenericHeader.SetEquippedIcons(control, equipMain, equipOff, e
         false)
 end
 
---- @param control table The header control
---- @param equipMain string Texture path for main hand icon
---- @param equipOff string Texture path for off hand icon
---- @param equipPoison string Texture path for poison icon
 function BETTERUI.GenericHeader.SetBackupEquippedIcons(control, equipMain, equipOff, equipPoison)
     UpdateEquippedIcons(control,
         { main = "BackupMainHandIcon", off = "BackupOffHandIcon", poison = "BackupPoisonIcon" },
@@ -208,9 +183,6 @@ end
 --- Mechanics: Updates title, initializes BETTERUI_TabBarScrollList if needed, and applies dynamic callbacks.
 --- References: Called whenever header data changes (e.g. switching between Inventory and CraftBag).
 ---
---- @param control table Header control.
---- @param data table Header data (title, carousel config, callbacks).
---- @param blockTabBarCallbacks? boolean If true, supresses OnSelectedChanged during initialization.
 function BETTERUI.GenericHeader.Refresh(control, data, blockTabBarCallbacks)
     control:GetNamedChild("TitleContainer"):GetNamedChild("Title"):SetText(data.titleText(data.name))
 

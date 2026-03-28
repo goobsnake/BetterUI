@@ -78,7 +78,6 @@ function BETTERUI.Inventory.EnableTooltipMouseWheel()
 end
 
 --- Hides the custom BetterUI tooltip status label and resets bottomRail anchors.
---- @param tooltipType string The type of tooltip (GAMEPAD_LEFT_TOOLTIP etc)
 function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)

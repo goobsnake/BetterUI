@@ -4,9 +4,7 @@ Purpose: Hooks the native "Y-Action" dialog (ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
          custom behaviors like Quickslot Assignment and BetterUI's safer Destroy logic.
 ]]
 
---------------------------------------------------------------------------------
 -- DIALOG HOOKS (System Integration)
---------------------------------------------------------------------------------
 
 --- Hooks the native Y-button Action Dialog.
 ---
@@ -20,10 +18,7 @@ Purpose: Hooks the native "Y-Action" dialog (ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
 ---   - "Link to Chat" (safety checks).
 --- - Implements custom `buttons` (Select/Cancel) to route actions correctly.
 --- Hooks the native Y-button Action Dialog.
---- @return nil
 function BETTERUI.Inventory.HookActionDialog()
-    --- @param dialog table
-    --- @param data table
     local function ActionsDialogSetup(dialog, data)
         local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
             SCENE_MANAGER.scenes["companionEquipmentGamepad"] and

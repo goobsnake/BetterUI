@@ -14,17 +14,14 @@ local DEFAULT_NAMEPLATE_SIZE = 16
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 
---- @return table settings Nameplate settings table
 local function GetNameplateSettings()
     return BETTERUI.GetModuleSettings("Nameplates")
 end
 
---- @return table|nil settings Nameplate settings table (created if needed), or nil
 local function EnsureNameplateSettings()
     return BETTERUI.EnsureModuleSettings("Nameplates")
 end
 
---- @return boolean enabled True if nameplate module is enabled in settings
 local function IsNameplateEnabled()
     local settings = GetNameplateSettings()
     return settings and settings.m_enabled == true
@@ -173,8 +170,6 @@ end
 ---
 --- References: Called during module initialization.
 ---
---- @param m_options table The options table to initialize.
---- @return table The initialized options table.
 function BETTERUI.Nameplates.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.Nameplates.DEFAULTS

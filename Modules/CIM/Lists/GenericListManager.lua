@@ -20,20 +20,14 @@ function BETTERUI.CIM.GenericListManager:Initialize()
     self.itemCache = {}
 end
 
--------------------------------------------------------------------------------------------------
 -- POSITION MANAGEMENT
--------------------------------------------------------------------------------------------------
 
---- @param categoryKey string The category to save position for
---- @param position number The position to save
 function BETTERUI.CIM.GenericListManager:SavePosition(categoryKey, position)
     if categoryKey then
         self.savedPositions[categoryKey] = position
     end
 end
 
---- @param categoryKey string The category to restore position for
---- @return number|nil position The saved position or nil if not found
 function BETTERUI.CIM.GenericListManager:RestorePosition(categoryKey)
     return self.savedPositions[categoryKey]
 end
@@ -43,14 +37,9 @@ function BETTERUI.CIM.GenericListManager:ClearSavedPositions()
     self.savedPositions = {}
 end
 
--------------------------------------------------------------------------------------------------
 -- ITEM CACHING
--------------------------------------------------------------------------------------------------
 
 --- Caches expensive item link data to avoid repeated API calls.
---- @param itemData table The item data table to cache into
---- @param bagId number The bag ID
---- @param slotIndex number The slot index
 function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slotIndex)
     if itemData.cached_itemLink then return end
 
@@ -70,22 +59,14 @@ function BETTERUI.CIM.GenericListManager:CacheItemLinkData(itemData, bagId, slot
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- SORTING COMPARATORS (Static Functions)
--------------------------------------------------------------------------------------------------
 
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByName(left, right)
     local leftName = left.name or left.bestItemTypeName or ""
     local rightName = right.name or right.bestItemTypeName or ""
     return leftName < rightName
 end
 
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByQuality(left, right)
     local leftQuality = left.displayQuality or left.quality or 0
     local rightQuality = right.displayQuality or right.quality or 0
@@ -93,9 +74,6 @@ function BETTERUI.CIM.SortByQuality(left, right)
 end
 
 --- Level/CP requirement comparator (higher level first).
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByLevel(left, right)
     local leftLevel = left.requiredLevel or 0
     local rightLevel = right.requiredLevel or 0
@@ -110,18 +88,12 @@ function BETTERUI.CIM.SortByLevel(left, right)
     return leftLevel > rightLevel
 end
 
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByValue(left, right)
     local leftValue = left.sellPrice or 0
     local rightValue = right.sellPrice or 0
     return leftValue > rightValue
 end
 
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortBySlotIndex(left, right)
     local leftSlot = left.slotIndex or 0
     local rightSlot = right.slotIndex or 0
@@ -129,9 +101,6 @@ function BETTERUI.CIM.SortBySlotIndex(left, right)
 end
 
 --- Sorts by bag ID first, then slot index.
---- @param left table First item data
---- @param right table Second item data
---- @return boolean result True if left should come before right
 function BETTERUI.CIM.SortByBagAndSlot(left, right)
     local leftBag = left.bagId or 0
     local rightBag = right.bagId or 0
@@ -143,14 +112,9 @@ function BETTERUI.CIM.SortByBagAndSlot(left, right)
     return BETTERUI.CIM.SortBySlotIndex(left, right)
 end
 
--------------------------------------------------------------------------------------------------
 -- FILTERING UTILITIES (Instance Methods)
--------------------------------------------------------------------------------------------------
 
 --- Filters item list by name substring (case-insensitive).
---- @param items table Array of item data tables
---- @param searchQuery string The search string to match
---- @return table filtered Filtered array of items matching the query
 function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
     if not searchQuery or searchQuery == "" then
         return items
@@ -169,8 +133,6 @@ function BETTERUI.CIM.GenericListManager:ApplyTextFilter(items, searchQuery)
     return filtered
 end
 
---- @param sortKeys table Array of sort functions to chain
---- @return function comparator Combined comparator function
 function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
     if not sortKeys or #sortKeys == 0 then
         return BETTERUI.CIM.SortBySlotIndex
@@ -197,14 +159,9 @@ function BETTERUI.CIM.GenericListManager:BuildSortFunction(sortKeys)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS (Static)
--------------------------------------------------------------------------------------------------
 
 --- Equality function for parametric list templates.
---- @param left table First entry
---- @param right table Second entry
---- @return boolean equal True if entries represent the same item
 function BETTERUI.CIM.MenuEntryTemplateEquality(left, right)
     return left.uniqueId == right.uniqueId
 end

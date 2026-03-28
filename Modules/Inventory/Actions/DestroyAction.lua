@@ -4,15 +4,10 @@ Purpose: Handles item destruction logic, offering a safer replacement for the en
          by respecting "Junk" status and "Quick Destroy" settings.
 ]]
 
---------------------------------------------------------------------------------
 -- DESTROY ITEM LOGIC
---------------------------------------------------------------------------------
 
 local BLOCK_TABBAR_CALLBACK = true
 
---- @param bagId number
---- @param slotIndex number
---- @return boolean
 local function ForceDestroyItemSafely(bagId, slotIndex)
     if SetCursorItemSoundsEnabled then
         SetCursorItemSoundsEnabled(false)
@@ -32,11 +27,6 @@ end
 
 --- Safer replacement for raw DestroyItem. Destroys immediately when forced,
 --- otherwise returns false to signal that a confirmation dialog is needed.
---- @param bagId number The bag containing the item
---- @param slotIndex number The slot index within the bag
---- @param force boolean Whether to force destruction without confirmation
---- @param suppressUiRefresh boolean|nil When true, skips immediate cache/UI refresh
---- @return boolean destroyed True if the item was destroyed
 function BETTERUI.Inventory.TryDestroyItem(bagId, slotIndex, force, suppressUiRefresh)
     if not bagId or not slotIndex then
         return false
@@ -85,7 +75,6 @@ end
 --- - Always returns true to prevent the engine's cursor-based destroy flow
 ---   from showing a second (native) confirmation dialog.
 --- Hooks the native destroy logic to use BetterUI's destroy flow.
---- @return nil
 function BETTERUI.Inventory.HookDestroyItem()
     ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)

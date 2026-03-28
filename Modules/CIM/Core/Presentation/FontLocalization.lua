@@ -5,9 +5,7 @@ Purpose: Font localization utility for language-aware font handling.
          and centralized Western-only font list for migration logic.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- FONT LOCALIZATION UTILITIES
--------------------------------------------------------------------------------------------------
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Font then BETTERUI.CIM.Font = {} end
@@ -49,30 +47,23 @@ Localization.LANGUAGE_GROUPS = {
     zh = "cjk",
 }
 
---- @return string languageCode The current game language code
 function Localization.GetCurrentLanguage()
     return GetCVar("language.2") or "en"
 end
 
---- @return "western"|"cyrillic"|"cjk" group The script group for the current language
 function Localization.GetCurrentLanguageGroup()
     local lang = Localization.GetCurrentLanguage()
     return Localization.LANGUAGE_GROUPS[lang] or "western"
 end
 
---- @return boolean isEnglish True if current language is English
 function Localization.IsEnglish()
     return Localization.GetCurrentLanguage() == "en"
 end
 
---- @param fontPath string The font file path to check
---- @return boolean isWesternOnly True if font only supports Western characters
 function Localization.IsFontWesternOnly(fontPath)
     return Localization.WESTERN_ONLY_FONTS[fontPath] == true
 end
 
---- @param fontPath string The font file path to check
---- @return boolean isLocalized True if font is compatible with current language
 function Localization.IsFontLocalizedForLanguage(fontPath)
     -- Font variables (e.g., $(GAMEPAD_MEDIUM_FONT)) are always localized
     if fontPath and string.sub(fontPath, 1, 2) == "$(" then
@@ -88,8 +79,6 @@ function Localization.IsFontLocalizedForLanguage(fontPath)
     return not Localization.IsFontWesternOnly(fontPath)
 end
 
---- @param context "medium"|"bold" The font weight context
---- @return string fontVariable The localized font variable
 function Localization.GetLocalizedFontDefault(context)
     if context == "bold" then
         return "$(BOLD_FONT)"
@@ -98,8 +87,6 @@ function Localization.GetLocalizedFontDefault(context)
     end
 end
 
---- @param fontPath string The font file path to check
---- @return string|nil warning Warning message or nil if compatible
 function Localization.GetFontCompatibilityWarning(fontPath)
     if Localization.IsEnglish() then
         return nil
@@ -119,9 +106,6 @@ function Localization.GetFontCompatibilityWarning(fontPath)
     return nil
 end
 
---- @param sourceChoices table Array of font choice display names
---- @param sourceValues table Array of font path values
---- @return table filteredChoices Filtered array of font choice names
 function Localization.GetFilteredFontChoices(sourceChoices, sourceValues)
     -- English users get all fonts
     if Localization.IsEnglish() then
@@ -139,9 +123,6 @@ function Localization.GetFilteredFontChoices(sourceChoices, sourceValues)
     return filtered
 end
 
---- @param sourceChoices table Array of font choice display names
---- @param sourceValues table Array of font path values
---- @return table filteredValues Filtered array of font path values
 function Localization.GetFilteredFontValues(sourceChoices, sourceValues)
     -- English users get all fonts
     if Localization.IsEnglish() then
@@ -158,9 +139,6 @@ function Localization.GetFilteredFontValues(sourceChoices, sourceValues)
     return filtered
 end
 
---- @param sourceChoices table Array of font choice display names
---- @param sourceValues table Array of font path values
---- @return table filteredChoices, table filteredValues
 function Localization.GetFilteredFontArrays(sourceChoices, sourceValues)
     return Localization.GetFilteredFontChoices(sourceChoices, sourceValues),
         Localization.GetFilteredFontValues(sourceChoices, sourceValues)

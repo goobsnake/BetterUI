@@ -39,14 +39,10 @@ local CAST_BAR_ORB_FILL_STYLES = {
 }
 local CAST_BAR_POWER_PROBE_WINDOW_MS = 450
 
---- @param filename string Texture filename relative to the Textures directory
---- @return string path Full virtual path for SetTexture()
 local function ResolveTexturePath(filename)
     return string.format("%s/%s", "BetterUI/Modules/ResourceOrbFrames/Textures", filename)
 end
 
---- @param textureFile string|nil Filename or absolute path; nil returns nil
---- @return string|nil path Resolved texture path, or nil if textureFile is nil
 local function ResolveBarTexturePath(textureFile)
     if not textureFile then return nil end
     if string.find(textureFile, "/", 1, true) or string.find(textureFile, "\\", 1, true) then
@@ -55,8 +51,6 @@ local function ResolveBarTexturePath(textureFile)
     return ResolveTexturePath(textureFile)
 end
 
---- @param color table|any RGBA color tuple {r, g, b, a}
---- @return table|nil copy Cloned {r, g, b, a} tuple, or nil if input is not a table
 local function CloneColor(color)
     if type(color) ~= "table" then
         return nil
@@ -69,9 +63,6 @@ local function CloneColor(color)
     }
 end
 
---- @param styleKey string|nil Key into CAST_BAR_ORB_FILL_STYLES ("health"/"magicka"/"stamina"), nil for default
---- @return table fill Cloned fill color {r, g, b, a}
---- @return table depth Cloned depth color {r, g, b, a}
 local function GetCastBarFillStyle(styleKey)
     local style = CAST_BAR_ORB_FILL_STYLES[styleKey]
     if not style then
@@ -80,9 +71,6 @@ local function GetCastBarFillStyle(styleKey)
     return CloneColor(style.fill), CloneColor(style.depth)
 end
 
---- @param abilityId number ESO ability ID
---- @param costType number COMBAT_MECHANIC_FLAGS_* / POWERTYPE_* constant
---- @return number cost Ability cost for the given type, 0 if unavailable
 local function GetAbilityCostForType(abilityId, costType)
     if type(abilityId) ~= "number" or abilityId <= 0 or type(costType) ~= "number" then
         return 0
@@ -94,10 +82,6 @@ local function GetAbilityCostForType(abilityId, costType)
     return cost
 end
 
---- @param slotIndex number Action bar slot index
---- @param costType number COMBAT_MECHANIC_FLAGS_* / POWERTYPE_* constant
---- @param hotbar number|nil Hotbar category, nil for active bar
---- @return number cost Slot ability cost for the given type, 0 if unavailable
 local function GetSlotCostForType(slotIndex, costType, hotbar)
     if type(slotIndex) ~= "number" or type(costType) ~= "number" then
         return 0
@@ -109,11 +93,6 @@ local function GetSlotCostForType(slotIndex, costType, hotbar)
     return cost
 end
 
---- @param slotIndex number Action bar slot index
---- @param abilityId number ESO ability ID
---- @param hotbar number|nil Hotbar category
---- @return table fill Fill color {r, g, b, a} matching the ability's resource cost
---- @return table depth Depth color {r, g, b, a}
 local function ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
     if type(slotIndex) ~= "number" then
         return GetCastBarFillStyle(nil)
@@ -184,9 +163,6 @@ local function ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
     return GetCastBarFillStyle(nil)
 end
 
---- @param powerType number COMBAT_MECHANIC_FLAGS_* / POWERTYPE_* constant
---- @return table|nil fill Fill color {r, g, b, a}, or nil for unrecognized power types
---- @return table|nil depth Depth color {r, g, b, a}, or nil for unrecognized power types
 local function ResolveCastBarFillColorByPowerType(powerType)
     if powerType == COST_TYPE_STAMINA then
         return GetCastBarFillStyle("stamina")
@@ -200,9 +176,7 @@ local function ResolveCastBarFillColorByPowerType(powerType)
     return nil, nil
 end
 
--------------------------------------------------------------------------------------------------
 -- BetterUIBarFrame Class (Base)
--------------------------------------------------------------------------------------------------
 BetterUIBarFrame = ZO_Object:Subclass()
 
 function BetterUIBarFrame:New(control)
@@ -247,8 +221,6 @@ function BetterUIBarFrame:SetColor(r, g, b, a)
     if self.fill then self.fill:SetColor(r, g, b, a) end
 end
 
---- @param region any Value to validate as a fill region descriptor
---- @return boolean valid True if region has numeric left/right/top/bottom fields
 local function IsValidRegion(region)
     return type(region) == "table"
         and type(region.left) == "number"
@@ -318,9 +290,7 @@ function BetterUIBarFrame:UpdateVisuals(current, max, insetX, insetY, barWidth, 
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- Cast Bar Class
--------------------------------------------------------------------------------------------------
 local CastBar = BetterUIBarFrame:Subclass()
 
 function CastBar:New(parent)
@@ -449,9 +419,7 @@ function CastBar:Initialize(parent)
     self.control:SetHandler("OnUpdate", function() self:Update() end)
 end
 
--------------------------------------------------------------------------------------------------
 -- Experience Bar Class
--------------------------------------------------------------------------------------------------
 local ExperienceBar = BetterUIBarFrame:Subclass()
 
 function ExperienceBar:New(parent)
@@ -469,9 +437,7 @@ function ExperienceBar:Initialize(parent)
     self:SetColor(0.1, 0.85, 0.8, 1)
 end
 
--------------------------------------------------------------------------------------------------
 -- Mount Stamina Bar Class
--------------------------------------------------------------------------------------------------
 local MountStaminaBar = BetterUIBarFrame:Subclass()
 
 function MountStaminaBar:New(parent)
@@ -518,9 +484,7 @@ function MountStaminaBar:OnMountedStateChanged(isMounted)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- Food Buff Tracker (Legacy/Unused but kept for safety)
--------------------------------------------------------------------------------------------------
 local FoodBuffTracker = ZO_Object:Subclass()
 
 function FoodBuffTracker:New(control)

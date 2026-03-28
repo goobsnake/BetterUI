@@ -7,9 +7,6 @@ Purpose: Provides safe module settings access with automatic nil-checking.
 if not BETTERUI then BETTERUI = {} end
 
 --- Gets settings for a module with automatic nil-safety.
---- @param moduleName string The module name (e.g., "Inventory", "ResourceOrbFrames")
---- @param defaults table|nil Optional defaults table to fall back to
---- @return table The module settings or defaults
 function BETTERUI.GetModuleSettings(moduleName, defaults)
     if BETTERUI.Settings and BETTERUI.Settings.Modules and BETTERUI.Settings.Modules[moduleName] then
         return BETTERUI.Settings.Modules[moduleName]
@@ -20,8 +17,6 @@ end
 --- Ensures the settings table exists for a module, creating it if necessary.
 --- Unlike GetModuleSettings, the returned reference is persisted in BETTERUI.Settings.Modules,
 --- so callers may write through it. Use this for mutation patterns; use GetModuleSettings for reads.
---- @param moduleName string The module name (e.g., "Inventory", "ResourceOrbFrames")
---- @return table|nil settings The module settings table, or nil if BETTERUI.Settings is not ready
 function BETTERUI.EnsureModuleSettings(moduleName)
     if not BETTERUI.Settings then return nil end
     if not BETTERUI.Settings.Modules then
@@ -34,10 +29,6 @@ function BETTERUI.EnsureModuleSettings(moduleName)
 end
 
 --- Gets a specific setting value with fallback.
---- @param moduleName string The module name
---- @param key string The setting key
---- @param default any The default value
---- @return any The setting value or default
 function BETTERUI.GetSetting(moduleName, key, default)
     local settings = BETTERUI.GetModuleSettings(moduleName)
     if settings[key] ~= nil then
@@ -47,9 +38,6 @@ function BETTERUI.GetSetting(moduleName, key, default)
 end
 
 --- Sets a specific setting value and emits the standard setting-changed callback.
---- @param moduleName string The module name
---- @param key string The setting key
---- @param value any The value to set
 function BETTERUI.SetSetting(moduleName, key, value)
     if key == nil then return end
     if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
@@ -72,9 +60,6 @@ end
 ---     local Accessor = BETTERUI.CreateSettingAccessors("MyModule")
 ---     getFunc, setFunc = Accessor("mySettingKey", defaultValue)
 ---
---- @param moduleName string The key of the module in BETTERUI.Settings.Modules
---- @param callback function|nil Optional function to run after setting a value (e.g. ApplySettings)
---- @return function A factory function(key, default) -> getFunc, setFunc
 function BETTERUI.CreateSettingAccessors(moduleName, callback)
     return function(key, default)
         local getFunc = function()
@@ -103,9 +88,6 @@ end
 --- Creates a factory for generating get/set functions for COLOR LAM controls.
 --- Automatically unpacks table {r,g,b,a} for getFunc and packs for setFunc.
 ---
---- @param moduleName string The key of the module in BETTERUI.Settings.Modules
---- @param callback function|nil Optional function to run after setting a value
---- @return function A factory function(key, defaultTable) -> getFunc, setFunc
 function BETTERUI.CreateColorSettingAccessors(moduleName, callback)
     local baseFactory = BETTERUI.CreateSettingAccessors(moduleName, callback)
 
@@ -130,11 +112,6 @@ end
 
 --- Clamps a value to an integer within [minValue, maxValue], falling back if non-numeric.
 --- Shared utility to eliminate duplication across CIM, Nameplates, and ResourceOrbFrames settings.
---- @param value any Value to clamp (coerced via tonumber)
---- @param minValue number Minimum allowed value
---- @param maxValue number Maximum allowed value
---- @param fallback number Value to return if input is non-numeric
---- @return number Clamped integer value
 function BETTERUI.ClampInteger(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then
@@ -157,7 +134,6 @@ end
 --- Usage (in Module.lua):
 ---   BETTERUI.CIM.RegisterModuleAccessors("Banking")
 ---
---- @param moduleName string The module name (e.g. "Banking", "Inventory", "Vendor")
 function BETTERUI.CIM.RegisterModuleAccessors(moduleName)
     local ns = BETTERUI[moduleName]
     if not ns then return end

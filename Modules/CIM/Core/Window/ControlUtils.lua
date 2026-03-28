@@ -27,9 +27,6 @@ end
 ---
 --- References: Used pervasively in this module to find XML-defined controls.
 ---
---- @param parent Control The parent control to search from
---- @param name string The short name of the control to find (e.g., "Icon", "Button1")
---- @return Control|nil The found control, or nil if not found
 function BETTERUI.ControlUtils.FindControl(parent, name)
     if not parent then return nil end
 

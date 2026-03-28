@@ -8,9 +8,7 @@ Dependencies: CIM/Lists/ListRefreshManager.lua
 
 if not BETTERUI.Banking then BETTERUI.Banking = {} end
 
--- ============================================================================
 -- REFRESH MANAGER INITIALIZATION
--- ============================================================================
 
 --[[
 Function: BETTERUI.Banking.InitializeRefreshManager

@@ -17,9 +17,7 @@ Purpose: Orchestration layer for BetterUI Inventory system.
 ]]
 
 
---------------------------------------------------------------------------------
 -- CONSTANTS & GLOBALS
---------------------------------------------------------------------------------
 
 -- Apply Class Mixins (from PositionManager, etc.)
 -- Mixins are now applied in Initialize() via MixinLoader
@@ -39,15 +37,11 @@ BETTERUI.Inventory.Dialogs.EQUIP_SLOT = "BETTERUI_EQUIP_SLOT_DIALOG"
 -- Backward compatibility alias
 BETTERUI_EQUIP_SLOT_DIALOG = BETTERUI.Inventory.Dialogs.EQUIP_SLOT
 
---------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCH
---------------------------------------------------------------------------------
 -- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
 -- NOTE: EnsureCompanionEquipPatched is defined and exported in Actions/EquipAction.lua
 
---------------------------------------------------------------------------------
 -- SECURE SYSTEM HOOKS
---------------------------------------------------------------------------------
 local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
 -- ESO secure environment: utility wheel slot assignment uses CallSecureProtected(),
 -- which requires the callstack to originate from trusted (engine-side) code. Add-on
@@ -55,7 +49,6 @@ local ZO_AssignableUtilityWheel_Gamepad = ZO_AssignableUtilityWheel_Gamepad
 -- This hook intercepts the call, re-issues it via CallSecureProtected(), and returns true
 -- to cancel the original unprotected native execution path.
 --- Initializes secure wheel hooks for the assignable utility wheel.
---- @return nil
 function BETTERUI.Inventory.InitializeSecureWheelHooks()
 	if ZO_AssignableUtilityWheel_Gamepad and not BETTERUI._secureWheelHooked then
 		ZO_PreHook(ZO_AssignableUtilityWheel_Gamepad, "TryAssignPendingToSelectedEntry", function(self, clearPending)
@@ -105,12 +98,9 @@ end
 -- InitializeHeader, OnCategoryClicked extracted to Core/HeaderManager.lua
 -- RefreshHeader, PositionSearchControl extracted to Core/InventoryClass.lua
 
---------------------------------------------------------------------------------
 -- REMAINING CLASS METHODS
---------------------------------------------------------------------------------
 
 --- Toggles the tooltip detailed info mode.
---- @return nil
 function BETTERUI.Inventory.Class:SwitchInfo()
 	self.switchInfo = not self.switchInfo
 	if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -122,7 +112,6 @@ end
 -- InitializeCraftBagList extracted to Lists/CraftBagListManager.lua
 -- InitializeItemActions, InitializeActionsDialog extracted to Actions/ItemActionsDialog.lua
 -- TryDestroyItem, HookDestroyItem, HookActionDialog extracted to Actions/ItemActionsDialog.lua
-
 
 
 -- OnStateChanged extracted to Scene/InventorySceneLifecycle.lua
@@ -151,8 +140,6 @@ end
 --- - Updates tooltips if in "Category Action" mode.
 --- References: Called by native `OnUpdate` handler.
 ---
---- @param currentFrameTimeSeconds number|nil The current game time (or nil if forced).
---- @return nil
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
@@ -193,7 +180,6 @@ end
 --- - Registers for Engine Events (Money, Inventory Updates).
 --- References: Called by `OnStateChanged`.
 ---
---- @return nil
 function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	if self.isDeferredInitialized then return end
 	self.isDeferredInitialized = true
@@ -243,14 +229,12 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 		BETTERUI.GenericFooter:Initialize()
 	end
 
-	--- @return nil
 	local function RefreshHeader()
 		if not self.control:IsHidden() then
 			self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 		end
 	end
 
-	--- @return nil
 	local function RefreshSelectedData()
 		if not self.control:IsHidden() then
 			self:SetSelectedInventoryData(self.currentlySelectedData)
@@ -281,8 +265,6 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
-	--- @param bagId number
-	--- @param slotIndex number
 	local function OnInventoryUpdated(bagId, slotIndex)
 		-- POSITION PRESERVATION: Capture current uniqueId AND index BEFORE any callbacks overwrite data
 		-- This is a global fix that works for all inventory actions (Use, Equip, Split, etc.)
@@ -426,7 +408,6 @@ end
 --- References: Called when hiding scene or when "Clear" keybind is pressed.
 ---
 --- Clears the text search UI and internal state.
---- @return nil
 function BETTERUI.Inventory.Class:ClearTextSearch()
 	-- Ensure internal state is cleared
 	self.searchQuery = ""
@@ -439,7 +420,6 @@ function BETTERUI.Inventory.Class:ClearTextSearch()
 end
 
 --- Refreshes the footer display.
---- @return nil
 function BETTERUI.Inventory.Class:RefreshFooter()
 	if BETTERUI.GenericFooter then
 		BETTERUI.GenericFooter:Refresh()
@@ -447,7 +427,6 @@ function BETTERUI.Inventory.Class:RefreshFooter()
 end
 
 --- Selects the current category and switches to the appropriate list.
---- @return nil
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
 	if not catTarget or not catTarget.onClickDirection then
@@ -458,7 +437,6 @@ function BETTERUI.Inventory.Class:Select()
 end
 
 --- Switches between item list and craft bag list.
---- @return nil
 function BETTERUI.Inventory.Class:Switch()
 	if self:GetCurrentList() == self.craftBagList then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)
@@ -501,10 +479,6 @@ end
 --- - Adds to `self.lists`.
 ---
 --- Creates a new parametric list for the inventory scene.
---- @param name string The name of the list
---- @param callbackParam any The callback parameter for list setup
---- @param listClass any The list class to use
---- @return table list The created list
 function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 	local listContainer = CreateControlFromVirtual(
 		"$(parent)" .. name,
@@ -521,8 +495,6 @@ function BETTERUI.Inventory.Class:AddList(name, callbackParam, listClass, ...)
 end
 
 --- Checks if the given inventory slot is locked.
---- @param inventorySlot table The inventory slot to check
---- @return boolean isLocked True if the slot is locked
 function BETTERUI.Inventory.Class:BETTERUI_IsSlotLocked(inventorySlot)
 	if not inventorySlot then
 		return false

@@ -17,10 +17,8 @@ BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE = 1
 BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE = 2
 BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE = 3
 
--- ============================================================================
 -- LIST TYPE IDENTIFIERS
 -- Centralized string constants for SwitchActiveList and list mode tracking
--- ============================================================================
 
 --[[
 Table: BETTERUI.Inventory.CONST.LIST_TYPES
@@ -66,10 +64,8 @@ BETTERUI.Inventory.CONST.CATEGORY_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.C
 BETTERUI.Inventory.CONST.BATCH_SIZE_INITIAL = BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_INITIAL
 BETTERUI.Inventory.CONST.BATCH_SIZE_REMAINING = BETTERUI.CIM.CONST.TIMING.BATCH_SIZE_REMAINING
 
--- ============================================================================
 -- SEARCH BAR POSITIONING (delegate to CIM shared constants)
 -- Controls the position of the search input field in inventory headers
--- ============================================================================
 
 -- Use centralized CIM search bar constants (eliminates duplication with Banking)
 local searchConst = BETTERUI.CIM.GetSearchBarConstants("INVENTORY")
@@ -98,10 +94,8 @@ Used By: Inventory.lua
 ]]
 BETTERUI.Inventory.CONST.SEARCH_RIGHT_INSET = searchConst.RIGHT_INSET
 
--- ============================================================================
 -- LIST ENTRY ICON SCALING
 -- Used in InventoryList.lua for dynamic icon sizing based on font settings
--- ============================================================================
 
 BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE = 24      -- Baseline row text size; larger values make rows feel denser/taller.
 BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_ICON_SIZE = 34      -- Icon size paired with base font size; increase for larger row icons.
@@ -122,9 +116,7 @@ BETTERUI.Inventory.CONST.ICON_SIZE_LARGE = 34  -- Large icon size matching defau
 BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_WIDTH = 28  -- Base equipped-icon width before runtime scaling.
 BETTERUI.Inventory.CONST.EQUIP_ICON_BASE_HEIGHT = 24 -- Base equipped-icon height before runtime scaling.
 
--- ============================================================================
 -- SORT SCHEMA (delegating to CIM shared version)
--- ============================================================================
 
 --[[
 Table: BETTERUI.Inventory.CONST.SORT_SCHEMA
@@ -134,9 +126,6 @@ Used By: DefaultSortComparator for gamepad inventory sorting.
 ]]
 BETTERUI.Inventory.CONST.SORT_SCHEMA = BETTERUI.CIM.CONST.SORT_SCHEMA
 
---- @param left table
---- @param right table
---- @return boolean
 function BETTERUI.Inventory.DefaultSortComparator(left, right)
     return BETTERUI.CIM.Utils.DefaultSortComparator(left, right)
 end

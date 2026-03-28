@@ -1,4 +1,3 @@
----------------------------------------------------------------------------------------------------
 -- BetterUI - Enhanced Nameplates
 --
 -- This module allows customization of nameplate fonts, styles, and sizes.
@@ -7,7 +6,6 @@
 -- 2. Style Control: Adjust outline, shadow, and other font effects.
 -- 3. Size Adjustment: Scale nameplates to preferred size.
 -- 4. Cross-Mode Support: Applies settings to both Keyboard and Gamepad modes.
----------------------------------------------------------------------------------------------------
 
 -- Note: ESO Update 41+ uses .slug fonts; only built-in ESO fonts supported
 
@@ -88,8 +86,6 @@ local STYLE_STRING_TO_ENUM = {
 -- Converts legacy string style to numeric enum.
 -- Purpose: Ensures backward compatibility for saved settings.
 -- Mechanics: Checks if style is string map to enum or return as is.
---- @param style string|number The font style (e.g., "outline" or FONT_STYLE_OUTLINE).
---- @return number The corresponding font style enum value.
 local function NormalizeStyleValue(style)
     if type(style) == "string" then
         return STYLE_STRING_TO_ENUM[style] or (FONT_STYLE_SOFT_SHADOW_THIN or 5)
@@ -107,7 +103,6 @@ end
 ---
 --- References: Called by Setup, Apply, and Logic functions.
 ---
---- @return table Module settings table with font, style, size, enabled
 local function GetSettings()
     local settings = BETTERUI.GetModuleSettings("Nameplates")
     if settings and next(settings) then
@@ -150,9 +145,6 @@ end
 ---
 --- References: Called by ApplyCurrentSettings and Event Handlers.
 ---
---- @param font string The font path.
---- @param style string|number The font style.
---- @param size number The font size.
 local function ApplyNameplateFont(font, style, size)
     if not font or not style or not size then return end
     CaptureOriginalNameplateFonts()
@@ -171,8 +163,6 @@ end
 ---
 --- References: Called by Setup and OnEnabledChanged.
 ---
---- @param enabled boolean Whether to register (true) or unregister (false) events
---- @param suppressCleanupLog boolean|nil When true, suppress event cleanup debug output
 local function SetupEvents(enabled, suppressCleanupLog)
     if enabled then
         BETTERUI.CIM.EventRegistry.Register("Nameplates", "BetterUI_Nameplates", EVENT_PLAYER_ACTIVATED, function()
@@ -237,8 +227,6 @@ end
 --- - If m_enabled: Setup events, apply fonts.
 --- - If disabled: Unregister events, reset to defaults.
 ---
---- @param m_enabled boolean The new m_enabled state.
---- @param suppressCleanupLog boolean|nil When true, suppress reset-triggered cleanup debug output
 function BETTERUI.Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
     SetupEvents(m_enabled, suppressCleanupLog)
     if m_enabled then
@@ -250,7 +238,6 @@ function BETTERUI.Nameplates.OnEnabledChanged(m_enabled, suppressCleanupLog)
 end
 
 -- Returns whether Enhanced Nameplates is m_enabled
---- @return boolean enabled True if nameplates are enabled
 function BETTERUI.Nameplates.IsEnabled()
     return GetSettings().m_enabled
 end

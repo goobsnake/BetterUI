@@ -25,7 +25,6 @@ Description: Registers the quantity selection dialog for banking operations.
   - OnSliderValueChanged updates the split preview labels
   - Primary button callback calls MoveItem with selected quantity
 ]]
---- @param dialog table
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end
 
@@ -105,7 +104,6 @@ local function SetupSliderKeybindHints(dialog)
 end
 
 --- Registers the quantity selection dialog for banking operations.
---- @return nil
 function BETTERUI.Banking.InitializeQuantityDialog()
     BETTERUI.CIM.Dialogs.Register(BETTERUI_BANK_QUANTITY_DIALOG, {
         blockDirectionalInput = true,
@@ -217,7 +215,6 @@ function BETTERUI.Banking.InitializeQuantityDialog()
     })
 end
 
---- @param isDeposit boolean True if depositing to bank, false if withdrawing
 function BETTERUI.Banking.Class:ShowQuantityDialog(isDeposit)
     local list = self:GetList()
     if not list or not list.selectedData then return end

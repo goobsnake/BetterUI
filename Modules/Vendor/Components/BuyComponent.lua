@@ -8,15 +8,11 @@ Uses GetNumStoreItems/GetStoreEntryInfo to populate the list.
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
 Vendor.BuyComponent = {}
 local Buy = Vendor.BuyComponent
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
 function Buy:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -26,9 +22,7 @@ function Buy:Deactivate(vendorInstance)
     -- No cleanup needed for Buy mode
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
 function Buy:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE"))
@@ -71,9 +65,7 @@ function Buy:OnPrimaryAction(vendorInstance)
     BuyStoreItem(entryIndex, 1)
 end
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
 function Buy:BuildList(vendorInstance)
     local list = vendorInstance.list

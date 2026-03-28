@@ -4,44 +4,31 @@ Purpose: Vertical Parametric Scroll List implementation.
          Extends ZO_ParametricScrollList with custom gradient fading.
 ]]
 
--- ─── Constants ───────────────────────────────────────────────────────────────
 local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
 local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
 local MINIMUM_ALLOWED_FADE_GRADIENT = 32
 
--- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --- Gets the relevant dimension (Height/Width) based on list orientation.
 ---
---- @param mode boolean Vertical (true) or Horizontal (false).
---- @param control table The control to check.
---- @return number The dimension size.
 local function GetControlDimensionForMode(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetHeight() or control:GetWidth()
 end
 
 --- Gets the starting edge (Top/Left) based on list orientation.
 ---
---- @param mode boolean Vertical (true) or Horizontal (false).
---- @param control table The control to check.
---- @return number The start coordinate.
 local function GetStartOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetTop() or control:GetLeft()
 end
 
 --- Gets the ending edge (Bottom/Right) based on list orientation.
 ---
---- @param mode boolean Vertical (true) or Horizontal (false).
---- @param control table The control to check.
---- @return number The end coordinate.
 local function GetEndOfControl(mode, control)
     return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetBottom() or control:GetRight()
 end
 
--- ============================================================================
 -- CLASS: BETTERUI_VerticalParametricScrollList
 -- Customized Vertical Scroll List with enhanced Gradient Fading logic.
--- ============================================================================
 BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 
 --- Creates a new vertical parametric scroll list instance.
@@ -51,8 +38,6 @@ BETTERUI_VerticalParametricScrollList = ZO_ParametricScrollList:Subclass()
 --- - Dynamically calculates gradient sizes based on list content and alignment.
 --- - Ensures clean fades at the edges of the scroll area.
 ---
---- @param ... any Arguments passed to ZO_ParametricScrollList:New.
---- @return BetterUIVerticalParametricScrollList The new list instance.
 function BETTERUI_VerticalParametricScrollList:New(...)
     local list = ZO_ParametricScrollList.New(self, ...)
 
@@ -129,7 +114,6 @@ end
 
 --- Initializes the list with default padding and sound.
 ---
---- @param control table The list control.
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
     ZO_ParametricScrollList.Initialize(self, control, PARAMETRIC_SCROLL_LIST_VERTICAL,
         ZO_GamepadOnDefaultScrollListActivatedChanged)
@@ -148,8 +132,6 @@ BETTERUI_VerticalItemParametricScrollList = BETTERUI_VerticalParametricScrollLis
 
 --- Constructor for item list.
 ---
---- @param control table The list control.
---- @return BetterUIVerticalItemParametricScrollList The new list instance.
 function BETTERUI_VerticalItemParametricScrollList:New(control)
     local list = BETTERUI_VerticalParametricScrollList.New(self, control)
     list:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)

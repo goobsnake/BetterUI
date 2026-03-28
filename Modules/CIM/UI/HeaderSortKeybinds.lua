@@ -19,11 +19,8 @@ local function EnsureControllerReady()
     return SORT_DIRECTION ~= nil
 end
 
--------------------------------------------------------------------------------------------------
 -- SORT FUNCTION HELPERS
--------------------------------------------------------------------------------------------------
 
---- @return function|nil comparator Sort comparator function or nil
 function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     if not EnsureControllerReady() then return nil end
 
@@ -47,13 +44,8 @@ function BETTERUI.CIM.UI.HeaderSortController:GetSortComparator()
     return baseSortFn
 end
 
--------------------------------------------------------------------------------------------------
 -- KEYBIND FACTORY
--------------------------------------------------------------------------------------------------
 
---- @param exitCallback function Called when exiting header mode
---- @param navigateUpCallback function|nil Called when navigating up to search box
---- @return table keybindDescriptor
 function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallback, navigateUpCallback)
     local controller = self
 
@@ -77,7 +69,6 @@ function BETTERUI.CIM.UI.HeaderSortController:CreateKeybindDescriptor(exitCallba
         },
         -- X button: Clear sort
         {
-            ---@diagnostic disable-next-line: undefined-global
             name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()

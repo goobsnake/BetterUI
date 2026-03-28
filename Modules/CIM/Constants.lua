@@ -8,10 +8,8 @@ Purpose: Constants for the Common Interface Module (CIM).
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.CONST then BETTERUI.CIM.CONST = {} end
 
--- ============================================================================
 -- TIMING CONSTANTS
 -- Shared timing values for consistent behavior across modules
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.TIMING
@@ -20,9 +18,7 @@ Description: Shared timing constants for UI debouncing and coalescing.
 Used By: PositionManager, HeaderNavigation, list refresh logic.
 ]]
 BETTERUI.CIM.CONST.TIMING = {
-    -- ========================================================================
     -- DEBOUNCING & COALESCING
-    -- ========================================================================
 
     -- Debounce for heavy UI updates (ms)
     DEBOUNCE_MS = 50,
@@ -36,10 +32,8 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Tooltip refresh delay (ms)
     TOOLTIP_REFRESH_DELAY_MS = 300,
 
-    -- ========================================================================
     -- KEYBIND TIMING
     -- Used to ensure keybinds are properly registered after scene transitions
-    -- ========================================================================
 
     -- Post-init keybind update delay (ms)
     -- Used after scene showing to ensure keybind strip is ready
@@ -49,9 +43,7 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Shorter delay for additional keybind group registration
     KEYBIND_ACTIVATION_DELAY_MS = 40,
 
-    -- ========================================================================
     -- LIST & CATEGORY REFRESH
-    -- ========================================================================
 
     -- Category list refresh coalescing (ms)
     -- Prevents multiple rapid refreshes when switching categories
@@ -65,9 +57,7 @@ BETTERUI.CIM.CONST.TIMING = {
     BATCH_SIZE_INITIAL = 50,
     BATCH_SIZE_REMAINING = 200,
 
-    -- ========================================================================
     -- DIALOG & QUEUE TIMING
-    -- ========================================================================
 
     -- Dialog queue processing timeout (ms)
     -- Used when queuing dialogs (equip, destroy, bind-on-equip)
@@ -77,9 +67,7 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Delay before refreshing list after item operations
     LIST_DESTRUCTION_DELAY_MS = 120,
 
-    -- ========================================================================
     -- SCENE & LAYOUT TIMING
-    -- ========================================================================
 
     -- Weapon swap animation delay for layout updates (ms)
     -- Used by ResourceOrbFrames to delay skill bar layout after weapon swap
@@ -105,10 +93,8 @@ BETTERUI.CIM.CONST.TIMING = {
     -- Equivalent to DEBOUNCE_MS but in seconds for APIs that expect float
     UPDATE_DEBOUNCE_SEC = 0.05,
 
-    -- ========================================================================
     -- BATCH ACTION THROTTLING
     -- Prevents rate-limit kicks when processing many items at once
-    -- ========================================================================
 
     -- Estimated-time display threshold (item count)
     -- ETA messaging is shown for large batches where completion may take noticeable time
@@ -147,10 +133,8 @@ BETTERUI.CIM.CONST.TIMING = {
 }
 
 
--- ============================================================================
 -- UI CONSTANTS
 -- Shared UI magic numbers consolidated for maintainability
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.UI
@@ -178,10 +162,8 @@ BETTERUI.CIM.CONST.TOOLTIP.FONT_OFFSETS = {
 }
 
 
--- ============================================================================
 -- MODULE IDENTIFIERS
 -- Centralized string constants for CIM PositionManager namespacing
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.MODULES
@@ -203,10 +185,8 @@ BETTERUI.CIM.CONST.MODULES = {
 }
 
 
--- ============================================================================
 -- SEARCH BAR POSITIONING
 -- Centralized search bar constants to eliminate duplication across modules
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.SEARCH_BAR
@@ -257,9 +237,7 @@ function BETTERUI.CIM.GetSearchBarConstants(module)
     return BETTERUI.CIM.CONST.SEARCH_BAR.BASE
 end
 
--- ============================================================================
 -- CURRENCY FOOTER CONFIGURATION
--- ============================================================================
 
 -- Maximum currencies that can be displayed in the footer (UI space limit)
 BETTERUI_MAX_VISIBLE_CURRENCIES = 12
@@ -273,9 +251,7 @@ BETTERUI_CURRENCY_COLUMNS = { 190, 350, 510, 670, 830, 990 }
 -- Footer currency row positions (Y coordinates for each row)
 BETTERUI_CURRENCY_ROWS = { 32, 58, 84 }
 
--- ============================================================================
 -- CURRENCY PRESETS
--- ============================================================================
 
 BETTERUI.CURRENCY_PRESETS = {
     default = {
@@ -384,10 +360,8 @@ BETTERUI.CURRENCY_PRESETS = {
     },
 }
 
--- ============================================================================
 -- CATEGORY CAROUSEL (Tab Bar Icons)
 -- Used for the rotating category icon bar in Inventory and Banking headers
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.CAROUSEL
@@ -419,9 +393,7 @@ BETTERUI.CIM.CONST.CAROUSEL = {
 }
 
 
--- ============================================================================
 -- HEADER GEOMETRY (Used in GenericHeader.xml)
--- ============================================================================
 
 -- Tuning guidance:
 -- * Positive Y offsets move controls DOWN from anchor; negative values move UP.
@@ -442,19 +414,15 @@ BETTERUI_HEADER_DIVIDER_OFFSET_Y = 77         -- First divider Y position below 
 BETTERUI_HEADER_DIVIDER_OFFSET_Y_SPACED = 81  -- Second divider Y position; larger value increases divider gap.
 BETTERUI_HEADER_BOTTOM_DIVIDER_Y_OFFSET = 110 -- Bottom divider position before list body begins (+ down, - up).
 
--- ============================================================================
 -- FOOTER GEOMETRY (Used in GenericFooter.xml and GenericFooter.lua)
--- ============================================================================
 
 BETTERUI_FOOTER_START_X = 190          -- First footer currency column X origin (+ right, - left).
 BETTERUI_FOOTER_RIGHT_PADDING = 50     -- Right-side inset for footer content; larger = pulls columns left.
 BETTERUI_FOOTER_BOTTOM_OFFSET_Y = -195 -- Footer vertical offset from bottom anchor (+ down, - up).
 BETTERUI_FOOTER_DIVIDER_OFFSET_Y = 15  -- Divider offset inside footer container (+ down, - up).
 
--- ============================================================================
 -- TOOLTIP LAYOUT CONSTANTS
 -- Migrated from GeneralInterface/Constants.lua
--- ============================================================================
 
 --[[
 Constant: BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE
@@ -487,9 +455,7 @@ Used By: Inventory/UI/TooltipUtils.lua
 ]]
 BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y = 40
 
--- ============================================================================
 -- RESEARCH SYSTEM (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.CraftingSkillTypes
@@ -499,9 +465,7 @@ Used By: Tooltips and Inventory modules to check research status.
 BETTERUI.CIM.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER,
     CRAFTING_TYPE_JEWELRYCRAFTING, CRAFTING_TYPE_WOODWORKING }
 
--- ============================================================================
 -- UI LAYOUT (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 BETTERUI.CIM.CONST.LAYOUT = {}
 
@@ -600,13 +564,11 @@ BETTERUI.CIM.CONST.LAYOUT.TOOLTIP = {
     PRICE_LABEL_OFFSET_Y = 5,    -- Price label vertical nudge inside tooltip footer (+ down, - up).
 }
 
--- ============================================================================
 -- XML-SUPPORT CONSTANTS (Stable Global Bindings)
 -- These Lua globals are referenced directly in BetterUI XML templates
 -- (GenericHeader.xml, InterfaceLibrary.xml) and must remain available.
 -- The canonical values live in BETTERUI.CIM.CONST.LAYOUT above;
 -- these aliases exist solely because ESO's XML engine reads Lua globals.
--- ============================================================================
 -- XML Support - PANEL
 BETTERUI_GAMEPAD_DEFAULT_PANEL_WIDTH = BETTERUI.CIM.CONST.LAYOUT.PANEL
 .WIDTH                                                                             -- Mirrors custom panel width.
@@ -659,9 +621,7 @@ BETTERUI_STAT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.WIDTH              
 BETTERUI_VALUE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.OFFSET_X           -- + right, - left.
 BETTERUI_VALUE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.WIDTH                 -- Column width budget.
 
--- ============================================================================
 -- COLORS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.COLORS
@@ -689,9 +649,7 @@ BETTERUI.CIM.CONST.SEARCH_CHILD_NAMES = {
     "EditBox", "SearchIcon", "Icon", "Texture", "InputContainer"
 }
 
--- ============================================================================
 -- TOOLTIP DEFAULTS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS
@@ -702,9 +660,7 @@ BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS = {
     DEFAULT_FONT_SIZE = 24
 }
 
--- ============================================================================
 -- ICONS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.ICONS
@@ -728,9 +684,7 @@ BETTERUI.CIM.CONST.ICONS = {
     BOOK_UNKNOWN = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_loreLibrary.dds",
 }
 
--- ============================================================================
 -- CIM DEFAULTS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.DEFAULTS
@@ -743,10 +697,8 @@ BETTERUI.CIM.CONST.DEFAULTS = {
     DEFAULT_TOOLTIP_SIZE = 24,
 }
 
--- ============================================================================
 -- SORT SCHEMA
 -- Shared sort schema for gamepad inventory-style lists
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.SORT_SCHEMA
@@ -764,9 +716,7 @@ BETTERUI.CIM.CONST.SORT_SCHEMA = {
     uniqueId               = { isId64 = true },
 }
 
--- ============================================================================
 -- HEADER LAYOUT (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.HEADER_LAYOUT

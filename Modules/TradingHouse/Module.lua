@@ -20,15 +20,11 @@ local TH = BETTERUI.TradingHouse
 TH.SCENE_NAME = "BETTERUI_TRADING_HOUSE"
 
 --- Placeholder: Returns search preset data for the saved search feature.
---- @return table presets Empty table (placeholder for future implementation)
 function TH.GetSearchPresets()
     return {}
 end
 
 --- Placeholder: Formats unit price for display.
---- @param totalPrice number Total price
---- @param quantity number Stack quantity
---- @return string formatted Formatted unit price string
 function TH.FormatUnitPrice(totalPrice, quantity)
     if not totalPrice or not quantity or quantity == 0 then return "" end
     local unitPrice = math.floor(totalPrice / quantity)

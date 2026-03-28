@@ -9,8 +9,6 @@ local LAM = LibAddonMenu2
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Banking.Settings = BETTERUI.Banking.Settings or {}
 
---- @param mId string The module ID suffix
---- @param moduleName string The display name for the panel
 function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Banking Improvement Settings")
 

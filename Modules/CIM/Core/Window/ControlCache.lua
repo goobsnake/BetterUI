@@ -8,8 +8,6 @@ Purpose: Provides reusable control caching pattern to avoid repeated GetNamedChi
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.ControlCache = {}
 
---- @param parent Control The parent UI control
---- @return fun(childName: string): Control|nil getCachedChild A caching resolver function
 function BETTERUI.CIM.ControlCache.Create(parent)
     local cache = {}
     return function(childName)
@@ -20,9 +18,6 @@ function BETTERUI.CIM.ControlCache.Create(parent)
     end
 end
 
---- @param parent Control The parent UI control
---- @param childNames string[] Array of child control names to cache
---- @return table<string, Control> cache A table mapping child names to controls
 function BETTERUI.CIM.ControlCache.CacheChildren(parent, childNames)
     local cache = {}
     for _, name in ipairs(childNames) do
@@ -31,8 +26,6 @@ function BETTERUI.CIM.ControlCache.CacheChildren(parent, childNames)
     return cache
 end
 
---- @param button Control The button control
---- @return table<string, Control> children A table with cached button children
 function BETTERUI.CIM.ControlCache.CacheButtonChildren(button)
     if not button then return {} end
     return {

@@ -5,9 +5,7 @@ Purpose: Tracks deprecated APIs and issues one-time warnings to aid migration.
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
--- ============================================================================
 -- DEPRECATION REGISTRY
--- ============================================================================
 
 BETTERUI.CIM.DeprecationRegistry = {
     -- Storage for registered deprecations
@@ -19,9 +17,6 @@ BETTERUI.CIM.DeprecationRegistry = {
 }
 
 --- Records a deprecated alias with its replacement.
---- @param oldName string The deprecated API name
---- @param newName string The replacement API name
---- @param removeVersion string|nil Version when the old API will be removed
 function BETTERUI.CIM.DeprecationRegistry.Register(oldName, newName, removeVersion)
     BETTERUI.CIM.DeprecationRegistry._registry[oldName] = {
         oldName = oldName,
@@ -32,8 +27,6 @@ function BETTERUI.CIM.DeprecationRegistry.Register(oldName, newName, removeVersi
 end
 
 --- Issues a one-time deprecation warning in debug output.
---- @param oldName string The deprecated API name
---- @return boolean warned True if warning was issued
 function BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)
     if not BETTERUI.CIM.DeprecationRegistry._enabled then return false end
     if BETTERUI.CIM.DeprecationRegistry._warned[oldName] then return false end
@@ -58,13 +51,11 @@ function BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)
 end
 
 --- Enables or disables deprecation warnings globally.
---- @param enabled boolean Whether to enable warnings
 function BETTERUI.CIM.DeprecationRegistry.SetEnabled(enabled)
     BETTERUI.CIM.DeprecationRegistry._enabled = enabled
 end
 
 --- Returns all registered deprecations.
---- @return table deprecations Array of deprecation info
 function BETTERUI.CIM.DeprecationRegistry.GetAll()
     local result = {}
     for _, info in pairs(BETTERUI.CIM.DeprecationRegistry._registry) do
@@ -75,9 +66,6 @@ end
 
 --- Creates a wrapper function that warns on first use and delegates to replacement.
 --- Caller is responsible for registering the old name before creating the shim.
---- @param oldName string The deprecated function name
---- @param newFn function The replacement function
---- @return function shim Wrapper that warns and delegates
 function BETTERUI.CIM.DeprecationRegistry.CreateShim(oldName, newFn)
     return function(...)
         BETTERUI.CIM.DeprecationRegistry.WarnOnce(oldName)
@@ -85,10 +73,8 @@ function BETTERUI.CIM.DeprecationRegistry.CreateShim(oldName, newFn)
     end
 end
 
--- ============================================================================
 -- REGISTER KNOWN DEPRECATIONS
 -- Add entries here as APIs are deprecated
--- ============================================================================
 
 -- Example registrations (uncomment when deprecating):
 -- BETTERUI.CIM.DeprecationRegistry.Register("BETTERUI_OLD_CONSTANT", "BETTERUI.CIM.CONST.NEW_CONSTANT", "v3.1")

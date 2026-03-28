@@ -11,9 +11,7 @@ BETTERUI.CIM.BatchConfig = BETTERUI.CIM.BatchConfig or {}
 
 local BatchConfig = BETTERUI.CIM.BatchConfig
 
--------------------------------------------------------------------------------------------------
 -- THROTTLE TIER CONFIGURATION
--------------------------------------------------------------------------------------------------
 
 local DEFAULT_BATCH_THROTTLE_TIERS = {
     { MIN_ITEMS = 50, DELAY_MS = 125, SHOW_PROGRESS = true },
@@ -28,9 +26,7 @@ BatchConfig.DEFAULT_BATCH_THROTTLE_TIERS = DEFAULT_BATCH_THROTTLE_TIERS
 BatchConfig.BATCH_ETA_THRESHOLD = TIMING.BATCH_ETA_THRESHOLD or 50
 BatchConfig.DEFAULT_ACTION_COST_UNITS = 1
 
--------------------------------------------------------------------------------------------------
 -- SERVER PACING DEFAULTS
--------------------------------------------------------------------------------------------------
 
 local DEFAULT_SERVER_COOLDOWN_EVERY = 25
 local DEFAULT_SERVER_COOLDOWN_MS = 1100
@@ -50,9 +46,7 @@ local DEFAULT_SERVER_POST_BATCH_COOLDOWN_MAX_MS = 9000
 local DEFAULT_SERVER_RATE_WINDOW_MS = 60000
 local DEFAULT_SERVER_RATE_MAX_ACTIONS = 125
 
--------------------------------------------------------------------------------------------------
 -- RESOLVED SERVER PACING VALUES
--------------------------------------------------------------------------------------------------
 
 BatchConfig.SERVER_COOLDOWN_EVERY = TIMING.BATCH_SERVER_COOLDOWN_EVERY or DEFAULT_SERVER_COOLDOWN_EVERY
 BatchConfig.SERVER_COOLDOWN_MS = TIMING.BATCH_SERVER_COOLDOWN_MS or DEFAULT_SERVER_COOLDOWN_MS
@@ -88,30 +82,22 @@ BatchConfig.SERVER_POST_BATCH_COOLDOWN_MAX_MS = TIMING.BATCH_SERVER_POST_BATCH_C
 BatchConfig.SERVER_RATE_WINDOW_MS = TIMING.BATCH_SERVER_RATE_WINDOW_MS or DEFAULT_SERVER_RATE_WINDOW_MS
 BatchConfig.SERVER_RATE_MAX_ACTIONS = TIMING.BATCH_SERVER_RATE_MAX_ACTIONS or DEFAULT_SERVER_RATE_MAX_ACTIONS
 
--------------------------------------------------------------------------------------------------
 -- DIALOG TIMING CONSTANTS
--------------------------------------------------------------------------------------------------
 
 BatchConfig.BATCH_STATUS_DIALOG_CLOSE_POLL_MS = 25
 BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS = 1800
 BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS = 160
 
--------------------------------------------------------------------------------------------------
 -- SHARED RECOVERY STATE
--------------------------------------------------------------------------------------------------
 
 BatchConfig.SERVER_BATCH_RECOVERY_STATE = {
     cooldownUntilMs = 0,
     serverActionTimes = {},
 }
 
--------------------------------------------------------------------------------------------------
 -- UTILITY FUNCTIONS
--------------------------------------------------------------------------------------------------
 
 --- Resolves the appropriate throttle tier for a given total item count.
---- @param totalItems number
---- @return table tier
 function BatchConfig.ResolveBatchThrottleProfile(totalItems)
     for i = 1, #BatchConfig.BATCH_THROTTLE_TIERS do
         local tier = BatchConfig.BATCH_THROTTLE_TIERS[i]
@@ -124,9 +110,6 @@ function BatchConfig.ResolveBatchThrottleProfile(totalItems)
 end
 
 --- Resolves a boolean option with a fallback default.
---- @param value boolean|nil
---- @param fallback boolean
---- @return boolean
 function BatchConfig.ResolveBooleanOption(value, fallback)
     if value == nil then
         return fallback
@@ -135,9 +118,6 @@ function BatchConfig.ResolveBooleanOption(value, fallback)
 end
 
 --- Resolves a positive integer option with a fallback default.
---- @param value number|nil
---- @param fallback number
---- @return number
 function BatchConfig.ResolvePositiveIntOption(value, fallback)
     local resolved = tonumber(value)
     if not resolved then
@@ -147,8 +127,6 @@ function BatchConfig.ResolvePositiveIntOption(value, fallback)
 end
 
 --- Resolves a signed jitter offset in range [-maxAbsMs, +maxAbsMs].
---- @param maxAbsMs number
---- @return number
 function BatchConfig.ResolveSignedJitter(maxAbsMs)
     if maxAbsMs <= 0 then
         return 0
@@ -160,7 +138,6 @@ function BatchConfig.ResolveSignedJitter(maxAbsMs)
 end
 
 --- Gets the current time in milliseconds using the best available API.
---- @return number
 function BatchConfig.GetNowMs()
     if GetGameTimeMilliseconds then
         return GetGameTimeMilliseconds()
@@ -178,9 +155,6 @@ function BatchConfig.GetNowMs()
 end
 
 --- Prunes stale entries from the server action history.
---- @param nowMs number
---- @param windowMs number
---- @return table history
 function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     local history = BatchConfig.SERVER_BATCH_RECOVERY_STATE.serverActionTimes
     if not history then
@@ -205,18 +179,12 @@ function BatchConfig.PruneServerActionHistory(nowMs, windowMs)
 end
 
 --- Records a server action timestamp.
---- @param nowMs number
---- @param windowMs number
 function BatchConfig.RecordServerAction(nowMs, windowMs)
     local history = BatchConfig.PruneServerActionHistory(nowMs, windowMs)
     history[#history + 1] = nowMs
 end
 
 --- Computes the delay needed before the next server action to stay within rate limits.
---- @param nowMs number
---- @param windowMs number
---- @param maxActions number
---- @return number delayMs
 function BatchConfig.ComputeServerActionDelayMs(nowMs, windowMs, maxActions)
     if windowMs <= 0 or maxActions <= 0 then
         return 0
@@ -237,8 +205,6 @@ function BatchConfig.ComputeServerActionDelayMs(nowMs, windowMs, maxActions)
 end
 
 --- Checks whether the owning scene is visible for the given module instance.
---- @param self table
---- @return boolean
 function BatchConfig.IsBatchSceneShowing(self)
     if self and self._multiSelectConfig and self._multiSelectConfig.isSceneShowing then
         return self._multiSelectConfig.isSceneShowing(self) == true
@@ -252,9 +218,6 @@ function BatchConfig.IsBatchSceneShowing(self)
 end
 
 --- Resolves the label shown when a batch is aborted due to scene exit.
---- @param self table
---- @param batchOptions table|nil
---- @return string
 function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
     if batchOptions and type(batchOptions.sceneExitLabel) == "string" and batchOptions.sceneExitLabel ~= "" then
         return batchOptions.sceneExitLabel
@@ -278,25 +241,17 @@ function BatchConfig.ResolveSceneExitLabel(self, batchOptions)
 end
 
 --- Builds a unique slot key for deduplication.
---- @param bagId number
---- @param slotIndex number
---- @return string
 function BatchConfig.BuildSlotKey(bagId, slotIndex)
     return tostring(bagId) .. ":" .. tostring(slotIndex)
 end
 
 --- Checks if there is an item at the given bag/slot.
---- @param bagId number
---- @param slotIndex number
---- @return boolean
 function BatchConfig.HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
 end
 
 --- Normalizes and deduplicates a list of batch items.
---- @param items table
---- @return table normalized
 function BatchConfig.NormalizeBatchItems(items)
     local normalized = {}
     local seen = {}
@@ -319,7 +274,6 @@ function BatchConfig.NormalizeBatchItems(items)
 end
 
 --- Estimates the total batch duration in seconds.
---- @return number estimatedSeconds
 function BatchConfig.EstimateBatchDurationSeconds(totalItems, delayMs, cooldownEvery, cooldownMs,
                                                    totalCostUnits, chunkCostUnits, chunkPauseMs, initialDelayMs)
     local itemCount = zo_max(totalItems, 0)
@@ -338,8 +292,6 @@ function BatchConfig.EstimateBatchDurationSeconds(totalItems, delayMs, cooldownE
 end
 
 --- Formats an estimated duration in seconds as a human-readable string.
---- @param estimatedSeconds number
---- @return string
 function BatchConfig.FormatEstimatedBatchDuration(estimatedSeconds)
     local roundedSeconds = zo_max(1, zo_ceil(estimatedSeconds or 0))
     if roundedSeconds < 60 then
@@ -352,7 +304,6 @@ function BatchConfig.FormatEstimatedBatchDuration(estimatedSeconds)
 end
 
 --- Resolves the batch abort keybinding markup for display.
---- @return string
 function BatchConfig.ResolveBatchAbortBindingMarkup()
     if not ZO_Keybindings_GetHighestPriorityBindingStringFromAction then
         return "Y"

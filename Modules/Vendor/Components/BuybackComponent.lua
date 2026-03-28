@@ -8,15 +8,11 @@ Uses GetNumBuybackItems/GetBuybackItemInfo to populate the list.
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
 Vendor.BuybackComponent = {}
 local Buyback = Vendor.BuybackComponent
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
 function Buyback:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -26,9 +22,7 @@ function Buyback:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
 function Buyback:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK"))
@@ -66,9 +60,7 @@ function Buyback:OnPrimaryAction(vendorInstance)
     BuybackItem(entryIndex)
 end
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
 function Buyback:BuildList(vendorInstance)
     local list = vendorInstance.list

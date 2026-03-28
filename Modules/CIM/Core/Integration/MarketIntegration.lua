@@ -4,9 +4,7 @@ Purpose: Integration with third-party trade addons for price data.
          Supports MasterMerchant, Arkadius Trade Tools, and Tamriel Trade Centre.
 ]]
 
--- ============================================================================
 -- MARKET PRICE INTEGRATION
--- ============================================================================
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.MarketIntegration = BETTERUI.CIM.MarketIntegration or {}
@@ -53,8 +51,6 @@ local function IsModuleToggleEnabled(settings, key)
     return settings and settings[key] ~= false
 end
 
---- @param settings table Module settings
---- @return string key Priority order key for PRIORITY_ORDERS lookup
 local function GetPriorityKey(settings)
     if not settings then
         return "mm_att_ttc"
@@ -67,10 +63,6 @@ local function GetPriorityKey(settings)
     return key
 end
 
---- @param itemLink string ESO item link
---- @param stackCount number Stack size multiplier
---- @param settings table Module settings (checks mmIntegration toggle)
---- @return number price Total MasterMerchant price, 0 if unavailable
 local function FetchMasterMerchantPrice(itemLink, stackCount, settings)
     if MasterMerchant == nil or not IsModuleToggleEnabled(settings, "mmIntegration") then
         return 0
@@ -84,10 +76,6 @@ local function FetchMasterMerchantPrice(itemLink, stackCount, settings)
     return 0
 end
 
---- @param itemLink string ESO item link
---- @param stackCount number Stack size multiplier
---- @param settings table Module settings (checks attIntegration toggle)
---- @return number price Total Arkadius Trade Tools price, 0 if unavailable
 local function FetchArkadiusPrice(itemLink, stackCount, settings)
     if ArkadiusTradeTools == nil or not IsModuleToggleEnabled(settings, "attIntegration") then
         return 0
@@ -107,10 +95,6 @@ local function FetchArkadiusPrice(itemLink, stackCount, settings)
     return 0
 end
 
---- @param itemLink string ESO item link
---- @param stackCount number Stack size multiplier
---- @param settings table Module settings (checks ttcIntegration toggle)
---- @return number price Total TTC price, 0 if unavailable
 local function FetchTTCPrice(itemLink, stackCount, settings)
     if TamrielTradeCentre == nil or not IsModuleToggleEnabled(settings, "ttcIntegration") then
         return 0
@@ -143,8 +127,6 @@ local SOURCE_FETCHERS = {
 }
 
 --- Returns localized dropdown choices and values for market source priority.
---- @return table choices
---- @return table choicesValues
 function MarketIntegration.GetPriorityChoices()
     local choices = {}
     local values = {}
@@ -158,16 +140,11 @@ function MarketIntegration.GetPriorityChoices()
 end
 
 --- Returns the active source order keys for the saved market priority setting.
---- @param settings table|nil GeneralInterface settings table
---- @return table sourceOrder
 function MarketIntegration.GetPriorityOrder(settings)
     local key = GetPriorityKey(settings)
     return PRIORITY_ORDERS[key] or PRIORITY_ORDERS.mm_att_ttc
 end
 
---- @param itemLink string The item link
---- @param stackCount number|nil The stack size (defaults to 1)
---- @return number totalPrice The calculated total price, or 0 if unavailable
 function BETTERUI.GetMarketPrice(itemLink, stackCount)
     if not itemLink then return 0 end
     -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys

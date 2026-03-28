@@ -12,9 +12,7 @@ BETTERUI.Writs.CONST = {
         INCOMPLETE = "CCCCCC" -- Grey
     },
 
-    -------------------------------------------------------------------------------------------------
     -- WRIT DETECTION PATTERNS
-    -------------------------------------------------------------------------------------------------
     -- Patterns used to match quest names to crafting types.
     -- Each entry: {pattern = "substring", craftType = CRAFTING_TYPE_XXX}
     --
@@ -22,7 +20,6 @@ BETTERUI.Writs.CONST = {
     -- Use GetAllPatterns() or GetLocalizedPatterns() to retrieve.
     --
     -- Order matters: patterns are checked in order, last match wins.
-    -------------------------------------------------------------------------------------------------
     PATTERNS_LOCALIZED = {
         ["en"] = {
             {pattern = "blacksmith", craftType = CRAFTING_TYPE_BLACKSMITHING},
@@ -68,7 +65,6 @@ BETTERUI.Writs.CONST = {
 }
 
 --- Retrieves the pattern set for the current game client language.
---- @return table List of pattern objects
 function BETTERUI.Writs.CONST.GetLocalizedPatterns()
     local lang = GetCVar("language.2") or "en"
     return BETTERUI.Writs.CONST.PATTERNS_LOCALIZED[lang] or BETTERUI.Writs.CONST.PATTERNS_LOCALIZED["en"]

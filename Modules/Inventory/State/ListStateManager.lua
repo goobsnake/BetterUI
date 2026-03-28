@@ -11,9 +11,6 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
 --- Activates a list, restoring its saved category and item positions.
---- @param self table The inventory instance
---- @param listControl table The list widget to activate (itemList or craftBagList)
---- @param config table { savedCategoryKey, savedPositionsByKey, savedItemUniqueByKey, isCraftBag, actionMode, refreshListFn }
 local function ActivateListWithState(self, listControl, config)
     self:SetCurrentList(listControl)
     self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
@@ -98,7 +95,6 @@ local function ActivateListWithState(self, listControl, config)
 end
 
 --- Switches the active list between Inventory and Craft Bag.
---- @param listDescriptor string|nil A BETTERUI.Inventory.CONST.LIST_TYPES value (CATEGORY, ITEM, or CRAFT_BAG), or nil to deactivate
 local function SwitchActiveList(self, listDescriptor)
     if listDescriptor == self.currentListType then
         return
@@ -113,11 +109,8 @@ local function SwitchActiveList(self, listDescriptor)
         self:ExitCraftBagSelectionMode()
     end
 
-    -- Save the current list position before switching so positions are restored correctly later
-    -- CRITICAL: Only save when scene is actively showing. During SCENE_HIDDEN cleanup,
-    -- SwitchActiveList(nil) is called AFTER DeactivateLists(), which may leave lists in
-    -- a state where selectedIndex/selectedData are stale. Position is already correctly
-    -- saved in SCENE_HIDING (before deactivation), so this guard prevents overwriting it.
+    -- Only save position when scene is showing; SCENE_HIDDEN fires after DeactivateLists()
+    -- which leaves selectedIndex/selectedData stale. SCENE_HIDING already saved correctly.
     if self.currentListType and self.scene and self.scene:IsShowing() then
         self:SaveListPosition()
     end

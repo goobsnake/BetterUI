@@ -11,36 +11,23 @@ KEY SAFETY GUARDS:
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
---- @class BetterUIVendorFenceSellComponent
 local FenceSell = {}
 Vendor.FenceSellComponent = FenceSell
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
---- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:Activate(vendorInstance)
     vendorInstance:RefreshList()
 end
 
---- @param vendorInstance BETTERUI.Vendor.Class
---- @return nil
 function FenceSell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
--- ============================================================================
 -- HELPERS
--- ============================================================================
 
 --- Get remaining fence sells and total allowed
---- @return number remaining
---- @return number total
---- @return number resetTimeSeconds
 local function GetRemainingSells()
     if GetFenceSellTransactionInfo then
         local totalSells, sellsUsed, resetTimeSeconds = GetFenceSellTransactionInfo()
@@ -52,9 +39,6 @@ local function GetRemainingSells()
 end
 
 --- Check if item is artifact quality (cannot be sold to fence)
---- @param bagId number
---- @param slotIndex number
---- @return boolean
 local function IsArtifactItem(bagId, slotIndex)
     if GetItemFunctionalQuality then
         local funcQuality = GetItemFunctionalQuality(bagId, slotIndex)
@@ -64,17 +48,12 @@ local function IsArtifactItem(bagId, slotIndex)
     return false
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
---- @return string
 function FenceSell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
 end
 
---- @param vendorInstance BETTERUI.Vendor.Class
---- @return boolean
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
@@ -88,7 +67,6 @@ function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     return true
 end
 
---- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
@@ -116,11 +94,8 @@ function FenceSell:OnPrimaryAction(vendorInstance)
     SellInventoryItem(bagId, slotIndex, stackSize)
 end
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
---- @param vendorInstance BETTERUI.Vendor.Class
 function FenceSell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
@@ -180,12 +155,9 @@ function FenceSell:BuildList(vendorInstance)
     end
 end
 
--- ============================================================================
 -- FOOTER INFO
--- ============================================================================
 
 --- Returns footer text showing remaining sells and reset timer
---- @return string footerText
 function FenceSell:GetFooterText()
     local remaining, total, resetTimeSeconds = GetRemainingSells()
     local text = zo_strformat(SI_BETTERUI_FENCE_SELLS_REMAINING, remaining, total)

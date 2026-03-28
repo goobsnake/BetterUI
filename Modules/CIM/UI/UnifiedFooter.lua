@@ -4,12 +4,8 @@ Purpose: Unified footer controller with mode switching.
          Extends GenericFooter to support different display modes for Inventory vs Banking.
 ]]
 
--- ============================================================================
 -- CONSTANTS
--- ============================================================================
 
----@class BETTERUI.CIM.UnifiedFooter
----@field MODE table<string, number> Footer display modes
 BETTERUI.CIM.UnifiedFooter = BETTERUI.CIM.UnifiedFooter or {}
 
 --- Footer display modes
@@ -18,25 +14,16 @@ BETTERUI.CIM.UnifiedFooter.MODE = {
     BANKING = 2,  -- Banking mode: Shows capacity + currencies + bank-specific info
 }
 
--- ============================================================================
 -- CLASS DEFINITION
--- ============================================================================
 
----@class UnifiedFooterController
----@field control Control The XML control reference
----@field footer Control The footer container
----@field mode number Current display mode
 local UnifiedFooterController = ZO_Object:Subclass()
 
---- @param control Control The XML control to manage
---- @return table UnifiedFooterController instance
 function UnifiedFooterController:New(control)
     local obj = ZO_Object.New(self)
     obj:Initialize(control)
     return obj
 end
 
---- @param control Control The XML control to manage
 function UnifiedFooterController:Initialize(control)
     self.control = control
     self.footer = nil
@@ -44,13 +31,11 @@ function UnifiedFooterController:Initialize(control)
     self._initialized = false
 end
 
---- @param footerControl Control The footer container control
 function UnifiedFooterController:SetupFooter(footerControl)
     self.footer = footerControl
     self._initialized = true
 end
 
---- @param mode number One of BETTERUI.CIM.UnifiedFooter.MODE values
 function UnifiedFooterController:SetMode(mode)
     if self.mode ~= mode then
         self.mode = mode
@@ -58,7 +43,6 @@ function UnifiedFooterController:SetMode(mode)
     end
 end
 
---- @return number mode Current mode value
 function UnifiedFooterController:GetMode()
     return self.mode
 end
@@ -106,19 +90,14 @@ function UnifiedFooterController:ApplyModeStyles()
     end
 end
 
---- @return boolean initialized Whether the footer has been set up
 function UnifiedFooterController:IsInitialized()
     return self._initialized
 end
 
--- ============================================================================
 -- MODULE REGISTRATION
--- ============================================================================
 
 BETTERUI.CIM.UnifiedFooter.Controller = UnifiedFooterController
 
---- @param control Control The XML control to manage
---- @return table UnifiedFooterController instance
 function BETTERUI.CIM.UnifiedFooter.Create(control)
     return UnifiedFooterController:New(control)
 end

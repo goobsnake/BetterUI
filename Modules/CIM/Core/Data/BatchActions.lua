@@ -10,22 +10,14 @@ Extracted from: MultiSelectMixin.lua (batch operations concern)
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 
---- @class BETTERUI.CIM.BatchActions
---- @field ExtractSlot fun(itemData: table): number|nil, number|nil
---- @field HasItemAtSlot fun(bagId: number, slotIndex: number): boolean
 BETTERUI.CIM.BatchActions = BETTERUI.CIM.BatchActions or {}
 
 local BatchActions = BETTERUI.CIM.BatchActions
 
--------------------------------------------------------------------------------------------------
 -- HELPERS
--------------------------------------------------------------------------------------------------
 
 --- Helper: extract bagId/slotIndex from item data (handles dataSource wrapper).
 --- @private
---- @param itemData table The item data table
---- @return number|nil bagId The bag ID
---- @return number|nil slotIndex The slot index
 local function ExtractSlot(itemData)
     local rawData = itemData.dataSource or itemData
     return rawData.bagId or itemData.bagId, rawData.slotIndex or itemData.slotIndex
@@ -33,9 +25,6 @@ end
 
 --- Checks if an item exists at the specified slot
 --- @private
---- @param bagId number The bag ID
---- @param slotIndex number The slot index
---- @return boolean hasItem True if an item exists at the slot
 local function HasItemAtSlot(bagId, slotIndex)
     local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or nil
     return (stackCount or 0) > 0
@@ -44,24 +33,10 @@ end
 BatchActions.ExtractSlot = ExtractSlot
 BatchActions.HasItemAtSlot = HasItemAtSlot
 
--------------------------------------------------------------------------------------------------
 -- BATCH OPTION PRESETS
--------------------------------------------------------------------------------------------------
 
---- @class BatchOptions
---- @field serverBound boolean Whether operation is server-bound
---- @field awaitInventoryAck boolean Whether to await inventory acknowledgment
---- @field minServerDelayMs number Minimum server delay in milliseconds
---- @field maxServerDelayMs number Maximum server delay in milliseconds
---- @field cooldownEvery number Apply cooldown every N items
---- @field cooldownMs number Cooldown duration in milliseconds
---- @field chunkCostUnits number Cost units per chunk
---- @field chunkPauseMs number Pause duration between chunks
---- @field adaptiveDelay boolean Whether to use adaptive delay
---- @field jitterMs number Jitter amount in milliseconds
 
 --- Options for lock/unlock batch operations
---- @type BatchOptions
 local LOCK_TOGGLE_BATCH_OPTIONS = {
     serverBound = true,
     awaitInventoryAck = false,
@@ -76,15 +51,11 @@ local LOCK_TOGGLE_BATCH_OPTIONS = {
 }
 
 --- Options for junk toggle batch operations (same as lock options)
---- @type BatchOptions
 local JUNK_TOGGLE_BATCH_OPTIONS = LOCK_TOGGLE_BATCH_OPTIONS
 
--------------------------------------------------------------------------------------------------
 -- BATCH OPERATIONS
--------------------------------------------------------------------------------------------------
 
 --- Performs batch lock on all selected items (throttled).
---- @param self table Module instance with multiSelectManager and ProcessBatchThrottled
 function BatchActions.BatchLock(self)
     if not self.multiSelectManager then return end
     local allItems = self.multiSelectManager:GetSelectedItems()
@@ -118,7 +89,6 @@ function BatchActions.BatchLock(self)
 end
 
 --- Performs batch unlock on all selected items (throttled).
---- @param self table Module instance
 function BatchActions.BatchUnlock(self)
     if not self.multiSelectManager then return end
     local allItems = self.multiSelectManager:GetSelectedItems()
@@ -151,7 +121,6 @@ function BatchActions.BatchUnlock(self)
 end
 
 --- Performs batch mark-as-junk on all selected items (throttled).
---- @param self table Module instance
 function BatchActions.BatchMarkAsJunk(self)
     if not self.multiSelectManager then return end
     local allItems = self.multiSelectManager:GetSelectedItems()
@@ -190,7 +159,6 @@ function BatchActions.BatchMarkAsJunk(self)
 end
 
 --- Performs batch unmark-as-junk on all selected items (throttled).
---- @param self table Module instance
 function BatchActions.BatchUnmarkAsJunk(self)
     if not self.multiSelectManager then return end
     local allItems = self.multiSelectManager:GetSelectedItems()
@@ -223,25 +191,14 @@ function BatchActions.BatchUnmarkAsJunk(self)
     end, GetString(rawget(_G, "SI_ITEM_ACTION_UNMARK_AS_JUNK")), JUNK_TOGGLE_BATCH_OPTIONS)
 end
 
--------------------------------------------------------------------------------------------------
 -- ITEM ANALYSIS
 -- Shared analysis logic used by ShowBatchActionsMenu in each module.
--------------------------------------------------------------------------------------------------
 
 --- Analysis result counts for batch actions
---- @class BatchActionCounts
---- @field lockedCount number Count of locked items
---- @field unlockedCount number Count of unlocked items
---- @field canLockCount number Count of items that can be locked
---- @field canMarkJunkCount number Count of items that can be marked as junk
---- @field canUnmarkJunkCount number Count of items that can be unmarked as junk
 
 --- Analyzes selected items and returns counts for each applicable batch action.
 --- Modules call this to build their batch actions dialog entries.
---- @param selectedItems table Array of selected item data
---- @return BatchActionCounts counts Table with counts for each action type
 function BatchActions.AnalyzeSelectedItems(selectedItems)
-    --- @type BatchActionCounts
     local counts = {
         lockedCount = 0,
         unlockedCount = 0,
@@ -281,20 +238,12 @@ function BatchActions.AnalyzeSelectedItems(selectedItems)
     return counts
 end
 
--------------------------------------------------------------------------------------------------
 -- DIALOG HELPERS
 -- Shared helpers to build batch actions dialog entries consistently.
--------------------------------------------------------------------------------------------------
 
 --- Dialog entry for parametric list
---- @class DialogEntry
---- @field template string The XML template name
---- @field entryData table The entry data object
 
 --- Creates a single parametric dialog entry for a batch action.
---- @param label string The display label (e.g., "Lock (5)")
---- @param callback function The action callback
---- @return DialogEntry entry The parametric list entry
 function BatchActions.CreateDialogEntry(label, callback)
     local entry = ZO_GamepadEntryData:New(label)
     entry:SetIconTintOnSelection(true)
@@ -309,9 +258,6 @@ end
 --- Appends the standard shared batch action entries (Lock, Unlock, Mark Junk, Unmark Junk)
 --- to a parametric list based on the analysis counts.
 --- Modules call this after adding their own module-specific entries.
---- @param parametricList table The list to append entries to
---- @param counts BatchActionCounts From AnalyzeSelectedItems
---- @param self table The module instance (for batch method callbacks)
 function BatchActions.AppendCommonBatchEntries(parametricList, counts, self)
     if counts.canLockCount > 0 then
         local label = zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_MARK_AS_LOCKED")), counts.canLockCount)

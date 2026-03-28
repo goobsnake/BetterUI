@@ -15,21 +15,13 @@ This file now serves as:
 ]]
 
 -- Ensure namespaces exist (may already be set in Globals.lua or earlier files)
---- @class BETTERUI.Interface
---- @field EnsureKeybindGroupAdded fun(descriptor: table): boolean
---- @field CreateSearchKeybindDescriptor fun(): table
---- @field Window BETTERUI.Interface.Window
---- @field SearchMixin table<string, function>|nil
 BETTERUI.Interface = BETTERUI.Interface or {}
 
---- @class BETTERUI.CIM
 BETTERUI.CIM = BETTERUI.CIM or {}
 
--- ============================================================================
 -- LOAD ORDER VERIFICATION
 -- Verify that required components were loaded by the files before this one.
 -- If any assertion fails, the manifest (BetterUI.txt) load order is incorrect.
--- ============================================================================
 
 assert(BETTERUI.Interface.EnsureKeybindGroupAdded,
   "BetterUI Load Error: KeybindHelpers.lua must be loaded before InterfaceLibrary.lua")
@@ -43,9 +35,7 @@ assert(BETTERUI.Interface.CreateSearchKeybindDescriptor,
 assert(BETTERUI.Interface.Window,
   "BetterUI Load Error: WindowClass.lua must be loaded before InterfaceLibrary.lua")
 
--- ============================================================================
 -- BACKWARDS COMPATIBILITY NOTES
--- ============================================================================
 --[[
 All public APIs remain at their original locations:
   - BETTERUI.Interface.Window                    (WindowClass.lua)

@@ -7,20 +7,15 @@ Purpose: Thin coordinator for banking action dialog behavior.
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
--------------------------------------------------------
 --- Transfer Actions
--------------------------------------------------------
 -- Transfer execution responsibilities are intentionally kept in:
 --   Modules/Banking/Actions/TransferActions.lua
 -- Including: MoveItem, DisplaySelector, HideSelector, ShowActions,
 -- and CancelWithdrawDeposit.
 
--------------------------------------------------------
 --- Action Filtering
--------------------------------------------------------
 
 --- Updates the context menu actions for the currently selected item.
---- @return nil
 function BETTERUI.Banking.Class:RefreshItemActions()
     -- Skip itemActions updates when in header sort mode to prevent keybind flicker
     if self.isInHeaderSortMode then
@@ -71,12 +66,9 @@ local function PopulateFilteredActions(self, parametricList)
     })
 end
 
--------------------------------------------------------
 --- Dialog Setup
--------------------------------------------------------
 
 --- Initializes the Y Button Actions Dialog with callbacks.
---- @return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogSetup(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then

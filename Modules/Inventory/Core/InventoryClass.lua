@@ -43,9 +43,7 @@ assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask m
 BETTERUI.Inventory.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
 
---------------------------------------------------------------------------------
 -- CACHING & DATA MANAGEMENT
---------------------------------------------------------------------------------
 
 local g_slotDataCache = {}
 local g_slotDataCacheDirty = true
@@ -57,8 +55,6 @@ function BETTERUI.Inventory.Class:InvalidateSlotDataCache()
 end
 
 --- Invalidates cached item metadata for a specific bag/slot.
---- @param bagId number|nil The bag ID, or nil to clear all
---- @param slotIndex number|nil The slot index, or nil to clear all slots in the bag
 function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     if not self.itemMetaCache then self.itemMetaCache = {} end
     if not bagId then
@@ -72,16 +68,12 @@ function BETTERUI.Inventory.Class:InvalidateItemMeta(bagId, slotIndex)
     end
 end
 
---- @param bags table Array of bag IDs
---- @return number|string key Single bag ID or comma-separated string
 local function GetBagCacheKey(bags)
     if #bags == 1 then return bags[1] end
     return table.concat(bags, ",")
 end
 
 --- Gets cached slot data for the specified bags.
---- @param ... number Bag IDs to include in the cache
---- @return table slotData The cached slot data
 function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     local bags = { ... }
     table.sort(bags) -- Ensure consistent key
@@ -104,9 +96,7 @@ function BETTERUI.Inventory.Class:GetCachedSlotData(...)
     return g_slotDataCache[cacheKey]
 end
 
---------------------------------------------------------------------------------
 -- KEYBIND MANAGEMENT (Override ESO Base Class)
---------------------------------------------------------------------------------
 
 --[[
 Function: RefreshKeybinds (Override)
@@ -119,7 +109,6 @@ itself, we intercept ALL refresh calls - both from our code and ESO's base class
 References: Called by ESO base class in selection callbacks.
 ]]
 --- Refreshes the keybind strip (override with guards).
---- @return nil
 function BETTERUI.Inventory.Class:RefreshKeybinds()
     -- Guard: Skip keybind refresh if in header sort mode to preserve header keybinds
     -- This is the critical fix for the "A-Button Burn" issue - ESO's base class calls
@@ -145,7 +134,6 @@ we prevent itemActions from updating keybinds during header sort mode.
 References: Called on every selection change via selection callbacks.
 ]]
 --- Sets the selected inventory data (override with guards).
---- @param inventoryData table|nil The inventory data to select
 function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     -- Skip itemActions keybind updates when in header sort mode
     -- This is the REAL fix for the "A-Button Burn" flicker - itemActions:SetInventorySlot
@@ -160,15 +148,12 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
 end
 
---------------------------------------------------------------------------------
 -- INITIALIZATION
---------------------------------------------------------------------------------
 
 
 --- Initializes the Inventory object.
 --- Sets up the root scene, registers update loops, and hooks into visual layer changes.
 --- References: Called by Module.lua.
---- @param control Control The root control for the inventory
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
     GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
@@ -206,8 +191,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
     -- Calling ToSavedPosition here was causing redundant refreshes and flickering.
 
     -- Guard update loop so we only process while the inventory scene is visible.
-    --- @param updateControl Control
-    --- @param currentFrameTimeSeconds number
     local function OnUpdate(updateControl, currentFrameTimeSeconds)
         if self.scene and self.scene:IsShowing() then
             self:OnUpdate(currentFrameTimeSeconds)
@@ -218,7 +201,6 @@ function BETTERUI.Inventory.Class:Initialize(control)
         self:TrySetClearNewFlag(callId)
     end
 
-    --- @return nil
     local function RefreshVisualLayer()
         if self.scene:IsShowing() then
             self:OnUpdate()
@@ -297,13 +279,9 @@ function BETTERUI.Inventory.Class:Initialize(control)
     end
 end
 
---------------------------------------------------------------------------------
 -- HELPER UTILITIES
---------------------------------------------------------------------------------
 
 --- Gets the equip slot for a given equip type.
---- @param equipType number The equipment type constant
---- @return number|nil equipSlot The equip slot, or nil if not found
 function BETTERUI.Inventory.Class:GetEquipSlotForEquipType(equipType)
     -- Prefer the slot corresponding to the currently intended bar (primary/backup)
     local wantPrimary = true
@@ -336,21 +314,13 @@ function BETTERUI.Inventory.Class:GetEquipSlotForEquipType(equipType)
     return lastMatchingSlot
 end
 
---------------------------------------------------------------------------------
 -- HEADER MANAGEMENT
---------------------------------------------------------------------------------
 
---------------------------------------------------------------------------------
 -- REFRESH OPTIMIZATIONS
---------------------------------------------------------------------------------
 
 --- Checks if any items in the cached list are marked as new.
 --- Optimized replacement for SHARED_INVENTORY:AreAnyItemsNew to use local cache.
 --- Checks if any items in the cached list are marked as new.
---- @param filterFunc function|nil Optional filter function
---- @param filterType number|nil Optional filter type
---- @param bagId number|nil Optional bag ID to check
---- @return boolean hasNewItems True if any items are new
 function BETTERUI.Inventory.Class:AreAnyItemsNew(filterFunc, filterType, bagId)
     local items = self:GetCachedSlotData(bagId)
     if not items then return false end
@@ -371,7 +341,6 @@ end
 --- Calls GenericHeader.Refresh with categoryHeaderData (which has proper titleText).
 --- Re-attaches the mouse click callback (which might be wiped by Refresh).
 --- Ensures scrollList link.
---- @param blockCallback? boolean Whether to block the tab bar callback during refresh.
 function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
     BETTERUI.GenericHeader.Refresh(self.header, self.categoryHeaderData, blockCallback)
 
@@ -406,7 +375,6 @@ function BETTERUI.Inventory.Class:RefreshHeader(blockCallback)
 end
 
 --- Positions the text search control in the header.
---- @return nil
 function BETTERUI.Inventory.Class:PositionSearchControl()
     if not self.textSearchHeaderControl then
         return

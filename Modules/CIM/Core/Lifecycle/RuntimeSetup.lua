@@ -16,11 +16,8 @@ Migration History:
 
 ]]
 
--- ============================================================================
 -- NAMESPACE SETUP
--- ============================================================================
 
----@diagnostic disable-next-line: missing-fields
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.RuntimeSetup = {}
 
@@ -30,9 +27,7 @@ local SafeExecute = BETTERUI.CIM.SafeExecute
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
 
--- ============================================================================
 -- MIGRATIONS
--- ============================================================================
 --[[
 MIGRATION DOCUMENTATION
 
@@ -108,9 +103,7 @@ HOW TO ADD NEW MIGRATIONS:
     4. Mark legacy paths with @deprecated where applicable
 ]]
 
--- ============================================================================
 -- API PATCHES
--- ============================================================================
 
 --- Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
 ---
@@ -236,9 +229,7 @@ local function ApplyAPIPatches()
     patchesApplied = true
 end
 
--- ============================================================================
 -- SETTINGS MIGRATIONS
--- ============================================================================
 
 --- Migrates legacy settings keys to current standards.
 ---
@@ -249,7 +240,6 @@ end
 --- 3. Moves market-price row toggle from Inventory -> GeneralInterface.
 --- 4. Ensures market source priority setting exists.
 ---
---- @param settings table The BETTERUI.Settings table to migrate.
 local function RunSettingsMigrations(settings)
     if not settings or not settings.Modules then return end
 
@@ -382,9 +372,7 @@ local function RunSettingsMigrations(settings)
     end
 end
 
--- ============================================================================
 -- PUBLIC API
--- ============================================================================
 
 --- Main entry point for early-initialization logic.
 ---
@@ -393,7 +381,6 @@ end
 --- 1. Applies API patches (once).
 --- 2. Runs settings migrations on the provided settings table.
 ---
---- @param settings table The BETTERUI.Settings table to migrate.
 function RuntimeSetup.Apply(settings)
     ApplyAPIPatches()
     RunSettingsMigrations(settings)

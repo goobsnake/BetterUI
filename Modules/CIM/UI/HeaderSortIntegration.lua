@@ -16,21 +16,13 @@ BETTERUI.CIM.UI.HeaderSortIntegration = {}
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
--------------------------------------------------------------------------------------------------
 -- CONSTANTS
--------------------------------------------------------------------------------------------------
 
 
--------------------------------------------------------------------------------------------------
 -- KEYBIND DESCRIPTORS
--------------------------------------------------------------------------------------------------
 
 --- Creates keybind descriptors for header sort navigation mode.
 ---
---- @param controller table The header sort controller instance.
---- @param onExitCallback function Called when exiting header mode.
---- @param onSortCallback function Called when sort is toggled.
---- @return table Keybind descriptor for header mode.
 local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallback)
     return {
         alignment = KEYBIND_STRIP_ALIGN_CENTER,
@@ -65,7 +57,6 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
         },
         -- X Button - Clear Sort
         {
-            ---@diagnostic disable-next-line: undefined-global
             name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
@@ -133,16 +124,10 @@ local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallba
     }
 end
 
--------------------------------------------------------------------------------------------------
 -- INTEGRATION SETUP
--------------------------------------------------------------------------------------------------
 
 --- Sets up header sort integration for a parametric scroll list.
 ---
---- @param list table The parametric scroll list instance.
---- @param controller table The header sort controller.
---- @param options table Configuration options.
---- @return table Integration state object for manual control.
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
 
@@ -185,8 +170,6 @@ end
 
 --- Enters header sort navigation mode.
 ---
---- @param integration table The integration state object.
---- @param options table Configuration options from Setup.
 function HeaderSortIntegration.EnterHeaderMode(integration, options)
     if integration.isActive then return end
 
@@ -207,8 +190,6 @@ end
 
 --- Exits header sort navigation mode and returns to list.
 ---
---- @param integration table The integration state object.
---- @param options table Configuration options from Setup.
 function HeaderSortIntegration.ExitHeaderMode(integration, options)
     if not integration.isActive then return end
 
@@ -229,22 +210,16 @@ end
 
 --- Returns whether header mode is currently active for an integration.
 ---
---- @param integration table The integration state object.
---- @return boolean True if in header mode.
 function HeaderSortIntegration.IsActive(integration)
     return integration and integration.isActive
 end
 
--------------------------------------------------------------------------------------------------
 -- MIXIN PATTERN
--------------------------------------------------------------------------------------------------
 
 --- Injects EnterHeaderSortMode() and ExitHeaderSortMode() methods into an instance.
 ---
 --- Purpose: This eliminates duplicate code across Inventory and Banking modules.
 ---
---- @param instance table The class instance to add methods to (e.g., InventoryClass, BankingClass).
---- @param config table Configuration options.
 function HeaderSortIntegration.ApplyMixin(instance, config)
     if not instance or not config then return end
 

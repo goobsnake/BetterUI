@@ -7,10 +7,8 @@ Purpose: Constants for the Banking module.
 if not BETTERUI.Banking then BETTERUI.Banking = {} end
 if not BETTERUI.Banking.CONST then BETTERUI.Banking.CONST = {} end
 
--- ============================================================================
 -- CATEGORY CAROUSEL OVERRIDES
 -- Banking-specific carousel overrides (differs from CIM defaults)
--- ============================================================================
 
 --[[
 Table: BETTERUI.Banking.CONST.CAROUSEL
@@ -35,10 +33,8 @@ BETTERUI.Banking.CONST.CAROUSEL = {
     verticalOffset = -1,
 }
 
--- ============================================================================
 -- SEARCH BAR POSITIONING (delegate to CIM shared constants)
 -- Controls the position of the search input field in banking headers
--- ============================================================================
 
 -- Use centralized CIM search bar constants (eliminates duplication with Inventory)
 assert(BETTERUI.CIM and BETTERUI.CIM.GetSearchBarConstants, "BetterUI: CIM must load before Banking/Constants")
@@ -57,11 +53,8 @@ BETTERUI.Banking.CONST.SEARCH = {
 }
 
 
-
--- ============================================================================
 -- CURRENCY TEXTURES
 -- Icons for currency type selectors in deposit/withdraw dialogs
--- ============================================================================
 
 --[[
 Table: BETTERUI.Banking.CONST.CURRENCY_TEXTURES
@@ -75,10 +68,8 @@ BETTERUI.Banking.CONST.CURRENCY_TEXTURES = {
     [CURT_WRIT_VOUCHERS] = "EsoUI/Art/currency/gamepad/gp_writvoucher.dds",
 }
 
--- ============================================================================
 -- UI TWEAKS
 -- Magic numbers extracted from Banking.lua and StateManager.lua
--- ============================================================================
 
 --[[
 Constant: BETTERUI_BANK_LIST_MAX_OFFSET
@@ -112,10 +103,8 @@ Used By: StateManager.lua
 ]]
 BETTERUI_BANK_DEPOSIT_ARROW_ROTATION = math.pi
 
--- ============================================================================
 -- TIMING CONSTANTS (delegate to CIM shared values)
 -- Delay values for coalescing operations and UI updates
--- ============================================================================
 
 --[[
 Constant: BETTERUI_BANK_MOVE_COALESCE_DELAY_MS
@@ -133,10 +122,8 @@ Used By: HeaderManager.lua
 ]]
 BETTERUI_BANK_CATEGORY_CHANGE_DELAY_MS = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS
 
--- ============================================================================
 -- SCENE CONSTANTS
 -- Moved from InterfaceLibrary.lua
--- ============================================================================
 
 --[[
 Constant: BETTERUI_BANKING_SCENE_NAME

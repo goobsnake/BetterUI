@@ -5,16 +5,12 @@ Purpose: Settings metadata registry and default/reset management.
          Provides lookup, default retrieval, and group-based reset functions.
 ]]
 
--- ============================================================================
 -- NAMESPACE INITIALIZATION
--- ============================================================================
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.Settings then BETTERUI.CIM.Settings = {} end
 
--- ============================================================================
 -- SETTINGS METADATA REGISTRY
--- ============================================================================
 
 local SETTINGS_METADATA_REGISTRY = {
     Shared = {
@@ -290,8 +286,6 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 }
 
---- @param value any Value to deep clone (handles nested tables)
---- @return any clone Deep copy of the value
 local function CloneDefaultValue(value)
     if type(value) ~= "table" then
         return value
@@ -310,9 +304,6 @@ end
 
 --- Returns centralized metadata for a module setting key.
 --- Falls back to Shared metadata when module-specific metadata is unavailable.
---- @param moduleName string Module namespace key
---- @param settingKey string Setting key within module SavedVars
---- @return table|nil metadata Metadata descriptor or nil
 function BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)
     if type(settingKey) ~= "string" then
         return nil
@@ -332,10 +323,6 @@ function BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)
 end
 
 --- Returns the default value for a module setting using metadata first, then DefaultsRegistry.
---- @param moduleName string Module namespace key
---- @param settingKey string Setting key within module SavedVars
---- @param fallback any Optional fallback value
---- @return any defaultValue Default value or provided fallback
 function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallback)
     local metadata = BETTERUI.CIM.Settings.GetSettingMetadata(moduleName, settingKey)
     if metadata and metadata.defaultValue ~= nil then
@@ -353,8 +340,6 @@ function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallbac
 end
 
 --- Resets module settings that belong to the requested reset group.
---- @param moduleName string Module namespace key
---- @param resetGroup string Logical reset bucket from metadata schema
 function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, resetGroup)
     if type(moduleName) ~= "string" or type(resetGroup) ~= "string" then
         return

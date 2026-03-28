@@ -5,16 +5,13 @@ Purpose: UI layout constants, backward-compatibility aliases, color definitions,
          Split from Constants.lua for maintainability.
 ]]
 
----@diagnostic disable: lowercase-global, undefined-global
 
 if not BETTERUI then BETTERUI = {} end
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 if not BETTERUI.CIM.CONST then BETTERUI.CIM.CONST = {} end
 
--- ============================================================================
 -- TOOLTIP LAYOUT CONSTANTS
 -- Migrated from GeneralInterface/Constants.lua
--- ============================================================================
 
 --[[
 Constant: BETTERUI.CIM.CONST.TOOLTIP_MAX_FADE_GRADIENT_SIZE
@@ -47,9 +44,7 @@ Used By: Inventory/UI/TooltipUtils.lua
 ]]
 BETTERUI.CIM.CONST.TOOLTIP_SCROLL_OFFSET_Y = 40
 
--- ============================================================================
 -- RESEARCH SYSTEM (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.CraftingSkillTypes
@@ -59,9 +54,7 @@ Used By: Tooltips and Inventory modules to check research status.
 BETTERUI.CIM.CONST.CraftingSkillTypes = { CRAFTING_TYPE_BLACKSMITHING, CRAFTING_TYPE_CLOTHIER,
     CRAFTING_TYPE_JEWELRYCRAFTING, CRAFTING_TYPE_WOODWORKING }
 
--- ============================================================================
 -- UI LAYOUT (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 BETTERUI.CIM.CONST.LAYOUT = {}
 
@@ -208,9 +201,7 @@ BETTERUI_STAT_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.STAT.WIDTH              
 BETTERUI_VALUE_OFFSET_X = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.OFFSET_X           -- + right, - left.
 BETTERUI_VALUE_WIDTH = BETTERUI.CIM.CONST.LAYOUT.COLUMNS.VALUE.WIDTH                 -- Column width budget.
 
--- ============================================================================
 -- COLORS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.COLORS
@@ -238,9 +229,7 @@ BETTERUI.CIM.CONST.SEARCH_CHILD_NAMES = {
     "EditBox", "SearchIcon", "Icon", "Texture", "InputContainer"
 }
 
--- ============================================================================
 -- TOOLTIP DEFAULTS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS
@@ -251,9 +240,7 @@ BETTERUI.CIM.CONST.TOOLTIP_DEFAULTS = {
     DEFAULT_FONT_SIZE = 24
 }
 
--- ============================================================================
 -- ICONS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.ICONS
@@ -277,9 +264,7 @@ BETTERUI.CIM.CONST.ICONS = {
     BOOK_UNKNOWN = "EsoUI/Art/MenuBar/Gamepad/gp_playerMenu_icon_loreLibrary.dds",
 }
 
--- ============================================================================
 -- CIM DEFAULTS (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.DEFAULTS
@@ -292,10 +277,8 @@ BETTERUI.CIM.CONST.DEFAULTS = {
     DEFAULT_TOOLTIP_SIZE = 24,
 }
 
--- ============================================================================
 -- SORT SCHEMA
 -- Shared sort schema for gamepad inventory-style lists
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.SORT_SCHEMA
@@ -313,9 +296,7 @@ BETTERUI.CIM.CONST.SORT_SCHEMA = {
     uniqueId               = { isId64 = true },
 }
 
--- ============================================================================
 -- HEADER LAYOUT (Migrated from BetterUI.CONST.lua)
--- ============================================================================
 
 --[[
 Table: BETTERUI.CIM.CONST.HEADER_LAYOUT

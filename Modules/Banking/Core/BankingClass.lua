@@ -12,9 +12,7 @@ This file is part of the Banking module decomposition. It contains:
 Other Banking files extend this class with additional functionality.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- MODULE-SCOPE CONSTANTS
--------------------------------------------------------------------------------------------------
 -- These constants are shared across all Banking module files via BETTERUI.Banking namespace.
 
 -- List mode constants for tracking Withdraw vs Deposit state
@@ -31,13 +29,10 @@ BETTERUI.Banking.esoSubscriber                 = nil
 assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Banking/Core/BankingClass")
 BETTERUI.Banking.Tasks                         = BETTERUI.CIM.DeferredTask.Manager:New()
 
--------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY REFERENCES
--------------------------------------------------------------------------------------------------
 -- Use centralized category definitions from CIM module to eliminate duplication.
 -- These were previously defined locally as BANK_CATEGORY_DEFS and BANK_CATEGORY_ICONS.
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
--------------------------------------------------------------------------------------------------
 assert(BETTERUI.Inventory and BETTERUI.Inventory.Categories, "BetterUI: Inventory.Categories must load before Banking/Core/BankingClass")
 assert(BETTERUI.CIM and BETTERUI.CIM.GenericWindow, "BetterUI: CIM.GenericWindow must load before Banking/Core/BankingClass")
 BETTERUI.Banking.CATEGORY_DEFS                 = BETTERUI.Inventory.Categories.Bank
@@ -46,9 +41,7 @@ BETTERUI.Banking.CATEGORY_DEFS                 = BETTERUI.Inventory.Categories.B
 BETTERUI.Banking.EnsureKeybindGroupAdded       = BETTERUI.Interface.EnsureKeybindGroupAdded
 BETTERUI.Banking.CreateSearchKeybindDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor
 
--------------------------------------------------------------------------------------------------
 -- CLASS DEFINITION
--------------------------------------------------------------------------------------------------
 
 --[[
 Class: BETTERUI.Banking.Class
@@ -56,13 +49,10 @@ Description: Main class for the Banking module window.
 ]]
 BETTERUI.Banking.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
---- @param ... any Arguments passed to the parent constructor
---- @return table instance The new Banking Class instance
 function BETTERUI.Banking.Class:New(...)
     return BETTERUI.CIM.GenericWindow.New(self, ...)
 end
 
---- @return boolean showing True if the banking scene is showing
 function BETTERUI.Banking.Class:IsSceneShowing()
     return BETTERUI.Utils.IsBankingSceneShowing()
 end
@@ -82,9 +72,7 @@ function BETTERUI.Banking.Class:SetupUnifiedFooter()
     end
 end
 
---------------------------------------------------------------------------------
 -- HEADER SORT MODE
---------------------------------------------------------------------------------
 -- Column definitions for header sort navigation (matches Inventory)
 -- Each column has a name (for display), key (internal), sortKey, and optional defaultDirection
 local BANKING_SORT_COLUMNS = {
@@ -97,8 +85,6 @@ local BANKING_SORT_COLUMNS = {
 
 --- Helper: Get trait display name for sorting (alphabetical with blanks last)
 --- Returns uppercase trait name for consistent sorting
---- @param data table|nil Item data
---- @return string|nil Trait name (uppercase) or nil if no trait
 local function GetTraitSortValue(data)
     if not data then return nil end
 
@@ -138,9 +124,6 @@ end
 
 --- Helper: Get stat sort value (alphabetical first, then numeric, blanks last)
 --- Returns: sortPriority (1=alpha, 2=numeric, 3=blank), sortValue
---- @param data table|nil Item data
---- @return number priority Sort priority (1=alpha, 2=numeric, 3=blank)
---- @return string|number value Value to compare within priority
 local function GetStatSortValue(data)
     if not data then return 3, "" end
 
@@ -168,8 +151,6 @@ local function GetStatSortValue(data)
 end
 
 --- Helper: Get value sort value (market price first, then vendor price)
---- @param data table|nil Item data
---- @return number price Best available price
 local function GetValueSortValue(data)
     if not data then return 0 end
 
@@ -201,9 +182,6 @@ end
 --- Creates sort comparator for a column with the specified direction
 --- Handles special cases: TRAIT (alphabetical, blanks last), STAT (alpha/numeric/blank),
 --- VALUE (market price priority)
---- @param sortKey string The key to sort by
---- @param ascending boolean True for ascending, false for descending
---- @return function
 local function CreateColumnSortComparator(sortKey, ascending)
     -- TRAIT: Alphabetical with blanks after "z"
     if sortKey == "trait" then
@@ -314,7 +292,6 @@ local function CreateColumnSortComparator(sortKey, ascending)
 end
 
 --- Initializes the header sort controller for this banking instance.
---- @return nil
 function BETTERUI.Banking.Class:InitializeHeaderSortController()
     if self.headerSortController then return end
 
@@ -349,7 +326,6 @@ end
 
 --- Links column header labels to the sort controller for visual feedback.
 --- Must be called AFTER AddColumn() populates self.header.columns.
---- @return nil
 function BETTERUI.Banking.Class:LinkColumnLabels()
     if not self.headerSortController then return end
     if not self.header or not self.header.columns then return end
@@ -364,8 +340,6 @@ function BETTERUI.Banking.Class:LinkColumnLabels()
 end
 
 --- Called when sort direction changes on a column
---- @param columnKey string The column key that changed
---- @param direction number Sort direction constant
 function BETTERUI.Banking.Class:OnHeaderSortChanged(columnKey, direction)
     local SORT_DIRECTION = BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION
 
@@ -417,12 +391,9 @@ end
 -- See InitializeHeaderSortController where ApplyMixin is called.
 
 
---------------------------------------------------------------------------------
 -- MULTI-SELECT MODE (delegates to CIM.MultiSelectMixin)
---------------------------------------------------------------------------------
 
 --- Initializes the multi-select manager and applies the shared mixin.
---- @return nil
 function BETTERUI.Banking.Class:InitializeMultiSelectManager()
     if self.multiSelectManager then return end
 
@@ -457,7 +428,6 @@ end
 local MultiSelectMixin = BETTERUI.CIM.MultiSelectMixin
 
 --- Enters multi-select mode.
---- @return nil
 function BETTERUI.Banking.Class:EnterSelectionMode()
     -- Lazy-initialize manager on first use
     self:InitializeMultiSelectManager()
@@ -472,66 +442,51 @@ function BETTERUI.Banking.Class:EnterSelectionMode()
 end
 
 --- Exits multi-select mode.
---- @return nil
 function BETTERUI.Banking.Class:ExitSelectionMode()
     MultiSelectMixin.ExitSelectionMode(self)
 end
 
 --- Called when the selection count changes.
---- @param selectedCount number
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
     MultiSelectMixin.OnSelectionCountChanged(self, selectedCount)
 end
 
---- @return boolean
 function BETTERUI.Banking.Class:IsInSelectionMode()
     return MultiSelectMixin.IsInSelectionMode(self)
 end
 
---- @return boolean
 function BETTERUI.Banking.Class:IsBatchProcessing()
     return MultiSelectMixin.IsBatchProcessing(self)
 end
 
---- @return boolean
 function BETTERUI.Banking.Class:CanAbortBatch()
     return MultiSelectMixin.CanAbortBatch(self)
 end
 
---- @return nil
 function BETTERUI.Banking.Class:RequestBatchAbort()
     return MultiSelectMixin.RequestBatchAbort(self)
 end
 
---- @param items table
---- @param actionFn function
---- @param onComplete function
---- @param actionName string
---- @param batchOptions table
 function BETTERUI.Banking.Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
     MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
 --- Locks all selected items.
---- @return nil
 function BETTERUI.Banking.Class:BatchLock()
     MultiSelectMixin.BatchLock(self)
 end
 
 --- Unlocks all selected items.
---- @return nil
 function BETTERUI.Banking.Class:BatchUnlock()
     MultiSelectMixin.BatchUnlock(self)
 end
 
 --- Marks all selected items as junk.
---- @return nil
 function BETTERUI.Banking.Class:BatchMarkAsJunk()
     MultiSelectMixin.BatchMarkAsJunk(self)
 end
 
 --- Unmarks all selected items as junk.
---- @return nil
 function BETTERUI.Banking.Class:BatchUnmarkAsJunk()
     MultiSelectMixin.BatchUnmarkAsJunk(self)
 end

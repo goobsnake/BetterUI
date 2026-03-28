@@ -11,8 +11,6 @@ if not ROF then return end
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
---- @param accessors table
---- @return table LAM submenu definition
 function Submenus.BuildSkillBarsSubmenu(accessors)
     local a = accessors
     return {
@@ -196,8 +194,6 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
     }
 end
 
---- @param accessors table
---- @return table LAM submenu definition
 function Submenus.BuildOrbTextSubmenu(accessors)
     local a = accessors
     return {
@@ -297,8 +293,6 @@ function Submenus.BuildOrbTextSubmenu(accessors)
     }
 end
 
---- @param accessors table
---- @return table, table, table LAM submenu definitions
 function Submenus.BuildBarSubmenus(accessors)
     local a = accessors
     local xpSubmenu = {
@@ -341,9 +335,7 @@ function Submenus.BuildBarSubmenus(accessors)
     return xpSubmenu, castSubmenu, mountSubmenu
 end
 
--------------------------------------------------------------------------------------------------
 -- SUBMENU SECTION ORDERING
--------------------------------------------------------------------------------------------------
 
 --- Strips color codes, texture tags, and whitespace for sort-safe comparison.
 local function NormalizeSectionSortName(name)
@@ -425,7 +417,6 @@ local function SortSubmenuHeaderSectionsAlphabetically(controls)
 end
 
 --- Finds the Skill Bars submenu in optionsTable and sorts its sections alphabetically.
----@param optionsTable table The LAM options table
 function Submenus.ApplySubmenuSectionOrdering(optionsTable)
     if type(optionsTable) ~= "table" then
         return

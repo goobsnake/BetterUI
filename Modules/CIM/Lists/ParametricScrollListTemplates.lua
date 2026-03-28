@@ -26,7 +26,6 @@ ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS =
 
 --- Plays navigation sound for scroll list movement.
 ---
---- @param movementType number The type of movement (next, prev, jump, etc.).
 function BETTERUI.GamepadParametricScrollListPlaySound(movementType)
     PlaySound(ZO_PARAMETRIC_SCROLL_MOVEMENT_SOUNDS[movementType])
 end

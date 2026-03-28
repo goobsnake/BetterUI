@@ -4,7 +4,6 @@ Purpose: Scene showing/hiding/hidden lifecycle handlers and keyboard shortcut in
 Extracted from Banking.lua for maintainability.
 ]]
 
--- ─── Constants ───────────────────────────────────────────────────────────────
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local SHARED_INVENTORY_UPDATE_DELAY_MS = 100
 
@@ -23,10 +22,8 @@ local GUILD_BANK_EVENTS = {
     EVENT_GUILD_SELF_LEFT_GUILD,
 }
 
--- ─── Public API ──────────────────────────────────────────────────────────────
 
 --- Scene showing handler called by SceneLifecycleManager.
---- @param wasPushed boolean
 function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     -- Ensure currency selector is hidden on scene entry
     if self.selector and self.selector.control then
@@ -158,7 +155,6 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 end
 
 --- Aborts any in-flight batch before cleanup.
---- @return nil
 function BETTERUI.Banking.Class:OnSceneHiding()
     if self:IsBatchProcessing() then
         self:RequestBatchAbort()
@@ -166,7 +162,6 @@ function BETTERUI.Banking.Class:OnSceneHiding()
 end
 
 --- Scene hidden handler called by SceneLifecycleManager.
---- @return nil
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
     self:CancelWithdrawDeposit(self.list)
@@ -241,21 +236,17 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 end
 
 --- Handles visibility of supported external addon elements.
---- @param hidden boolean
 function BETTERUI.Banking.Class:UpdateExternalAddons(hidden)
     if wykkydsToolbar then
         wykkydsToolbar:SetHidden(hidden)
     end
 end
 
---------------------------------------------------------------------------------
 -- KEYBOARD SHORTCUT INTERCEPTION (installed during Init)
---------------------------------------------------------------------------------
 
 --- Sets up keyboard shortcut interception hooks on SCENE_MANAGER.
 --- Prevents keyboard keys (I, G, M, etc.) from interrupting the banking
 --- ZO_InteractScene mid-interaction.
---- @return nil
 function BETTERUI.Banking.SetupSceneInterception()
     local originalToggle = SCENE_MANAGER.Toggle
     local originalShow = SCENE_MANAGER.Show
@@ -263,8 +254,6 @@ function BETTERUI.Banking.SetupSceneInterception()
     local guildBankSceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
     local intercepting = false
 
-    --- @param targetSceneName string
-    --- @return boolean
     local function InterceptSceneChange(targetSceneName)
         if intercepting then return false end
         -- Never intercept our own banking scenes

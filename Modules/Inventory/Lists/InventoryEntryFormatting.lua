@@ -37,7 +37,6 @@ local INLINE_STATUS_ICON_WEIGHT = {
     BOOK_UNKNOWN = 1.0,
 }
 
---- @return string moduleName
 local function GetActiveListModuleName()
     if BETTERUI.Utils.IsBankingSceneShowing() then
         return "Banking"
@@ -47,7 +46,6 @@ end
 
 local GetModuleSettings = BETTERUI.GetModuleSettings
 
---- @return boolean shouldShow
 local function ShouldShowMarketPrice()
     local generalInterfaceSettings = GetModuleSettings("GeneralInterface")
     if generalInterfaceSettings.showMarketPrice ~= nil then
@@ -63,8 +61,6 @@ local function ShouldShowMarketPrice()
     return true
 end
 
---- @param moduleName string
---- @return number fontSize
 local function GetActiveNameFontSize(moduleName)
     local settings = GetModuleSettings(moduleName)
     if settings and settings.nameFontSize then
@@ -73,10 +69,6 @@ local function GetActiveNameFontSize(moduleName)
     return BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
 end
 
---- @param value number
---- @param minValue number
---- @param maxValue number
---- @return number clamped
 local function Clamp(value, minValue, maxValue)
     if value < minValue then
         return minValue
@@ -87,9 +79,6 @@ local function Clamp(value, minValue, maxValue)
     return value
 end
 
---- @param fontSize number
---- @param weightMultiplier number|nil
---- @return number iconSize
 local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
     local ratio = fontSize / baseFontSize
@@ -97,17 +86,10 @@ local function GetScaledInlineIconSize(fontSize, weightMultiplier)
     return Clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
 end
 
---- @param texturePath string
---- @param iconSize number
---- @return string tag
 local function BuildInlineIconTag(texturePath, iconSize)
     return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
 end
 
---- @param moduleSettings table|nil
---- @param key string
---- @param defaultValue boolean
---- @return boolean value
 local function GetIconToggleSetting(moduleSettings, key, defaultValue)
     if moduleSettings and moduleSettings[key] ~= nil then
         return moduleSettings[key]
@@ -117,9 +99,6 @@ end
 
 --- Sets up the label for a shared gamepad entry, including styling, icons, and colors.
 --- Purpose: Formats the main text label for an inventory item.
---- @param label table The label control
---- @param data table The data for the entry
---- @param selected boolean True if the entry is selected
 function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
     if label then
         -- Determine active module context (Inventory vs Banking)
@@ -265,9 +244,6 @@ end
 
 --- Configures the status indicator (New icon) and equipped icon for an entry.
 --- Purpose: Visual feedback for item state.
---- @param statusIndicator table The control for the status indicator (New item icon)
---- @param equippedIcon table The control for the equipped icon (Main, Backup, Quickslot)
---- @param data table The data for the entry
 function BETTERUI_IconSetup(statusIndicator, equippedIcon, data)
     -- Guard against non-item entries (currency rows, headers)
     if not data or not data.dataSource then
@@ -309,10 +285,6 @@ end
 
 --- Sets up the main icon for a shared gamepad entry, including stacking counts and cooldown overlays.
 --- Purpose: Renders the primary item icon.
---- @param icon table The icon control
---- @param stackCountLabel table The label for the stack count
---- @param data table The data for the entry
---- @param selected boolean True if the entry is selected
 function BETTERUI_SharedGamepadEntryIconSetup(icon, stackCountLabel, data, selected)
     if icon then
         -- Guard against non-item entries (currency rows, headers) that don't have item methods
@@ -386,10 +358,6 @@ local COOLDOWN_STYLE = {
 }
 
 --- Applies a cooldown visual to a control using a style preset.
---- @param control table The control to apply the cooldown to.
---- @param remaining number The remaining time in milliseconds.
---- @param duration number The total duration in milliseconds.
---- @param style table A COOLDOWN_STYLE preset with cooldownType, timeType, useLeadingEdge, alpha, desaturation, preservePreviousCooldown.
 local function ApplyCooldown(control, remaining, duration, style)
     local inCooldownNow = remaining > 0 and duration > 0
     if inCooldownNow then
@@ -406,8 +374,6 @@ local function ApplyCooldown(control, remaining, duration, style)
 end
 
 --- High-level setup for cooldown indicators on an item entry.
---- @param control table The control (usually the row control)
---- @param data table The data containing cooldown information
 function BETTERUI_CooldownSetup(control, data)
     local GAMEPAD_DEFAULT_COOLDOWN_TEXTURE = "EsoUI/Art/Mounts/timer_icon.dds"
     if control.cooldown then

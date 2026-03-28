@@ -14,20 +14,15 @@ STATUS: DORMANT - Kept for future performance debugging needs.
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Profiler = {}
 
--- ============================================================================
 -- CONFIGURATION
--- ============================================================================
 
 local profilerEnabled = false
 local timings = {}
 local counters = {}
 local startTimes = {}
 
--- ============================================================================
 -- CORE API
--- ============================================================================
 
---- @param enabled boolean Whether to enable profiling
 function BETTERUI.CIM.Profiler.Enable(enabled)
     profilerEnabled = enabled
     if not enabled then
@@ -35,19 +30,15 @@ function BETTERUI.CIM.Profiler.Enable(enabled)
     end
 end
 
---- @return boolean enabled
 function BETTERUI.CIM.Profiler.IsEnabled()
     return profilerEnabled
 end
 
---- @param name string The operation identifier
 function BETTERUI.CIM.Profiler.StartTiming(name)
     if not profilerEnabled then return end
     startTimes[name] = GetGameTimeMilliseconds()
 end
 
---- @param name string The operation identifier
---- @return number|nil elapsed Milliseconds elapsed, or nil if profiling disabled
 function BETTERUI.CIM.Profiler.EndTiming(name)
     if not profilerEnabled then return nil end
 
@@ -71,12 +62,10 @@ function BETTERUI.CIM.Profiler.EndTiming(name)
     return elapsed
 end
 
---- @return table<string, {totalMs: number, count: number, minMs: number, maxMs: number}> timings
 function BETTERUI.CIM.Profiler.GetTimings()
     return timings
 end
 
---- @return table<string, number> counters
 function BETTERUI.CIM.Profiler.GetCounters()
     return counters
 end
@@ -127,13 +116,8 @@ function BETTERUI.CIM.Profiler.Report()
     end
 end
 
--- ============================================================================
 -- CONVENIENCE MACROS
--- ============================================================================
 
---- @param name string The timing identifier
---- @param fn function The function to wrap
---- @return function wrapped The wrapped function
 function BETTERUI.CIM.Profiler.Wrap(name, fn)
     return function(...)
         BETTERUI.CIM.Profiler.StartTiming(name)

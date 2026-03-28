@@ -9,9 +9,7 @@ Extracted from: DeveloperDebug.lua (command registration concern)
 
 local Debug = BETTERUI.CIM.Debug
 
--- ============================================================================
 -- DIAGNOSTIC INSPECTOR FUNCTIONS
--- ============================================================================
 
 --[[
 Function: InspectDirectionalInput
@@ -241,7 +239,6 @@ local function DumpSettings()
     end
 end
 
---- @param controlName string The control name to inspect
 local function InspectControl(controlName)
     if not controlName or controlName == "" then
         d("[BetterUI Debug] Usage: /buicontrol <controlName>")
@@ -275,9 +272,7 @@ local function InspectControl(controlName)
     end
 end
 
--- ============================================================================
 -- SLASH COMMAND REGISTRATION
--- ============================================================================
 
 function Debug.RegisterCommands()
     SLASH_COMMANDS["/buidebug"] = function(args)

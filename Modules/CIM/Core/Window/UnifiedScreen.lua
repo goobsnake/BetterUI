@@ -7,10 +7,8 @@ Purpose: Unified base class for Inventory and Banking screens.
          - Common refresh hooks
 ]]
 
--- ============================================================================
 -- CLASS: BETTERUI.CIM.UnifiedScreen
 -- Common parent for Inventory and Banking implementing shared patterns.
--- ============================================================================
 
 -- Class: BETTERUI.CIM.UnifiedScreen (extends BETTERUI_Gamepad_ParametricList_Screen)
 BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
@@ -21,18 +19,12 @@ local MODE = BETTERUI.CIM.UnifiedFooter.MODE
 ---
 --- Note: We pass ... to the parent's New, which handles Initialize automatically.
 ---
---- @return BETTERUI.CIM.UnifiedScreen The new UnifiedScreen instance.
 function BETTERUI.CIM.UnifiedScreen:New(...)
     return BETTERUI_Gamepad_ParametricList_Screen.New(self, ...)
 end
 
 --- Initializes the screen with unified footer support.
 ---
---- @param control table The screen control.
---- @param createTabBar boolean Whether to create tab bar.
---- @param activateOnShow boolean Whether to activate on show.
---- @param scene table The scene to associate.
---- @param footerMode number|nil Initial footer mode (MODE.CURRENCY or MODE.BANKING).
 function BETTERUI.CIM.UnifiedScreen:Initialize(control, createTabBar, activateOnShow, scene, footerMode)
     BETTERUI_Gamepad_ParametricList_Screen.Initialize(self, control, createTabBar, activateOnShow, scene)
 
@@ -60,7 +52,6 @@ end
 
 --- Changes the footer display mode.
 ---
---- @param mode number MODE.CURRENCY or MODE.BANKING
 function BETTERUI.CIM.UnifiedScreen:SetFooterMode(mode)
     self.footerMode = mode
     if self.unifiedFooterController then
@@ -70,7 +61,6 @@ end
 
 --- Returns the current footer mode.
 ---
---- @return number The current footer mode.
 function BETTERUI.CIM.UnifiedScreen:GetFooterMode()
     return self.footerMode
 end
@@ -101,10 +91,8 @@ function BETTERUI.CIM.UnifiedScreen:OnHiding()
     -- Subclasses can override for cleanup
 end
 
--- ============================================================================
 -- SCENE HANDLER MIXIN METHODS
 -- These provide common scene state handling for Inventory/Banking
--- ============================================================================
 
 --- Common SCENE_SHOWING handler logic.
 --- Subclasses can call this then add module-specific logic.
@@ -155,13 +143,10 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneHidden()
     end
 end
 
--- ============================================================================
 -- KEYBIND MANAGEMENT METHODS
--- ============================================================================
 
 --- Sets the active keybind group, removing any previous one.
 ---
---- @param keybindDescriptor table The keybind group to activate.
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
@@ -208,13 +193,10 @@ function BETTERUI.CIM.UnifiedScreen:RefreshKeybinds()
     end
 end
 
--- ============================================================================
 -- SEARCH FOCUS LOGIC
--- ============================================================================
 
 --- Initializes search focus behavior for the screen.
 ---
---- @param searchKeybindDescriptor table Keybind group for search mode.
 function BETTERUI.CIM.UnifiedScreen:SetupSearchFocus(searchKeybindDescriptor)
     self.searchKeybindDescriptor = searchKeybindDescriptor
     self._searchModeActive = false
@@ -249,9 +231,7 @@ function BETTERUI.CIM.UnifiedScreen:ExitSearchMode()
     end
 end
 
--- ============================================================================
 -- EXPORTED MODE CONSTANTS (Convenience)
--- ============================================================================
 
 BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY = MODE.CURRENCY
 BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_BANKING = MODE.BANKING

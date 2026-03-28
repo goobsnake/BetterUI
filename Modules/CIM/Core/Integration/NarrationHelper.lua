@@ -19,27 +19,19 @@ BETTERUI.CIM.Narration = {}
 
 local Narration = BETTERUI.CIM.Narration
 
--------------------------------------------------------------------------------------------------
 -- HELPERS
--------------------------------------------------------------------------------------------------
 
 --- Safely creates a narratable object from text.
---- @param text string|nil The text to narrate
---- @return table|nil narration SCREEN_NARRATION_MANAGER narration object, or nil
 local function SafeNarrate(text)
     if not text or text == "" or text == "-" then return nil end
     if not SCREEN_NARRATION_MANAGER then return nil end
     return SCREEN_NARRATION_MANAGER:CreateNarratableObject(text)
 end
 
--------------------------------------------------------------------------------------------------
 -- ITEM ENTRY NARRATION
--------------------------------------------------------------------------------------------------
 
 --- Builds narration text for an inventory/banking item entry.
 --- Narrates: name, quality, stack count, category, equipped/junk status, value.
---- @param selectedData table Item data from list selection
---- @return table narrations Array of narration objects
 function Narration.NarrateItemEntry(selectedData)
     local narrations = {}
     if not selectedData then return narrations end
@@ -83,13 +75,9 @@ function Narration.NarrateItemEntry(selectedData)
     return narrations
 end
 
--------------------------------------------------------------------------------------------------
 -- SCENE TITLE NARRATION
--------------------------------------------------------------------------------------------------
 
 --- Builds narration for a scene title (e.g., "Bank", "Guild Bank: Guildname").
---- @param titleText string The current scene title
---- @return table narrations Array of narration objects
 function Narration.NarrateSceneTitle(titleText)
     local narrations = {}
     -- Strip color codes for narration
@@ -100,14 +88,9 @@ function Narration.NarrateSceneTitle(titleText)
     return narrations
 end
 
--------------------------------------------------------------------------------------------------
 -- CATEGORY NARRATION
--------------------------------------------------------------------------------------------------
 
 --- Builds narration for a category header change.
---- @param categoryName string Current category name
---- @param itemCount number|nil Number of items in category
---- @return table narrations Array of narration objects
 function Narration.NarrateCategory(categoryName, itemCount)
     local narrations = {}
     ZO_AppendNarration(narrations, SafeNarrate(categoryName))
@@ -117,14 +100,9 @@ function Narration.NarrateCategory(categoryName, itemCount)
     return narrations
 end
 
--------------------------------------------------------------------------------------------------
 -- FOOTER/CURRENCY NARRATION
--------------------------------------------------------------------------------------------------
 
 --- Builds narration for currency display in footer.
---- @param currencyType number ESO currency type constant
---- @param amount number Currency amount
---- @return table narrations Array of narration objects
 function Narration.NarrateCurrency(currencyType, amount)
     local narrations = {}
     if not currencyType or not amount then return narrations end
@@ -134,13 +112,9 @@ function Narration.NarrateCurrency(currencyType, amount)
     return narrations
 end
 
--------------------------------------------------------------------------------------------------
 -- MODE NARRATION
--------------------------------------------------------------------------------------------------
 
 --- Builds narration for deposit/withdraw mode in Banking.
---- @param mode number Banking mode (LIST_DEPOSIT or LIST_WITHDRAW)
---- @return table narrations Array of narration objects
 function Narration.NarrateBankingMode(mode)
     local narrations = {}
     if mode == BETTERUI.Banking.LIST_DEPOSIT then
@@ -151,14 +125,9 @@ function Narration.NarrateBankingMode(mode)
     return narrations
 end
 
--------------------------------------------------------------------------------------------------
 -- REGISTRATION HELPERS
--------------------------------------------------------------------------------------------------
 
 --- Registers a parametric list with SCREEN_NARRATION_MANAGER for item narration.
---- @param sceneName string The scene name to register narration for
---- @param getSelectedDataFn function Returns the currently selected data
---- @param getTitleFn function|nil Returns the current title text
 function Narration.RegisterListNarration(sceneName, getSelectedDataFn, getTitleFn)
     if not SCREEN_NARRATION_MANAGER then return end
     if not sceneName or not getSelectedDataFn then return end

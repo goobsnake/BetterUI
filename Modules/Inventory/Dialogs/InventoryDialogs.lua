@@ -6,7 +6,6 @@ Purpose: Dialog registrations for Inventory operations:
          - Confirm Destroy Armory Item
 ]]
 
---- @param targetBag number
 local function BETTERUI_TryPlaceInventoryItemInEmptySlot(targetBag)
 	local emptySlotIndex, bagId
 	if targetBag == BAG_BANK or targetBag == BAG_SUBSCRIBER_BANK then

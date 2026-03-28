@@ -9,13 +9,11 @@ if BETTERUI == nil then BETTERUI = {} end
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 
 --- Applies tooltip visual settings from the current configuration.
---- @return nil
 local function ApplyTooltipVisualSettings()
     BETTERUI.CIM.TryCall("Inventory.ApplyTooltipStyles")
 end
 
 --- Cleans up tooltip enhancement artifacts from all tooltip controls.
---- @return nil
 local function CleanupTooltipEnhancementArtifacts()
     if not (BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip) then return end
     BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_LEFT_TOOLTIP)
@@ -24,7 +22,6 @@ local function CleanupTooltipEnhancementArtifacts()
 end
 
 --- Refreshes the inventory and banking lists if their scenes are showing.
---- @return nil
 local function RefreshInventoryAndBankingLists()
     local inventoryWindow = GAMEPAD_INVENTORY
     local inventorySceneShowing = true
@@ -52,10 +49,6 @@ local function RefreshInventoryAndBankingLists()
 end
 
 --- Gets the default value for a setting from metadata.
---- @param moduleName string The module name
---- @param settingKey string The setting key
---- @param fallback any Fallback value if not found
---- @return any defaultValue The default value or fallback
 local function GetMetadataDefault(moduleName, settingKey, fallback)
     if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.GetSettingDefault then
         return BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallback)
@@ -64,10 +57,6 @@ local function GetMetadataDefault(moduleName, settingKey, fallback)
 end
 
 --- Builds a tooltip string indicating addon dependencies.
---- @param baseStringId number The base string ID for the tooltip
---- @param addonGlobals string[] Array of addon global variable names to check
---- @param requireAny boolean If true, require any addon; if false, require all
---- @return string tooltip The constructed tooltip string
 local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAny)
     local baseText = GetString(baseStringId)
     if type(addonGlobals) ~= "table" or #addonGlobals == 0 then
@@ -111,18 +100,12 @@ local GetModuleSettings = BETTERUI.GetModuleSettings
 local EnsureModuleSettings = BETTERUI.EnsureModuleSettings
 
 --- Checks if the CIM module is enabled.
---- @return boolean enabled True if CIM is enabled
 local function IsCIMEnabled()
     local cimSettings = GetModuleSettings("CIM")
     return cimSettings and cimSettings.m_enabled == true
 end
 
 --- Parses and validates an integer input with optional range clamping.
---- @param value any The input value to parse
---- @param fallback number Fallback value if parsing fails
---- @param minValue number|nil Optional minimum value
---- @param maxValue number|nil Optional maximum value
---- @return number result The parsed and clamped integer
 local function ParseIntegerInput(value, fallback, minValue, maxValue)
     local textValue = tostring(value or "")
     textValue = textValue:gsub("^%s+", "")
@@ -146,7 +129,6 @@ local function ParseIntegerInput(value, fallback, minValue, maxValue)
 end
 
 --- Resets the general settings for the GeneralInterface module.
---- @return nil
 local function ResetGeneralInterfaceGeneralSettings()
     if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
         BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "general")
@@ -172,7 +154,6 @@ local function ResetGeneralInterfaceGeneralSettings()
 end
 
 --- Resets the market integration settings to defaults.
---- @return nil
 local function ResetMarketIntegrationSettings()
     if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
         BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "marketIntegration")
@@ -198,7 +179,6 @@ local function ResetMarketIntegrationSettings()
 end
 
 --- Resets the enhanced tooltip settings to defaults.
---- @return nil
 local function ResetEnhancedTooltipSettings()
     if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup then
         BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
@@ -229,10 +209,8 @@ local function ResetEnhancedTooltipSettings()
     RefreshInventoryAndBankingLists()
 end
 
--- ============================================================================
 -- SHARED HELPERS EXPORT
 -- These locals are exported to global namespace so Settings.lua can access them.
--- ============================================================================
 
 BETTERUI.GeneralInterface._SettingsHelpers = {
     ApplyTooltipVisualSettings = ApplyTooltipVisualSettings,

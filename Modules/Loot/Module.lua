@@ -19,8 +19,6 @@ local Loot = BETTERUI.Loot
 Loot.SCENE_NAME = "BETTERUI_LOOT"
 
 --- Placeholder: Gets market price context for a looted item.
---- @param itemLink string The item link
---- @return string|nil priceText Formatted price text, or nil
 function Loot.GetMarketPriceContext(itemLink)
     if not itemLink or itemLink == "" then return nil end
 

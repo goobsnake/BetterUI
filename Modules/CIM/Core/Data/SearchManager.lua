@@ -11,14 +11,10 @@ Contains:
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--------------------------------------------------------------------------------------------------
 -- LOCAL HELPERS
--------------------------------------------------------------------------------------------------
 
 --- Makes the search control and its children interactive for mouse users.
 ---
---- @param searchControl table The search control to make interactive.
---- @param focusHandler table The focus handler for the search control.
 local function PatchMouseInteractivity(searchControl, focusHandler)
     if searchControl.SetMouseEnabled then
         searchControl:SetMouseEnabled(true)
@@ -56,8 +52,6 @@ end
 ---
 --- Purpose: Enhanced to provide accessibility for item selection and actions.
 ---
---- @param window table The window instance to register narration for.
---- @param focusHandler table The focus handler for narration events.
 local function RegisterNarrationHandler(window, focusHandler)
     if SCREEN_NARRATION_MANAGER and focusHandler then
         local textSearchHeaderNarrationInfo =
@@ -129,14 +123,10 @@ local function RegisterNarrationHandler(window, focusHandler)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- PUBLIC API
--------------------------------------------------------------------------------------------------
 
 --- Creates keybind descriptors for text search functionality.
 ---
---- @param context table The search context object (must have textSearchHeaderControl, searchQuery, etc.).
---- @return table Array of keybind descriptors.
 function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     local function HasVisibleSearchControl()
         if not context or not context.textSearchHeaderControl then return false end
@@ -212,10 +202,8 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     }
 end
 
--------------------------------------------------------------------------------------------------
 -- SEARCH MIXIN
 -- These methods are applied to BETTERUI.Interface.Window by WindowClass.lua
--------------------------------------------------------------------------------------------------
 
 BETTERUI.Interface.SearchMixin = {}
 
@@ -229,9 +217,6 @@ BETTERUI.Interface.SearchMixin = {}
 --- 4. Patches the control to be mouse-interactive using `PatchMouseInteractivity`.
 --- 5. Registers with SCREEN_NARRATION_MANAGER using `RegisterNarrationHandler`.
 ---
---- @param self table The window instance.
---- @param textSearchKeybindStripDescriptor table Keybinds for the search state.
---- @param onTextSearchTextChangedCallback function Callback when search text changes.
 function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDescriptor, onTextSearchTextChangedCallback)
     -- Create the header editbox control from the common virtual template
     if not self.header then return end
@@ -281,8 +266,6 @@ end
 
 --- Checks if the search entry field is hidden.
 ---
---- @param self table The window instance.
---- @return boolean True if hidden or not initialized, False otherwise.
 function BETTERUI.Interface.SearchMixin.IsTextSearchEntryHidden(self)
     if self.textSearchHeaderControl then
         return self.textSearchHeaderControl:IsHidden()
@@ -292,8 +275,6 @@ end
 
 --- Sets the visibility of the search entry field.
 ---
---- @param self table The window instance.
---- @param isHidden boolean True to hide, False to show.
 function BETTERUI.Interface.SearchMixin.SetTextSearchEntryHidden(self, isHidden)
     if self.textSearchHeaderControl then
         self.textSearchHeaderControl:SetHidden(isHidden)
@@ -302,8 +283,6 @@ end
 
 --- Sets focus state of the search entry.
 ---
---- @param self table The window instance.
---- @param isFocused boolean True to focus, False to unfocus.
 function BETTERUI.Interface.SearchMixin.SetTextSearchFocused(self, isFocused)
     if self.textSearchHeaderFocus and self.headerFocus then
         self.textSearchHeaderFocus:SetFocused(isFocused)
@@ -318,8 +297,6 @@ end
 ---
 --- Falls back to self.list if method doesn't exist.
 ---
---- @param self table The window instance.
---- @return table The active list control.
 function BETTERUI.Interface.SearchMixin.GetActiveList(self)
     -- Use type check instead of pcall to avoid hiding real errors
     -- If GetCurrentList exists and is callable, use it; otherwise fallback
@@ -331,7 +308,6 @@ end
 
 --- Activates the search header mode.
 ---
---- @param self table The window instance.
 function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
@@ -345,7 +321,6 @@ end
 
 --- Deactivates the search header mode.
 ---
---- @param self table The window instance.
 function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
     if self.textSearchHeaderFocus and self._searchHeaderActive then
         self._searchHeaderActive = false
@@ -355,15 +330,12 @@ end
 
 --- Checks if search header is currently active.
 ---
---- @param self table The window instance.
---- @return boolean True if active.
 function BETTERUI.Interface.SearchMixin.IsSearchHeaderActive(self)
     return self._searchHeaderActive == true
 end
 
 --- Clears the current search query.
 ---
---- @param self table The window instance.
 function BETTERUI.Interface.SearchMixin.ClearSearchText(self)
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:ClearText()
@@ -372,16 +344,12 @@ end
 
 --- Checks if the search box has input focus.
 ---
---- @param self table The window instance.
---- @return boolean True if focused.
 function BETTERUI.Interface.SearchMixin.IsSearchFocused(self)
     return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
 end
 
--------------------------------------------------------------------------------------------------
 -- SEARCH FOCUS HANDLERS MIXIN
 -- Consolidated edit box handlers previously duplicated in Banking.lua and InventoryClass.lua
--------------------------------------------------------------------------------------------------
 
 --- Sets up focus, text change, and navigation handlers for the search edit box.
 ---
@@ -391,8 +359,6 @@ end
 --- 2. Adds scene guards to prevent processing when scene is hidden.
 --- 3. Handles D-pad/stick navigation to exit search on Down press.
 ---
---- @param self table The window instance.
---- @param options table Configuration options:
 function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     if not self.textSearchHeaderFocus then return end
     local editBox = self.textSearchHeaderFocus:GetEditBox()

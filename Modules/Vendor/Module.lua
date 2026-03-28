@@ -50,8 +50,6 @@ function BETTERUI.Vendor.InitModule(m_options)
 end
 
 --- Placeholder: Gets junk sell value summary for batch sell UX.
---- @return number totalValue Total gold value of all junk items
---- @return number itemCount Number of junk items
 function BETTERUI.Vendor.GetJunkSellSummary()
 	local totalValue = 0
 	local itemCount = 0

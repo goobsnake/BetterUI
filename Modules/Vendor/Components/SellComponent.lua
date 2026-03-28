@@ -8,15 +8,11 @@ Includes batch junk sell support (Sell All Junk keybind).
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
 Vendor.SellComponent = {}
 local Sell = Vendor.SellComponent
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
 function Sell:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -26,9 +22,7 @@ function Sell:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
 function Sell:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_SELL"))
@@ -63,9 +57,7 @@ function Sell:OnPrimaryAction(vendorInstance)
     SellInventoryItem(bagId, slotIndex, stackSize)
 end
 
--- ============================================================================
 -- BATCH JUNK SELL
--- ============================================================================
 
 function Sell:SellAllJunk(vendorInstance)
     local _, itemCount = Vendor.GetJunkSellSummary()
@@ -92,9 +84,7 @@ function Sell:SellAllJunk(vendorInstance)
 end
 
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
 function Sell:BuildList(vendorInstance)
     local list = vendorInstance.list

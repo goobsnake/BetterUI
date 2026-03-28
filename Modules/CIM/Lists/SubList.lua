@@ -3,20 +3,13 @@ File: Modules/CIM/Lists/SubList.lua
 Purpose: Nested Menu Support (Sub-lists).
 ]]
 
--- ============================================================================
 -- CLASS: BETTERUI_VerticalParametricScrollListSubList
 -- Nested Menu Support (e.g., sub-categories)
--- ============================================================================
 local SUB_LIST_CENTER_OFFSET = -50
 BETTERUI_VerticalParametricScrollListSubList = BETTERUI_VerticalParametricScrollList:Subclass()
 
 --- Creates a new sub-list (nested menu) instance.
 ---
---- @param control table The list control.
---- @param parentList table The parent list that spawned this.
---- @param parentKeybinds table Keybinds to restore when exiting.
---- @param onDataChosen function Callback when an item is chosen.
---- @return table The new sub-list instance.
 function BETTERUI_VerticalParametricScrollListSubList:New(control, parentList, parentKeybinds, onDataChosen)
     local manager = BETTERUI_VerticalParametricScrollList.New(self, control, parentList, parentKeybinds, onDataChosen)
     return manager
@@ -24,10 +17,6 @@ end
 
 --- Initializes the sub-list.
 ---
---- @param control table The list control.
---- @param parentList table The parent list that spawned this.
---- @param parentKeybinds table Keybinds to restore when exiting.
---- @param onDataChosen function Callback when an item is chosen.
 function BETTERUI_VerticalParametricScrollListSubList:Initialize(control, parentList, parentKeybinds, onDataChosen)
     BETTERUI_VerticalParametricScrollList.Initialize(self, control)
     self.parentList = parentList
@@ -40,7 +29,6 @@ end
 
 --- Commits selection and triggers callback.
 ---
---- @param dontReselect boolean|nil If true, don't reselect the current item.
 function BETTERUI_VerticalParametricScrollListSubList:Commit(dontReselect)
     ZO_ParametricScrollList.Commit(self, dontReselect)
     self:UpdateAnchors(self.targetSelectedIndex)

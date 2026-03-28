@@ -23,42 +23,21 @@ KEY MECHANICS:
     *   Integrated text search filtering by name.
 
 
-
-
 ]]
 
 
-
--------------------------------------------------------------------------------------------------
 -- LOCAL REFERENCES TO NAMESPACE CONSTANTS
--------------------------------------------------------------------------------------------------
 -- These reference values from Core/BankingClass.lua (loaded first in manifest).
 -- Using locals for performance in frequently-called functions.
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW                 = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT                  = BETTERUI.Banking.LIST_DEPOSIT
 local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 
--------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY AND UTILITY REFERENCES
--------------------------------------------------------------------------------------------------
 -- Use centralized category definitions from CIM module to eliminate duplication.
 -- See: Modules/CIM/CategoryDefinitions.lua for the source definitions.
--------------------------------------------------------------------------------------------------
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
-
----@diagnostic disable-next-line: undefined-doc-class
---- @class BetterUIBankingCoordinator: BETTERUI.Banking.Class
---- @field currentMode number
---- @field lastPositions table<number, number>
---- @field lastPositionsByCategory table<string|number, number>
---- @field bankCategories table|nil
---- @field currentCategoryIndex number|nil
---- @field itemActions BetterUIInventorySlotActions|table
---- @field selector any
---- @field selectorCurrency any
-
 
 
 -- Class definition moved to Core/BankingClass.lua (loaded first in manifest)
@@ -69,8 +48,6 @@ local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescri
 -- Footer methods (RefreshFooter, RefreshCurrencyTooltip) defined below or in UI/
 
 
---- @param tlw_name string Top level window name
---- @param scene_name string Scene name
 function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- Configuration for directional input fix timing uses centralized constant
     -- BETTERUI.CIM.CONST.TIMING.DIRECTIONAL_FIX_DELAY_MS

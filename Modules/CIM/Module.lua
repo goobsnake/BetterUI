@@ -23,12 +23,7 @@ Purpose: Core initialization for the Common Interface Module (CIM).
 --- belong in their respective modules (Banking, Inventory, Vendor).
 
 
---- @class BetterUICIMModule
---- @field CONST table
---- @field InitModule fun(m_options: table|nil): table
-
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
---- @type fun(value: any, min: number, max: number, fallback: number): number
 local ClampInteger = BETTERUI.ClampInteger
 
 --- Initializes default settings for the Common Interface Module.
@@ -51,8 +46,6 @@ local ClampInteger = BETTERUI.ClampInteger
 --- Wrapper Function (caller):
 ---   BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 ---
---- @param m_options table|nil The raw settings table to be initialized
---- @return table The modified options table with default values applied
 function BETTERUI.CIM.InitModule(m_options)
     m_options = m_options or {}
     local defaults = BETTERUI.CIM.CONST.DEFAULTS

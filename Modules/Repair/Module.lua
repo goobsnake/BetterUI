@@ -8,7 +8,6 @@ Purpose: Unified repair + soul gem maintenance hub scaffold for BetterUI (MNT-00
 BETTERUI.Repair = BETTERUI.Repair or {}
 
 --- Returns items needing repair, sorted by urgency (lowest condition first).
---- @return table repairItems Array of { bagId, slotIndex, condition, name }
 function BETTERUI.Repair.GetRepairableItems()
     local items = {}
     local bagSize = GetBagSize(BAG_WORN) or 0

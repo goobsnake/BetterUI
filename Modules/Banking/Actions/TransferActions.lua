@@ -2,17 +2,12 @@
 Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
 ]]
 
--------------------------------------------------------------------------------------------------
--- ─── Constants ───────────────────────────────────────────────────────────────
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
--- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --- Finds the first empty slot in a personal or house bank bag.
 --- Guild bank deposits are handled separately by MoveItem before this is called.
---- @return number|nil bagId The bank bag the empty slot was found in, or nil
---- @return number|nil slotIndex The empty slot index, or nil
 local function FindEmptySlotInBank()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if IsHouseBankBag(GetBankingBag()) then
@@ -37,8 +32,6 @@ local function FindEmptySlotInBank()
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
---- @param list table The list to get selected data from
---- @param quantity number|nil The quantity to move (nil = all)
 function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local selectedData = list and list:GetSelectedData() or nil
     if not selectedData or not selectedData.bagId or not selectedData.slotIndex then
@@ -171,7 +164,6 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
 end
 
---- @param list table
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if not self.confirmationMode then
@@ -182,7 +174,6 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
 end
 
---- @param currencyType number
 function BETTERUI.Banking.Class:DisplaySelector(currencyType)
     local currency_max
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -226,7 +217,6 @@ function BETTERUI.Banking.Class:DisplaySelector(currencyType)
 end
 
 --- Hides the currency selector and restores the item list.
---- @return nil
 function BETTERUI.Banking.Class:HideSelector()
     self.selector.control:GetParent():SetHidden(true)
     self.selector:Deactivate()
@@ -240,7 +230,6 @@ function BETTERUI.Banking.Class:HideSelector()
 end
 
 --- Shows the actions dialog for the selected item.
---- @return nil
 function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
 

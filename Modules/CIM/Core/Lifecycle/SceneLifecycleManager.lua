@@ -24,8 +24,6 @@ Fields:
 
 -- Type annotation for SceneLifecycleConfig is in Types.lua
 
---- @param screen table The screen instance (has `scene` field)
---- @param config SceneLifecycleConfig
 function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
     if not screen then
         BETTERUI.Debug("[SceneLifecycle] No screen provided")

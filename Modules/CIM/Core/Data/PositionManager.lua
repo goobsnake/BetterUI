@@ -5,9 +5,7 @@ Purpose: Shared position persistence manager for inventory-style lists.
          Used by Inventory and Banking modules.
 ]]
 
--- ============================================================================
 -- NAMESPACE INITIALIZATION
--- ============================================================================
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.PositionManager = {}
@@ -15,12 +13,8 @@ BETTERUI.CIM.PositionManager = {}
 -- Internal storage: { [moduleName] = { [categoryKey] = { index = N, uniqueId = "..." } } }
 local _storage = {}
 
--- ============================================================================
 -- CATEGORY KEY GENERATION
--- ============================================================================
 
---- @param categoryData table|nil The category data table
---- @return string|nil key The generated key or nil if no categoryData
 function BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
     if not categoryData then return nil end
 
@@ -48,13 +42,8 @@ function BETTERUI.CIM.PositionManager.GetCategoryKey(categoryData)
     return "idx:" .. tostring(categoryData.index or "")
 end
 
--- ============================================================================
 -- POSITION SAVE/RESTORE
--- ============================================================================
 
---- @param moduleName string The module identifier (e.g., "Inventory", "Banking")
---- @param categoryKey string The category key from GetCategoryKey()
---- @param list table The list object with selectedIndex and selectedData
 function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list)
     if not moduleName or not categoryKey or not list then return end
 
@@ -76,20 +65,12 @@ function BETTERUI.CIM.PositionManager.SavePosition(moduleName, categoryKey, list
     }
 end
 
---- @param moduleName string The module identifier
---- @param categoryKey string The category key
---- @return {index: number, uniqueId: string|nil}|nil position Saved position or nil
 function BETTERUI.CIM.PositionManager.GetSavedPosition(moduleName, categoryKey)
     if not moduleName or not categoryKey then return nil end
     if not _storage[moduleName] then return nil end
     return _storage[moduleName][categoryKey]
 end
 
---- @param moduleName string The module identifier
---- @param categoryKey string The category key
---- @param list table The list object
---- @param dataList table[] The list's data array
---- @return number targetIndex The restored index (1 if no saved position)
 function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, list, dataList)
     if not moduleName or not categoryKey then return 1 end
     if not dataList or #dataList == 0 then return 1 end
@@ -121,14 +102,11 @@ function BETTERUI.CIM.PositionManager.RestorePosition(moduleName, categoryKey, l
     return targetIndex
 end
 
---- @param moduleName string The module identifier
 function BETTERUI.CIM.PositionManager.ClearModule(moduleName)
     if not moduleName then return end
     _storage[moduleName] = nil
 end
 
---- @param moduleName string The module identifier
---- @param categoryKey string The category key
 function BETTERUI.CIM.PositionManager.ClearCategory(moduleName, categoryKey)
     if not moduleName or not categoryKey then return end
     if _storage[moduleName] then

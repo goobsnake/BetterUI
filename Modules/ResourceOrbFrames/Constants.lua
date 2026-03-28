@@ -5,9 +5,7 @@ Purpose: Defines all static constants for the ResourceOrbFrames module.
 ]]
 
 
--- ============================================================================
 -- SKILL BAR ENHANCEMENT CONSTANTS
--- ============================================================================
 -- These constants are used by ResourceOrbFrames.lua for the skill bar enhancements.
 
 
@@ -38,19 +36,15 @@ BETTERUI_COMBAT_ICON_PULSE_MIN_ALPHA = 0.45                                     
 BETTERUI_COMBAT_ICON_PULSE_MAX_ALPHA = 1.0                                       -- Pulse high alpha ceiling.
 BETTERUI_COMBAT_ICON_PULSE_DURATION_MS = 700                                     -- One-way pulse duration in milliseconds.
 
--- ============================================================================
 -- NAMESPACE GUARDS
 -- Constants.lua is the first ResourceOrbFrames file in the manifest load order.
 -- These guards must run before any CONST sub-table assignments below.
--- ============================================================================
 if not BETTERUI.ResourceOrbFrames then BETTERUI.ResourceOrbFrames = {} end
 if not BETTERUI.ResourceOrbFrames.CONST then BETTERUI.ResourceOrbFrames.CONST = {} end
 
--- ============================================================================
 -- LAYOUT CONFIGURATION
 -- Defines the ability slot dimensions and offsets for main bar skinning.
 -- Used by: ResourceOrbFrames.lua (ApplyActionBarSkin)
--- ============================================================================
 BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG = {
     GAMEPAD = {
         abilitySlotOffsetX = 10, -- Global gamepad slot X nudge (+ right, - left) when skinning native controls.
@@ -60,7 +54,6 @@ BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG = {
     }
 }
 
--- ============================================================================
 -- RESOURCE ORB FRAMES - STRUCTURED CONFIGURATION
 --
 -- OFFSET DIRECTIONS:
@@ -68,7 +61,6 @@ BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG = {
 --   Y: + moves down, - moves up
 --
 -- nil values inherit from parent config (e.g., slots or front bar)
--- ============================================================================
 
 --- Dimensions for the Resource Orb Frames layout.
 --- Rationale: Centralizing these values allows for easier UI scaling and theme support.
@@ -96,10 +88,8 @@ BETTERUI.ResourceOrbFrames.CONST.ORBS_BG_FILL_PADDING = {
 --- Mechanics: Nested table structure defining x/y offsets, scales, and dimensional constraints for orb elements.
 --- References: Used by Modules/GeneralInterface/ResourceOrbFrames.lua to build the custom HUD.
 BETTERUI_ORB_FRAMES = {
-    -- =======================================================================
     -- FRAME DIMENSIONS
     -- Top-level container sizing
-    -- =======================================================================
     frame = {
         gamepad = {
             width = BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS.GAMEPAD_FRAME_WIDTH,
@@ -111,10 +101,8 @@ BETTERUI_ORB_FRAMES = {
         },
     },
 
-    -- =======================================================================
     -- SKILL BUTTON DIMENSIONS
     -- Controls the size and spacing of skill bar buttons
-    -- =======================================================================
     slots = {
         gamepad = {
             width = 64,         -- Button size in pixels
@@ -128,10 +116,8 @@ BETTERUI_ORB_FRAMES = {
         },
     },
 
-    -- =======================================================================
     -- SKILL BAR POSITIONING
     -- Controls the position of front and back skill bars
-    -- =======================================================================
     bars = {
         shiftY = 70,      -- Vertical shift for BOTH bars (+ down, - up)
         ultimateGap = 66, -- Gap before ultimate button in pixels
@@ -152,10 +138,8 @@ BETTERUI_ORB_FRAMES = {
             y = -22,  -- Vertical offset (+ down, - up)
         },
 
-        -- ===================================================================
         -- CUSTOM FRONT BAR
         -- Replaces native ZO_ActionBar1 with custom-built bar
-        -- ===================================================================
         customFrontBar = {
             m_enabled = true, -- Set false to use native front bar
             offsetX = 17,     -- Whole bar horizontal offset (+ right, - left)
@@ -188,10 +172,8 @@ BETTERUI_ORB_FRAMES = {
             },
         },
 
-        -- ===================================================================
         -- CUSTOM BACK BAR
         -- Secondary weapon bar shown above front bar
-        -- ===================================================================
         customBackBar = {
             offsetX = 2,  -- Whole bar horizontal offset (+ right, - left)
             offsetY = -5, -- Whole bar vertical offset (+ down, - up)
@@ -228,10 +210,8 @@ BETTERUI_ORB_FRAMES = {
         },
     },
 
-    -- =======================================================================
     -- ORNAMENT POSITIONS
     -- Statue graphics positioned relative to BgMiddle center
-    -- =======================================================================
     ornaments = {
         left = {
             x = -445,    -- Horizontal offset (+ right, - left)
@@ -247,11 +227,9 @@ BETTERUI_ORB_FRAMES = {
         },
     },
 
-    -- =======================================================================
     -- ORB RING POSITIONS
     -- Orb border circles positioned relative to their ornament center
     -- noOrnament: Alternate positions relative to BgMiddle when ornament is hidden
-    -- =======================================================================
     orbs = {
         left = {
             x = 63,              -- Horizontal offset (+ right, - left)
@@ -277,12 +255,10 @@ BETTERUI_ORB_FRAMES = {
         },
     },
 
-    -- =======================================================================
     -- FILL LAYER SIZING
     -- Colored resource display inside orbs
     -- scaleW/scaleH: size as fraction of borderSize (0.5 = 50%)
     -- x/y: offset from orb center (+ right/down, - left/up)
-    -- =======================================================================
     fills = {
         health = { scaleW = 0.695, scaleH = 0.695, x = -1, y = -1 },
         magicka = { scaleW = 0.38, scaleH = 0.695, x = -19, y = 0 },
@@ -291,10 +267,8 @@ BETTERUI_ORB_FRAMES = {
         shield = { scaleW = 1.0, scaleH = 1.0, x = -3, y = 3, ringScale = 0.73 }, -- scaleW/scaleH relative to ring size (borderSize * ringScale)
     },
 
-    -- =======================================================================
     -- SPLITTER (Magicka/Stamina Divider)
     -- Vertical line separating the two resource pools
-    -- =======================================================================
     splitter = {
         width = 225,        -- Line width in pixels
         heightScale = 0.64, -- Height as fraction of borderSize (0.81 = 81%)
@@ -302,10 +276,8 @@ BETTERUI_ORB_FRAMES = {
         y = -3,             -- Vertical offset (+ down, - up)
     },
 
-    -- =======================================================================
     -- LABEL OFFSETS
     -- Numeric text position adjustments from default centered position
-    -- =======================================================================
     labels = {
         health = { x = 0, y = -8 },    -- (+ right/down, - left/up)
         magicka = { x = -32, y = -8 }, -- (+ right/down, - left/up)
@@ -313,12 +285,10 @@ BETTERUI_ORB_FRAMES = {
         shield = { x = 0, y = 14 },    -- (+ right/down, - left/up)
     },
 
-    -- =======================================================================
     -- CUSTOM OVERLAYS
     -- Optional images displayed when Ornaments are hidden (e.g., Health.dds)
     -- NOTE: These are raw SetAnchor(CENTER, ..., x, y) offsets:
     --       +X moves RIGHT, -X moves LEFT, +Y moves DOWN, -Y moves UP.
-    -- =======================================================================
     overlays = {
         health = {
             scale = 0.835, -- Size multiplier relative to border size
@@ -333,18 +303,9 @@ BETTERUI_ORB_FRAMES = {
     },
 }
 
--- ============================================================================
 -- CUSTOM BARS
--- ============================================================================
 
 -- Namespaced bar configuration (replaces former BETTERUI_*_BAR_* globals)
---- @param barWidth number Bar width in pixels
---- @param barHeight number Bar height in pixels
---- @param fillWidthScale number Fill region width as fraction of bar (0..1)
---- @param fillHeightScale number Fill region height as fraction of bar (0..1)
---- @param fillOffsetX number|nil Pixel offset from bar center (default 0)
---- @param fillOffsetY number|nil Pixel offset from bar center (default 0)
---- @return table region Normalized region {left, right, top, bottom} in 0..1 range
 local function BuildBarFillRegionFromBox(barWidth, barHeight, fillWidthScale, fillHeightScale, fillOffsetX, fillOffsetY)
     -- Converts developer-friendly scale/offset values into normalized UV-like region bounds [0..1].
     local halfWidth = (fillWidthScale or 1) * 0.5
@@ -364,10 +325,8 @@ BETTERUI.ResourceOrbFrames.CONST.BARS = {
     -- Shared fill texture for all rectangular bars
     FILL_TEXTURE = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
 
-    -- ========================================================================
     -- Experience/Champion Bar (Below left ornament)
     -- Fill tuning: *_SCALE = fraction of bar dimension, *_OFFSET = pixel nudge
-    -- ========================================================================
     XP = {
         BACKDROP_TEXTURE  = "Bar.dds",
         FILL_TEXTURE      = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
@@ -390,9 +349,7 @@ BETTERUI.ResourceOrbFrames.CONST.BARS = {
         NO_ORNAMENT_OFFSET_Y = 108,       -- (+ down, - up)
     },
 
-    -- ========================================================================
     -- Cast Bar (centered above top/back bar)
-    -- ========================================================================
     CAST = {
         BACKDROP_TEXTURE   = "CastBar.dds",
         FILL_TEXTURE       = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
@@ -413,9 +370,7 @@ BETTERUI.ResourceOrbFrames.CONST.BARS = {
         FILL_INSET_Y       = 59,          -- Legacy fallback
     },
 
-    -- ========================================================================
     -- Mount Stamina Bar (under right ornament when mounted)
-    -- ========================================================================
     MOUNT = {
         BACKDROP_TEXTURE   = "MountBar.dds",
         FILL_TEXTURE       = "esoui/art/miscellaneous/progressbar_genericfill_tall.dds",
@@ -457,9 +412,7 @@ BARS.MOUNT.FILL_REGION = BuildBarFillRegionFromBox(
     BARS.MOUNT.FILL_OFFSET_X, BARS.MOUNT.FILL_OFFSET_Y
 )
 
--- ============================================================================
 -- DEBUG FLAGS
--- ============================================================================
 
 -- Shield debug is now managed via BETTERUI.CIM.FeatureFlags (SHIELD_DEBUG)
 -- and BETTERUI.CIM.Debug.FLAGS.SHIELD_OVERLAY. See DeveloperDebug.lua.

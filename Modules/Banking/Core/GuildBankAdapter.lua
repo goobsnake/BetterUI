@@ -19,12 +19,9 @@ BETTERUI.Banking.GuildBank = {}
 
 local GuildBank = BETTERUI.Banking.GuildBank
 
--------------------------------------------------------------------------------------------------
 -- DETECTION
--------------------------------------------------------------------------------------------------
 
 --- Returns true when the current banking interaction is a guild bank.
---- @return boolean isGuildBank
 function GuildBank.IsGuildBankMode()
     if BETTERUI_GUILD_BANKING_SCENE and BETTERUI_GUILD_BANKING_SCENE:IsShowing() then
         return true
@@ -34,7 +31,6 @@ end
 
 --- Returns the currently selected guild's ID for guild bank operations.
 --- Falls back to 0 if no guild is selected or the API is unavailable.
---- @return number guildId
 function GuildBank.GetSelectedGuildId()
     if GUILD_BANK_SELECT and GUILD_BANK_SELECT.GetSelectedGuildBankId then
         return GUILD_BANK_SELECT:GetSelectedGuildBankId() or 0
@@ -47,7 +43,6 @@ function GuildBank.GetSelectedGuildId()
 end
 
 --- Returns the display name of the currently selected guild bank.
---- @return string guildName
 function GuildBank.GetSelectedGuildName()
     local guildId = GuildBank.GetSelectedGuildId()
     if guildId > 0 and GetGuildName then
@@ -59,12 +54,9 @@ function GuildBank.GetSelectedGuildName()
     return GetString(rawget(_G, "SI_GAMEPAD_GUILD_BANK_CATEGORY_HEADER"))
 end
 
--------------------------------------------------------------------------------------------------
 -- PERMISSION CHECKS
--------------------------------------------------------------------------------------------------
 
 --- Checks whether the player has deposit permission in the selected guild bank.
---- @return boolean canDeposit
 function GuildBank.CanDeposit()
     if not GuildBank.IsGuildBankMode() then
         return true -- personal bank always allows deposits
@@ -78,7 +70,6 @@ function GuildBank.CanDeposit()
 end
 
 --- Checks whether the player has withdrawal permission in the selected guild bank.
---- @return boolean canWithdraw
 function GuildBank.CanWithdraw()
     if not GuildBank.IsGuildBankMode() then
         return true -- personal bank always allows withdrawals
@@ -92,8 +83,6 @@ function GuildBank.CanWithdraw()
 end
 
 --- Returns a user-facing permission denial reason, or nil if no denial.
---- @param mode number LIST_WITHDRAW or LIST_DEPOSIT from Banking constants
---- @return string|nil denialReason
 function GuildBank.GetPermissionDenialReason(mode)
     if not GuildBank.IsGuildBankMode() then return nil end
 
@@ -110,16 +99,12 @@ function GuildBank.GetPermissionDenialReason(mode)
     return nil
 end
 
--------------------------------------------------------------------------------------------------
 -- BAG RESOLUTION
--------------------------------------------------------------------------------------------------
 
 --- Returns the source bag(s) for the current mode and bank type.
 --- For guild bank withdraw: { BAG_GUILDBANK }
 --- For guild bank deposit: { BAG_BACKPACK }
 --- For personal bank: delegates to existing logic (BAG_BANK, BAG_SUBSCRIBER_BANK)
---- @param mode number LIST_WITHDRAW or LIST_DEPOSIT
---- @return table bags Array of bag IDs
 function GuildBank.GetSourceBags(mode)
     local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 
@@ -147,7 +132,6 @@ end
 
 --- Returns the deposit target bag for the current bank type.
 --- Guild banks deposit to BAG_GUILDBANK; personal banks use existing resolution.
---- @return number bagId
 function GuildBank.GetDepositTargetBag()
     if GuildBank.IsGuildBankMode() then
         return BAG_GUILDBANK
@@ -156,14 +140,11 @@ function GuildBank.GetDepositTargetBag()
     return BAG_BANK
 end
 
--------------------------------------------------------------------------------------------------
 -- TITLE HELPER
--------------------------------------------------------------------------------------------------
 
 --- Returns the header title appropriate for the current bank type.
 --- Guild bank: "<GuildName> Bank"
 --- Personal bank: existing bank title
---- @return string title
 function GuildBank.GetHeaderTitle()
     if GuildBank.IsGuildBankMode() then
         local guildName = GuildBank.GetSelectedGuildName()
@@ -172,30 +153,23 @@ function GuildBank.GetHeaderTitle()
     return "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")) .. "|r"
 end
 
--------------------------------------------------------------------------------------------------
 -- LOADING STATE
--------------------------------------------------------------------------------------------------
 
 local loadingGuildBank = false
 
 --- Returns true while guild bank items are still loading.
---- @return boolean isLoading
 function GuildBank.IsLoading()
     return loadingGuildBank
 end
 
 --- Sets the guild bank loading state.
---- @param loading boolean
 function GuildBank.SetLoading(loading)
     loadingGuildBank = loading == true
 end
 
--------------------------------------------------------------------------------------------------
 -- GUILD SELECTION
--------------------------------------------------------------------------------------------------
 
 --- Switches the active guild bank. Triggers EVENT_GUILD_BANK_SELECTED flow.
---- @param guildBankId number The guild ID to switch to.
 function GuildBank.ChangeGuildBank(guildBankId)
     if guildBankId ~= GetSelectedGuildBankId() then
         loadingGuildBank = true
@@ -205,9 +179,7 @@ function GuildBank.ChangeGuildBank(guildBankId)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- EVENT HANDLERS
--------------------------------------------------------------------------------------------------
 
 --- Called when a guild bank is selected. Clears items and shows loading state.
 function GuildBank.OnGuildBankSelected()
@@ -278,8 +250,6 @@ function GuildBank.OnGuildBankedMoneyUpdate()
 end
 
 --- Called when guild ranks change. Refreshes keybinds if it affects the selected guild.
---- @param _ any Event id (ignored)
---- @param guildId number
 function GuildBank.OnGuildRanksChanged(_, guildId)
     if guildId == GetSelectedGuildBankId() then
         local window = BETTERUI.Banking.Window
@@ -293,9 +263,6 @@ function GuildBank.OnGuildRanksChanged(_, guildId)
 end
 
 --- Called when a guild member's rank changes. Refreshes if it's the player in the selected guild.
---- @param _ any Event id (ignored)
---- @param guildId number
---- @param displayName string
 function GuildBank.OnGuildMemberRankChanged(_, guildId, displayName)
     if guildId == GetSelectedGuildBankId() and displayName == GetDisplayName() then
         local window = BETTERUI.Banking.Window
@@ -313,12 +280,9 @@ function GuildBank.OnGuildSelfLeft()
     ZO_Dialogs_ReleaseAllDialogsOfName("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
 end
 
--------------------------------------------------------------------------------------------------
 -- GUILD SELECTOR DIALOG
--------------------------------------------------------------------------------------------------
 
 --- Registers the guild bank selection dialog for switching between guilds.
---- @return nil
 function GuildBank.RegisterGuildSelectorDialog()
     local dialogName = "BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD"
     if ESO_Dialogs[dialogName] then return end
@@ -374,14 +338,10 @@ function GuildBank.RegisterGuildSelectorDialog()
     local CHECKED_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds"
     local GUILD_ENTRY_TEMPLATE = "ZO_GamepadSubMenuEntryWithStatusTemplate"
 
-    --- @param data table
-    --- @return boolean
     local function IsActiveGuild(data)
         return data.isCurrentGuild
     end
 
-    --- @param control Control
-    --- @param data table
     local function SetupGuildBankItem(control, data, ...)
         ZO_SharedGamepadEntry_OnSetup(control, data, ...)
         if IsActiveGuild(data) then

@@ -6,7 +6,6 @@ Purpose: Default settings for Resource Orb Frames module.
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 
 --- Default values for all ResourceOrbFrames settings.
---- @return table The default settings table.
 local function GetDefaults()
     return {
         m_enabled = true,
@@ -68,11 +67,6 @@ end
 -- Import shared utility (canonical definition in SettingsAccessor.lua)
 local ClampInteger = BETTERUI.ClampInteger
 
---- @param value any Value to clamp (coerced via tonumber)
---- @param minValue number Lower bound
---- @param maxValue number Upper bound
---- @param fallback number Value used when tonumber(value) is nil
---- @return number clamped Clamped numeric result
 local function ClampNumber(value, minValue, maxValue, fallback)
     local numeric = tonumber(value)
     if not numeric then
@@ -126,8 +120,6 @@ end
 --- Purpose: Defines defaults for scale, offset, colors, and visibility of orb elements.
 --- Mechanics: Checks each setting key; if missing, assigns default value.
 ---
---- @param m_options table The options table to initialize.
---- @return table The initialized options table with defaults applied.
 function BETTERUI.ResourceOrbFrames.InitModule(m_options)
     m_options = m_options or {}
     local defaults = GetDefaults()

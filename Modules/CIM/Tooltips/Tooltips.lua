@@ -12,9 +12,7 @@ FEATURES:
 -- Guild store error suppression flag (namespaced to avoid _G pollution)
 BETTERUI.CIM._gsErrorSuppress = 0
 
--------------------------------------------------------------------------------------------------
 -- RESEARCH TRAIT CACHING
--------------------------------------------------------------------------------------------------
 -- Performance optimization for trait research lookups. Building research info is expensive
 -- (requires iterating all items in a bag), so we cache results and invalidate on changes.
 --
@@ -23,12 +21,9 @@ BETTERUI.CIM._gsErrorSuppress = 0
 --
 -- NOTE (2026-01-28): BAG_VIRTUAL (craft bag) is fully supported via the generic bagId parameter.
 -- SHARED_INVENTORY:GenerateFullSlotData handles virtual bag iteration transparently.
--------------------------------------------------------------------------------------------------
--- ─── Constants ───────────────────────────────────────────────────────────────
 local ResearchableTraitCache = {}
 local DEFAULT_FONT_SIZE = 24
 
--- ─── Private Helpers ────────────────────────────────────────────────────────
 
 --- Builds the cache of researchable trait counts for a specific bag.
 ---
@@ -41,7 +36,6 @@ local DEFAULT_FONT_SIZE = 24
 ---
 --- References: Called by GetCachedResearchableTraitMatches.
 ---
---- @param bagId number The bag ID to cache
 local function BuildBagResearchCache(bagId)
     local counts = {}
     -- Prefer SHARED_INVENTORY cache to iterate only used slots
@@ -69,9 +63,6 @@ end
 ---
 --- References: Used by AddInventoryPreInfo to display where other copies are found.
 ---
---- @param itemLink string The item link to check.
---- @param bagId number The bag ID to check against.
---- @return number The count of matching researchable items.
 function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
     if not itemLink or not bagId then return 0 end
     local traitType = GetItemLinkTraitInfo(itemLink)
@@ -91,7 +82,6 @@ end
 ---
 --- References: Called by Item/Inventory Update Event Handlers.
 ---
---- @param bagId number|nil: The bag ID to invalidate, or nil to clear all
 function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     if bagId then
         if ResearchableTraitCache and ResearchableTraitCache[bagId] then
@@ -102,21 +92,16 @@ function BETTERUI.GeneralInterface.InvalidateResearchableTraitCache(bagId)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- TRADING ADDON INTEGRATION
--------------------------------------------------------------------------------------------------
 -- This section integrates with popular trading addons to show market prices in tooltips:
 --   - TTC (Tamriel Trade Centre): Most popular, uses web-scraped listing data
 --   - MM (Master Merchant): Guild store sales history
 --   - ATT (Arkadius Trade Tools): Alternative sales tracker
 --
 
--------------------------------------------------------------------------------------------------
 -- HELPERS
--------------------------------------------------------------------------------------------------
 
 --- Retrieves the user-configured tooltip font size.
---- @return number The font size (e.g., 24, 32).
 function BETTERUI.GetTooltipFontSize()
     local size = BETTERUI.GetSetting("CIM", "tooltipSize", DEFAULT_FONT_SIZE)
     return size
@@ -130,14 +115,6 @@ end
 --- 2. Executes getPriceFunc.
 --- 3. Formats result with currency icon and stack calculations.
 ---
---- @param addonName string Friendly name of the addon (e.g., "TTC")
---- @param addonGlobal table|nil Reference to the addon's global object
---- @param getPriceFunc function Function that returns the average price for the item
---- @param settingKey string Settings key to check for enabling/disabling
---- @param itemLink string The item link
---- @param stackCount number The stack size
---- @param iconSize number The desired icon size
---- @return string|nil The formatted price string, or nil if data missing/addon disabled
 local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settingKey, itemLink, stackCount, iconSize)
     if addonGlobal == nil or not BETTERUI.GetSetting("GeneralInterface", settingKey, false) then
         return nil
@@ -166,7 +143,6 @@ local function GetAddonPriceDisplay(addonName, addonGlobal, getPriceFunc, settin
 end
 
 --- Gets trading addon price info strings (TTC, MM, ATT).
---- @return table: List of strings to display
 function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCount)
     local lines = {}
     if itemLink then
@@ -248,7 +224,6 @@ function BETTERUI.GetInventoryPriceInfo(itemLink, bagId, slotIndex, storeStackCo
 end
 
 --- Gets style and research status info strings.
---- @return table: List of strings to display
 function BETTERUI.GetInventoryTraitInfo(itemLink)
     local lines = {}
     if itemLink and itemLink ~= "" and BETTERUI.GetSetting("GeneralInterface", "showStyleTrait", false) then
@@ -289,7 +264,6 @@ end
 --- Gets knowledge status for learnable items (recipes, motifs/lore books).
 --- Returns a single colored status line: "Not Known" (green) or "Already Known" (grey).
 --- Covers ITEMTYPE_RECIPE (provisioning) and any lore book / motif chapter.
---- @return table: List of strings to display (empty if item has no knowledge status)
 function BETTERUI.GetInventoryKnowledgeInfo(itemLink)
     local lines = {}
     if not itemLink or itemLink == "" then return lines end
@@ -374,17 +348,7 @@ local function IsIncompatibleSceneActive()
     return false
 end
 
---- @class InventoryHookConfig
---- @field tooltipControl userdata The tooltip control to hook.
---- @field tooltipType number Tooltip type constant (e.g. GAMEPAD_LEFT_TOOLTIP).
---- @field method string The method name to hook/override (e.g. "LayoutItem").
---- @field linkFunc function Function to retrieve item link for 'method'.
---- @field method2 string Secondary method to hook (e.g. "LayoutBagItem").
---- @field linkFunc2 function Function to retrieve bag/slot for 'method2'.
---- @field method3 string Tertiary method to hook (e.g. "LayoutGuildStoreSearchResult").
---- @field linkFunc3 function Function to retrieve store link for 'method3'.
 
---- @param config InventoryHookConfig|userdata If userdata, treats as legacy positional (tooltipControl).
 function BETTERUI.InventoryHook(config, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
     local tooltipControl, tooltipType
     local layoutItemName, layoutItemDataFn
@@ -600,10 +564,6 @@ function BETTERUI.ReturnItemLink(itemLink)
     return itemLink
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return number
---- @return number
 function BETTERUI.ReturnSelectedData(bagId, slotIndex)
     return bagId, slotIndex
 end
@@ -612,20 +572,11 @@ function BETTERUI.ReturnStoreSearch(storeItemLink, storeStackCount)
     return storeItemLink, storeStackCount
 end
 
--------------------------------------------------------------------------------------------------
 -- EVENT HANDLERS
--------------------------------------------------------------------------------------------------
 
 --- Handles single slot updates to invalidate the research trait cache for the specific bag.
 ---
 --- Purpose: targeted invalidation instead of clearing the entire cache.
---- @param eventCode number The event code
---- @param bagId number The bag ID of the updated slot
---- @param slotIndex number The slot index
---- @param isNewItem boolean Whether the item is new
---- @param itemSoundCategory number Sound category
---- @param updateReason number Reason for the update
---- @param stackCountChange number Change in stack count
 local function OnInventorySlotUpdate(eventCode, bagId, slotIndex, isNewItem, itemSoundCategory, updateReason,
                                      stackCountChange)
     -- Only invalidate if item was added/removed/changed (not just equipped status on self, though trait research usually doesn't change on equip)

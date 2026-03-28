@@ -1,4 +1,3 @@
----------------------------------------------------------------------------------------------------
 -- BetterUI - CIM Enhancement Module
 --
 -- This module acts as the central configuration hub for various CIM enhancements (formerly General Interface).
@@ -7,16 +6,6 @@
 -- 2. Nameplates: Enabling/disabling, font customization, and style adjustments.
 -- 3. Resource Orb Frames: Configuration for the custom resource orb UI (Health/Magicka/Stamina).
 --
--- ARCHITECTURE:
---   This file defines the settings panel structure using LAM (LibAddonMenu2).
---   Actual functionality is implemented in separate files:
---     - Tooltips.lua: Tooltip enhancement logic
---     - Nameplates.lua: Nameplate font customization
---     - ResourceOrbFrames.lua: Orb UI implementation
---     - TooltipSettings.lua & NameplateSettings.lua: Configuration definitions
---
----------------------------------------------------------------------------------------------------
-
 local LAM = LibAddonMenu2
 
 if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
@@ -31,8 +20,6 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 ---
 --- References: Called during module setup.
 ---
---- @param mId string The Module ID (unused, for standardized module signature)
---- @param moduleName string The display name of the module for the settings panel
 local function Init(mId, moduleName)
 	local panelData = BETTERUI.Init_ModulePanel(moduleName, "General Interface Settings")
 

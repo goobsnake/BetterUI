@@ -4,14 +4,10 @@
 -- Component-tab model: each tab is a separate "mode" with its own list builder
 -- and keybinds. Active mode tracked in self.currentMode, changed via SetMode().
 
--- ============================================================================
 -- NAMESPACE & GUARD
--- ============================================================================
 if not BETTERUI.Vendor then BETTERUI.Vendor = {} end
 
--- ============================================================================
 -- SCENE CONSTANTS
--- ============================================================================
 
 BETTERUI_VENDOR_SCENE_NAME = "BETTERUI_VENDOR"
 
@@ -26,9 +22,7 @@ BETTERUI.Vendor.FENCE_INTERACTION = {
     interactTypes = { INTERACTION_VENDOR },
 }
 
--- ============================================================================
 -- MODE CONSTANTS
--- ============================================================================
 
 BETTERUI.Vendor.MODE = {
     BUY           = 1,
@@ -39,49 +33,31 @@ BETTERUI.Vendor.MODE = {
     FENCE_LAUNDER = 6,
 }
 
--- ============================================================================
 -- MODULE-SCOPE TASK MANAGER (for coalescing list refreshes)
--- ============================================================================
 assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask must load before Vendor/Core/VendorClass")
 BETTERUI.Vendor.Tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 
--- ============================================================================
 -- CLASS DEFINITION
--- ============================================================================
 
---- @class BetterUIVendorClass: BETTERUI.CIM.GenericWindow
---- @field currentMode number|nil
---- @field components table<number, table>|nil
---- @field list any
---- @field _suppressListUpdates boolean|nil
---- @field _isDirty boolean|nil
---- @field unifiedFooterController any
 BETTERUI.Vendor.Class = BETTERUI.CIM.GenericWindow:Subclass()
 
---- @param ... any
---- @return BETTERUI.Vendor.Class
 function BETTERUI.Vendor.Class:New(...)
     local obj = BETTERUI.CIM.GenericWindow.New(self, ...)
     return obj --[[@as BETTERUI.Vendor.Class]]
 end
 
---- @return boolean
 function BETTERUI.Vendor.Class:IsSceneShowing()
     local scene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
     if not scene then return false end
     return scene:IsShowing()
 end
 
--- ============================================================================
 -- MODE ROUTING
--- ============================================================================
 
---- @return number mode One of BETTERUI.Vendor.MODE constants
 function BETTERUI.Vendor.Class:GetCurrentMode()
     return self.currentMode or BETTERUI.Vendor.MODE.BUY
 end
 
---- @param mode number One of BETTERUI.Vendor.MODE constants
 function BETTERUI.Vendor.Class:SetMode(mode)
     if not mode then return end
     if self.currentMode == mode then return end
@@ -106,23 +82,18 @@ function BETTERUI.Vendor.Class:SetMode(mode)
     end
 end
 
---- @return table|nil
 function BETTERUI.Vendor.Class:GetActiveComponent()
     if not self.components then return nil end
     return self.components[self:GetCurrentMode()]
 end
 
---- @param mode number One of BETTERUI.Vendor.MODE constants
---- @param component table Component with Activate/Deactivate/BuildList/GetKeybinds methods
 function BETTERUI.Vendor.Class:RegisterComponent(mode, component)
     if not mode or not component then return end
     self.components = self.components or {}
     self.components[mode] = component
 end
 
--- ============================================================================
 -- LIST MANAGEMENT
--- ============================================================================
 
 
 function BETTERUI.Vendor.Class:RefreshList()
@@ -158,18 +129,14 @@ function BETTERUI.Vendor.Class:FlushListUpdates()
     end
 end
 
--- ============================================================================
 -- STORE/FENCE STATE QUERIES
--- ============================================================================
 
---- @return boolean
 function BETTERUI.Vendor.Class:IsFenceMode()
     local mode = self:GetCurrentMode()
     return mode == BETTERUI.Vendor.MODE.FENCE_SELL
         or mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER
 end
 
---- @return number, number|nil
 function BETTERUI.Vendor.Class:GetStoreCurrencyTypes()
     if GetStoreUsedCurrencyTypes then
         return GetStoreUsedCurrencyTypes()
@@ -177,9 +144,6 @@ function BETTERUI.Vendor.Class:GetStoreCurrencyTypes()
     return CURT_MONEY, nil
 end
 
---- @param cost number
---- @param currencyType number|nil Defaults to CURT_MONEY
---- @return boolean
 function BETTERUI.Vendor.Class:CanAfford(cost, currencyType)
     if not cost or cost <= 0 then return true end
     currencyType = currencyType or CURT_MONEY
@@ -187,7 +151,6 @@ function BETTERUI.Vendor.Class:CanAfford(cost, currencyType)
     return current >= cost
 end
 
---- @return boolean
 function BETTERUI.Vendor.Class:HasInventorySpace()
     local numFree = GetNumBagFreeSlots(BAG_BACKPACK)
     return numFree and numFree > 0

@@ -6,10 +6,7 @@ Purpose: Wires up the "Y-Action" menu (Action Dialog) for inventory items.
 ]]
 
 
-
---------------------------------------------------------------------------------
 -- SLOT ACTIONS HELPER
---------------------------------------------------------------------------------
 
 --- Initializes the action slot manager for item interactions.
 ---
@@ -20,9 +17,7 @@ function BETTERUI.Inventory.Class:InitializeItemActions()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
 end
 
---------------------------------------------------------------------------------
 -- ACTION DIALOG INITIALIZATION (Wiring Only)
---------------------------------------------------------------------------------
 
 --- Initializes the actions dialog (Y-button menu).
 ---

@@ -18,7 +18,6 @@ end
 -- Maximum items that can be transferred in a single operation (ESO game limit)
 local MAX_STACK_TRANSFER = 200
 
---- @param dialog table
 local function SetupSliderKeybindHints(dialog)
     if not dialog then return end
 
@@ -234,8 +233,6 @@ function BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
 end
 
 --- Displays the quantity selection dialog for stow/retrieve operations.
---- @param inventorySlot table The inventory slot data
---- @param isStow boolean True if stowing to Craft Bag, false if retrieving
 function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, isStow)
     if not inventorySlot then return end
 
@@ -270,26 +267,22 @@ function BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, is
 end
 
 --- Attempts to stow an item to the Craft Bag, prompting for quantity if stacked.
---- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.TryStowWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, true)
 end
 
 --- Attempts to retrieve an item from the Craft Bag, prompting for quantity if stacked.
---- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.TryRetrieveWithQuantity(inventorySlot)
     BETTERUI.Inventory.Dialogs.ShowCraftBagQuantityDialog(inventorySlot, false)
 end
 
 --- Immediately stows the full stack to the Craft Bag without prompting.
---- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.StowFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_VIRTUAL)
 end
 
 --- Immediately retrieves the full stack from the Craft Bag without prompting.
---- @param inventorySlot table The inventory slot data
 function BETTERUI.Inventory.Dialogs.RetrieveFullStack(inventorySlot)
     if not inventorySlot then return end
     BETTERUI.CIM.TryMoveToCraftBag(inventorySlot, BAG_BACKPACK)

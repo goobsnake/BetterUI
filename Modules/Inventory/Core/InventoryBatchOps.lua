@@ -8,17 +8,11 @@ local BLOCK_TABBAR_CALLBACK = true
 
 local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 
---------------------------------------------------------------------------------
 -- SLOT HELPERS
---------------------------------------------------------------------------------
 
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 
---- @param itemData table
---- @param bagId number
---- @param slotIndex number
---- @return number|nil stackCount
 local function ResolveStackCount(itemData, bagId, slotIndex)
     local rawData = itemData.dataSource or itemData
     local requestedStack = rawData.stackCount or itemData.stackCount or 1
@@ -29,10 +23,6 @@ local function ResolveStackCount(itemData, bagId, slotIndex)
     return zo_clamp(requestedStack, 1, liveStack)
 end
 
---- @param bagId number
---- @param slotIndex number
---- @param targetBankBag number
---- @return boolean isSupported
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
         return false
@@ -44,9 +34,6 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @return number|nil targetBag
 local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
     local targetBankBag = (BETTERUI.Banking and BETTERUI.Banking.currentUsedBank) or BAG_BANK
     if targetBankBag == BAG_BANK then
@@ -64,12 +51,8 @@ local function ResolveInventoryDepositTargetBag(bagId, slotIndex)
     return nil
 end
 
---------------------------------------------------------------------------------
 -- DESTROY ELIGIBILITY
---------------------------------------------------------------------------------
 
---- @param itemData table
---- @return boolean canDestroy
 local function CanDestroyInventoryItem(itemData)
     if not itemData then
         return false
@@ -84,9 +67,7 @@ end
 -- Expose to other modules (e.g., InventoryMultiSelect needs it)
 BETTERUI.Inventory.CanDestroyInventoryItem = CanDestroyInventoryItem
 
---------------------------------------------------------------------------------
 -- BATCH OPTION PRESETS
---------------------------------------------------------------------------------
 
 local CRAFT_BAG_RETRIEVE_BATCH_OPTIONS = {
     serverBound = true,
@@ -152,41 +133,29 @@ local DESTROY_BATCH_OPTIONS = {
     jitterMs = 20,
 }
 
---------------------------------------------------------------------------------
 -- THROTTLED BATCH PROCESSING (delegates to CIM.MultiSelectMixin)
---------------------------------------------------------------------------------
 
 --- Checks if a batch operation is currently processing.
---- @return boolean isProcessing True if batch processing is active
 function Class:IsBatchProcessing()
     return MultiSelectMixin.IsBatchProcessing(self)
 end
 
 --- Checks if the current batch can be aborted.
---- @return boolean canAbort True if batch can be aborted
 function Class:CanAbortBatch()
     return MultiSelectMixin.CanAbortBatch(self)
 end
 
 --- Requests abort of the current batch operation.
---- @return boolean requested True if abort was requested
 function Class:RequestBatchAbort()
     return MultiSelectMixin.RequestBatchAbort(self)
 end
 
 --- Processes a batch of items with throttling.
---- @param items table The items to process
---- @param actionFn function The action function to apply to each item
---- @param onComplete function|nil Callback when batch completes
---- @param actionName string Name of the action for progress display
---- @param batchOptions table Options for batch processing
 function Class:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
     MultiSelectMixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
 end
 
---------------------------------------------------------------------------------
 -- BATCH INVENTORY ACTIONS
---------------------------------------------------------------------------------
 
 --- Performs batch retrieve on all selected craftbag items (throttled).
 function Class:BatchRetrieve()
@@ -338,9 +307,7 @@ function Class:BatchDestroy()
     })
 end
 
---------------------------------------------------------------------------------
 -- BATCH DIALOGS
---------------------------------------------------------------------------------
 
 --- Initializes the batch destroy confirmation dialog.
 function Class:InitializeBatchDestroyDialog()

@@ -3,9 +3,6 @@ File: Modules/Inventory/Lists/CraftBagListManager.lua
 Purpose: Manages the Craft Bag list for the Inventory module.
 ]]
 
---- @param left table
---- @param right table
---- @return boolean
 local function MenuEntryTemplateEquality(left, right)
     return left.uniqueId == right.uniqueId
 end
@@ -13,19 +10,12 @@ end
 --- Setup function wrapper that binds SLOT_TYPE_CRAFT_BAG_ITEM before rendering.
 --- Without this, ZO_InventorySlot_GetType returns nil and IsSlotInCraftBag fails,
 --- causing the "Retrieve" action to never appear.
---- @param control Control
---- @param data table
---- @param selected boolean
---- @param selectedDuringRebuild boolean
---- @param enabled boolean
---- @param activated boolean
 local function CraftBagEntrySetup(control, data, selected, selectedDuringRebuild, enabled, activated)
     -- Bind the slot type BEFORE rendering so action discovery works correctly
     ZO_Inventory_BindSlot(data, SLOT_TYPE_CRAFT_BAG_ITEM, data.slotIndex, data.bagId)
     BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, selectedDuringRebuild, enabled, activated)
 end
 
---- @param buiList table
 local function SetupCraftBagList(buiList)
     buiList.list:AddDataTemplate(
         "BETTERUI_GamepadItemSubEntryTemplate",
@@ -43,11 +33,8 @@ local function SetupCraftBagList(buiList)
 end
 
 
-
-
 --- Initializes the craft bag list.
 --- Purpose: Sets up the visual scroll list for the craft bag.
---- @return nil
 function BETTERUI.Inventory.Class:InitializeCraftBagList()
     local function OnSelectedDataCallback(list, selectedData)
         if selectedData ~= nil and self.scene:IsShowing() then
@@ -96,7 +83,6 @@ function BETTERUI.Inventory.Class:InitializeCraftBagList()
 end
 
 --- Refreshes the Craft Bag list content.
---- @return nil
 function BETTERUI.Inventory.Class:RefreshCraftBagList()
     if self:IsBatchProcessing() and self.batchSuppressUiUpdates then
         return
@@ -109,7 +95,6 @@ function BETTERUI.Inventory.Class:RefreshCraftBagList()
 end
 
 --- Configure the tooltip for the Craft Bag header.
---- @return nil
 function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
     local title
     local description
@@ -125,8 +110,6 @@ function BETTERUI.Inventory.Class:LayoutCraftBagTooltip()
 end
 
 --- Counts items in the Craft Bag matching a filter type for category badge display.
---- @param filterType number|nil The crafting filter type (nil = All)
---- @return number count The number of matching items
 function BETTERUI.Inventory.Class:GetCraftBagCategoryItemCount(filterType)
     local count = 0
     local virtualItems = SHARED_INVENTORY:GetBagCache(BAG_VIRTUAL)

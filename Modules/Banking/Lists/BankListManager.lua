@@ -4,18 +4,12 @@ Purpose: Manages banking list categories, filtering, sorting, and refresh logic.
          Row setup/rendering lives in BankRowSetup.lua.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS & STATE
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
 
--------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
--------------------------------------------------------------------------------------------------
 
---- @param isFurnitureVault boolean
---- @return table
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
@@ -40,17 +34,12 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
---- @param itemData table
---- @param category table
---- @return boolean
 local function DoesItemMatchBankCategory(itemData, category)
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
 local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
 
---- @return table bags
---- @return number slotType
 local function ResolveBagsAndSlotType(self)
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local GuildBank = BETTERUI.Banking.GuildBank
@@ -74,12 +63,9 @@ local function ResolveBagsAndSlotType(self)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- LIST MANAGEMENT
--------------------------------------------------------------------------------------------------
 
 --- Computes the subset of categories that contain items for the current bank mode.
---- @return table visibleCategories
 function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     local isFurnitureVault = IsFurnitureVault(GetBankingBag())
     local allCategories = BuildAllBankCategories(isFurnitureVault)

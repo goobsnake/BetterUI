@@ -9,15 +9,11 @@ and GetRepairAllCost/RepairAll for batch repair.
 
 local Vendor = BETTERUI.Vendor
 
--- ============================================================================
 -- COMPONENT TABLE
--- ============================================================================
 Vendor.RepairComponent = {}
 local Repair = Vendor.RepairComponent
 
--- ============================================================================
 -- ACTIVATE / DEACTIVATE
--- ============================================================================
 
 function Repair:Activate(vendorInstance)
     vendorInstance:RefreshList()
@@ -27,9 +23,7 @@ function Repair:Deactivate(vendorInstance)
     -- No cleanup needed
 end
 
--- ============================================================================
 -- PRIMARY ACTION
--- ============================================================================
 
 function Repair:GetPrimaryActionName()
     return GetString(rawget(_G, "SI_ITEM_ACTION_REPAIR"))
@@ -63,9 +57,7 @@ function Repair:OnPrimaryAction(vendorInstance)
     RepairItem(bagId, slotIndex)
 end
 
--- ============================================================================
 -- REPAIR ALL
--- ============================================================================
 
 function Repair:RepairAll(vendorInstance)
     local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
@@ -88,9 +80,7 @@ function Repair:RepairAll(vendorInstance)
     })
 end
 
--- ============================================================================
 -- LIST BUILDING
--- ============================================================================
 
 function Repair:BuildList(vendorInstance)
     local list = vendorInstance.list

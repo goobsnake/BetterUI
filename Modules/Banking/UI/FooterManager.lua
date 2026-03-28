@@ -4,9 +4,7 @@ Purpose: Manages the banking footer UI (capacity info, currency display).
          Extracted from Banking.lua.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS & STATE
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 
 --[[

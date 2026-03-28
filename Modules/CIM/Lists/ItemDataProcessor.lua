@@ -4,13 +4,8 @@ Purpose: Shared factory for creating item entry data for inventory/banking lists
          Eliminates duplicate entry creation code between modules.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- ITEM ENTRY DATA FACTORY
--------------------------------------------------------------------------------------------------
 
---- @param itemData table Raw item data from SHARED_INVENTORY or similar
---- @param options table|nil Optional configuration
---- @return ZO_GamepadEntryData|nil data The entry data ready for list:AddEntry()
 function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     options = options or {}
 
@@ -70,11 +65,6 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     return data
 end
 
---- @param list table The scroll list to add to
---- @param data ZO_GamepadEntryData The entry data
---- @param currentCategoryName string|nil The current category name for header comparison
---- @param useHeaders boolean Whether to use AutoCategory-style headers
---- @return string currentCategoryName The new current category name
 function BETTERUI.CIM.AddItemEntryToList(list, data, currentCategoryName, useHeaders)
     local template = "BETTERUI_GamepadItemSubEntryTemplate"
 

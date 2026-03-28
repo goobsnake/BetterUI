@@ -11,7 +11,6 @@ local FindControl = Utils.FindControl
 local GetSettings = Utils.GetSettings
 local ClampTextSize = Utils.ClampTextSize
 
---- @return boolean canSwap True if player level meets weapon swap requirement
 local function CanUseBackupBar()
     return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
 end
@@ -32,9 +31,6 @@ local m_backBarCooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCa
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
 
---- @param slotIndex number Action bar slot index
---- @param hotbarCategory number Hotbar category constant
---- @return string key Composite cache key "slotIndex_hotbarCategory"
 local function BuildCooldownStateKey(slotIndex, hotbarCategory)
 Function: CacheBackBarControls
 Caches all back bar control references for performance.
@@ -70,10 +66,6 @@ local function ResetSmoothedCooldownRemaining(stateKey)
     end
 end
 
---- @param stateKey string Cooldown state cache key
---- @param remainMs number Remaining cooldown in milliseconds
---- @param durationMs number Total cooldown duration in milliseconds
---- @return number smoothedMs Frame-smoothed remaining time to avoid visual jumps
 local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
     if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
         return remainMs
@@ -112,11 +104,6 @@ local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
     return smoothedRemainMs
 end
 
---- @param cooldownEdge table|nil Edge highlight control
---- @param cooldownOverlay table|nil Desaturation overlay control
---- @param revealControl table|nil Control providing cooldownRevealWidth/Height
---- @param remainMs number|nil Remaining cooldown time
---- @param durationMs number|nil Total cooldown duration
 local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
     if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
         if cooldownEdge then cooldownEdge:SetHidden(true) end
@@ -417,9 +404,7 @@ local function UpdateBackBarCooldowns(rootFrame)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
--------------------------------------------------------------------------------------------------
 SkillBar.CacheBackBarControls = CacheBackBarControls
 SkillBar.UpdateBackBar = UpdateBackBar
 SkillBar.UpdateBackBarLayout = UpdateBackBarLayout

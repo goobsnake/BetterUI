@@ -4,13 +4,8 @@ Purpose: Number formatting utilities for the BetterUI addon.
          Provides comma formatting, abbreviation (K/M/B), and rounding functions.
 ]]
 
--- ============================================================================
 -- ROUNDING
--- ============================================================================
 
---- @param number number The value to round
---- @param decimals number The number of decimal places to keep
---- @return string|number rounded The rounded number string, or 0 if invalid
 function BETTERUI.roundNumber(number, decimals)
     if number ~= nil and decimals ~= nil then
         local power = 10 ^ decimals
@@ -20,12 +15,8 @@ function BETTERUI.roundNumber(number, decimals)
     end
 end
 
--- ============================================================================
 -- COMMA FORMATTING
--- ============================================================================
 
---- @param number number|string The number to format
---- @return string formatted The number string with comma separators
 function BETTERUI.DisplayNumber(number)
     local _, _, minus, int, fraction = tostring(number):find('([-]?)(%d+)([.]?%d*)')
     -- reverse the int-string and append a comma to all blocks of 3 digits
@@ -35,13 +26,8 @@ function BETTERUI.DisplayNumber(number)
     return minus .. int:reverse():gsub("^,", "") .. fraction
 end
 
--- ============================================================================
 -- ABBREVIATION (K/M/B)
--- ============================================================================
 
---- @param value number The number to format
---- @param options? {case?: "upper"|"lower", style?: "smart"|"fixed", decimals?: number} Optional formatting settings
---- @return string formatted The abbreviated number string
 function BETTERUI.FormatNumber(value, options)
     if not value or value == 0 then
         return "0"
@@ -92,16 +78,11 @@ function BETTERUI.FormatNumber(value, options)
     return sign .. string.format(fmt, num) .. suffix
 end
 
---- @param n number The number to abbreviate
---- @param defaultDecimals? number Optional decimal places (ignored)
---- @return string abbreviated The abbreviated number string
 function BETTERUI.AbbreviateNumber(n, defaultDecimals)
     -- Legacy behavior: lowercase, smart decimals
     return BETTERUI.FormatNumber(n, { case = "lower", style = "smart" })
 end
 
---- @param value number The number to format
---- @return string formatted The abbreviated uppercase number string
 function BETTERUI.FormatAbbreviatedNumber(value)
     -- Legacy behavior: uppercase, smart decimals
     return BETTERUI.FormatNumber(value, { case = "upper", style = "smart" })

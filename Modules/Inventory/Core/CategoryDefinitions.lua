@@ -81,12 +81,9 @@ BETTERUI.Inventory.Categories.CraftBag = {
     }
 }
 
--------------------------------------------------------------------------------------------------
 -- SHARED BANKING CATEGORY DEFINITIONS
--------------------------------------------------------------------------------------------------
 -- These definitions are shared between Banking and Inventory modules to ensure
 -- consistent category handling and eliminate code duplication.
--------------------------------------------------------------------------------------------------
 
 BETTERUI.Inventory.Categories.Bank = {
     { key = "all",        nameStringId = SI_BETTERUI_INV_ITEM_ALL,        filterType = nil,                          iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
@@ -199,17 +196,11 @@ BETTERUI.Inventory.Categories.Inventory = {
     }
 }
 
--------------------------------------------------------------------------------------------------
 -- SHARED CATEGORY MATCHING FUNCTION
--------------------------------------------------------------------------------------------------
 -- Provides a centralized function for checking if an item matches a category.
 -- Used by both Inventory and Banking modules for filtering.
--------------------------------------------------------------------------------------------------
 
 --- Checks if itemData belongs to the given category definition.
---- @param itemData table Item data (must have isJunk, stolen fields).
---- @param category table Category definition to check against.
---- @return boolean True if the item matches the category.
 function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
     -- Handle special category types FIRST
     -- (e.g., 'Junk' has filterType=nil, so checking special first prevents it from matching the 'All' logic)
@@ -236,17 +227,11 @@ function BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
 
--------------------------------------------------------------------------------------------------
 -- SHARED ITEM CATEGORIZATION HELPERS
--------------------------------------------------------------------------------------------------
 -- These functions are shared between Inventory and Banking modules for consistent
 -- item categorization and description generation.
--------------------------------------------------------------------------------------------------
 
 --- Maps a weapon item to its gamepad weapon category constant.
---- @param bagId number The bag containing the item.
---- @param slotIndex number The slot index of the item.
---- @return number|nil The weapon category constant, or nil if not a weapon.
 function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slotIndex)
     local weaponType = GetItemWeaponType(bagId, slotIndex)
     if weaponType == WEAPONTYPE_AXE or weaponType == WEAPONTYPE_HAMMER or weaponType == WEAPONTYPE_SWORD or weaponType == WEAPONTYPE_DAGGER then
@@ -265,8 +250,6 @@ function BETTERUI.Inventory.Categories.GetCategoryTypeFromWeaponType(bagId, slot
 end
 
 --- Computes the best category description string for an item.
---- @param itemData table Item data (must have bagId, slotIndex, equipType, itemType).
---- @return string The localized category description.
 function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
     local isItemStolen = IsItemStolen(itemData.bagId, itemData.slotIndex)
 

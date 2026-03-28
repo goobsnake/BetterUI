@@ -26,7 +26,6 @@ local ResetMarketIntegrationSettings = H.ResetMarketIntegrationSettings or funct
 local ResetEnhancedTooltipSettings = H.ResetEnhancedTooltipSettings or function() end
 
 --- Returns the table of LAM settings options for General Interface.
---- @return table options The list of settings control definitions
 function BETTERUI.GeneralInterface.GetSettingsOptions()
     local styleTraitIcon = ""
     if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.ICONS and BETTERUI.CIM.CONST.ICONS.RESEARCHABLE_TRAIT then
@@ -492,8 +491,6 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
 end
 
 --- Initializes General Interface default settings.
---- @param m_options table The raw settings table
---- @return table m_options The initialized settings table
 function BETTERUI.GeneralInterface.InitModule(m_options)
     m_options = m_options or {}
     if BETTERUI.Defaults and BETTERUI.Defaults.ApplyModuleDefaults then

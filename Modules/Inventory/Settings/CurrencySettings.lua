@@ -110,18 +110,14 @@ local CURRENCY_DATA = {
     },
 }
 
---- @return table settings
 local function GetInventorySettings()
     return BETTERUI.GetModuleSettings("Inventory")
 end
 
---- @return table|nil settings
 local function EnsureInventorySettings()
     return BETTERUI.EnsureModuleSettings("Inventory")
 end
 
---- @param dataEntry table
---- @return string label
 local function GetCurrencyLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
@@ -131,8 +127,6 @@ local function GetCurrencyLabel(dataEntry)
     return GetString(dataEntry.labelStr)
 end
 
---- @param dataEntry table
---- @return string label
 local function GetOrderLabel(dataEntry)
     if dataEntry.dynamicLabel and dataEntry.id == "tradebars" then
         if (CURT_TRADE_BARS == nil) and (CURT_EVENT_TICKETS ~= nil) then
@@ -142,7 +136,6 @@ local function GetOrderLabel(dataEntry)
     return GetString(dataEntry.orderStr)
 end
 
---- @param headerToo boolean|nil
 local function SafeRefresh(headerToo)
     if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE.IsShowing and GAMEPAD_INVENTORY_ROOT_SCENE:IsShowing() then
         if headerToo and GAMEPAD_INVENTORY.RefreshHeader then
@@ -154,7 +147,6 @@ local function SafeRefresh(headerToo)
     end
 end
 
---- @return boolean canEnable
 local function CanEnableMoreCurrencies()
     local inv = GetInventorySettings()
 
@@ -208,7 +200,6 @@ local function RecomputeCurrencyOrderString()
 end
 
 --- Applies a currency preset by enabling/disabling specific currencies.
---- @param presetName string The name of the preset ("default", "pvp", "crafter", "events", "custom")
 function BETTERUI.ApplyCurrencyPreset(presetName)
     local inv = EnsureInventorySettings()
     if not inv then return end
@@ -241,7 +232,6 @@ function BETTERUI.ApplyCurrencyPreset(presetName)
 end
 
 --- Returns the LAM control for Currency Submenu.
---- @return table option The currency submenu option
 function BETTERUI.Inventory.Settings.GetCurrencyOptions()
     local CURRENCY_ORDER_CHOICES = {
         GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_1")), GetString(rawget(_G, "SI_BETTERUI_CURRENCY_POS_2")),

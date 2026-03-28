@@ -11,10 +11,8 @@ This module provides:
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Currency = BETTERUI.CIM.Currency or {}
 
--- ============================================================================
 -- CURRENCY DEFINITIONS
 -- Single source of truth for all currency metadata
--- ============================================================================
 
 -- Backwards Compatibility:
 -- "Trade Bars" (Update 49+) used to be "Event Tickets".
@@ -146,13 +144,9 @@ for _, def in ipairs(BETTERUI.CIM.Currency.DEFS) do
     BETTERUI.CIM.Currency.TOKEN_TO_DEF[def.iconKey] = def
 end
 
--- ============================================================================
 -- HELPER FUNCTIONS
--- ============================================================================
 
 --- Retrieves the current amount of a currency for display.
---- @param def table Currency definition from CURRENCY_DEFS
---- @return number amount The currency amount
 function BETTERUI.CIM.Currency.GetValue(def)
     if def.useStoredAmount then
         return GetPlayerStoredCurrencyAmount(def.apiConst)
@@ -164,9 +158,6 @@ function BETTERUI.CIM.Currency.GetValue(def)
 end
 
 --- Formats a currency label with localized text, color, value, and icon.
---- @param def table Currency definition from CURRENCY_DEFS
---- @param amount number The currency amount to display
---- @return string formatted Formatted label text with color codes and icon
 function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     local label = GetString(_G[def.labelStringId])
     -- Fallback: if the _LABEL string ID isn't registered, label will be empty.
@@ -190,9 +181,6 @@ function BETTERUI.CIM.Currency.FormatLabel(def, amount)
     return formatted
 end
 
---- @param footer table The footer control object
---- @param labelName string Name of the label to retrieve
---- @return Control|nil label The label control or nil
 function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     if not footer._controlCache then footer._controlCache = {} end
     if not footer._controlCache[labelName] then
@@ -202,9 +190,6 @@ function BETTERUI.CIM.Currency.GetLabelControl(footer, labelName)
     return footer._controlCache[labelName]
 end
 
---- @param footer table The footer control object
---- @param invSettings table Inventory settings containing currency visibility flags
---- @return boolean changed True if any labels changed
 function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
     if not footer._valueCache then footer._valueCache = {} end
     local cache = footer._valueCache
@@ -250,8 +235,6 @@ function BETTERUI.CIM.Currency.UpdateLabels(footer, invSettings)
 end
 
 --- Build ordered list of visible currency definitions based on user settings.
---- @param invSettings table Inventory settings containing currency order and visibility flags
---- @return table visible Array of visible currency definitions in user-specified order
 function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local orderStr = invSettings.currencyOrder or
         "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
@@ -283,8 +266,6 @@ function BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     return visible
 end
 
---- @param footer table The footer control object
---- @param invSettings table Inventory settings containing currency visibility flags
 function BETTERUI.CIM.Currency.PositionLabels(footer, invSettings)
     local visible = BETTERUI.CIM.Currency.GetVisibleOrder(invSettings)
     local GetLabelControl = BETTERUI.CIM.Currency.GetLabelControl

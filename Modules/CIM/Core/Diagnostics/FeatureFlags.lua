@@ -7,13 +7,10 @@ Purpose: Runtime feature flag system for BetterUI.
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.FeatureFlags = {}
 
--- ============================================================================
 -- FEATURE FLAG DEFINITIONS
--- ============================================================================
 
 -- Feature flag definition type is defined in Types.lua as FeatureFlagDefinition
 
---- @type table<string, FeatureFlagDefinition>
 local FLAG_DEFINITIONS = {
     -- Core Features
     ENHANCED_TOOLTIPS = {
@@ -59,12 +56,8 @@ local FLAG_DEFINITIONS = {
 local flagStateCache = {}
 local flagOverrides = {}
 
--- ============================================================================
 -- CORE API
--- ============================================================================
 
---- @param flagName string The feature flag identifier
---- @return boolean enabled True if the feature is enabled
 function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
     -- Check runtime override first
     if flagOverrides[flagName] ~= nil then
@@ -94,8 +87,6 @@ function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
     return false
 end
 
---- @param flagName string The feature flag identifier
---- @param enabled boolean The new enabled state
 function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
     BETTERUI.Settings = BETTERUI.Settings or {}
     BETTERUI.Settings.FeatureFlags = BETTERUI.Settings.FeatureFlags or {}
@@ -103,8 +94,6 @@ function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
     flagStateCache[flagName] = nil -- Clear cache to force re-read
 end
 
---- @param flagName string The feature flag identifier
---- @param enabled boolean|nil The override state, or nil to clear override
 function BETTERUI.CIM.FeatureFlags.SetOverride(flagName, enabled)
     flagOverrides[flagName] = enabled
 end
@@ -118,7 +107,6 @@ function BETTERUI.CIM.FeatureFlags.ClearOverrides()
     flagOverrides = {}
 end
 
---- @return table<string, {definition: FeatureFlagDefinition, enabled: boolean}> flags
 function BETTERUI.CIM.FeatureFlags.GetAllFlags()
     local result = {}
     for name, def in pairs(FLAG_DEFINITIONS) do
@@ -142,9 +130,7 @@ function BETTERUI.CIM.FeatureFlags.ResetToDefaults()
     flagOverrides = {}
 end
 
--- ============================================================================
 -- CONVENIENCE CONSTANTS
--- ============================================================================
 
 -- Expose flag names as constants for type safety
 BETTERUI.CIM.FeatureFlags.FLAGS = {

@@ -10,13 +10,9 @@ if not BETTERUI.Inventory.ActionHandlers then BETTERUI.Inventory.ActionHandlers 
 
 local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
--------------------------------------------------------------------------------------------------
 -- LOCAL HELPERS (shared by all handlers)
--------------------------------------------------------------------------------------------------
 
 --- Silently toggle junk state for an item target and update UI.
---- @param self table Inventory.Class instance
---- @param isJunk boolean True to mark as junk, false to unmark
 local function ToggleJunkState(self, isJunk)
     -- Guard: craft bag items cannot be marked as junk
     if self and self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
@@ -55,8 +51,6 @@ local function ToggleJunkState(self, isJunk)
 end
 
 --- Resolve the current item target based on action mode.
---- @param self table Inventory.Class instance
---- @return table|nil targetData
 local function ResolveCurrentTarget(self)
     local actionMode = self.actionMode
     if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
@@ -70,15 +64,10 @@ local function ResolveCurrentTarget(self)
     return nil
 end
 
--------------------------------------------------------------------------------------------------
 -- ActionDialogSetup
--------------------------------------------------------------------------------------------------
 
 --- Populates the Y-menu action dialog with contextual actions for the selected item.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_SETUP callback.
---- @param self table Inventory.Class instance
---- @param dialog table The ZO dialog instance
---- @param data table Setup data
 function ActionHandlers.OnSetup(self, dialog, data)
     if not self.scene:IsShowing() then return end
 
@@ -282,13 +271,10 @@ function ActionHandlers.OnSetup(self, dialog, data)
     dialog:setupFunc()
 end
 
--------------------------------------------------------------------------------------------------
 -- ActionDialogFinish
--------------------------------------------------------------------------------------------------
 
 --- Restores keybinds and refreshes state after the Y-menu dialog closes.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_FINISH callback.
---- @param self table Inventory.Class instance
 function ActionHandlers.OnFinish(self)
     if not self.scene:IsShowing() then return end
 
@@ -315,14 +301,10 @@ function ActionHandlers.OnFinish(self)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- ActionDialogButtonConfirm
--------------------------------------------------------------------------------------------------
 
 --- Handles A-button press inside the Y-menu dialog to execute the selected action.
 --- Called via BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM callback.
---- @param self table Inventory.Class instance
---- @param dialog table The ZO dialog instance
 function ActionHandlers.OnConfirm(self, dialog)
     if not (self.scene and self.scene:IsShowing()) then return end
 

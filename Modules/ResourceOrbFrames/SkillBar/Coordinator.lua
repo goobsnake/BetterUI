@@ -19,9 +19,7 @@ local FindControl = BETTERUI.ControlUtils.FindControl
 
 local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
--- ============================================================================
 -- MAIN BAR & LAYOUT ORCHESTRATION
--- ============================================================================
 
 local function UpdateBarPositions(rootFrame)
     local actionBarContainer = FindControl(rootFrame, 'ActionBarContainer')
@@ -198,9 +196,7 @@ local function IsWeaponSwapAnimating()
     return m_swapTimeline and m_swapTimeline:IsPlaying()
 end
 
--------------------------------------------------------------------------------------------------
 -- MODULE EXPORTS
--------------------------------------------------------------------------------------------------
 SkillBar.UpdateBarPositions = UpdateBarPositions
 SkillBar.UpdateMainBarLayout = UpdateMainBarLayout
 SkillBar.ApplyActionBarSkin = ApplyActionBarSkin

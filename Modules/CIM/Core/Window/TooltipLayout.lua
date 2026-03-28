@@ -7,7 +7,6 @@ Purpose: Tooltip panel width and positioning utilities.
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 
---- @param width number The new width of the background fragment
 function BETTERUI.CIM.SetTooltipWidth(width)
     -- Adjust background fragment and tooltip anchors for custom inventory width
     local tooltipControl = GAMEPAD_TOOLTIPS.tooltips.GAMEPAD_LEFT_TOOLTIP.control

@@ -2,42 +2,10 @@
 -- Shared multi-select mixin: selection lifecycle + throttled batch pipeline.
 -- Delegates to BatchConfig (pacing), BatchOverlay (UI), BatchActions (operations).
 
---- @class BETTERUI.CIM.MultiSelectMixin
 --- Shared mixin for inventory-like screens supporting gamepad multi-select behavior.
 --- Provides selection lifecycle APIs and throttled batch processing with scene-safe aborts.
 ---
---- @class CIM.MultiSelectConfig
---- @field getList fun(self: table): table|nil
---- @field refreshList fun(self: table)
---- @field refreshKeybinds fun(self: table)
---- @field isSceneShowing fun(self: table): boolean|nil
---- @field getSceneExitLabel fun(): string|nil
 ---
---- @class CIM.BatchOptions
---- @field serverBound boolean|nil
---- @field suppressUiUpdates boolean|nil
---- @field costPerItem number|nil
---- @field cooldownEvery integer|nil
---- @field cooldownMs integer|nil
---- @field minServerDelayMs integer|nil
---- @field maxServerDelayMs integer|nil
---- @field awaitInventoryAck boolean|nil
---- @field ackTimeoutMs integer|nil
---- @field chunkCostUnits integer|nil
---- @field chunkPauseMs integer|nil
---- @field adaptiveDelay boolean|nil
---- @field adaptiveThreshold integer|nil
---- @field adaptiveStepMs integer|nil
---- @field jitterMs integer|nil
---- @field skipInterBatchCooldown boolean|nil
---- @field postBatchCooldownBaseMs integer|nil
---- @field postBatchCooldownThreshold integer|nil
---- @field postBatchCooldownPerCostMs integer|nil
---- @field postBatchCooldownMaxMs integer|nil
---- @field enforceRateWindow boolean|nil
---- @field rateLimitWindowMs integer|nil
---- @field rateLimitMaxActions integer|nil
---- @field countTowardRateOnSuccess boolean|nil
 
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.MultiSelectMixin = {}
@@ -46,20 +14,14 @@ local BatchConfig = BETTERUI.CIM.BatchConfig
 local BatchOverlay = BETTERUI.CIM.BatchOverlay
 local BatchActions = BETTERUI.CIM.BatchActions
 
--------------------------------------------------------------------------------------------------
 -- MIXIN APPLICATION
--------------------------------------------------------------------------------------------------
 
 --- Applies the multi-select mixin to a module class instance.
---- @param target table The module class instance
---- @param config CIM.MultiSelectConfig Module-specific callback/config bag
 function Mixin.Apply(target, config)
     target._multiSelectConfig = config
 end
 
--------------------------------------------------------------------------------------------------
 -- SELECTION MODE LIFECYCLE
--------------------------------------------------------------------------------------------------
 
 function Mixin.EnterSelectionMode(self)
     if self.isInSelectionMode then return end
@@ -106,7 +68,6 @@ function Mixin.ExitSelectionMode(self)
     end
 end
 
---- @param selectedCount number
 function Mixin.OnSelectionCountChanged(self, selectedCount)
     if self.isInSelectionMode and selectedCount > 0 then
         self.selectedCount = selectedCount
@@ -126,22 +87,18 @@ function Mixin.OnSelectionCountChanged(self, selectedCount)
     end
 end
 
---- @return boolean
 function Mixin.IsInSelectionMode(self)
     return self.isInSelectionMode or false
 end
 
---- @return boolean
 function Mixin.IsBatchProcessing(self)
     return self.isBatchProcessing == true
 end
 
---- @return boolean
 function Mixin.CanAbortBatch(self)
     return self.isBatchProcessing == true and self.batchAbortRequested ~= true
 end
 
---- @return boolean
 function Mixin.RequestBatchAbort(self)
     if not Mixin.CanAbortBatch(self) then
         return false
@@ -159,17 +116,9 @@ function Mixin.RequestBatchAbort(self)
     return true
 end
 
--------------------------------------------------------------------------------------------------
 -- THROTTLED BATCH PROCESSING
--------------------------------------------------------------------------------------------------
 
 --- Processes selected items through a throttled batch pipeline.
---- @param self table
---- @param items table[]|nil
---- @param actionFn fun(bagId:number, slotIndex:number, itemData:table): (boolean|string|nil)
---- @param onComplete fun(stopReason:string|nil)|nil
---- @param actionName string|nil
---- @param batchOptions CIM.BatchOptions|nil
 function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionName, batchOptions)
     items = BatchConfig.NormalizeBatchItems(items or {})
     local totalItems = #items
@@ -643,9 +592,7 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
     StartBatchAfterDialogDismiss(BatchConfig.BATCH_STATUS_DIALOG_CLOSE_MAX_WAIT_MS, BatchConfig.BATCH_STATUS_DIALOG_SETTLE_MS)
 end
 
--------------------------------------------------------------------------------------------------
 -- BATCH OPERATION DELEGATES
--------------------------------------------------------------------------------------------------
 
 Mixin.BatchLock = BatchActions.BatchLock
 Mixin.BatchUnlock = BatchActions.BatchUnlock

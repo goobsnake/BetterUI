@@ -9,7 +9,6 @@ if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 -- Purpose: Apply all registered mixins to BETTERUI.Inventory.Class
 -- Called via BetterUI.txt load order AFTER all mixin files
 --- Applies all registered mixins to the Inventory Class.
---- @return nil
 function BETTERUI.Inventory.ApplyAllMixins()
     if not BETTERUI.Inventory.ClassMixins then return end
 

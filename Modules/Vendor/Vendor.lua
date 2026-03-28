@@ -16,9 +16,7 @@ KEY MECHANICS:
   - Scene is created as ZO_InteractScene and aliased to gamepad_store
 ]]
 
--- ============================================================================
 -- LOCAL STATE
--- ============================================================================
 local Vendor      = BETTERUI.Vendor
 local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
@@ -30,9 +28,7 @@ local isFenceInteraction = false
 local fenceEnableSell    = false
 local fenceEnableLaunder = false
 
--- ============================================================================
 -- TAB DEFINITIONS
--- ============================================================================
 
 -- Regular vendor tabs (Buy, Sell, Repair, Buyback)
 local VENDOR_TABS = {
@@ -48,12 +44,9 @@ local FENCE_TABS = {
     { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
 }
 
--- ============================================================================
 -- GET ACTIVE TABS
--- ============================================================================
 
 --- Returns the tab list for the current interaction type.
---- @return table tabs Array of tab definitions
 local function GetActiveTabs()
     if isFenceInteraction then
         local tabs = {}
@@ -72,9 +65,7 @@ local function GetActiveTabs()
     return VENDOR_TABS
 end
 
--- ============================================================================
 -- KEYBINDS
--- ============================================================================
 
 local function BuildCoreKeybinds(vendorInstance)
     return {
@@ -149,11 +140,8 @@ local function BuildTabKeybinds(vendorInstance)
     }
 end
 
--- ============================================================================
 -- TAB CYCLING
--- ============================================================================
 
---- @param direction number +1 for next tab, -1 for previous tab
 function BETTERUI.Vendor.Class:CycleTabs(direction)
     local tabs = GetActiveTabs()
     if #tabs <= 1 then return end
@@ -192,9 +180,7 @@ function BETTERUI.Vendor.Class:UpdateTabHeader()
     end
 end
 
--- ============================================================================
 -- EVENT HANDLERS
--- ============================================================================
 
 local function OnOpenStore()
     isFenceInteraction = false
@@ -262,9 +248,7 @@ local function OnSellReceipt()
     OnInventoryUpdated()
 end
 
--- ============================================================================
 -- INITIALIZATION
--- ============================================================================
 
 --- Initializes the Vendor module.
 function BETTERUI.Vendor.Init()
@@ -343,18 +327,14 @@ function BETTERUI.Vendor.Init()
     Vendor.initialized = true
 end
 
--- ============================================================================
 -- PUBLIC API
--- ============================================================================
 
 --- Check if the Vendor module has been initialized.
---- @return boolean initialized
 function BETTERUI.Vendor.IsInitialized()
     return Vendor.initialized == true
 end
 
 --- Check if a store is currently open.
---- @return boolean isOpen
 function BETTERUI.Vendor.IsStoreOpen()
     if Vendor.instance and Vendor.instance:IsSceneShowing() then
         return true

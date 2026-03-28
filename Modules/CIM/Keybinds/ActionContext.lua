@@ -7,17 +7,13 @@ Purpose: Provides frame-based caching for keybind action context lookups.
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 
--- ============================================================================
 -- ACTION CONTEXT CACHE
 -- Provides frame-based caching to avoid redundant API calls in keybind
 -- name/visible/callback functions that all need the same item data.
--- ============================================================================
 
 local cachedFrame = -1    -- Frame number when cache was last computed
 local cachedContext = nil -- The cached context data
 
---- @param self table The inventory/banking class instance
---- @return table context The action context with fields for keybind decisions
 function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     local currentFrame = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
 
@@ -93,8 +89,6 @@ function BETTERUI.CIM.Keybinds.InvalidateActionContext()
     cachedContext = nil
 end
 
---- @param self table The inventory class instance
---- @return string label The localized button label
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
@@ -115,8 +109,6 @@ function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     return ""
 end
 
---- @param self table The inventory class instance
---- @return boolean visible Whether the X-button should be visible
 function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 

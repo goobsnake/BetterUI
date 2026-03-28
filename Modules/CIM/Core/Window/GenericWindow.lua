@@ -8,26 +8,12 @@ Purpose: A specialized base class for Inventory-like windows (Banking, Backpack)
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
 
---- @class BETTERUI.CIM.GenericWindow : BETTERUI.Interface.Window
---- @field categoryPositions table<string, number> Map of category keys to saved positions
---- @field currentCategoryKey string|nil The current category identifier
---- @field list table|nil The list control reference
---- @field headerGeneric table|nil The header control reference
---- @field textSearchKeybindStripDescriptor table|nil Keybind descriptor for text search
---- @field mainKeybindStripDescriptor table|nil Main keybind strip descriptor
---- @field coreKeybinds table|nil Core keybinds table
---- @field _searchModeActive boolean|nil Whether search mode is active
 BETTERUI.CIM.GenericWindow = BETTERUI.Interface.Window:Subclass()
 
---- @param ... any Arguments passed to parent Initialize
---- @return BETTERUI.CIM.GenericWindow
 function BETTERUI.CIM.GenericWindow:New(...)
     return BETTERUI.Interface.Window.New(self, ...)
 end
 
---- @param tlw_name string Top-level window name
---- @param scene_name string Scene name to register
---- @param virtualTemplate string|nil Optional template override for modern modules
 function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name, virtualTemplate)
     BETTERUI.Interface.Window.Initialize(self, tlw_name, scene_name, virtualTemplate)
 
@@ -36,22 +22,16 @@ function BETTERUI.CIM.GenericWindow:Initialize(tlw_name, scene_name, virtualTemp
     self.currentCategoryKey = nil
 end
 
--------------------------------------------------------------------------------------------------
 -- CATEGORY MANAGEMENT
--------------------------------------------------------------------------------------------------
 
---- @return string|nil categoryKey The current category key, or nil if none is set
 function BETTERUI.CIM.GenericWindow:GetCurrentCategoryKey()
     return self.currentCategoryKey
 end
 
---- @param categoryKey string The category key to set
 function BETTERUI.CIM.GenericWindow:SetCurrentCategoryKey(categoryKey)
     self.currentCategoryKey = categoryKey
 end
 
---- @param categoryKey string|nil The category to save position for. Uses current if nil
---- @param position number|nil The position to save. Uses current list selection if nil
 function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     local key = categoryKey or self.currentCategoryKey
     if not key then return end
@@ -64,8 +44,6 @@ function BETTERUI.CIM.GenericWindow:SaveCategoryPosition(categoryKey, position)
     self.categoryPositions[key] = pos or 1
 end
 
---- @param categoryKey string|nil The category to restore position for. Uses current if nil
---- @return number position The saved position, or 1 if not found
 function BETTERUI.CIM.GenericWindow:RestoreCategoryPosition(categoryKey)
     local key = categoryKey or self.currentCategoryKey
     if not key then return 1 end
@@ -78,7 +56,6 @@ function BETTERUI.CIM.GenericWindow:ClearCategoryPositions()
     self.categoryPositions = {}
 end
 
---- @param categoryKey string The category to switch to
 function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
     if not categoryKey then return end
 
@@ -102,9 +79,7 @@ function BETTERUI.CIM.GenericWindow:SwitchToCategory(categoryKey)
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- KEYBIND MANAGEMENT
--------------------------------------------------------------------------------------------------
 
 --- Ensures header tab bar keybinds are active.
 function BETTERUI.CIM.GenericWindow:EnsureHeaderKeybindsActive()
@@ -140,9 +115,7 @@ function BETTERUI.CIM.GenericWindow:RefreshActiveKeybinds()
     end
 end
 
--------------------------------------------------------------------------------------------------
 -- PLACEHOLDER METHODS (Override in subclasses)
--------------------------------------------------------------------------------------------------
 
 --- Placeholder for updating header title based on category.
 function BETTERUI.CIM.GenericWindow:UpdateHeaderTitle()

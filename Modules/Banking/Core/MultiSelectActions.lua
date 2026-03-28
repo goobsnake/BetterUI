@@ -6,9 +6,7 @@ Purpose: Banking-specific multi-select batch operations.
          by CIM.MultiSelectMixin via BankingClass.lua delegates.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW          = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT           = BETTERUI.Banking.LIST_DEPOSIT
 
@@ -18,10 +16,6 @@ local FURNITURE_VAULT_BAG_ID = BAG_FURNITURE_VAULT
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 
---- @param itemData table
---- @param bagId number
---- @param slotIndex number
---- @return number|nil
 local function ResolveStackCount(itemData, bagId, slotIndex)
     local rawData = itemData.dataSource or itemData
     local requestedStack = rawData.stackCount or itemData.stackCount or 1
@@ -32,10 +26,6 @@ local function ResolveStackCount(itemData, bagId, slotIndex)
     return zo_clamp(requestedStack, 1, liveStack)
 end
 
---- @param bagId number
---- @param slotIndex number
---- @param targetBankBag number
---- @return boolean
 local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     -- Use shared protection policy for transfer validation
     if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
@@ -57,10 +47,6 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
     return true
 end
 
---- @param bagId number
---- @param slotIndex number
---- @param currentUsedBank number
---- @return number|string
 local function ResolveDepositTargetBag(bagId, slotIndex, currentUsedBank)
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
@@ -124,9 +110,7 @@ local BANK_TRANSFER_BATCH_OPTIONS = {
     jitterMs = 18,
 }
 
--------------------------------------------------------------------------------------------------
 -- BANKING-SPECIFIC BATCH OPERATIONS
--------------------------------------------------------------------------------------------------
 
 --- Performs batch withdraw/deposit on all selected items (throttled).
 --- Moves items between bank and backpack based on current mode.
@@ -240,9 +224,7 @@ function BETTERUI.Banking.Class:SelectAllItems()
     end, 50)
 end
 
--------------------------------------------------------------------------------------------------
 -- BATCH ACTIONS DIALOG
--------------------------------------------------------------------------------------------------
 
 --- Shows the batch actions menu for multi-selected items.
 --- Uses CIM.MultiSelectMixin helpers for item analysis and common dialog entries,

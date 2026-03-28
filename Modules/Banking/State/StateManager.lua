@@ -4,19 +4,14 @@ Purpose: Manages persistence and state transitions for the banking module.
          Delegates position persistence to CIM.PositionManager.
 ]]
 
--------------------------------------------------------------------------------------------------
 -- SHARED CONSTANTS
--------------------------------------------------------------------------------------------------
 local LIST_WITHDRAW = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 -- Module identifier constants from CIM
 local MODULES       = BETTERUI.CIM.CONST.MODULES
 
--------------------------------------------------------------------------------------------------
 -- HELPER FUNCTIONS (local)
--------------------------------------------------------------------------------------------------
 
---- @return number
 local function GetCurrentBankBag()
     if IsHouseBankBag(GetBankingBag()) then
         return GetBankingBag()
@@ -24,15 +19,11 @@ local function GetCurrentBankBag()
     return BAG_BANK
 end
 
---- @param mode number LIST_WITHDRAW or LIST_DEPOSIT
---- @return string
 local function GetModeModuleKey(mode)
     return mode == LIST_WITHDRAW and MODULES.BANKING_WITHDRAW or MODULES.BANKING_DEPOSIT
 end
 
--------------------------------------------------------------------------------------------------
 -- BANK STATE TRACKING
--------------------------------------------------------------------------------------------------
 
 --- Updates the currentUsedBank state.
 function BETTERUI.Banking.Class:CurrentUsedBank()
@@ -44,9 +35,7 @@ function BETTERUI.Banking.Class:LastUsedBank()
     BETTERUI.Banking.lastUsedBank = GetCurrentBankBag()
 end
 
--------------------------------------------------------------------------------------------------
 -- POSITION PERSISTENCE
--------------------------------------------------------------------------------------------------
 
 --- Saves the current scroll position of the list.
 function BETTERUI.Banking.Class:SaveListPosition()
@@ -69,7 +58,6 @@ function BETTERUI.Banking.Class:SaveListPosition()
 end
 
 --- Manages keybind and tooltip state when list is empty.
---- @return boolean handled True if list was empty and handled
 function BETTERUI.Banking.Class:HandleEmptyList()
     local totalEntries = (self.list and self.list.dataList and #self.list.dataList) or 0
     if totalEntries == 0 then
@@ -91,7 +79,6 @@ function BETTERUI.Banking.Class:HandleEmptyList()
 end
 
 --- Retrieves the saved position for the current category/mode.
---- @return number position The position to restore (1 if none saved)
 function BETTERUI.Banking.Class:GetRestoredPosition()
     if not self.bankCategories or #self.bankCategories == 0 then
         return 1
@@ -109,7 +96,6 @@ function BETTERUI.Banking.Class:GetRestoredPosition()
 end
 
 --- Handles the case where the player switched to a different bank.
---- @return boolean handled True if bank switch was handled
 function BETTERUI.Banking.Class:HandleBankSwitch()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     local lastUsedBank = BETTERUI.Banking.lastUsedBank
@@ -165,21 +151,17 @@ function BETTERUI.Banking.Class:ReturnToSaved()
     self.list:SetSelectedIndexWithoutAnimation(lastPosition, true, false)
 end
 
---- @param bagId number
---- @param slotIndex number
 function BETTERUI.Banking.Class:UpdateSingleItem(bagId, slotIndex)
     -- Rebuild the list from the shared inventory cache rather than mutating
     -- the parametric list internals while it's animating/moving.
     self:RefreshList()
 end
 
---- @param itemIndex number
 function BETTERUI.Banking.Class:RemoveItemStack(itemIndex)
     -- Avoid directly mutating the parametric list while it may be moving; just refresh.
     self:RefreshList()
 end
 
---- @param toWithdraw boolean True if switching to Withdraw mode
 function BETTERUI.Banking.Class:ToggleList(toWithdraw)
     -- Exit multi-select mode when switching between Withdraw/Deposit
     -- Selections are mode-specific and should not carry over
