@@ -17,7 +17,7 @@ local m_swapTimeline = nil
 -- Helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
 
-local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
+local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 -- ============================================================================
 -- MAIN BAR & LAYOUT ORCHESTRATION
@@ -125,7 +125,7 @@ local function StopWeaponSwapAnimation(rootFrame)
 end
 
 local function WeaponSwapAnimation(rootFrame)
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     local bgMiddle = FindControl(rootFrame, 'BgMiddle')

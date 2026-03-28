@@ -7,7 +7,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
-local GetModuleSettings = Utils.GetModuleSettings
+local GetSettings = Utils.GetSettings
 
 --------------------------------------------------------------------------------
 -- PRESS FEEDBACK CONSTANTS
@@ -258,7 +258,7 @@ end
 --------------------------------------------------------------------------------
 
 local function PlayFrontBarPressFeedbackForSlot(rootFrame, slotIndex, hotbarCategory, bypassUsableGate)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local resolvedRootFrame = rootFrame or m_pressFeedbackRootFrame
     if not resolvedRootFrame then return end

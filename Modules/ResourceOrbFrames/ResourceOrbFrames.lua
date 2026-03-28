@@ -54,9 +54,9 @@ local DEFAULTS = {
     -- (Other defaults handled in GetModuleSettings or specific components)
 }
 
--- Use canonical Utils.GetModuleSettings for the standard no-defaults path.
+-- Use canonical Utils.GetSettings for the standard no-defaults path.
 -- This file also needs a DEFAULTS-aware accessor for initialization.
-local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
+local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local FindControl = BETTERUI.ControlUtils.FindControl
 
@@ -123,7 +123,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
     end
 
     -- Update Bar Frames Layout (Anchoring) - use cached control references
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
 
 
     -- Lazily resolve BARS reference (Constants.lua loads before this runs)
@@ -376,7 +376,7 @@ local function SetupModule(control)
                 return
             end
 
-            local frontBarSettings = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
+            local frontBarSettings = GetSettings().customFrontBar
             if not frontBarSettings or not frontBarSettings.m_enabled then
                 return
             end
@@ -420,7 +420,7 @@ function ResourceOrbFrames.Initialize(control)
         EVENT_MANAGER:UnregisterForEvent(NAME .. "_InitSetup", EVENT_PLAYER_ACTIVATED)
 
         ROFTasks:Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
-            local settings = GetModuleSettings()
+            local settings = GetSettings()
             if not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
                 return
@@ -445,7 +445,7 @@ function ResourceOrbFrames.Initialize(control)
 end
 
 function ResourceOrbFrames.ApplySettings()
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if not m_rootFrame then return end
 
     if settings.m_enabled then

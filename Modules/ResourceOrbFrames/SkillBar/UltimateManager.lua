@@ -9,6 +9,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local ClampTextSize = Utils.ClampTextSize
+local GetSettings = Utils.GetSettings
 
 local ULTIMATE_TEXT_SIZE_MIN = 12
 local ULTIMATE_TEXT_SIZE_MAX = 30
@@ -84,7 +85,7 @@ local function StopUltimateReadyAnimations(btn)
 end
 
 local function UpdateFrontBarUltimateMeter(rootFrame)
-    local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
 
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -154,7 +155,7 @@ local function UpdateFrontBarUltimateMeter(rootFrame)
 end
 
 local function UpdateFrontBarUltimateNumber(rootFrame)
-    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local settings = GetSettings()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
     local ultBtn = FindControl(frontBarContainer, 'UltimateButton')

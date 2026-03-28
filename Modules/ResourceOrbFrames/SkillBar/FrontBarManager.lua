@@ -12,7 +12,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
-local GetModuleSettings = Utils.GetModuleSettings
+local GetSettings = Utils.GetSettings
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
@@ -145,7 +145,7 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdateFrontBar(rootFrame)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -193,7 +193,7 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdateFrontBarUsability(rootFrame, isCasting)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local nowMs = GetGameTimeMilliseconds()
@@ -237,7 +237,7 @@ end
 --------------------------------------------------------------------------------
 
 local function SetupFrontBarTooltips(rootFrame)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
@@ -263,7 +263,7 @@ end
 --------------------------------------------------------------------------------
 
 local function SetupFrontBarKeybinds(rootFrame)
-    local frontBarCfg = GetModuleSettings().customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
@@ -341,7 +341,7 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdateFrontBarLayout(rootFrame)
-    local settingsCfg = GetModuleSettings().customFrontBar
+    local settingsCfg = GetSettings().customFrontBar
     if not settingsCfg or not settingsCfg.m_enabled then return end
     local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
     if not frontBarCfg then return end
@@ -482,7 +482,7 @@ local function UpdateFrontBarQuickslot(rootFrame)
             iconControl:SetHidden(true)
         end
     end
-    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local settings = GetSettings()
     SkillBar.UpdateQuickslotCountAndEmptyState(qsBtn, nil, settings, slotIndex, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
     qsBtn.slotIndex = slotIndex
     qsBtn.hotbarCategory = HOTBAR_CATEGORY_QUICKSLOT_WHEEL

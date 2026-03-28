@@ -8,7 +8,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
-local GetModuleSettings = Utils.GetModuleSettings
+local GetSettings = Utils.GetSettings
 local ClampTextSize = Utils.ClampTextSize
 
 local function CanUseBackupBar()
@@ -159,7 +159,7 @@ local function UpdateBackBar(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if settings.hideBackBar then
         backBarContainer:SetHidden(true)
         return
@@ -316,7 +316,7 @@ local function UpdateBackBarCooldowns(rootFrame)
     local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
     if not backBarContainer then return end
 
-    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local settings = GetSettings()
     local isGamePad = IsInGamepadPreferredMode()
     local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }

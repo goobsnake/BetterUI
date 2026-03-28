@@ -17,7 +17,7 @@ local BAR_TEXT_SIZE_MAX = 20
 
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local ClampTextSize = Utils.ClampTextSize
-local GetModuleSettings = Utils.GetModuleSettings
+local GetSettings = Utils.GetSettings
 
 local CastBar = Bars.CastBar
 local ExperienceBar = Bars.ExperienceBar
@@ -73,7 +73,7 @@ function CastBar:OnCastStop(unitTag, wasInterrupted)
 end
 
 function CastBar:Update()
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if not settings.castBarEnabled then
         self.control:SetHidden(true)
         return
@@ -143,7 +143,7 @@ end
 
 function ExperienceBar:Update()
     if not self.control then return end
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
 
     if not settings.xpBarEnabled then
         self.control:SetHidden(true)
@@ -201,7 +201,7 @@ function ExperienceBar:Update()
 end
 
 function MountStaminaBar:Update()
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if not settings.mountStaminaBarEnabled then
         self.control:SetHidden(true)
         return

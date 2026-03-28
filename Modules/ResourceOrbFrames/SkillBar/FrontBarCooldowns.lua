@@ -8,6 +8,7 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local ClampTextSize = Utils.ClampTextSize
+local GetSettings = Utils.GetSettings
 
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
@@ -172,7 +173,7 @@ end
 --------------------------------------------------------------------------------
 
 local function UpdateFrontBarCooldowns(rootFrame)
-    local frontBarCfg = BETTERUI.GetModuleSettings("ResourceOrbFrames").customFrontBar
+    local frontBarCfg = GetSettings().customFrontBar
     if not frontBarCfg or not frontBarCfg.m_enabled then return end
     local activeCategory = GetActiveHotbarCategory()
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
@@ -190,7 +191,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
         { buttonName = "CompanionButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = HOTBAR_CATEGORY_COMPANION },
     }
 
-    local settings = BETTERUI.GetModuleSettings("ResourceOrbFrames")
+    local settings = GetSettings()
     local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
 

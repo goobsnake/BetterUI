@@ -26,7 +26,7 @@ local function GetNamedChildDirect(parent, name)
     return nil
 end
 
-local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
+local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local function Clamp(value, minValue, maxValue, fallback)
     local numberValue = tonumber(value)
@@ -385,7 +385,7 @@ local function ApplyCombatGlow(rootFrame, glowColor)
 end
 
 local function TryPlayCombatAudioCue(isInCombat)
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if not settings or not settings.playCombatAudio then
         return
     end
@@ -400,7 +400,7 @@ end
 CombatIndicators._lastCombatState = nil
 
 function CombatIndicators.ApplyCombatIndicators(rootFrame, isInCombat, playAudioCue)
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     local glow, icon = CombatIndicators.GetCombatIndicatorControls(rootFrame)
 
     local frontBarCfg = BETTERUI_ORB_FRAMES and BETTERUI_ORB_FRAMES.bars and BETTERUI_ORB_FRAMES.bars.customFrontBar

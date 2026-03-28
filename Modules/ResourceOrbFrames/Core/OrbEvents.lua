@@ -19,7 +19,7 @@ local CI = BETTERUI.ResourceOrbFrames.CombatIndicators or {}
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
 
-local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
+local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 function Events.RefreshCombatIndicators(rootFrame)
     local targetRootFrame = rootFrame or m_combatIndicatorRootFrame
@@ -75,7 +75,7 @@ function Events.SetupCombatIndicators(rootFrame)
 end
 
 local function EnforceDefaultUIHidden()
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     if not settings.m_enabled then return end
 
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
@@ -200,7 +200,7 @@ function Events.SetupLoopEvents(rootFrame, pools, shieldBar, castBar)
     -- Animation Tick (33ms = 30fps)
     local lastAnimTime = GetGameTimeMilliseconds()
     local function AnimationTick()
-        local settings = GetModuleSettings()
+        local settings = GetSettings()
         if not settings.orbAnimFlow then return end
 
         local now = GetGameTimeMilliseconds()

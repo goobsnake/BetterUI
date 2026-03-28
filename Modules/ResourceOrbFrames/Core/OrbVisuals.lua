@@ -23,7 +23,7 @@ local ORB_CONFIG = {
 
 -- Local helpers
 local FindControl = BETTERUI.ControlUtils.FindControl
-local GetModuleSettings = BETTERUI.ResourceOrbFrames.Utils.GetModuleSettings
+local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
 
 local function GetTextureRootPath()
     return "BetterUI/Modules/ResourceOrbFrames/Textures"
@@ -263,7 +263,7 @@ end
 --- @param rootFrame Control The root control frame
 function Visuals.UpdateFrameDimensions(rootFrame)
     if not rootFrame then return end
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     local scale = settings.scale or 1
     local offsetX = settings.offsetX or 0
     local offsetY = settings.offsetY or 0
@@ -300,7 +300,7 @@ end
 --- @param rootFrame Control The root control frame
 function Visuals.ApplyThemeVisuals(rootFrame)
     if not rootFrame then return end
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
 
     local elements = {
         OrnamentLeft = 'OrnamentLeft.dds',
@@ -381,7 +381,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
     if not bgMiddle then return end
 
     local cfg = BETTERUI_ORB_FRAMES
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
 
     local leftBorderSize, rightBorderSize, leftVisibleScale, rightVisibleScale = CalculateBorderSizes(cfg, settings)
     local fillParams = CalculateFillDimensions(cfg, leftBorderSize, rightBorderSize)
@@ -580,7 +580,7 @@ function Visuals.SetupPowerPools(rootFrame)
     }
 
     -- Apply font and color settings to resource labels (same style as shield: bold + thick-outline)
-    local settings = GetModuleSettings()
+    local settings = GetSettings()
     local fontSettings = {
         [POWERTYPE_HEALTH]  = { size = settings.healthTextSize or 20,  color = settings.healthTextColor or { 1, 1, 1, 1 } },
         [POWERTYPE_MAGICKA] = { size = settings.magickaTextSize or 20, color = settings.magickaTextColor or { 1, 1, 1, 1 } },
@@ -645,7 +645,7 @@ function Visuals.SetupShieldBar(rootFrame, pools)
     end
 
     if shieldBar.label then
-        local settings = GetModuleSettings()
+        local settings = GetSettings()
         local shieldTextSize = settings.shieldTextSize or 20
         local shieldTextColor = settings.shieldTextColor or DEFAULT_SHIELD_ELECTRIC_COLOR
         shieldBar.label:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", shieldTextSize))

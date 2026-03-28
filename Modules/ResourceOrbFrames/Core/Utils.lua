@@ -27,7 +27,7 @@ Utils.FindControl = BETTERUI.ControlUtils.FindControl
 
 --- Module settings accessor alias for brevity in ResourceOrbFrames code.
 --- @return table settings The ResourceOrbFrames module settings
-function Utils.GetModuleSettings()
+function Utils.GetSettings()
     return BETTERUI.GetModuleSettings("ResourceOrbFrames")
 end
 
