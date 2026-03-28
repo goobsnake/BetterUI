@@ -1,7 +1,5 @@
 --[[
-File: Modules/Banking/Actions/TransferActions.lua
 Purpose: Manages item transfers and currency actions (Withdraw/Deposit).
-         Extracted from Banking.lua to separate action logic from core UI.
 ]]
 
 -------------------------------------------------------------------------------------------------
@@ -11,19 +9,13 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 
 -- ─── Private Helpers ────────────────────────────────────────────────────────
 
---- @param bagId number
---- @return number|nil
-local function FindEmptySlotInBag(bagId)
-    return FindFirstEmptySlotInBag(bagId)
-end
-
 --- @return number|nil bagId
 --- @return number|nil slotIndex
 local function FindEmptySlotInBank()
     local GuildBank = BETTERUI.Banking.GuildBank
     if GuildBank and GuildBank.IsGuildBankMode() then
         local targetBag = GuildBank.GetDepositTargetBag()
-        local emptySlotIndex = FindEmptySlotInBag(targetBag)
+        local emptySlotIndex = FindFirstEmptySlotInBag(targetBag)
         if emptySlotIndex ~= nil then
             return targetBag, emptySlotIndex
         else
@@ -33,8 +25,8 @@ local function FindEmptySlotInBank()
 
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
     if (IsHouseBankBag(GetBankingBag()) == false) then
-        local emptySlotIndexBank = FindEmptySlotInBag(BAG_BANK)
-        local emptySlotIndexSubscriber = FindEmptySlotInBag(BAG_SUBSCRIBER_BANK)
+        local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
+        local emptySlotIndexSubscriber = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
         if emptySlotIndexBank ~= nil then
             return BAG_BANK, emptySlotIndexBank
             -- Use API directly instead of relying on global 'esoSubscriber' variable
@@ -44,7 +36,7 @@ local function FindEmptySlotInBank()
             return nil
         end
     else
-        local emptySlotIndex = FindEmptySlotInBag(currentUsedBank)
+        local emptySlotIndex = FindFirstEmptySlotInBag(currentUsedBank)
         if emptySlotIndex ~= nil then
             return currentUsedBank, emptySlotIndex
         else
@@ -138,7 +130,7 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
 
     if self.currentMode == LIST_WITHDRAW then
         toBag = BAG_BACKPACK
-        toBagEmptyIndex = FindEmptySlotInBag(toBag)
+        toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
         toBag, toBagEmptyIndex = FindEmptySlotInBank()
     end
