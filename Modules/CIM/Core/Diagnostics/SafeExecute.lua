@@ -39,3 +39,19 @@ end
 function BETTERUI.CIM.SafeExecuteCallback(eventName, callback, ...)
     return BETTERUI.CIM.SafeExecute("Callback: " .. eventName, callback, ...)
 end
+
+--- Resolve a dotted path on BETTERUI and call it if the leaf is a function.
+--- Replaces scattered `if BETTERUI.X and BETTERUI.X.Y then BETTERUI.X.Y(...) end` guards.
+--- @param path string Dot-separated path relative to BETTERUI, e.g. "Inventory.HookDestroyItem"
+--- @param ... any Arguments forwarded to the resolved function
+--- @return boolean called True if the function existed and was called
+--- @return any result The function's return value, or nil
+function BETTERUI.CIM.TryCall(path, ...)
+    local node = BETTERUI
+    for segment in path:gmatch("[^%.]+") do
+        node = node[segment]
+        if node == nil then return false, nil end
+    end
+    if type(node) ~= "function" then return false, nil end
+    return true, node(...)
+end

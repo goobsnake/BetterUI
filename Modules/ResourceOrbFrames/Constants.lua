@@ -74,8 +74,7 @@ BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG = {
 
 --- Dimensions for the Resource Orb Frames layout.
 --- Rationale: Centralizing these values allows for easier UI scaling and theme support.
-if not BETTERUI.CONST.ORBS then BETTERUI.CONST.ORBS = {} end
-BETTERUI.CONST.ORBS.DIMENSIONS = {
+BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS = {
     GAMEPAD_FRAME_WIDTH = 600,  -- Root frame width in gamepad mode (wider to fit custom bars).
     GAMEPAD_FRAME_HEIGHT = 256, -- Root frame height in gamepad mode.
     KEYBOARD_FRAME_WIDTH = 550, -- Root frame width in keyboard mode.
@@ -87,7 +86,7 @@ BETTERUI.CONST.ORBS.DIMENSIONS = {
 --- relative to the Fog (resource fill) to fully cover the orb interior and
 --- prevent game-world bleed at the edges when resources drain.
 --- Per-resource values allow independent tuning (health is a full circle, mag/stam are halves).
-BETTERUI.CONST.ORBS.BG_FILL_PADDING = {
+BETTERUI.ResourceOrbFrames.CONST.ORBS_BG_FILL_PADDING = {
     health  = 1.02, -- 2% larger; full-circle orb shows edges more prominently
     magicka = 1.04, -- 4% larger; half-texture needs more coverage
     stamina = 1.04, -- 4% larger; mirrors magicka
@@ -105,12 +104,12 @@ BETTERUI_ORB_FRAMES = {
     -- =======================================================================
     frame = {
         gamepad = {
-            width = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_WIDTH,
-            height = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_HEIGHT
+            width = BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS.GAMEPAD_FRAME_WIDTH,
+            height = BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS.GAMEPAD_FRAME_HEIGHT
         },
         keyboard = {
-            width = BETTERUI.CONST.ORBS.DIMENSIONS.KEYBOARD_FRAME_WIDTH,
-            height = BETTERUI.CONST.ORBS.DIMENSIONS.GAMEPAD_FRAME_HEIGHT
+            width = BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS.KEYBOARD_FRAME_WIDTH,
+            height = BETTERUI.ResourceOrbFrames.CONST.ORBS_DIMENSIONS.GAMEPAD_FRAME_HEIGHT
         },
     },
 

@@ -57,8 +57,8 @@ local MODULE_REGISTRY = {
 		namespace = "Inventory",
 		preSetup = function()
 			-- Pre-Setup hooks (must run before Setup)
-			if BETTERUI.Inventory.HookDestroyItem then BETTERUI.Inventory.HookDestroyItem() end
-			if BETTERUI.Inventory.HookActionDialog then BETTERUI.Inventory.HookActionDialog() end
+			BETTERUI.CIM.TryCall("Inventory.HookDestroyItem")
+			BETTERUI.CIM.TryCall("Inventory.HookActionDialog")
 			return true
 		end
 	},
@@ -99,7 +99,7 @@ BETTERUI.GenericHeader = BETTERUI.GenericHeader or {}
 BETTERUI.GenericFooter = BETTERUI.GenericFooter or {}
 BETTERUI.Interface = BETTERUI.Interface or {}
 
--- Legacy namespace for backward compatibility
+-- Legacy namespace (deprecated — consumers migrated to module-scoped CONST paths)
 BETTERUI.CONST = BETTERUI.CONST or {}
 
 -- Engine helper references
@@ -317,55 +317,53 @@ local function NormalizeModuleToggleSortName(name)
 	-- based on dependent modules (Inventory, Banking, GeneralInterface)
 
 	-- Developer-only feature flag controls (hidden for normal users)
-	local showDeveloperSettings = BETTERUI.CIM
-		and BETTERUI.CIM.Debug
-		and BETTERUI.CIM.Debug.ShouldShowDeveloperSettings
-		and BETTERUI.CIM.Debug.ShouldShowDeveloperSettings()
+	local _, showDeveloperSettings = BETTERUI.CIM.TryCall("CIM.Debug.ShouldShowDeveloperSettings")
 
-	if showDeveloperSettings and BETTERUI.CIM and BETTERUI.CIM.FeatureFlags and BETTERUI.CIM.FeatureFlags.GetAllFlags then
-		local flagControls = {
-			{
-				type = "header",
-				name = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_HEADER"),
-				width = "full",
-			},
-			{
-				type = "description",
-				text = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_DESC"),
-				width = "full",
-			},
-		}
+	if showDeveloperSettings then
+		local _, allFlags = BETTERUI.CIM.TryCall("CIM.FeatureFlags.GetAllFlags")
+		if allFlags then
+			local flagControls = {
+				{
+					type = "header",
+					name = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_HEADER"),
+					width = "full",
+				},
+				{
+					type = "description",
+					text = GetStringByName("SI_BETTERUI_FEATURE_FLAGS_DESC"),
+					width = "full",
+				},
+			}
 
-		local allFlags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
+			-- Sort flag names for consistent ordering
+			local sortedFlags = {}
+			for name in pairs(allFlags) do
+				table.insert(sortedFlags, name)
+			end
+			table.sort(sortedFlags)
 
-		-- Sort flag names for consistent ordering
-		local sortedFlags = {}
-		for name in pairs(allFlags) do
-			table.insert(sortedFlags, name)
-		end
-		table.sort(sortedFlags)
+			for _, flagName in ipairs(sortedFlags) do
+				local flagData = allFlags[flagName]
+				local def = (flagData and flagData.definition) or {}
+				table.insert(flagControls, {
+					type = "checkbox",
+					name = def.name or flagName,
+					tooltip = (def.description or flagName) .. " | Version " .. (def.version or "?"),
+					getFunc = function()
+						return BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
+					end,
+					setFunc = function(value)
+						BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, value)
+					end,
+					width = "full",
+					requiresReload = (flagName == "ENHANCED_TOOLTIPS"),
+				})
+			end
 
-		for _, flagName in ipairs(sortedFlags) do
-			local flagData = allFlags[flagName]
-			local def = (flagData and flagData.definition) or {}
-			table.insert(flagControls, {
-				type = "checkbox",
-				name = def.name or flagName,
-				tooltip = (def.description or flagName) .. " | Version " .. (def.version or "?"),
-				getFunc = function()
-					return BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
-				end,
-				setFunc = function(value)
-					BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, value)
-				end,
-				width = "full",
-				requiresReload = (flagName == "ENHANCED_TOOLTIPS"),
-			})
-		end
-
-		-- Append flag controls to options table
-		for _, control in ipairs(flagControls) do
-			table.insert(optionsTable, control)
+			-- Append flag controls to options table
+			for _, control in ipairs(flagControls) do
+				table.insert(optionsTable, control)
+			end
 		end
 	end
 
@@ -378,9 +376,7 @@ local function NormalizeModuleToggleSortName(name)
 		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
 		tooltip = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP"),
 		func = function()
-			if BETTERUI.CIM and BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetAllSettingsToDefaults then
-				BETTERUI.CIM.Settings.ResetAllSettingsToDefaults()
-			end
+			BETTERUI.CIM.TryCall("CIM.Settings.ResetAllSettingsToDefaults")
 		end,
 		width = "full",
 	})
@@ -550,9 +546,7 @@ function BETTERUI.LoadModules()
 
 	-- Apply runtime safety patches and settings migrations
 	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
-	if BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup and BETTERUI.CIM.RuntimeSetup.Apply then
-		BETTERUI.CIM.RuntimeSetup.Apply(BETTERUI.Settings)
-	end
+	BETTERUI.CIM.TryCall("CIM.RuntimeSetup.Apply", BETTERUI.Settings)
 
 	-- Initialize research data once
 	BETTERUI.GetResearch()
@@ -623,9 +617,7 @@ function BETTERUI.Initialize(event, addon)
 	-- Apply first-install defaults and mark as complete
 	if BETTERUI.Settings.firstInstall then
 		-- Apply module enable defaults from centralized registry
-		if BETTERUI.Defaults and BETTERUI.Defaults.ApplyFirstInstallDefaults then
-			BETTERUI.Defaults.ApplyFirstInstallDefaults(BETTERUI.Settings)
-		end
+		BETTERUI.CIM.TryCall("Defaults.ApplyFirstInstallDefaults", BETTERUI.Settings)
 		BETTERUI.Debug("First install detected - applied default module states")
 		BETTERUI.Settings.firstInstall = false
 	end
@@ -668,9 +660,7 @@ function BETTERUI.Initialize(event, addon)
 		end
 	end
 	-- Ensure companion equip patch is queued even if modules didn't hook above
-	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
-		BETTERUI.Inventory.EnsureCompanionEquipPatched()
-	end
+	BETTERUI.CIM.TryCall("Inventory.EnsureCompanionEquipPatched")
 end
 
 -- Event handlers for initialization and gamepad mode changes

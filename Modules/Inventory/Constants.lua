@@ -8,10 +8,9 @@ Last Modified: 2026-01-28
 if not BETTERUI.Inventory then BETTERUI.Inventory = {} end
 if not BETTERUI.Inventory.CONST then BETTERUI.Inventory.CONST = {} end
 
--- Global Inventory Constants (Migrated from BetterUI.CONST.lua)
-if not BETTERUI.CONST.INVENTORY then BETTERUI.CONST.INVENTORY = {} end
-BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS = 300
-BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.TOOLTIP_REFRESH_DELAY_MS
+-- Inventory timing constants
+BETTERUI.Inventory.CONST.DIALOG_QUEUE_TIMEOUT_MS = 300
+BETTERUI.Inventory.CONST.TOOLTIP_REFRESH_DELAY_MS = BETTERUI.CIM.CONST.TIMING.TOOLTIP_REFRESH_DELAY_MS
 
 -- Action Mode Constants (shared across InventoryClass.lua, Inventory.lua, etc.)
 -- These define what type of list interaction is currently active

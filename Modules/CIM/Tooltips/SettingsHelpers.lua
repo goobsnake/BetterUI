@@ -11,18 +11,16 @@ if BETTERUI.GeneralInterface == nil then BETTERUI.GeneralInterface = {} end
 --- Applies tooltip visual settings from the current configuration.
 --- @return nil
 local function ApplyTooltipVisualSettings()
-    if BETTERUI.Inventory and BETTERUI.Inventory.ApplyTooltipStyles then
-        BETTERUI.Inventory.ApplyTooltipStyles()
-    end
+    BETTERUI.CIM.TryCall("Inventory.ApplyTooltipStyles")
 end
 
 --- Cleans up tooltip enhancement artifacts from all tooltip controls.
 --- @return nil
 local function CleanupTooltipEnhancementArtifacts()
     if not (BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip) then return end
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
+    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_LEFT_TOOLTIP)
+    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_RIGHT_TOOLTIP)
+    BETTERUI.CIM.TryCall("Inventory.CleanupEnhancedTooltip", GAMEPAD_MOVABLE_TOOLTIP)
 end
 
 --- Refreshes the inventory and banking lists if their scenes are showing.

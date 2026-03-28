@@ -483,7 +483,7 @@ function Visuals.UpdateOrbLayout(rootFrame, pools, shieldBar)
         -- Original orb control size from XML (used to scale baseAnchorX)
         local BASE_ORB_CONTROL_SIZE = 150
 
-        local bgPad = BETTERUI.CONST.ORBS.BG_FILL_PADDING or {}
+        local bgPad = BETTERUI.ResourceOrbFrames.CONST.ORBS_BG_FILL_PADDING or {}
 
         if pools[POWERTYPE_HEALTH] then
             pools[POWERTYPE_HEALTH].fillWidth = fillParams.health.width

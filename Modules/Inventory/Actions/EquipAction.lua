@@ -189,7 +189,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
             if isCallingFromActionDialog then
                 -- Delay required to allow previous dialog to fully close before opening new one
                 BETTERUI.Inventory.Tasks:Schedule("equipBindOnEquipDialog",
-                    BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS, promptForBindOnEquip)
+                    BETTERUI.Inventory.CONST.DIALOG_QUEUE_TIMEOUT_MS, promptForBindOnEquip)
             else
                 promptForBindOnEquip()
             end
@@ -224,7 +224,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
 
         if isCallingFromActionDialog then
             -- Delay required to allow previous dialog to fully close before opening new one
-            BETTERUI.Inventory.Tasks:Schedule("equipSlotDialog", BETTERUI.CONST.INVENTORY.DIALOG_QUEUE_TIMEOUT_MS,
+            BETTERUI.Inventory.Tasks:Schedule("equipSlotDialog", BETTERUI.Inventory.CONST.DIALOG_QUEUE_TIMEOUT_MS,
                 showEquipDialog)
         else
             showEquipDialog()

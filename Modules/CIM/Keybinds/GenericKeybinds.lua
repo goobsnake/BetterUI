@@ -175,9 +175,9 @@ function BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(listOrGetter, useCatego
 
     local function GetSpeed()
         if type(speedGetter) == "function" then
-            return tonumber(speedGetter()) or BETTERUI.CONST.DEFAULT_TRIGGER_SPEED
+            return tonumber(speedGetter()) or BETTERUI.CIM.CONST.DEFAULTS.DEFAULT_TRIGGER_SPEED
         end
-        return BETTERUI.CONST.DEFAULT_TRIGGER_SPEED
+        return BETTERUI.CIM.CONST.DEFAULTS.DEFAULT_TRIGGER_SPEED
     end
 
     local function IsEnabled()

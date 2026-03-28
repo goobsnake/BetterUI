@@ -124,7 +124,7 @@ function BETTERUI.Inventory.ToSavedPosition(self)
         if self.callLaterLeftToolTip then
             EVENT_MANAGER:UnregisterForUpdate(self.callLaterLeftToolTip)
         end
-        BETTERUI.Inventory.Tasks:Schedule("tooltipRefresh", BETTERUI.CONST.INVENTORY.TOOLTIP_REFRESH_DELAY_MS, function()
+        BETTERUI.Inventory.Tasks:Schedule("tooltipRefresh", BETTERUI.Inventory.CONST.TOOLTIP_REFRESH_DELAY_MS, function()
             if self.UpdateItemLeftTooltip then
                 self:UpdateItemLeftTooltip(currentList.selectedData)
             end
