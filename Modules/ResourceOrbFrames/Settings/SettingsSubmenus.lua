@@ -340,3 +340,104 @@ function Submenus.BuildBarSubmenus(accessors)
     }
     return xpSubmenu, castSubmenu, mountSubmenu
 end
+
+-------------------------------------------------------------------------------------------------
+-- SUBMENU SECTION ORDERING
+-------------------------------------------------------------------------------------------------
+
+--- Strips color codes, texture tags, and whitespace for sort-safe comparison.
+local function NormalizeSectionSortName(name)
+    if type(name) ~= "string" then
+        return ""
+    end
+
+    local normalized = name
+    normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
+    normalized = normalized:gsub("|r", "")
+    normalized = normalized:gsub("|t[^|]+|t", "")
+    normalized = normalized:gsub("%s+", " ")
+    normalized = normalized:gsub("^%s+", "")
+    normalized = normalized:gsub("%s+$", "")
+
+    if zo_strlower then
+        return zo_strlower(normalized)
+    end
+    return string.lower(normalized)
+end
+
+--- Sorts header-delimited sections within a LAM controls array alphabetically.
+local function SortSubmenuHeaderSectionsAlphabetically(controls)
+    if type(controls) ~= "table" then
+        return
+    end
+
+    local trailingButtons = {}
+    while #controls > 0 do
+        local lastControl = controls[#controls]
+        if type(lastControl) == "table" and lastControl.type == "button" then
+            table.insert(trailingButtons, 1, lastControl)
+            table.remove(controls, #controls)
+        else
+            break
+        end
+    end
+
+    local sections = {}
+    local currentSection = nil
+
+    for _, control in ipairs(controls) do
+        local isHeader = type(control) == "table" and control.type == "header" and type(control.name) == "string"
+        if isHeader then
+            currentSection = { control }
+            table.insert(sections, currentSection)
+        elseif currentSection then
+            table.insert(currentSection, control)
+        end
+    end
+
+    table.sort(sections, function(leftSection, rightSection)
+        local leftHeader = leftSection[1]
+        local rightHeader = rightSection[1]
+        local leftKey = NormalizeSectionSortName(leftHeader and leftHeader.name)
+        local rightKey = NormalizeSectionSortName(rightHeader and rightHeader.name)
+        if leftKey == rightKey then
+            return tostring(leftHeader and leftHeader.name) < tostring(rightHeader and rightHeader.name)
+        end
+        return leftKey < rightKey
+    end)
+
+    local rebuilt = {}
+    for _, section in ipairs(sections) do
+        for _, control in ipairs(section) do
+            table.insert(rebuilt, control)
+        end
+    end
+    for _, control in ipairs(trailingButtons) do
+        table.insert(rebuilt, control)
+    end
+
+    for i = 1, #controls do
+        controls[i] = nil
+    end
+    for i = 1, #rebuilt do
+        controls[i] = rebuilt[i]
+    end
+end
+
+--- Finds the Skill Bars submenu in optionsTable and sorts its sections alphabetically.
+---@param optionsTable table The LAM options table
+function Submenus.ApplySubmenuSectionOrdering(optionsTable)
+    if type(optionsTable) ~= "table" then
+        return
+    end
+
+    local skillBarsSubmenuName = GetString(rawget(_G, "SI_BETTERUI_SKILL_BARS_SUBMENU"))
+    for _, option in ipairs(optionsTable) do
+        if type(option) == "table"
+            and option.type == "submenu"
+            and option.name == skillBarsSubmenuName
+            and type(option.controls) == "table" then
+            SortSubmenuHeaderSectionsAlphabetically(option.controls)
+        end
+    end
+end
