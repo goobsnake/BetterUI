@@ -14,15 +14,8 @@ BETTERUI.Inventory.FONTSTYLE_VALUES = BETTERUI.CIM.Font.STYLE_VALUES
 BETTERUI.Inventory.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
 --- @return table|nil settings
-local function GetInventorySettings()
-    local modules = BETTERUI and BETTERUI.Settings and BETTERUI.Settings.Modules
-    if not modules then
-        return nil
-    end
-    if type(modules["Inventory"]) ~= "table" then
-        modules["Inventory"] = {}
-    end
-    return modules["Inventory"]
+local function EnsureInventorySettings()
+    return BETTERUI.EnsureModuleSettings("Inventory")
 end
 
 --- @return boolean isEnabled
@@ -107,14 +100,14 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if not settings then
                             return BETTERUI.Inventory.DEFAULTS.nameFont
                         end
                         return settings.nameFont or BETTERUI.Inventory.DEFAULTS.nameFont
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.nameFont = value
                         end
@@ -133,7 +126,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     max = maxFontSize,
                     step = 1,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         local val = BETTERUI.Inventory.DEFAULTS.nameFontSize
                         if settings then
                             val = settings.nameFontSize or val
@@ -141,7 +134,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         return BETTERUI.CIM.Font.GetSizeValue(val)
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.nameFontSize = value
                         end
@@ -158,14 +151,14 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if not settings then
                             return BETTERUI.Inventory.DEFAULTS.nameFontStyle
                         end
                         return settings.nameFontStyle or BETTERUI.Inventory.DEFAULTS.nameFontStyle
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.nameFontStyle = value
                         end
@@ -181,7 +174,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     tooltip = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET_TOOLTIP")),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
-                        local s = GetInventorySettings()
+                        local s = EnsureInventorySettings()
                         if not s then
                             return
                         end
@@ -206,14 +199,14 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = filteredChoices,
                     choicesValues = filteredValues,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if not settings then
                             return BETTERUI.Inventory.DEFAULTS.columnFont
                         end
                         return settings.columnFont or BETTERUI.Inventory.DEFAULTS.columnFont
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.columnFont = value
                         end
@@ -232,7 +225,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     max = maxFontSize,
                     step = 1,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         local val = BETTERUI.Inventory.DEFAULTS.columnFontSize
                         if settings then
                             val = settings.columnFontSize or val
@@ -240,7 +233,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                         return BETTERUI.CIM.Font.GetSizeValue(val)
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.columnFontSize = value
                         end
@@ -257,14 +250,14 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     choices = BETTERUI.Inventory.FONTSTYLE_CHOICES,
                     choicesValues = BETTERUI.Inventory.FONTSTYLE_VALUES,
                     getFunc = function()
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if not settings then
                             return BETTERUI.Inventory.DEFAULTS.columnFontStyle
                         end
                         return settings.columnFontStyle or BETTERUI.Inventory.DEFAULTS.columnFontStyle
                     end,
                     setFunc = function(value)
-                        local settings = GetInventorySettings()
+                        local settings = EnsureInventorySettings()
                         if settings then
                             settings.columnFontStyle = value
                         end
@@ -280,7 +273,7 @@ function BETTERUI.Inventory.Settings.GetFontOptions()
                     tooltip = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP")),
                     func = function()
                         local d = BETTERUI.Inventory.DEFAULTS
-                        local s = GetInventorySettings()
+                        local s = EnsureInventorySettings()
                         if not s then
                             return
                         end

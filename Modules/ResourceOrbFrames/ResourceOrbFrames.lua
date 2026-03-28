@@ -185,6 +185,147 @@ local function ApplyFullLayout()
 end
 
 -- =========================================================================
+-- INITIALIZATION HELPERS
+-- =========================================================================
+
+--- Reads front bar config live from settings (avoids stale closure references).
+local function GetFrontBarConfig()
+    return BETTERUI_ORB_FRAMES and BETTERUI_ORB_FRAMES.bars and BETTERUI_ORB_FRAMES.bars.customFrontBar
+end
+
+--- Replays front bar handlers (keybinds, press feedback, tooltips).
+--- Called during initial setup and after gamepad mode switch.
+local function SetupFrontBarHandlers(control)
+    if SkillBar.SetupFrontBarKeybinds then
+        SkillBar.SetupFrontBarKeybinds(control)
+    end
+    if SkillBar.SetupFrontBarPressFeedbackHooks then
+        SkillBar.SetupFrontBarPressFeedbackHooks(control)
+    end
+    if SkillBar.SetupFrontBarTooltips then
+        SkillBar.SetupFrontBarTooltips(control)
+    end
+end
+
+--- Suppresses native action bar and attribute bars.
+local function SuppressNativeBars()
+    SkillBar.HideNativeActionBar()
+    if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
+        PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
+    end
+end
+
+--- Registers all dynamic event callbacks after initial component setup.
+--- @param control Control The root control for the ResourceOrbFrames module.
+local function RegisterDynamicEvents(control)
+    -- Layout force update (skip during weapon swap animation to prevent orb shifting)
+    CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
+        if not SkillBar.IsWeaponSwapAnimating() then
+            ApplyFullLayout()
+            if Events.RefreshCombatIndicators then
+                Events.RefreshCombatIndicators(control)
+            end
+        end
+    end)
+
+    -- Gamepad switch (dynamic re-skin instead of ReloadUI)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
+        if not m_isInitialized or not m_rootFrame then return end
+
+        if SkillBar.StopWeaponSwapAnimation then
+            SkillBar.StopWeaponSwapAnimation(m_rootFrame)
+        end
+
+        -- Re-apply mode-specific XML template and action bar skin.
+        local isGP = IsInGamepadPreferredMode()
+        local gpLayout = isGP and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
+        SkillBar.ApplyActionBarSkin(m_rootFrame, gpLayout)
+
+        -- Replay the post-skin setup sequence. SetParent is intentionally NOT repeated:
+        -- ApplyTemplateToControl does not destroy/recreate controls.
+        local cfg = GetFrontBarConfig()
+        if cfg and cfg.m_enabled then
+            SkillBar.UpdateFrontBar(m_rootFrame)
+            SkillBar.UpdateFrontBarQuickslot(m_rootFrame)
+            SkillBar.UpdateFrontBarCompanion(m_rootFrame)
+            SkillBar.UpdateFrontBarUltimateMeter(m_rootFrame)
+            SetupFrontBarHandlers(m_rootFrame)
+        end
+
+        ApplyFullLayout()
+        RefreshAllData()
+        SuppressNativeBars()
+
+        if Events.RefreshCombatIndicators then
+            Events.RefreshCombatIndicators(m_rootFrame)
+        end
+    end)
+
+    -- Dynamic bar updates
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
+        function()
+            SkillBar.WeaponSwapAnimation(control)
+            ROFTasks:Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
+                function() ApplyLayout(false, true) end)
+        end)
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
+        function()
+            SkillBar.UpdateBackBar(control)
+            local cfg = GetFrontBarConfig()
+            if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+            ApplyLayout(false, true)
+        end)
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
+        function()
+            SkillBar.UpdateBackBar(control)
+            local cfg = GetFrontBarConfig()
+            if cfg and cfg.m_enabled then SkillBar.UpdateFrontBar(control) end
+        end)
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
+        EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
+            local cfg = GetFrontBarConfig()
+            if cfg and cfg.m_enabled then
+                SkillBar.UpdateFrontBarCompanion(control)
+            end
+            ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
+        end)
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
+        function()
+            local cfg = GetFrontBarConfig()
+            if cfg and cfg.m_enabled then
+                SkillBar.UpdateFrontBarQuickslot(control)
+            end
+        end)
+
+    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
+        EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
+            if not slotIndex then return end
+            local frontBarSettings = GetSettings().customFrontBar
+            if not frontBarSettings or not frontBarSettings.m_enabled then return end
+            if SkillBar.PlayFrontBarPressFeedbackForSlot then
+                SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex, nil, true)
+            end
+        end, REGISTER_FILTER_UNIT_TAG, "player")
+
+    -- Zone change cleanup (for subsequent zones after initial setup)
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
+        function()
+            ROFTasks:Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
+                SuppressNativeBars()
+                ApplyFullLayout()
+                RefreshAllData()
+                if Events.RefreshCombatIndicators then
+                    Events.RefreshCombatIndicators(control)
+                end
+            end)
+        end)
+end
+
+-- =========================================================================
 -- INITIALIZATION
 -- =========================================================================
 
@@ -207,7 +348,6 @@ local function SetupModule(control)
     -- 3. Setup Visual Components
     m_pools = Visuals.SetupPowerPools(control)
     m_shieldBar = Visuals.SetupShieldBar(control, m_pools)
-
     m_foodTracker = Bars.CreateFoodTracker(FindControl(control, 'FoodBar'))
     m_experienceBar = Bars.CreateExperienceBar(control)
     m_castBar = Bars.CreateCastBar(control)
@@ -216,19 +356,16 @@ local function SetupModule(control)
     -- 4. Setup Events & Visibility
     m_updateDeathFragment = Events.SetupVisibilityFragments(control)
 
-    -- 4. Apply Initial Skin & Layout
+    -- 5. Apply Initial Skin & Layout
     local isGamePad = IsInGamepadPreferredMode()
     local layout = isGamePad and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
     SkillBar.ApplyActionBarSkin(control, layout)
 
-    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    local frontBarCfg = GetFrontBarConfig()
     if frontBarCfg and frontBarCfg.m_enabled then
-        -- Reparent specific buttons if needed for animation isolation
-        -- (Logic from original: Quickslot and Companion reparented to root)
         local frontBarContainer = FindControl(control, 'FrontBarContainer')
         if frontBarContainer then
             local qsBtn = FindControl(frontBarContainer, 'QuickslotButton')
-            -- NOTE (2026-01-28): Single SetParent is correct for animation isolation. Duplicate call was removed.
             if qsBtn then qsBtn:SetParent(control) end
             local compBtn = FindControl(frontBarContainer, 'CompanionButton')
             if compBtn then compBtn:SetParent(control) end
@@ -236,25 +373,14 @@ local function SetupModule(control)
                 BETTERUI.ControlUtils.InvalidateControlCache()
             end
         end
-
-        SkillBar.UpdateFrontBar(control) -- Force content update on load
-
-        -- Setup Front Bar specific tooltips/keybinds
-        if SkillBar.SetupFrontBarKeybinds then
-            SkillBar.SetupFrontBarKeybinds(control)
-        end
-        if SkillBar.SetupFrontBarPressFeedbackHooks then
-            SkillBar.SetupFrontBarPressFeedbackHooks(control)
-        end
-        if SkillBar.SetupFrontBarTooltips then
-            SkillBar.SetupFrontBarTooltips(control)
-        end
+        SkillBar.UpdateFrontBar(control)
+        SetupFrontBarHandlers(control)
     end
 
-    Visuals.UpdateOrbLayout(control, m_pools, m_shieldBar) -- Initial Orb Layout
+    Visuals.UpdateOrbLayout(control, m_pools, m_shieldBar)
     RefreshAllData()
 
-    -- 5. Setup Event Loops
+    -- 6. Setup Event Loops
     Events.SetupLoopEvents(control, m_pools, m_shieldBar, m_castBar)
     Events.SetupSceneHandlers(control)
     if Events.SetupCombatIndicators then
@@ -263,146 +389,8 @@ local function SetupModule(control)
 
     m_isInitialized = true
 
-    -- Register Layout Force Update (skip during weapon swap animation to prevent orb shifting)
-    CALLBACK_MANAGER:RegisterCallback("BetterUI_ForceLayoutUpdate", function()
-        if not SkillBar.IsWeaponSwapAnimating() then
-            ApplyFullLayout()
-            if Events.RefreshCombatIndicators then
-                Events.RefreshCombatIndicators(control)
-            end
-        end
-    end)
-
-    -- Register Gamepad Switch (dynamic re-skin instead of ReloadUI)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME, EVENT_GAMEPAD_PREFERRED_MODE_CHANGED, function()
-        -- Guard: only act if fully initialized
-        if not m_isInitialized or not m_rootFrame then return end
-
-        -- Stop any in-flight weapon-swap animation to prevent visual corruption
-        -- when ApplyTemplateToControl re-parents controls mid-animation
-        if SkillBar.StopWeaponSwapAnimation then
-            SkillBar.StopWeaponSwapAnimation(m_rootFrame)
-        end
-
-        -- Re-apply mode-specific XML template and action bar skin.
-        -- NOTE: ApplyTemplateToControl can reset OnMouseEnter/script handlers on buttons,
-        -- which is why we must replay the full front-bar setup sequence below.
-        local isGamePadInner = IsInGamepadPreferredMode()
-        local innerLayout = isGamePadInner and BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.GAMEPAD or BETTERUI.ResourceOrbFrames.CONST.LAYOUT_CONFIG.KEYBOARD
-        SkillBar.ApplyActionBarSkin(m_rootFrame, innerLayout)
-
-        -- Re-read front bar config live (not stale closure from SetupModule time)
-        local liveFrontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-        if liveFrontBarCfg and liveFrontBarCfg.m_enabled then
-            -- Replay the post-skin setup sequence from initial SetupModule (lines ~232-243).
-            -- SetParent is intentionally NOT repeated: ApplyTemplateToControl does not
-            -- destroy/recreate controls, so QuickslotButton/CompanionButton parentage is intact.
-            SkillBar.UpdateFrontBar(m_rootFrame)
-            SkillBar.UpdateFrontBarQuickslot(m_rootFrame)
-            SkillBar.UpdateFrontBarCompanion(m_rootFrame)
-            SkillBar.UpdateFrontBarUltimateMeter(m_rootFrame)
-
-            -- Re-register keybind labels (must run after template re-apply since
-            -- ApplyTemplateToControl can overwrite ButtonText script handlers).
-            if SkillBar.SetupFrontBarKeybinds then
-                SkillBar.SetupFrontBarKeybinds(m_rootFrame)
-            end
-            -- Safe to call again: has internal m_pressFeedbackHooksInstalled guard.
-            if SkillBar.SetupFrontBarPressFeedbackHooks then
-                SkillBar.SetupFrontBarPressFeedbackHooks(m_rootFrame)
-            end
-            -- Re-attach OnMouseEnter/Leave tooltip handlers (reset by template re-apply).
-            if SkillBar.SetupFrontBarTooltips then
-                SkillBar.SetupFrontBarTooltips(m_rootFrame)
-            end
-        end
-
-        -- Full layout + data refresh (all layout fns query IsInGamepadPreferredMode() live)
-        ApplyFullLayout()
-        RefreshAllData()
-
-        -- Re-enforce native UI suppression
-        SkillBar.HideNativeActionBar()
-        if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
-            PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
-        end
-
-        if Events.RefreshCombatIndicators then
-            Events.RefreshCombatIndicators(m_rootFrame)
-        end
-    end)
-
-    -- Register Dynamic Bar Updates
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBar", EVENT_ACTIVE_WEAPON_PAIR_CHANGED,
-        function()
-            SkillBar.WeaponSwapAnimation(control)
-            -- Only update skills layout, skip orbs to prevent visual shifts
-            ROFTasks:Schedule("weaponSwapLayout", BETTERUI.CIM.CONST.TIMING.WEAPON_SWAP_LAYOUT_DELAY_MS,
-                function() ApplyLayout(false, true) end)
-        end)
-
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlots", EVENT_ACTION_SLOTS_FULL_UPDATE,
-        function()
-            SkillBar.UpdateBackBar(control)
-            if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
-            -- Only update skills layout
-            ApplyLayout(false, true)
-        end)
-
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_BackBarSlot", EVENT_ACTION_SLOT_UPDATED,
-        function()
-            SkillBar.UpdateBackBar(control)
-            if frontBarCfg and frontBarCfg.m_enabled then SkillBar.UpdateFrontBar(control) end
-        end)
-
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_CompanionState",
-        EVENT_ACTIVE_COMPANION_STATE_CHANGED, function()
-            if frontBarCfg and frontBarCfg.m_enabled then
-                SkillBar.UpdateFrontBarCompanion(control)
-            end
-            ROFTasks:Schedule("companionLayout", BETTERUI.CIM.CONST.TIMING.SCENE_HANDLER_DELAY_MS, ApplyFullLayout)
-        end)
-
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_Quickslot", EVENT_ACTIVE_QUICKSLOT_CHANGED,
-        function()
-            if frontBarCfg and frontBarCfg.m_enabled then
-                SkillBar.UpdateFrontBarQuickslot(control)
-            end
-        end)
-
-    BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
-        EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
-            if not slotIndex then
-                return
-            end
-
-            local frontBarSettings = GetSettings().customFrontBar
-            if not frontBarSettings or not frontBarSettings.m_enabled then
-                return
-            end
-
-            if SkillBar.PlayFrontBarPressFeedbackForSlot then
-                SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex, nil, true)
-            end
-        end, REGISTER_FILTER_UNIT_TAG, "player")
-
-
-
-    -- Zone Change Cleanup (for subsequent zones after initial setup)
-    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivated", EVENT_PLAYER_ACTIVATED,
-        function()
-            ROFTasks:Schedule("playerActivatedRefresh", BETTERUI.CIM.CONST.TIMING.PLAYER_ACTIVATED_INIT_MS, function()
-                SkillBar.HideNativeActionBar()
-                if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
-                    PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
-                end
-                ApplyFullLayout()
-                RefreshAllData()
-                if Events.RefreshCombatIndicators then
-                    Events.RefreshCombatIndicators(control)
-                end
-            end)
-        end)
+    -- 7. Register Dynamic Events
+    RegisterDynamicEvents(control)
 end
 
 -- =========================================================================

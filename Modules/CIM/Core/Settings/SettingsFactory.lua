@@ -289,14 +289,7 @@ function BETTERUI.CIM.Settings.CreateFontSubmenuOptions(moduleName, defaults, fo
     end
 
     local function ensureSettings()
-        if not BETTERUI or not BETTERUI.Settings then
-            return nil
-        end
-        BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-        if type(BETTERUI.Settings.Modules[moduleName]) ~= "table" then
-            BETTERUI.Settings.Modules[moduleName] = {}
-        end
-        return BETTERUI.Settings.Modules[moduleName]
+        return BETTERUI.EnsureModuleSettings(moduleName)
     end
 
     local function isCIMDisabled()

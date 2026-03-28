@@ -10,6 +10,93 @@ local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
 -- Action mode constants: Replaced by BETTERUI.Inventory.CONST equivalents
 
+--- Activates a list, restoring its saved category and item positions.
+--- @param self table The inventory instance
+--- @param listControl table The list widget to activate (itemList or craftBagList)
+--- @param config table { savedCategoryKey, savedPositionsByKey, savedItemUniqueByKey, isCraftBag, actionMode, refreshListFn }
+local function ActivateListWithState(self, listControl, config)
+    self:SetCurrentList(listControl)
+    self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+    self:RefreshCategoryList()
+
+    -- Restore saved category position
+    local targetIndex = 1
+    if config.savedCategoryKey then
+        local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, config.savedCategoryKey)
+        if idx then targetIndex = idx end
+    end
+    -- Validate target is the correct category type (inventory vs craft bag)
+    local catData = self.categoryList.dataList[targetIndex]
+    local isCraftBagEntry = catData and catData.onClickDirection
+    if not catData or (config.isCraftBag and not isCraftBagEntry) or (not config.isCraftBag and isCraftBagEntry) then
+        for i, d in ipairs(self.categoryList.dataList) do
+            local match = config.isCraftBag and d.onClickDirection or (not config.isCraftBag and not d.onClickDirection)
+            if match then
+                targetIndex = i
+                break
+            end
+        end
+    end
+    self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList), true, false)
+
+    -- Sync header tab
+    if self.header and self.header.tabBar then
+        local headerTabBar = self.header.tabBar
+        local idx = self.categoryList.selectedIndex or 1
+        headerTabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
+        if headerTabBar.UpdateAnchors then
+            headerTabBar:UpdateAnchors(idx, true, false)
+        end
+    end
+
+    -- Refresh and restore item position
+    config.refreshListFn(self)
+    local key = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
+    local itemIndex = 1
+    if key and config.savedPositionsByKey and config.savedPositionsByKey[key] then
+        itemIndex = config.savedPositionsByKey[key]
+        if config.savedItemUniqueByKey and config.savedItemUniqueByKey[key] then
+            local uid = config.savedItemUniqueByKey[key]
+            local dataList = listControl.list and listControl.list.dataList or listControl.dataList
+            if dataList then
+                for i, entry in ipairs(dataList) do
+                    if entry and entry.uniqueId == uid then
+                        itemIndex = i
+                        break
+                    end
+                end
+            end
+        end
+    end
+    local dataList = listControl.list and listControl.list.dataList or listControl.dataList
+    if dataList and #dataList > 0 then
+        local innerList = listControl.list or listControl
+        if innerList.SetSelectedIndexWithoutAnimation then
+            innerList:SetSelectedIndexWithoutAnimation(zo_clamp(itemIndex, 1, #dataList), true, false)
+        end
+    end
+
+    self:SetSelectedItemUniqueId(BETTERUI.Inventory.Utils.SafeGetTargetData(listControl))
+    self.actionMode = config.actionMode
+    self:RefreshItemActions()
+    self:RefreshHeader(not config.isCraftBag or nil)
+
+    -- Update header title to match the restored category
+    local selectedCatData = self.categoryList.selectedData
+    if selectedCatData and selectedCatData.text then
+        BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
+    end
+
+    -- Craft bag: show tooltip for selected item
+    if config.isCraftBag and self.LayoutCraftBagTooltip then
+        self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
+    end
+    -- Inventory: show left tooltip for selected item
+    if not config.isCraftBag then
+        self:UpdateItemLeftTooltip(self.itemList.selectedData)
+    end
+end
+
 --- Switches the active list between Inventory and Craft Bag.
 --- @param listDescriptor string|nil A BETTERUI.Inventory.CONST.LIST_TYPES value (CATEGORY, ITEM, or CRAFT_BAG), or nil to deactivate
 local function SwitchActiveList(self, listDescriptor)
@@ -54,159 +141,23 @@ local function SwitchActiveList(self, listDescriptor)
 
     if self.scene:IsShowing() then
         if listDescriptor == INVENTORY_ITEM_LIST then
-            self:SetCurrentList(self.itemList)
-            -- SetActiveKeybinds() is protected by UnifiedScreen override
-            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-            self:RefreshCategoryList()
-
-            -- ALWAYS restore saved inventory category when switching to inventory
-            local targetIndex = 1
-            if self.savedInventoryCategoryKey then
-                local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
-                if idx then targetIndex = idx end
-            end
-            -- Validate target is an inventory category, otherwise find first inventory category
-            if not self.categoryList.dataList[targetIndex] or self.categoryList.dataList[targetIndex].onClickDirection then
-                for i, d in ipairs(self.categoryList.dataList) do
-                    if not d.onClickDirection then
-                        targetIndex = i
-                        break
-                    end
-                end
-            end
-            self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
-                true, false)
-
-            -- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
-            if self.header and self.header.tabBar then
-                local headerTabBar = self.header.tabBar
-                local idx = self.categoryList.selectedIndex or 1
-                headerTabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
-                -- Force carousel to update visual positions
-                if headerTabBar.UpdateAnchors then
-                    headerTabBar:UpdateAnchors(idx, true, false)
-                end
-            end
-
-            -- Refresh and restore item position
-            self:RefreshItemList()
-            local key = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
-            local itemIndex = 1
-            -- Only restore saved position if one exists for this category
-            if key and self.savedInventoryPositionsByKey and self.savedInventoryPositionsByKey[key] then
-                itemIndex = self.savedInventoryPositionsByKey[key]
-                -- Prefer unique ID restoration
-                if self.savedInventorySelectedItemUniqueByKey and self.savedInventorySelectedItemUniqueByKey[key] then
-                    local uid = self.savedInventorySelectedItemUniqueByKey[key]
-                    local dataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
-                    if dataList then
-                        for i, entry in ipairs(dataList) do
-                            if entry and entry.uniqueId == uid then
-                                itemIndex = i
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-            local invDataList = self.itemList.list and self.itemList.list.dataList or self.itemList.dataList
-            if invDataList and #invDataList > 0 then
-                self.itemList:SetSelectedIndexWithoutAnimation(zo_clamp(itemIndex, 1, #invDataList), true, false)
-            end
-
-            self:SetSelectedItemUniqueId(BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList))
-            self.actionMode = BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
-            self:RefreshItemActions()
-            self:RefreshHeader(true) -- Pass BLOCK_TABBAR_CALLBACK
-
-            -- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
-            local selectedCatData = self.categoryList.selectedData
-            if selectedCatData and selectedCatData.text then
-                BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
-            end
-
-            self:UpdateItemLeftTooltip(self.itemList.selectedData)
+            ActivateListWithState(self, self.itemList, {
+                savedCategoryKey = self.savedInventoryCategoryKey,
+                savedPositionsByKey = self.savedInventoryPositionsByKey,
+                savedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey,
+                isCraftBag = false,
+                actionMode = BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE,
+                refreshListFn = function(s) s:RefreshItemList() end,
+            })
         elseif listDescriptor == INVENTORY_CRAFT_BAG_LIST then
-            self:SetCurrentList(self.craftBagList)
-            -- SetActiveKeybinds() is protected by UnifiedScreen override
-            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-            self:RefreshCategoryList()
-
-            -- ALWAYS restore saved craft bag category when switching to craft bag
-            local targetIndex = 1
-            if self.savedCraftBagCategoryKey then
-                local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedCraftBagCategoryKey)
-                if idx then targetIndex = idx end
-            end
-            -- Validate target is a craft bag category, otherwise find first craft bag category
-            if not self.categoryList.dataList[targetIndex] or not self.categoryList.dataList[targetIndex].onClickDirection then
-                for i, d in ipairs(self.categoryList.dataList) do
-                    if d.onClickDirection then
-                        targetIndex = i
-                        break
-                    end
-                end
-            end
-            self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
-                true, false)
-
-            -- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
-            if self.header and self.header.tabBar then
-                local headerTabBar = self.header.tabBar
-                local idx = self.categoryList.selectedIndex or 1
-                headerTabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
-                -- Force carousel to update visual positions
-                if headerTabBar.UpdateAnchors then
-                    headerTabBar:UpdateAnchors(idx, true, false)
-                end
-            end
-
-            -- Refresh and restore item position
-            self:RefreshCraftBagList()
-            local key = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
-            local itemIndex = 1
-            -- Only restore saved position if one exists for this category
-            if key and self.savedCraftBagPositionsByKey and self.savedCraftBagPositionsByKey[key] then
-                itemIndex = self.savedCraftBagPositionsByKey[key]
-                -- Prefer unique ID restoration
-                if self.savedCraftBagSelectedItemUniqueByKey and self.savedCraftBagSelectedItemUniqueByKey[key] then
-                    local uid = self.savedCraftBagSelectedItemUniqueByKey[key]
-                    local dataList = self.craftBagList.list and self.craftBagList.list.dataList or
-                        self.craftBagList.dataList
-                    if dataList then
-                        for i, entry in ipairs(dataList) do
-                            if entry and entry.uniqueId == uid then
-                                itemIndex = i
-                                break
-                            end
-                        end
-                    end
-                end
-            end
-            local craftDataList = self.craftBagList.list and self.craftBagList.list.dataList or
-                self.craftBagList.dataList
-            if craftDataList and #craftDataList > 0 then
-                -- craftBagList wraps an inner list; call SetSelectedIndexWithoutAnimation on the inner list
-                local innerList = self.craftBagList.list or self.craftBagList
-                if innerList.SetSelectedIndexWithoutAnimation then
-                    innerList:SetSelectedIndexWithoutAnimation(zo_clamp(itemIndex, 1, #craftDataList), true, false)
-                end
-            end
-
-            self:SetSelectedItemUniqueId(BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList))
-            self.actionMode = BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE
-            self:RefreshItemActions()
-            self:RefreshHeader()
-
-            -- Update header title to match the restored category (AFTER RefreshHeader which sets generic title)
-            local selectedCatData = self.categoryList.selectedData
-            if selectedCatData and selectedCatData.text then
-                BETTERUI.GenericHeader.SetTitleText(self.header, selectedCatData.text)
-            end
-
-            if self.LayoutCraftBagTooltip then
-                self:LayoutCraftBagTooltip(GAMEPAD_LEFT_TOOLTIP)
-            end
+            ActivateListWithState(self, self.craftBagList, {
+                savedCategoryKey = self.savedCraftBagCategoryKey,
+                savedPositionsByKey = self.savedCraftBagPositionsByKey,
+                savedItemUniqueByKey = self.savedCraftBagSelectedItemUniqueByKey,
+                isCraftBag = true,
+                actionMode = BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE,
+                refreshListFn = function(s) s:RefreshCraftBagList() end,
+            })
         end
 
         if self.headerSortControllers and self.headerSortControllers[self.currentListType] then

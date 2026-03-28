@@ -43,14 +43,7 @@ local function Init(mId, moduleName)
     end
 
     local function EnsureResourceOrbSettings()
-        if not BETTERUI or not BETTERUI.Settings then
-            return nil
-        end
-        BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-        if type(BETTERUI.Settings.Modules["ResourceOrbFrames"]) ~= "table" then
-            BETTERUI.Settings.Modules["ResourceOrbFrames"] = {}
-        end
-        return BETTERUI.Settings.Modules["ResourceOrbFrames"]
+        return BETTERUI.EnsureModuleSettings("ResourceOrbFrames")
     end
 
     local function CloneColor(value, fallback)

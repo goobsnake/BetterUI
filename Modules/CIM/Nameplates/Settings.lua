@@ -21,14 +21,7 @@ end
 
 --- @return table|nil settings Nameplate settings table (created if needed), or nil
 local function EnsureNameplateSettings()
-    if not BETTERUI or not BETTERUI.Settings then
-        return nil
-    end
-    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-    if type(BETTERUI.Settings.Modules["Nameplates"]) ~= "table" then
-        BETTERUI.Settings.Modules["Nameplates"] = {}
-    end
-    return BETTERUI.Settings.Modules["Nameplates"]
+    return BETTERUI.EnsureModuleSettings("Nameplates")
 end
 
 --- @return boolean enabled True if nameplate module is enabled in settings

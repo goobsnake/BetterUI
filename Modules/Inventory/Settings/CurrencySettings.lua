@@ -117,14 +117,7 @@ end
 
 --- @return table|nil settings
 local function EnsureInventorySettings()
-    if not BETTERUI or not BETTERUI.Settings then
-        return nil
-    end
-    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-    if type(BETTERUI.Settings.Modules["Inventory"]) ~= "table" then
-        BETTERUI.Settings.Modules["Inventory"] = {}
-    end
-    return BETTERUI.Settings.Modules["Inventory"]
+    return BETTERUI.EnsureModuleSettings("Inventory")
 end
 
 --- @param dataEntry table

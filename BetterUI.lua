@@ -200,8 +200,7 @@ local function NormalizeModuleToggleSortName(name)
 			name = GetStringByName("SI_BETTERUI_ENABLE_BANKING"),
 			tooltip = GetStringByName("SI_BETTERUI_ENABLE_BANKING_TOOLTIP"),
 			getFunc = function()
-				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-				return modules and modules["Banking"] and modules["Banking"].m_enabled or false
+				return BETTERUI.GetModuleEnabled("Banking")
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Banking", "m_enabled", value)
@@ -216,8 +215,7 @@ local function NormalizeModuleToggleSortName(name)
 			name = GetStringByName("SI_BETTERUI_ENABLE_VENDOR"),
 			tooltip = GetStringByName("SI_BETTERUI_ENABLE_VENDOR_TOOLTIP"),
 			getFunc = function()
-				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-				return modules and modules["Vendor"] and modules["Vendor"].m_enabled or false
+				return BETTERUI.GetModuleEnabled("Vendor")
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Vendor", "m_enabled", value)
@@ -232,8 +230,7 @@ local function NormalizeModuleToggleSortName(name)
 			name = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS"),
 			tooltip = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP"),
 			getFunc = function()
-				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-				return modules and modules["GeneralInterface"] and modules["GeneralInterface"].m_enabled or false
+				return BETTERUI.GetModuleEnabled("GeneralInterface")
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("GeneralInterface", "m_enabled", value)
@@ -248,8 +245,7 @@ local function NormalizeModuleToggleSortName(name)
 			name = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY"),
 			tooltip = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP"),
 			getFunc = function()
-				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-				return modules and modules["Inventory"] and modules["Inventory"].m_enabled or false
+				return BETTERUI.GetModuleEnabled("Inventory")
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Inventory", "m_enabled", value)
@@ -278,8 +274,7 @@ local function NormalizeModuleToggleSortName(name)
 			name = GetStringByName("SI_BETTERUI_ENABLE_WRITS"),
 			tooltip = GetStringByName("SI_BETTERUI_ENABLE_WRITS_TOOLTIP"),
 			getFunc = function()
-				local modules = BETTERUI.Settings and BETTERUI.Settings.Modules
-				return modules and modules["Writs"] and modules["Writs"].m_enabled or false
+				return BETTERUI.GetModuleEnabled("Writs")
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Writs", "m_enabled", value)
@@ -593,10 +588,8 @@ function BETTERUI.Initialize(event, addon)
 		local moduleName, moduleNamespace = entry.name, BETTERUI[entry.namespace]
 		if moduleNamespace then
 			-- Ensure the settings table exists before initializing
-			if BETTERUI.Settings.Modules[moduleName] == nil then
-				BETTERUI.Settings.Modules[moduleName] = {}
-			end
-			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, BETTERUI.Settings.Modules[moduleName], moduleName)
+			local moduleSettings = BETTERUI.EnsureModuleSettings(moduleName)
+			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, moduleSettings, moduleName)
 			if not moduleInitResult then
 				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
 			end

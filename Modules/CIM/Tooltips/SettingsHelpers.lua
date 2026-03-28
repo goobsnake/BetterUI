@@ -108,20 +108,7 @@ local function BuildAddonDependencyTooltip(baseStringId, addonGlobals, requireAn
 end
 
 local GetModuleSettings = BETTERUI.GetModuleSettings
-
---- Ensures the settings table exists for a module, creating if necessary.
---- @param moduleName string The module name
---- @return table|nil settings The module settings or nil if BETTERUI not ready
-local function EnsureModuleSettings(moduleName)
-    if not BETTERUI or not BETTERUI.Settings then
-        return nil
-    end
-    BETTERUI.Settings.Modules = BETTERUI.Settings.Modules or {}
-    if type(BETTERUI.Settings.Modules[moduleName]) ~= "table" then
-        BETTERUI.Settings.Modules[moduleName] = {}
-    end
-    return BETTERUI.Settings.Modules[moduleName]
-end
+local EnsureModuleSettings = BETTERUI.EnsureModuleSettings
 
 --- Checks if the CIM module is enabled.
 --- @return boolean enabled True if CIM is enabled

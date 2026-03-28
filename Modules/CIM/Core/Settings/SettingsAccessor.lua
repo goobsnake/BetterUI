@@ -17,6 +17,22 @@ function BETTERUI.GetModuleSettings(moduleName, defaults)
     return defaults or {}
 end
 
+--- Ensures the settings table exists for a module, creating it if necessary.
+--- Unlike GetModuleSettings, the returned reference is persisted in BETTERUI.Settings.Modules,
+--- so callers may write through it. Use this for mutation patterns; use GetModuleSettings for reads.
+--- @param moduleName string The module name (e.g., "Inventory", "ResourceOrbFrames")
+--- @return table|nil settings The module settings table, or nil if BETTERUI.Settings is not ready
+function BETTERUI.EnsureModuleSettings(moduleName)
+    if not BETTERUI.Settings then return nil end
+    if not BETTERUI.Settings.Modules then
+        BETTERUI.Settings.Modules = {}
+    end
+    if type(BETTERUI.Settings.Modules[moduleName]) ~= "table" then
+        BETTERUI.Settings.Modules[moduleName] = {}
+    end
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
 --- Gets a specific setting value with fallback.
 --- @param moduleName string The module name
 --- @param key string The setting key
