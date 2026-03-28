@@ -12,7 +12,7 @@ KEY MECHANICS:
     items have their "new" status cleared via SHARED_INVENTORY:ClearNewStatus().
 3.  **Immediate Clear**: Items moved, destroyed, or explicitly acted upon
     are cleared immediately without waiting for scene hide.
-4.  **Safety**: Uses pcall around SHARED_INVENTORY calls to prevent
+4.  **Safety**: Uses SafeExecute around SHARED_INVENTORY calls to prevent
     errors from nil/invalid bag/slot combinations.
 
 USAGE:
@@ -78,15 +78,10 @@ function NewItemTracker.CommitPendingClears()
     if not SHARED_INVENTORY then return end
 
     for key, entry in pairs(pendingClears) do
-        local ok, err = pcall(function()
-            SHARED_INVENTORY:ClearNewStatus(entry.bagId, entry.slotIndex)
-        end)
-        if not ok then
-            BETTERUI.CIM.Debug.Log(
-                "NewItemTracker: failed to clear new status for " .. key .. ": " .. tostring(err),
-                "NewItemTracker"
-            )
-        end
+        BETTERUI.CIM.SafeExecute(
+            "NewItemTracker:CommitPendingClears:" .. key,
+            SHARED_INVENTORY.ClearNewStatus, SHARED_INVENTORY, entry.bagId, entry.slotIndex
+        )
     end
 
     -- Reset pending table
@@ -106,15 +101,10 @@ function NewItemTracker.ClearImmediate(bagId, slotIndex)
     pendingClears[key] = nil
 
     -- Clear immediately
-    local ok, err = pcall(function()
-        SHARED_INVENTORY:ClearNewStatus(bagId, slotIndex)
-    end)
-    if not ok then
-        BETTERUI.CIM.Debug.Log(
-            "NewItemTracker: immediate clear failed for " .. key .. ": " .. tostring(err),
-            "NewItemTracker"
-        )
-    end
+    BETTERUI.CIM.SafeExecute(
+        "NewItemTracker:ClearImmediate:" .. key,
+        SHARED_INVENTORY.ClearNewStatus, SHARED_INVENTORY, bagId, slotIndex
+    )
 end
 
 --- Returns the number of items pending "new" status clear.

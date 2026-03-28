@@ -1,5 +1,4 @@
 --[[
-File: Modules/CIM/Core/SafeExecute.lua
 Purpose: Provides safe execution wrapper for error-prone operations.
 ]]
 

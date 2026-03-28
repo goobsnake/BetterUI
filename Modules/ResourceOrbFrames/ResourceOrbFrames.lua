@@ -450,9 +450,8 @@ function ResourceOrbFrames.ApplySettings()
     if settings.m_enabled then
         if not m_isInitialized then
             -- Attempt initialization; if it fails, bail out
-            local ok, err = pcall(SetupModule, m_rootFrame)
+            local ok = BETTERUI.CIM.SafeExecute("ResourceOrbFrames:SetupModule", SetupModule, m_rootFrame)
             if not ok then
-                BETTERUI.Debug("ResourceOrbFrames.ApplySettings: SetupModule failed: " .. tostring(err))
                 return
             end
         end

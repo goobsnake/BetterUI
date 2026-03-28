@@ -18,22 +18,16 @@ local function ForceDestroyItemSafely(bagId, slotIndex)
         SetCursorItemSoundsEnabled(false)
     end
 
-    local ok, err = pcall(function()
-        DestroyItem(bagId, slotIndex)
-    end)
+    local ok = BETTERUI.CIM.SafeExecute(
+        string.format("DestroyItem:%s:%s", tostring(bagId), tostring(slotIndex)),
+        DestroyItem, bagId, slotIndex
+    )
 
     if SetCursorItemSoundsEnabled then
         SetCursorItemSoundsEnabled(true)
     end
 
-    if not ok then
-        if BETTERUI and BETTERUI.Debug then
-            BETTERUI.Debug(string.format("DestroyItem failed for %s:%s (%s)", tostring(bagId), tostring(slotIndex), tostring(err)))
-        end
-        return false
-    end
-
-    return true
+    return ok
 end
 
 --- Attempts to destroy an item, dealing with junk status and user confirmation settings.

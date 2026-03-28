@@ -49,7 +49,7 @@ function Loot.GetMarketPriceContext(itemLink)
 
     -- Future: Integrate with TTC/MM/ATT price sources
     -- Uses same infrastructure as BETTERUI.GetInventoryPriceInfo
-    local ok, priceLines = pcall(BETTERUI.GetInventoryPriceInfo, itemLink, nil, nil, nil)
+    local ok, priceLines = BETTERUI.CIM.SafeExecute("Loot:GetMarketPriceContext", BETTERUI.GetInventoryPriceInfo, itemLink, nil, nil, nil)
     if ok and priceLines and #priceLines > 0 then
         return table.concat(priceLines, " | ")
     end
