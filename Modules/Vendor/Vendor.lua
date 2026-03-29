@@ -269,8 +269,9 @@ end
 function BETTERUI.Vendor.Init()
     if Vendor.initialized then return end
 
-    -- Create the Vendor class instance
-    Vendor.instance = Vendor.Class:New()
+    -- Create the Vendor class instance with proper window/scene names
+    Vendor.instance = Vendor.Class:New("BETTERUI_VendorWindow", BETTERUI_VENDOR_SCENE_NAME)
+    Vendor.instance:SetTitle("|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_VENDOR_TITLE")) .. "|r")
 
     -- Register components (each is initialized in its own file)
     if Vendor.BuyComponent then
@@ -292,23 +293,77 @@ function BETTERUI.Vendor.Init()
         Vendor.instance:RegisterComponent(MODE.FENCE_LAUNDER, Vendor.FenceLaunderComponent)
     end
 
+    -- Register the item list template with our vendor-specific row setup
+    Vendor.instance:SetupList(
+        "BETTERUI_GamepadItemSubEntryTemplate",
+        BETTERUI.Vendor.VendorEntrySetup
+    )
+
+    -- Add column headers (matching Inventory/Banking layout)
+    local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_NAME")), COL[1])
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TYPE")), COL[2])
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TRAIT")), COL[3])
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_STAT")), COL[4])
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_VALUE")), COL[5])
+
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)
     Vendor.instance.tabKeybinds = BuildTabKeybinds(Vendor.instance)
 
+    -- Initialize scene fragments manually — vendor does not use BETTERUI_BankingFooterBar
+    Vendor.instance.fragment = ZO_SimpleSceneFragment:New(Vendor.instance.control)
+    Vendor.instance.fragment:SetHideOnSceneHidden(true)
+    -- Dummy footer fragment (vendor footer is embedded in the window template, not a separate overlay)
+    local vendorFooterDummy = BETTERUI.WindowManager:CreateControl(
+        "BETTERUI_VendorFooterDummy", GuiRoot, CT_CONTROL)
+    vendorFooterDummy:SetHidden(true)
+    Vendor.instance.footerFragment = ZO_SimpleSceneFragment:New(vendorFooterDummy)
+    Vendor.instance.footerFragment:SetHideOnSceneHidden(true)
+
     -- Create the scene
     local sceneName = BETTERUI_VENDOR_SCENE_NAME
     local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, Vendor.VENDOR_INTERACTION)
+    Vendor.instance.scene = scene
+
+    -- Add required fragment groups (matching WindowClass.InitializeScene pattern)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+    scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
+    scene:AddFragment(Vendor.instance.fragment)
+    scene:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+    scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+    scene:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+    scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+    scene:AddFragment(Vendor.instance.footerFragment)
+
+    -- Register unified scene lifecycle with both keybind groups
+    BETTERUI.CIM.SceneLifecycle.Register(Vendor.instance, {
+        keybinds = { Vendor.instance.coreKeybinds, Vendor.instance.tabKeybinds },
+        taskManager = Vendor.Tasks,
+        onShowing = function(screen, wasPushed)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            screen:RefreshVendorFooter()
+            screen:RefreshList()
+            screen:UpdateTabHeader()
+        end,
+        onHiding = function(screen)
+            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            screen._suppressListUpdates = false
+            screen._isDirty = false
+        end,
+        onHidden = function(screen)
+            local component = screen:GetActiveComponent()
+            if component and component.Deactivate then
+                component:Deactivate(screen)
+            end
+        end,
+    })
 
     -- Alias to replace gamepad_store scene
-    if SCENE_MANAGER then
-        SCENE_MANAGER.scenes["gamepad_store"] = scene
-    end
+    SCENE_MANAGER.scenes["gamepad_store"] = scene
 
-    -- Register lifecycle (handled by VendorSceneLifecycle.lua)
-    if Vendor.SceneLifecycle and Vendor.SceneLifecycle.Register then
-        Vendor.SceneLifecycle.Register(sceneName, Vendor.instance)
-    end
+    -- Set up vendor-specific footer labels (replace banking WITHDRAW/DEPOSIT with gold/capacity)
+    Vendor.instance:InitVendorFooter()
 
     -- Register events
     local em = EVENT_MANAGER

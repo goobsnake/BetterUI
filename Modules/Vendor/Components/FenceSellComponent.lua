@@ -162,7 +162,7 @@ function FenceSell:BuildList(vendorInstance)
                     entry:SetIconDesaturation(0.5) -- Dim artifact items
                 end
 
-                list:AddEntry("BUI_Gamepad_ItemEntry", entry)
+                list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
             end
         end
     end

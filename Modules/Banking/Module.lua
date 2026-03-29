@@ -35,6 +35,7 @@ function BETTERUI.Banking.InitModule(m_options)
 		showIconUnknownRecipe = true,
 		showIconUnknownBook = true,
 		enableCarousel = true,
+		enableGuildBank = true,
 	}
 
 	m_options = BETTERUI.CIM.InitModuleDefaults("Banking", m_options, defaults, fallbackDefaults)

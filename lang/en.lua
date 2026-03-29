@@ -181,6 +181,10 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY", "Enable |c0066FFEnhanced Inven
 ZO_CreateStringId("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", "Completely redesigns the inventory interface (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING", "Enable |c0066FFEnhanced Banking|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_BANKING_TOOLTIP", "Completely redesigns the banking interface (Gamepad UI only)")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_VENDOR", "Enable |c0066FFEnhanced Vendor|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_VENDOR_TOOLTIP", "Completely redesigns the vendor/merchant interface (Gamepad UI only)")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANIONS", "Enable |c0066FFCompanion Equipment|r")
+ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP", "Enhances companion equipment management with BetterUI list navigation (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS", "Enable |c0066FFDaily Writs|r")
 ZO_CreateStringId("SI_BETTERUI_ENABLE_WRITS_TOOLTIP", "Displays the daily writ, and progress, at each crafting station (Gamepad UI only)")
 ZO_CreateStringId("SI_BETTERUI_MASTER_RESET_ALL", "Reset All To Defaults")
@@ -650,4 +654,46 @@ ZO_CreateStringId("SI_BETTERUI_SLIDER_KEEPS", "Keeps")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_RETRIEVE", "Retrieve")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_STAYS", "Stays")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_STOW", "Stow")
+
+-- Vendor Settings Strings
+ZO_CreateStringId("SI_BETTERUI_VENDOR_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_GENERAL_DESC",
+    "Configure core vendor behavior, including navigation and batch options. These settings apply to the Gamepad UI only.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_BATCH_JUNK_SELL", "Batch Junk Sell")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_BATCH_JUNK_SELL_TOOLTIP",
+    "When enabled, provides a quick option to sell all junk items at once when visiting a vendor.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_FONT_HEADER", "Font Customization")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_FONT_DESC",
+    "Customize fonts for the vendor list. Set different fonts for the Name column and other columns.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP", "Select the font for item names.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP", "Select the font size for item names.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP", "Select the font style for item names.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU", "Other Columns Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP", "Select the font for column data.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for column data.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for column data.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_AFFORD", "Cannot afford this item.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CANNOT_CARRY", "Not enough inventory space.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUY", "Buy")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_SELL", "Sell")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_REPAIR", "Repair")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUYBACK", "Buyback")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_SELL", "Sell Stolen")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Launder")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Enhanced Vendor")
+
+-- Guild Bank Settings
+ZO_CreateStringId("SI_BETTERUI_GUILD_BANK_ENABLED", "Enable Enhanced Guild Bank")
+ZO_CreateStringId("SI_BETTERUI_GUILD_BANK_ENABLED_TOOLTIP",
+    "When enabled, BetterUI replaces the default guild bank interface with the enhanced Banking layout. Disable to use the default ESO guild bank UI. Requires /reloadui.")
 ZO_CreateStringId("SI_BETTERUI_SLIDER_WITHDRAW", "Withdraw")
+
+-- Companions Module
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_TITLE", "Companion Equipment")

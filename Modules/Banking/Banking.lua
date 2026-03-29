@@ -310,61 +310,65 @@ function BETTERUI.Banking.Init()
 
     SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
 
-    -- Register guild bank scene: reuses the same Banking Window but with
-    -- INTERACTION_GUILDBANK interaction type. GuildBankAdapter handles
-    -- permission checks and bag routing at runtime.
-    BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
-        BETTERUI_GUILD_BANKING_SCENE_NAME,
-        SCENE_MANAGER,
-        BETTERUI.Banking.GUILD_BANK_INTERACTION
-    )
-    -- Add all required fragment groups (matching InitializeScene for the personal bank).
-    -- Without these the scene shows dimmed with locked input.
-    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
-    local bankingFragment = BETTERUI.Banking.Window.fragment
-    if bankingFragment then
-        BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
+    -- Register guild bank scene only if the setting is enabled.
+    -- When disabled, the vanilla guild bank UI is used instead.
+    if BETTERUI.Banking.GetSetting("enableGuildBank") ~= false then
+        -- Register guild bank scene: reuses the same Banking Window but with
+        -- INTERACTION_GUILDBANK interaction type. GuildBankAdapter handles
+        -- permission checks and bag routing at runtime.
+        BETTERUI_GUILD_BANKING_SCENE = ZO_InteractScene:New(
+            BETTERUI_GUILD_BANKING_SCENE_NAME,
+            SCENE_MANAGER,
+            BETTERUI.Banking.GUILD_BANK_INTERACTION
+        )
+        -- Add all required fragment groups (matching InitializeScene for the personal bank).
+        -- Without these the scene shows dimmed with locked input.
+        BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
+        local bankingFragment = BETTERUI.Banking.Window.fragment
+        if bankingFragment then
+            BETTERUI_GUILD_BANKING_SCENE:AddFragment(bankingFragment)
+        end
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
+        BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
+        if BETTERUI.Banking.Window.footerFragment then
+            BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
+        end
+        -- Register lifecycle callbacks so OnSceneShowing/OnSceneHidden fire for guild bank.
+        -- We temporarily swap self.scene so SceneLifecycle.Register picks up the guild bank scene.
+        local personalScene = BETTERUI.Banking.Window.scene
+        BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
+        BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
+            keybinds = { BETTERUI.Banking.Window.coreKeybinds },
+            taskManager = BETTERUI.Banking.Tasks,
+            onShowing = function(screen, wasPushed)
+                BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+                if screen.OnSceneShowing then
+                    screen:OnSceneShowing(wasPushed)
+                end
+            end,
+            onHiding = function(screen)
+                BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+                if screen.OnSceneHiding then
+                    screen:OnSceneHiding()
+                end
+            end,
+            onHidden = function(screen)
+                if screen.OnSceneHidden then
+                    screen:OnSceneHidden()
+                end
+            end,
+        })
+        BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
+        -- Alias guild bank scene: vanilla's ZO_GuildBank_Gamepad_Initialize() has
+        -- already created GAMEPAD_GUILD_BANK_SCENE at "gamepad_guild_bank" (XML
+        -- OnInitialized runs before addon EVENT_ADD_ON_LOADED). We just overwrite
+        -- the scene entry so vanilla's EVENT_OPEN_GUILD_BANK handler shows our
+        -- scene instead. This matches the exact pattern used for personal bank above.
+        SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
     end
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(FRAME_EMOTE_FRAGMENT_INVENTORY)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(MINIMIZE_CHAT_FRAGMENT)
-    BETTERUI_GUILD_BANKING_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
-    if BETTERUI.Banking.Window.footerFragment then
-        BETTERUI_GUILD_BANKING_SCENE:AddFragment(BETTERUI.Banking.Window.footerFragment)
-    end
-    -- Register lifecycle callbacks so OnSceneShowing/OnSceneHidden fire for guild bank.
-    -- We temporarily swap self.scene so SceneLifecycle.Register picks up the guild bank scene.
-    local personalScene = BETTERUI.Banking.Window.scene
-    BETTERUI.Banking.Window.scene = BETTERUI_GUILD_BANKING_SCENE
-    BETTERUI.CIM.SceneLifecycle.Register(BETTERUI.Banking.Window, {
-        keybinds = { BETTERUI.Banking.Window.coreKeybinds },
-        taskManager = BETTERUI.Banking.Tasks,
-        onShowing = function(screen, wasPushed)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            if screen.OnSceneShowing then
-                screen:OnSceneShowing(wasPushed)
-            end
-        end,
-        onHiding = function(screen)
-            BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
-            if screen.OnSceneHiding then
-                screen:OnSceneHiding()
-            end
-        end,
-        onHidden = function(screen)
-            if screen.OnSceneHidden then
-                screen:OnSceneHidden()
-            end
-        end,
-    })
-    BETTERUI.Banking.Window.scene = personalScene -- restore personal bank as the primary scene ref
-    -- Alias guild bank scene: vanilla's ZO_GuildBank_Gamepad_Initialize() has
-    -- already created GAMEPAD_GUILD_BANK_SCENE at "gamepad_guild_bank" (XML
-    -- OnInitialized runs before addon EVENT_ADD_ON_LOADED). We just overwrite
-    -- the scene entry so vanilla's EVENT_OPEN_GUILD_BANK handler shows our
-    -- scene instead. This matches the exact pattern used for personal bank above.
-    SCENE_MANAGER.scenes['gamepad_guild_bank'] = SCENE_MANAGER.scenes[BETTERUI_GUILD_BANKING_SCENE_NAME]
 
     -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then

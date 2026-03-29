@@ -188,14 +188,95 @@ function BETTERUI.Vendor.Class:HasInventorySpace()
 end
 
 
---- Initializes the unified footer controller for currency/capacity display.
+--- Initializes the vendor footer by relabelling the embedded Withdraw/Deposit
+--- controls to show gold and bag capacity instead of banking info.
+--- Called once during Init after the window is created.
 ---@return nil
-function BETTERUI.Vendor.Class:SetupUnifiedFooter()
-    local footerContainer = self.control and self.control.container and
-        self.control.container:GetNamedChild("FooterContainer")
-    if footerContainer and footerContainer.unifiedFooter then
-        self.unifiedFooterController = footerContainer.unifiedFooter
-        -- Use INVENTORY mode for footer (shows gold, bag capacity)
-        self.unifiedFooterController:SetMode(BETTERUI.CIM.UnifiedFooter.MODE.INVENTORY)
+function BETTERUI.Vendor.Class:InitVendorFooter()
+    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
+    if not footerRoot then return end
+
+    -- Hide the centre vertical divider (banking mode selector divider)
+    local dividerCentre = footerRoot:GetNamedChild("DividerCentre")
+    if dividerCentre then dividerCentre:SetHidden(true) end
+
+    -- LEFT SIDE: Relabel "WITHDRAW" → Gold display
+    local withdraw = footerRoot:GetNamedChild("Withdraw")
+    if withdraw then
+        local btn = withdraw:GetNamedChild("Button")
+        if btn then
+            -- Remove the banking click handler
+            btn:SetHandler("OnClicked", nil)
+
+            local label = btn:GetNamedChild("Label")
+            if label then
+                label:SetText(GetString(rawget(_G, "SI_BETTERUI_FOOTER_GOLD") or "SI_BETTERUI_FOOTER_GOLD"))
+            end
+        end
+        -- Change icon to gold coin
+        local icon = withdraw:GetNamedChild("Icon")
+        if icon then
+            icon:SetTexture("esoui/art/currency/currency_gold_64.dds")
+        end
+    end
+
+    -- RIGHT SIDE: Relabel "DEPOSIT" → Bag capacity
+    local deposit = footerRoot:GetNamedChild("Deposit")
+    if deposit then
+        local btn = deposit:GetNamedChild("Button")
+        if btn then
+            -- Remove the banking click handler
+            btn:SetHandler("OnClicked", nil)
+
+            local label = btn:GetNamedChild("Label")
+            if label then
+                label:SetText(GetString(rawget(_G, "SI_BETTERUI_FOOTER_BAG_CAPACITY") or "SI_BETTERUI_FOOTER_BAG_CAPACITY"))
+                label:SetColor(1, 1, 1, 1) -- Reset to white (banking dims the inactive side)
+            end
+        end
+        -- Change icon to inventory bag
+        local icon = deposit:GetNamedChild("Icon")
+        if icon then
+            icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
+        end
+    end
+
+    self:RefreshVendorFooter()
+end
+
+--- Refreshes the vendor footer values (gold amount, bag capacity).
+--- Called on scene showing and after inventory changes.
+---@return nil
+function BETTERUI.Vendor.Class:RefreshVendorFooter()
+    local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
+    if not footerRoot then return end
+
+    -- LEFT SIDE: Gold amount
+    local withdraw = footerRoot:GetNamedChild("Withdraw")
+    if withdraw then
+        local btn = withdraw:GetNamedChild("Button")
+        if btn then
+            local spaceLabel = btn:GetNamedChild("SpaceLabel")
+            if spaceLabel then
+                local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+                spaceLabel:SetText("|t24:24:esoui/art/currency/currency_gold_32.dds|t " ..
+                    BETTERUI.DisplayNumber(gold))
+            end
+        end
+    end
+
+    -- RIGHT SIDE: Bag capacity
+    local deposit = footerRoot:GetNamedChild("Deposit")
+    if deposit then
+        local btn = deposit:GetNamedChild("Button")
+        if btn then
+            local spaceLabel = btn:GetNamedChild("SpaceLabel")
+            if spaceLabel then
+                spaceLabel:SetText(
+                    "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
+                    zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
+                        GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+            end
+        end
     end
 end

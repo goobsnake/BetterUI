@@ -21,6 +21,7 @@ BETTERUI.Defaults.FirstInstall = {
     Inventory = true,         -- Core feature, showcase
     Banking = true,           -- Core feature, showcase
     Vendor = true,            -- Core feature, enhanced vendor/fence
+    Companions = true,        -- Companion equipment manager
     GeneralInterface = true,  -- Enhanced tooltips, QoL
     ResourceOrbFrames = true, -- Per user request
     Writs = false,            -- Niche feature, opt-in
@@ -196,6 +197,11 @@ BETTERUI.Defaults.Modules = {
         showIconResearchableTrait = true,
         showIconUnknownRecipe = true,
         showIconUnknownBook = true,
+    },
+
+    -- COMPANIONS MODULE
+    Companions = {
+        enableCompanionEquipment = true,
     },
 }
 

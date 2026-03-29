@@ -1,11 +1,11 @@
 --[[
 File: Modules/Vendor/Scene/VendorSceneLifecycle.lua
-Purpose: Scene lifecycle management for the Vendor module.
+Purpose: DEPRECATED — Scene lifecycle is now handled by CIM.SceneLifecycle.Register
+         in Vendor.lua Init(). This file is retained for reference only.
 
-Manages what happens when the vendor scene shows and hides:
+Previously managed what happens when the vendor scene shows and hides:
 - On show: adds keybind groups, sets up footer, refreshes list
 - On hide: removes keybind groups, cleans up state
-- Uses unique event namespaces to avoid collisions with vanilla UI
 ]]
 
 local Vendor = BETTERUI.Vendor

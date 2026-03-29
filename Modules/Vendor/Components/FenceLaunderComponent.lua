@@ -152,7 +152,7 @@ function FenceLaunder:BuildList(vendorInstance)
                     entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
                 end
 
-                list:AddEntry("BUI_Gamepad_ItemEntry", entry)
+                list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
             end
         end
     end

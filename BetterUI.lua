@@ -60,6 +60,7 @@ local MODULE_REGISTRY = {
 	},
 	{ name = "Banking", namespace = "Banking", dependsOnCIM = true },
 	{ name = "Vendor", namespace = "Vendor", dependsOnCIM = true },
+	{ name = "Companions", namespace = "Companions", dependsOnCIM = true },
 
 	-- Independent modules
 	{ name = "Writs", namespace = "Writs" },
@@ -110,8 +111,8 @@ BETTERUI.DefaultSettings = {
 
 --- Updates the Common Interface Module (CIM) state based on dependents.
 ---
---- Purpose: Ensures CIM is enabled if any module requiring it (Inventory, Banking) is active.
---- Mechanics: Checks settings for Tooltips, Inventory, and Banking.
+--- Purpose: Ensures CIM is enabled if any module requiring it is active.
+--- Mechanics: Checks settings for GeneralInterface, Inventory, Banking, Vendor, and Companions.
 ---            Updates the CIM m_enabled setting accordingly.
 --- References: Called when toggling module settings in the options panel.
 ---
@@ -119,7 +120,8 @@ function BETTERUI.UpdateCIMState()
 	local shouldEnable = BETTERUI.GetModuleEnabled("GeneralInterface") or
 		BETTERUI.GetModuleEnabled("Inventory") or
 		BETTERUI.GetModuleEnabled("Banking") or
-		BETTERUI.GetModuleEnabled("Vendor")
+		BETTERUI.GetModuleEnabled("Vendor") or
+		BETTERUI.GetModuleEnabled("Companions")
 	BETTERUI.SetSetting("CIM", "m_enabled", shouldEnable)
 end
 
@@ -204,6 +206,21 @@ local function NormalizeModuleToggleSortName(name)
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Vendor", "m_enabled", value)
+				BETTERUI.UpdateCIMState()
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			sortKey = "Companions",
+			type = "checkbox",
+			name = GetStringByName("SI_BETTERUI_ENABLE_COMPANIONS"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP"),
+			getFunc = function()
+				return BETTERUI.GetModuleEnabled("Companions")
+			end,
+			setFunc = function(value)
+				BETTERUI.SetSetting("Companions", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",

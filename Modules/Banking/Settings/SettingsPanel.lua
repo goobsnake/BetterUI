@@ -38,6 +38,7 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
     local function ResetBankingGeneralSettings()
         if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Banking", "general") then
             BETTERUI.Banking.SetSetting("enableCarousel", true)
+            BETTERUI.Banking.SetSetting("enableGuildBank", true)
             BETTERUI.Banking.SetSetting("useTriggersForSkip", false)
             BETTERUI.Banking.SetSetting("triggerSpeed", 10)
         end
@@ -61,6 +62,20 @@ function BETTERUI.Banking.Settings.RegisterPanel(mId, moduleName)
             type = "description",
             text = GetString(rawget(_G, "SI_BETTERUI_BANK_GENERAL_DESC")),
             width = "full",
+        },
+        -- Guild Bank Override
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_GUILD_BANK_ENABLED")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_GUILD_BANK_ENABLED_TOOLTIP")),
+            getFunc = function()
+                return BETTERUI.Banking.GetSetting("enableGuildBank")
+            end,
+            setFunc = function(value)
+                BETTERUI.Banking.SetSetting("enableGuildBank", value)
+            end,
+            width = "full",
+            requiresReload = true,
         },
         -- Carousel Navigation
         {
