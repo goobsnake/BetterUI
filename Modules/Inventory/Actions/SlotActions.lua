@@ -151,18 +151,20 @@ local PRIMARY_ACTION_REPLACEMENTS = {
     [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
 }
 
+local primaryActionReplacementLookup = nil
+
 local function ShouldReplacePrimaryAction(primaryAction)
     -- Deferred build: populate name-based lookup on first call so GetString()
     -- runs after the engine has fully loaded localized strings.
-    if not ShouldReplacePrimaryAction._lookup then
+    if not primaryActionReplacementLookup then
         local lookup = {}
         for actionId in pairs(PRIMARY_ACTION_REPLACEMENTS) do
             local name = GetActionString(actionId)
             if name then lookup[name] = true end
         end
-        ShouldReplacePrimaryAction._lookup = lookup
+        primaryActionReplacementLookup = lookup
     end
-    return ShouldReplacePrimaryAction._lookup[primaryAction] == true
+    return primaryActionReplacementLookup[primaryAction] == true
     -- Note: Split stack is intentionally NOT included so it remains
     -- available in the Y (actions) list.
 end

@@ -210,7 +210,8 @@ end
 function BETTERUI.Interface.Window:AddColumn(columnName, xOffset)
     local colNumber = #self.header.columns + 1
     -- Create label as child of HeaderColumnBar for container purposes
-    local label = CreateControlFromVirtual("Column" .. colNumber,
+    -- Prefix with windowName to avoid duplicate global control names across modules
+    local label = CreateControlFromVirtual(self.windowName .. "Column" .. colNumber,
         self.header:GetNamedChild("HeaderColumnBar"), "BETTERUI_GenericColumn_Label")
     self.header.columns[colNumber] = label
 

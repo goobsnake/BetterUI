@@ -22,7 +22,21 @@ if not BETTERUI.CIM then BETTERUI.CIM = {} end
 BETTERUI.CIM.RuntimeSetup = {}
 
 local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
-local SafeExecute = BETTERUI.CIM.SafeExecute
+
+-- RuntimeSetup loads before Diagnostics/SafeExecute.lua in the manifest.
+-- Resolve SafeExecute lazily so wrappers do not capture a nil function.
+local function SafeExecute(context, fn, ...)
+    local safeExecute = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute
+    if type(safeExecute) == "function" and safeExecute ~= SafeExecute then
+        return safeExecute(context, fn, ...)
+    end
+
+    if type(fn) ~= "function" then
+        return false, "No function provided"
+    end
+
+    return pcall(fn, ...)
+end
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false

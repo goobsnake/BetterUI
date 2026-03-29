@@ -20,8 +20,17 @@ param: equipSlot (number) - The equipment slot index.
 ---@param equipSlot number Equipment slot index
 ---@return nil
 function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
-    local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
-    local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+    -- Guard: validate tooltipType before calling into GAMEPAD_TOOLTIPS
+    -- to avoid nil index crash in ZO_GamepadTooltip:GetTooltipInfo (ZO_Tooltip_Gamepad.lua:321)
+    if not tooltipType or not GAMEPAD_TOOLTIPS then return end
+
+    -- GetTooltip/GetTooltipContainer crash when tooltipType is not registered in
+    -- GAMEPAD_TOOLTIPS.tooltips (e.g. tooltipType=0). Use pcall to guard.
+    local ok, tooltip, container = pcall(function()
+        return GAMEPAD_TOOLTIPS:GetTooltip(tooltipType),
+               GAMEPAD_TOOLTIPS:GetTooltipContainer(tooltipType)
+    end)
+    if not ok or not tooltip or not container then return end
 
     -- Signal to InventoryHook's deferred price injection that this scene
     -- handles its own price/trait rendering (prevents double display)
