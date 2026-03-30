@@ -106,20 +106,21 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 self._suppressListUpdates = false
                 -- Recompute categories and refresh once
                 self.bankCategories = self:ComputeVisibleBankCategories()
-                -- Check if the captured category key still exists in the new list
+                if not self.bankCategories or #self.bankCategories == 0 then
+                    self.currentCategoryIndex = 1
+                    self:RefreshList()
+                    return
+                end
+                local desiredCategoryIndex = 1
                 if prevCategoryKey then
-                    local categoryStillExists = false
                     for i, cat in ipairs(self.bankCategories) do
                         if cat.key == prevCategoryKey then
-                            categoryStillExists = true
+                            desiredCategoryIndex = i
                             break
                         end
                     end
-                    if not categoryStillExists then
-                        -- Category became empty, force to All Items
-                        self.currentCategoryIndex = 1
-                    end
                 end
+                self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
                 -- Suppress callback during rebuild when category has changed
                 local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
                 state.suppressHeaderCallback = true

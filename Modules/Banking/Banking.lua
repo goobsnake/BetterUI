@@ -527,6 +527,63 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
 
     -- Register for SHARED_INVENTORY callbacks (not raw events)
     -- These fire AFTER the cache is updated, ensuring RefreshList() gets fresh data
+    local function RebuildCategoriesAndRefreshList()
+        local previousCategoryKey = nil
+        if self.bankCategories and self.currentCategoryIndex and self.currentCategoryIndex <= #self.bankCategories then
+            local prevCat = self.bankCategories[self.currentCategoryIndex]
+            if prevCat then
+                previousCategoryKey = prevCat.key
+            end
+        end
+
+        self.bankCategories = self:ComputeVisibleBankCategories()
+        if not self.bankCategories or #self.bankCategories == 0 then
+            self.currentCategoryIndex = 1
+            self:RefreshList()
+            return
+        end
+
+        local desiredCategoryIndex = 1
+        if previousCategoryKey then
+            for i, cat in ipairs(self.bankCategories) do
+                if cat.key == previousCategoryKey then
+                    desiredCategoryIndex = i
+                    break
+                end
+            end
+        end
+        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        state.suppressHeaderCallback = true
+        self:RebuildHeaderCategories()
+        state.suppressHeaderCallback = false
+        self:RefreshList()
+    end
+
+    local function TryRefreshAfterInventoryUpdate()
+        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+            return
+        end
+
+        -- RefreshList intentionally skips while batch processing.
+        -- Keep this coalesced refresh pending until batch completion so category tabs and
+        -- list contents rebuild from the final settled inventory state.
+        if self:IsBatchProcessing() then
+            BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", 100, TryRefreshAfterInventoryUpdate)
+            return
+        end
+
+        -- Quantity/move flows set this flag and provide their own coalesced refresh callbacks.
+        -- Avoid adding a competing retry loop while that suppression is active.
+        if self._suppressListUpdates then
+            return
+        end
+
+        self.isDirty = true
+        RebuildCategoriesAndRefreshList()
+    end
+
     local function OnInventoryUpdated(bagId, slotIndex)
         if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then return end
         -- Only refresh if the bag is one we're displaying
@@ -551,12 +608,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         end
         if not isRelevant then return end
 
-        BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", 100, function()
-            if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-                self.isDirty = true
-                self:RefreshList()
-            end
-        end)
+        BETTERUI.Banking.Tasks:Schedule("sharedInventoryUpdate", 100, TryRefreshAfterInventoryUpdate)
     end
     -- Store callbacks so we can unregister when scene hides
     self._inventoryFullUpdateCallback = OnInventoryUpdated
@@ -577,8 +629,7 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
             -- before we rebuild the list (avoids visual glitches during the slide-out)
             BETTERUI.Banking.Tasks:Schedule("dialogHiddenRefresh", 50, function()
                 if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
-                    self.bankCategories = self:ComputeVisibleBankCategories()
-                    self:RefreshList()
+                    RebuildCategoriesAndRefreshList()
                 end
             end)
         end
