@@ -282,8 +282,6 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
 
-
-
 --- Global initialization for the Banking module using BetterUI.Window.
 ---@return nil
 function BETTERUI.Banking.Init()

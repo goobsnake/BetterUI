@@ -66,18 +66,22 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
                 if myToken ~= self._moveCoalesceToken then return end
                 self._suppressListUpdates = false
                 self.bankCategories = self:ComputeVisibleBankCategories()
+                if not self.bankCategories or #self.bankCategories == 0 then
+                    self.currentCategoryIndex = 1
+                    self:RefreshList()
+                    return
+                end
+                local desiredCategoryIndex = 1
                 if prevCategoryKey then
-                    local categoryStillExists = false
                     for i, cat in ipairs(self.bankCategories) do
                         if cat.key == prevCategoryKey then
-                            categoryStillExists = true
+                            desiredCategoryIndex = i
                             break
                         end
                     end
-                    if not categoryStillExists then
-                        self.currentCategoryIndex = 1
-                    end
                 end
+                self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+                -- Suppress callback during rebuild when category has changed
                 local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
                 state.suppressHeaderCallback = true
                 self:RebuildHeaderCategories()
