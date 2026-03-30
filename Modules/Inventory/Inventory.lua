@@ -117,6 +117,13 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 			-- it's possible we removed the last item from this list
 			-- so we want to switch back to the category list
 			if self.itemList:IsEmpty() then
+				local currentCategory = self.categoryList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+				if currentCategory and (currentCategory.showJunk or currentCategory.showStolen) then
+					-- If a transient category emptied out (e.g., unmark last junk item),
+					-- force next category restoration to "All" rather than index-shifting.
+					self.savedInventoryCategoryKey = nil
+					self.savedInventoryCategoryIndex = 1
+				end
 				self:SwitchActiveList(INVENTORY_CATEGORY_LIST)
 			else
 				-- don't refresh item actions if we are switching back to the category view

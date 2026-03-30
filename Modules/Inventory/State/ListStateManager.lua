@@ -147,8 +147,13 @@ local function SwitchActiveList(self, listDescriptor)
 
     if self.scene:IsShowing() then
         if listDescriptor == INVENTORY_ITEM_LIST then
+            -- Only restore saved inventory category when entering from a different context.
+            -- If we're already in inventory context (item list <-> category view),
+            -- keep the selection chosen by RefreshCategoryList().
+            local shouldRestoreSavedInventoryCategory = self.previousListType ~= INVENTORY_ITEM_LIST
+                and self.previousListType ~= INVENTORY_CATEGORY_LIST
             ActivateListWithState(self, self.itemList, {
-                savedCategoryKey = self.savedInventoryCategoryKey,
+                savedCategoryKey = shouldRestoreSavedInventoryCategory and self.savedInventoryCategoryKey or nil,
                 savedPositionsByKey = self.savedInventoryPositionsByKey,
                 savedItemUniqueByKey = self.savedInventorySelectedItemUniqueByKey,
                 isCraftBag = false,

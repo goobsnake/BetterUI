@@ -148,8 +148,20 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         return count
     end
 
-    -- Store the current selected index before clearing so we can restore it
+    -- Store current selection before clearing so we can restore/sync correctly.
+    local previousCategoryKey = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
     local previousSelectedIndex = self.categoryList.selectedIndex
+    local previousCategoryDataByIndex = nil
+    if previousSelectedIndex and previousSelectedIndex > 0 and self.categoryList.dataList then
+        previousCategoryDataByIndex = self.categoryList.dataList[previousSelectedIndex]
+    end
+    local previousCategoryKeyByIndex = BETTERUI.Inventory.GetCategoryKey(previousCategoryDataByIndex)
+    local effectivePreviousCategoryKey = previousCategoryKey or previousCategoryKeyByIndex
+
+    local function ResetSavedInventoryCategorySelection()
+        self.savedInventoryCategoryKey = nil
+        self.savedInventoryCategoryIndex = 1
+    end
 
     self.categoryList:Clear()
     self.header.tabBar:Clear()
@@ -261,8 +273,27 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     local desiredIndex
     local categoryCount = #self.categoryList.dataList
     if categoryCount > 0 then
-        if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= categoryCount then
-            desiredIndex = previousSelectedIndex
+        -- Selection restore precedence:
+        -- 1) Keep the same category by stable key when it still exists.
+        -- 2) If that category disappeared (or key is stale), fall back to All (index 1).
+        -- We intentionally avoid raw index fallback here to prevent index-shift jumps.
+        local previousIndexByKey = nil
+        if effectivePreviousCategoryKey then
+            previousIndexByKey = BETTERUI.Inventory.FindCategoryIndexByKey(self, effectivePreviousCategoryKey)
+        end
+
+        if previousIndexByKey and previousIndexByKey > 0 and previousIndexByKey <= categoryCount then
+            desiredIndex = previousIndexByKey
+        elseif effectivePreviousCategoryKey then
+            -- Category disappeared after rebuild: never preserve by raw index.
+            -- Index shifts can select a different category (e.g., BagUpgrade).
+            desiredIndex = 1
+            ResetSavedInventoryCategorySelection()
+        elseif not effectivePreviousCategoryKey then
+            -- If selection state is briefly nil/stale during async rebuilds,
+            -- never preserve by index (index shifts can land on BagUpgrade).
+            desiredIndex = 1
+            ResetSavedInventoryCategorySelection()
         else
             desiredIndex = 1
         end
@@ -307,5 +338,21 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         self.categoryList:SetOnSelectedDataChangedCallback(savedCategoryCallback)
     end
 
+    local currentCategoryKey = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
+    local selectedIndexChanged = previousSelectedIndex ~= nil and desiredIndex ~= nil and
+        previousSelectedIndex ~= desiredIndex
+    local selectedCategoryChanged = effectivePreviousCategoryKey ~= nil and
+        effectivePreviousCategoryKey ~= currentCategoryKey
+
+    -- RefreshCategoryList suppresses selected-data callbacks while rebuilding tabs.
+    -- If rebuild changes the selected category (e.g., Junk tab added/removed), explicitly
+    -- refresh the active item list so it matches the new category immediately.
+    if categoryCount > 0 and (selectedIndexChanged or selectedCategoryChanged) then
+        if self:GetCurrentList() == self.craftBagList then
+            self:RefreshCraftBagList()
+        else
+            self:RefreshItemList()
+        end
+    end
     self:EnsureHeaderKeybindsActive()
 end
