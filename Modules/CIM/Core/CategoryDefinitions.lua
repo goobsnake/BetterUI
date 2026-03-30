@@ -114,6 +114,13 @@ BETTERUI.Inventory.Categories.Inventory = {
         isStatic = true -- Always show if category list is not empty
     },
     {
+        -- Utility: Upgrade backpack capacity directly from inventory scene
+        key = "BagUpgrade",
+        nameStringId = SI_INVENTORY_BAG_UPGRADE_LABEL,
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_upgradeBag_icon.dds",
+        utilityAction = "bag_upgrade",
+    },
+    {
         -- Equipped Items
         key = "Equipped",
         nameStringId = SI_BETTERUI_INV_ITEM_EQUIPPED,

@@ -151,6 +151,17 @@ local function HasStableActionsTarget(self)
     return true
 end
 
+local function IsBagUpgradeAvailable()
+    local currentUnlock = (GetCurrentBackpackUpgrade and GetCurrentBackpackUpgrade()) or 0
+    local maxUnlock = (GetMaxBackpackUpgrade and GetMaxBackpackUpgrade()) or currentUnlock
+    return currentUnlock < maxUnlock
+end
+
+local function IsBagUpgradeCategorySelected(self)
+    local selectedCategory = self and self.categoryList and self.categoryList.selectedData
+    return selectedCategory and selectedCategory.isBagSpaceEntry == true and IsBagUpgradeAvailable()
+end
+
 --------------------------------------------------------------------------------
 -- KEYBIND INITIALIZATION
 --------------------------------------------------------------------------------
@@ -211,6 +222,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return ""
+                end
+
+                if IsBagUpgradeCategorySelected(self) then
+                    return GetString(SI_INVENTORY_BAG_UPGRADE_LABEL)
                 end
 
                 -- Use SafeGetTargetData for consistent access (handles inner list structure)
@@ -275,6 +290,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
                 end
+                if IsBagUpgradeCategorySelected(self) then
+                    return true
+                end
                 -- Hide A-button when in multi-select and targeting a quest item
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     local target = self.itemList and self.itemList.selectedData
@@ -299,6 +317,12 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             end,
             callback = function()
                 if self:IsBatchProcessing() then
+                    return
+                end
+
+                if IsBagUpgradeCategorySelected(self) then
+                    ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD",
+                        { cost = GetNextBackpackUpgradePrice() })
                     return
                 end
 
@@ -615,6 +639,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             BAG_BACKPACK,
             function()
                 return self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE
+                    and not IsBagUpgradeCategorySelected(self)
                     and not self:IsBatchProcessing()
             end
         ),
@@ -634,7 +659,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             disabledDuringSceneHiding = true,
             visible = function()
-                return not self:IsBatchProcessing()
+                return not self:IsBatchProcessing() and not IsBagUpgradeCategorySelected(self)
             end,
             callback = function()
                 if self:IsBatchProcessing() then

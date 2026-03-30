@@ -139,7 +139,8 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
         return count
     end
 
-    -- Store the current selected index before clearing so we can restore it
+    -- Store current selection before clearing so we can restore/sync correctly.
+    local previousCategoryKey = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
     local previousSelectedIndex = self.categoryList.selectedIndex
 
     self.categoryList:Clear()
@@ -182,7 +183,16 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             local data = nil
 
             -- SPECIAL CATEGORIES
-            if catDef.key == "Equipped" then
+            if catDef.utilityAction == "bag_upgrade" then
+                local currentUnlock = (GetCurrentBackpackUpgrade and GetCurrentBackpackUpgrade()) or 0
+                local maxUnlock = (GetMaxBackpackUpgrade and GetMaxBackpackUpgrade()) or currentUnlock
+                if currentUnlock < maxUnlock then
+                    local name = GetString(catDef.nameStringId or SI_INVENTORY_BAG_UPGRADE_LABEL)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile)
+                    data.isBagSpaceEntry = true
+                    shouldAdd = true
+                end
+            elseif catDef.key == "Equipped" then
                 local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
                 if usedBagSize > 0 then
                     local name = GetString(catDef.nameStringId)
@@ -237,6 +247,9 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             end
 
             if shouldAdd and data then
+                if catDef.key then
+                    data.key = catDef.key
+                end
                 data:SetIconTintOnSelection(true)
                 self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
                 BETTERUI.GenericHeader.AddToList(self.header, data)
@@ -250,13 +263,22 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     end
 
     local desiredIndex
+    local selectedIndexChanged = false
     local categoryCount = #self.categoryList.dataList
     if categoryCount > 0 then
-        if previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= categoryCount then
+        local previousIndexByKey = nil
+        if previousCategoryKey then
+            previousIndexByKey = BETTERUI.Inventory.FindCategoryIndexByKey(self, previousCategoryKey)
+        end
+
+        if previousIndexByKey and previousIndexByKey > 0 and previousIndexByKey <= categoryCount then
+            desiredIndex = previousIndexByKey
+        elseif previousSelectedIndex and previousSelectedIndex > 0 and previousSelectedIndex <= categoryCount then
             desiredIndex = previousSelectedIndex
         else
             desiredIndex = 1
         end
+        selectedIndexChanged = previousSelectedIndex ~= nil and previousSelectedIndex ~= desiredIndex
     end
 
     -- Temporarily remove the callbacks before commit to prevent firing with wrong selection
@@ -296,6 +318,20 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
     end
     if savedCategoryCallback then
         self.categoryList:SetOnSelectedDataChangedCallback(savedCategoryCallback)
+    end
+
+    local currentCategoryKey = BETTERUI.Inventory.GetCategoryKey(self.categoryList.selectedData)
+    local selectedCategoryChanged = previousCategoryKey ~= nil and previousCategoryKey ~= currentCategoryKey
+
+    -- RefreshCategoryList suppresses selected-data callbacks while rebuilding tabs.
+    -- If rebuild changes the selected category (e.g., Junk tab added/removed), explicitly
+    -- refresh the active item list so it matches the new category immediately.
+    if categoryCount > 0 and (selectedIndexChanged or selectedCategoryChanged) then
+        if self:GetCurrentList() == self.craftBagList then
+            self:RefreshCraftBagList()
+        else
+            self:RefreshItemList()
+        end
     end
 
     self:EnsureHeaderKeybindsActive()

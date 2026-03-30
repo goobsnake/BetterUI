@@ -470,6 +470,27 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         targetCategoryData = self.categoryList.targetData or self.categoryList.selectedData
     end
 
+    -- Utility categories are action-only entries (no inventory rows).
+    if targetCategoryData and targetCategoryData.isBagSpaceEntry then
+        self.itemList:SetNoItemText(GetString(SI_INVENTORY_BAG_UPGRADE_LABEL))
+        self.currentlySelectedData = nil
+        self:SetSelectedInventoryData(nil)
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_LEFT_TOOLTIP)
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        self.pendingContext = {
+            showJunkCategory = false,
+            filteredEquipSlot = nil,
+            isQuestItem = false,
+            currentBestCategoryName = nil,
+            targetUniqueId = nil,
+            targetIndex = nil,
+        }
+        self.pendingBatchData = {}
+        self.pendingBatchIndex = 1
+        self:ProcessScrollListBatch()
+        return
+    end
+
     local filteredEquipSlot = targetCategoryData.equipSlot
     local nonEquipableFilterType = targetCategoryData.filterType
     local showJunkCategory = (targetCategoryData and targetCategoryData.showJunk ~= nil)
