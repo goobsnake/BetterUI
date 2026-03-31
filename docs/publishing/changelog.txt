@@ -1,4 +1,13 @@
-Current Release - v3.03 Changes:
+Current Release - v3.04 Changes:
+
+[INDENT]INVENTORY & BANKING:
+1. Added: Bag Upgrade utility category — purchase backpack capacity upgrades directly from the inventory screen when upgrades are available
+2. Fixed: Category tabs (e.g., Junk) now correctly appear or disappear in the carousel immediately after bulk actions that add or remove the last items in a category, without needing to exit and re-enter the screen
+3. Fixed: After a category disappears from a bulk action (e.g., junking all items in a category), the fallback category now displays its item list correctly instead of showing an empty list until manually re-selected
+[/INDENT]
+
+
+v3.03 Changes:
 
 [INDENT]TOOLTIPS:
 1. Added: Housing furniture browser scene defense — BetterUI now cleanly passes through to native ESO tooltips when incompatible scenes (housing editor, furniture browser) are active, preventing UI disappearance

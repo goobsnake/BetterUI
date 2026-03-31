@@ -42,6 +42,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 $excludeItems = @(
+    '.agent_workspace',
     '.git',
     '.gitignore',
     '.idea',
