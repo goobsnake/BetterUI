@@ -28,7 +28,7 @@ if BETTERUI == nil then BETTERUI = {} end
 
 -- Core addon metadata
 BETTERUI.name = "BetterUI"
-BETTERUI.version = "3.02"
+BETTERUI.version = "3.04"
 
 -- Module namespace tables
 BETTERUI.Inventory = BETTERUI.Inventory or {}

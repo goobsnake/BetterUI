@@ -53,23 +53,29 @@ local function SwitchActiveList(self, listDescriptor)
             self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
             self:RefreshCategoryList()
 
-            -- ALWAYS restore saved inventory category when switching to inventory
-            local targetIndex = 1
-            if self.savedInventoryCategoryKey then
-                local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
-                if idx then targetIndex = idx end
-            end
-            -- Validate target is an inventory category, otherwise find first inventory category
-            if not self.categoryList.dataList[targetIndex] or self.categoryList.dataList[targetIndex].onClickDirection then
-                for i, d in ipairs(self.categoryList.dataList) do
-                    if not d.onClickDirection then
-                        targetIndex = i
-                        break
+            -- Only restore saved inventory category when entering from a different context.
+            -- If we're already in inventory context (e.g., item list -> category view),
+            -- preserve the selection chosen by RefreshCategoryList().
+            local shouldRestoreSavedInventoryCategory = self.previousListType ~= INVENTORY_ITEM_LIST
+                and self.previousListType ~= INVENTORY_CATEGORY_LIST
+            if shouldRestoreSavedInventoryCategory then
+                local targetIndex = 1
+                if self.savedInventoryCategoryKey then
+                    local idx = BETTERUI.Inventory.FindCategoryIndexByKey(self, self.savedInventoryCategoryKey)
+                    if idx then targetIndex = idx end
+                end
+                -- Validate target is an inventory category, otherwise find first inventory category
+                if not self.categoryList.dataList[targetIndex] or self.categoryList.dataList[targetIndex].onClickDirection then
+                    for i, d in ipairs(self.categoryList.dataList) do
+                        if not d.onClickDirection then
+                            targetIndex = i
+                            break
+                        end
                     end
                 end
+                self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
+                    true, false)
             end
-            self.categoryList:SetSelectedIndexWithoutAnimation(zo_clamp(targetIndex, 1, #self.categoryList.dataList),
-                true, false)
 
             -- Sync header tab - pass true for dontCallSelectedDataChangedCallback to avoid double refresh
             if self.header and self.header.tabBar then

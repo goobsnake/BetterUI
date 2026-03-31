@@ -311,6 +311,13 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 			-- it's possible we removed the last item from this list
 			-- so we want to switch back to the category list
 			if self.itemList:IsEmpty() then
+				local currentCategory = self.categoryList and BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+				if currentCategory and (currentCategory.showJunk or currentCategory.showStolen) then
+					-- If a transient category emptied out (e.g., unmark last junk item),
+					-- force next category restoration to "All" rather than index-shifting.
+					self.savedInventoryCategoryKey = nil
+					self.savedInventoryCategoryIndex = 1
+				end
 				self:SwitchActiveList(INVENTORY_CATEGORY_LIST)
 			else
 				-- don't refresh item actions if we are switching back to the category view
@@ -420,6 +427,22 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 	if EVENT_CURRENCY_UPDATE then
 		self.control:RegisterForEvent(EVENT_CURRENCY_UPDATE, RefreshHeader)
 	end
+	local function OnBagSpaceChanged()
+		if self.control:IsHidden() then
+			return
+		end
+
+		-- Keep utility categories (e.g., bag upgrade) in sync with current capacity.
+		-- This mirrors native behavior where bag-space purchases immediately update
+		-- category availability without waiting for inventory slot updates.
+		self:RefreshCategoryList()
+		self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
+		if self.RefreshKeybinds then
+			self:RefreshKeybinds()
+		end
+	end
+	self.control:RegisterForEvent(EVENT_INVENTORY_BOUGHT_BAG_SPACE, OnBagSpaceChanged)
+	self.control:RegisterForEvent(EVENT_INVENTORY_BAG_CAPACITY_CHANGED, OnBagSpaceChanged)
 	self.control:RegisterForEvent(EVENT_PLAYER_DEAD, RefreshSelectedData)
 	self.control:RegisterForEvent(EVENT_PLAYER_REINCARNATED, RefreshSelectedData)
 
@@ -485,13 +508,27 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 				999
 			if not self._pendingCategoryListRefresh and timeSinceShow > 0.2 then
 				self._pendingCategoryListRefresh = true
-				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
-					BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, function()
+				local function TryRefreshCategoriesAfterBatch()
+					if not self.scene:IsShowing() then
 						self._pendingCategoryListRefresh = false
-						if self.scene:IsShowing() then
-							self:RefreshCategoryList()
-						end
-					end)
+						return
+					end
+
+					-- RefreshCategoryList intentionally skips while batch processing is active.
+					-- Keep this coalesced refresh pending until batch completion so dynamic tabs
+					-- (Junk/Stolen) are rebuilt from post-batch item state.
+					if self:IsBatchProcessing() then
+						BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+							BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
+						return
+					end
+
+					self._pendingCategoryListRefresh = false
+					self:RefreshCategoryList()
+				end
+
+				BETTERUI.Inventory.Tasks:Schedule("categoryRefreshCoalesce",
+					BETTERUI.CIM.CONST.TIMING.CATEGORY_REFRESH_COALESCE_MS, TryRefreshCategoriesAfterBatch)
 			end
 		end
 	end
@@ -584,6 +621,10 @@ end
 
 function BETTERUI.Inventory.Class:Select()
 	local catTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+	if catTarget and catTarget.isBagSpaceEntry then
+		ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD", { cost = GetNextBackpackUpgradePrice() })
+		return
+	end
 	if not catTarget or not catTarget.onClickDirection then
 		self:SwitchActiveList(INVENTORY_ITEM_LIST)
 	else
