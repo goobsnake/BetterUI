@@ -165,15 +165,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
     if native.gamepadInventoryRootScene == nil then
         native.gamepadInventoryRootScene = GAMEPAD_INVENTORY_ROOT_SCENE
     end
-
-    local needsReplacementScene = true
-    if GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE._betteruiManagedInventoryScene then
-        needsReplacementScene = false
-    end
-    if needsReplacementScene then
-        local replacementScene = ZO_Scene:New(INVENTORY_SCENE_NAME, SCENE_MANAGER)
-        replacementScene._betteruiManagedInventoryScene = true
-        GAMEPAD_INVENTORY_ROOT_SCENE = replacementScene
+    -- Never replace the inventory root scene object. Secure engine flows (book/tome,
+    -- direct-purchase catalog, etc.) assume the native scene chain is preserved.
+    local inventoryRootScene = native.gamepadInventoryRootScene or GAMEPAD_INVENTORY_ROOT_SCENE
+    if inventoryRootScene then
+        GAMEPAD_INVENTORY_ROOT_SCENE = inventoryRootScene
     end
     -- Use UnifiedScreen initialization with CURRENCY footer mode
     BETTERUI.CIM.UnifiedScreen.Initialize(
@@ -181,7 +177,7 @@ function BETTERUI.Inventory.Class:Initialize(control)
         control,
         ZO_GAMEPAD_HEADER_TABBAR_CREATE,
         false,
-        GAMEPAD_INVENTORY_ROOT_SCENE,
+        inventoryRootScene,
         BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 

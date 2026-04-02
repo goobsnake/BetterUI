@@ -47,6 +47,13 @@ function BETTERUI.Inventory.Setup()
 
 	-- Update the Inventory Scene with the new fragment
 	-- Note: GAMEPAD_INVENTORY_ROOT_SCENE is the native scene, we are swapping the content fragment.
+    if native.gamepadInventoryFragment
+        and native.gamepadInventoryFragment ~= GAMEPAD_INVENTORY_FRAGMENT
+        and GAMEPAD_INVENTORY_ROOT_SCENE
+        and GAMEPAD_INVENTORY_ROOT_SCENE.RemoveFragment
+    then
+        GAMEPAD_INVENTORY_ROOT_SCENE:RemoveFragment(native.gamepadInventoryFragment)
+    end
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_INVENTORY_FRAGMENT)
