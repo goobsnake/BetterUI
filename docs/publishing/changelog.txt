@@ -10,22 +10,22 @@ Current Release - v3.05 Changes:
 7. Fixed: Sort action should now display & work with LB & RB buttons to navigate columns
 
 INVENTORY:
-6. Changed: Tome Points (Endless Archive) currency is now enabled by default in all currency presets (Default, PvP, Crafter, Events) — existing installs on preset-based profiles are auto-migrated
-7. Fixed: Inventory no longer replaces the native scene chain — secure engine flows such as the Tamriel Tomes book viewer and direct-purchase catalog now work correctly without scene conflicts/lua errors
+8. Changed: Tome Points (Endless Archive) currency is now enabled by default in all currency presets (Default, PvP, Crafter, Events) — existing installs on preset-based profiles are auto-migrated
+9. Fixed: Inventory no longer replaces the native scene chain — secure engine flows such as the Tamriel Tomes book viewer and direct-purchase catalog now work correctly without scene conflicts/lua errors
 
 RESOURCE ORB FRAMES:
-8. Fixed: Resource orbs now automatically hide during special full-screen scenes (Tamriel Tomes, Timed Activities, Book Set viewer) to prevent visual overlap
+10. Fixed: Resource orbs now automatically hide during special full-screen scenes (Tamriel Tomes, Timed Activities, Book Set viewer) to prevent visual overlap
 
 TOOLTIPS:
-9. Fixed: Tamriel Tomes grid navigation no longer crashes when category jumps surface placeholder rows that lack expected reward data methods
+11. Fixed: Tamriel Tomes grid navigation no longer crashes when category jumps surface placeholder rows that lack expected reward data methods
 
 STABILITY & COMPATIBILITY:
-10. Improved: Replaced global method overrides with ZO_PreHook/PostHook across CIM, Inventory, and Resource Orb modules — eliminates taint on secure gamepad execution paths that previously caused protected chat send failures for some users
-11. Improved: Removed runtime monkeypatches of global ESO API functions (zo_iconFormat, ZO_KeybindStrip, ZO_IsIngameUI) that could corrupt secure gamepad keybind and chat callstacks
-12. Improved: List scroll constants and movement sounds moved from global scope into a namespaced table, preventing potential conflicts with other addons
+12. Improved: Replaced global method overrides with ZO_PreHook/PostHook across CIM, Inventory, and Resource Orb modules — eliminates taint on secure gamepad execution paths that previously caused protected chat send failures for some users
+13. Improved: Removed runtime monkeypatches of global ESO API functions (zo_iconFormat, ZO_KeybindStrip, ZO_IsIngameUI) that could corrupt secure gamepad keybind and chat callstacks
+14. Improved: List scroll constants and movement sounds moved from global scope into a namespaced table, preventing potential conflicts with other addons
 
 LOCALIZATION:
-13. Added: Furniture Vault empty-state strings across all 7 locales (de, en, es, fr, jp, ru, zh)
+15. Added: Furniture Vault empty-state strings across all 7 locales (de, en, es, fr, jp, ru, zh)
 [/INDENT]
 
 
