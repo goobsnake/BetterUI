@@ -18,13 +18,10 @@ BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
 local BLOCK_TABBAR_CALLBACK = true
--- Scene Name Override: We replace ZO_GAMEPAD_INVENTORY_SCENE_NAME to ensure
--- BetterUI's inventory scene is registered instead of the vanilla one. This must
--- happen before any scene registration to avoid dual-scene conflicts. While modifying
--- ZOS globals is generally fragile, this is required because the engine uses this
--- global to find inventory scenes. Alternative approaches (scene name aliasing) were
--- tested in v2.x and caused more issues than this direct override.
-ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
+local INVENTORY_SCENE_NAME = (BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.SCENE_NAME) or
+    "gamepad_inventory_root"
+BETTERUI.Inventory.CONST = BETTERUI.Inventory.CONST or {}
+BETTERUI.Inventory.CONST.SCENE_NAME = INVENTORY_SCENE_NAME
 
 -- Validated Globals for Core
 -- NOTE: GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
@@ -163,7 +160,21 @@ end
 --- @param control Control The root control for the inventory
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
-    GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
+    BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
+    local native = BETTERUI.Inventory.NativeGlobals
+    if native.gamepadInventoryRootScene == nil then
+        native.gamepadInventoryRootScene = GAMEPAD_INVENTORY_ROOT_SCENE
+    end
+
+    local needsReplacementScene = true
+    if GAMEPAD_INVENTORY_ROOT_SCENE and GAMEPAD_INVENTORY_ROOT_SCENE._betteruiManagedInventoryScene then
+        needsReplacementScene = false
+    end
+    if needsReplacementScene then
+        local replacementScene = ZO_Scene:New(INVENTORY_SCENE_NAME, SCENE_MANAGER)
+        replacementScene._betteruiManagedInventoryScene = true
+        GAMEPAD_INVENTORY_ROOT_SCENE = replacementScene
+    end
     -- Use UnifiedScreen initialization with CURRENCY footer mode
     BETTERUI.CIM.UnifiedScreen.Initialize(
         self,
@@ -884,7 +895,7 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
 
     -- Create dialog if it doesn't exist
     if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
+        local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             },
@@ -929,6 +940,13 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
                 },
             },
         }
+        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+        elseif ZO_Dialogs_RegisterCustomDialog then
+            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+        else
+            ESO_Dialogs[dialogName] = dialogInfo
+        end
     end
 
     -- Build the parametric list with applicable batch actions
@@ -969,7 +987,9 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
         end
     ))
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
+    local dialogInfo = ESO_Dialogs[dialogName]
+    if not dialogInfo then return end
+    dialogInfo.parametricList = parametricList
 
     -- Pass selectedCount in dialog data so title function uses fresh value
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
@@ -1068,7 +1088,7 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
 
     -- Create dialog if it doesn't exist
     if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
+        local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             },
@@ -1110,6 +1130,13 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
                 },
             },
         }
+        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+        elseif ZO_Dialogs_RegisterCustomDialog then
+            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+        else
+            ESO_Dialogs[dialogName] = dialogInfo
+        end
     end
 
     -- Build the parametric list with craftbag-specific batch actions
@@ -1158,7 +1185,9 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
         entryData = deselectEntry,
     })
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
+    local dialogInfo = ESO_Dialogs[dialogName]
+    if not dialogInfo then return end
+    dialogInfo.parametricList = parametricList
 
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
 end
@@ -1211,6 +1240,11 @@ local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
 end
 
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
+    if targetBankBag == FURNITURE_VAULT_BAG_ID and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
+        not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
+        return false
+    end
+
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
     end

@@ -36,8 +36,8 @@ local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 -- Global dialog name
--- TODO(fix): Namespace global dialog name to BETTERUI.Inventory.Dialogs.EQUIP_SLOT
-BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_DIALOG"
+BETTERUI.Inventory.Dialogs = BETTERUI.Inventory.Dialogs or {}
+BETTERUI.Inventory.Dialogs.EQUIP_SLOT = BETTERUI.Inventory.Dialogs.EQUIP_SLOT or "BETTERUI_EQUIP_SLOT_DIALOG"
 
 --------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCH
@@ -149,7 +149,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
 		-- We normally do not want to enter the gamepad inventory on the item list
 		-- the exception is if we are coming back to the inventory, like from looting a container
-		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
+        local inventorySceneName = (BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.SCENE_NAME) or
+            "gamepad_inventory_root"
+		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(inventorySceneName)
 		-- Also detect brief scene detours (container loot, enchanting, etc.) via time-based check
 		local timeSinceHidden = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneHiddenTime or 0)) or 999
 		local isBriefDetour = (timeSinceHidden < 2.0)

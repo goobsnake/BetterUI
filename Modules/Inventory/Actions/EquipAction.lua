@@ -58,7 +58,12 @@ local COMPANION_EQUIP_PATCH_RETRY_MS = 400
 local companionEquipPatchQueued = false
 local companionEquipPatchRetryPending = false
 
--- Patches ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
+local function GetEquipSlotDialogName()
+    return (BETTERUI.Inventory and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.EQUIP_SLOT) or
+        "BETTERUI_EQUIP_SLOT_DIALOG"
+end
+
+-- Installs a prehook on ZO_CompanionEquipment_Gamepad:TryEquipItem for bind-on-equip handling
 local function AttemptCompanionEquipPatch()
     local class = _G["ZO_CompanionEquipment_Gamepad"]
     if not class then
@@ -67,11 +72,11 @@ local function AttemptCompanionEquipPatch()
     if class._betterui_tryEquipPatched then
         return true
     end
-    local orig = class.TryEquipItem
-    if type(orig) ~= "function" then
+    if type(class.TryEquipItem) ~= "function" or type(ZO_PreHook) ~= "function" then
         return false
     end
-    class.TryEquipItem = function(self, inventorySlot)
+
+    ZO_PreHook(class, "TryEquipItem", function(self, inventorySlot)
         if self and self.selectedEquipSlot and inventorySlot then
             local sourceBag, sourceSlot = ZO_Inventory_GetBagAndIndex(inventorySlot)
             if sourceBag and sourceSlot then
@@ -87,12 +92,12 @@ local function AttemptCompanionEquipPatch()
                 else
                     DoEquip()
                 end
-                return
+                return true
             end
         end
 
-        return orig(self, inventorySlot)
-    end
+        return false
+    end)
     class._betterui_tryEquipPatched = true
     return true
 end
@@ -227,7 +232,7 @@ function BETTERUI.Inventory.Class:TryEquipItem(inventorySlot, isCallingFromActio
         -- Weapons and rings: prompt to choose bar (primary/backup) and, if applicable, hand
         local function showEquipDialog()
             ZO_Dialogs_ShowDialog(
-                BETTERUI_EQUIP_SLOT_DIALOG,
+                GetEquipSlotDialogName(),
                 { inventorySlot, self.isPrimaryWeapon },
                 { mainTextParams = { GetString(SI_BETTERUI_INV_EQUIPSLOT_MAIN) } },
                 true
@@ -277,7 +282,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
             DoEquipMove(data[1].dataSource.bagId, data[1].dataSource.slotIndex, equipType, mainSlot, data[2])
         end
 
-        ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_EQUIP_SLOT_DIALOG)
+        ZO_Dialogs_ReleaseDialogOnButtonPress(GetEquipSlotDialogName())
 
         if
             not bound
@@ -329,7 +334,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
         return str
     end
 
-    BETTERUI.CIM.Dialogs.Register(BETTERUI_EQUIP_SLOT_DIALOG, {
+    BETTERUI.CIM.Dialogs.Register(GetEquipSlotDialogName(), {
         blockDialogReleaseOnPress = true,
         gamepadInfo = {
             dialogType = GAMEPAD_DIALOGS.BASIC,
@@ -428,7 +433,7 @@ function BETTERUI.Inventory.Class:InitializeEquipSlotDialog()
                 alignment = KEYBIND_STRIP_ALIGN_RIGHT,
                 text = SI_DIALOG_CANCEL,
                 callback = function()
-                    ZO_Dialogs_ReleaseDialogOnButtonPress(BETTERUI_EQUIP_SLOT_DIALOG)
+                    ZO_Dialogs_ReleaseDialogOnButtonPress(GetEquipSlotDialogName())
                 end,
             },
         },

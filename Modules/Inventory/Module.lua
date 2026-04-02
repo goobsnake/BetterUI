@@ -16,17 +16,33 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 
 --- Initializes the Inventory module.
 --- 1. Initializes the settings panel (`Init`).
---- 2. Replaces the native `GAMEPAD_INVENTORY` object with `BETTERUI.Inventory.Class`.
+--- 2. Installs BetterUI inventory object/fragment once (with native backup references).
 --- 3. Swaps the native inventory scene fragment with BetterUI's custom fragment.
 --- 4. Configures tooltips and registers custom dialogs (e.g., BoE protection).
 function BETTERUI.Inventory.Setup()
 	BETTERUI.Inventory.RegisterSettings("Inventory", "Inventory")
 
-	-- Replace the native GAMEPAD_INVENTORY global with our custom class
-	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+    BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
+    local native = BETTERUI.Inventory.NativeGlobals
+    if native.gamepadInventory == nil then
+        native.gamepadInventory = GAMEPAD_INVENTORY
+    end
+    if native.gamepadInventoryFragment == nil then
+        native.gamepadInventoryFragment = GAMEPAD_INVENTORY_FRAGMENT
+    end
+    if native.gamepadInventoryRootScene == nil then
+        native.gamepadInventoryRootScene = GAMEPAD_INVENTORY_ROOT_SCENE
+    end
+
+	-- Replace the native GAMEPAD_INVENTORY global with our custom class once.
+    if not GAMEPAD_INVENTORY or GAMEPAD_INVENTORY.class ~= BETTERUI.Inventory.Class then
+	    GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
+    end
 
 	-- Create the replacement scene fragment using our custom top level control
-	GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel)
+    if not GAMEPAD_INVENTORY_FRAGMENT or GAMEPAD_INVENTORY_FRAGMENT.control ~= BETTERUI_GamepadInventoryTopLevel then
+	    GAMEPAD_INVENTORY_FRAGMENT = ZO_SimpleSceneFragment:New(BETTERUI_GamepadInventoryTopLevel)
+    end
 	GAMEPAD_INVENTORY_FRAGMENT:SetHideOnSceneHidden(true)
 
 	-- Update the Inventory Scene with the new fragment
@@ -44,29 +60,32 @@ function BETTERUI.Inventory.Setup()
 		BETTERUI.Inventory.Dialogs.InitializeCraftBagQuantityDialog()
 	end
 
-	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag
-	-- This is the ONLY guard needed - it blocks at the source
-	local originalSplitItem = ZO_StackSplit_SplitItem
-	ZO_StackSplit_SplitItem = function(inventorySlotControl)
-		-- Guard: If we're in the middle of a split stack operation, block
-		if BETTERUI.Inventory._splitStackLock then
-			return false
-		end
+	-- Hook ZO_StackSplit_SplitItem to prevent duplicate dialogs using a lock flag.
+    -- Uses ZO_PreHook instead of replacing the global function.
+    if not BETTERUI.Inventory._splitStackHookInstalled and type(ZO_PreHook) == "function" then
+        ZO_PreHook("ZO_StackSplit_SplitItem", function(inventorySlotControl)
+            if BETTERUI.Inventory._splitStackLock then
+                return true
+            end
 
-		-- Set lock BEFORE showing dialog
-		BETTERUI.Inventory._splitStackLock = true
+            BETTERUI.Inventory._splitStackLock = true
 
-		-- Call original - dialog will show
-		local result = originalSplitItem(inventorySlotControl)
+            local function ReleaseSplitLockIfNoDialog()
+                if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then
+                    BETTERUI.Inventory._splitStackLock = nil
+                end
+            end
 
-		-- If dialog didn't show (e.g., item not splittable), clear lock immediately
-		if not result then
-			BETTERUI.Inventory._splitStackLock = nil
-		end
-		-- Otherwise, lock will be cleared by OnHiddenCallback in Inventory.lua
+            if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+                BETTERUI.Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 250, ReleaseSplitLockIfNoDialog)
+            else
+                zo_callLater(ReleaseSplitLockIfNoDialog, 250)
+            end
 
-		return result
-	end
+            return false
+        end)
+        BETTERUI.Inventory._splitStackHookInstalled = true
+    end
 
 	-- Configure tooltip appearance and behavior
 	ZO_GamepadTooltipTopLevelLeftTooltipContainer.tip.maxFadeGradientSize = BETTERUI.CIM.CONST
