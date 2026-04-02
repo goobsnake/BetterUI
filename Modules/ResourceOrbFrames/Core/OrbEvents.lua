@@ -15,6 +15,20 @@ local CORE_STATUS_TICK_MS = 100
 
 -- Import combat indicator module
 local CI = BETTERUI.ResourceOrbFrames.CombatIndicators or {}
+local SPECIAL_SCENE_HIDE_REASON = "ResourceOrbFramesSpecialScene"
+local SPECIAL_SCENE_NAME_SET = {
+    TamrielTomesIntroSceneGamepad = true,
+    TamrielTomesSceneGamepad = true,
+    TamrielTomesPurchaseSceneGamepad = true,
+    TamrielTomesRewardPreviewSceneGamepad = true,
+    tamrielTomesPurchasePreview_Gamepad = true,
+    TamrielTomesIntroSceneKeyboard = true,
+    TamrielTomesSceneKeyboard = true,
+    TamrielTomesPurchaseSceneKeyboard = true,
+    TimedActivitiesGamepad = true,
+    TimedActivitiesKeyboard = true,
+    bookSetGamepad = true,
+}
 
 local m_combatIndicatorRootFrame = nil
 local m_hasRegisteredCombatIndicators = false
@@ -158,6 +172,54 @@ function Events.SetupVisibilityFragments(rootFrame)
             return result
         end
     end
+
+    local function IsSpecialSceneActive()
+        if not SCENE_MANAGER then
+            return false
+        end
+
+        local sceneName = nil
+        if SCENE_MANAGER.GetCurrentSceneName then
+            sceneName = SCENE_MANAGER:GetCurrentSceneName()
+        end
+        if sceneName == nil and SCENE_MANAGER.GetCurrentScene then
+            local scene = SCENE_MANAGER:GetCurrentScene()
+            if scene and scene.GetName then
+                sceneName = scene:GetName()
+            end
+        end
+
+        return sceneName ~= nil and SPECIAL_SCENE_NAME_SET[sceneName] == true
+    end
+
+    local m_specialSceneCallLaterId = nil
+    local function DeferredSyncSpecialSceneVisibility()
+        if m_specialSceneCallLaterId then
+            zo_removeCallLater(m_specialSceneCallLaterId)
+        end
+
+        m_specialSceneCallLaterId = zo_callLater(function()
+            m_specialSceneCallLaterId = nil
+            fragment:SetHiddenForReason(SPECIAL_SCENE_HIDE_REASON, IsSpecialSceneActive())
+        end, 0)
+    end
+
+    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, _, newState)
+            if newState == SCENE_SHOWING
+                or newState == SCENE_SHOWN
+                or newState == SCENE_HIDING
+                or newState == SCENE_HIDDEN
+            then
+                DeferredSyncSpecialSceneVisibility()
+            end
+        end)
+    end
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivatedSpecialSceneSync",
+        EVENT_PLAYER_ACTIVATED, function()
+            DeferredSyncSpecialSceneVisibility()
+        end)
 
     local lootScene = SCENE_MANAGER:GetScene("loot")
     if lootScene then

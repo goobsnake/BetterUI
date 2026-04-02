@@ -40,6 +40,8 @@ end
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
+local tamrielTomesSelectionGuardInstalled = false
+local TAMRIEL_TOMES_GUARD_RETRY_EVENT = "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"
 
 -- MIGRATIONS
 --[[
@@ -238,6 +240,54 @@ local function ApplyAPIPatches()
             -- Do not log to chat/debug as per user requirement. The keybind strip will
             -- continue, and duplicate handling was attempted (even if it failed gracefully).
         end
+    end
+
+    -- Guard against selecting non-reward placeholder rows in Tamriel Tomes grid navigation.
+    -- Some category jumps can surface placeholder rows as selectedData, which then crashes
+    -- keybind visibility callbacks that expect reward-data methods.
+    local function TryInstallTamrielTomesSelectionGuard()
+        if tamrielTomesSelectionGuardInstalled then
+            return true
+        end
+        if type(ZO_PreHook) ~= "function" or not ZO_TamrielTomesScreen_Shared then
+            return false
+        end
+
+        ZO_PreHook(ZO_TamrielTomesScreen_Shared, "SetSelectedTamrielTomesRewardData", function(self, newData)
+            if newData == nil then
+                return false
+            end
+
+            local isValidRewardData = type(newData) == "table"
+                and type(newData.CanClaimReward) == "function"
+                and type(newData.CanPreviewReward) == "function"
+                and type(newData.GetRewardData) == "function"
+
+            if isValidRewardData then
+                return false
+            end
+
+            if self and self.gridList and self.gridList.RefreshSelection then
+                zo_callLater(function()
+                    if self and self.gridList and self.gridList.RefreshSelection then
+                        self.gridList:RefreshSelection(true, true)
+                    end
+                end, 0)
+            end
+
+            return true
+        end)
+
+        tamrielTomesSelectionGuardInstalled = true
+        return true
+    end
+
+    if not TryInstallTamrielTomesSelectionGuard() and EVENT_MANAGER then
+        EVENT_MANAGER:RegisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED, function()
+            if TryInstallTamrielTomesSelectionGuard() then
+                EVENT_MANAGER:UnregisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED)
+            end
+        end)
     end
 
     patchesApplied = true
