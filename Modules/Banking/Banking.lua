@@ -148,7 +148,7 @@ local function BuildBankUpgradeDetailsLines()
     return details
 end
 
-local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
+local BANK_UPGRADE_DETAILS_TOP_SPACING = -20
 
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     if not tooltip or not details or not details.rows or #details.rows == 0 then
@@ -169,7 +169,7 @@ local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
         AddDetailsStatValuePair(row.stat, row.value)
     end
 
-    -- Push the bank-upgrade block lower so it sits closer to the tooltip bottom edge.
+    -- Keep the bank-upgrade block close to the currency rows in the same tooltip.
     detailsMainSection:SetNextSpacing(BANK_UPGRADE_DETAILS_TOP_SPACING)
     detailsMainSection:AddSection(detailsSection)
     tooltip:AddSection(detailsMainSection)
@@ -867,6 +867,29 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 table.insert(parametricList, 1, moveMaxAction) -- Insert at top for easy access
             end
 
+            -- Add "Stow All Furniture" for Furniture Vault deposit mode.
+            -- BetterUI uses X-hold for Clear Search, so surface this action in Y-menu instead.
+            local bankingBag = GetBankingBag and GetBankingBag() or nil
+            local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
+                and IsFurnitureVault
+                and IsFurnitureVault(bankingBag)
+                and HOUSING_EDITOR_STATE
+                and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
+                and HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+                and (type(StowAllFurnitureItems) == "function")
+            if canShowStowAllFurniture then
+                local stowAllEntry = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_STOW_ALL_FURNITURE))
+                stowAllEntry:SetIconTintOnSelection(true)
+                stowAllEntry.isBetterUIStowAllFurniture = true
+                stowAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                local listItem = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = stowAllEntry,
+                }
+                table.insert(parametricList, 1, listItem)
+            end
+
             -- Add "Sort" entry for header sort mode access
             if self.list and not self.list:IsEmpty() and self.EnterHeaderSortMode then
                 local sortEntry = ZO_GamepadEntryData:New(GetString(SI_BETTERUI_HEADER_SORT))
@@ -923,6 +946,16 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 self:SaveListPosition()
                 self:MoveItem(self.list, stackCount)
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                return
+            end
+
+            -- Handle custom "Stow All Furniture" action
+            if selectedEntry and selectedEntry.isBetterUIStowAllFurniture then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                self:SaveListPosition()
+                if type(StowAllFurnitureItems) == "function" then
+                    StowAllFurnitureItems()
+                end
                 return
             end
 

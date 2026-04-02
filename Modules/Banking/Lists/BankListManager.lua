@@ -37,6 +37,7 @@ local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
             { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+            { key = "junk",       name = GetString(SI_BETTERUI_INV_ITEM_JUNK),       filterType = nil,                       special = "junk",                                furnitureVaultJunk = true, iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
         }
     end
     local out = {}
@@ -78,6 +79,27 @@ Function: DoesItemMatchBankCategory
 Description: Wrapper for the shared category matching function.
 ]]
 local function DoesItemMatchBankCategory(itemData, category)
+    if category and category.furnitureVaultJunk then
+        local isJunk = itemData and itemData.isJunk == true
+        if not isJunk then
+            return false
+        end
+
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+            return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_FURNISHING)
+        end
+
+        if itemData and itemData.filterData then
+            for _, filterData in ipairs(itemData.filterData) do
+                if filterData == ITEMFILTERTYPE_FURNISHING then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
+
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
