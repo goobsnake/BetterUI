@@ -115,10 +115,12 @@ function BETTERUI.Inventory.HookActionDialog()
                 and BETTERUI.CIM.Utils.IsBankingSceneShowing()
 
             if invShowing or bankShowing then
+                dialog._betteruiManaged = true
                 -- Fire callback for BetterUI modules to populate the dialog
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_SETUP", dialog, data)
                 return
             end
+            dialog._betteruiManaged = false
             -- Original function for unsupported scenes
             ActionsDialogSetup(dialog, data)
         end,
@@ -131,17 +133,9 @@ function BETTERUI.Inventory.HookActionDialog()
 
         parametricList = {}, --we'll generate the entries on setup
         finishedCallback = function(dialog)
-            if
-                (
-                    BETTERUI.Settings.Modules["Inventory"].m_enabled
-                    and BETTERUI.CIM.Utils.IsInventorySceneShowing()
-                )
-                or (
-                    BETTERUI.Settings.Modules["Banking"].m_enabled
-                    and BETTERUI.CIM.Utils.IsBankingSceneShowing()
-                )
-            then
+            if dialog and dialog._betteruiManaged then
                 CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_FINISH", dialog)
+                dialog._betteruiManaged = nil
                 return
             end
             --original function
@@ -161,16 +155,7 @@ function BETTERUI.Inventory.HookActionDialog()
                 keybind = "DIALOG_PRIMARY",
                 text = GetString(SI_GAMEPAD_SELECT_OPTION),
                 callback = function(dialog)
-                    if
-                        (
-                            BETTERUI.Settings.Modules["Inventory"].m_enabled
-                            and BETTERUI.CIM.Utils.IsInventorySceneShowing()
-                        )
-                        or (
-                            BETTERUI.Settings.Modules["Banking"].m_enabled
-                            and BETTERUI.CIM.Utils.IsBankingSceneShowing()
-                        )
-                    then
+                    if dialog and dialog._betteruiManaged then
                         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_ACTION_DIALOG_BUTTON_CONFIRM", dialog)
                         return
                     end

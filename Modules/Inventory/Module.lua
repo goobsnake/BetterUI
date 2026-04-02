@@ -80,6 +80,14 @@ function BETTERUI.Inventory.Setup()
             local function ReleaseSplitLockIfNoDialog()
                 if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then
                     BETTERUI.Inventory._splitStackLock = nil
+                    if GAMEPAD_INVENTORY then
+                        if GAMEPAD_INVENTORY.RefreshItemActions then
+                            GAMEPAD_INVENTORY:RefreshItemActions()
+                        end
+                        if GAMEPAD_INVENTORY.RefreshKeybinds then
+                            GAMEPAD_INVENTORY:RefreshKeybinds()
+                        end
+                    end
                 end
             end
 

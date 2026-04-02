@@ -431,7 +431,23 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
         end
     end
     local function ActionDialogFinish()
-        if self.scene:IsShowing() then
+        local function RestoreInventoryAfterDialog()
+            if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+                return false
+            end
+
+            local sceneShowing = (self.scene and self.scene:IsShowing())
+                or BETTERUI.CIM.Utils.IsInventorySceneShowing()
+            if not sceneShowing then
+                return false
+            end
+
+            if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
+                self:RefreshCraftBagList()
+            elseif self.isInSelectionMode and self.RefreshItemList then
+                self:RefreshItemList()
+            end
+
             -- make sure to wipe out the keybinds added by dialog (skip if in header sort mode)
             if not self.isInHeaderSortMode then
                 self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
@@ -453,13 +469,37 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             else
                 self:RefreshItemActions()
             end
+
             --refresh so keybinds react to newly selected item (skip if in header sort mode)
             if not self.isInHeaderSortMode then
                 self:RefreshKeybinds()
             end
-            -- NOTE: Removed OnUpdate() call - it triggers RefreshItemList + RefreshItemActions
-            -- which duplicates the refresh we just did, causing flickering.
+            return true
         end
+
+        if RestoreInventoryAfterDialog() then
+            return
+        end
+
+        local retriesRemaining = 120
+        local retryTaskName = "actionDialogFinishRestore_"
+            .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0)
+        local function RetryRestore()
+            if RestoreInventoryAfterDialog() then
+                return
+            end
+            retriesRemaining = retriesRemaining - 1
+            if retriesRemaining <= 0 then
+                return
+            end
+            if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+                BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
+            else
+                zo_callLater(RetryRestore, 50)
+            end
+        end
+
+        RetryRestore()
     end
 
     local function ActionDialogButtonConfirm(dialog)
@@ -577,6 +617,24 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             return
         end
 
+        if selectedActionName == GetString(SI_ITEM_ACTION_SPLIT_STACK) then
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
+            end
+
+            if targetData and ZO_InventorySlot_TrySplitStack then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                ZO_InventorySlot_TrySplitStack(targetData)
+            end
+            return
+        end
+
         -- Link to chat handling; hide for companion scene
         if selectedActionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
             local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
@@ -654,6 +712,27 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     if bag and slot then
                         CallSecureProtected("UseItem", bag, slot)
                     end
+                end
+            end
+            return
+        end
+
+        if selectedActionName == GetString(SI_ITEM_ACTION_PLACE_FURNITURE) then
+            local targetData
+            local actionMode = self.actionMode
+            if actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+            elseif actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+            else
+                targetData = self:GenerateItemSlotData(BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList))
+            end
+
+            if targetData then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                local bag, slot = ZO_Inventory_GetBagAndIndex(targetData.dataSource or targetData)
+                if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
+                    ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
                 end
             end
             return
