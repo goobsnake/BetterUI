@@ -385,67 +385,87 @@ end
 --- @param method3 string Tertiary method to hook (for store search).
 --- @param linkFunc3 function Tertiary link function.
 function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, method2, linkFunc2, method3, linkFunc3)
-    local newMethod = tooltipControl[method]
-    local newMethod2 = tooltipControl[method2]
-    local newMethod3 = tooltipControl[method3]
-    local bagId
-    local itemLink
-    local slotIndex
-    local storeItemLink
-    local storeStackCount
+    if not tooltipControl or not method or not method2 or not method3 then return end
+    if not tooltipControl[method] or not tooltipControl[method2] or not tooltipControl[method3] then return end
 
-    tooltipControl[method2] = function(self, ...)
-        -- Layer 1: Blocklist guard — if an incompatible scene (e.g., housing
-        -- furniture browser) is active, pass through to native method and skip
-        -- ALL BetterUI logic. This leaves the tooltip in native ESO state.
+    tooltipControl._betteruiInventoryHookState = tooltipControl._betteruiInventoryHookState or
+    {
+        installedHooks = {},
+        bagId = nil,
+        slotIndex = nil,
+        storeItemLink = nil,
+        storeStackCount = nil,
+        skipEnhancementForLayout = false,
+        pendingItemLink = nil,
+        pendingTooltipType = nil,
+    }
+    local state = tooltipControl._betteruiInventoryHookState
+    local hookKey = string.format("%s|%s|%s|%s", tostring(method), tostring(method2), tostring(method3), tostring(_tooltipType))
+    if state.installedHooks[hookKey] then return end
+    state.installedHooks[hookKey] = true
+
+    ZO_PreHook(tooltipControl, method2, function(self, ...)
         if IsIncompatibleSceneActive() then
-            newMethod2(self, ...)
+            state.skipEnhancementForLayout = true
+            state.bagId = nil
+            state.slotIndex = nil
+            state.storeItemLink = nil
+            state.storeStackCount = nil
             return
         end
-        -- Layer 2: pcall safety net for unknown future scene conflicts
-        local ok, b, s = pcall(linkFunc2, ...)
-        if ok then
-            bagId, slotIndex = b, s
+        if type(linkFunc2) == "function" then
+            local ok, b, s = pcall(linkFunc2, ...)
+            if ok then
+                state.bagId, state.slotIndex = b, s
+            else
+                state.bagId, state.slotIndex = nil, nil
+            end
         else
-            bagId, slotIndex = nil, nil
+            state.bagId, state.slotIndex = nil, nil
         end
         -- Clear store-specific state when navigating to a bag item
-        storeItemLink = nil
-        storeStackCount = nil
-        newMethod2(self, ...)
-    end
-    tooltipControl[method3] = function(self, ...)
-        -- Layer 1: Blocklist guard
+        state.storeItemLink = nil
+        state.storeStackCount = nil
+    end)
+
+    ZO_PreHook(tooltipControl, method3, function(self, ...)
         if IsIncompatibleSceneActive() then
-            newMethod3(self, ...)
+            state.skipEnhancementForLayout = true
+            state.storeItemLink = nil
+            state.storeStackCount = nil
+            state.bagId = nil
+            state.slotIndex = nil
             return
         end
-        -- Layer 2: pcall safety net
-        local ok, link, count = pcall(linkFunc3, ...)
-        if ok then
-            storeItemLink, storeStackCount = link, count
+        if type(linkFunc3) == "function" then
+            local ok, link, count = pcall(linkFunc3, ...)
+            if ok then
+                state.storeItemLink, state.storeStackCount = link, count
+            else
+                state.storeItemLink, state.storeStackCount = nil, nil
+            end
         else
-            storeItemLink, storeStackCount = nil, nil
+            state.storeItemLink, state.storeStackCount = nil, nil
         end
         -- Clear bag-specific state when navigating to a store item
-        bagId = nil
-        slotIndex = nil
-        newMethod3(self, ...)
-    end
-    tooltipControl[method] = function(self, ...)
-        -- Layer 1: Blocklist guard — if an incompatible scene is active, call
-        -- ONLY the native ESO tooltip method and return immediately. No BetterUI
-        -- state is modified, no link extraction runs, no deferred callbacks fire.
-        -- The user sees the native ESO tooltip exactly as the game intended.
-        if IsIncompatibleSceneActive() then
-            newMethod(self, ...)
+        state.bagId = nil
+        state.slotIndex = nil
+    end)
+
+    ZO_PreHook(tooltipControl, method, function(self, ...)
+        state.skipEnhancementForLayout = IsIncompatibleSceneActive()
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        -- If an incompatible scene is active, skip BetterUI enhancement path.
+        if state.skipEnhancementForLayout then
             return
         end
 
-        if storeItemLink then
-            itemLink = storeItemLink
-        else
-            -- Layer 2: pcall safety net for unknown future scene conflicts
+        local itemLink
+        if state.storeItemLink then
+            itemLink = state.storeItemLink
+        elseif type(linkFunc) == "function" then
             local ok, link = pcall(linkFunc, ...)
             if ok then
                 itemLink = link
@@ -455,13 +475,13 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         end
 
         -- Capture current item link for Status Hook/Inventory Update to read
-        local effectiveStoreStackCount = storeStackCount
-        if effectiveStoreStackCount == nil and bagId == nil and slotIndex == nil then
+        local effectiveStoreStackCount = state.storeStackCount
+        if effectiveStoreStackCount == nil and state.bagId == nil and state.slotIndex == nil then
             effectiveStoreStackCount = self._betterui_storeStackCount
         end
         self._betterui_itemLink = itemLink
-        self._betterui_bagId = bagId
-        self._betterui_slotIndex = slotIndex
+        self._betterui_bagId = state.bagId
+        self._betterui_slotIndex = state.slotIndex
         self._betterui_storeStackCount = effectiveStoreStackCount
 
         -- Reset price-rendered flag so the deferred injection can fire
@@ -469,15 +489,21 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         self._betterui_priceRendered = false
 
         -- Clear consumed store state to prevent it persisting to the next item
-        storeItemLink = nil
-        storeStackCount = nil
+        state.storeItemLink = nil
+        state.storeStackCount = nil
 
-        -- 1. Draw the standard tooltip first (other addon hooks fire within this call chain)
-        -- Layer 2: pcall safety net for the original layout method.
-        -- If this crashes from unexpected data in an unknown future scene,
-        -- we absorb rather than blanking the entire UI.
-        local layoutOk, layoutErr = pcall(newMethod, self, ...)
-        if not layoutOk then
+        state.pendingItemLink = itemLink
+        state.pendingTooltipType = _tooltipType
+    end)
+
+    ZO_PostHook(tooltipControl, method, function(self, ...)
+        local itemLink = state.pendingItemLink
+        local capturedTooltipType = state.pendingTooltipType
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        if state.skipEnhancementForLayout then
+            state.skipEnhancementForLayout = false
             return
         end
 
@@ -505,7 +531,6 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         -- market prices, and research trait info.
         if itemLink then
             local tooltipRef = self
-            local capturedTooltipType = _tooltipType
             local capturedItemLink = itemLink
 
             zo_callLater(function()
@@ -527,7 +552,6 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
                 BETTERUI.Inventory.UpdateTooltipEquippedText(capturedTooltipType, nil)
             end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
         end
-
 
         -- 5. Defer duplicate addon label cleanup to next frame
         -- Trading addons (TTC, MM, ATT) may hook LayoutItem AFTER BetterUI,
@@ -588,7 +612,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
                 ScanAndHideAddonLabels(tooltipRef)
             end, 2) -- 2ms delay: must run AFTER deferred header injection (1ms) to avoid hiding our own price labels
         end
-    end
+    end)
 end
 
 -- Passthrough helpers for tooltip hook data extraction
