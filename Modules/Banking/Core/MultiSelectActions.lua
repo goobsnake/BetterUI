@@ -83,16 +83,16 @@ local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
 end
 
 local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
+    if targetBankBag == FURNITURE_VAULT_BAG_ID and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
+        not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
+        return false
+    end
+
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
     end
 
     if targetBankBag == FURNITURE_VAULT_BAG_ID and IsFurnitureVaultGemmableItem(bagId, slotIndex) then
-        return false
-    end
-
-    local bindType = GetItemBindType and GetItemBindType(bagId, slotIndex)
-    if bindType == BIND_TYPE_ON_PICKUP_BACKPACK then
         return false
     end
 
@@ -282,7 +282,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
     -- Register dialog on first use
     local dialogName = "BETTERUI_BANKING_BATCH_ACTIONS_DIALOG"
     if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
+        local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             },
@@ -324,6 +324,13 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                 },
             },
         }
+        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+        elseif ZO_Dialogs_RegisterCustomDialog then
+            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+        else
+            ESO_Dialogs[dialogName] = dialogInfo
+        end
     end
 
     -- Build parametric list
@@ -358,6 +365,8 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         end
     ))
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
+    local dialogInfo = ESO_Dialogs[dialogName]
+    if not dialogInfo then return end
+    dialogInfo.parametricList = parametricList
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
 end

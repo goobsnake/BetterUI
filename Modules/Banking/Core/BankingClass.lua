@@ -26,6 +26,7 @@ BETTERUI.Banking.LIST_DEPOSIT                  = 2
 -- Module-scope state tracking (accessed via BETTERUI.Banking namespace)
 BETTERUI.Banking.lastUsedBank                  = 0
 BETTERUI.Banking.currentUsedBank               = 0
+BETTERUI.Banking.lastOpenedBankBag             = BAG_BANK
 BETTERUI.Banking.esoSubscriber                 = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)

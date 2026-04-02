@@ -25,12 +25,12 @@ end
 --[[
 Function: FindEmptySlotInBank
 Description: Helper to find the first empty slot in the currently used bank.
-Rationale: Checks main bank, then subscriber bank, or house bank if active.
+Rationale: Checks main bank (+ subscriber bank), or the active house/furniture storage bag.
 return: number, number - The bag ID and slot index of an empty slot.
 ]]
 local function FindEmptySlotInBank()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    if (IsHouseBankBag(GetBankingBag()) == false) then
+    if currentUsedBank == BAG_BANK then
         local emptySlotIndexBank = FindEmptySlotInBag(BAG_BANK)
         local emptySlotIndexSubscriber = FindEmptySlotInBag(BAG_SUBSCRIBER_BANK)
         if emptySlotIndexBank ~= nil then
@@ -74,11 +74,40 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local toBagStackCount
     local toBagStackCountMax
     local isToBagItemStackable
+    local isDepositing = (self.currentMode == LIST_DEPOSIT)
+    local targetBankBag = BETTERUI.Banking.currentUsedBank or BAG_BANK
     if quantity == nil then
         quantity = 1
     end
 
-    if self.currentMode == LIST_WITHDRAW then
+    if isDepositing then
+        local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
+        if targetIsFurnitureVault and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
+            not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
+            local blockedReason = IsESOPlusSubscriber and IsESOPlusSubscriber() and
+                SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, blockedReason)
+            return
+        end
+
+        if IsItemStolen and IsItemStolen(fromBag, fromBagIndex) then
+            local errorStringId = targetIsFurnitureVault and
+                SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE or
+                SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+            return
+        end
+
+        local isGemmableFurniture = targetIsFurnitureVault and CROWN_GEMIFICATION_MANAGER and
+            CROWN_GEMIFICATION_MANAGER.IsItemGemmable and
+            CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(fromBag), tonumber(fromBagIndex))
+        if isGemmableFurniture then
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE)
+            return
+        end
+    end
+
+    if not isDepositing then
         --we are withdrawing item from bank/subscriber bank bag
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindEmptySlotInBag(toBag)
@@ -188,7 +217,12 @@ function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     if self.confirmationMode then
         self:UpdateSpinnerConfirmation(DEACTIVATE_SPINNER, list)
     else
-        SCENE_MANAGER:HideCurrentScene()
+        -- Guard against scene stack corruption: this helper is also used by
+        -- lifecycle cleanup paths where the banking scene is already hidden.
+        -- Only hide when banking is currently the active scene.
+        if self.scene and self.scene.IsShowing and self.scene:IsShowing() then
+            SCENE_MANAGER:HideCurrentScene()
+        end
     end
 end
 

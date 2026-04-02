@@ -143,7 +143,7 @@ Constant: BETTERUI_BANKING_SCENE_NAME
 Description: Scene name used for banking interface registration.
 Used By: Banking.lua, WindowClass.lua (ToggleScene)
 ]]
-BETTERUI_BANKING_SCENE_NAME = "BETTERUI_BANKING"
+BETTERUI_BANKING_SCENE_NAME = "gamepad_banking"
 
 --[[
 Constant: BETTERUI.Banking.BANKING_INTERACTION

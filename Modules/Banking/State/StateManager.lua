@@ -18,16 +18,43 @@ local MODULES       = BETTERUI.CIM.CONST.MODULES
 -- HELPER FUNCTIONS (local)
 -------------------------------------------------------------------------------------------------
 
+local function IsHousingStorageBag(bagId)
+    if not bagId then
+        return false
+    end
+
+    if IsFurnitureVault and IsFurnitureVault(bagId) then
+        return true
+    end
+
+    if IsHouseBankBag and IsHouseBankBag(bagId) then
+        return true
+    end
+
+    return false
+end
+
 --[[
 Function: GetCurrentBankBag (local)
 Description: Determines the current bank bag ID.
 Rationale: Extracts common bank-determination logic used by multiple functions.
-return: number - BAG_BANK or the specific house bank bag ID.
+return: number - BAG_BANK, a house bank bag ID, or BAG_FURNITURE_VAULT.
 ]]
 local function GetCurrentBankBag()
-    if IsHouseBankBag(GetBankingBag()) then
-        return GetBankingBag()
+    local bankingBag = GetBankingBag()
+    local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
+
+    if bankingBag == BAG_BANK then
+        if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
+            return openedBankBag
+        end
+        return BAG_BANK
     end
+
+    if IsHousingStorageBag(bankingBag) then
+        return bankingBag
+    end
+
     return BAG_BANK
 end
 
@@ -48,7 +75,7 @@ end
 --[[
 Function: BETTERUI.Banking.Class:CurrentUsedBank
 Description: Updates the 'currentUsedBank' state.
-Rationale: Determines whether we are using the main bank (BAG_BANK) or a house bank.
+Rationale: Determines whether we are using the main bank, a house bank, or the Furniture Vault.
 Mechanism: Uses helper to determine bag, updates namespace.
 ]]
 function BETTERUI.Banking.Class:CurrentUsedBank()

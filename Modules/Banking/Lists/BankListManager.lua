@@ -36,7 +36,6 @@ Description: Builds the full list of bank categories.
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
-            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
             { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
         }
     end
@@ -56,6 +55,22 @@ local function BuildAllBankCategories(isFurnitureVault)
         end
     end
     return out
+end
+
+local function GetWithdrawStorageLabel(currentUsedBank, isEmpty)
+    if IsFurnitureVault and IsFurnitureVault(currentUsedBank) then
+        local furnitureVaultName = GetString(SI_GAMEPAD_INVENTORY_STACK_COUNT_BAG_FURNITURE_VAULT)
+        if isEmpty then
+            return GetString(SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY)
+        end
+        return furnitureVaultName
+    end
+
+    if isEmpty then
+        return GetString(SI_BETTERUI_BANK_HOUSE_EMPTY)
+    end
+
+    return GetString(SI_BETTERUI_BANK_HOUSE)
 end
 
 --[[
@@ -273,7 +288,7 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     -- Access shared state via namespace since we lack local context
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
 
-    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
+    local isFurnitureVault = IsFurnitureVault and IsFurnitureVault(currentUsedBank)
     local allCategories = BuildAllBankCategories(isFurnitureVault)
     -- Always include 'all' explicitly so currency rows can appear even if no items
     local visibility = {}
@@ -331,6 +346,15 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
             out[#out + 1] = cat
         end
     end
+
+    -- Keep Furniture Vault category navigation stable even when empty.
+    -- Without this, the vault can end up with zero categories and stale list UI paths.
+    if isFurnitureVault and #out == 0 and #allCategories > 0 then
+        local furnishingCategory = allCategories[1]
+        furnishingCategory.itemCount = 0
+        out[1] = furnishingCategory
+    end
+
     return out
 end
 
@@ -396,13 +420,9 @@ function BETTERUI.Banking.Class:RefreshList()
         end
     else
         if (self.currentMode == LIST_WITHDRAW) then
-            if (GetNumBagUsedSlots(currentUsedBank) == 0) then
-                self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE_EMPTY) .. "|r" })
-            else
-                self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE) .. "|r" })
-            end
+            local isStorageEmpty = (GetNumBagUsedSlots(currentUsedBank) == 0)
+            self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                { label = "|cFFFFFF" .. GetWithdrawStorageLabel(currentUsedBank, isStorageEmpty) .. "|r" })
         else
             if (GetNumBagUsedSlots(BAG_BACKPACK) == 0) then
                 self.list:AddEntry("BETTERUI_HeaderRow_Template",
