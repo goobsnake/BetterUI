@@ -343,22 +343,35 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     end
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
 
-    -- Count items per category (full scan for accurate counts)
-    local totalItems = 0
+    local function IsJunkCategory(category)
+        return category and (category.special == "junk" or category.furnitureVaultJunk == true)
+    end
+
+    -- Count items per category (full scan for accurate counts).
+    -- Match inventory behavior: regular categories (including "all") only count non-junk items,
+    -- while junk categories count only junk items.
+    local totalNonJunkItems = 0
     for i = 1, #data do
         local itemData = data[i]
-        totalItems = totalItems + 1
+        local isJunkItem = itemData and itemData.isJunk == true
+        if not isJunkItem then
+            totalNonJunkItems = totalNonJunkItems + 1
+        end
+
         for _, cat in ipairs(allCategories) do
             if cat.key ~= "all" then
-                if DoesItemMatchBankCategory(itemData, cat) then
+                local categoryIsJunk = IsJunkCategory(cat)
+                local categoryCanMatchItem = (isJunkItem and categoryIsJunk)
+                    or ((not isJunkItem) and (not categoryIsJunk))
+                if categoryCanMatchItem and DoesItemMatchBankCategory(itemData, cat) then
                     visibility[cat.key] = true
                     itemCounts[cat.key] = itemCounts[cat.key] + 1
                 end
             end
         end
     end
-    -- "All" category shows total item count
-    itemCounts["all"] = totalItems
+    -- "All" mirrors list filtering by excluding junk unless junk tab is selected.
+    itemCounts["all"] = totalNonJunkItems
 
     -- Build the final ordered list with only visible categories
     local out = {}

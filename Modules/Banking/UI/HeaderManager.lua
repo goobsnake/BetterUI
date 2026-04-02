@@ -60,9 +60,21 @@ Function: BETTERUI.Banking.Class:EnsureHeaderKeybindsActive
 Description: Activates the category tab bar keybinds.
 ]]
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
+    if self.isInHeaderSortMode then
+        return
+    end
+
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
-    if tabBar and tabBar.keybindStripDescriptor then
+    if not tabBar then
+        return
+    end
+
+    if tabBar.Activate and not tabBar.active then
         tabBar:Activate()
+    end
+
+    if tabBar.keybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
     end
 end
 

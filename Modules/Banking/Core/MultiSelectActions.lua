@@ -273,8 +273,9 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
         end
     end
 
-    -- If in withdraw mode, suppress junk actions (bank items can't be junked)
-    if not isDepositMode then
+    -- Furniture Vault does not support junk status; suppress junk actions in both modes.
+    local suppressJunkActions = self.IsFurnitureVaultContext and self:IsFurnitureVaultContext()
+    if suppressJunkActions then
         counts.canMarkJunkCount = 0
         counts.canUnmarkJunkCount = 0
     end
