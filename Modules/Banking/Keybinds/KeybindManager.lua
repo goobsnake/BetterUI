@@ -9,7 +9,47 @@ local LIST_WITHDRAW           = BETTERUI.Banking.LIST_WITHDRAW
 local LIST_DEPOSIT            = BETTERUI.Banking.LIST_DEPOSIT
 
 -- Import EnsureKeybindGroupAdded from Banking.lua (or where it lives)
+local function GetEntryBagAndSlot(entryData)
+    local rawData = entryData and (entryData.dataSource or entryData) or nil
+    if not rawData then
+        return nil, nil
+    end
+    return rawData.bagId, rawData.slotIndex
+end
 
+local function IsActionableListEntry(entryData)
+    if not entryData then
+        return false
+    end
+    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
+        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
+        return false
+    end
+
+    local bagId, slotIndex = GetEntryBagAndSlot(entryData)
+    if bagId == nil or slotIndex == nil then
+        return false
+    end
+
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    return stackCount > 0
+end
+
+local function IsMainBankContext()
+    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    if currentUsedBank == nil and GetBankingBag then
+        currentUsedBank = GetBankingBag()
+    end
+    return currentUsedBank == BAG_BANK
+end
+
+--[[
+Function: BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors
+Description: Creates trigger keybinds for fast scrolling the list.
+Note: Delegates to shared CIM factory for consistency.
+param: list (table) - The list control.
+return: table, table - Left and Right trigger keybind descriptors.
+]]
 function BETTERUI.Banking.Class:CreateListTriggerKeybindDescriptors(list)
     -- Pass Banking-specific speed getter and enabled getter so the saved settings are used
     return BETTERUI.CIM.Keybinds.CreateListTriggerKeybinds(list, nil, function()
@@ -33,9 +73,9 @@ function BETTERUI.Banking.Class:UpdateActions()
         return
     end
 
-    -- since SetInventorySlot also adds/removes keybinds, the order which we call these 2 functions is important
-    -- based on whether we are looking at an item or a faux-item
-    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated(targetData) then
+    -- Set itemActions only for actionable inventory items.
+    -- Faux rows (currency/header/empty labels) can crash ESO slot action discovery.
+    if not IsActionableListEntry(targetData) then
         self.itemActions:SetInventorySlot(nil)
     else
         self.itemActions:SetInventorySlot(targetData)
@@ -120,7 +160,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if GuildBank and GuildBank.IsGuildBankMode() then
                     return GetString(rawget(_G, "SI_TRADING_HOUSE_GUILD_LABEL")) or "Select Guild"
                 end
-                -- Personal bank: show bank upgrade
+                -- Bank-space upgrades are only valid in the player bank, not house banks/furniture vault.
+                if not IsMainBankContext() then
+                    return ""
+                end
                 local cost = GetNextBankUpgradePrice()
                 if not cost or cost <= 0 then
                     return ""
@@ -140,12 +183,15 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if GuildBank and GuildBank.IsGuildBankMode() then
                     return GetNumGuilds() > 1 and not self:IsBatchProcessing()
                 end
-                return IsBankUpgradeAvailable() and not self:IsBatchProcessing()
+                return IsMainBankContext() and IsBankUpgradeAvailable() and not self:IsBatchProcessing()
             end,
             enabled = function()
                 local GuildBank = BETTERUI.Banking.GuildBank
                 if GuildBank and GuildBank.IsGuildBankMode() then
                     return not GuildBank.IsLoading()
+                end
+                if not IsMainBankContext() then
+                    return false
                 end
                 local cost = GetNextBankUpgradePrice()
                 return cost ~= nil and GetCarriedCurrencyAmount(CURT_MONEY) >= cost
@@ -157,6 +203,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 local GuildBank = BETTERUI.Banking.GuildBank
                 if GuildBank and GuildBank.IsGuildBankMode() then
                     ZO_Dialogs_ShowGamepadDialog("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
+                if not IsMainBankContext() then
                     return
                 end
                 local cost = GetNextBankUpgradePrice()
@@ -192,13 +239,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
                     return self.multiSelectManager:HasSelections()
                 end
-                -- Normal mode: hide for currency rows
                 local selectedData = self:GetList() and self:GetList().selectedData
-                if not selectedData then return false end
-                if ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
+                if not IsActionableListEntry(selectedData) then
                     return false
                 end
-                return self.selectedItemUniqueId ~= nil or selectedData ~= nil
+                return true
             end,
             callback = function()
                 if self:IsBatchProcessing() then
@@ -211,6 +256,10 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                     self:ShowBatchActionsMenu()
                 else
                     -- Normal Y menu
+                    local selectedData = self:GetList() and self:GetList().selectedData
+                    if not IsActionableListEntry(selectedData) then
+                        return
+                    end
                     self:SaveListPosition()
                     self:ShowActions()
                 end
@@ -255,7 +304,7 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 -- Must have items available.
                 -- Hide when already in multi-select mode or batch processing.
                 local selectedData = self.list and self.list:GetSelectedData()
-                if not selectedData or ZO_GamepadBanking.IsEntryDataCurrencyRelated(selectedData) then
+                if not IsActionableListEntry(selectedData) then
                     return false
                 end
 
