@@ -502,6 +502,7 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "戦闘の開始�
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "ハウスバンクが空です！")
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "ハウスバンク")
+ZO_CreateStringId("SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY", "家具の宝物庫が空です！")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "プレイヤーバッグが空です！")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "プレイヤーバッグ")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "転送に必要な資金が不足しています。")

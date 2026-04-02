@@ -503,6 +503,7 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "进入和退出�
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "房屋银行为空！")
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "房屋银行")
+ZO_CreateStringId("SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY", "装饰品宝库为空！")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "玩家背包为空！")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "玩家背包")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "资金不足，无法转账。")

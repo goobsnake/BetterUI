@@ -620,6 +620,7 @@ ZO_CreateStringId("SI_BETTERUI_BOE_PROTECTION_TOOLTIP", "Show a dialog before eq
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "HOUSE BANK IS EMPTY!")
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "HOUSE BANK")
+ZO_CreateStringId("SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY", "FURNITURE VAULT IS EMPTY!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "PLAYER BAG IS EMPTY!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "PLAYER BAG")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Not enough funds available for transfer.")
