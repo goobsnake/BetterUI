@@ -51,6 +51,26 @@ local function FindEmptySlotInBank()
     end
 end
 
+local function IsActionableBankSlotEntry(entryData)
+    if not entryData then
+        return false
+    end
+    if ZO_GamepadBanking and ZO_GamepadBanking.IsEntryDataCurrencyRelated and
+        ZO_GamepadBanking.IsEntryDataCurrencyRelated(entryData) then
+        return false
+    end
+
+    local rawData = entryData.dataSource or entryData
+    local bagId = rawData and rawData.bagId or nil
+    local slotIndex = rawData and rawData.slotIndex or nil
+    if bagId == nil or slotIndex == nil then
+        return false
+    end
+
+    local stackCount = GetSlotStackSize and GetSlotStackSize(bagId, slotIndex) or 0
+    return stackCount > 0
+end
+
 --[[
 Function: BETTERUI.Banking.Class:MoveItem
 Description: Moves an item (Withdraw or Deposit) between bags.
@@ -293,6 +313,12 @@ Description: Shows the actions dialog for the selected item.
     for both Inventory and Banking scenes.
 ]]
 function BETTERUI.Banking.Class:ShowActions()
+    local list = self:GetList()
+    local targetData = list and list.selectedData or nil
+    if not IsActionableBankSlotEntry(targetData) then
+        return
+    end
+
     self:RemoveKeybinds()
 
     -- Clean up enhanced tooltip to prevent border artifacts when action dialog shows
@@ -307,8 +333,6 @@ function BETTERUI.Banking.Class:ShowActions()
         -- Keybinds are restored via ActionDialogFinish callback in Banking.lua
         -- Do not add keybinds here to prevent duplicate keybind strip entries
     end
-
-    local targetData = self:GetList().selectedData
 
     local dialogData =
     {
