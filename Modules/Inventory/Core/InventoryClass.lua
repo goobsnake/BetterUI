@@ -174,14 +174,24 @@ end
 --- References: Called by Module.lua.
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
-    GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
+    BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
+    local native = BETTERUI.Inventory.NativeGlobals
+    if native.gamepadInventoryRootScene == nil then
+        native.gamepadInventoryRootScene = GAMEPAD_INVENTORY_ROOT_SCENE
+    end
+    -- Never replace the inventory root scene object. Secure engine flows (book/tome,
+    -- direct-purchase catalog, etc.) assume the native scene chain is preserved.
+    local inventoryRootScene = native.gamepadInventoryRootScene or GAMEPAD_INVENTORY_ROOT_SCENE
+    if inventoryRootScene then
+        GAMEPAD_INVENTORY_ROOT_SCENE = inventoryRootScene
+    end
     -- Use UnifiedScreen initialization with CURRENCY footer mode
     BETTERUI.CIM.UnifiedScreen.Initialize(
         self,
         control,
         ZO_GAMEPAD_HEADER_TABBAR_CREATE,
         false,
-        GAMEPAD_INVENTORY_ROOT_SCENE,
+        inventoryRootScene,
         BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 
