@@ -1,4 +1,35 @@
-Current Release - v3.04 Changes:
+Current Release - v3.05 Changes:
+
+[INDENT]BANKING:
+1. Added: Furniture Vault support — deposit and withdraw furniture items directly from the BetterUI banking interface with full category navigation
+2. Added: "Stow All Furniture" action in the Y-menu when depositing into a Furniture Vault
+3. Added: Mark as Junk and Unmark as Junk actions for bank items via the Y-menu (player bank and house banks only), with batch junk/unjunk support
+4. Fixed: Keybinds and Y-menu actions no longer crash when a currency row, header row, or empty-state label is highlighted in the banking list
+5. Fixed: Bank upgrade keybind (Right thumb down) now only appears in the player bank context, not when viewing house banks or the Furniture Vault
+6. Fixed: Bank upgrade via keybind (Right thumb down) are now operational
+7. Fixed: Sort action should now display & work with LB & RB buttons to navigate columns
+
+INVENTORY:
+6. Changed: Tome Points (Endless Archive) currency is now enabled by default in all currency presets (Default, PvP, Crafter, Events) — existing installs on preset-based profiles are auto-migrated
+7. Fixed: Inventory no longer replaces the native scene chain — secure engine flows such as the Tamriel Tomes book viewer and direct-purchase catalog now work correctly without scene conflicts/lua errors
+
+RESOURCE ORB FRAMES:
+8. Fixed: Resource orbs now automatically hide during special full-screen scenes (Tamriel Tomes, Timed Activities, Book Set viewer) to prevent visual overlap
+
+TOOLTIPS:
+9. Fixed: Tamriel Tomes grid navigation no longer crashes when category jumps surface placeholder rows that lack expected reward data methods
+
+STABILITY & COMPATIBILITY:
+10. Improved: Replaced global method overrides with ZO_PreHook/PostHook across CIM, Inventory, and Resource Orb modules — eliminates taint on secure gamepad execution paths that previously caused protected chat send failures for some users
+11. Improved: Removed runtime monkeypatches of global ESO API functions (zo_iconFormat, ZO_KeybindStrip, ZO_IsIngameUI) that could corrupt secure gamepad keybind and chat callstacks
+12. Improved: List scroll constants and movement sounds moved from global scope into a namespaced table, preventing potential conflicts with other addons
+
+LOCALIZATION:
+13. Added: Furniture Vault empty-state strings across all 7 locales (de, en, es, fr, jp, ru, zh)
+[/INDENT]
+
+
+v3.04 Changes:
 
 [INDENT]INVENTORY & BANKING:
 1. Added: Bag Upgrade utility category — purchase backpack capacity upgrades directly from the inventory screen when upgrades are available
