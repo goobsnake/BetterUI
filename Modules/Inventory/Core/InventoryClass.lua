@@ -175,6 +175,10 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             return false
         end
 
+        if not self.isInHeaderSortMode and self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+        end
+
         -- Preserve selection visuals while in multi-select mode.
         if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
             self:RefreshCraftBagList()
@@ -198,18 +202,32 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             end
         end
 
-        -- During dialog transitions, selection can be temporarily nil while list data settles.
-        -- Retry until a valid selection is restored, unless the current list is truly empty.
-        if selectedList and selectedList.IsEmpty and not selectedData and not selectedList:IsEmpty() then
-            return false
+        if selectedList and not selectedData then
+            local innerList = selectedList.list or selectedList
+            local dataList = innerList and innerList.dataList
+            if dataList and #dataList > 0 then
+                local selectedIndex = nil
+                if innerList.GetSelectedIndex then
+                    selectedIndex = innerList:GetSelectedIndex()
+                else
+                    selectedIndex = innerList.selectedIndex
+                end
+                if type(selectedIndex) ~= "number" or selectedIndex < 1 or selectedIndex > #dataList then
+                    selectedIndex = self._preserveIndex or 1
+                end
+                selectedIndex = zo_clamp(selectedIndex, 1, #dataList)
+
+                if innerList.SetSelectedIndexWithoutAnimation then
+                    innerList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                elseif selectedList.SetSelectedIndexWithoutAnimation then
+                    selectedList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                end
+                selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+            end
         end
 
         if selectedData and self.SetSelectedInventoryData then
             self:SetSelectedInventoryData(selectedData)
-        end
-
-        if not self.isInHeaderSortMode and self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
-            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
         end
 
         if self.RefreshItemActions then
@@ -218,6 +236,10 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
 
         if not self.isInHeaderSortMode and self.RefreshKeybinds then
             self:RefreshKeybinds()
+        end
+
+        if selectedList and selectedList.IsEmpty and not selectedData and not selectedList:IsEmpty() then
+            return false
         end
 
         return true

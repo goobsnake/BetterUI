@@ -835,7 +835,10 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 		OnHiddenCallback = function(dialog)
 			BETTERUI.Inventory._splitStackLock = nil
 			local inv = GAMEPAD_INVENTORY
-			if inv and inv.RestoreStateAfterDialog then
+			local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+			if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
 				inv:RestoreStateAfterDialog("splitStackDialogPostHideRefresh")
 			end
 		end,
