@@ -61,6 +61,27 @@ function zo_callLater(callback, _)
     callback()
 end
 
+function ZO_PreHook(control, methodName, callback)
+    local original = control[methodName]
+    control[methodName] = function(self, ...)
+        local blocked = callback(self, ...)
+        if blocked then
+            return
+        end
+        return original(self, ...)
+    end
+end
+
+function ZO_PostHook(control, methodName, callback)
+    local original = control[methodName]
+    control[methodName] = function(self, ...)
+        local unpackFn = table.unpack or unpack
+        local results = { original(self, ...) }
+        callback(self, ...)
+        return unpackFn(results)
+    end
+end
+
 function GetSlotStackSize(_, _)
     error("GetSlotStackSize should not be called without bag context")
 end
@@ -280,6 +301,7 @@ local tooltipControl = {
     LayoutItem = function() end,
     LayoutBagItem = function() end,
     LayoutStoreItemFromLink = function() end,
+    ClearLines = function() end,
     GetNumChildren = function()
         return 0
     end,
@@ -311,6 +333,61 @@ BETTERUI.InventoryHook(
 tooltipControl._betterui_storeStackCount = 4
 tooltipControl:LayoutItem("item:stack")
 assertEqual(4, tooltipControl._betterui_storeStackCount, "Hook reuses tooltip-seeded store stack count")
+
+print("\nTest: Inventory hook clears stale enhancement state for non-item layouts")
+local cleanupCalls = 0
+local updateCalls = 0
+local origCleanup = BETTERUI.Inventory.CleanupEnhancedTooltip
+local origUpdateForStateTest = BETTERUI.Inventory.UpdateTooltipEquippedText
+
+BETTERUI.Inventory.CleanupEnhancedTooltip = function()
+    cleanupCalls = cleanupCalls + 1
+end
+
+BETTERUI.Inventory.UpdateTooltipEquippedText = function()
+    updateCalls = updateCalls + 1
+end
+
+local staleStateTooltip = {
+    LayoutItem = function() end,
+    LayoutBagItem = function() end,
+    LayoutStoreItemFromLink = function() end,
+    ClearLines = function() end,
+    GetNumChildren = function() return 0 end,
+    GetChild = function() return nil end,
+    IsHidden = function() return false end,
+}
+
+BETTERUI.InventoryHook(
+    staleStateTooltip,
+    "mockStateTooltip",
+    "LayoutItem",
+    function(itemLink)
+        return itemLink
+    end,
+    "LayoutBagItem",
+    function()
+        return 1, 2
+    end,
+    "LayoutStoreItemFromLink",
+    function() return nil, nil end
+)
+
+staleStateTooltip:LayoutBagItem()
+staleStateTooltip:LayoutItem("item:valid")
+assertEqual("item:valid", staleStateTooltip._betterui_itemLink, "Valid item layout keeps BetterUI item link")
+
+staleStateTooltip:LayoutItem("SKILL_TOOLTIP_ROW")
+assertEqual(nil, staleStateTooltip._betterui_itemLink, "Non-item layout clears BetterUI item link")
+assertEqual(nil, staleStateTooltip._betterui_bagId, "Non-item layout clears stale bag context")
+assertEqual(1, updateCalls, "Non-item layout does not schedule enhanced item header rendering")
+assertEqual(true, cleanupCalls >= 1, "Non-item layout requests enhanced tooltip cleanup")
+
+staleStateTooltip:ClearLines()
+assertEqual(true, cleanupCalls >= 2, "ClearLines hook resets BetterUI tooltip state")
+
+BETTERUI.Inventory.CleanupEnhancedTooltip = origCleanup
+BETTERUI.Inventory.UpdateTooltipEquippedText = origUpdateForStateTest
 
 print("\nTest: Knowledge helper reports recipe state and respects setting toggle")
 local unknownRecipeLines = BETTERUI.GetInventoryKnowledgeInfo("recipe:unknown")
