@@ -376,6 +376,51 @@ local function IsIncompatibleSceneActive()
     return false
 end
 
+local function IsLikelyItemLink(itemLink)
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return false
+    end
+
+    -- Live item links are fully formatted (|H1:item:...|h).
+    -- The "item:" fallback keeps unit tests lightweight without full link payloads.
+    return itemLink:find("|H", 1, true) ~= nil or itemLink:find("item:", 1, true) == 1
+end
+
+local function DoesBagContextMatchItemLink(bagId, slotIndex, itemLink)
+    if bagId == nil or slotIndex == nil or itemLink == nil then
+        return false
+    end
+    if type(GetItemLink) ~= "function" then
+        return true
+    end
+
+    local ok, bagItemLink = pcall(GetItemLink, bagId, slotIndex)
+    return ok and bagItemLink ~= nil and bagItemLink ~= "" and bagItemLink == itemLink
+end
+
+local function ClearTooltipEnhancementState(tooltipControl, tooltipType, state)
+    if state then
+        state.bagId = nil
+        state.slotIndex = nil
+        state.storeItemLink = nil
+        state.storeStackCount = nil
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+    end
+
+    if tooltipControl then
+        tooltipControl._betterui_itemLink = nil
+        tooltipControl._betterui_bagId = nil
+        tooltipControl._betterui_slotIndex = nil
+        tooltipControl._betterui_storeStackCount = nil
+        tooltipControl._betterui_priceRendered = nil
+    end
+
+    if tooltipType and BETTERUI.Inventory and type(BETTERUI.Inventory.CleanupEnhancedTooltip) == "function" then
+        BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
+    end
+end
+
 --- @param tooltipControl object The tooltip control to hook.
 --- @param _tooltipType any Tooltip type constant (reserved for future use).
 --- @param method string The method name to hook/override.
@@ -398,19 +443,24 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         skipEnhancementForLayout = false,
         pendingItemLink = nil,
         pendingTooltipType = nil,
+        clearLinesHookInstalled = false,
     }
     local state = tooltipControl._betteruiInventoryHookState
     local hookKey = string.format("%s|%s|%s|%s", tostring(method), tostring(method2), tostring(method3), tostring(_tooltipType))
     if state.installedHooks[hookKey] then return end
     state.installedHooks[hookKey] = true
 
+    if tooltipControl.ClearLines and not state.clearLinesHookInstalled then
+        ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
+            ClearTooltipEnhancementState(self, _tooltipType, state)
+        end)
+        state.clearLinesHookInstalled = true
+    end
+
     ZO_PreHook(tooltipControl, method2, function(self, ...)
         if IsIncompatibleSceneActive() then
             state.skipEnhancementForLayout = true
-            state.bagId = nil
-            state.slotIndex = nil
-            state.storeItemLink = nil
-            state.storeStackCount = nil
+            ClearTooltipEnhancementState(self, _tooltipType, state)
             return
         end
         if type(linkFunc2) == "function" then
@@ -431,10 +481,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
     ZO_PreHook(tooltipControl, method3, function(self, ...)
         if IsIncompatibleSceneActive() then
             state.skipEnhancementForLayout = true
-            state.storeItemLink = nil
-            state.storeStackCount = nil
-            state.bagId = nil
-            state.slotIndex = nil
+            ClearTooltipEnhancementState(self, _tooltipType, state)
             return
         end
         if type(linkFunc3) == "function" then
@@ -459,6 +506,7 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
 
         -- If an incompatible scene is active, skip BetterUI enhancement path.
         if state.skipEnhancementForLayout then
+            ClearTooltipEnhancementState(self, _tooltipType, state)
             return
         end
 
@@ -472,6 +520,19 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
             else
                 itemLink = nil
             end
+        end
+
+        -- Never reuse stale bag context from unrelated tooltip layouts.
+        if state.bagId ~= nil and state.slotIndex ~= nil
+            and not DoesBagContextMatchItemLink(state.bagId, state.slotIndex, itemLink) then
+            state.bagId = nil
+            state.slotIndex = nil
+        end
+
+        if not IsLikelyItemLink(itemLink) then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, _tooltipType, state)
+            return
         end
 
         -- Capture current item link for Status Hook/Inventory Update to read
@@ -525,8 +586,8 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
         -- 4. Universal enhanced tooltip header injection
         -- Deferred by 1 frame so Inventory/Banking's own UpdateTooltipEquippedText call
         -- gets first priority. If that function runs (setting _betterui_priceRendered),
-        -- the deferred injection skips. For all other scenes (guild store, merchant,
-        -- fence, crafting, companion, etc.), this fires and renders the full enhanced
+        -- the deferred injection skips. For valid item-link contexts (guild store,
+        -- merchant, fence, crafting, companion, etc.), this fires and renders the full enhanced
         -- header: lock, bound, bind type, traits, stolen, junk, bag/bank/craftbag counts,
         -- market prices, and research trait info.
         if itemLink then
@@ -549,7 +610,9 @@ function BETTERUI.InventoryHook(tooltipControl, _tooltipType, method, linkFunc, 
                 if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
 
                 -- Render full enhanced header (equipSlot=nil for non-equipped items)
-                BETTERUI.Inventory.UpdateTooltipEquippedText(capturedTooltipType, nil)
+                if BETTERUI.Inventory and type(BETTERUI.Inventory.UpdateTooltipEquippedText) == "function" then
+                    BETTERUI.Inventory.UpdateTooltipEquippedText(capturedTooltipType, nil)
+                end
             end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
         end
 
