@@ -11,21 +11,26 @@ Current Release - v3.05 Changes:
 
 INVENTORY:
 8. Changed: Tome Points (Endless Archive) currency is now enabled by default in all currency presets (Default, PvP, Crafter, Events) — existing installs on preset-based profiles are auto-migrated
-9. Fixed: Inventory no longer replaces the native scene chain — secure engine flows such as the Tamriel Tomes book viewer and direct-purchase catalog now work correctly without scene conflicts/lua errors
+9. Fixed: Place Furniture primary action now works correctly from inventory when inside a player house
+10. Fixed: Link to Chat primary action now works correctly from the inventory keybind strip
+11. Improved: Dialog state recovery — action dialogs (split stack, destroy, batch actions) now properly restore keybinds, list selection, and item state after completion or cancellation
+12. Fixed: Inventory no longer replaces the native scene chain — secure engine flows such as the Tamriel Tomes book viewer and direct-purchase catalog now work correctly without scene conflicts/lua errors
+13. Fixed: Split-stack lock no longer allows overlapping quantity dialogs and now reliably releases if dialog lifecycle callbacks are missed
 
 RESOURCE ORB FRAMES:
-10. Fixed: Resource orbs now automatically hide during special full-screen scenes (Tamriel Tomes, Timed Activities, Book Set viewer) to prevent visual overlap
+14. Fixed: Resource orbs now automatically hide during special full-screen scenes (Tamriel Tomes, Timed Activities, Book Set viewer) to prevent visual overlap
 
 TOOLTIPS:
-11. Fixed: Tamriel Tomes grid navigation no longer crashes when category jumps surface placeholder rows that lack expected reward data methods
+15. Fixed: Tamriel Tomes grid navigation no longer crashes when category jumps surface placeholder rows that lack expected reward data methods
+16. Fixed: Enhanced tooltip mode no longer applies stale enhancement data when hovering non-item entries (headers, currency rows, empty slots), preventing visual artifacts and errors
 
 STABILITY & COMPATIBILITY:
-12. Improved: Replaced global method overrides with ZO_PreHook/PostHook across CIM, Inventory, and Resource Orb modules — eliminates taint on secure gamepad execution paths that previously caused protected chat send failures for some users
-13. Improved: Removed runtime monkeypatches of global ESO API functions (zo_iconFormat, ZO_KeybindStrip, ZO_IsIngameUI) that could corrupt secure gamepad keybind and chat callstacks
-14. Improved: List scroll constants and movement sounds moved from global scope into a namespaced table, preventing potential conflicts with other addons
+17. Improved: Replaced global method overrides with ZO_PreHook/PostHook across CIM, Inventory, and Resource Orb modules — eliminates taint on secure gamepad execution paths that previously caused protected chat send failures for some users
+18. Improved: Removed runtime monkeypatches of global ESO API functions (zo_iconFormat, ZO_KeybindStrip, ZO_IsIngameUI) that could corrupt secure gamepad keybind and chat callstacks
+19. Improved: List scroll constants and movement sounds moved from global scope into a namespaced table, preventing potential conflicts with other addons
 
 LOCALIZATION:
-15. Added: Furniture Vault empty-state strings across all 7 locales (de, en, es, fr, jp, ru, zh)
+20. Added: Furniture Vault empty-state strings across all 7 locales (de, en, es, fr, jp, ru, zh)
 [/INDENT]
 
 
