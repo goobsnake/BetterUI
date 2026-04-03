@@ -151,8 +151,41 @@ function BETTERUI.Inventory.Setup()
 		-- If dialog didn't show (e.g., item not splittable), clear lock immediately
 		if not result then
 			BETTERUI.Inventory._splitStackLock = nil
+			return result
 		end
-		-- Otherwise, lock will be cleared by OnHiddenCallback in Inventory.lua
+		-- Otherwise, lock will be cleared by OnHiddenCallback in Dialogs/InventoryDialogs.lua.
+		local retriesRemaining = 20
+		local function ReleaseSplitLockIfNoDialog()
+			if ZO_Dialogs_IsShowing and not ZO_Dialogs_IsShowing(ZO_GAMEPAD_SPLIT_STACK_DIALOG) then
+				BETTERUI.Inventory._splitStackLock = nil
+				local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+					and BETTERUI.CIM.Utils.IsInventorySceneShowing
+					and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+				if inventorySceneShowing and GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RestoreStateAfterDialog then
+					GAMEPAD_INVENTORY:RestoreStateAfterDialog("splitStackLockFallbackRelease")
+				end
+				return
+			end
+
+			retriesRemaining = retriesRemaining - 1
+			if retriesRemaining <= 0 then
+				-- Safety release to avoid persistent lock if dialog lifecycle callbacks are missed.
+				BETTERUI.Inventory._splitStackLock = nil
+				return
+			end
+
+			if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+				BETTERUI.Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 100, ReleaseSplitLockIfNoDialog)
+			else
+				zo_callLater(ReleaseSplitLockIfNoDialog, 100)
+			end
+		end
+
+		if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+			BETTERUI.Inventory.Tasks:Schedule("splitStackLockFallbackRelease", 120, ReleaseSplitLockIfNoDialog)
+		else
+			zo_callLater(ReleaseSplitLockIfNoDialog, 120)
+		end
 
 		return result
 	end

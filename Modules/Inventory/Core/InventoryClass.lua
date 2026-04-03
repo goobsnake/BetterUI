@@ -166,6 +166,128 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
 end
 
+--[[
+Function: RestoreStateAfterDialog
+Description: Rebuilds inventory keybind/list state after dialog transitions.
+Rationale: Dialog stack transitions can temporarily leave keybind visibility and
+           action data stale until another selection-change event occurs.
+Mechanism: Waits until dialogs fully close, then restores active keybinds,
+           refreshes item actions, and refreshes keybind strip.
+param: taskName (string|nil) - Optional task identifier prefix for retries.
+]]
+function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
+    local retriesRemaining = 120
+    local retryTaskName = (taskName or "inventoryDialogRestore")
+        .. "_"
+        .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0)
+
+    local function TryRestore()
+        if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+            return false
+        end
+
+        local sceneShowing = (self.scene and self.scene:IsShowing())
+            or BETTERUI.CIM.Utils.IsInventorySceneShowing()
+        if not sceneShowing then
+            return false
+        end
+
+        if not self.isInHeaderSortMode and self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+        end
+
+        -- Preserve selection visuals while in multi-select mode.
+        if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
+            self:RefreshCraftBagList()
+        elseif self.isInSelectionMode and self.RefreshItemList then
+            self:RefreshItemList()
+        end
+
+        local selectedData = nil
+        local selectedList = nil
+        if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+            selectedList = self.craftBagList
+            selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+        elseif self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+            selectedList = self.itemList
+            selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+        elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+            selectedList = self:GetCurrentList()
+            selectedData = selectedList and BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+            if selectedData and selectedList == self.categoryList then
+                selectedData = self:GenerateItemSlotData(selectedData)
+            end
+        end
+
+        if selectedList and not selectedData then
+            local innerList = selectedList.list or selectedList
+            local dataList = innerList and innerList.dataList
+            if dataList and #dataList > 0 then
+                local selectedIndex = nil
+                if innerList.GetSelectedIndex then
+                    selectedIndex = innerList:GetSelectedIndex()
+                else
+                    selectedIndex = innerList.selectedIndex
+                end
+                if type(selectedIndex) ~= "number" or selectedIndex < 1 or selectedIndex > #dataList then
+                    selectedIndex = self._preserveIndex or 1
+                end
+                selectedIndex = zo_clamp(selectedIndex, 1, #dataList)
+
+                if innerList.SetSelectedIndexWithoutAnimation then
+                    innerList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                elseif selectedList.SetSelectedIndexWithoutAnimation then
+                    selectedList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                end
+                selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+            end
+        end
+
+        if selectedData and self.SetSelectedInventoryData then
+            self:SetSelectedInventoryData(selectedData)
+        end
+
+        if self.RefreshItemActions then
+            self:RefreshItemActions()
+        end
+
+        if not self.isInHeaderSortMode and self.RefreshKeybinds then
+            self:RefreshKeybinds()
+        end
+
+        if selectedList and selectedList.IsEmpty and not selectedData and not selectedList:IsEmpty() then
+            return false
+        end
+
+        return true
+    end
+
+    if TryRestore() then
+        return true
+    end
+
+    local function RetryRestore()
+        if TryRestore() then
+            return
+        end
+
+        retriesRemaining = retriesRemaining - 1
+        if retriesRemaining <= 0 then
+            return
+        end
+
+        if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+            BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
+        else
+            zo_callLater(RetryRestore, 50)
+        end
+    end
+
+    RetryRestore()
+    return false
+end
+
+--------------------------------------------------------------------------------
 -- INITIALIZATION
 
 

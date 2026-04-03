@@ -123,6 +123,13 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 		-- This must fire BEFORE keybinds are restored to prevent re-triggering
 		OnHiddenCallback = function(dialog)
 			BETTERUI.Inventory._splitStackLock = nil
+			local inv = GAMEPAD_INVENTORY
+			local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+			if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
+				inv:RestoreStateAfterDialog("splitStackDialogPostHideRefresh")
+			end
 		end,
 	})
 end
