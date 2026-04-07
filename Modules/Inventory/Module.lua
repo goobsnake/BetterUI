@@ -65,7 +65,7 @@ function BETTERUI.Inventory.InitModule(m_options)
                     showCurrencyUndauntedKeys = true,
                     showCurrencyOutfitTokens = true,
                     showCurrencySeals = true,
-                    showCurrencyTomePoints = false,
+                    showCurrencyTomePoints = true,
                     orderCurrencyGold = 1,
                     orderCurrencyAlliancePoints = 2,
                     orderCurrencyTelVar = 3,
@@ -90,6 +90,16 @@ function BETTERUI.Inventory.InitModule(m_options)
             if options["currencyOrder"] == nil then
                 options["currencyOrder"] =
                 "gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"
+            end
+
+            -- Migration: preset-based profiles should inherit newly enabled tome points.
+            -- Do not override custom profiles.
+            local activeCurrencyPreset = options["currencyPreset"]
+            if activeCurrencyPreset ~= "custom" and BETTERUI.CURRENCY_PRESETS then
+                local activePresetData = BETTERUI.CURRENCY_PRESETS[activeCurrencyPreset]
+                if type(activePresetData) == "table" and activePresetData["showCurrencyTomePoints"] == true then
+                    options["showCurrencyTomePoints"] = true
+                end
             end
         end)
 

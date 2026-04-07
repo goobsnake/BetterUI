@@ -144,6 +144,11 @@ end
 -- CLASS: BETTERUI_HorizontalParametricScrollList
 -- Base class for horizontal parametric lists.
 BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
+local LIST_ORIENTATION = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.ORIENTATION) or
+{
+    VERTICAL = true,
+    HORIZONTAL = false,
+}
 
 --- Creates a new horizontal parametric scroll list.
 ---@param control table
@@ -154,7 +159,7 @@ BETTERUI_HorizontalParametricScrollList = ZO_ParametricScrollList:Subclass()
 function BETTERUI_HorizontalParametricScrollList:New(control, onActivatedChangedFunction, onCommitWithItemsFunction,
                                                      onClearedFunction)
     onActivatedChangedFunction = onActivatedChangedFunction or ZO_GamepadOnDefaultScrollListActivatedChanged
-    local list = ZO_ParametricScrollList.New(self, control, PARAMETRIC_SCROLL_LIST_HORIZONTAL, onActivatedChangedFunction,
+    local list = ZO_ParametricScrollList.New(self, control, LIST_ORIENTATION.HORIZONTAL, onActivatedChangedFunction,
         onCommitWithItemsFunction, onClearedFunction)
     list:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)
     list:SetPlaySoundFunction(BETTERUI.GamepadParametricScrollListPlaySound)

@@ -26,6 +26,59 @@ function BETTERUI.Banking.Class:RefreshItemActions()
     self.itemActions:SetInventorySlot(targetData)
 end
 
+function BETTERUI.Banking.Class:IsFurnitureVaultContext()
+    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    if currentUsedBank == nil and GetBankingBag then
+        currentUsedBank = GetBankingBag()
+    end
+    return currentUsedBank ~= nil and IsFurnitureVault and IsFurnitureVault(currentUsedBank)
+end
+
+function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
+    local requestedCategoryKey = preferredCategoryKey
+    if not requestedCategoryKey and self.bankCategories and self.currentCategoryIndex then
+        local currentCategory = self.bankCategories[self.currentCategoryIndex]
+        requestedCategoryKey = currentCategory and currentCategory.key or nil
+    end
+
+    BETTERUI.Banking.Tasks:Schedule("junkCategoryRefresh", delayMs or 140, function()
+        if not BETTERUI.Utils.IsBankingSceneShowing() then
+            return
+        end
+
+        if self:IsBatchProcessing() then
+            self:RequestJunkCategoryRefresh(120, requestedCategoryKey)
+            return
+        end
+
+        self.isDirty = true
+        self.bankCategories = self:ComputeVisibleBankCategories()
+        if not self.bankCategories or #self.bankCategories == 0 then
+            self.currentCategoryIndex = 1
+            self:RefreshList()
+            return
+        end
+
+        local desiredCategoryIndex = 1
+        if requestedCategoryKey then
+            for i, category in ipairs(self.bankCategories) do
+                if category.key == requestedCategoryKey then
+                    desiredCategoryIndex = i
+                    break
+                end
+            end
+        end
+
+        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        state.suppressHeaderCallback = true
+        self:RebuildHeaderCategories()
+        state.suppressHeaderCallback = false
+        self:RefreshList()
+        self:RefreshActiveKeybinds()
+    end)
+end
+
 ---@param self BetterUIBankingClass
 ---@param targetData table?
 local function EnsureTargetSlotType(self, targetData)
@@ -68,8 +121,16 @@ end
 local function PopulateFilteredActions(self, parametricList)
     local actions = self.itemActions:GetSlotActions()
     local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
+    local markAsJunkName = GetString(SI_ITEM_ACTION_MARK_AS_JUNK)
+    local unmarkAsJunkName = GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
     BETTERUI.CIM.PopulateActionEntries(parametricList, actions, {
         hideDestroy = hideDestroyInDeposit,
+        filterCallback = function(actionName)
+            if actionName == markAsJunkName or actionName == unmarkAsJunkName then
+                return false
+            end
+            return true
+        end,
     })
 end
 
@@ -78,6 +139,54 @@ end
 --- Initializes the Y Button Actions Dialog with callbacks.
 ---@return nil
 function BETTERUI.Banking.Class:InitializeActionsDialog()
+    local function GetCurrentCategoryKey()
+        local category = self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1] or nil
+        return category and category.key or nil
+    end
+
+    local function CanShowBankingJunkActions(targetData)
+        if not targetData or not targetData.bagId or not targetData.slotIndex then
+            return false
+        end
+        if self:IsFurnitureVaultContext() then
+            return false
+        end
+        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
+            return false
+        end
+        return true
+    end
+
+    local function ToggleBankingItemJunk(targetData, shouldMarkAsJunk)
+        if not targetData or not targetData.bagId or not targetData.slotIndex then
+            return false
+        end
+        if self:IsFurnitureVaultContext() then
+            return false
+        end
+        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
+            return false
+        end
+
+        local isCurrentlyJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
+        if shouldMarkAsJunk then
+            if isCurrentlyJunk then
+                return false
+            end
+            if not CanItemBeMarkedAsJunk or not CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex) then
+                return false
+            end
+        else
+            if not isCurrentlyJunk then
+                return false
+            end
+        end
+
+        SetItemIsJunk(targetData.bagId, targetData.slotIndex, shouldMarkAsJunk)
+        self:RequestJunkCategoryRefresh(140, GetCurrentCategoryKey())
+        return true
+    end
+
     local function ActionDialogSetup(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
@@ -110,6 +219,52 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                     entryData = entryData,
                 }
                 table.insert(parametricList, 1, moveMaxAction)
+            end
+
+            local bankingBag = GetBankingBag and GetBankingBag() or nil
+            local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
+                and IsFurnitureVault
+                and IsFurnitureVault(bankingBag)
+                and HOUSING_EDITOR_STATE
+                and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
+                and HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+                and (type(StowAllFurnitureItems) == "function")
+            if canShowStowAllFurniture then
+                local stowAllEntry = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_STOW_ALL_FURNITURE))
+                stowAllEntry:SetIconTintOnSelection(true)
+                stowAllEntry.isBetterUIStowAllFurniture = true
+                stowAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
+                table.insert(parametricList, 1, {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = stowAllEntry,
+                })
+            end
+
+            if CanShowBankingJunkActions(targetData) then
+                local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
+                local canMarkAsJunk = CanItemBeMarkedAsJunk and CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex)
+                local junkActionName = nil
+                local markAsJunk = false
+                if isJunk then
+                    junkActionName = GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK)
+                    markAsJunk = false
+                elseif canMarkAsJunk then
+                    junkActionName = GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK)
+                    markAsJunk = true
+                end
+
+                if junkActionName then
+                    local junkEntry = ZO_GamepadEntryData:New(junkActionName)
+                    junkEntry:SetIconTintOnSelection(true)
+                    junkEntry.isBetterUIBankJunkToggle = true
+                    junkEntry.markAsJunk = markAsJunk
+                    junkEntry.targetData = targetData
+                    junkEntry.setup = ZO_SharedGamepadEntry_OnSetup
+                    table.insert(parametricList, {
+                        template = "ZO_GamepadItemEntryTemplate",
+                        entryData = junkEntry,
+                    })
+                end
             end
 
             -- Add "Sort" entry for header sort mode access
@@ -157,6 +312,21 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
     local function ActionDialogButtonConfirm(dialog)
         if BETTERUI.Utils.IsBankingSceneShowing() then
             local selectedEntry = dialog.entryList and dialog.entryList:GetTargetData()
+            if selectedEntry and selectedEntry.isBetterUIStowAllFurniture then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                self:SaveListPosition()
+                if type(StowAllFurnitureItems) == "function" then
+                    StowAllFurnitureItems()
+                end
+                return
+            end
+
+            if selectedEntry and selectedEntry.isBetterUIBankJunkToggle then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                ToggleBankingItemJunk(selectedEntry.targetData, selectedEntry.markAsJunk == true)
+                return
+            end
+
             if selectedEntry and selectedEntry.isBetterUIStackTransfer then
                 local stackCount = selectedEntry.stackCount or 1
                 self:SaveListPosition()

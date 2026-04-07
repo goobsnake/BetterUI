@@ -203,7 +203,16 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             local data = nil
 
             -- SPECIAL CATEGORIES
-            if catDef.key == "Equipped" then
+            if catDef.utilityAction == "bag_upgrade" then
+                local currentUnlock = (GetCurrentBackpackUpgrade and GetCurrentBackpackUpgrade()) or 0
+                local maxUnlock = (GetMaxBackpackUpgrade and GetMaxBackpackUpgrade()) or currentUnlock
+                if currentUnlock < maxUnlock then
+                    local name = GetString(catDef.nameStringId or SI_INVENTORY_BAG_UPGRADE_LABEL)
+                    data = ZO_GamepadEntryData:New(name, catDef.iconFile)
+                    data.isBagSpaceEntry = true
+                    shouldAdd = true
+                end
+            elseif catDef.key == "Equipped" then
                 local usedBagSize = GetNumBagUsedSlots(BAG_WORN)
                 if usedBagSize > 0 then
                     local name = GetString(catDef.nameStringId)
@@ -258,6 +267,9 @@ function BETTERUI.Inventory.Class:RefreshCategoryList()
             end
 
             if shouldAdd and data then
+                if catDef.key then
+                    data.key = catDef.key
+                end
                 data:SetIconTintOnSelection(true)
                 self.categoryList:AddEntry("BETTERUI_GamepadItemEntryTemplate", data)
                 BETTERUI.GenericHeader.AddToList(self.header, data)

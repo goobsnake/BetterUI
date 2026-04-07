@@ -8,6 +8,17 @@ local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryUtils = BETTERUI.Inventory.Utils
 
+local function IsBagUpgradeAvailable()
+    local currentUnlock = (GetCurrentBackpackUpgrade and GetCurrentBackpackUpgrade()) or 0
+    local maxUnlock = (GetMaxBackpackUpgrade and GetMaxBackpackUpgrade()) or currentUnlock
+    return currentUnlock < maxUnlock
+end
+
+local function IsBagUpgradeCategorySelected(self)
+    local selectedCategory = self and self.categoryList and self.categoryList.selectedData
+    return selectedCategory and selectedCategory.isBagSpaceEntry == true and IsBagUpgradeAvailable()
+end
+
 local function GetCurrentTarget(self)
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         return InventoryUtils.SafeGetTargetData(self.craftBagList)
@@ -136,12 +147,18 @@ function InventoryKeybinds.HasStableActionsTarget(self)
     return true
 end
 
+InventoryKeybinds.IsBagUpgradeCategorySelected = IsBagUpgradeCategorySelected
+
 ---@param self table Inventory class instance
 ---@return string name Localized keybind label for primary action
 function InventoryKeybinds.GetPrimaryKeybindName(self)
     if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE
         and self.actionMode ~= InventoryConst.CRAFT_BAG_ACTION_MODE then
         return ""
+    end
+
+    if IsBagUpgradeCategorySelected(self) then
+        return GetString(SI_INVENTORY_BAG_UPGRADE_LABEL)
     end
 
     local target = GetCurrentTarget(self)
@@ -192,6 +209,10 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
         return false
     end
 
+    if IsBagUpgradeCategorySelected(self) then
+        return true
+    end
+
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
         local target = self.itemList and self.itemList.selectedData
         if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
@@ -214,6 +235,11 @@ end
 ---@return nil
 function InventoryKeybinds.HandlePrimaryKeybind(self)
     if self:IsBatchProcessing() then
+        return
+    end
+
+    if IsBagUpgradeCategorySelected(self) then
+        ZO_Dialogs_ShowGamepadDialog("BUY_BAG_SPACE_FROM_INVENTORY_GAMEPAD", { cost = GetNextBackpackUpgradePrice() })
         return
     end
 

@@ -160,6 +160,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             BAG_BACKPACK,
             function()
                 return self.actionMode == InventoryConst.ITEM_LIST_ACTION_MODE
+                    and not InventoryKeybinds.IsBagUpgradeCategorySelected(self)
                     and not self:IsBatchProcessing()
             end
         ),
@@ -179,6 +180,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             disabledDuringSceneHiding = true,
             visible = function()
                 return not self:IsBatchProcessing()
+                    and not InventoryKeybinds.IsBagUpgradeCategorySelected(self)
             end,
             callback = function()
                 if self:IsBatchProcessing() then

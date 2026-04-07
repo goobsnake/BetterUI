@@ -93,7 +93,9 @@ function BETTERUI.Inventory.HookDestroyItem()
 
     ZO_PreHook("ZO_InventorySlot_InitiateDestroyItem", function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-        if not bag or not index then return false end
+        if not bag or not index then
+            return false
+        end
 
         local quick = BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
 

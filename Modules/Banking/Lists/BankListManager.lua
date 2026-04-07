@@ -98,6 +98,7 @@ function BETTERUI.Banking.Class:RefreshList()
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     local GuildBankAdapter = BETTERUI.Banking.GuildBank
     local isGuildBankActive = GuildBankAdapter and GuildBankAdapter.IsGuildBankMode()
+    local isFurnitureVaultContext = currentUsedBank and IsFurnitureVault and IsFurnitureVault(currentUsedBank)
 
     if currentUsedBank == BAG_BANK or isGuildBankActive then
         if not activeCategory or activeCategory.key == "all" then
@@ -136,8 +137,11 @@ function BETTERUI.Banking.Class:RefreshList()
         end
     elseif self.currentMode == LIST_WITHDRAW then
         if GetNumBagUsedSlots(currentUsedBank) == 0 then
+            local emptyStringId = isFurnitureVaultContext
+                and SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY
+                or SI_BETTERUI_BANK_HOUSE_EMPTY
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE_EMPTY")) .. "|r" })
+                { label = "|cFFFFFF" .. GetString(rawget(_G, emptyStringId)) .. "|r" })
         else
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
                 { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE")) .. "|r" })

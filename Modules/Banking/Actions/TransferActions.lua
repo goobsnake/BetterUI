@@ -53,6 +53,14 @@ local function IsActionableBankSlotEntry(entryData)
     return stackCount > 0
 end
 
+local function IsDepositAllowedForCurrentBank(bagId, slotIndex, targetBankBag)
+    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
+    if helpers and type(helpers.IsDepositSupportedForBank) == "function" then
+        return helpers.IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
+    end
+    return true
+end
+
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
 ---@param list table The parametric list to get selected data from
 ---@param quantity integer? Number of items to move (default 1)
@@ -145,6 +153,10 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
+        local targetBankBag = BETTERUI.Banking.currentUsedBank or BAG_BANK
+        if not IsDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag) then
+            return
+        end
         toBag, toBagEmptyIndex = FindEmptySlotInBank()
     end
 
@@ -198,7 +210,9 @@ end
 function BETTERUI.Banking.Class:CancelWithdrawDeposit(list)
     local DEACTIVATE_SPINNER = false
     if not self.confirmationMode then
-        SCENE_MANAGER:HideCurrentScene()
+        if self.scene and self.scene.IsShowing and self.scene:IsShowing() then
+            SCENE_MANAGER:HideCurrentScene()
+        end
         return
     end
 
