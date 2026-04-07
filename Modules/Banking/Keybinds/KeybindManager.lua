@@ -203,6 +203,8 @@ function BETTERUI.Banking.Class:InitializeKeybind()
                 local GuildBank = BETTERUI.Banking.GuildBank
                 if GuildBank and GuildBank.IsGuildBankMode() then
                     ZO_Dialogs_ShowGamepadDialog("BETTERUI_GUILD_BANK_CHANGE_ACTIVE_GUILD")
+                    return
+                end
                 if not IsMainBankContext() then
                     return
                 end
