@@ -224,8 +224,15 @@ Modules\WritUnit\Templates\WritsPanel.xml
 Modules\WritUnit\Core\Writ.lua
 Modules\WritUnit\Module.lua
 
-; Module: Trading House (TH-001 scaffold) — disabled until real functionality exists
-; Modules\TradingHouse\Module.lua
+; Module: Trading House (TH-001)
+Modules\TradingHouse\Module.lua
+Modules\TradingHouse\Core\TradingHouseClass.lua
+Modules\TradingHouse\Core\TradingHouseRowSetup.lua
+Modules\TradingHouse\Components\BrowseComponent.lua
+Modules\TradingHouse\Components\SellComponent.lua
+Modules\TradingHouse\Components\ListingsComponent.lua
+Modules\TradingHouse\TradingHouse.lua
+Modules\TradingHouse\Settings\SettingsPanel.lua
 
 ; Module: Vendor (ECO-002)
 Modules\Vendor\Module.lua

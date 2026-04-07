@@ -60,6 +60,7 @@ local MODULE_REGISTRY = {
 	},
 	{ name = "Banking", namespace = "Banking", dependsOnCIM = true },
 	{ name = "Vendor", namespace = "Vendor", dependsOnCIM = true },
+	{ name = "TradingHouse", namespace = "TradingHouse", dependsOnCIM = true },
 	{ name = "Companions", namespace = "Companions", dependsOnCIM = true },
 
 	-- Independent modules
@@ -81,6 +82,7 @@ BETTERUI.version = "3.05"
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Vendor = BETTERUI.Vendor or {}
+BETTERUI.TradingHouse = BETTERUI.TradingHouse or {}
 BETTERUI.Companions = BETTERUI.Companions or {}
 BETTERUI.Writs = BETTERUI.Writs or {}
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -122,6 +124,7 @@ function BETTERUI.UpdateCIMState()
 		BETTERUI.GetModuleEnabled("Inventory") or
 		BETTERUI.GetModuleEnabled("Banking") or
 		BETTERUI.GetModuleEnabled("Vendor") or
+		BETTERUI.GetModuleEnabled("TradingHouse") or
 		BETTERUI.GetModuleEnabled("Companions")
 	BETTERUI.SetSetting("CIM", "m_enabled", shouldEnable)
 end
@@ -222,6 +225,21 @@ local function NormalizeModuleToggleSortName(name)
 			end,
 			setFunc = function(value)
 				BETTERUI.SetSetting("Companions", "m_enabled", value)
+				BETTERUI.UpdateCIMState()
+			end,
+			width = "full",
+			requiresReload = true,
+		},
+		{
+			sortKey = "Trading House",
+			type = "checkbox",
+			name = GetStringByName("SI_BETTERUI_ENABLE_TRADING_HOUSE"),
+			tooltip = GetStringByName("SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP"),
+			getFunc = function()
+				return BETTERUI.GetModuleEnabled("TradingHouse")
+			end,
+			setFunc = function(value)
+				BETTERUI.SetSetting("TradingHouse", "m_enabled", value)
 				BETTERUI.UpdateCIMState()
 			end,
 			width = "full",

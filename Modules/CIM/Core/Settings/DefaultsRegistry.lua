@@ -21,6 +21,7 @@ BETTERUI.Defaults.FirstInstall = {
     Inventory = true,         -- Core feature, showcase
     Banking = true,           -- Core feature, showcase
     Vendor = true,            -- Core feature, enhanced vendor/fence
+    TradingHouse = true,      -- Enhanced guild store / trading house
     Companions = true,        -- Companion equipment manager
     GeneralInterface = true,  -- Enhanced tooltips, QoL
     ResourceOrbFrames = true, -- Per user request
@@ -199,9 +200,31 @@ BETTERUI.Defaults.Modules = {
         showIconUnknownBook = true,
     },
 
+    -- TRADING HOUSE MODULE
+    TradingHouse = {
+        -- Display Features
+        enableCarousel = true, -- Modern tab navigation
+
+        -- Icon Visibility (all on by default)
+        showIconEnchantment = true,
+        showIconSetGear = true,
+        showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
+    },
+
     -- COMPANIONS MODULE
     Companions = {
         enableCompanionEquipment = true,
+
+        -- Icon Visibility (all on by default)
+        showIconEnchantment = true,
+        showIconSetGear = true,
+        showIconUnboundItem = true,
+        showIconResearchableTrait = true,
+        showIconUnknownRecipe = true,
+        showIconUnknownBook = true,
     },
 }
 
