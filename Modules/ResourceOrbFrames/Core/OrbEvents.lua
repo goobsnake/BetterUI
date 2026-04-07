@@ -15,6 +15,20 @@ local NAME = "ResourceOrbFrames"
 local COOLDOWN_VISUAL_TICK_MS = 16
 local CORE_STATUS_TICK_MS = 100
 local DEFAULT_COMBAT_GLOW_COLOR = { 1, 0.3, 0.1, 0.8 }
+local SPECIAL_SCENE_HIDE_REASON = "ResourceOrbFramesSpecialScene"
+local SPECIAL_SCENE_NAME_SET = {
+    TamrielTomesIntroSceneGamepad = true,
+    TamrielTomesSceneGamepad = true,
+    TamrielTomesPurchaseSceneGamepad = true,
+    TamrielTomesRewardPreviewSceneGamepad = true,
+    tamrielTomesPurchasePreview_Gamepad = true,
+    TamrielTomesIntroSceneKeyboard = true,
+    TamrielTomesSceneKeyboard = true,
+    TamrielTomesPurchaseSceneKeyboard = true,
+    TimedActivitiesGamepad = true,
+    TimedActivitiesKeyboard = true,
+    bookSetGamepad = true,
+}
 
 local m_combatIndicatorRootFrame = nil
 local m_combatGlowTimelinesByControl = {}
@@ -565,24 +579,57 @@ function Events.SetupVisibilityFragments(rootFrame)
         DeferredEnforceHide(100)
     end)
 
-    -- Guard: Check SCENE_MANAGER exists before overriding methods
-    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDScene then
-        local originalRestoreHUDScene = SCENE_MANAGER.RestoreHUDScene
-        SCENE_MANAGER.RestoreHUDScene = function(self, ...)
-            local result = originalRestoreHUDScene(self, ...)
-            DeferredEnforceHide(50)
-            return result
+    local function IsSpecialSceneActive()
+        if not SCENE_MANAGER then
+            return false
         end
+
+        local sceneName = nil
+        if SCENE_MANAGER.GetCurrentSceneName then
+            sceneName = SCENE_MANAGER:GetCurrentSceneName()
+        end
+        if sceneName == nil and SCENE_MANAGER.GetCurrentScene then
+            local scene = SCENE_MANAGER:GetCurrentScene()
+            if scene and scene.GetName then
+                sceneName = scene:GetName()
+            end
+        end
+
+        return sceneName ~= nil and SPECIAL_SCENE_NAME_SET[sceneName] == true
     end
 
-    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDUIScene then
-        local originalRestoreHUDUIScene = SCENE_MANAGER.RestoreHUDUIScene
-        SCENE_MANAGER.RestoreHUDUIScene = function(self, ...)
-            local result = originalRestoreHUDUIScene(self, ...)
-            DeferredEnforceHide(50)
-            return result
+    local m_specialSceneCallLaterId = nil
+    local function DeferredSyncSpecialSceneVisibility()
+        if m_specialSceneCallLaterId then
+            zo_removeCallLater(m_specialSceneCallLaterId)
         end
+
+        m_specialSceneCallLaterId = zo_callLater(function()
+            m_specialSceneCallLaterId = nil
+            fragment:SetHiddenForReason(SPECIAL_SCENE_HIDE_REASON, IsSpecialSceneActive())
+        end, 0)
     end
+
+    if SCENE_MANAGER and SCENE_MANAGER.RegisterCallback then
+        SCENE_MANAGER:RegisterCallback("SceneStateChanged", function(_, _, newState)
+            if newState == SCENE_SHOWING
+                or newState == SCENE_SHOWN
+                or newState == SCENE_HIDING
+                or newState == SCENE_HIDDEN
+            then
+                DeferredSyncSpecialSceneVisibility()
+            end
+        end)
+    end
+
+    BETTERUI.CIM.EventRegistry.Register("ResourceOrbFrames", NAME .. "_PlayerActivatedSpecialSceneSync",
+        EVENT_PLAYER_ACTIVATED, function()
+            DeferredSyncSpecialSceneVisibility()
+        end)
+
+    -- IMPORTANT:
+    -- Do not replace SCENE_MANAGER methods here. Global scene-manager monkeypatches
+    -- can taint protected gamepad execution paths (including chat send).
 
     local lootScene = SCENE_MANAGER:GetScene("loot")
     if lootScene then

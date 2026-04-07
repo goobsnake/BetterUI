@@ -237,6 +237,8 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         [SI_ITEM_ACTION_SHOW_MAP] = true,
         [SI_ITEM_ACTION_START_SKILL_RESPEC] = true,
         [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
+        [SI_ITEM_ACTION_PLACE_FURNITURE] = true,
+        [SI_ITEM_ACTION_LINK_TO_CHAT] = true,
     }
 
     -- Build a name-based lookup table for O(1) access
@@ -280,8 +282,36 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
     --- @param actionName string The localized name of the action.
     --- @param inventorySlot table The inventory slot data.
     local function SetupPrimaryAction(slotActions, actionName, inventorySlot)
+        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+            SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+            SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+        if IsPrimaryAction(actionName, SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+            return
+        end
+
         if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_PLACE_FURNITURE) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_PLACE_FURNITURE, function(...)
+                if inventorySlot then
+                    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                    if bag and slot then
+                        ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+                    end
+                end
+            end, inventorySlot)
+        elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_LINK_TO_CHAT) then
+            SetupSecureAction(slotActions, SI_ITEM_ACTION_LINK_TO_CHAT, function(...)
+                if inventorySlot then
+                    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                    if bag and slot then
+                        local itemLink = GetItemLink(bag, slot)
+                        if itemLink then
+                            ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                        end
+                    end
+                end
+            end, inventorySlot)
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_EQUIP,
                 function(...) GAMEPAD_INVENTORY:TryEquipItem(inventorySlot, ZO_Dialogs_IsShowingDialog()) end,
@@ -315,14 +345,6 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
         elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
             SetupSecureAction(slotActions, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC,
                 function(...) TryUseItem(inventorySlot) end, inventorySlot)
-        end
-
-        local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
-            SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
-            SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-        if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
-            -- Do not add Link to Chat action when in companion equipment scene to avoid insecure chat submits
-            return
         end
     end
 
@@ -453,7 +475,9 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG) or
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SHOW_MAP) or
                 IsPrimaryAction(primaryAction, SI_ITEM_ACTION_START_SKILL_RESPEC) or
-                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_PLACE_FURNITURE) or
+                IsPrimaryAction(primaryAction, SI_ITEM_ACTION_LINK_TO_CHAT) then
                 SetupPrimaryAction(slotActions, primaryAction, inventorySlot)
             end
             -- NOTE: Split Stack is NOT handled here - _betterui_primaryOverride above already sets it up

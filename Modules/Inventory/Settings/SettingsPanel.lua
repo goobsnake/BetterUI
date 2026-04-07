@@ -374,7 +374,7 @@ function BETTERUI.Inventory.InitModule(m_options)
 		if m_options["showCurrencyUndauntedKeys"] == nil then m_options["showCurrencyUndauntedKeys"] = true end
 		if m_options["showCurrencyOutfitTokens"] == nil then m_options["showCurrencyOutfitTokens"] = true end
 		if m_options["showCurrencySeals"] == nil then m_options["showCurrencySeals"] = true end
-		if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = false end
+		if m_options["showCurrencyTomePoints"] == nil then m_options["showCurrencyTomePoints"] = true end
 
 		if m_options["orderCurrencyGold"] == nil then m_options["orderCurrencyGold"] = 1 end
 		if m_options["orderCurrencyAlliancePoints"] == nil then m_options["orderCurrencyAlliancePoints"] = 2 end
@@ -391,6 +391,17 @@ function BETTERUI.Inventory.InitModule(m_options)
 	end
 
 	if m_options["currencyPreset"] == nil then m_options["currencyPreset"] = "default" end
+
+	-- Migration: Existing installs on preset-based profiles should pick up newly enabled tome points.
+	-- Do not touch custom profiles.
+	local activeCurrencyPreset = m_options["currencyPreset"]
+	if activeCurrencyPreset ~= "custom" and BETTERUI.CURRENCY_PRESETS then
+		local activePresetData = BETTERUI.CURRENCY_PRESETS[activeCurrencyPreset]
+		if type(activePresetData) == "table" and activePresetData["showCurrencyTomePoints"] == true then
+			m_options["showCurrencyTomePoints"] = true
+		end
+	end
+
 	if m_options["currencyOrder"] == nil then
 		m_options["currencyOrder"] =
 		"gold,ap,telvar,keys,transmute,crowns,gems,writs,tradebars,outfit,seals,tomepoints"

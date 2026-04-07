@@ -36,8 +36,8 @@ Description: Builds the full list of bank categories.
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
-            { key = "all",        name = GetString(SI_BETTERUI_INV_ITEM_ALL),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
             { key = "furnishing", name = GetString(SI_BETTERUI_INV_ITEM_FURNISHING), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+            { key = "junk",       name = GetString(SI_BETTERUI_INV_ITEM_JUNK),       filterType = nil,                       special = "junk",                                furnitureVaultJunk = true, iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
         }
     end
     local out = {}
@@ -58,11 +58,48 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
+local function GetWithdrawStorageLabel(currentUsedBank, isEmpty)
+    if IsFurnitureVault and IsFurnitureVault(currentUsedBank) then
+        local furnitureVaultName = GetString(SI_GAMEPAD_INVENTORY_STACK_COUNT_BAG_FURNITURE_VAULT)
+        if isEmpty then
+            return GetString(SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY)
+        end
+        return furnitureVaultName
+    end
+
+    if isEmpty then
+        return GetString(SI_BETTERUI_BANK_HOUSE_EMPTY)
+    end
+
+    return GetString(SI_BETTERUI_BANK_HOUSE)
+end
+
 --[[
 Function: DoesItemMatchBankCategory
 Description: Wrapper for the shared category matching function.
 ]]
 local function DoesItemMatchBankCategory(itemData, category)
+    if category and category.furnitureVaultJunk then
+        local isJunk = itemData and itemData.isJunk == true
+        if not isJunk then
+            return false
+        end
+
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+            return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_FURNISHING)
+        end
+
+        if itemData and itemData.filterData then
+            for _, filterData in ipairs(itemData.filterData) do
+                if filterData == ITEMFILTERTYPE_FURNISHING then
+                    return true
+                end
+            end
+        end
+
+        return false
+    end
+
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
@@ -273,7 +310,7 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     -- Access shared state via namespace since we lack local context
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
 
-    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
+    local isFurnitureVault = IsFurnitureVault and IsFurnitureVault(currentUsedBank)
     local allCategories = BuildAllBankCategories(isFurnitureVault)
     -- Always include 'all' explicitly so currency rows can appear even if no items
     local visibility = {}
@@ -306,22 +343,35 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
     end
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
 
-    -- Count items per category (full scan for accurate counts)
-    local totalItems = 0
+    local function IsJunkCategory(category)
+        return category and (category.special == "junk" or category.furnitureVaultJunk == true)
+    end
+
+    -- Count items per category (full scan for accurate counts).
+    -- Match inventory behavior: regular categories (including "all") only count non-junk items,
+    -- while junk categories count only junk items.
+    local totalNonJunkItems = 0
     for i = 1, #data do
         local itemData = data[i]
-        totalItems = totalItems + 1
+        local isJunkItem = itemData and itemData.isJunk == true
+        if not isJunkItem then
+            totalNonJunkItems = totalNonJunkItems + 1
+        end
+
         for _, cat in ipairs(allCategories) do
             if cat.key ~= "all" then
-                if DoesItemMatchBankCategory(itemData, cat) then
+                local categoryIsJunk = IsJunkCategory(cat)
+                local categoryCanMatchItem = (isJunkItem and categoryIsJunk)
+                    or ((not isJunkItem) and (not categoryIsJunk))
+                if categoryCanMatchItem and DoesItemMatchBankCategory(itemData, cat) then
                     visibility[cat.key] = true
                     itemCounts[cat.key] = itemCounts[cat.key] + 1
                 end
             end
         end
     end
-    -- "All" category shows total item count
-    itemCounts["all"] = totalItems
+    -- "All" mirrors list filtering by excluding junk unless junk tab is selected.
+    itemCounts["all"] = totalNonJunkItems
 
     -- Build the final ordered list with only visible categories
     local out = {}
@@ -331,6 +381,15 @@ function BETTERUI.Banking.Class.ComputeVisibleBankCategories(self)
             out[#out + 1] = cat
         end
     end
+
+    -- Keep Furniture Vault category navigation stable even when empty.
+    -- Without this, the vault can end up with zero categories and stale list UI paths.
+    if isFurnitureVault and #out == 0 and #allCategories > 0 then
+        local furnishingCategory = allCategories[1]
+        furnishingCategory.itemCount = 0
+        out[1] = furnishingCategory
+    end
+
     return out
 end
 
@@ -396,13 +455,9 @@ function BETTERUI.Banking.Class:RefreshList()
         end
     else
         if (self.currentMode == LIST_WITHDRAW) then
-            if (GetNumBagUsedSlots(currentUsedBank) == 0) then
-                self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE_EMPTY) .. "|r" })
-            else
-                self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                    { label = "|cFFFFFF" .. GetString(SI_BETTERUI_BANK_HOUSE) .. "|r" })
-            end
+            local isStorageEmpty = (GetNumBagUsedSlots(currentUsedBank) == 0)
+            self.list:AddEntry("BETTERUI_HeaderRow_Template",
+                { label = "|cFFFFFF" .. GetWithdrawStorageLabel(currentUsedBank, isStorageEmpty) .. "|r" })
         else
             if (GetNumBagUsedSlots(BAG_BACKPACK) == 0) then
                 self.list:AddEntry("BETTERUI_HeaderRow_Template",

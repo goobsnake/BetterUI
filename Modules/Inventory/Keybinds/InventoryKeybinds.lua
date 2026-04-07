@@ -299,6 +299,10 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
                         return false
                     end
+                    return true
+                end
+                if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+                    return true
                 end
                 -- FLICKER FIX: Hide button during action transition when actionName cleared
                 -- This prevents showing incorrect fallback text after equip/unequip
@@ -351,6 +355,18 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                         self.itemActions.actionName = nil
                     end
 
+                    -- Defensive check: selected data can be stale right after a dialog closes.
+                    local currentTarget = nil
+                    if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                        currentTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                    elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+                        currentTarget = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+                    end
+                    -- No valid target means no safe primary action to invoke.
+                    if not currentTarget then
+                        return
+                    end
+
                     -- Use itemActions to execute the discovered primary action
                     if self.itemActions and self.itemActions.slotActions then
                         local slotActions = self.itemActions.slotActions
@@ -382,8 +398,51 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                                     end
                                 end
                             end
+                        elseif actionName == GetString(SI_ITEM_ACTION_PLACE_FURNITURE) then
+                            local ds = currentTarget.dataSource or currentTarget
+                            local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+                            if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
+                                ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+                            end
                         else
-                            slotActions:DoPrimaryAction()
+                            local function HasExecutablePrimaryAction(actions)
+                                if not actions then
+                                    return false
+                                end
+                                if actions._betterui_primaryOverride then
+                                    return true
+                                end
+                                if not actions.m_slotActions or #actions.m_slotActions == 0 then
+                                    return false
+                                end
+
+                                local primaryActionName = actions:GetPrimaryActionName()
+                                if primaryActionName then
+                                    for i = 1, #actions.m_slotActions do
+                                        local actionEntry = actions.m_slotActions[i]
+                                        if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
+                                            return true
+                                        end
+                                    end
+                                end
+
+                                local firstAction = actions.m_slotActions[1]
+                                return firstAction and type(firstAction[2]) == "function"
+                            end
+
+                            if HasExecutablePrimaryAction(slotActions) then
+                                slotActions:DoPrimaryAction()
+                            else
+                                self:RefreshItemActions()
+                                local refreshedSlotActions = self.itemActions and self.itemActions.slotActions
+                                if refreshedSlotActions and HasExecutablePrimaryAction(refreshedSlotActions) then
+                                    if refreshedSlotActions._betterui_primaryOverride then
+                                        refreshedSlotActions._betterui_primaryOverride()
+                                    else
+                                        refreshedSlotActions:DoPrimaryAction()
+                                    end
+                                end
+                            end
                         end
                     else
                         -- Fallback: direct equip/use if itemActions not available
@@ -460,6 +519,9 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
             -- (no hold callbacks here; tap behavior preserved)
             visible = function()
                 if self:IsBatchProcessing() then
+                    return false
+                end
+                if self.itemActions and self.itemActions.actionName == GetString(SI_ITEM_ACTION_LINK_TO_CHAT) then
                     return false
                 end
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then

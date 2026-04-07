@@ -302,7 +302,7 @@ BETTERUI.CURRENCY_PRESETS = {
         orderCurrencyOutfitTokens = 10,
         showCurrencySeals = true,
         orderCurrencySeals = 11,
-        showCurrencyTomePoints = false,
+        showCurrencyTomePoints = true,
         orderCurrencyTomePoints = 12,
     },
     pvp = {
@@ -328,7 +328,7 @@ BETTERUI.CURRENCY_PRESETS = {
         orderCurrencyCrownGems = 10,
         showCurrencyWritVouchers = false,
         orderCurrencyWritVouchers = 11,
-        showCurrencyTomePoints = false,
+        showCurrencyTomePoints = true,
         orderCurrencyTomePoints = 12,
     },
     crafter = {
@@ -354,7 +354,7 @@ BETTERUI.CURRENCY_PRESETS = {
         orderCurrencyCrowns = 10,
         showCurrencyCrownGems = false,
         orderCurrencyCrownGems = 11,
-        showCurrencyTomePoints = false,
+        showCurrencyTomePoints = true,
         orderCurrencyTomePoints = 12,
     },
     events = {
@@ -380,7 +380,7 @@ BETTERUI.CURRENCY_PRESETS = {
         orderCurrencyTelVar = 10,
         showCurrencyOutfitTokens = false,
         orderCurrencyOutfitTokens = 11,
-        showCurrencyTomePoints = false,
+        showCurrencyTomePoints = true,
         orderCurrencyTomePoints = 12,
     },
 }

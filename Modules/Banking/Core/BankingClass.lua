@@ -26,6 +26,7 @@ BETTERUI.Banking.LIST_DEPOSIT                  = 2
 -- Module-scope state tracking (accessed via BETTERUI.Banking namespace)
 BETTERUI.Banking.lastUsedBank                  = 0
 BETTERUI.Banking.currentUsedBank               = 0
+BETTERUI.Banking.lastOpenedBankBag             = BAG_BANK
 BETTERUI.Banking.esoSubscriber                 = nil
 
 -- Module-specific TaskManager for managed deferred tasks (Phase 1.1)
@@ -356,6 +357,54 @@ function BETTERUI.Banking.Class:InitializeHeaderSortController()
             headerControllerFn = function() return self.headerSortController end,
             initControllerFn = function() self:InitializeHeaderSortController() end,
         })
+
+        -- Banking keeps the category tab-bar active in list mode. Its ethereal LB/RB
+        -- keybind layer can shadow header-sort shoulder navigation unless we suspend it
+        -- while sort mode is active.
+        if not self._headerSortTabBarWrapInstalled then
+            self._headerSortTabBarWrapInstalled = true
+            local originalEnterHeaderSortMode = self.EnterHeaderSortMode
+            local originalExitHeaderSortMode = self.ExitHeaderSortMode
+
+            if originalEnterHeaderSortMode and originalExitHeaderSortMode then
+                self.EnterHeaderSortMode = function(instance, ...)
+                    local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
+                    instance._reactivateTabBarAfterHeaderSort = false
+
+                    if tabBar and tabBar.active and tabBar.Deactivate then
+                        tabBar:Deactivate()
+                        instance._reactivateTabBarAfterHeaderSort = true
+                    end
+
+                    originalEnterHeaderSortMode(instance, ...)
+
+                    -- If entry failed, immediately restore tab-bar behavior.
+                    if instance._reactivateTabBarAfterHeaderSort and not instance.isInHeaderSortMode then
+                        instance._reactivateTabBarAfterHeaderSort = false
+                        if tabBar and tabBar.Activate then
+                            tabBar:Activate()
+                        end
+                    end
+                end
+
+                self.ExitHeaderSortMode = function(instance, ...)
+                    local shouldReactivateTabBar = instance._reactivateTabBarAfterHeaderSort == true
+                    originalExitHeaderSortMode(instance, ...)
+
+                    if shouldReactivateTabBar then
+                        instance._reactivateTabBarAfterHeaderSort = false
+                        if instance.EnsureHeaderKeybindsActive then
+                            instance:EnsureHeaderKeybindsActive()
+                        else
+                            local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
+                            if tabBar and tabBar.Activate then
+                                tabBar:Activate()
+                            end
+                        end
+                    end
+                end
+            end
+        end
     end
 
     -- Note: Column labels are linked separately via LinkColumnLabels() after AddColumn() calls
@@ -482,7 +531,12 @@ function BETTERUI.Banking.Class:EnterSelectionMode()
 end
 
 function BETTERUI.Banking.Class:ExitSelectionMode()
+    local shouldRefreshJunkCategories = self._pendingJunkCategoryRefresh == true
+    self._pendingJunkCategoryRefresh = nil
     MSMixin.ExitSelectionMode(self)
+    if shouldRefreshJunkCategories and self.RequestJunkCategoryRefresh then
+        self:RequestJunkCategoryRefresh(160)
+    end
 end
 
 function BETTERUI.Banking.Class:OnSelectionCountChanged(selectedCount)
@@ -518,9 +572,23 @@ function BETTERUI.Banking.Class:BatchUnlock()
 end
 
 function BETTERUI.Banking.Class:BatchMarkAsJunk()
+    if self.IsFurnitureVaultContext and self:IsFurnitureVaultContext() then
+        return
+    end
+    self._pendingJunkCategoryRefresh = true
     MSMixin.BatchMarkAsJunk(self)
+    if not self:IsBatchProcessing() then
+        self._pendingJunkCategoryRefresh = nil
+    end
 end
 
 function BETTERUI.Banking.Class:BatchUnmarkAsJunk()
+    if self.IsFurnitureVaultContext and self:IsFurnitureVaultContext() then
+        return
+    end
+    self._pendingJunkCategoryRefresh = true
     MSMixin.BatchUnmarkAsJunk(self)
+    if not self:IsBatchProcessing() then
+        self._pendingJunkCategoryRefresh = nil
+    end
 end

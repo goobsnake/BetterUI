@@ -8,6 +8,16 @@ Last Modified: 2026-01-26
 
 local DEFAULT_EXPECTED_ENTRY_HEIGHT = 30
 local DEFAULT_EXPECTED_HEADER_HEIGHT = 24
+local LIST_ORIENTATION = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.ORIENTATION) or
+{
+    VERTICAL = true,
+    HORIZONTAL = false,
+}
+local DEFAULT_GRADIENT_SIZE = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.DEFAULT_GRADIENT_SIZE) or
+{
+    VERTICAL = 32,
+    HORIZONTAL = 32,
+}
 
 --[[
 Function: GetControlDimensionForMode
@@ -17,7 +27,7 @@ param: control (table) - The control to check.
 return: number - The dimension size.
 ]]
 local function GetControlDimensionForMode(mode, control)
-    return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetHeight() or control:GetWidth()
+    return mode == LIST_ORIENTATION.VERTICAL and control:GetHeight() or control:GetWidth()
 end
 
 --[[
@@ -28,7 +38,7 @@ param: control (table) - The control to check.
 return: number - The start coordinate.
 ]]
 local function GetStartOfControl(mode, control)
-    return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetTop() or control:GetLeft()
+    return mode == LIST_ORIENTATION.VERTICAL and control:GetTop() or control:GetLeft()
 end
 
 --[[
@@ -39,7 +49,7 @@ param: control (table) - The control to check.
 return: number - The end coordinate.
 ]]
 local function GetEndOfControl(mode, control)
-    return mode == PARAMETRIC_SCROLL_LIST_VERTICAL and control:GetBottom() or control:GetRight()
+    return mode == LIST_ORIENTATION.VERTICAL and control:GetBottom() or control:GetRight()
 end
 
 -- ============================================================================
@@ -75,7 +85,7 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                 return
             end
 
-            if self.mode == PARAMETRIC_SCROLL_LIST_VERTICAL then
+            if self.mode == LIST_ORIENTATION.VERTICAL then
                 local listStart = GetStartOfControl(self.mode, self.scrollControl)
                 local listEnd = GetEndOfControl(self.mode, self.scrollControl)
                 local listMid = listStart + (GetControlDimensionForMode(self.mode, self.scrollControl) / 2.0)
@@ -109,9 +119,9 @@ function BETTERUI_VerticalParametricScrollList:New(...)
                     MINIMUM_ALLOWED_FADE_GRADIENT)
                 local gradientMaxEnd = zo_max(listEnd - listMid - selectedControlBufferEnd, MINIMUM_ALLOWED_FADE_GRADIENT)
                 local gradientStartSize = zo_min(gradientMaxStart,
-                    BETTERUI_VERTICAL_PARAMETRIC_LIST_DEFAULT_FADE_GRADIENT_SIZE)
+                    DEFAULT_GRADIENT_SIZE.VERTICAL)
                 local gradientEndSize = zo_min(gradientMaxEnd,
-                    BETTERUI_VERTICAL_PARAMETRIC_LIST_DEFAULT_FADE_GRADIENT_SIZE)
+                    DEFAULT_GRADIENT_SIZE.VERTICAL)
 
                 local FIRST_FADE_GRADIENT = 1
                 local SECOND_FADE_GRADIENT = 2
@@ -140,7 +150,7 @@ Description: Initializes the list with default padding and sound.
 param: control (table) - The list control.
 ]]
 function BETTERUI_VerticalParametricScrollList:Initialize(control)
-    ZO_ParametricScrollList.Initialize(self, control, PARAMETRIC_SCROLL_LIST_VERTICAL,
+    ZO_ParametricScrollList.Initialize(self, control, LIST_ORIENTATION.VERTICAL,
         ZO_GamepadOnDefaultScrollListActivatedChanged)
     self:SetHeaderPadding(GAMEPAD_HEADER_DEFAULT_PADDING, GAMEPAD_HEADER_SELECTED_PADDING)
     self:SetUniversalPostPadding(GAMEPAD_DEFAULT_POST_PADDING)

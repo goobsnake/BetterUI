@@ -34,12 +34,21 @@ Description: Updates the header title text to match the current category.
 ]]
 function BETTERUI.Banking.Class:UpdateHeaderTitle()
     local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    local titleText
     if cat and cat.name then
-        -- Match inventory: use default title color (white), no custom color tags
-        self:SetTitle(zo_strformat("<<1>>", cat.name))
+        -- Match inventory: use default title color (white), no custom color tags.
+        titleText = zo_strformat("<<1>>", cat.name)
     else
-        self.titleControl:SetText(GetString(SI_BETTERUI_BANK_TITLE))
+        titleText = GetString(SI_BETTERUI_BANK_TITLE)
     end
+
+    -- Guard scene-transition timing where titleControl may be nil during refresh.
+    if self.SetTitle then
+        self:SetTitle(titleText)
+    elseif self.titleControl and self.titleControl.SetText then
+        self.titleControl:SetText(titleText)
+    end
+
     -- Reposition the search control so it sits under the header/title (above the list)
     if self.PositionSearchControl then
         self:PositionSearchControl()
@@ -51,9 +60,21 @@ Function: BETTERUI.Banking.Class:EnsureHeaderKeybindsActive
 Description: Activates the category tab bar keybinds.
 ]]
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
+    if self.isInHeaderSortMode then
+        return
+    end
+
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
-    if tabBar and tabBar.keybindStripDescriptor then
+    if not tabBar then
+        return
+    end
+
+    if tabBar.Activate and not tabBar.active then
         tabBar:Activate()
+    end
+
+    if tabBar.keybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
     end
 end
 
@@ -72,6 +93,14 @@ References: Called on Initialize, ToggleList, and Slot Updates.
 ]]
 function BETTERUI.Banking.Class:RebuildHeaderCategories()
     if not (self.header and self.bankCategories) then return end
+    local headerGeneric = self.headerGeneric
+    if not headerGeneric then
+        -- Header can be unavailable briefly during scene/setup transitions.
+        -- Keep title in sync and skip tab rebuild until controls exist.
+        self:UpdateHeaderTitle()
+        return
+    end
+
     -- Prepare header data and entries
     self.bankHeaderData = self.bankHeaderData or {}
     self.bankHeaderData.titleText = function()
@@ -107,11 +136,11 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
 
 
     -- Ensure tabbar exists then clear and repopulate
-    if not self.headerGeneric.tabBar then
-        BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    if not headerGeneric.tabBar then
+        BETTERUI.GenericHeader.Refresh(headerGeneric, self.bankHeaderData, false)
     end
-    if self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:Clear()
+    if headerGeneric.tabBar then
+        headerGeneric.tabBar:Clear()
     end
     for i = 1, #self.bankCategories do
         local cat = self.bankCategories[i]
@@ -120,22 +149,22 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         entryData.itemCount = cat.itemCount   -- For category badge display
         entryData.countBadgeOffsetY = 3       -- Position badge lower for banking header layout
         entryData:SetIconTintOnSelection(true)
-        BETTERUI.GenericHeader.AddToList(self.headerGeneric, entryData)
+        BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
     end
-    BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    BETTERUI.GenericHeader.Refresh(headerGeneric, self.bankHeaderData, false)
     -- Select the current category in the header
-    if self.headerGeneric.tabBar then
+    if headerGeneric.tabBar then
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
         -- Use NavigationState to check mode toggle status
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
         local NavState = BETTERUI.CIM.NavigationState
         -- During mode toggle, use animation-free selection to avoid callback interference
         if state.justToggledMode then
-            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
+            headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
         else
             -- Set suppression flag during rebuild to prevent callback overriding our selection
             state.suppressHeaderCallback = true
-            self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+            headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
             state.suppressHeaderCallback = false
         end
     end
@@ -154,10 +183,10 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
     -- where the tabBar and focusable controls were initialized.
     if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
         local headerTarget = nil
-        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
-            headerTarget = self.headerGeneric.tabBar.control
-        elseif self.headerGeneric then
-            headerTarget = self.headerGeneric
+        if headerGeneric.tabBar and headerGeneric.tabBar.control then
+            headerTarget = headerGeneric.tabBar.control
+        elseif headerGeneric then
+            headerTarget = headerGeneric
         else
             headerTarget = self.header
         end

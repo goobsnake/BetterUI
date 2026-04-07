@@ -1,13 +1,13 @@
 --[[
 File: Modules/CIM/RuntimeSetup.lua
 Purpose: Consolidates early-initialization logic for BetterUI.
-         Applies runtime API patches and runs settings migrations.
+         Applies runtime safety guards and runs settings migrations.
 
          This file exists to keep BetterUI.lua clean and focused on module loading.
          All "dirty but necessary" workarounds for ESO API issues are isolated here.
 
 Mechanics:
-    1. ApplyAPIPatches(): Wraps ESO global functions (zo_iconFormat, etc.) to handle nil paths.
+    1. ApplyAPIPatches(): Applies non-invasive runtime safety guards.
     2. RunSettingsMigrations(): Migrates legacy settings keys to current standards.
     3. Apply(): Main entry point called once from BetterUI.Initialize().
 
@@ -26,6 +26,8 @@ local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
+local tamrielTomesSelectionGuardInstalled = false
+local TAMRIEL_TOMES_GUARD_RETRY_EVENT = "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"
 
 -- ============================================================================
 -- API PATCHES
@@ -33,150 +35,69 @@ local patchesApplied = false
 
 --[[
 Function: ApplyAPIPatches
-Description: Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
-Rationale: ESO's zo_iconFormat and related functions crash when passed nil paths.
-           This commonly occurs during skill purchases, keybind strip updates, and UI transitions.
-           These pcall wrappers are INTENTIONAL for ESO API stability.
+Description: Applies runtime safety guards without replacing ESO global functions.
+Rationale: Global monkeypatches can taint secure gamepad/chat call paths.
+           Runtime setup should avoid overriding shared engine APIs.
 Mechanism:
-    1. Checks if each function exists.
-    2. Stores original reference.
-    3. Replaces with a wrapper that nil-checks the path and uses pcall for safety.
-    4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
+    1. Reserved for runtime compatibility guards that DO NOT replace engine globals.
+    2. Global monkeypatches are intentionally avoided to reduce secure-call taint risk.
 References: Called by RuntimeSetup.Apply().
--- AUDITED(pcall): These pcall wrappers are intentional for ESO API stability.
 ]]
 local function ApplyAPIPatches()
     if patchesApplied then return end
 
-    -- TODO(refactor): Extract common icon patching pattern into helper function - 6 nearly identical blocks follow
-    -- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-    if type(zo_iconFormat) == "function" then
-        local _orig_zo_iconFormat = zo_iconFormat
-        zo_iconFormat = function(path, width, height)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconFormat(path, width, height)
-            end)
-            return ok and res or ""
+    -- IMPORTANT:
+    -- Do not override global ESO functions (including formatting helpers or keybind/chat APIs).
+    -- Global monkeypatches can taint gamepad keybind execution paths and cause protected chat
+    -- send failures (private SendChatMessage access) in native chat callbacks.
+
+    -- Guard against selecting non-reward placeholder rows in Tamriel Tomes grid navigation.
+    -- Some category jumps can surface {} margin/divider rows as selectedData, which then
+    -- crashes keybind visibility callbacks that expect ZO_TamrielTomesRewardData methods.
+    local function TryInstallTamrielTomesSelectionGuard()
+        if tamrielTomesSelectionGuardInstalled then
+            return true
         end
-    end
-
-    if type(zo_iconFormatInheritColor) == "function" then
-        local _orig_zo_iconFormatInheritColor = zo_iconFormatInheritColor
-        zo_iconFormatInheritColor = function(path, width, height)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconFormatInheritColor(path, width, height)
-            end)
-            return ok and res or ""
+        if type(ZO_PreHook) ~= "function" or not ZO_TamrielTomesScreen_Shared then
+            return false
         end
-    end
 
-    if type(zo_iconTextFormat) == "function" then
-        local _orig_zo_iconTextFormat = zo_iconTextFormat
-        zo_iconTextFormat = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormat(path, width, height, text, inheritColor, noGrammar)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
+        ZO_PreHook(ZO_TamrielTomesScreen_Shared, "SetSelectedTamrielTomesRewardData", function(self, newData)
+            if newData == nil then
+                return false
+            end
 
-    if type(zo_iconTextFormatAlignedRight) == "function" then
-        local _orig_zo_iconTextFormatAlignedRight = zo_iconTextFormatAlignedRight
-        zo_iconTextFormatAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatAlignedRight(path, width, height, text, inheritColor, noGrammar)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
+            local isValidRewardData = type(newData) == "table"
+                and type(newData.CanClaimReward) == "function"
+                and type(newData.CanPreviewReward) == "function"
+                and type(newData.GetRewardData) == "function"
 
-    if type(zo_iconTextFormatNoSpace) == "function" then
-        local _orig_zo_iconTextFormatNoSpace = zo_iconTextFormatNoSpace
-        zo_iconTextFormatNoSpace = function(path, width, height, text, inheritColor)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatNoSpace(path, width, height, text, inheritColor)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
+            if isValidRewardData then
+                return false
+            end
 
-    if type(zo_iconTextFormatNoSpaceAlignedRight) == "function" then
-        local _orig_zo_iconTextFormatNoSpaceAlignedRight = zo_iconTextFormatNoSpaceAlignedRight
-        zo_iconTextFormatNoSpaceAlignedRight = function(path, width, height, text, inheritColor, noGrammar)
-            if path == nil then path = "" end
-            local ok, res = pcall(function()
-                return _orig_zo_iconTextFormatNoSpaceAlignedRight(path, width, height, text, inheritColor, noGrammar)
-            end)
-            return ok and res or tostring(text or "")
-        end
-    end
-
-    -- Patch 2: Wrap ZO_KeybindStrip:HandleDuplicateAddKeybind to safely evaluate descriptor names.
-    -- The original function calls GetKeybindDescriptorDebugIdentifier on descriptors, which can
-    -- call formatting helpers (like zo_iconFormat) with nil paths. We wrap this to silently
-    -- handle any errors. On error, we attempt to remove the conflicting descriptor so the
-    -- new one can be registered, restoring keybind strip functionality.
-    if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
-        local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
-        ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor,
-                                                             keybindButtonDescriptor, state, stateIndex, currentSceneName)
-            local ok, res = pcall(function()
-                return _orig_HandleDuplicate(self, existingButtonOrEtherealDescriptor, keybindButtonDescriptor, state,
-                    stateIndex, currentSceneName)
-            end)
-            -- If the call succeeded, return normally
-            if ok then return res end
-
-            -- If the call failed, attempt a safe recovery by removing the conflicting descriptor
-            -- so the new keybind can be registered. This ensures LB/RB navigation is restored
-            -- even when duplicate handling errors occur.
-            pcall(function()
-                if existingButtonOrEtherealDescriptor then
-                    local descriptor = existingButtonOrEtherealDescriptor
-                    -- If it's a button control, extract the descriptor
-                    if type(descriptor) == "userdata" and descriptor.keybindButtonDescriptor then
-                        descriptor = descriptor.keybindButtonDescriptor
+            -- Recover by asking the grid to auto-select a valid selectable entry.
+            if self and self.gridList and self.gridList.RefreshSelection then
+                zo_callLater(function()
+                    if self and self.gridList and self.gridList.RefreshSelection then
+                        self.gridList:RefreshSelection(true, true)
                     end
-                    -- Attempt removal
-                    if descriptor and self.RemoveKeybindButton then
-                        self:RemoveKeybindButton(descriptor, stateIndex)
-                    end
-                end
-            end)
+                end, 0)
+            end
 
-            -- Schedule a deferred re-add of the new keybind to handle timing edge cases where
-            -- removal and re-add happen too quickly in the same frame. This is especially important
-            -- during scene transitions (like search enter/exit) where multiple duplicate keybind
-            -- errors may occur in quick succession. Use zo_callLater with a 0ms delay to defer
-            -- until the next frame cycle, ensuring the removal has settled.
-            pcall(function()
-                if zo_callLater and type(zo_callLater) == "function" then
-                    zo_callLater(function()
-                        pcall(function()
-                            -- Only re-add if not already present
-                            if self and self.HasKeybindButton then
-                                local present = self:HasKeybindButton(keybindButtonDescriptor, stateIndex)
-                                if not present then
-                                    self:AddKeybindButton(keybindButtonDescriptor, stateIndex)
-                                    -- Force update keybind strip layout to ensure buttons are visible
-                                    if self.UpdateAnchors then
-                                        self:UpdateAnchors()
-                                    end
-                                end
-                            end
-                        end)
-                    end, 0)
-                end
-            end)
+            return true
+        end)
 
-            -- Do not log to chat/debug as per user requirement. The keybind strip will
-            -- continue, and duplicate handling was attempted (even if it failed gracefully).
-        end
+        tamrielTomesSelectionGuardInstalled = true
+        return true
+    end
+
+    if not TryInstallTamrielTomesSelectionGuard() and EVENT_MANAGER then
+        EVENT_MANAGER:RegisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED, function()
+            if TryInstallTamrielTomesSelectionGuard() then
+                EVENT_MANAGER:UnregisterForEvent(TAMRIEL_TOMES_GUARD_RETRY_EVENT, EVENT_PLAYER_ACTIVATED)
+            end
+        end)
     end
 
     patchesApplied = true

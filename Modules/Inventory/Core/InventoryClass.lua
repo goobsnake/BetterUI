@@ -18,13 +18,10 @@ BETTERUI.Inventory.Class = ZO_GamepadInventory:Subclass()
 
 -- Constants
 local BLOCK_TABBAR_CALLBACK = true
--- Scene Name Override: We replace ZO_GAMEPAD_INVENTORY_SCENE_NAME to ensure
--- BetterUI's inventory scene is registered instead of the vanilla one. This must
--- happen before any scene registration to avoid dual-scene conflicts. While modifying
--- ZOS globals is generally fragile, this is required because the engine uses this
--- global to find inventory scenes. Alternative approaches (scene name aliasing) were
--- tested in v2.x and caused more issues than this direct override.
-ZO_GAMEPAD_INVENTORY_SCENE_NAME = "gamepad_inventory_root"
+local INVENTORY_SCENE_NAME = (BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.SCENE_NAME) or
+    "gamepad_inventory_root"
+BETTERUI.Inventory.CONST = BETTERUI.Inventory.CONST or {}
+BETTERUI.Inventory.CONST.SCENE_NAME = INVENTORY_SCENE_NAME
 
 -- Validated Globals for Core
 -- NOTE: GAMEPAD_INVENTORY_ROOT_SCENE must be global because Module.lua needs to add fragments to it
@@ -152,6 +149,127 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
     ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
 end
 
+--[[
+Function: RestoreStateAfterDialog
+Description: Rebuilds inventory keybind/list state after dialog transitions.
+Rationale: Dialog stack transitions can temporarily leave keybind visibility and
+           action data stale until another selection-change event occurs.
+Mechanism: Waits until dialogs fully close, then restores active keybinds,
+           refreshes item actions, and refreshes keybind strip.
+param: taskName (string|nil) - Optional task identifier prefix for retries.
+]]
+function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
+    local retriesRemaining = 120
+    local retryTaskName = (taskName or "inventoryDialogRestore")
+        .. "_"
+        .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or 0)
+
+    local function TryRestore()
+        if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+            return false
+        end
+
+        local sceneShowing = (self.scene and self.scene:IsShowing())
+            or BETTERUI.CIM.Utils.IsInventorySceneShowing()
+        if not sceneShowing then
+            return false
+        end
+
+        if not self.isInHeaderSortMode and self.SetActiveKeybinds and self.mainKeybindStripDescriptor then
+            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+        end
+
+        -- Preserve selection visuals while in multi-select mode.
+        if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
+            self:RefreshCraftBagList()
+        elseif self.isInSelectionMode and self.RefreshItemList then
+            self:RefreshItemList()
+        end
+
+        local selectedData = nil
+        local selectedList = nil
+        if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+            selectedList = self.craftBagList
+            selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+        elseif self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+            selectedList = self.itemList
+            selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+        elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+            selectedList = self:GetCurrentList()
+            selectedData = selectedList and BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+            if selectedData and selectedList == self.categoryList then
+                selectedData = self:GenerateItemSlotData(selectedData)
+            end
+        end
+
+        if selectedList and not selectedData then
+            local innerList = selectedList.list or selectedList
+            local dataList = innerList and innerList.dataList
+            if dataList and #dataList > 0 then
+                local selectedIndex = nil
+                if innerList.GetSelectedIndex then
+                    selectedIndex = innerList:GetSelectedIndex()
+                else
+                    selectedIndex = innerList.selectedIndex
+                end
+                if type(selectedIndex) ~= "number" or selectedIndex < 1 or selectedIndex > #dataList then
+                    selectedIndex = self._preserveIndex or 1
+                end
+                selectedIndex = zo_clamp(selectedIndex, 1, #dataList)
+
+                if innerList.SetSelectedIndexWithoutAnimation then
+                    innerList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                elseif selectedList.SetSelectedIndexWithoutAnimation then
+                    selectedList:SetSelectedIndexWithoutAnimation(selectedIndex, true, false)
+                end
+                selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(selectedList)
+            end
+        end
+
+        if selectedData and self.SetSelectedInventoryData then
+            self:SetSelectedInventoryData(selectedData)
+        end
+
+        if self.RefreshItemActions then
+            self:RefreshItemActions()
+        end
+
+        if not self.isInHeaderSortMode and self.RefreshKeybinds then
+            self:RefreshKeybinds()
+        end
+
+        if selectedList and selectedList.IsEmpty and not selectedData and not selectedList:IsEmpty() then
+            return false
+        end
+
+        return true
+    end
+
+    if TryRestore() then
+        return true
+    end
+
+    local function RetryRestore()
+        if TryRestore() then
+            return
+        end
+
+        retriesRemaining = retriesRemaining - 1
+        if retriesRemaining <= 0 then
+            return
+        end
+
+        if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+            BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
+        else
+            zo_callLater(RetryRestore, 50)
+        end
+    end
+
+    RetryRestore()
+    return false
+end
+
 --------------------------------------------------------------------------------
 -- INITIALIZATION
 --------------------------------------------------------------------------------
@@ -163,14 +281,24 @@ end
 --- @param control Control The root control for the inventory
 function BETTERUI.Inventory.Class:Initialize(control)
     BETTERUI.Inventory.ApplyAllMixins()
-    GAMEPAD_INVENTORY_ROOT_SCENE = ZO_Scene:New(ZO_GAMEPAD_INVENTORY_SCENE_NAME, SCENE_MANAGER)
+    BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
+    local native = BETTERUI.Inventory.NativeGlobals
+    if native.gamepadInventoryRootScene == nil then
+        native.gamepadInventoryRootScene = GAMEPAD_INVENTORY_ROOT_SCENE
+    end
+    -- Never replace the inventory root scene object. Secure engine flows (book/tome,
+    -- direct-purchase catalog, etc.) assume the native scene chain is preserved.
+    local inventoryRootScene = native.gamepadInventoryRootScene or GAMEPAD_INVENTORY_ROOT_SCENE
+    if inventoryRootScene then
+        GAMEPAD_INVENTORY_ROOT_SCENE = inventoryRootScene
+    end
     -- Use UnifiedScreen initialization with CURRENCY footer mode
     BETTERUI.CIM.UnifiedScreen.Initialize(
         self,
         control,
         ZO_GAMEPAD_HEADER_TABBAR_CREATE,
         false,
-        GAMEPAD_INVENTORY_ROOT_SCENE,
+        inventoryRootScene,
         BETTERUI.CIM.UnifiedScreen.FOOTER_MODE_CURRENCY
     )
 
@@ -884,7 +1012,7 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
 
     -- Create dialog if it doesn't exist
     if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
+        local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             },
@@ -900,6 +1028,9 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
             },
             setup = function(dialog)
                 dialog:setupFunc()
+            end,
+            finishedCallback = function()
+                self:RestoreStateAfterDialog("batchActionsDialogFinish")
             end,
             parametricList = {},
             buttons = {
@@ -917,18 +1048,16 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
                 {
                     keybind = "DIALOG_NEGATIVE",
                     text = GetString(SI_GAMEPAD_BACK_OPTION),
-                    callback = function()
-                        -- Refresh keybinds after dialog closes to restore A-button action
-                        -- Use zo_callLater to ensure dialog fully closes first
-                        zo_callLater(function()
-                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
-                                GAMEPAD_INVENTORY:RefreshKeybinds()
-                            end
-                        end, 50)
-                    end,
                 },
             },
         }
+        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+        elseif ZO_Dialogs_RegisterCustomDialog then
+            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+        else
+            ESO_Dialogs[dialogName] = dialogInfo
+        end
     end
 
     -- Build the parametric list with applicable batch actions
@@ -969,7 +1098,9 @@ function BETTERUI.Inventory.Class:ShowBatchActionsMenu()
         end
     ))
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
+    local dialogInfo = ESO_Dialogs[dialogName]
+    if not dialogInfo then return end
+    dialogInfo.parametricList = parametricList
 
     -- Pass selectedCount in dialog data so title function uses fresh value
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
@@ -1068,7 +1199,7 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
 
     -- Create dialog if it doesn't exist
     if not ESO_Dialogs[dialogName] then
-        ESO_Dialogs[dialogName] = {
+        local dialogInfo = {
             gamepadInfo = {
                 dialogType = GAMEPAD_DIALOGS.PARAMETRIC,
             },
@@ -1083,6 +1214,9 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
             },
             setup = function(dialog)
                 dialog:setupFunc()
+            end,
+            finishedCallback = function()
+                self:RestoreStateAfterDialog("craftBagBatchActionsDialogFinish")
             end,
             parametricList = {},
             buttons = {
@@ -1100,16 +1234,16 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
                 {
                     keybind = "DIALOG_NEGATIVE",
                     text = GetString(SI_GAMEPAD_BACK_OPTION),
-                    callback = function()
-                        zo_callLater(function()
-                            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RefreshKeybinds then
-                                GAMEPAD_INVENTORY:RefreshKeybinds()
-                            end
-                        end, 50)
-                    end,
                 },
             },
         }
+        if BETTERUI.CIM and BETTERUI.CIM.Dialogs and BETTERUI.CIM.Dialogs.Register then
+            BETTERUI.CIM.Dialogs.Register(dialogName, dialogInfo, { overwrite = true })
+        elseif ZO_Dialogs_RegisterCustomDialog then
+            ZO_Dialogs_RegisterCustomDialog(dialogName, dialogInfo)
+        else
+            ESO_Dialogs[dialogName] = dialogInfo
+        end
     end
 
     -- Build the parametric list with craftbag-specific batch actions
@@ -1158,7 +1292,9 @@ function BETTERUI.Inventory.Class:ShowCraftBagBatchActionsMenu()
         entryData = deselectEntry,
     })
 
-    ESO_Dialogs[dialogName].parametricList = parametricList
+    local dialogInfo = ESO_Dialogs[dialogName]
+    if not dialogInfo then return end
+    dialogInfo.parametricList = parametricList
 
     ZO_Dialogs_ShowGamepadDialog(dialogName, { selectedCount = selectedCount })
 end
@@ -1211,6 +1347,11 @@ local function IsFurnitureVaultGemmableItem(bagId, slotIndex)
 end
 
 local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
+    if targetBankBag == FURNITURE_VAULT_BAG_ID and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
+        not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
+        return false
+    end
+
     if IsItemStolen and IsItemStolen(bagId, slotIndex) then
         return false
     end
@@ -1581,6 +1722,11 @@ function BETTERUI.Inventory.Class:InitializeBatchDestroyDialog()
             dialogType = GAMEPAD_DIALOGS.BASIC,
             allowRightStickPassThrough = true,
         },
+        finishedCallback = function()
+            if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.RestoreStateAfterDialog then
+                GAMEPAD_INVENTORY:RestoreStateAfterDialog("batchDestroyDialogFinish")
+            end
+        end,
         title = {
             text = function(dialog)
                 return GetString(SI_DESTROY_ITEM_PROMPT_TITLE) or "Destroy Items"

@@ -52,6 +52,20 @@ local BANK_CATEGORY_DEFS            = BETTERUI.Banking.CATEGORY_DEFS
 local EnsureKeybindGroupAdded       = BETTERUI.Banking.EnsureKeybindGroupAdded
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
+local function SyncGamepadBankingSceneGlobal()
+    if not SCENE_MANAGER or not SCENE_MANAGER.scenes then return end
+
+    local scenes = SCENE_MANAGER.scenes
+    local targetScene = scenes[BETTERUI_BANKING_SCENE_NAME]
+    if not targetScene then return end
+
+    -- Keep ESO's global scene reference synchronized with the managed scene.
+    -- We intentionally avoid mutating SCENE_MANAGER.scenes aliases here.
+    if GAMEPAD_BANKING_SCENE ~= targetScene then
+        GAMEPAD_BANKING_SCENE = targetScene
+    end
+end
+
 
 
 -- Class definition moved to Core/BankingClass.lua (loaded first in manifest)
@@ -134,7 +148,7 @@ local function BuildBankUpgradeDetailsLines()
     return details
 end
 
-local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
+local BANK_UPGRADE_DETAILS_TOP_SPACING = -20
 
 local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
     if not tooltip or not details or not details.rows or #details.rows == 0 then
@@ -155,7 +169,7 @@ local function LayoutBankUpgradeDetailsTooltip(tooltip, details)
         AddDetailsStatValuePair(row.stat, row.value)
     end
 
-    -- Push the bank-upgrade block lower so it sits closer to the tooltip bottom edge.
+    -- Keep the bank-upgrade block close to the currency rows in the same tooltip.
     detailsMainSection:SetNextSpacing(BANK_UPGRADE_DETAILS_TOP_SPACING)
     detailsMainSection:AddSection(detailsSection)
     tooltip:AddSection(detailsMainSection)
@@ -484,7 +498,26 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     -- directionalFixDelayMs moved to top of Initialize() to fix scoping bug
 
 
-    -- Always-running event listeners, these don't add much overhead
+    -- Always-running event listeners, these don't add much overhead.
+    -- Track the most recently opened bank bag via EVENT_MANAGER so this state
+    -- is available even when scene/control lifecycle ordering varies.
+    local OPEN_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_OPEN_BAG"
+    local CLOSE_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_CLOSE_BAG"
+
+    EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
+    EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
+        BETTERUI.Banking.lastOpenedBankBag = bankBag or BAG_BANK
+    end)
+
+    EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
+    EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
+        -- Do not force-reset to BAG_BANK here. Close/open sequencing can overlap
+        -- when moving between banking interactions, and a late close event would
+        -- otherwise clobber the current interaction context.
+        if IsBankOpen and IsBankOpen() then
+            BETTERUI.Banking.lastOpenedBankBag = GetBankingBag() or BETTERUI.Banking.lastOpenedBankBag
+        end
+    end)
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
@@ -514,11 +547,10 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
     if self.headerGeneric and self.headerGeneric.tabBar then
         self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(1, true, true)
     end
-    if self.isDirty then
-        self:RefreshList()
-    else
-        self:RefreshActiveKeybinds()
-    end
+    -- Always refresh on scene show so we never render stale rows from a previous
+    -- banking context (player bank/house bank/furniture vault).
+    self:RefreshList()
+    self:RefreshActiveKeybinds()
     self.list:Activate()
     -- Ensure our keybind groups and header tab bar are active on first show
     self:AddKeybinds()
@@ -655,7 +687,9 @@ Rationale: Uses shared CIM.SceneCleanup helpers for consistent cleanup.
 ]]
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
-    self:CancelWithdrawDeposit(self.list)
+    if self.confirmationMode then
+        self:UpdateSpinnerConfirmation(false, self.list)
+    end
 
     -- Force-hide currency selector to prevent stale state on re-entry
     if self.selector and self.selector.control then
@@ -709,6 +743,32 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     -- Reset category positions when leaving the bank so next visit starts fresh
     self.lastPositionsByCategory = {}
+
+    -- Recovery guard: if banking hid while the bank interaction is still active and
+    -- no inventory scene is visible, restore inventory to prevent blurred-world dead-end.
+    zo_callLater(function()
+        if not IsInGamepadPreferredMode() then
+            return
+        end
+        if not IsBankOpen() then
+            return
+        end
+        if SCENE_MANAGER:IsShowing("gamepad_inventory_root") then
+            return
+        end
+
+        local currentSceneName = SCENE_MANAGER:GetCurrentSceneName()
+        local shouldRecoverToInventory = (currentSceneName == nil)
+            or (currentSceneName == "")
+            or (currentSceneName == "hud")
+            or (currentSceneName == "hudui")
+            or (currentSceneName == "gamepad_banking")
+            or (currentSceneName == BETTERUI_BANKING_SCENE_NAME)
+
+        if shouldRecoverToInventory then
+            SCENE_MANAGER:Show("gamepad_inventory_root")
+        end
+    end, 25)
 end
 
 --[[
@@ -726,6 +786,59 @@ function BETTERUI.Banking.Class:RefreshItemActions()
     self.itemActions:SetInventorySlot(targetData)
 end
 
+function BETTERUI.Banking.Class:IsFurnitureVaultContext()
+    local currentUsedBank = BETTERUI.Banking and BETTERUI.Banking.currentUsedBank or nil
+    if currentUsedBank == nil and GetBankingBag then
+        currentUsedBank = GetBankingBag()
+    end
+    return currentUsedBank ~= nil and IsFurnitureVault and IsFurnitureVault(currentUsedBank)
+end
+
+function BETTERUI.Banking.Class:RequestJunkCategoryRefresh(delayMs, preferredCategoryKey)
+    local requestedCategoryKey = preferredCategoryKey
+    if not requestedCategoryKey and self.bankCategories and self.currentCategoryIndex then
+        local currentCategory = self.bankCategories[self.currentCategoryIndex]
+        requestedCategoryKey = currentCategory and currentCategory.key or nil
+    end
+
+    BETTERUI.Banking.Tasks:Schedule("junkCategoryRefresh", delayMs or 140, function()
+        if not BETTERUI.CIM.Utils.IsBankingSceneShowing() then
+            return
+        end
+
+        if self:IsBatchProcessing() then
+            self:RequestJunkCategoryRefresh(120, requestedCategoryKey)
+            return
+        end
+
+        self.isDirty = true
+        self.bankCategories = self:ComputeVisibleBankCategories()
+        if not self.bankCategories or #self.bankCategories == 0 then
+            self.currentCategoryIndex = 1
+            self:RefreshList()
+            return
+        end
+
+        local desiredCategoryIndex = 1
+        if requestedCategoryKey then
+            for i, category in ipairs(self.bankCategories) do
+                if category.key == requestedCategoryKey then
+                    desiredCategoryIndex = i
+                    break
+                end
+            end
+        end
+
+        self.currentCategoryIndex = zo_clamp(desiredCategoryIndex, 1, #self.bankCategories)
+        local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
+        state.suppressHeaderCallback = true
+        self:RebuildHeaderCategories()
+        state.suppressHeaderCallback = false
+        self:RefreshList()
+        self:RefreshActiveKeybinds()
+    end)
+end
+
 --[[
 Function: BETTERUI.Banking.Class:InitializeActionsDialog
 Description: Initializes the "Y Button" Actions Dialog.
@@ -738,6 +851,54 @@ Mechanism:
 References: Called during Initialize.
 ]]
 function BETTERUI.Banking.Class:InitializeActionsDialog()
+    local function GetCurrentCategoryKey()
+        local category = self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1] or nil
+        return category and category.key or nil
+    end
+
+    local function CanShowBankingJunkActions(targetData)
+        if not targetData or not targetData.bagId or not targetData.slotIndex then
+            return false
+        end
+        if self:IsFurnitureVaultContext() then
+            return false
+        end
+        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
+            return false
+        end
+        return true
+    end
+
+    local function ToggleBankingItemJunk(targetData, shouldMarkAsJunk)
+        if not targetData or not targetData.bagId or not targetData.slotIndex then
+            return false
+        end
+        if self:IsFurnitureVaultContext() then
+            return false
+        end
+        if IsItemPlayerLocked and IsItemPlayerLocked(targetData.bagId, targetData.slotIndex) then
+            return false
+        end
+
+        local isCurrentlyJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
+        if shouldMarkAsJunk then
+            if isCurrentlyJunk then
+                return false
+            end
+            if not CanItemBeMarkedAsJunk or not CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex) then
+                return false
+            end
+        else
+            if not isCurrentlyJunk then
+                return false
+            end
+        end
+
+        SetItemIsJunk(targetData.bagId, targetData.slotIndex, shouldMarkAsJunk)
+        self:RequestJunkCategoryRefresh(140, GetCurrentCategoryKey())
+        return true
+    end
+
     local function ActionDialogSetup(dialog)
         if BETTERUI.CIM.Utils.IsBankingSceneShowing() then
             dialog.entryList:SetOnSelectedDataChangedCallback(function(list, selectedData)
@@ -780,8 +941,16 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
             -- Use shared CIM utility for action entry population
             local actions = self.itemActions:GetSlotActions()
             local hideDestroyInDeposit = self.currentMode == LIST_DEPOSIT
+            local markAsJunkName = GetString(SI_ITEM_ACTION_MARK_AS_JUNK)
+            local unmarkAsJunkName = GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
             BETTERUI.CIM.PopulateActionEntries(parametricList, actions, {
                 hideDestroy = hideDestroyInDeposit,
+                filterCallback = function(actionName)
+                    if actionName == markAsJunkName or actionName == unmarkAsJunkName then
+                        return false
+                    end
+                    return true
+                end,
             })
 
             -- Add custom "Withdraw Stack" / "Deposit Stack" action for stacked items
@@ -805,6 +974,58 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                     entryData = entryData,
                 }
                 table.insert(parametricList, 1, moveMaxAction) -- Insert at top for easy access
+            end
+
+            -- Add "Stow All Furniture" for Furniture Vault deposit mode.
+            -- BetterUI uses X-hold for Clear Search, so surface this action in Y-menu instead.
+            local bankingBag = GetBankingBag and GetBankingBag() or nil
+            local canShowStowAllFurniture = (self.currentMode == LIST_DEPOSIT)
+                and IsFurnitureVault
+                and IsFurnitureVault(bankingBag)
+                and HOUSING_EDITOR_STATE
+                and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
+                and HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+                and (type(StowAllFurnitureItems) == "function")
+            if canShowStowAllFurniture then
+                local stowAllEntry = ZO_GamepadEntryData:New(GetString(SI_ITEM_ACTION_STOW_ALL_FURNITURE))
+                stowAllEntry:SetIconTintOnSelection(true)
+                stowAllEntry.isBetterUIStowAllFurniture = true
+                stowAllEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                local listItem = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = stowAllEntry,
+                }
+                table.insert(parametricList, 1, listItem)
+            end
+
+            if CanShowBankingJunkActions(targetData) then
+                local isJunk = IsItemJunk and IsItemJunk(targetData.bagId, targetData.slotIndex)
+                local canMarkAsJunk = CanItemBeMarkedAsJunk and CanItemBeMarkedAsJunk(targetData.bagId, targetData.slotIndex)
+                local junkActionName = nil
+                local markAsJunk = false
+
+                if isJunk then
+                    junkActionName = GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK)
+                    markAsJunk = false
+                elseif canMarkAsJunk then
+                    junkActionName = GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK)
+                    markAsJunk = true
+                end
+
+                if junkActionName then
+                    local junkEntry = ZO_GamepadEntryData:New(junkActionName)
+                    junkEntry:SetIconTintOnSelection(true)
+                    junkEntry.isBetterUIBankJunkToggle = true
+                    junkEntry.markAsJunk = markAsJunk
+                    junkEntry.targetData = targetData
+                    junkEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                    table.insert(parametricList, {
+                        template = "ZO_GamepadItemEntryTemplate",
+                        entryData = junkEntry,
+                    })
+                end
             end
 
             -- Add "Sort" entry for header sort mode access
@@ -863,6 +1084,22 @@ function BETTERUI.Banking.Class:InitializeActionsDialog()
                 self:SaveListPosition()
                 self:MoveItem(self.list, stackCount)
                 ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                return
+            end
+
+            -- Handle custom "Stow All Furniture" action
+            if selectedEntry and selectedEntry.isBetterUIStowAllFurniture then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                self:SaveListPosition()
+                if type(StowAllFurnitureItems) == "function" then
+                    StowAllFurnitureItems()
+                end
+                return
+            end
+
+            if selectedEntry and selectedEntry.isBetterUIBankJunkToggle then
+                ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+                ToggleBankingItemJunk(selectedEntry.targetData, selectedEntry.markAsJunk == true)
                 return
             end
 
@@ -962,7 +1199,7 @@ function BETTERUI.Banking.Init()
 
     BETTERUI.Banking.Window:RefreshList()
 
-    SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
+    SyncGamepadBankingSceneGlobal()
 
     -- Initialize the refresh manager for unified list refresh handling
     if BETTERUI.Banking.InitializeRefreshManager then
@@ -975,84 +1212,9 @@ function BETTERUI.Banking.Init()
     -- Configure unified footer for BANKING mode
     BETTERUI.Banking.Window:SetupUnifiedFooter()
 
-    -- =========================================================================
-    -- KEYBOARD SHORTCUT INTERCEPTION
-    -- Prevents keyboard keys (I, G, M, etc.) from interrupting the banking
-    -- ZO_InteractScene mid-interaction. Without this, pressing a keyboard
-    -- toggle key while banking causes:
-    --   1. Banking closes (interaction ends)
-    --   2. InteractScene fires RequestShowLeaderBaseScene (shows HUD)
-    --   3. Target scene never opens → blurry screen / broken state
-    --
-    -- Fix: Hook SCENE_MANAGER:Toggle and :Show while banking is active.
-    -- When intercepted, close banking properly via HideCurrentScene (the same
-    -- mechanism used by the Back button), then open the target scene after
-    -- the banking scene fully hides.
-    --
-    -- IMPORTANT: HideCurrentScene() internally calls Show("hud") which would
-    -- re-enter our hook. The `intercepting` guard prevents infinite recursion.
-    -- =========================================================================
-    local originalToggle = SCENE_MANAGER.Toggle
-    local originalShow = SCENE_MANAGER.Show
-    local bankingSceneName = BETTERUI_BANKING_SCENE_NAME
-    local intercepting = false -- Re-entrancy guard
-
-    --- Intercept a scene transition request issued while banking is active.
-    --- Closes banking properly via the scene manager and queues the target
-    --- scene to open after the banking scene has fully hidden.
-    --- @param targetSceneName string The scene the keyboard shortcut wants to show
-    local function InterceptSceneChange(targetSceneName)
-        -- Re-entrancy guard: HideCurrentScene() internally calls Show("hud"),
-        -- which would re-enter this hook. Pass through during teardown.
-        if intercepting then
-            return false
-        end
-
-        -- Don't intercept if the target IS the banking scene (that's just a close)
-        if targetSceneName == bankingSceneName or targetSceneName == "gamepad_banking" then
-            return false
-        end
-
-        -- Don't intercept base scene transitions (these are internal teardown)
-        if targetSceneName == "hud" or targetSceneName == "hudui" then
-            return false
-        end
-
-        local bankScene = SCENE_MANAGER:GetScene(bankingSceneName)
-        if not bankScene or not bankScene:IsShowing() then
-            return false
-        end
-
-        -- Register a one-shot callback: once banking is fully hidden, show the target scene
-        local function OnBankHidden(oldState, newState)
-            if newState == SCENE_HIDDEN then
-                bankScene:UnregisterCallback("StateChange", OnBankHidden)
-                -- Brief delay to let interaction cleanup finish before showing target scene
-                zo_callLater(function()
-                    originalShow(SCENE_MANAGER, targetSceneName)
-                end, 50)
-            end
-        end
-        bankScene:RegisterCallback("StateChange", OnBankHidden)
-
-        -- Close banking via the scene manager (same as the Back button).
-        -- This properly triggers the full scene teardown: keybind removal,
-        -- fragment hiding, and ZO_InteractScene:OnSceneHidden → EndInteraction.
-        intercepting = true
-        SCENE_MANAGER:HideCurrentScene()
-        intercepting = false
-        return true
-    end
-
-    SCENE_MANAGER.Toggle = function(sm, sceneName, ...)
-        if InterceptSceneChange(sceneName) then return end
-        return originalToggle(sm, sceneName, ...)
-    end
-
-    SCENE_MANAGER.Show = function(sm, sceneName, ...)
-        if InterceptSceneChange(sceneName) then return end
-        return originalShow(sm, sceneName, ...)
-    end
+    -- IMPORTANT:
+    -- Do not monkeypatch SCENE_MANAGER methods from addon code.
+    -- Replacing core scene-manager functions can taint secure gamepad keybind/chat paths.
 
     esoSubscriber = IsESOPlusSubscriber()
 end

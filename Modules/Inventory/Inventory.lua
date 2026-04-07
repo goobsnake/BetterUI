@@ -36,8 +36,8 @@ local INVENTORY_ITEM_LIST = "itemList"
 local INVENTORY_CRAFT_BAG_LIST = "craftBagList"
 
 -- Global dialog name
--- TODO(fix): Namespace global dialog name to BETTERUI.Inventory.Dialogs.EQUIP_SLOT
-BETTERUI_EQUIP_SLOT_DIALOG = "BETTERUI_EQUIP_SLOT_DIALOG"
+BETTERUI.Inventory.Dialogs = BETTERUI.Inventory.Dialogs or {}
+BETTERUI.Inventory.Dialogs.EQUIP_SLOT = BETTERUI.Inventory.Dialogs.EQUIP_SLOT or "BETTERUI_EQUIP_SLOT_DIALOG"
 
 --------------------------------------------------------------------------------
 -- COMPANION EQUIP PATCH
@@ -149,7 +149,9 @@ function BETTERUI.Inventory.Class:OnStateChanged(oldState, newState)
 		local listToActivate = self.previousListType or INVENTORY_CATEGORY_LIST
 		-- We normally do not want to enter the gamepad inventory on the item list
 		-- the exception is if we are coming back to the inventory, like from looting a container
-		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(ZO_GAMEPAD_INVENTORY_SCENE_NAME)
+        local inventorySceneName = (BETTERUI.Inventory.CONST and BETTERUI.Inventory.CONST.SCENE_NAME) or
+            "gamepad_inventory_root"
+		local wasOnStack = SCENE_MANAGER:WasSceneOnStack(inventorySceneName)
 		-- Also detect brief scene detours (container loot, enchanting, etc.) via time-based check
 		local timeSinceHidden = GetFrameTimeSeconds and (GetFrameTimeSeconds() - (self._sceneHiddenTime or 0)) or 999
 		local isBriefDetour = (timeSinceHidden < 2.0)
@@ -747,6 +749,19 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 
 		setup = function(dialog, data)
 			dialog:setupFunc()
+			-- Preserve the target item across split-stack close paths (confirm or cancel).
+			-- This helps selection/action recovery when the dialog is dismissed during
+			-- rapid action transitions (e.g., consume -> split stack -> cancel).
+			if data and data.bagId and data.slotIndex and GAMEPAD_INVENTORY then
+				local uniqueId = GetItemUniqueId(data.bagId, data.slotIndex)
+				if uniqueId then
+					GAMEPAD_INVENTORY._preserveUniqueId = uniqueId
+				end
+				local currentList = GAMEPAD_INVENTORY.GetCurrentList and GAMEPAD_INVENTORY:GetCurrentList() or nil
+				if currentList and currentList.GetSelectedIndex then
+					GAMEPAD_INVENTORY._preserveIndex = currentList:GetSelectedIndex()
+				end
+			end
 			-- Hide custom slider hint controls from CraftBagQuantityDialog
 			-- Both dialogs share the GAMEPAD_DIALOGS.ITEM_SLIDER template, so
 			-- controls created by SetupSliderKeybindHints persist between uses
@@ -819,6 +834,13 @@ function BETTERUI.Inventory.Class:InitializeSplitStackDialog()
 		-- This must fire BEFORE keybinds are restored to prevent re-triggering
 		OnHiddenCallback = function(dialog)
 			BETTERUI.Inventory._splitStackLock = nil
+			local inv = GAMEPAD_INVENTORY
+			local inventorySceneShowing = BETTERUI.CIM and BETTERUI.CIM.Utils
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing
+				and BETTERUI.CIM.Utils.IsInventorySceneShowing()
+			if inventorySceneShowing and inv and inv.RestoreStateAfterDialog then
+				inv:RestoreStateAfterDialog("splitStackDialogPostHideRefresh")
+			end
 		end,
 	})
 end
@@ -839,6 +861,12 @@ function BETTERUI.Inventory.Class:InitializeConfirmDestroyDialog()
 			dialogType = GAMEPAD_DIALOGS.BASIC,
 			allowRightStickPassThrough = true,
 		},
+		finishedCallback = function()
+			local inv = GAMEPAD_INVENTORY
+			if inv and inv.RestoreStateAfterDialog then
+				inv:RestoreStateAfterDialog("confirmDestroyDialogFinish")
+			end
+		end,
 		title = {
 			text = function(dialog)
 				return GetString(SI_DESTROY_ITEM_PROMPT_TITLE) or "Destroy Item"

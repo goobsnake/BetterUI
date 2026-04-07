@@ -103,11 +103,8 @@ function BETTERUI.GeneralInterface.Setup()
 	-- Only apply hooks/logic if Tooltips module is enabled
 	if not BETTERUI.Settings.Modules["GeneralInterface"].m_enabled then return end
 
-	if IsPrivateFunction('IsInUI') then
-		ZO_IsIngameUI = function()
-			return SCRIBING_DATA_MANAGER ~= nil
-		end
-	end
+	-- Do not override ZO_IsIngameUI here.
+	-- Replacing shared global helpers can taint protected gamepad callstacks.
 
 	-- Always hook mail delete, but check setting at runtime for live-refresh support
 	BETTERUI.PostHook(ZO_MailInbox_Gamepad, 'InitializeKeybindDescriptors', function(self)
@@ -137,24 +134,23 @@ function BETTERUI.GeneralInterface.Setup()
 	local storeTooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
 	for _, tooltipType in ipairs(storeTooltipTypes) do
 		local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
-		if tooltipControl and tooltipControl.LayoutStoreWindowItem then
-			local originalLayoutStore = tooltipControl.LayoutStoreWindowItem
-			tooltipControl.LayoutStoreWindowItem = function(self, itemData, ...)
+		if tooltipControl and tooltipControl.LayoutStoreWindowItem and not tooltipControl._betteruiStoreLayoutHookInstalled then
+			ZO_PreHook(tooltipControl, "LayoutStoreWindowItem", function(self, itemData, ...)
 				-- Capture item link for regular items (collectibles/quest items
 				-- don't route through LayoutItem, so they naturally skip price injection)
 				if itemData and itemData.itemLink then
 					self._betterui_itemLink = itemData.itemLink
 				end
 				self._betterui_storeStackCount = (itemData and (itemData.stackCount or itemData.stack or itemData.quantity)) or 1
-				local result = originalLayoutStore(self, itemData, ...)
+			end)
+			ZO_PostHook(tooltipControl, "LayoutStoreWindowItem", function(self, itemData, ...)
 				-- Clear stale bag context AFTER the call: LayoutItem fires synchronously
-				-- inside originalLayoutStore and re-writes stale closure bagId/slotIndex
-				-- onto the tooltip. Clearing here ensures UpdateTooltipEquippedText
-				-- sees nil bag context (correct for store items, which are not owned).
+				-- inside LayoutStoreWindowItem and can re-write bagId/slotIndex.
+				-- Clearing here keeps store item context authoritative.
 				self._betterui_bagId = nil
 				self._betterui_slotIndex = nil
-				return result
-			end
+			end)
+			tooltipControl._betteruiStoreLayoutHookInstalled = true
 		end
 	end
 
@@ -172,9 +168,8 @@ function BETTERUI.GeneralInterface.Setup()
 	local tooltipTypes = { GAMEPAD_LEFT_TOOLTIP, GAMEPAD_RIGHT_TOOLTIP, GAMEPAD_MOVABLE_TOOLTIP }
 	for _, tooltipType in ipairs(tooltipTypes) do
 		local tooltipControl = GAMEPAD_TOOLTIPS:GetTooltip(tooltipType)
-		if tooltipControl and tooltipControl.AddTopLinesToTopSection then
-			local originalAddTopLines = tooltipControl.AddTopLinesToTopSection
-			tooltipControl.AddTopLinesToTopSection = function(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
+		if tooltipControl and tooltipControl.AddTopLinesToTopSection and not tooltipControl._betteruiTopLinesHookInstalled then
+			ZO_PreHook(tooltipControl, "AddTopLinesToTopSection", function(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
 				local settings = BETTERUI.Settings.Modules["CIM"]
 				local enhancementsEnabled = settings and settings.enableTooltipEnhancements ~= false
 				if enhancementsEnabled then
@@ -182,11 +177,12 @@ function BETTERUI.GeneralInterface.Setup()
 					-- We still need to add the empty subsection to preserve tooltip layout
 					local topSubsection = topSection:AcquireSection(self:GetStyle("topSubsectionItemDetails"))
 					topSection:AddSectionEvenIfEmpty(topSubsection)
-					return
+					return true
 				end
-				-- Enhancements disabled — fall through to native behavior
-				return originalAddTopLines(self, topSection, itemLink, showPlayerLocked, tradeBoPData)
-			end
+				-- Enhancements disabled — allow native behavior.
+				return false
+			end)
+			tooltipControl._betteruiTopLinesHookInstalled = true
 		end
 	end
 

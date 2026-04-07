@@ -550,6 +550,7 @@ ZO_CreateStringId("SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP", "Воспроиз�
 -- Banking Specific Strings
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE_EMPTY", "ДОМАШНИЙ БАНК ПУСТ!")
 ZO_CreateStringId("SI_BETTERUI_BANK_HOUSE", "ДОМАШНИЙ БАНК")
+ZO_CreateStringId("SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY", "ХРАНИЛИЩЕ ПРЕДМЕТОВ ОБСТАНОВКИ ПУСТО!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER_EMPTY", "СУМКА ИГРОКА ПУСТА!")
 ZO_CreateStringId("SI_BETTERUI_BANK_PLAYER", "СУМКА ИГРОКА")
 ZO_CreateStringId("SI_BETTERUI_BANK_NO_FUNDS", "Недостаточно средств для перевода.")

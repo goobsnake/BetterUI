@@ -214,7 +214,8 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
     if not PLAYER_INVENTORY:IsBanking() then return end
 
     local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) then
+    local isSourceFurnitureVault = IsFurnitureVault and IsFurnitureVault(bag)
+    if bag == BAG_BANK or bag == BAG_SUBSCRIBER_BANK or IsHouseBankBag(bag) or isSourceFurnitureVault then
         -- Withdraw
         if DoesBagHaveSpaceFor(BAG_BACKPACK, bag, index) then
             CallSecureProtected("PickupInventoryItem", bag, index)
@@ -224,23 +225,44 @@ function BETTERUI.CIM.TryBankItem(inventorySlot)
         end
     else
         -- Deposit
+        local bankingBag = GetBankingBag()
+        local isTargetFurnitureVault = IsFurnitureVault and IsFurnitureVault(bankingBag)
+        if isTargetFurnitureVault and HOUSING_EDITOR_STATE and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault and
+            not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault() then
+            local blockedReason = IsESOPlusSubscriber and IsESOPlusSubscriber() and
+                SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, blockedReason)
+            return
+        end
+
         if IsItemStolen(bag, index) then
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
-        else
-            local bankingBag = GetBankingBag()
-            local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
-            if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
-                CallSecureProtected("PickupInventoryItem", bag, index)
-                CallSecureProtected("PlaceInTransfer")
+            if isTargetFurnitureVault then
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE)
             else
-                if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
-                    if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
-                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
-                    else
-                        TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE)
+            end
+        else
+            local isGemmableFurniture = isTargetFurnitureVault and CROWN_GEMIFICATION_MANAGER and
+                CROWN_GEMIFICATION_MANAGER.IsItemGemmable and
+                CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(bag), tonumber(index))
+
+            if isGemmableFurniture then
+                ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE)
+            else
+                local canAlsoBePlacedInSubscriberBank = bankingBag == BAG_BANK
+                if DoesBagHaveSpaceFor(bankingBag, bag, index) or (canAlsoBePlacedInSubscriberBank and DoesBagHaveSpaceFor(BAG_SUBSCRIBER_BANK, bag, index)) then
+                    CallSecureProtected("PickupInventoryItem", bag, index)
+                    CallSecureProtected("PlaceInTransfer")
+                else
+                    if canAlsoBePlacedInSubscriberBank and not IsESOPlusSubscriber() then
+                        if GetNumBagUsedSlots(BAG_SUBSCRIBER_BANK) > 0 then
+                            TriggerTutorial(TUTORIAL_TRIGGER_BANK_OVERFULL)
+                        else
+                            TriggerTutorial(TUTORIAL_TRIGGER_BANK_FULL_NO_ESO_PLUS)
+                        end
                     end
+                    ZO_AlertEvent(EVENT_BANK_IS_FULL)
                 end
-                ZO_AlertEvent(EVENT_BANK_IS_FULL)
             end
         end
     end

@@ -263,7 +263,12 @@ return: boolean - True if the banking scene is showing.
 ]]
 --- @return boolean showing True if the banking scene is showing
 function BETTERUI.CIM.Utils.IsBankingSceneShowing()
-    local scene = SCENE_MANAGER.scenes['gamepad_banking']
+    local scene = nil
+    if BETTERUI_BANKING_SCENE and type(BETTERUI_BANKING_SCENE.IsShowing) == "function" then
+        scene = BETTERUI_BANKING_SCENE
+    elseif SCENE_MANAGER and SCENE_MANAGER.scenes then
+        scene = SCENE_MANAGER.scenes[BETTERUI_BANKING_SCENE_NAME] or SCENE_MANAGER.scenes["gamepad_banking"]
+    end
     return scene and scene:IsShowing()
 end
 
