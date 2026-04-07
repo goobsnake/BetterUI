@@ -4,6 +4,13 @@ Purpose: Tab Bar (Carousel) Scroll List implementation.
          Handles circular navigation and LB/RB shoulder button logic.
 ]]
 
+local TABBAR_MOVEMENT_TYPES = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BETTERUI.CIM.ListGlobals.TABBAR_MOVEMENT_TYPES) or
+{
+    PAGE_FORWARD = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST,
+    PAGE_BACK = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST + 1,
+    PAGE_NAVIGATION_FAILED = ZO_PARAMETRIC_MOVEMENT_TYPES.LAST + 2,
+}
+
 -- CLASS: BETTERUI_TabBarScrollList
 -- The heart of BetterUI's category navigation using LB/RB.
 -- Implements Carousel Mode where items rotate circularly.
@@ -331,12 +338,12 @@ function BETTERUI_TabBarScrollList:MovePrevious(allowWrapping, suppressFailSound
         succeeded = true
     end
     if succeeded then
-        self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_BACK)
+        self.onPlaySoundFunction(TABBAR_MOVEMENT_TYPES.PAGE_BACK)
         if self.UpdateAnchors then
             self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false, false)
         end
     elseif not suppressFailSound then
-        self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
+        self.onPlaySoundFunction(TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
     end
     if (self.MovePrevCallback ~= nil) then self.MovePrevCallback(self.parent, succeeded) end
     return succeeded
@@ -355,12 +362,12 @@ function BETTERUI_TabBarScrollList:MoveNext(allowWrapping, suppressFailSound)
         succeeded = true
     end
     if succeeded then
-        self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_FORWARD)
+        self.onPlaySoundFunction(TABBAR_MOVEMENT_TYPES.PAGE_FORWARD)
         if self.UpdateAnchors then
             self:UpdateAnchors(self.targetSelectedIndex or self.selectedIndex, false, false, false)
         end
     elseif not suppressFailSound then
-        self.onPlaySoundFunction(ZO_TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
+        self.onPlaySoundFunction(TABBAR_MOVEMENT_TYPES.PAGE_NAVIGATION_FAILED)
     end
     if (self.MoveNextCallback ~= nil) then self.MoveNextCallback(self.parent, succeeded) end
     return succeeded

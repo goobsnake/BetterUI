@@ -12,22 +12,20 @@ Creates method hooks with configurable execution position.
 References: Used by BETTERUI.PreHook, BETTERUI.PostHook, BETTERUI.ReplaceHook
 ]]
 local function createHookInternal(control, method, fn, position)
-    if control == nil then return end
-    local originalMethod = control[method]
+    if control == nil or method == nil or fn == nil then return end
 
     if position == "before" then
-        control[method] = function(self, ...)
-            local result = fn(self, ...)
-            if result ~= true then -- Allow pre-hook to abort by returning true
-                return originalMethod(self, ...)
-            end
-        end
+        -- Use native pre-hooking to avoid direct method replacement taint.
+        ZO_PreHook(control, method, fn)
     elseif position == "after" then
-        control[method] = function(self, ...)
-            originalMethod(self, ...)
-            fn(self, ...)
+        -- SecurePostHook only accepts table targets; many UI controls are userdata.
+        if type(control) == "table" then
+            SecurePostHook(control, method, fn)
+        else
+            ZO_PostHook(control, method, fn)
         end
     elseif position == "replace" then
+        -- Full replacement is intentionally explicit and should be used sparingly.
         control[method] = function(self, ...)
             fn(self, ...)
         end
