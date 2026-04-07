@@ -64,6 +64,9 @@ local function GetActiveListModuleName()
     if IsNamedSceneShowing(rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME")) then
         return "Companions"
     end
+    if IsNamedSceneShowing(rawget(_G, "BETTERUI_TRADING_HOUSE_SCENE_NAME")) then
+        return "TradingHouse"
+    end
     return "Inventory"
 end
 
@@ -142,6 +145,8 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
             font = BETTERUI.Vendor.GetNameFontDescriptor()
         elseif moduleName == "Companions" and BETTERUI.Companions and BETTERUI.Companions.GetNameFontDescriptor then
             font = BETTERUI.Companions.GetNameFontDescriptor()
+        elseif moduleName == "TradingHouse" and BETTERUI.TradingHouse and BETTERUI.TradingHouse.GetNameFontDescriptor then
+            font = BETTERUI.TradingHouse.GetNameFontDescriptor()
         else
             font = BETTERUI.Inventory.GetNameFontDescriptor()
         end

@@ -75,6 +75,12 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
     local columnFont
     if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetColumnFontDescriptor then
         columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
+    elseif moduleName == "Companions" and BETTERUI.Companions and BETTERUI.Companions.GetColumnFontDescriptor then
+        columnFont = BETTERUI.Companions.GetColumnFontDescriptor()
+    elseif moduleName == "TradingHouse" and BETTERUI.TradingHouse and BETTERUI.TradingHouse.GetColumnFontDescriptor then
+        columnFont = BETTERUI.TradingHouse.GetColumnFontDescriptor()
+    elseif moduleName == "Vendor" and BETTERUI.Vendor and BETTERUI.Vendor.GetColumnFontDescriptor then
+        columnFont = BETTERUI.Vendor.GetColumnFontDescriptor()
     else
         columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
     end
