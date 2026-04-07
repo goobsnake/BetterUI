@@ -20,6 +20,21 @@ local Vendor = BETTERUI.Vendor
 Vendor.BuyComponent = {}
 local Buy = Vendor.BuyComponent
 
+local function GetStoreItemCategoryName(itemLink)
+    if not itemLink or itemLink == "" then
+        return ""
+    end
+
+    if GetItemLinkItemType then
+        local itemType = GetItemLinkItemType(itemLink)
+        if itemType and itemType ~= ITEMTYPE_NONE then
+            return GetString("SI_ITEMTYPE", itemType)
+        end
+    end
+
+    return ""
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -44,10 +59,11 @@ end
 function Buy:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
     -- Check affordability using stored price
-    local price = selectedData.price or 0
-    local currencyType = selectedData.currencyType or CURT_MONEY
+    local price = ds.price or 0
+    local currencyType = ds.currencyType or CURT_MONEY
     return vendorInstance:CanAfford(price, currencyType)
         and vendorInstance:HasInventorySpace()
 end
@@ -56,13 +72,14 @@ end
 function Buy:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local entryIndex = selectedData.entryIndex
+    local entryIndex = ds.entryIndex
     if not entryIndex then return end
 
     -- Validate affordability one more time
-    local price = selectedData.price or 0
-    local currencyType = selectedData.currencyType or CURT_MONEY
+    local price = ds.price or 0
+    local currencyType = ds.currencyType or CURT_MONEY
     if not vendorInstance:CanAfford(price, currencyType) then
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
@@ -90,11 +107,12 @@ function Buy:BuildList(vendorInstance)
     if numItems == 0 then return end
 
     for entryIndex = 1, numItems do
-        local icon, name, stack, price, sellPrice, meetsReqs, _, _, quality, _, currencyType1, currencyQuantity1,
+        local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
             _, _, entryType = GetStoreEntryInfo(entryIndex)
 
         if name and name ~= "" then
             local itemLink = GetStoreItemLink(entryIndex)
+            local bestCategoryName = GetStoreItemCategoryName(itemLink)
             local itemData = {
                 entryIndex       = entryIndex,
                 name             = zo_strformat(SI_TOOLTIP_ITEM_NAME, name) or name,
@@ -103,12 +121,12 @@ function Buy:BuildList(vendorInstance)
                 price            = currencyQuantity1 or price or 0,
                 currencyType     = currencyType1 or CURT_MONEY,
                 sellPrice        = sellPrice or 0,
-                meetsRequirements = meetsReqs,
-                quality          = quality or ITEM_DISPLAY_QUALITY_NORMAL,
+                meetsRequirements = meetsReqsToBuy,
+                quality          = displayQuality or ITEM_DISPLAY_QUALITY_NORMAL,
                 itemLink         = itemLink,
                 entryType        = entryType,
                 -- Trait/type info
-                bestGamepadItemCategoryName = GetBestItemCategoryDescription(itemLink) or "",
+                bestGamepadItemCategoryName = bestCategoryName,
                 statValue        = "",
             }
 
@@ -125,8 +143,8 @@ function Buy:BuildList(vendorInstance)
             entry.narrationText = function() return itemData.name end
 
             -- Set quality color
-            if quality then
-                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+            if itemData.quality then
+                local r, g, b = GetItemQualityColor(itemData.quality):UnpackRGBA()
                 entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
             end
 

@@ -68,12 +68,13 @@ end
 function FenceSell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
     local remaining = GetRemainingSells()
     if remaining <= 0 then return false end
 
-    if not (selectedData.bagId and selectedData.slotIndex) then return true end
-    if IsArtifactItem(selectedData.bagId, selectedData.slotIndex) then return false end
+    if not (ds.bagId and ds.slotIndex) then return true end
+    if IsArtifactItem(ds.bagId, ds.slotIndex) then return false end
 
     return true
 end
@@ -82,9 +83,10 @@ end
 function FenceSell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local bagId = selectedData.bagId
-    local slotIndex = selectedData.slotIndex
+    local bagId = ds.bagId
+    local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
     -- Re-check artifact guard (critical safety)

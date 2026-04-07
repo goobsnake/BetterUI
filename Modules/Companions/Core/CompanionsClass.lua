@@ -68,56 +68,54 @@ function BETTERUI.Companions.Class:BuildEquippedItems()
     if not bagSize or bagSize == 0 then return end
 
     for slotIndex = 0, bagSize - 1 do
-        local slotHasItem, icon, stackCount, sellPrice, isLocked, equipType,
+        local icon, stackCount, sellPrice, _locked, _equipType,
             _, functionalQuality, displayQuality = GetItemInfo(BAG_COMPANION_WORN, slotIndex)
 
-        if slotHasItem then
-            local name = GetItemName(BAG_COMPANION_WORN, slotIndex) or ""
-            if name ~= "" then
-                name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-                local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
-                local itemLink = GetItemLink(BAG_COMPANION_WORN, slotIndex)
-                local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
+        local name = GetItemName(BAG_COMPANION_WORN, slotIndex) or ""
+        if name ~= "" then
+            name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
+            local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
+            local itemLink = GetItemLink(BAG_COMPANION_WORN, slotIndex)
+            local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
 
-                local entryData = {
-                    name = name,
-                    icon = icon,
-                    stackCount = stackCount or 1,
-                    sellPrice = sellPrice or 0,
-                    stackSellPrice = (sellPrice or 0) * (stackCount or 1),
-                    quality = quality,
-                    bagId = BAG_COMPANION_WORN,
-                    slotIndex = slotIndex,
-                    isEquipped = true,
-                    isCompanionItem = true,
-                    bestGamepadItemCategoryName = GetBestItemCategoryDescription
-                        and GetBestItemCategoryDescription({bagId = BAG_COMPANION_WORN, slotIndex = slotIndex})
-                        or "",
-                    bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
-                    cached_itemLink = itemLink,
-                    cached_itemType = itemType,
-                    statValue = "",
-                }
+            local entryData = {
+                name = name,
+                icon = icon,
+                stackCount = stackCount or 1,
+                sellPrice = sellPrice or 0,
+                stackSellPrice = (sellPrice or 0) * (stackCount or 1),
+                quality = quality,
+                bagId = BAG_COMPANION_WORN,
+                slotIndex = slotIndex,
+                isEquipped = true,
+                isCompanionItem = true,
+                bestGamepadItemCategoryName = GetBestItemCategoryDescription
+                    and GetBestItemCategoryDescription({bagId = BAG_COMPANION_WORN, slotIndex = slotIndex})
+                    or "",
+                bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
+                cached_itemLink = itemLink,
+                cached_itemType = itemType,
+                statValue = "",
+            }
 
-                -- Get stat value for equipment (armor rating or weapon damage)
-                if GetItemStatValue then
-                    local sv = GetItemStatValue(BAG_COMPANION_WORN, slotIndex)
-                    if sv and sv > 0 then
-                        entryData.statValue = sv
-                    end
+            -- Get stat value for equipment (armor rating or weapon damage)
+            if GetItemStatValue then
+                local sv = GetItemStatValue(BAG_COMPANION_WORN, slotIndex)
+                if sv and sv > 0 then
+                    entryData.statValue = sv
                 end
-
-                local entry = ZO_GamepadEntryData:New("|cFFD700[E]|r " .. entryData.name, entryData.icon)
-                entry:SetDataSource(entryData)
-                entry.narrationText = function() return entryData.name end
-
-                if quality then
-                    local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                    entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-                end
-
-                list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
             end
+
+            local entry = ZO_GamepadEntryData:New("|cFFD700[E]|r " .. entryData.name, entryData.icon)
+            entry:SetDataSource(entryData)
+            entry.narrationText = function() return entryData.name end
+
+            if quality then
+                local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+                entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+            end
+
+            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
         end
     end
 end
@@ -130,60 +128,58 @@ function BETTERUI.Companions.Class:BuildBackpackItems()
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
 
     for slotIndex = 0, bagSize - 1 do
-        local slotHasItem, icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
+        local icon, stackCount, sellPrice = GetItemInfo(BAG_BACKPACK, slotIndex)
 
-        if slotHasItem then
-            -- Check if this item is companion-usable
-            local actorCategory = GetItemActorCategory
-                and GetItemActorCategory(BAG_BACKPACK, slotIndex)
-            if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-                local name = GetItemName(BAG_BACKPACK, slotIndex) or ""
-                if name ~= "" then
-                    name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-                    local quality = GetItemDisplayQuality(BAG_BACKPACK, slotIndex)
-                        or ITEM_DISPLAY_QUALITY_NORMAL
-                    local itemLink = GetItemLink(BAG_BACKPACK, slotIndex)
-                    local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
+        -- Check if this item is companion-usable
+        local actorCategory = GetItemActorCategory
+            and GetItemActorCategory(BAG_BACKPACK, slotIndex)
+        if actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+            local name = GetItemName(BAG_BACKPACK, slotIndex) or ""
+            if name ~= "" then
+                name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
+                local quality = GetItemDisplayQuality(BAG_BACKPACK, slotIndex)
+                    or ITEM_DISPLAY_QUALITY_NORMAL
+                local itemLink = GetItemLink(BAG_BACKPACK, slotIndex)
+                local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
 
-                    local entryData = {
-                        name = name,
-                        icon = icon,
-                        stackCount = stackCount or 1,
-                        sellPrice = sellPrice or 0,
-                        stackSellPrice = (sellPrice or 0) * (stackCount or 1),
-                        quality = quality,
-                        bagId = BAG_BACKPACK,
-                        slotIndex = slotIndex,
-                        isEquipped = false,
-                        isCompanionItem = true,
-                        bestGamepadItemCategoryName = GetBestItemCategoryDescription
-                            and GetBestItemCategoryDescription({bagId = BAG_BACKPACK, slotIndex = slotIndex})
-                            or "",
-                        bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
-                        cached_itemLink = itemLink,
-                        cached_itemType = itemType,
-                        statValue = "",
-                    }
+                local entryData = {
+                    name = name,
+                    icon = icon,
+                    stackCount = stackCount or 1,
+                    sellPrice = sellPrice or 0,
+                    stackSellPrice = (sellPrice or 0) * (stackCount or 1),
+                    quality = quality,
+                    bagId = BAG_BACKPACK,
+                    slotIndex = slotIndex,
+                    isEquipped = false,
+                    isCompanionItem = true,
+                    bestGamepadItemCategoryName = GetBestItemCategoryDescription
+                        and GetBestItemCategoryDescription({bagId = BAG_BACKPACK, slotIndex = slotIndex})
+                        or "",
+                    bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
+                    cached_itemLink = itemLink,
+                    cached_itemType = itemType,
+                    statValue = "",
+                }
 
-                    -- Get stat value for equipment (armor rating or weapon damage)
-                    if GetItemStatValue then
-                        local sv = GetItemStatValue(BAG_BACKPACK, slotIndex)
-                        if sv and sv > 0 then
-                            entryData.statValue = sv
-                        end
+                -- Get stat value for equipment (armor rating or weapon damage)
+                if GetItemStatValue then
+                    local sv = GetItemStatValue(BAG_BACKPACK, slotIndex)
+                    if sv and sv > 0 then
+                        entryData.statValue = sv
                     end
-
-                    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
-                    entry:SetDataSource(entryData)
-                    entry.narrationText = function() return entryData.name end
-
-                    if quality then
-                        local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-                    end
-
-                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
                 end
+
+                local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+                entry:SetDataSource(entryData)
+                entry.narrationText = function() return entryData.name end
+
+                if quality then
+                    local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+                    entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+                end
+
+                list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
             end
         end
     end

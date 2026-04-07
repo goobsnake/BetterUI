@@ -39,10 +39,30 @@ local INLINE_STATUS_ICON_WEIGHT = {
 }
 
 --- Returns the active module name based on which scene is showing.
---- @return string moduleName "Banking" or "Inventory"
+--- @return string moduleName "Banking", "Vendor", "Companions", or "Inventory"
+local function IsNamedSceneShowing(sceneName)
+    if not sceneName or not SCENE_MANAGER or not SCENE_MANAGER.GetScene then
+        return false
+    end
+
+    local scene = SCENE_MANAGER:GetScene(sceneName)
+    if scene and scene.IsShowing then
+        return scene:IsShowing()
+    end
+
+    local byName = SCENE_MANAGER.scenes and SCENE_MANAGER.scenes[sceneName]
+    return byName and byName.IsShowing and byName:IsShowing() or false
+end
+
 local function GetActiveListModuleName()
     if BETTERUI.Utils.IsBankingSceneShowing() then
         return "Banking"
+    end
+    if IsNamedSceneShowing(rawget(_G, "BETTERUI_VENDOR_SCENE_NAME")) then
+        return "Vendor"
+    end
+    if IsNamedSceneShowing(rawget(_G, "BETTERUI_COMPANION_EQUIP_SCENE_NAME")) then
+        return "Companions"
     end
     return "Inventory"
 end
@@ -118,6 +138,10 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local font
         if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetNameFontDescriptor then
             font = BETTERUI.Banking.GetNameFontDescriptor()
+        elseif moduleName == "Vendor" and BETTERUI.Vendor and BETTERUI.Vendor.GetNameFontDescriptor then
+            font = BETTERUI.Vendor.GetNameFontDescriptor()
+        elseif moduleName == "Companions" and BETTERUI.Companions and BETTERUI.Companions.GetNameFontDescriptor then
+            font = BETTERUI.Companions.GetNameFontDescriptor()
         else
             font = BETTERUI.Inventory.GetNameFontDescriptor()
         end

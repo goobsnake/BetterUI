@@ -688,6 +688,10 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_BUYBACK", "Buyback")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_SELL", "Sell Stolen")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Launder")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Enhanced Vendor")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_JUNK", "No junk items to sell.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_CONDITION", "<<1>>%")
+ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Fence Sells Remaining: <<1>>/<<2>>")
+ZO_CreateStringId("SI_BETTERUI_FENCE_LAUNDERS_REMAINING", "Fence Launders Remaining: <<1>>/<<2>>")
 
 -- Guild Bank Settings
 ZO_CreateStringId("SI_BETTERUI_GUILD_BANK_ENABLED", "Enable Enhanced Guild Bank")
@@ -697,3 +701,26 @@ ZO_CreateStringId("SI_BETTERUI_SLIDER_WITHDRAW", "Withdraw")
 
 -- Companions Module
 ZO_CreateStringId("SI_BETTERUI_COMPANIONS_TITLE", "Companion Equipment")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_GENERAL_HEADER", "General")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_GENERAL_DESC",
+    "Configure BetterUI companion equipment behavior. These settings apply to the Gamepad UI only.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT", "Enable Companion Equipment Replacement")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT_TOOLTIP",
+    "When enabled, BetterUI replaces the default companion equipment gamepad screen. Requires /reloadui.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_FONT_HEADER", "Font Customization")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_FONT_DESC",
+    "Customize fonts for the companions equipment list.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_SUBMENU", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_TOOLTIP", "Select the font for companion item names.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_SIZE_TOOLTIP", "Select the font size for companion item names.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_NAME_FONT_STYLE_TOOLTIP", "Select the font style for companion item names.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_SUBMENU", "Other Columns Font")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT", "Font")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_TOOLTIP", "Select the font for type, trait, stat, and value columns.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_SIZE", "Size")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_SIZE_TOOLTIP", "Select the font size for companion column data.")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_STYLE", "Font Style")
+ZO_CreateStringId("SI_BETTERUI_COMPANIONS_COLUMN_FONT_STYLE_TOOLTIP", "Select the font style for companion column data.")

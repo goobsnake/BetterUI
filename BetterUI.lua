@@ -81,6 +81,7 @@ BETTERUI.version = "3.02"
 BETTERUI.Inventory = BETTERUI.Inventory or {}
 BETTERUI.Banking = BETTERUI.Banking or {}
 BETTERUI.Vendor = BETTERUI.Vendor or {}
+BETTERUI.Companions = BETTERUI.Companions or {}
 BETTERUI.Writs = BETTERUI.Writs or {}
 BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.GeneralInterface = BETTERUI.GeneralInterface or {}

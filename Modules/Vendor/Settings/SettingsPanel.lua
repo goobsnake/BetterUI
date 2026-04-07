@@ -19,12 +19,35 @@ Vendor.Settings = Vendor.Settings or {}
 ---@param mId string Module identifier for LAM panel registration
 ---@param moduleName string Display name for the settings panel
 function Vendor.Settings.RegisterPanel(mId, moduleName)
-    local panelData = {
-        type = "panel",
-        name = "BetterUI - " .. moduleName,
-        displayName = "BetterUI - " .. moduleName,
-        registerForRefresh = true,
-    }
+    local panelData = BETTERUI.Init_ModulePanel(moduleName, "Vendor Settings")
+
+    local function RefreshVendorWindow()
+        local instance = Vendor.instance
+        if not (instance and instance.IsSceneShowing and instance:IsSceneShowing()) then
+            return
+        end
+
+        if instance.RefreshList then
+            instance:RefreshList()
+        end
+        if instance.RefreshVendorFooter then
+            instance:RefreshVendorFooter()
+        end
+        if instance.UpdateTabHeader then
+            instance:UpdateTabHeader()
+        end
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end
+    end
+
+    local function ResetVendorGeneralSettings()
+        if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Vendor", "general") then
+            Vendor.SetSetting("enableCarousel", true)
+            Vendor.SetSetting("enableBatchJunkSell", true)
+        end
+        RefreshVendorWindow()
+    end
 
     local optionsData = {}
 
@@ -48,6 +71,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         end,
         setFunc = function(value)
             Vendor.SetSetting("enableCarousel", value)
+            RefreshVendorWindow()
         end,
         width = "full",
     }
@@ -62,20 +86,24 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         end,
         setFunc = function(value)
             Vendor.SetSetting("enableBatchJunkSell", value)
+            RefreshVendorWindow()
         end,
         width = "full",
     }
+    optionsData[#optionsData + 1] = {
+        type = "button",
+        name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET_TOOLTIP")),
+        func = function()
+            ResetVendorGeneralSettings()
+        end,
+        width = "half",
+    }
 
     -- ICON SETTINGS
-    local iconFactory = BETTERUI.CIM.TryResolve("CIM.IconSettingsFactory")
-    if iconFactory then
-        local iconOptions = iconFactory.CreateIconSettingsGroup(moduleName)
-        if iconOptions then
-            for _, opt in ipairs(iconOptions) do
-                optionsData[#optionsData + 1] = opt
-            end
-        end
-    end
+    optionsData[#optionsData + 1] = BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Vendor", function()
+        RefreshVendorWindow()
+    end)
 
     -- FONT SETTINGS
     optionsData[#optionsData + 1] = {
@@ -214,6 +242,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     }
 
     -- Register panel with LibAddonMenu2
+    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsData, true)
+
     local LAM = LibAddonMenu2
     if LAM then
         LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)

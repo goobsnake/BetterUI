@@ -12,6 +12,21 @@ local Vendor = BETTERUI.Vendor
 Vendor.BuybackComponent = {}
 local Buyback = Vendor.BuybackComponent
 
+local function GetBuybackItemCategoryName(itemLink)
+    if not itemLink or itemLink == "" then
+        return ""
+    end
+
+    if GetItemLinkItemType then
+        local itemType = GetItemLinkItemType(itemLink)
+        if itemType and itemType ~= ITEMTYPE_NONE then
+            return GetString("SI_ITEMTYPE", itemType)
+        end
+    end
+
+    return ""
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -36,8 +51,9 @@ end
 function Buyback:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
-    local price = selectedData.price or 0
+    local price = ds.price or 0
     return vendorInstance:CanAfford(price) and vendorInstance:HasInventorySpace()
 end
 
@@ -45,12 +61,13 @@ end
 function Buyback:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local entryIndex = selectedData.entryIndex
+    local entryIndex = ds.entryIndex
     if not entryIndex then return end
 
     -- Validate affordability
-    local price = selectedData.price or 0
+    local price = ds.price or 0
     if not vendorInstance:CanAfford(price) then
         BETTERUI.CIM.UserAlertText("Buyback:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
@@ -97,7 +114,7 @@ function Buyback:BuildList(vendorInstance)
                 functionalQuality = functionalQuality,
                 meetsRequirements = meetsRequirements,
                 itemLink          = itemLink,
-                bestGamepadItemCategoryName = itemLink and GetBestItemCategoryDescription(itemLink) or "",
+                bestGamepadItemCategoryName = GetBuybackItemCategoryName(itemLink),
                 statValue         = "",
             }
 

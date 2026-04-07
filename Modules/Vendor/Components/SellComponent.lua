@@ -36,13 +36,14 @@ end
 function Sell:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
     -- Cannot sell stolen items to a regular vendor
-    local isStolen = selectedData.stolen == true
+    local isStolen = ds.stolen == true
     if isStolen then return false end
 
     -- Check that item has a sell price
-    local sellPrice = selectedData.sellPrice or selectedData.stackSellPrice or 0
+    local sellPrice = ds.sellPrice or ds.stackSellPrice or 0
     return sellPrice > 0
 end
 
@@ -50,9 +51,10 @@ end
 function Sell:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local bagId = selectedData.bagId
-    local slotIndex = selectedData.slotIndex
+    local bagId = ds.bagId
+    local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
     -- Validate the slot still has items
@@ -111,16 +113,19 @@ function Sell:BuildList(vendorInstance)
         if sellPrice > 0 and not isStolen then
             local name = slot.name or zo_strformat(SI_TOOLTIP_ITEM_NAME,
                 GetItemName(slot.bagId, slot.slotIndex))
-            local icon = slot.iconFile or GetItemInfo(slot.bagId, slot.slotIndex)
+            local icon = slot.iconFile
+            if not icon then
+                icon = GetItemInfo(slot.bagId, slot.slotIndex)
+            end
             local quality = slot.displayQuality or slot.quality or ITEM_DISPLAY_QUALITY_NORMAL
+            local perItemSellPrice = GetItemSellValueWithBonuses(slot.bagId, slot.slotIndex) or sellPrice or 0
 
             local entryData = {
                 name             = name,
                 icon             = icon,
                 stackCount       = slot.stackCount or 1,
                 sellPrice        = sellPrice,
-                stackSellPrice   = GetItemSellValueWithBonuses(slot.bagId, slot.slotIndex)
-                                   * (slot.stackCount or 1),
+                stackSellPrice   = perItemSellPrice * (slot.stackCount or 1),
                 quality          = quality,
                 bagId            = slot.bagId,
                 slotIndex        = slot.slotIndex,

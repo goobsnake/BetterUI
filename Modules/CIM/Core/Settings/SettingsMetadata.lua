@@ -156,6 +156,36 @@ local SETTINGS_METADATA_REGISTRY = {
         },
     },
 
+    Vendor = {
+        enableCarousel = {
+            labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
+            tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        enableBatchJunkSell = {
+            labelStringId = SI_BETTERUI_VENDOR_BATCH_JUNK_SELL,
+            tooltipStringId = SI_BETTERUI_VENDOR_BATCH_JUNK_SELL_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+    },
+
+    Companions = {
+        enableCompanionEquipment = {
+            labelStringId = SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT,
+            tooltipStringId = SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+    },
+
     GeneralInterface = {
         chatHistory = {
             labelStringId = SI_BETTERUI_CHAT_HISTORY,

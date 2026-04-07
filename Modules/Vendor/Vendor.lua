@@ -70,6 +70,25 @@ local function GetActiveTabs()
     return VENDOR_TABS
 end
 
+local function SetStoreSceneAlias(sceneObject)
+    if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
+        return
+    end
+    SCENE_MANAGER.scenes["gamepad_store"] = sceneObject
+end
+
+local function RestoreNativeStoreSceneAlias()
+    if Vendor.nativeStoreScene then
+        SetStoreSceneAlias(Vendor.nativeStoreScene)
+    end
+end
+
+local function AliasStoreSceneToBetterUI()
+    if Vendor.instance and Vendor.instance.scene then
+        SetStoreSceneAlias(Vendor.instance.scene)
+    end
+end
+
 -- KEYBINDS
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -101,6 +120,72 @@ local function BuildCoreKeybinds(vendorInstance)
                 -- Disabled if no list data
                 local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
                 return selectedData ~= nil
+            end,
+        },
+        -- Secondary action (Sell All Junk / Repair All)
+        {
+            name = function()
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == MODE.SELL then
+                    return GetString(rawget(_G, "SI_SELL_ALL_JUNK_KEYBIND_TEXT") or "SI_SELL_ALL_JUNK_KEYBIND_TEXT")
+                end
+                if mode == MODE.REPAIR then
+                    local cost = GetRepairAllCost and GetRepairAllCost() or 0
+                    if cost > 0 and zo_strformat and ZO_Currency_FormatGamepad then
+                        local formatKind = ZO_CURRENCY_FORMAT_WHITE_AMOUNT_ICON
+                        if GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) < cost then
+                            formatKind = ZO_CURRENCY_FORMAT_ERROR_AMOUNT_ICON
+                        end
+                        return zo_strformat(
+                            SI_REPAIR_ALL_KEYBIND_TEXT,
+                            ZO_Currency_FormatGamepad(CURT_MONEY, cost, formatKind)
+                        )
+                    end
+                    return GetString(rawget(_G, "SI_REPAIR_ALL_KEYBIND_TEXT") or "SI_REPAIR_ALL_KEYBIND_TEXT")
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_SECONDARY",
+            visible = function()
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == MODE.SELL then
+                    return Vendor.GetSetting("enableBatchJunkSell") ~= false
+                end
+                if mode == MODE.REPAIR then
+                    local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
+                    return repairAllCost > 0
+                end
+                return false
+            end,
+            enabled = function()
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == MODE.SELL then
+                    local _, itemCount = Vendor.GetJunkSellSummary()
+                    return itemCount > 0
+                end
+                if mode == MODE.REPAIR then
+                    local repairAllCost = GetRepairAllCost and GetRepairAllCost() or 0
+                    if repairAllCost <= 0 then
+                        return false
+                    end
+                    if vendorInstance:CanAfford(repairAllCost) then
+                        return true
+                    end
+                    return false, GetString(rawget(_G, "SI_REPAIR_ALL_CANNOT_AFFORD") or "SI_REPAIR_ALL_CANNOT_AFFORD")
+                end
+                return false
+            end,
+            callback = function()
+                local component = vendorInstance:GetActiveComponent()
+                if not component then return end
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == MODE.SELL and component.SellAllJunk then
+                    ZO_Dialogs_ShowGamepadDialog("SELL_ALL_JUNK")
+                    return
+                end
+                if mode == MODE.REPAIR and component.RepairAll then
+                    component:RepairAll(vendorInstance)
+                end
             end,
         },
         -- Back / Exit (keybind B / GAMEPAD_BUTTON_2)
@@ -166,8 +251,16 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
         end
     end
 
-    -- Calculate new index with wrap
-    local newIndex = ((currentIndex - 1 + direction) % #tabs) + 1
+    local newIndex
+    if Vendor.GetSetting("enableCarousel") == false then
+        newIndex = currentIndex + direction
+        if newIndex < 1 or newIndex > #tabs then
+            return
+        end
+    else
+        -- Carousel navigation wraps around at both ends.
+        newIndex = ((currentIndex - 1 + direction) % #tabs) + 1
+    end
     self:SetMode(tabs[newIndex].mode)
 
     -- Update header to reflect new tab
@@ -199,6 +292,26 @@ local function OnOpenStore()
     fenceEnableLaunder = false
 
     if not Vendor.instance then return end
+    local interactionType = GetInteractionType and GetInteractionType() or nil
+
+    -- Stable interactions share EVENT_OPEN_STORE and the gamepad_store scene.
+    -- Keep native scene wiring for stable to prevent cross-module UI bleed.
+    if interactionType == INTERACTION_STABLE then
+        local customScene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
+        if customScene and customScene.IsShowing and customScene:IsShowing() then
+            SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
+        end
+        RestoreNativeStoreSceneAlias()
+        return
+    end
+
+    -- Only take ownership for real vendor interactions.
+    if interactionType and interactionType ~= INTERACTION_VENDOR then
+        RestoreNativeStoreSceneAlias()
+        return
+    end
+
+    AliasStoreSceneToBetterUI()
 
     -- Set mode to BUY (default for vendor)
     Vendor.instance:SetMode(MODE.BUY)
@@ -220,6 +333,7 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     fenceEnableLaunder = (enableLaunder ~= false) -- default true
 
     if not Vendor.instance then return end
+    AliasStoreSceneToBetterUI()
 
     -- Set mode to first available fence tab
     if fenceEnableSell then
@@ -241,7 +355,15 @@ local function OnCloseStore()
     fenceEnableSell = false
     fenceEnableLaunder = false
 
-    -- Scene hiding is handled by VendorSceneLifecycle
+    local sceneName = BETTERUI_VENDOR_SCENE_NAME
+    if SCENE_MANAGER then
+        local scene = SCENE_MANAGER:GetScene(sceneName)
+        if scene and scene.IsShowing and scene:IsShowing() then
+            SCENE_MANAGER:Hide(sceneName)
+        end
+    end
+
+    RestoreNativeStoreSceneAlias()
 end
 
 local function OnInventoryUpdated()
@@ -326,6 +448,9 @@ function BETTERUI.Vendor.Init()
     local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, Vendor.VENDOR_INTERACTION)
     Vendor.instance.scene = scene
 
+    -- Capture vanilla store scene once so we can safely restore it outside vendor/fence interactions.
+    Vendor.nativeStoreScene = Vendor.nativeStoreScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_store"))
+
     -- Add required fragment groups (matching WindowClass.InitializeScene pattern)
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
@@ -359,8 +484,8 @@ function BETTERUI.Vendor.Init()
         end,
     })
 
-    -- Alias to replace gamepad_store scene
-    SCENE_MANAGER.scenes["gamepad_store"] = scene
+    -- Keep the native alias by default; vendor/fence handlers switch ownership dynamically.
+    RestoreNativeStoreSceneAlias()
 
     -- Set up vendor-specific footer labels (replace banking WITHDRAW/DEPOSIT with gold/capacity)
     Vendor.instance:InitVendorFooter()

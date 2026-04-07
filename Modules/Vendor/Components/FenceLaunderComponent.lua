@@ -66,6 +66,7 @@ end
 function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
     -- Must have remaining launders
     local remaining = GetRemainingLaunders()
@@ -73,8 +74,8 @@ function FenceLaunder:IsPrimaryActionEnabled(vendorInstance)
 
     -- Must be able to afford
     local cost = 0
-    if selectedData.bagId and selectedData.slotIndex then
-        cost = GetLaunderCost(selectedData.bagId, selectedData.slotIndex)
+    if ds.bagId and ds.slotIndex then
+        cost = GetLaunderCost(ds.bagId, ds.slotIndex)
     end
     return vendorInstance:CanAfford(cost)
 end
@@ -83,9 +84,10 @@ end
 function FenceLaunder:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local bagId = selectedData.bagId
-    local slotIndex = selectedData.slotIndex
+    local bagId = ds.bagId
+    local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
     -- Re-check remaining launders
@@ -120,7 +122,7 @@ function FenceLaunder:BuildList(vendorInstance)
     for slotIndex = 0, bagSize - 1 do
         -- Only show stolen items
         if IsItemStolen(BAG_BACKPACK, slotIndex) then
-            local icon, stackCount, _ = GetItemInfo(BAG_BACKPACK, slotIndex)
+            local icon, stackCount = GetItemInfo(BAG_BACKPACK, slotIndex)
             local name = GetItemName(BAG_BACKPACK, slotIndex)
 
             if name and name ~= "" then

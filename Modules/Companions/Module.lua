@@ -40,6 +40,14 @@ end
 --- Lifecycle hook: registers settings panel and initializes the module.
 --- Called by BETTERUI.LoadModules() via MODULE_REGISTRY.
 function BETTERUI.Companions.Setup()
+    if BETTERUI.Companions.Settings and BETTERUI.Companions.Settings.RegisterPanel then
+        BETTERUI.Companions.Settings.RegisterPanel("Companions", "Companions")
+    end
+
+    if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
+        return
+    end
+
     BETTERUI.Companions.Init()
 end
 
@@ -71,6 +79,42 @@ local function ResolveCompanionEquipSlot(bagId, slotIndex)
     end
 
     return firstCompatibleSlot
+end
+
+---@param bagId number
+---@param slotIndex number
+---@return boolean equipped
+local function TryEquipCompanionItem(bagId, slotIndex)
+    if bagId == nil or slotIndex == nil then
+        return false
+    end
+
+    if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        return false
+    end
+
+    local equipSlot = ResolveCompanionEquipSlot(bagId, slotIndex)
+    if not equipSlot then
+        return false
+    end
+
+    if CallSecureProtected then
+        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1)
+        return true
+    end
+
+    return false
+end
+
+--- Compatibility entrypoint used by ESO's shared slot action pipeline.
+--- @param inventorySlot table
+function BETTERUI.Companions.Class:TryEquipItem(inventorySlot)
+    if not inventorySlot or not ZO_Inventory_GetBagAndIndex then
+        return
+    end
+
+    local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    TryEquipCompanionItem(bagId, slotIndex)
 end
 
 ---@param instance BETTERUI.Companions.Class
@@ -111,14 +155,7 @@ local function BuildCoreKeybinds(instance)
                             BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, 0, 1)
                     end
                 else
-                    -- Equip to the first compatible companion equipment slot.
-                    local equipSlot = ResolveCompanionEquipSlot(bagId, slotIndex)
-                    if not equipSlot then return end
-
-                    if CallSecureProtected then
-                        CallSecureProtected("RequestMoveItem",
-                            bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1)
-                    end
+                    TryEquipCompanionItem(bagId, slotIndex)
                 end
             end,
             enabled = function()
@@ -246,6 +283,8 @@ function BETTERUI.Companions.Init()
 
     -- Alias to replace native companion equipment scene
     SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
+    COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
+    COMPANION_EQUIPMENT_GAMEPAD = Companions.instance
 
     -- Set up companion-specific footer labels
     Companions.instance:InitCompanionFooter()

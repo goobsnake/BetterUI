@@ -37,8 +37,9 @@ end
 function Repair:IsPrimaryActionEnabled(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return false end
+    local ds = selectedData.dataSource or selectedData
 
-    local repairCost = selectedData.repairCost or 0
+    local repairCost = ds.repairCost or 0
     return repairCost > 0 and vendorInstance:CanAfford(repairCost)
 end
 
@@ -46,12 +47,13 @@ end
 function Repair:OnPrimaryAction(vendorInstance)
     local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
     if not selectedData then return end
+    local ds = selectedData.dataSource or selectedData
 
-    local bagId = selectedData.bagId
-    local slotIndex = selectedData.slotIndex
+    local bagId = ds.bagId
+    local slotIndex = ds.slotIndex
     if bagId == nil or slotIndex == nil then return end
 
-    local repairCost = selectedData.repairCost or 0
+    local repairCost = ds.repairCost or 0
     if repairCost <= 0 then return end
 
     if not vendorInstance:CanAfford(repairCost) then
