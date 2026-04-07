@@ -154,24 +154,9 @@ function Events.SetupVisibilityFragments(rootFrame)
         DeferredEnforceHide(100)
     end)
 
-    -- Guard: Check SCENE_MANAGER exists before overriding methods
-    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDScene then
-        local originalRestoreHUDScene = SCENE_MANAGER.RestoreHUDScene
-        SCENE_MANAGER.RestoreHUDScene = function(self, ...)
-            local result = originalRestoreHUDScene(self, ...)
-            DeferredEnforceHide(50)
-            return result
-        end
-    end
-
-    if SCENE_MANAGER and SCENE_MANAGER.RestoreHUDUIScene then
-        local originalRestoreHUDUIScene = SCENE_MANAGER.RestoreHUDUIScene
-        SCENE_MANAGER.RestoreHUDUIScene = function(self, ...)
-            local result = originalRestoreHUDUIScene(self, ...)
-            DeferredEnforceHide(50)
-            return result
-        end
-    end
+    -- IMPORTANT:
+    -- Do not replace SCENE_MANAGER methods here. Global scene-manager monkeypatches
+    -- can taint protected gamepad execution paths.
 
     local function IsSpecialSceneActive()
         if not SCENE_MANAGER then

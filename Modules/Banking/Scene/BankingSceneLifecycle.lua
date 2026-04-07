@@ -291,61 +291,9 @@ end
 --- Prevents keyboard keys (I, G, M, etc.) from interrupting the banking
 --- ZO_InteractScene mid-interaction.
 function BETTERUI.Banking.SetupSceneInterception()
-    local originalToggle = SCENE_MANAGER.Toggle
-    local originalShow = SCENE_MANAGER.Show
-    local bankingSceneName = BETTERUI_BANKING_SCENE_NAME
-    local guildBankSceneName = BETTERUI_GUILD_BANKING_SCENE_NAME
-    local intercepting = false
-
-    local function InterceptSceneChange(targetSceneName)
-        if intercepting then return false end
-        -- Never intercept our own banking scenes
-        if targetSceneName == bankingSceneName or targetSceneName == "gamepad_banking" then
-            return false
-        end
-        if targetSceneName == guildBankSceneName or targetSceneName == "gamepad_guild_bank" then
-            return false
-        end
-        if targetSceneName == "hud" or targetSceneName == "hudui" then
-            return false
-        end
-
-        -- Check if either banking scene is active
-        local bankScene = SCENE_MANAGER:GetScene(bankingSceneName)
-        local guildBankScene = SCENE_MANAGER:GetScene(guildBankSceneName)
-        local activeScene = nil
-        if bankScene and bankScene:IsShowing() then
-            activeScene = bankScene
-        elseif guildBankScene and guildBankScene:IsShowing() then
-            activeScene = guildBankScene
-        end
-        if not activeScene then
-            return false
-        end
-
-        local function OnBankHidden(oldState, newState)
-            if newState == SCENE_HIDDEN then
-                activeScene:UnregisterCallback("StateChange", OnBankHidden)
-                zo_callLater(function()
-                    originalShow(SCENE_MANAGER, targetSceneName)
-                end, 50)
-            end
-        end
-        activeScene:RegisterCallback("StateChange", OnBankHidden)
-
-        intercepting = true
-        SCENE_MANAGER:HideCurrentScene()
-        intercepting = false
-        return true
-    end
-
-    SCENE_MANAGER.Toggle = function(sm, sceneName, ...)
-        if InterceptSceneChange(sceneName) then return end
-        return originalToggle(sm, sceneName, ...)
-    end
-
-    SCENE_MANAGER.Show = function(sm, sceneName, ...)
-        if InterceptSceneChange(sceneName) then return end
-        return originalShow(sm, sceneName, ...)
-    end
+    -- IMPORTANT:
+    -- Do not replace SCENE_MANAGER methods. Global scene-manager monkeypatches
+    -- taint protected gamepad execution paths (Tamriel Tomes / DirectPurchase).
+    -- Keep this as a no-op to preserve secure scene transitions.
+    return
 end
