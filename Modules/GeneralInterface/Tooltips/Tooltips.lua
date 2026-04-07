@@ -405,205 +405,235 @@ function BETTERUI.InventoryHook(config, tooltipTypeArg, method, linkFunc, method
         return
     end
 
-    local newMethod = tooltipControl[layoutItemName]
-    local newMethod2 = tooltipControl[layoutBagName]
-    local newMethod3 = tooltipControl[layoutStoreName]
-    local bagId
-    local itemLink
-    local slotIndex
-    local storeItemLink
-    local storeStackCount
-
-    if tooltipControl.ClearLines and not tooltipControl._betteruiClearLinesHookInstalled and type(ZO_PostHook) == "function" then
-        ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
-            ClearTooltipEnhancementState(self, tooltipType)
-        end)
-        tooltipControl._betteruiClearLinesHookInstalled = true
+    if type(ZO_PreHook) ~= "function" or type(ZO_PostHook) ~= "function" then
+        return
+    end
+    if not tooltipControl[layoutItemName] or not tooltipControl[layoutBagName] or not tooltipControl[layoutStoreName] then
+        return
     end
 
-    if newMethod2 then
-        tooltipControl[layoutBagName] = function(self, ...)
-            -- Layer 1: Blocklist guard
-            if IsIncompatibleSceneActive() then
-                ClearTooltipEnhancementState(self, tooltipType)
-                newMethod2(self, ...)
-                return
-            end
-            -- Layer 2: SafeExecute safety net
+    tooltipControl._betteruiInventoryHookState = tooltipControl._betteruiInventoryHookState or
+    {
+        installedHooks = {},
+        bagId = nil,
+        slotIndex = nil,
+        storeItemLink = nil,
+        storeStackCount = nil,
+        skipEnhancementForLayout = false,
+        pendingItemLink = nil,
+        pendingTooltipType = nil,
+        clearLinesHookInstalled = false,
+    }
+    local state = tooltipControl._betteruiInventoryHookState
+    local hookKey = string.format("%s|%s|%s|%s", tostring(layoutItemName), tostring(layoutBagName), tostring(layoutStoreName), tostring(tooltipType))
+    if state.installedHooks[hookKey] then
+        return
+    end
+    state.installedHooks[hookKey] = true
+
+    if tooltipControl.ClearLines and not state.clearLinesHookInstalled then
+        ZO_PostHook(tooltipControl, "ClearLines", function(self, ...)
+            ClearTooltipEnhancementState(self, tooltipType)
+            state.bagId = nil
+            state.slotIndex = nil
+            state.storeItemLink = nil
+            state.storeStackCount = nil
+            state.pendingItemLink = nil
+            state.pendingTooltipType = nil
+        end)
+        state.clearLinesHookInstalled = true
+    end
+
+    ZO_PreHook(tooltipControl, layoutBagName, function(self, ...)
+        if IsIncompatibleSceneActive() then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        if type(layoutBagDataFn) == "function" then
             local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:path-recovery", function(...)
                 return { layoutBagDataFn(...) }
             end, ...)
             if ok and result then
-                bagId, slotIndex = result[1], result[2]
+                state.bagId = result[1]
+                state.slotIndex = result[2]
             else
-                bagId, slotIndex = nil, nil
+                state.bagId = nil
+                state.slotIndex = nil
             end
-            -- Clear store-specific state
-            storeItemLink = nil
-            storeStackCount = nil
-            newMethod2(self, ...)
+        else
+            state.bagId = nil
+            state.slotIndex = nil
         end
-    end
 
-    if newMethod3 then
-        tooltipControl[layoutStoreName] = function(self, ...)
-            -- Layer 1: Blocklist guard
-            if IsIncompatibleSceneActive() then
-                ClearTooltipEnhancementState(self, tooltipType)
-                newMethod3(self, ...)
-                return
-            end
-            -- Layer 2: SafeExecute safety net
+        -- Clear store-specific state when navigating to a bag item.
+        state.storeItemLink = nil
+        state.storeStackCount = nil
+    end)
+
+    ZO_PreHook(tooltipControl, layoutStoreName, function(self, ...)
+        if IsIncompatibleSceneActive() then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        if type(layoutStoreDataFn) == "function" then
             local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:store-link", function(...)
                 return { layoutStoreDataFn(...) }
             end, ...)
             if ok and result then
-                storeItemLink, storeStackCount = result[1], result[2]
+                state.storeItemLink = result[1]
+                state.storeStackCount = result[2]
             else
-                storeItemLink, storeStackCount = nil, nil
+                state.storeItemLink = nil
+                state.storeStackCount = nil
             end
-            -- Clear bag-specific state
-            bagId = nil
-            slotIndex = nil
-            newMethod3(self, ...)
+        else
+            state.storeItemLink = nil
+            state.storeStackCount = nil
         end
-    end
 
-    if newMethod then
-        tooltipControl[layoutItemName] = function(self, ...)
-            -- Layer 1: Blocklist guard
-            if IsIncompatibleSceneActive() then
-                ClearTooltipEnhancementState(self, tooltipType)
-                newMethod(self, ...)
-                return
+        -- Clear bag-specific state when navigating to a store item.
+        state.bagId = nil
+        state.slotIndex = nil
+    end)
+
+    ZO_PreHook(tooltipControl, layoutItemName, function(self, ...)
+        state.skipEnhancementForLayout = IsIncompatibleSceneActive()
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        if state.skipEnhancementForLayout then
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        local itemLink
+        if state.storeItemLink then
+            itemLink = state.storeItemLink
+        elseif type(layoutItemDataFn) == "function" then
+            local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:link-extraction", function(...)
+                return layoutItemDataFn(...)
+            end, ...)
+            itemLink = ok and result or nil
+        end
+
+        -- Never reuse stale bag context from unrelated tooltip layouts.
+        if state.bagId ~= nil and state.slotIndex ~= nil
+            and not DoesBagContextMatchItemLink(state.bagId, state.slotIndex, itemLink) then
+            state.bagId = nil
+            state.slotIndex = nil
+        end
+
+        if not IsLikelyItemLink(itemLink) then
+            state.skipEnhancementForLayout = true
+            ClearTooltipEnhancementState(self, tooltipType)
+            return
+        end
+
+        -- Capture current item link for Status Hook/Inventory Update to read.
+        local effectiveStoreStackCount = state.storeStackCount
+        if effectiveStoreStackCount == nil and state.bagId == nil and state.slotIndex == nil then
+            effectiveStoreStackCount = self._betterui_storeStackCount
+        end
+        self._betterui_itemLink = itemLink
+        self._betterui_bagId = state.bagId
+        self._betterui_slotIndex = state.slotIndex
+        self._betterui_storeStackCount = effectiveStoreStackCount
+
+        -- Reset price-rendered flag so deferred injection can fire.
+        self._betterui_priceRendered = false
+
+        -- Clear consumed store state to prevent it persisting to the next item.
+        state.storeItemLink = nil
+        state.storeStackCount = nil
+
+        state.pendingItemLink = itemLink
+        state.pendingTooltipType = tooltipType
+    end)
+
+    ZO_PostHook(tooltipControl, layoutItemName, function(self, ...)
+        local itemLink = state.pendingItemLink
+        local capturedTooltipType = state.pendingTooltipType
+        state.pendingItemLink = nil
+        state.pendingTooltipType = nil
+
+        if state.skipEnhancementForLayout then
+            state.skipEnhancementForLayout = false
+            return
+        end
+
+        local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
+
+        local fontSize = BETTERUI.GetTooltipFontSize()
+        local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
+        for i = 1, self:GetNumChildren() do
+            local child = self:GetChild(i)
+            if child and child:GetType() == CT_LABEL then
+                child:SetFont(fontStr)
             end
+        end
 
-            if storeItemLink then
-                itemLink = storeItemLink
-            else
-                -- Layer 2: SafeExecute safety net
-                local ok, result = BETTERUI.CIM.SafeExecute("Tooltips:InventoryHook:link-extraction", function(...)
-                    return layoutItemDataFn(...)
-                end, ...)
-                if ok then
-                    itemLink = result
-                else
-                    itemLink = nil
+        if itemLink then
+            local tooltipRef = self
+            local capturedItemLink = itemLink
+            zo_callLater(function()
+                if not tooltipRef or tooltipRef:IsHidden() then return end
+                if tooltipRef._betterui_priceRendered then return end
+                if IsIncompatibleSceneActive() then return end
+                if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
+
+                if BETTERUI.Inventory and type(BETTERUI.Inventory.UpdateTooltipEquippedText) == "function" then
+                    BETTERUI.Inventory.UpdateTooltipEquippedText(tonumber(capturedTooltipType) or 0, nil)
                 end
-            end
+            end, 1)
+        end
 
-            if bagId ~= nil and slotIndex ~= nil and not DoesBagContextMatchItemLink(bagId, slotIndex, itemLink) then
-                bagId = nil
-                slotIndex = nil
-            end
+        if enhancementsEnabled then
+            local tooltipRef = self
+            zo_callLater(function()
+                if not tooltipRef or tooltipRef:IsHidden() then return end
+                if IsIncompatibleSceneActive() then return end
 
-            if not IsLikelyItemLink(itemLink) then
-                ClearTooltipEnhancementState(self, tooltipType)
-                BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
-                return
-            end
-
-            -- Capture current item link
-            local effectiveStoreStackCount = storeStackCount
-            if effectiveStoreStackCount == nil and bagId == nil and slotIndex == nil then
-                effectiveStoreStackCount = self._betterui_storeStackCount
-            end
-            self._betterui_itemLink = itemLink
-            self._betterui_bagId = bagId
-            self._betterui_slotIndex = slotIndex
-            self._betterui_storeStackCount = effectiveStoreStackCount
-
-            -- Reset price-rendered flag
-            self._betterui_priceRendered = false
-
-            -- Clear consumed store state
-            storeItemLink = nil
-            storeStackCount = nil
-
-            -- 1. Draw the standard tooltip first
-            local layoutOk = BETTERUI.CIM.SafeExecute("Tooltip:LayoutItem", function(...) return newMethod(...) end, self, ...)
-            if not layoutOk then
-                return
-            end
-
-            -- 2. Get Settings
-            local enhancementsEnabled = BETTERUI.GetSetting("CIM", "enableTooltipEnhancements", true) ~= false
-
-            local fontSize = BETTERUI.GetTooltipFontSize()
-            local fontStr = "$(MEDIUM_FONT)|" .. fontSize .. "|soft-shadow-thick"
-
-            -- 3. Scale Fonts
-            for i = 1, self:GetNumChildren() do
-                local child = self:GetChild(i)
-                if child and child:GetType() == CT_LABEL then
-                    child:SetFont(fontStr)
-                end
-            end
-
-            -- 4. Universal enhanced tooltip header injection
-            if itemLink then
-                local tooltipRef = self
-                local capturedTooltipType = tooltipType
-                local capturedItemLink = itemLink
-
-                zo_callLater(function()
-                    if not tooltipRef or tooltipRef:IsHidden() then return end
-                    if tooltipRef._betterui_priceRendered then return end
-                    if IsIncompatibleSceneActive() then return end
-                    if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
-
-                    -- Render full enhanced header (equipSlot=nil for non-equipped items)
-                    if BETTERUI.Inventory and type(BETTERUI.Inventory.UpdateTooltipEquippedText) == "function" then
-                        BETTERUI.Inventory.UpdateTooltipEquippedText(tonumber(capturedTooltipType) or 0, nil)
-                    end
-                end, 1) -- 1ms = next frame, after Inventory/Banking has had a chance to claim priority
-            end
-
-            -- 5. Defer duplicate addon label cleanup
-            if enhancementsEnabled then
-                local tooltipRef = self
-                zo_callLater(function()
-                    if not tooltipRef or tooltipRef:IsHidden() then return end
-                    if IsIncompatibleSceneActive() then return end
-
-                    local function ScanAndHideAddonLabels(control)
-                        for i = 1, control:GetNumChildren() do
-                            local child = control:GetChild(i)
-                            if child then
-                                if child:GetType() == CT_LABEL and not child:IsHidden() then
-                                    local text = child:GetText()
-                                    if text then
-                                        local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
-                                        local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
-                                            or (plainText:find("^Tamriel Trade Centre") ~= nil)
-                                            or (plainText:find("^M%.M%.") ~= nil)
-                                            or (plainText:find("^Master Merchant") ~= nil)
-                                            or (plainText:find("^ATT:") ~= nil)
-                                            or (plainText:find("^Arkadius' Trade Tools") ~= nil)
-                                        if isDuplicateAddonLine then
-                                            child:SetHidden(true)
-                                            child:SetHeight(0)
-                                            if i > 1 then
-                                                local prevChild = control:GetChild(i - 1)
-                                                if prevChild and prevChild:GetType() == CT_TEXTURE then
-                                                    prevChild:SetHidden(true)
-                                                    prevChild:SetHeight(0)
-                                                end
+                local function ScanAndHideAddonLabels(control)
+                    for i = 1, control:GetNumChildren() do
+                        local child = control:GetChild(i)
+                        if child then
+                            if child:GetType() == CT_LABEL and not child:IsHidden() then
+                                local text = child:GetText()
+                                if text then
+                                    local plainText = text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+                                    local isDuplicateAddonLine = (plainText:find("^TTC:") ~= nil)
+                                        or (plainText:find("^Tamriel Trade Centre") ~= nil)
+                                        or (plainText:find("^M%.M%.") ~= nil)
+                                        or (plainText:find("^Master Merchant") ~= nil)
+                                        or (plainText:find("^ATT:") ~= nil)
+                                        or (plainText:find("^Arkadius' Trade Tools") ~= nil)
+                                    if isDuplicateAddonLine then
+                                        child:SetHidden(true)
+                                        child:SetHeight(0)
+                                        if i > 1 then
+                                            local prevChild = control:GetChild(i - 1)
+                                            if prevChild and prevChild:GetType() == CT_TEXTURE then
+                                                prevChild:SetHidden(true)
+                                                prevChild:SetHeight(0)
                                             end
                                         end
                                     end
                                 end
-                                if child:GetNumChildren() > 0 then
-                                    ScanAndHideAddonLabels(child)
-                                end
+                            end
+                            if child:GetNumChildren() > 0 then
+                                ScanAndHideAddonLabels(child)
                             end
                         end
                     end
-                    ScanAndHideAddonLabels(tooltipRef)
-                end, 2)
-            end
+                end
+                ScanAndHideAddonLabels(tooltipRef)
+            end, 2)
         end
-    end
+    end)
 end
 
 -- Passthrough helpers for tooltip hook data extraction

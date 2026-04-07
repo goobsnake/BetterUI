@@ -77,15 +77,21 @@ end
 ---
 --- Purpose: Redirects engine destruction calls to BetterUI's destroy flow.
 --- Mechanics:
---- - Overwrites `ZO_InventorySlot_InitiateDestroyItem`.
+--- - Uses `ZO_PreHook` for `ZO_InventorySlot_InitiateDestroyItem` (no global replacement).
 --- - If quickDestroy is enabled, destroys immediately via `TryDestroyItem`.
 --- - Otherwise, shows `BETTERUI_CONFIRM_DESTROY_DIALOG` for user confirmation.
 --- - Always returns true to prevent the engine's cursor-based destroy flow
 ---   from showing a second (native) confirmation dialog.
---- Hooks the native destroy logic to use BetterUI's destroy flow.
 ---@return nil
 function BETTERUI.Inventory.HookDestroyItem()
-    ZO_InventorySlot_InitiateDestroyItem = function(inventorySlot)
+    if BETTERUI.Inventory._destroyHookInstalled then
+        return
+    end
+    if type(ZO_PreHook) ~= "function" then
+        return
+    end
+
+    ZO_PreHook("ZO_InventorySlot_InitiateDestroyItem", function(inventorySlot)
         local bag, index = ZO_Inventory_GetBagAndIndex(inventorySlot)
         if not bag or not index then return false end
 
@@ -106,5 +112,7 @@ function BETTERUI.Inventory.HookDestroyItem()
         ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
             { bagId = bag, slotIndex = index, itemLink = link }, nil, true, true)
         return true
-    end
+    end)
+
+    BETTERUI.Inventory._destroyHookInstalled = true
 end

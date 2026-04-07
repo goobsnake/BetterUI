@@ -4,10 +4,10 @@ Purpose: Consolidates early-initialization logic for BetterUI.
          Applies runtime API patches and runs settings migrations.
 
          This file exists to keep BetterUI.lua clean and focused on module loading.
-         All "dirty but necessary" workarounds for ESO API issues are isolated here.
+         Runtime guards and settings migrations are isolated here.
 
 Mechanics:
-    1. ApplyAPIPatches(): Wraps ESO global functions (zo_iconFormat, etc.) to handle nil paths.
+    1. ApplyAPIPatches(): Installs targeted runtime guards without replacing engine globals.
     2. RunSettingsMigrations(): Migrates legacy settings keys to current standards.
     3. Apply(): Main entry point called once from BetterUI.Initialize().
 
@@ -23,20 +23,6 @@ BETTERUI.CIM.RuntimeSetup = {}
 
 local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
 
--- RuntimeSetup loads before Diagnostics/SafeExecute.lua in the manifest.
--- Resolve SafeExecute lazily so wrappers do not capture a nil function.
-local function SafeExecute(context, fn, ...)
-    local safeExecute = BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute
-    if type(safeExecute) == "function" and safeExecute ~= SafeExecute then
-        return safeExecute(context, fn, ...)
-    end
-
-    if type(fn) ~= "function" then
-        return false, "No function provided"
-    end
-
-    return pcall(fn, ...)
-end
 
 -- Track whether patches have been applied (prevents double-application)
 local patchesApplied = false
@@ -121,126 +107,21 @@ HOW TO ADD NEW MIGRATIONS:
 
 -- API PATCHES
 
---- Wraps ESO global icon/text formatting functions to handle nil paths gracefully.
+--- Applies runtime safety guards without replacing ESO global functions.
 ---
---- Purpose: Provides stability for ESO API calls that may receive nil paths.
+--- Purpose: Runtime setup should avoid overriding shared engine APIs to reduce taint risk.
 --- Mechanics:
---- 1. Checks if each function exists.
---- 2. Stores original reference.
---- 3. Replaces with a wrapper that nil-checks the path and uses SafeExecute for safety.
---- 4. Also patches ZO_KeybindStrip:HandleDuplicateAddKeybind to recover from descriptor errors.
+--- 1. Reserved for compatibility guards that DO NOT replace engine globals.
+--- 2. Installs targeted prehooks where needed (e.g., Tamriel Tomes selection guard).
 ---
 --- References: Called by RuntimeSetup.Apply().
---- These wrappers intentionally use BETTERUI.CIM.SafeExecute for ESO API stability.
 local function ApplyAPIPatches()
     if patchesApplied then return end
 
-    -- Phase: icon-patch
-    -- Patch 1: Wrap global icon/text formatting helpers to handle nil paths gracefully.
-    -- Helper: wraps a (path, width, height) icon function with nil-path guard + SafeExecute.
-    local function PatchIconFn(globalName)
-        local orig = _G[globalName]
-        if type(orig) ~= "function" then return end
-        _G[globalName] = function(path, width, height)
-            if path == nil then path = "" end
-            local ok, res = SafeExecute("RuntimeSetup:PatchIconFn:" .. globalName, orig, path, width, height)
-            return ok and res or ""
-        end
-    end
-
-    -- Phase: icon-text-patch
-    -- Helper: wraps a (path, width, height, text, ...) icon-text function with nil-path guard + SafeExecute.
-    local function PatchIconTextFn(globalName)
-        local orig = _G[globalName]
-        if type(orig) ~= "function" then return end
-        _G[globalName] = function(path, width, height, text, ...)
-            if path == nil then path = "" end
-            local ok, res = SafeExecute("RuntimeSetup:PatchIconTextFn:" .. globalName, orig, path, width, height, text, ...)
-            return ok and res or tostring(text or "")
-        end
-    end
-
-    -- Apply icon-format patches (simple 3-param: path, width, height → "")
-    PatchIconFn("zo_iconFormat")
-    PatchIconFn("zo_iconFormatInheritColor")
-
-    -- Apply icon-text-format patches (multi-param: path, width, height, text, ... → text)
-    PatchIconTextFn("zo_iconTextFormat")
-    PatchIconTextFn("zo_iconTextFormatAlignedRight")
-    PatchIconTextFn("zo_iconTextFormatNoSpace")
-    PatchIconTextFn("zo_iconTextFormatNoSpaceAlignedRight")
-
-    -- Phase: keybind-recovery
-    -- Patch 2: Wrap ZO_KeybindStrip:HandleDuplicateAddKeybind to safely evaluate descriptor names.
-    -- The original function calls GetKeybindDescriptorDebugIdentifier on descriptors, which can
-    -- call formatting helpers (like zo_iconFormat) with nil paths. We wrap this to silently
-    -- handle any errors. On error, we attempt to remove the conflicting descriptor so the
-    -- new one can be registered, restoring keybind strip functionality.
-    if ZO_KeybindStrip and type(ZO_KeybindStrip.HandleDuplicateAddKeybind) == "function" then
-        local _orig_HandleDuplicate = ZO_KeybindStrip.HandleDuplicateAddKeybind
-        ZO_KeybindStrip.HandleDuplicateAddKeybind = function(self, existingButtonOrEtherealDescriptor,
-                                                             keybindButtonDescriptor, state, stateIndex, currentSceneName)
-            local ok, res = SafeExecute(
-                "RuntimeSetup:HandleDuplicateAddKeybind",
-                _orig_HandleDuplicate,
-                self,
-                existingButtonOrEtherealDescriptor,
-                keybindButtonDescriptor,
-                state,
-                stateIndex,
-                currentSceneName
-            )
-            -- If the call succeeded, return normally
-            if ok then return res end
-
-            -- Phase: keybind-recovery-remove
-            -- If the call failed, attempt a safe recovery by removing the conflicting descriptor
-            -- so the new keybind can be registered. This ensures LB/RB navigation is restored
-            -- even when duplicate handling errors occur.
-            SafeExecute("RuntimeSetup:HandleDuplicateRecoveryRemove", function()
-                if existingButtonOrEtherealDescriptor then
-                    local descriptor = existingButtonOrEtherealDescriptor
-                    -- If it's a button control, extract the descriptor
-                    if type(descriptor) == "userdata" and descriptor.keybindButtonDescriptor then
-                        descriptor = descriptor.keybindButtonDescriptor
-                    end
-                    -- Attempt removal
-                    if descriptor and self.RemoveKeybindButton then
-                        self:RemoveKeybindButton(descriptor, stateIndex)
-                    end
-                end
-            end)
-
-            -- Phase: keybind-recovery-deferred-readd
-            -- Schedule a deferred re-add of the new keybind to handle timing edge cases where
-            -- removal and re-add happen too quickly in the same frame. This is especially important
-            -- during scene transitions (like search enter/exit) where multiple duplicate keybind
-            -- errors may occur in quick succession. Use zo_callLater with a 0ms delay to defer
-            -- until the next frame cycle, ensuring the removal has settled.
-            SafeExecute("RuntimeSetup:HandleDuplicateDeferredReAdd", function()
-                if zo_callLater and type(zo_callLater) == "function" then
-                    zo_callLater(function()
-                        SafeExecute("RuntimeSetup:HandleDuplicateDeferredReAddCallLater", function()
-                            -- Only re-add if not already present
-                            if self and self.HasKeybindButton then
-                                local present = self:HasKeybindButton(keybindButtonDescriptor, stateIndex)
-                                if not present then
-                                    self:AddKeybindButton(keybindButtonDescriptor, stateIndex)
-                                    -- Force update keybind strip layout to ensure buttons are visible
-                                    if self.UpdateAnchors then
-                                        self:UpdateAnchors()
-                                    end
-                                end
-                            end
-                        end)
-                    end, 0)
-                end
-            end)
-
-            -- Do not log to chat/debug as per user requirement. The keybind strip will
-            -- continue, and duplicate handling was attempted (even if it failed gracefully).
-        end
-    end
+    -- IMPORTANT:
+    -- Do not override global ESO functions (including formatting helpers or keybind/chat APIs).
+    -- Global monkeypatches can taint gamepad keybind execution paths and cause protected
+    -- function access failures in native callbacks.
 
     -- Guard against selecting non-reward placeholder rows in Tamriel Tomes grid navigation.
     -- Some category jumps can surface placeholder rows as selectedData, which then crashes
