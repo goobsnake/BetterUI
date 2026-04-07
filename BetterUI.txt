@@ -227,9 +227,6 @@ Modules\WritUnit\Module.lua
 ; Module: Trading House (TH-001 scaffold) — disabled until real functionality exists
 ; Modules\TradingHouse\Module.lua
 
-; Module: Loot (ECO-001 scaffold) — disabled until real functionality exists
-; Modules\Loot\Module.lua
-
 ; Module: Vendor (ECO-002)
 Modules\Vendor\Module.lua
 Modules\Vendor\Core\VendorClass.lua
@@ -244,21 +241,6 @@ Modules\Vendor\Scene\VendorSceneLifecycle.lua
 Modules\Vendor\Vendor.lua
 Modules\Vendor\Settings\SettingsPanel.lua
 
-; Module: Quickslot (INV-002 scaffold) — disabled until real functionality exists
-; Modules\Quickslot\Module.lua
-
 ; Module: Companions (INV-004)
 Modules\Companions\Core\CompanionsClass.lua
 Modules\Companions\Module.lua
-
-; Module: Repair (MNT-001 scaffold) — disabled until real functionality exists
-; Modules\Repair\Module.lua
-
-; Module: Crafting (CFT-001 scaffold) — disabled until real functionality exists
-; Modules\Crafting\Module.lua
-
-; Module: Mail (MAIL-001 scaffold) — disabled until real functionality exists
-; Modules\Mail\Module.lua
-
-; Module: Collections (COL-001 scaffold) — disabled until real functionality exists
-; Modules\Collections\Module.lua

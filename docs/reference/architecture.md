@@ -1,7 +1,7 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-03-14
+> **Last Updated**: 2026-04-07
 
 ---
 
@@ -44,12 +44,13 @@
 │  └── Templates/  (Shared XML templates)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Feature Modules (all follow Minimal Root pattern)                      │
-│  ├── Inventory/       (Enhanced inventory with categories, search)      │
-│  ├── Banking/         (Bank/Guild Bank/House Bank interface)            │
+│  ├── Inventory/         (Enhanced inventory with categories, search)    │
+│  ├── Banking/           (Bank/Guild Bank/House Bank interface)          │
+│  ├── Vendor/            (Store/fence interface enhancements)            │
+│  ├── Companions/        (Companion gear and inventory surfaces)         │
 │  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs + SkillBar) │
-│  ├── WritUnit/        (Writ quest tracking panel)                       │
-│  └── Scaffolds/       TradingHouse, Loot, Vendor, Quickslot,            │
-│                        Companions, Repair, Crafting, Mail, Collections  │
+│  ├── WritUnit/          (Writ quest tracking panel)                     │
+│  └── Scaffold/          TradingHouse (disabled placeholder)             │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -168,8 +169,8 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 | 1. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler |
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
 | 3. CIM Module | `CIM/Constants.lua` → `CIM/ConstantsUI.lua` → `Core/*` → `UI/*` → ... | Namespace init, shared UI |
-| 4. Feature Modules | ResourceOrbFrames, Inventory, Banking, WritUnit | Dependent on CIM |
-| 5. Scaffold Modules | TradingHouse, Loot, Vendor, Quickslot, Companions, Repair, Crafting, Mail, Collections | Placeholder stubs |
+| 4. Feature Modules | ResourceOrbFrames, Inventory, Banking, Vendor, Companions, WritUnit | Dependent on CIM |
+| 5. Disabled Scaffold | TradingHouse | Placeholder stub |
 
 > **Critical**: `BetterUI.lua` loads first (contains `EVENT_ADD_ON_LOADED` handler). CIM must load before Inventory/Banking because they inherit from CIM templates.
 
