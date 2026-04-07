@@ -187,7 +187,9 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
         end
 
         local sceneShowing = (self.scene and self.scene:IsShowing())
-            or BETTERUI.CIM.Utils.IsInventorySceneShowing()
+            or (BETTERUI.CIM and BETTERUI.CIM.Utils
+                and BETTERUI.CIM.Utils.IsInventorySceneShowing
+                and BETTERUI.CIM.Utils.IsInventorySceneShowing())
         if not sceneShowing then
             return false
         end

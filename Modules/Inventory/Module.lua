@@ -103,6 +103,12 @@ end
 function BETTERUI.Inventory.Setup()
 	BETTERUI.Inventory.Settings.RegisterPanel("Inventory", "Inventory")
 
+	BETTERUI.Inventory.NativeGlobals = BETTERUI.Inventory.NativeGlobals or {}
+	local native = BETTERUI.Inventory.NativeGlobals
+	if native.gamepadInventoryFragment == nil then
+		native.gamepadInventoryFragment = GAMEPAD_INVENTORY_FRAGMENT
+	end
+
 	-- Replace the native GAMEPAD_INVENTORY global with our custom class
 	GAMEPAD_INVENTORY = BETTERUI.Inventory.Class:New(BETTERUI_GamepadInventoryTopLevel)
 
