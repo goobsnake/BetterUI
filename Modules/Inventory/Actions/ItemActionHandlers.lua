@@ -287,29 +287,71 @@ end
 ---@param self table Inventory class instance
 ---@return nil
 function ActionHandlers.OnFinish(self)
-    if not self.scene:IsShowing() then return end
-
-    if not self.isInHeaderSortMode then
-        self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
-    end
-
-    if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
-        local currentList = self:GetCurrentList()
-        if currentList then
-            local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(currentList)
-            if currentList == self.categoryList then
-                targetData = self:GenerateItemSlotData(targetData)
-            end
-            self:SetSelectedItemUniqueId(targetData)
+    local function RestoreInventoryAfterDialog()
+        if ZO_Dialogs_IsShowingDialog and ZO_Dialogs_IsShowingDialog() then
+            return false
         end
-        self:RefreshCategoryList()
-    else
-        self:RefreshItemActions()
+
+        local sceneShowing = (self.scene and self.scene:IsShowing())
+            or (BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.IsInventorySceneShowing and
+                BETTERUI.CIM.Utils.IsInventorySceneShowing())
+        if not sceneShowing then
+            return false
+        end
+
+        if self.isInCraftBagSelectionMode and self.RefreshCraftBagList then
+            self:RefreshCraftBagList()
+        elseif self.isInSelectionMode and self.RefreshItemList then
+            self:RefreshItemList()
+        end
+
+        if not self.isInHeaderSortMode then
+            self:SetActiveKeybinds(self.mainKeybindStripDescriptor)
+        end
+
+        if self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+            local currentList = self:GetCurrentList()
+            if currentList then
+                local targetData = BETTERUI.Inventory.Utils.SafeGetTargetData(currentList)
+                if currentList == self.categoryList then
+                    targetData = self:GenerateItemSlotData(targetData)
+                end
+                self:SetSelectedItemUniqueId(targetData)
+            end
+            self:RefreshCategoryList()
+        else
+            self:RefreshItemActions()
+        end
+
+        if not self.isInHeaderSortMode then
+            self:RefreshKeybinds()
+        end
+        return true
     end
 
-    if not self.isInHeaderSortMode then
-        self:RefreshKeybinds()
+    if RestoreInventoryAfterDialog() then
+        return
     end
+
+    local retriesRemaining = 120
+    local retryTaskName = "actionDialogFinishRestore_" .. tostring((GetGameTimeMilliseconds and GetGameTimeMilliseconds()) or
+        0)
+    local function RetryRestore()
+        if RestoreInventoryAfterDialog() then
+            return
+        end
+        retriesRemaining = retriesRemaining - 1
+        if retriesRemaining <= 0 then
+            return
+        end
+        if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+            BETTERUI.Inventory.Tasks:Schedule(retryTaskName, 50, RetryRestore)
+        else
+            zo_callLater(RetryRestore, 50)
+        end
+    end
+
+    RetryRestore()
 end
 
 -- ActionDialogButtonConfirm
@@ -392,6 +434,16 @@ function ActionHandlers.OnConfirm(self, dialog)
 
     local selectedActionName = selectedRow and selectedRow.text or nil
 
+    -- Split stack (use native split dialog flow and exit actions dialog first)
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_SPLIT_STACK")) then
+        local targetData = ResolveCurrentTarget(self)
+        if targetData and ZO_InventorySlot_TrySplitStack then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            ZO_InventorySlot_TrySplitStack(targetData)
+        end
+        return
+    end
+
     -- Intercept engine Destroy/Delete
     if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DESTROY"))
         or (SI_ITEM_ACTION_DELETE and selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_DELETE"))) then
@@ -458,6 +510,20 @@ function ActionHandlers.OnConfirm(self, dialog)
                 if bag and slot then
                     CallSecureProtected("UseItem", bag, slot)
                 end
+            end
+        end
+        return
+    end
+
+    -- Place Furniture
+    if selectedActionName == GetString(rawget(_G, "SI_ITEM_ACTION_PLACE_FURNITURE")) then
+        local targetData = ResolveCurrentTarget(self)
+        if targetData then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            local ds = targetData.dataSource or targetData
+            local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+            if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
+                ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
             end
         end
         return

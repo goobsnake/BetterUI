@@ -70,9 +70,10 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
         self.list:Clear()
         self.list:Commit()
         self:RefreshActiveKeybinds()
-    elseif self.isDirty then
-        self:RefreshList()
     else
+        -- Always refresh on show to avoid stale rows when switching between
+        -- player bank, house storage, and furniture vault contexts.
+        self:RefreshList()
         self:RefreshActiveKeybinds()
     end
     self.list:Activate()
@@ -212,7 +213,9 @@ end
 --- Scene hidden handler called by SceneLifecycleManager.
 function BETTERUI.Banking.Class:OnSceneHidden()
     self:LastUsedBank()
-    self:CancelWithdrawDeposit(self.list)
+    if self.confirmationMode then
+        self:UpdateSpinnerConfirmation(false, self.list)
+    end
 
     -- Force-hide currency selector
     if self.selector and self.selector.control then
@@ -276,6 +279,30 @@ function BETTERUI.Banking.Class:OnSceneHidden()
 
     -- Reset category positions when leaving the bank
     self.lastPositionsByCategory = {}
+
+    zo_callLater(function()
+        if not IsInGamepadPreferredMode() then
+            return
+        end
+        if not IsBankOpen() then
+            return
+        end
+        if SCENE_MANAGER:IsShowing("gamepad_inventory_root") then
+            return
+        end
+
+        local currentSceneName = SCENE_MANAGER:GetCurrentSceneName()
+        local shouldRecoverToInventory = (currentSceneName == nil)
+            or (currentSceneName == "")
+            or (currentSceneName == "hud")
+            or (currentSceneName == "hudui")
+            or (currentSceneName == "gamepad_banking")
+            or (currentSceneName == BETTERUI_BANKING_SCENE_NAME)
+
+        if shouldRecoverToInventory then
+            SCENE_MANAGER:Show("gamepad_inventory_root")
+        end
+    end, 25)
 end
 
 --- Handles visibility of supported external addon elements.

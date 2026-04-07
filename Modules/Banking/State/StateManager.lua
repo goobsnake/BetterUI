@@ -12,10 +12,37 @@ local MODULES       = BETTERUI.CIM.CONST.MODULES
 
 -- HELPER FUNCTIONS (local)
 
-local function GetCurrentBankBag()
-    if IsHouseBankBag(GetBankingBag()) then
-        return GetBankingBag()
+local function IsHousingStorageBag(bagId)
+    if not bagId then
+        return false
     end
+
+    if IsFurnitureVault and IsFurnitureVault(bagId) then
+        return true
+    end
+
+    if IsHouseBankBag and IsHouseBankBag(bagId) then
+        return true
+    end
+
+    return false
+end
+
+local function GetCurrentBankBag()
+    local bankingBag = GetBankingBag()
+    local openedBankBag = BETTERUI.Banking.lastOpenedBankBag
+
+    if bankingBag == BAG_BANK then
+        if IsBankOpen and IsBankOpen() and IsHousingStorageBag(openedBankBag) then
+            return openedBankBag
+        end
+        return BAG_BANK
+    end
+
+    if IsHousingStorageBag(bankingBag) then
+        return bankingBag
+    end
+
     return BAG_BANK
 end
 

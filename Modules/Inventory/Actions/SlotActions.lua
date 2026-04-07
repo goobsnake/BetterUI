@@ -149,6 +149,8 @@ local PRIMARY_ACTION_REPLACEMENTS = {
     [SI_ITEM_ACTION_SHOW_MAP] = true,
     [SI_ITEM_ACTION_START_SKILL_RESPEC] = true,
     [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
+    [SI_ITEM_ACTION_PLACE_FURNITURE] = true,
+    [SI_ITEM_ACTION_LINK_TO_CHAT] = true,
 }
 
 local primaryActionReplacementLookup = nil
@@ -172,6 +174,13 @@ end
 --- Sets up the primary action for a slot based on its action name.
 --- Routes specific actions (Equip, Bank, etc.) to their specialized handlers.
 local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
+    local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
+        SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
+        SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
+    if IsPrimaryAction(actionName, SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
+        return
+    end
+
     if IsPrimaryAction(actionName, SI_ITEM_ACTION_USE) then
         BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_USE, function(...) TryUseItem(inventorySlot) end, inventorySlot)
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_EQUIP) then
@@ -202,13 +211,27 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC) then
         BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC,
             function(...) TryUseItem(inventorySlot) end, inventorySlot)
-    end
-
-    local isCompanionSceneShowing = SCENE_MANAGER and SCENE_MANAGER.scenes and
-        SCENE_MANAGER.scenes["companionEquipmentGamepad"] and
-        SCENE_MANAGER.scenes["companionEquipmentGamepad"]:IsShowing()
-    if actionName == GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT) and isCompanionSceneShowing then
-        return
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_PLACE_FURNITURE) then
+        BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_PLACE_FURNITURE, function(...)
+            if inventorySlot then
+                local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                if bag and slot then
+                    ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+                end
+            end
+        end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_LINK_TO_CHAT) then
+        BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_LINK_TO_CHAT, function(...)
+            if inventorySlot then
+                local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+                if bag and slot then
+                    local itemLink = GetItemLink(bag, slot)
+                    if itemLink then
+                        ZO_LinkHandler_InsertLink(zo_strformat("[<<2>>]", SI_TOOLTIP_ITEM_NAME, itemLink))
+                    end
+                end
+            end
+        end, inventorySlot)
     end
 end
 

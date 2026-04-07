@@ -12,7 +12,8 @@ local function DoesItemMatchBankCategory(itemData, category)
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)
-    local isFurnitureVault = IsFurnitureVault(GetBankingBag())
+    local currentUsedBank = BETTERUI.Banking.currentUsedBank
+    local isFurnitureVault = IsFurnitureVault and IsFurnitureVault(currentUsedBank)
     local allCategories = BETTERUI.Banking.BuildAllBankCategories(isFurnitureVault)
     local visibility = {}
     local itemCounts = {}
@@ -21,7 +22,9 @@ function CategoryManager.ComputeVisibleBankCategories(self)
         visibility[category.key] = false
         itemCounts[category.key] = 0
     end
-    visibility["all"] = true
+    if visibility["all"] ~= nil then
+        visibility["all"] = true
+    end
 
     local bags = BETTERUI.Banking.ResolveBagsAndSlotType(self)
     local function IsNotStolenItem(itemData)
@@ -29,18 +32,32 @@ function CategoryManager.ComputeVisibleBankCategories(self)
     end
 
     local data = SHARED_INVENTORY:GenerateFullSlotData(IsNotStolenItem, unpack(bags))
-    local totalItems = 0
+    local function IsJunkCategory(category)
+        return category and (category.special == "junk" or category.furnitureVaultJunk == true)
+    end
+
+    local totalNonJunkItems = 0
     for i = 1, #data do
         local itemData = data[i]
-        totalItems = totalItems + 1
+        local isJunkItem = itemData and itemData.isJunk == true
+        if not isJunkItem then
+            totalNonJunkItems = totalNonJunkItems + 1
+        end
+
         for _, category in ipairs(allCategories) do
             if category.key ~= "all" and DoesItemMatchBankCategory(itemData, category) then
-                visibility[category.key] = true
-                itemCounts[category.key] = itemCounts[category.key] + 1
+                local categoryIsJunk = IsJunkCategory(category)
+                local categoryCanMatchItem = (isJunkItem and categoryIsJunk) or ((not isJunkItem) and (not categoryIsJunk))
+                if categoryCanMatchItem then
+                    visibility[category.key] = true
+                    itemCounts[category.key] = itemCounts[category.key] + 1
+                end
             end
         end
     end
-    itemCounts["all"] = totalItems
+    if itemCounts["all"] ~= nil then
+        itemCounts["all"] = totalNonJunkItems
+    end
 
     local visibleCategories = {}
     for _, category in ipairs(allCategories) do
@@ -49,6 +66,13 @@ function CategoryManager.ComputeVisibleBankCategories(self)
             visibleCategories[#visibleCategories + 1] = category
         end
     end
+
+    if isFurnitureVault and #visibleCategories == 0 and #allCategories > 0 then
+        local furnishingCategory = allCategories[1]
+        furnishingCategory.itemCount = 0
+        visibleCategories[1] = furnishingCategory
+    end
+
     return visibleCategories
 end
 
@@ -68,25 +92,50 @@ end
 
 function BETTERUI.Banking.Class:UpdateHeaderTitle()
     local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
+    local titleText
     if cat and cat.name then
-        self:SetTitle(zo_strformat("<<1>>", cat.name))
+        titleText = zo_strformat("<<1>>", cat.name)
     else
-        self.titleControl:SetText(GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE")))
+        titleText = GetString(rawget(_G, "SI_BETTERUI_BANK_TITLE"))
     end
+
+    if self.SetTitle then
+        self:SetTitle(titleText)
+    elseif self.titleControl and self.titleControl.SetText then
+        self.titleControl:SetText(titleText)
+    end
+
     if self.PositionSearchControl then
         self:PositionSearchControl()
     end
 end
 
 function BETTERUI.Banking.Class:EnsureHeaderKeybindsActive()
+    if self.isInHeaderSortMode then
+        return
+    end
+
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
-    if tabBar and tabBar.keybindStripDescriptor then
+    if not tabBar then
+        return
+    end
+
+    if tabBar.Activate and not tabBar.active then
         tabBar:Activate()
+    end
+
+    if tabBar.keybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
     end
 end
 
 function BETTERUI.Banking.Class:RebuildHeaderCategories()
     if not (self.header and self.bankCategories) then return end
+    local headerGeneric = self.headerGeneric
+    if not headerGeneric then
+        self:UpdateHeaderTitle()
+        return
+    end
     self.bankHeaderData = self.bankHeaderData or {}
     self.bankHeaderData.titleText = function()
         local cat = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
@@ -117,11 +166,11 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         coalescedHandler(self, list, selectedData)
     end
 
-    if not self.headerGeneric.tabBar then
-        BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    if not headerGeneric.tabBar then
+        BETTERUI.GenericHeader.Refresh(headerGeneric, self.bankHeaderData, false)
     end
-    if self.headerGeneric.tabBar then
-        self.headerGeneric.tabBar:Clear()
+    if headerGeneric.tabBar then
+        headerGeneric.tabBar:Clear()
     end
     for i = 1, #self.bankCategories do
         local cat = self.bankCategories[i]
@@ -130,18 +179,18 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
         entryData.itemCount = cat.itemCount
         entryData.countBadgeOffsetY = 3
         entryData:SetIconTintOnSelection(true)
-        BETTERUI.GenericHeader.AddToList(self.headerGeneric, entryData)
+        BETTERUI.GenericHeader.AddToList(headerGeneric, entryData)
     end
-    BETTERUI.GenericHeader.Refresh(self.headerGeneric, self.bankHeaderData, false)
+    BETTERUI.GenericHeader.Refresh(headerGeneric, self.bankHeaderData, false)
 
-    if self.headerGeneric.tabBar then
+    if headerGeneric.tabBar then
         local idx = zo_clamp(self.currentCategoryIndex or 1, 1, #self.bankCategories)
         local state = BETTERUI.CIM.HeaderNavigation.GetOrCreateState(self)
         if state.justToggledMode then
-            self.headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
+            headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(idx, true, true)
         else
             state.suppressHeaderCallback = true
-            self.headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
+            headerGeneric.tabBar:SetSelectedIndex(idx, true, true)
             state.suppressHeaderCallback = false
         end
     end
@@ -153,10 +202,10 @@ function BETTERUI.Banking.Class:RebuildHeaderCategories()
 
     if ZO_GamepadGenericHeader_SetHeaderFocusControl and self.textSearchHeaderControl then
         local headerTarget
-        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
-            headerTarget = self.headerGeneric.tabBar.control
-        elseif self.headerGeneric then
-            headerTarget = self.headerGeneric
+        if headerGeneric.tabBar and headerGeneric.tabBar.control then
+            headerTarget = headerGeneric.tabBar.control
+        elseif headerGeneric then
+            headerTarget = headerGeneric
         else
             headerTarget = self.header
         end

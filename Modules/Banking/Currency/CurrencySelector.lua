@@ -7,7 +7,7 @@ Purpose: Handles banking currency tooltip display and currency selector transfer
 BETTERUI.Banking.CurrencySelector = BETTERUI.Banking.CurrencySelector or {}
 local CurrencySelector = BETTERUI.Banking.CurrencySelector
 
-local BANK_UPGRADE_DETAILS_TOP_SPACING = 290
+local BANK_UPGRADE_DETAILS_TOP_SPACING = -20
 
 ---@return {rows: {stat: string, value: string}[]}? details Bank upgrade details, or nil if not personal bank
 local function BuildBankUpgradeDetailsLines()

@@ -12,23 +12,23 @@ local LIST_DEPOSIT  = BETTERUI.Banking.LIST_DEPOSIT
 ---@return integer? slotIndex The empty slot index, or nil if no space
 local function FindEmptySlotInBank()
     local currentUsedBank = BETTERUI.Banking.currentUsedBank
-    if IsHouseBankBag(GetBankingBag()) then
-        local emptySlotIndex = FindFirstEmptySlotInBag(currentUsedBank)
-        if emptySlotIndex ~= nil then
-            return currentUsedBank, emptySlotIndex
+    if currentUsedBank == BAG_BANK then
+        local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
+        if emptySlotIndexBank ~= nil then
+            return BAG_BANK, emptySlotIndexBank
+        end
+        if IsESOPlusSubscriber() then
+            local emptySlotIndexSubscriber = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
+            if emptySlotIndexSubscriber ~= nil then
+                return BAG_SUBSCRIBER_BANK, emptySlotIndexSubscriber
+            end
         end
         return nil, nil
     end
 
-    local emptySlotIndexBank = FindFirstEmptySlotInBag(BAG_BANK)
-    if emptySlotIndexBank ~= nil then
-        return BAG_BANK, emptySlotIndexBank
-    end
-    if IsESOPlusSubscriber() then
-        local emptySlotIndexSubscriber = FindFirstEmptySlotInBag(BAG_SUBSCRIBER_BANK)
-        if emptySlotIndexSubscriber ~= nil then
-            return BAG_SUBSCRIBER_BANK, emptySlotIndexSubscriber
-        end
+    local emptySlotIndex = FindFirstEmptySlotInBag(currentUsedBank)
+    if emptySlotIndex ~= nil then
+        return currentUsedBank, emptySlotIndex
     end
     return nil, nil
 end
@@ -73,6 +73,8 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     end
     local fromBag, fromBagIndex = ZO_Inventory_GetBagAndIndex(selectedData)
     local fromBagItemLink = GetItemLink(fromBag, fromBagIndex)
+    local isDepositing = (self.currentMode == LIST_DEPOSIT)
+    local targetBankBag = BETTERUI.Banking.currentUsedBank or BAG_BANK
     if quantity == nil then
         quantity = 1
     end
@@ -149,11 +151,42 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local toBagEmptyIndex
     local toBagIndex
 
-    if self.currentMode == LIST_WITHDRAW then
+    if isDepositing then
+        local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
+        if targetIsFurnitureVault
+            and HOUSING_EDITOR_STATE
+            and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
+            and not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
+        then
+            local blockedReason = IsESOPlusSubscriber and IsESOPlusSubscriber()
+                and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
+                or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, blockedReason)
+            return
+        end
+
+        if IsItemStolen and IsItemStolen(fromBag, fromBagIndex) then
+            local errorStringId = targetIsFurnitureVault
+                and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
+                or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+            return
+        end
+
+        local isGemmableFurniture = targetIsFurnitureVault
+            and CROWN_GEMIFICATION_MANAGER
+            and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
+            and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(fromBag), tonumber(fromBagIndex))
+        if isGemmableFurniture then
+            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE)
+            return
+        end
+    end
+
+    if not isDepositing then
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
-        local targetBankBag = BETTERUI.Banking.currentUsedBank or BAG_BANK
         if not IsDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag) then
             return
         end

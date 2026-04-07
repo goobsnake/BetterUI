@@ -218,6 +218,11 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
         if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
             return false
         end
+        return true
+    end
+
+    if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
+        return true
     end
 
     if self.itemActions and self.itemActions.slotActions and not self.itemActions.actionName then
@@ -267,6 +272,16 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         self.itemActions.actionName = nil
     end
 
+    local currentTarget = nil
+    if self.actionMode == InventoryConst.ITEM_LIST_ACTION_MODE then
+        currentTarget = InventoryUtils.SafeGetTargetData(self.itemList)
+    elseif self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
+        currentTarget = InventoryUtils.SafeGetTargetData(self.craftBagList)
+    end
+    if not currentTarget then
+        return
+    end
+
     if self.itemActions and self.itemActions.slotActions then
         local slotActions = self.itemActions.slotActions
         if slotActions._betterui_primaryOverride then
@@ -275,14 +290,57 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_MAP"))
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_SKILL_RESPEC"))
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC")) then
-            ExecuteTargetUse(GetCurrentTarget(self))
+            ExecuteTargetUse(currentTarget)
+        elseif actionName == GetString(rawget(_G, "SI_ITEM_ACTION_PLACE_FURNITURE")) then
+            local ds = currentTarget.dataSource or currentTarget
+            local bag, slot = ZO_Inventory_GetBagAndIndex(ds)
+            if bag and slot and ZO_CanPlaceItemInCurrentHouse(bag, slot) then
+                ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
+            end
         else
-            slotActions:DoPrimaryAction()
+            local function HasExecutablePrimaryAction(actions)
+                if not actions then
+                    return false
+                end
+                if actions._betterui_primaryOverride then
+                    return true
+                end
+                if not actions.m_slotActions or #actions.m_slotActions == 0 then
+                    return false
+                end
+
+                local primaryActionName = actions:GetPrimaryActionName()
+                if primaryActionName then
+                    for i = 1, #actions.m_slotActions do
+                        local actionEntry = actions.m_slotActions[i]
+                        if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
+                            return true
+                        end
+                    end
+                end
+
+                local firstAction = actions.m_slotActions[1]
+                return firstAction and type(firstAction[2]) == "function"
+            end
+
+            if HasExecutablePrimaryAction(slotActions) then
+                slotActions:DoPrimaryAction()
+            else
+                self:RefreshItemActions()
+                local refreshedSlotActions = self.itemActions and self.itemActions.slotActions
+                if refreshedSlotActions and HasExecutablePrimaryAction(refreshedSlotActions) then
+                    if refreshedSlotActions._betterui_primaryOverride then
+                        refreshedSlotActions._betterui_primaryOverride()
+                    else
+                        refreshedSlotActions:DoPrimaryAction()
+                    end
+                end
+            end
         end
         return
     end
 
-    local target = self.itemList and self.itemList.selectedData
+    local target = currentTarget
     if target and target.bagId and target.slotIndex then
         if IsEquipable(target.bagId, target.slotIndex) then
             local inventorySlot = target.dataSource and target or { dataSource = target }
@@ -417,6 +475,10 @@ function InventoryKeybinds.IsTertiaryKeybindVisible(self)
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
         return self.multiSelectManager:HasSelections()
+    end
+
+    if self.itemActions and self.itemActions.actionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
+        return false
     end
 
     return InventoryKeybinds.HasStableActionsTarget(self)

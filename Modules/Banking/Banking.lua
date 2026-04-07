@@ -36,6 +36,21 @@ local CURRENCY_UI_REFRESH_DELAY_MS  = 40
 
 local CreateSearchKeybindDescriptor = BETTERUI.Banking.CreateSearchKeybindDescriptor
 
+local function SyncGamepadBankingSceneGlobal()
+    if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
+        return
+    end
+
+    local targetScene = SCENE_MANAGER.scenes[BETTERUI_BANKING_SCENE_NAME]
+    if not targetScene then
+        return
+    end
+
+    if GAMEPAD_BANKING_SCENE ~= targetScene then
+        GAMEPAD_BANKING_SCENE = targetScene
+    end
+end
+
 
 ---@param tlw_name string Top-level window name
 ---@param scene_name string Scene name for banking interface
@@ -278,6 +293,21 @@ function BETTERUI.Banking.Class:Initialize(tlw_name, scene_name)
     end
 
     -- Always-running event listeners
+    local OPEN_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_OPEN_BAG"
+    local CLOSE_BANK_TRACKER_EVENT_NAME = "BETTERUI_BANKING_TRACK_CLOSE_BAG"
+
+    EVENT_MANAGER:UnregisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK)
+    EVENT_MANAGER:RegisterForEvent(OPEN_BANK_TRACKER_EVENT_NAME, EVENT_OPEN_BANK, function(_, bankBag)
+        BETTERUI.Banking.lastOpenedBankBag = bankBag or BAG_BANK
+    end)
+
+    EVENT_MANAGER:UnregisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK)
+    EVENT_MANAGER:RegisterForEvent(CLOSE_BANK_TRACKER_EVENT_NAME, EVENT_CLOSE_BANK, function()
+        if IsBankOpen and IsBankOpen() then
+            BETTERUI.Banking.lastOpenedBankBag = GetBankingBag() or BETTERUI.Banking.lastOpenedBankBag
+        end
+    end)
+
     self.control:RegisterForEvent(EVENT_CARRIED_CURRENCY_UPDATE, UpdateCurrency_Handler)
     self.control:RegisterForEvent(EVENT_BANKED_CURRENCY_UPDATE, UpdateCurrency_Handler)
 end
@@ -306,7 +336,7 @@ function BETTERUI.Banking.Init()
 
     BETTERUI.Banking.Window:RefreshList()
 
-    SCENE_MANAGER.scenes['gamepad_banking'] = SCENE_MANAGER.scenes['BETTERUI_BANKING']
+    SyncGamepadBankingSceneGlobal()
 
     -- Register guild bank scene only if the setting is enabled.
     -- When disabled, the vanilla guild bank UI is used instead.

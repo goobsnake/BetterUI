@@ -13,8 +13,8 @@ local BANK_CATEGORY_DEFS = BETTERUI.Banking.CATEGORY_DEFS
 local function BuildAllBankCategories(isFurnitureVault)
     if isFurnitureVault then
         return {
-            { key = "all",        name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL")),        filterType = nil,                       iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds" },
             { key = "furnishing", name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_FURNISHING")), filterType = ITEMFILTERTYPE_FURNISHING, iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds" },
+            { key = "junk",       name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_JUNK")),       filterType = nil,                       special = "junk",                                furnitureVaultJunk = true, iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds" },
         }
     end
 
@@ -34,7 +34,43 @@ local function BuildAllBankCategories(isFurnitureVault)
     return out
 end
 
+local function GetWithdrawStorageLabel(currentUsedBank, isEmpty)
+    if IsFurnitureVault and IsFurnitureVault(currentUsedBank) then
+        local furnitureVaultName = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_STACK_COUNT_BAG_FURNITURE_VAULT"))
+        if isEmpty then
+            return GetString(rawget(_G, "SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY"))
+        end
+        return furnitureVaultName
+    end
+
+    if isEmpty then
+        return GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE_EMPTY"))
+    end
+
+    return GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE"))
+end
+
 local function DoesItemMatchBankCategory(itemData, category)
+    if category and category.furnitureVaultJunk then
+        local isJunk = itemData and itemData.isJunk == true
+        if not isJunk then
+            return false
+        end
+
+        if ZO_InventoryUtils_DoesNewItemMatchFilterType then
+            return ZO_InventoryUtils_DoesNewItemMatchFilterType(itemData, ITEMFILTERTYPE_FURNISHING)
+        end
+
+        if itemData and itemData.filterData then
+            for _, filterData in ipairs(itemData.filterData) do
+                if filterData == ITEMFILTERTYPE_FURNISHING then
+                    return true
+                end
+            end
+        end
+        return false
+    end
+
     return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
 end
 
@@ -98,7 +134,6 @@ function BETTERUI.Banking.Class:RefreshList()
     local activeCategory = (self.bankCategories and self.bankCategories[self.currentCategoryIndex or 1]) or nil
     local GuildBankAdapter = BETTERUI.Banking.GuildBank
     local isGuildBankActive = GuildBankAdapter and GuildBankAdapter.IsGuildBankMode()
-    local isFurnitureVaultContext = currentUsedBank and IsFurnitureVault and IsFurnitureVault(currentUsedBank)
 
     if currentUsedBank == BAG_BANK or isGuildBankActive then
         if not activeCategory or activeCategory.key == "all" then
@@ -136,16 +171,9 @@ function BETTERUI.Banking.Class:RefreshList()
             end
         end
     elseif self.currentMode == LIST_WITHDRAW then
-        if GetNumBagUsedSlots(currentUsedBank) == 0 then
-            local emptyStringId = isFurnitureVaultContext
-                and SI_BETTERUI_BANK_FURNITURE_VAULT_EMPTY
-                or SI_BETTERUI_BANK_HOUSE_EMPTY
-            self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(rawget(_G, emptyStringId)) .. "|r" })
-        else
-            self.list:AddEntry("BETTERUI_HeaderRow_Template",
-                { label = "|cFFFFFF" .. GetString(rawget(_G, "SI_BETTERUI_BANK_HOUSE")) .. "|r" })
-        end
+        local isStorageEmpty = (GetNumBagUsedSlots(currentUsedBank) == 0)
+        self.list:AddEntry("BETTERUI_HeaderRow_Template",
+            { label = "|cFFFFFF" .. GetWithdrawStorageLabel(currentUsedBank, isStorageEmpty) .. "|r" })
     else
         if GetNumBagUsedSlots(BAG_BACKPACK) == 0 then
             self.list:AddEntry("BETTERUI_HeaderRow_Template",
