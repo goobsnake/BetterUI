@@ -122,7 +122,30 @@ local function BuildCoreKeybinds(vendorInstance)
                 return selectedData ~= nil
             end,
         },
-        -- Secondary action (Sell All Junk / Repair All)
+        -- Secondary action (Switch Buy/Sell lists)
+        {
+            name = function()
+                return GetString(rawget(_G, "SI_BETTERUI_BANKING_TOGGLE_LIST") or "SI_BETTERUI_BANKING_TOGGLE_LIST")
+            end,
+            keybind = "UI_SHORTCUT_SECONDARY",
+            visible = function()
+                local mode = vendorInstance:GetCurrentMode()
+                if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
+                    return false
+                end
+                return mode == MODE.BUY or mode == MODE.SELL
+            end,
+            enabled = function()
+                if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
+                    return false
+                end
+                return true
+            end,
+            callback = function()
+                vendorInstance:ToggleBuySellMode()
+            end,
+        },
+        -- Tertiary action (Sell All Junk / Repair All)
         {
             name = function()
                 local mode = vendorInstance:GetCurrentMode()
@@ -145,7 +168,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
                 return ""
             end,
-            keybind = "UI_SHORTCUT_SECONDARY",
+            keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL then
@@ -195,40 +218,6 @@ local function BuildCoreKeybinds(vendorInstance)
             callback = function()
                 -- Close the interaction
                 SCENE_MANAGER:HideCurrentScene()
-            end,
-        },
-    }
-end
-
----@param vendorInstance BETTERUI.Vendor.Class
----@return table keybindGroup Tab navigation keybind descriptor group
-local function BuildTabKeybinds(vendorInstance)
-    return {
-        alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        -- Switch tabs left (LB / GAMEPAD_BUTTON_5)
-        {
-            --Narration
-            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_LEFT_NARRATION")),
-            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
-            callback = function()
-                vendorInstance:CycleTabs(-1)
-            end,
-            enabled = function()
-                local tabs = GetActiveTabs()
-                return #tabs > 1
-            end,
-        },
-        -- Switch tabs right (RB / GAMEPAD_BUTTON_6)
-        {
-            --Narration
-            name = GetString(rawget(_G, "SI_GAMEPAD_PAGED_LIST_PAGE_RIGHT_NARRATION")),
-            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
-            callback = function()
-                vendorInstance:CycleTabs(1)
-            end,
-            enabled = function()
-                local tabs = GetActiveTabs()
-                return #tabs > 1
             end,
         },
     }
@@ -315,8 +304,6 @@ local function OnOpenStore()
 
     -- Set mode to BUY (default for vendor)
     Vendor.instance:SetMode(MODE.BUY)
-    Vendor.instance:UpdateTabHeader()
-
     -- Show the scene
     local sceneName = BETTERUI_VENDOR_SCENE_NAME
     if SCENE_MANAGER then
@@ -341,8 +328,6 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     elseif fenceEnableLaunder then
         Vendor.instance:SetMode(MODE.FENCE_LAUNDER)
     end
-    Vendor.instance:UpdateTabHeader()
-
     -- Show the scene
     local sceneName = BETTERUI_VENDOR_SCENE_NAME
     if SCENE_MANAGER then
@@ -420,18 +405,23 @@ function BETTERUI.Vendor.Init()
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI.Vendor.VendorEntrySetup
     )
+    Vendor.instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
+        Vendor.instance:OnItemSelectedChange(list, selectedData)
+        Vendor.instance:UpdateScrollIndicator(list)
+    end)
 
     -- Add column headers (matching Inventory/Banking layout)
-    local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
-    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_NAME")), COL[1])
-    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TYPE")), COL[2])
-    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TRAIT")), COL[3])
-    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_STAT")), COL[4])
-    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_VALUE")), COL[5])
+    local COL = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"), COL.NAME)
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"), COL.TYPE)
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "SI_BETTERUI_BANKING_COLUMN_TRAIT"), COL.TRAIT)
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"), COL.STAT)
+    Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), COL.VALUE)
+    Vendor.instance:InitializeCategoryHeader()
+    Vendor.instance:InitializeScrollIndicator()
 
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)
-    Vendor.instance.tabKeybinds = BuildTabKeybinds(Vendor.instance)
 
     -- Initialize scene fragments manually — vendor does not use BETTERUI_BankingFooterBar
     Vendor.instance.fragment = ZO_SimpleSceneFragment:New(Vendor.instance.control)
@@ -461,20 +451,42 @@ function BETTERUI.Vendor.Init()
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(Vendor.instance.footerFragment)
 
-    -- Register unified scene lifecycle with both keybind groups
+    -- Register unified scene lifecycle with core keybind group.
+    -- Category navigation LB/RB comes from the header tab bar keybind descriptor.
     BETTERUI.CIM.SceneLifecycle.Register(Vendor.instance, {
-        keybinds = { Vendor.instance.coreKeybinds, Vendor.instance.tabKeybinds },
+        keybinds = { Vendor.instance.coreKeybinds },
         taskManager = Vendor.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            screen:ApplyNativeStoreMode(screen:GetCurrentMode())
             screen:RefreshVendorFooter()
+            screen:InitializeScrollIndicator()
             screen:RefreshList()
-            screen:UpdateTabHeader()
+            screen:EnsureHeaderKeybindsActive()
+            screen:EnsureListInputActive()
+            screen:EnsureColumnHeadersVisible()
+            if screen.list then
+                screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
+                screen:UpdateScrollIndicator(screen.list)
+            end
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen._suppressListUpdates = false
             screen._isDirty = false
+            screen:DeactivateHeaderKeybinds()
+            screen:DeactivateListInput()
+            if GAMEPAD_TOOLTIPS then
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            end
+            if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
+                BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+                BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            end
+            if screen.list and screen.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
+                BETTERUI.CIM.ScrollIndicator.Hide(screen.list.control)
+            end
         end,
         onHidden = function(screen)
             local component = screen:GetActiveComponent()

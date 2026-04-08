@@ -33,8 +33,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         if instance.RefreshVendorFooter then
             instance:RefreshVendorFooter()
         end
-        if instance.UpdateTabHeader then
-            instance:UpdateTabHeader()
+        if instance.RebuildCategoryHeader then
+            instance:RebuildCategoryHeader()
         end
         if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
             KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()

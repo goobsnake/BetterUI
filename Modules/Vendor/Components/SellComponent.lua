@@ -12,6 +12,147 @@ local Vendor = BETTERUI.Vendor
 Vendor.SellComponent = {}
 local Sell = Vendor.SellComponent
 
+local SELL_CATEGORY_DEFS = {
+    {
+        key = "all",
+        nameStringId = "SI_BETTERUI_INV_ITEM_ALL",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
+    },
+    {
+        key = "weapons",
+        nameStringId = "SI_BETTERUI_INV_ITEM_WEAPONS",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_weapons.dds",
+        filterType = ITEMFILTERTYPE_WEAPONS,
+    },
+    {
+        key = "apparel",
+        nameStringId = "SI_BETTERUI_INV_ITEM_APPAREL",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_apparel.dds",
+        filterType = ITEMFILTERTYPE_ARMOR,
+    },
+    {
+        key = "jewelry",
+        nameStringId = "SI_BETTERUI_INV_ITEM_JEWELRY",
+        iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds",
+        filterType = ITEMFILTERTYPE_JEWELRY,
+    },
+    {
+        key = "consumable",
+        nameStringId = "SI_BETTERUI_INV_ITEM_CONSUMABLE",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds",
+        filterType = ITEMFILTERTYPE_CONSUMABLE,
+    },
+    {
+        key = "materials",
+        nameStringId = "SI_BETTERUI_INV_ITEM_MATERIALS",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_materials.dds",
+        filterType = ITEMFILTERTYPE_CRAFTING,
+    },
+    {
+        key = "furnishing",
+        nameStringId = "SI_BETTERUI_INV_ITEM_FURNISHING",
+        iconFile = "EsoUI/Art/Crafting/Gamepad/gp_crafting_menuicon_furnishings.dds",
+        filterType = ITEMFILTERTYPE_FURNISHING,
+    },
+    {
+        key = "misc",
+        nameStringId = "SI_BETTERUI_INV_ITEM_MISC",
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_miscellaneous.dds",
+        filterType = ITEMFILTERTYPE_MISCELLANEOUS,
+    },
+    {
+        key = "junk",
+        nameStringId = "SI_BETTERUI_INV_ITEM_JUNK",
+        iconFile = "esoui/art/inventory/inventory_tabicon_junk_up.dds",
+        special = "junk",
+    },
+}
+
+local function BuildSellableBagItems()
+    local rows = {}
+    local bagItems = SHARED_INVENTORY and SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK)
+    if not bagItems then
+        return rows
+    end
+
+    for _, itemData in pairs(bagItems) do
+        local slot = itemData
+        local sellPrice = slot.sellPrice or (slot.stackSellPrice and slot.stackSellPrice) or 0
+        local isStolen = IsItemStolen and IsItemStolen(slot.bagId, slot.slotIndex)
+        if sellPrice > 0 and not isStolen then
+            rows[#rows + 1] = slot
+        end
+    end
+
+    return rows
+end
+
+local function MatchesCategory(slotData, category)
+    if not category or category.key == "all" then
+        return true
+    end
+
+    local matcher = BETTERUI.Inventory
+        and BETTERUI.Inventory.Categories
+        and BETTERUI.Inventory.Categories.DoesItemMatchCategory
+    if type(matcher) == "function" then
+        return matcher(slotData, category)
+    end
+
+    if category.special == "junk" then
+        return slotData.isJunk == true
+    end
+
+    if category.filterType then
+        return ZO_InventoryUtils_DoesNewItemMatchFilterType(slotData, category.filterType)
+    end
+
+    return true
+end
+
+---@param _vendorInstance BETTERUI.Vendor.Class
+---@return table[]
+function Sell:GetCategories(_vendorInstance)
+    local rows = BuildSellableBagItems()
+    local totalCount = #rows
+    local categories = {}
+
+    for _, def in ipairs(SELL_CATEGORY_DEFS) do
+        local count = 0
+        if def.key == "all" then
+            count = totalCount
+        else
+            for _, row in ipairs(rows) do
+                if MatchesCategory(row, def) then
+                    count = count + 1
+                end
+            end
+        end
+
+        if def.key == "all" or count > 0 then
+            categories[#categories + 1] = {
+                key = def.key,
+                name = GetString(rawget(_G, def.nameStringId) or def.nameStringId),
+                iconFile = def.iconFile,
+                filterType = def.filterType,
+                special = def.special,
+                itemCount = count,
+            }
+        end
+    end
+
+    if #categories == 0 then
+        categories[1] = {
+            key = "all",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL") or "SI_BETTERUI_INV_ITEM_ALL"),
+            iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
+            itemCount = 0,
+        }
+    end
+
+    return categories
+end
+
 -- ACTIVATE / DEACTIVATE
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -100,17 +241,14 @@ function Sell:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
 
-    local bagItems = SHARED_INVENTORY and SHARED_INVENTORY:GenerateFullSlotData(nil, BAG_BACKPACK)
-    if not bagItems then return end
+    local rows = BuildSellableBagItems()
+    if #rows == 0 then return end
 
-    for _, itemData in pairs(bagItems) do
-        local slot = itemData
-        -- Skip items that cannot be sold
-        local sellPrice = slot.sellPrice or (slot.stackSellPrice and slot.stackSellPrice) or 0
-        local isStolen = IsItemStolen and IsItemStolen(slot.bagId, slot.slotIndex)
+    local activeCategory = vendorInstance:GetCurrentCategory()
+    for _, slot in ipairs(rows) do
+        if MatchesCategory(slot, activeCategory) then
+            local sellPrice = slot.sellPrice or (slot.stackSellPrice and slot.stackSellPrice) or 0
 
-        -- Regular vendors can only sell non-stolen items
-        if sellPrice > 0 and not isStolen then
             local name = slot.name or zo_strformat(SI_TOOLTIP_ITEM_NAME,
                 GetItemName(slot.bagId, slot.slotIndex))
             local icon = slot.iconFile
