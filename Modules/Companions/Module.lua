@@ -179,8 +179,11 @@ end
 local function OnCompanionActivated()
     if not Companions.instance then return end
     if Companions.instance:IsSceneShowing() then
+        Companions.instance:RefreshCategories()
         Companions.instance:RefreshList()
         Companions.instance:RefreshCompanionFooter()
+        Companions.instance:EnsureListInputActive()
+        Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
     end
 end
 
@@ -198,8 +201,11 @@ local function OnInventoryUpdated()
     Companions.Tasks:Cancel("listRefresh")
     Companions.Tasks:Schedule("listRefresh", 100, function()
         if Companions.instance and Companions.instance:IsSceneShowing() then
+            Companions.instance:RefreshCategories()
             Companions.instance:RefreshList()
             Companions.instance:RefreshCompanionFooter()
+            Companions.instance:EnsureListInputActive()
+            Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
         end
     end)
 end
@@ -228,6 +234,8 @@ function BETTERUI.Companions.Init()
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI_SharedGamepadEntry_OnSetup
     )
+    Companions.instance:InitializeListPresentation()
+    Companions.instance:InitializeCategoryHeader()
 
     -- Add column headers
     local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
@@ -236,6 +244,8 @@ function BETTERUI.Companions.Init()
     Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TRAIT")), COL[3])
     Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_STAT")), COL[4])
     Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_VALUE")), COL[5])
+    Companions.instance:RefreshCategories()
+    Companions.instance:EnsureColumnHeadersVisible()
 
     -- Build keybinds
     Companions.instance.coreKeybinds = BuildCoreKeybinds(Companions.instance)
@@ -270,16 +280,39 @@ function BETTERUI.Companions.Init()
         taskManager = Companions.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
-            screen:RefreshCompanionFooter()
+            screen:RefreshCategories()
             screen:RefreshList()
+            screen:RefreshCompanionFooter()
+            screen:EnsureColumnHeadersVisible()
+            screen:EnsureHeaderKeybindsActive()
+            screen:EnsureListInputActive()
+            screen:UpdateItemTooltips(screen.list and screen.list:GetTargetData())
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            screen:DeactivateListInput()
+            screen:DeactivateHeaderKeybinds()
+            if GAMEPAD_TOOLTIPS then
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+            end
         end,
         onHidden = function(screen)
-            -- No cleanup needed
+            screen:DeactivateListInput()
         end,
     })
+
+    scene:RegisterCallback("StateChange", function(_, newState)
+        if not Companions.instance then
+            return
+        end
+
+        if newState == SCENE_SHOWN then
+            Companions.instance:EnsureColumnHeadersVisible()
+            Companions.instance:EnsureListInputActive()
+            Companions.instance:UpdateItemTooltips(Companions.instance.list and Companions.instance.list:GetTargetData())
+        end
+    end)
 
     -- Alias to replace native companion equipment scene
     SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene

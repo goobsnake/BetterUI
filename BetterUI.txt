@@ -250,5 +250,7 @@ Modules\Vendor\Settings\SettingsPanel.lua
 
 ; Module: Companions (INV-004)
 Modules\Companions\Core\CompanionsClass.lua
+Modules\Companions\Core\CompanionListManager.lua
+Modules\Companions\Core\CompanionItemList.lua
 Modules\Companions\Settings\SettingsPanel.lua
 Modules\Companions\Module.lua
