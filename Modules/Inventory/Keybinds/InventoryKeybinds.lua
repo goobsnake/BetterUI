@@ -769,8 +769,34 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                             if target and target.uniqueId then
                                 self._preserveUniqueId = target.uniqueId
                             end
-                            self:RefreshKeybinds()
-                            self:RefreshItemList()
+
+                            local function RefreshAfterQuickslotUnassign()
+                                if self.control and self.control.IsHidden and self.control:IsHidden() then
+                                    return
+                                end
+                                if self.actionMode ~= BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+                                    return
+                                end
+                                if target and target.bagId and target.slotIndex and self.InvalidateItemMeta then
+                                    self:InvalidateItemMeta(target.bagId, target.slotIndex)
+                                end
+                                if self.InvalidateSlotDataCache then
+                                    self:InvalidateSlotDataCache()
+                                end
+                                self:RefreshKeybinds()
+                                self:RefreshItemList()
+                            end
+
+                            -- Refresh immediately for responsiveness, then once more
+                            -- after the secure clear settles so icon/button state
+                            -- reflects the now-unassigned slot without reselection.
+                            RefreshAfterQuickslotUnassign()
+                            if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+                                BETTERUI.Inventory.Tasks:Schedule("quickslotUnassignRefresh", 80,
+                                    RefreshAfterQuickslotUnassign)
+                            else
+                                zo_callLater(RefreshAfterQuickslotUnassign, 80)
+                            end
                         else
                             -- Not slotted, open the native quickslot wheel
                             -- Must use zo_callLater to break the callstack
