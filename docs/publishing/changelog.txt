@@ -3,10 +3,8 @@ Current Release - v3.06 Changes:
 [INDENT]INVENTORY:
 1. Fixed: Multi-select item tracking now survives list rebuilds and item-wrapper changes by resolving selections through both uniqueId and bag/slot aliases
 2. Fixed: Primary (A) and secondary (X) keybind labels no longer flicker or briefly show stale actions during equip/use/quickslot transitions
-3. Fixed: Inventory action transitions now expire cleanly and refresh keybind/action state at the correct time without racey early clears
-4. Fixed: Y-menu now shows a single deterministic junk toggle entry (Mark or Unmark) and prevents duplicate junk actions in the action list
-5. Fixed: \"Link to Chat\" fallback handling now only promotes Destroy/Delete when those actions are actually available for the selected item
-6. Fixed: Keybind strip updates now avoid duplicate remove/add churn when the active descriptor is already selected
+3. Fixed: Y-menu now shows a single junk toggle entry (Mark or Unmark) and prevents duplicate junk actions in the action list
+4. Fixed: "Link to Chat" fallback handling has been refined to occur less often for the primary A button
 [/INDENT]
 
 
