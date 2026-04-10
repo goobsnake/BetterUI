@@ -17,6 +17,7 @@ Purpose: Manages the "Y-Action" menu (Action Dialog) for inventory items.
 --- Mechanics: Instantiates `BETTERUI.Inventory.SlotActions`.
 function BETTERUI.Inventory.Class:InitializeItemActions()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
+    self.itemActions:SetUseKeybindStrip(false)
 end
 
 --------------------------------------------------------------------------------
@@ -185,6 +186,13 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             -- Debug info removed
             local titleText = GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
 
+            local markAsJunkName = GetString(SI_ITEM_ACTION_MARK_AS_JUNK)
+            local unmarkAsJunkName = GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
+            local betterMarkAsJunkName = GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK)
+            local betterUnmarkAsJunkName = GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK)
+            local showJunkToggleEntry = false
+            local junkToggleEntryText = nil
+            local junkToggleEntryCallback = nil
 
             local headerData = {
                 titleText = titleText,
@@ -219,17 +227,21 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 end
 
                 if not isQuestItem then
-                    local tmpCat = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
-                    if tmpCat and tmpCat.showJunk ~= nil then
-                        -- Unmark should remain available even if locked
-                        self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK, UnmarkAsJunk,
-                            "secondary")
-                    else
-                        -- Hide Mark as Junk when the item is locked
-                        if not isLocked and canMarkJunk then
-                            self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK, MarkAsJunk,
-                                "secondary")
-                        end
+                    local isJunk = false
+                    if target and target.bagId and target.slotIndex and IsItemJunk then
+                        isJunk = IsItemJunk(target.bagId, target.slotIndex) == true
+                    end
+
+                    -- Always expose at most one junk-toggle entry in the Y menu.
+                    -- Unmark remains available for junk items even if locked.
+                    if isJunk then
+                        showJunkToggleEntry = true
+                        junkToggleEntryText = betterUnmarkAsJunkName
+                        junkToggleEntryCallback = UnmarkAsJunk
+                    elseif not isLocked and canMarkJunk then
+                        showJunkToggleEntry = true
+                        junkToggleEntryText = betterMarkAsJunkName
+                        junkToggleEntryCallback = MarkAsJunk
                     end
                 end
                 -- Ensure engine-provided Lock/Unlock callbacks release the dialog first.
@@ -305,6 +317,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     end
                 end
 
+                local isJunkToggleAction = actionName == markAsJunkName
+                    or actionName == unmarkAsJunkName
+                    or actionName == betterMarkAsJunkName
+                    or actionName == betterUnmarkAsJunkName
+
                 -- Hide Stow/Retrieve from Y-menu (redundant with A-button and Stack actions)
                 local isStowOrRetrieve = (actionName == GetString(SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG))
                     or (actionName == GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG))
@@ -313,7 +330,11 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                 local isConvertStyle = (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_IMPERIAL_STYLE))
                     or (actionName == GetString(SI_ITEM_ACTION_CONVERT_TO_MORAG_TONG_STYLE))
 
-                if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve and not isConvertStyle then
+                if not (hideDestroy and isDestroy)
+                    and not hideMarkJunk
+                    and not isJunkToggleAction
+                    and not isStowOrRetrieve
+                    and not isConvertStyle then
                     local entryData = ZO_GamepadEntryData:New(actionName)
                     -- Ensure consistent selection visuals for action rows
                     entryData:SetIconTintOnSelection(true)
@@ -326,6 +347,20 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
                     }
                     table.insert(parametricList, listItem)
                 end
+            end
+
+            if showJunkToggleEntry and junkToggleEntryText and junkToggleEntryCallback then
+                local junkToggleEntry = ZO_GamepadEntryData:New(junkToggleEntryText)
+                junkToggleEntry:SetIconTintOnSelection(true)
+                junkToggleEntry.isJunkToggleAction = true
+                junkToggleEntry.junkToggleCallback = junkToggleEntryCallback
+                junkToggleEntry.setup = ZO_SharedGamepadEntry_OnSetup
+
+                local listItem = {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = junkToggleEntry,
+                }
+                table.insert(parametricList, listItem)
             end
 
             -- Add "Stow Stack" entry for Inventory mode (stow all items at once)
@@ -547,6 +582,14 @@ function BETTERUI.Inventory.Class:InitializeActionsDialog()
             local itemTarget = selectedRow.itemTarget
             if itemTarget and BETTERUI.Inventory.Dialogs and BETTERUI.Inventory.Dialogs.RetrieveFullStack then
                 BETTERUI.Inventory.Dialogs.RetrieveFullStack(itemTarget)
+            end
+            return
+        end
+
+        if selectedRow and selectedRow.isJunkToggleAction then
+            ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+            if selectedRow.junkToggleCallback then
+                selectedRow.junkToggleCallback()
             end
             return
         end

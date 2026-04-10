@@ -27,6 +27,110 @@ local WouldEquipmentBeHidden = WouldEquipmentBeHidden
 local FindActionSlotMatchingItem = FindActionSlotMatchingItem
 local FindActionSlotMatchingSimpleAction = FindActionSlotMatchingSimpleAction
 local ACTION_TYPE_QUEST_ITEM = ACTION_TYPE_QUEST_ITEM
+local PRIMARY_ACTION_TRANSITION_WINDOW_MS = 250
+local PRIMARY_ACTION_EQUIP_TRANSITION_WINDOW_MS = 700
+
+local function GetNowMilliseconds()
+    return GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+end
+
+local function NormalizeActionName(actionName)
+    if type(actionName) ~= "string" then
+        return actionName
+    end
+    if actionName == "" then
+        return nil
+    end
+    return actionName
+end
+
+local function ResolvePrimaryActionState(self)
+    if not self or not self.itemActions then
+        return nil, nil
+    end
+
+    local slotActions = self.itemActions.slotActions
+    local actionName = NormalizeActionName(self.itemActions.actionName)
+    if not actionName and slotActions and slotActions.GetPrimaryActionName then
+        actionName = NormalizeActionName(slotActions:GetPrimaryActionName())
+    end
+    if not actionName and slotActions then
+        actionName = NormalizeActionName(slotActions._betterui_primaryName)
+    end
+    return actionName, slotActions
+end
+
+local function ClearStalePrimaryOverride(slotActions)
+    if not slotActions then
+        return
+    end
+    if slotActions._betterui_primaryOverride and not NormalizeActionName(slotActions._betterui_primaryName) then
+        slotActions._betterui_primaryOverride = nil
+        slotActions._betterui_primaryName = nil
+    end
+end
+
+local function ResolveMultiSelectActionName(self, target, isCraftBag, afterToggle)
+    if not self then
+        return nil
+    end
+    local manager = isCraftBag and self.craftBagMultiSelectManager or self.multiSelectManager
+    if not manager then
+        return nil
+    end
+
+    local isSelected = target and manager:IsSelected(target) or false
+    if afterToggle then
+        isSelected = not isSelected
+    end
+    if isSelected then
+        return GetString(SI_BETTERUI_DESELECT_ITEM)
+    end
+
+    local count = manager.GetSelectedCount and manager:GetSelectedCount() or 0
+    if afterToggle and target then
+        local currentlySelected = manager:IsSelected(target)
+        if currentlySelected then
+            count = math.max(0, count - 1)
+        else
+            count = count + 1
+        end
+    end
+    return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+end
+
+local function IsPrimaryActionTransitionActive(self)
+    if not self or not self._primaryActionTransitionExpiresMs then
+        return false
+    end
+    return GetNowMilliseconds() <= self._primaryActionTransitionExpiresMs
+end
+
+local function GetPrimaryActionTransitionWindowMs(actionName)
+    local equipName = GetString(SI_ITEM_ACTION_EQUIP)
+    local unequipName = GetString(SI_ITEM_ACTION_UNEQUIP)
+    if actionName == equipName or actionName == unequipName then
+        return PRIMARY_ACTION_EQUIP_TRANSITION_WINDOW_MS
+    end
+    return PRIMARY_ACTION_TRANSITION_WINDOW_MS
+end
+
+local function StartPrimaryActionTransition(self, actionName)
+    if not self then return end
+    local resolvedActionName = NormalizeActionName(actionName)
+    if not resolvedActionName then
+        resolvedActionName = select(1, ResolvePrimaryActionState(self))
+    end
+    if not resolvedActionName then
+        resolvedActionName = NormalizeActionName(self._lastResolvedPrimaryActionName)
+    end
+    if resolvedActionName then
+        self._primaryActionTransitionName = resolvedActionName
+        self._lastResolvedPrimaryActionName = resolvedActionName
+    end
+    self._primaryActionTransitionExpiresMs = GetNowMilliseconds() + GetPrimaryActionTransitionWindowMs(resolvedActionName)
+end
+
 
 --[[
 Function: IsQuickslottable
@@ -239,32 +343,38 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 -- If in multi-select mode, show "Unselect" or "Select (count)"
                 -- Check inventory multi-select manager
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
+                    if not target and self.itemList then
+                        target = self.itemList.selectedData
+                    end
                     -- Quest items cannot be selected in multi-select mode
                     if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
                         return ""
                     end
-                    if target and self.multiSelectManager:IsSelected(target) then
-                        return GetString(SI_BETTERUI_DESELECT_ITEM)
-                    else
-                        local count = self.multiSelectManager:GetSelectedCount()
-                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                    local multiSelectActionName = ResolveMultiSelectActionName(self, target, false, false)
+                    if multiSelectActionName then
+                        self._lastResolvedPrimaryActionName = multiSelectActionName
                     end
+                    return multiSelectActionName or ""
                 end
                 -- Check craftbag multi-select manager
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
-                    if target and self.craftBagMultiSelectManager:IsSelected(target) then
-                        return GetString(SI_BETTERUI_DESELECT_ITEM)
-                    else
-                        local count = self.craftBagMultiSelectManager:GetSelectedCount()
-                        return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+                    local multiSelectActionName = ResolveMultiSelectActionName(self, target, true, false)
+                    if multiSelectActionName then
+                        self._lastResolvedPrimaryActionName = multiSelectActionName
                     end
+                    return multiSelectActionName or ""
+                end
+
+                -- During an active transition, hold the label stable to prevent
+                -- intermediate action names (e.g., "Destroy") from flashing
+                -- while itemActions refreshes after an action.
+                if IsPrimaryActionTransitionActive(self) and self._primaryActionTransitionName then
+                    return self._primaryActionTransitionName
                 end
 
                 -- Use itemActions for proper action name discovery (Equip/Unequip/Use/Retrieve/etc.)
-                local baseName
-                if self.itemActions and self.itemActions.actionName then
-                    baseName = self.itemActions.actionName
-                else
+                local baseName = select(1, ResolvePrimaryActionState(self))
+                if not baseName then
                     -- Fallback logic if itemActions not ready or target not yet selected
                     if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                         -- Craft Bag items always default to "Retrieve"
@@ -274,11 +384,14 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     elseif target then
                         baseName = GetString(SI_ITEM_ACTION_USE)
                     else
-                        -- No target selected yet - show generic action
                         baseName = GetString(SI_ITEM_ACTION_USE)
                     end
                 end
 
+                baseName = NormalizeActionName(baseName)
+                if baseName then
+                    self._lastResolvedPrimaryActionName = baseName
+                end
                 return baseName
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
@@ -290,12 +403,18 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     and self.actionMode ~= BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
                     return false
                 end
+                if IsPrimaryActionTransitionActive(self) then
+                    return true
+                end
                 if IsBagUpgradeCategorySelected(self) then
                     return true
                 end
                 -- Hide A-button when in multi-select and targeting a quest item
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.itemList and self.itemList.selectedData
+                    local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                    if not target and self.itemList then
+                        target = self.itemList.selectedData
+                    end
                     if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
                         return false
                     end
@@ -304,20 +423,27 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
                     return true
                 end
-                -- FLICKER FIX: Hide button during action transition when actionName cleared
-                -- This prevents showing incorrect fallback text after equip/unequip
-                if self.itemActions and self.itemActions.slotActions and not self.itemActions.actionName then
-                    return false
-                end
                 -- Check itemActions visibility if available
                 if self.itemActions and self.itemActions.slotActions then
-                    return self.itemActions.slotActions:CheckPrimaryActionVisibility()
+                    local visible = self.itemActions.slotActions:CheckPrimaryActionVisibility()
+                    if visible then
+                        return true
+                    end
+                    if IsPrimaryActionTransitionActive(self) then
+                        return true
+                    end
                 end
                 -- Fallback: visible if we have selected data (use SafeGetTargetData for consistency)
                 if self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-                    return BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil
+                    if BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList) ~= nil then
+                        return true
+                    end
+                    return IsPrimaryActionTransitionActive(self)
                 end
-                return BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil
+                if BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList) ~= nil then
+                    return true
+                end
+                return IsPrimaryActionTransitionActive(self)
             end,
             callback = function()
                 if self:IsBatchProcessing() then
@@ -334,6 +460,7 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
                     local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
                     if target then
+                        StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, true, true))
                         self.craftBagMultiSelectManager:ToggleSelection(target)
                         self:RefreshCraftBagList()
                     end
@@ -341,19 +468,17 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 end
                 -- Check inventory multi-select
                 if self.multiSelectManager and self.multiSelectManager:IsActive() then
-                    local target = self.itemList and self.itemList.selectedData
+                    local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                    if not target and self.itemList then
+                        target = self.itemList.selectedData
+                    end
                     if target then
+                        StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, false, true))
                         self.multiSelectManager:ToggleSelection(target)
                         self:RefreshItemList()
                     end
                 else
-                    -- FLICKER FIX: Save and clear stale action name BEFORE executing action
-                    -- This prevents fallback logic from showing incorrect text (e.g. "Use" instead of "Unequip")
-                    local actionName
-                    if self.itemActions then
-                        actionName = self.itemActions.actionName
-                        self.itemActions.actionName = nil
-                    end
+                    local actionName, slotActions = ResolvePrimaryActionState(self)
 
                     -- Defensive check: selected data can be stale right after a dialog closes.
                     local currentTarget = nil
@@ -368,9 +493,79 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     end
 
                     -- Use itemActions to execute the discovered primary action
-                    if self.itemActions and self.itemActions.slotActions then
-                        local slotActions = self.itemActions.slotActions
-                        if slotActions._betterui_primaryOverride then
+                    if self.itemActions and slotActions then
+                        local function HasExecutablePrimaryAction(actions, expectedActionName)
+                            if not actions then
+                                return false
+                            end
+
+                            local overrideName = NormalizeActionName(actions._betterui_primaryName)
+                            if type(actions._betterui_primaryOverride) == "function"
+                                and overrideName
+                                and (not expectedActionName or expectedActionName == overrideName) then
+                                return true
+                            end
+
+                            if not actions.m_slotActions or #actions.m_slotActions == 0 then
+                                return false
+                            end
+
+                            if expectedActionName then
+                                for i = 1, #actions.m_slotActions do
+                                    local actionEntry = actions.m_slotActions[i]
+                                    if actionEntry and actionEntry[1] == expectedActionName and type(actionEntry[2]) == "function" then
+                                        return true
+                                    end
+                                end
+                            end
+
+                            local primaryActionName = NormalizeActionName(actions:GetPrimaryActionName())
+                            if primaryActionName then
+                                for i = 1, #actions.m_slotActions do
+                                    local actionEntry = actions.m_slotActions[i]
+                                    if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
+                                        return true
+                                    end
+                                end
+                            end
+
+                            local firstAction = actions.m_slotActions[1]
+                            return firstAction and type(firstAction[2]) == "function"
+                        end
+
+                        local function ExecutePrimaryAction(actions, expectedActionName)
+                            if not HasExecutablePrimaryAction(actions, expectedActionName) then
+                                return false
+                            end
+
+                            local overrideName = NormalizeActionName(actions._betterui_primaryName)
+                            if type(actions._betterui_primaryOverride) == "function"
+                                and overrideName
+                                and (not expectedActionName or expectedActionName == overrideName) then
+                                actions._betterui_primaryOverride()
+                            else
+                                actions:DoPrimaryAction()
+                            end
+                            return true
+                        end
+
+                        if not actionName then
+                            ClearStalePrimaryOverride(slotActions)
+                            if self.RefreshItemActions then
+                                self:RefreshItemActions()
+                            end
+                            actionName, slotActions = ResolvePrimaryActionState(self)
+                        end
+
+                        if not actionName or not slotActions then
+                            return
+                        end
+
+                        StartPrimaryActionTransition(self, actionName)
+                        local overrideName = NormalizeActionName(slotActions._betterui_primaryName)
+                        if type(slotActions._betterui_primaryOverride) == "function"
+                            and overrideName
+                            and overrideName == actionName then
                             slotActions._betterui_primaryOverride()
                         elseif actionName == GetString(SI_ITEM_ACTION_USE)
                             or actionName == GetString(SI_ITEM_ACTION_SHOW_MAP)
@@ -405,48 +600,28 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                                 ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
                             end
                         else
-                            local function HasExecutablePrimaryAction(actions)
-                                if not actions then
-                                    return false
-                                end
-                                if actions._betterui_primaryOverride then
-                                    return true
-                                end
-                                if not actions.m_slotActions or #actions.m_slotActions == 0 then
-                                    return false
-                                end
-
-                                local primaryActionName = actions:GetPrimaryActionName()
-                                if primaryActionName then
-                                    for i = 1, #actions.m_slotActions do
-                                        local actionEntry = actions.m_slotActions[i]
-                                        if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
-                                            return true
-                                        end
-                                    end
-                                end
-
-                                local firstAction = actions.m_slotActions[1]
-                                return firstAction and type(firstAction[2]) == "function"
+                            if ExecutePrimaryAction(slotActions, actionName) then
+                                return
                             end
 
-                            if HasExecutablePrimaryAction(slotActions) then
-                                slotActions:DoPrimaryAction()
-                            else
+                            if self.RefreshItemActions then
                                 self:RefreshItemActions()
-                                local refreshedSlotActions = self.itemActions and self.itemActions.slotActions
-                                if refreshedSlotActions and HasExecutablePrimaryAction(refreshedSlotActions) then
-                                    if refreshedSlotActions._betterui_primaryOverride then
-                                        refreshedSlotActions._betterui_primaryOverride()
-                                    else
-                                        refreshedSlotActions:DoPrimaryAction()
-                                    end
-                                end
+                            end
+                            actionName, slotActions = ResolvePrimaryActionState(self)
+                            if actionName and slotActions then
+                                StartPrimaryActionTransition(self, actionName)
+                                ExecutePrimaryAction(slotActions, actionName)
+                            else
+                                ClearStalePrimaryOverride(slotActions)
                             end
                         end
                     else
                         -- Fallback: direct equip/use if itemActions not available
-                        local target = self.itemList and self.itemList.selectedData
+                        StartPrimaryActionTransition(self, actionName)
+                        local target = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+                        if not target and self.itemList then
+                            target = self.itemList.selectedData
+                        end
                         if target and target.bagId and target.slotIndex then
                             if IsEquipable(target.bagId, target.slotIndex) then
                                 local inventorySlot = target.dataSource and target or { dataSource = target }
@@ -463,6 +638,13 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
         {
             alignment = KEYBIND_STRIP_ALIGN_LEFT,
             name = function()
+                -- During an active primary action transition, hold the X-button label
+                -- stable to prevent stale slot data from resolving the wrong label
+                -- (e.g., "Link to Chat" flashing during equip/unequip).
+                if IsPrimaryActionTransitionActive(self) and self._lastSecondaryActionName then
+                    return self._lastSecondaryActionName
+                end
+
                 local n = ""
                 if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
                     --bag mode
@@ -513,7 +695,11 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                 else
                     n = ""
                 end
-                return n or ""
+                n = n or ""
+                if n ~= "" then
+                    self._lastSecondaryActionName = n
+                end
+                return n
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
             -- (no hold callbacks here; tap behavior preserved)
@@ -577,19 +763,14 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                             if SOUNDS and PlaySound then
                                 PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
                             end
-                            -- Capture unique id to ensure we re-select the same item after the list rebuilds
-                            local preserveId = target and target.uniqueId
-
-                            -- Refresh the keybind label and list visual state (Delayed to allow native state to update)
-                            zo_callLater(function()
-                                if self.RefreshKeybinds and self.itemList then
-                                    if preserveId then
-                                        self._preserveUniqueId = preserveId
-                                    end
-                                    self:RefreshKeybinds()
-                                    self:RefreshItemList()
-                                end
-                            end, 100)
+                            -- Use the transition mechanism to hold the X-button label stable
+                            -- while the list rebuilds after quickslot unassign.
+                            StartPrimaryActionTransition(self, nil)
+                            if target and target.uniqueId then
+                                self._preserveUniqueId = target.uniqueId
+                            end
+                            self:RefreshKeybinds()
+                            self:RefreshItemList()
                         else
                             -- Not slotted, open the native quickslot wheel
                             -- Must use zo_callLater to break the callstack
