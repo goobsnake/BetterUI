@@ -110,45 +110,137 @@ local function MatchesCategory(itemData, category)
     return true
 end
 
-local function BuildStoreRows()
+local function SafeCall(context, fn, ...)
+    if type(fn) ~= "function" then
+        return false, nil
+    end
+
+    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
+        return BETTERUI.CIM.SafeExecute(context, fn, ...)
+    end
+
+    local ok, result = pcall(fn, ...)
+    return ok, result
+end
+
+local function BuildStoreRowFromDataSource(ds)
+    if not ds then
+        return nil
+    end
+
+    local slotIndex = ds.slotIndex or ds.entryIndex
+    if not slotIndex then
+        return nil
+    end
+
+    local name = ds.name or ds.text
+    if not name or name == "" then
+        return nil
+    end
+
+    return {
+        entryIndex        = ds.entryIndex or slotIndex,
+        slotIndex         = slotIndex,
+        name              = name,
+        icon              = ds.icon or ds.iconFile,
+        stack             = ds.stack or ds.stackCount or 1,
+        price             = ds.price or 0,
+        sellPrice         = ds.sellPrice or ds.price or 0,
+        meetsReqsToBuy    = ds.meetsRequirementsToBuy,
+        requiredToBuyErrorText = ds.requiredToBuyErrorText,
+        meetsRequirementsToEquip = ds.meetsRequirementsToEquip,
+        displayQuality    = ds.displayQuality or ds.quality,
+        currencyType1     = ds.currencyType1,
+        currencyQuantity1 = ds.currencyQuantity1,
+        currencyType2     = ds.currencyType2,
+        currencyQuantity2 = ds.currencyQuantity2,
+        entryType         = ds.entryType,
+        itemLink          = ds.itemLink or ((GetStoreItemLink and slotIndex) and GetStoreItemLink(slotIndex)) or nil,
+        filterData        = ds.filterData or GetStoreFilterData(slotIndex),
+        statValue         = ds.statValue,
+        bestGamepadItemCategoryName = ds.bestGamepadItemCategoryName,
+    }
+end
+
+local function BuildRowsFromNativeBuyComponent()
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    local buyMode = rawget(_G, "ZO_MODE_STORE_BUY")
+    if not (storeManager and buyMode and storeManager.components) then
+        return {}
+    end
+
+    local buyComponent = storeManager.components[buyMode]
+    local buyList = buyComponent and buyComponent.list
+    if not buyList then
+        return {}
+    end
+
+    if buyList.UpdateList then
+        local ok = SafeCall("Vendor.Buy:NativeBuyListUpdate", buyList.UpdateList, buyList)
+        if not ok then
+            return {}
+        end
+    end
+
     local rows = {}
-
-    if type(ZO_StoreManager_GetStoreItems) == "function" then
-        local storeItems = ZO_StoreManager_GetStoreItems() or {}
-        for _, item in ipairs(storeItems) do
-            if item and item.name and item.name ~= "" then
-                rows[#rows + 1] = {
-                    entryIndex        = item.slotIndex,
-                    slotIndex         = item.slotIndex,
-                    name              = item.name,
-                    icon              = item.icon,
-                    stack             = item.stack,
-                    price             = item.price,
-                    sellPrice         = item.sellPrice,
-                    meetsReqsToBuy    = item.meetsRequirementsToBuy,
-                    requiredToBuyErrorText = item.requiredToBuyErrorText,
-                    meetsRequirementsToEquip = item.meetsRequirementsToEquip,
-                    displayQuality    = item.displayQuality or item.quality,
-                    currencyType1     = item.currencyType1,
-                    currencyQuantity1 = item.currencyQuantity1,
-                    currencyType2     = item.currencyType2,
-                    currencyQuantity2 = item.currencyQuantity2,
-                    entryType         = item.entryType,
-                    itemLink          = GetStoreItemLink(item.slotIndex),
-                    filterData        = item.filterData or {},
-                }
-            end
-        end
-        if #rows > 0 then
-            return rows
+    for _, entryData in ipairs(buyList.dataList or {}) do
+        local ds = entryData and (entryData.dataSource or entryData)
+        local row = BuildStoreRowFromDataSource(ds)
+        if row then
+            rows[#rows + 1] = row
         end
     end
+    return rows
+end
 
-    local numItems = GetNumStoreItems and GetNumStoreItems() or 0
+local function BuildRowsFromStoreManager()
+    if type(ZO_StoreManager_GetStoreItems) ~= "function" then
+        return {}
+    end
+
+    local ok, storeItems = SafeCall("Vendor.Buy:StoreManagerItems", ZO_StoreManager_GetStoreItems)
+    if not ok then
+        return {}
+    end
+    storeItems = storeItems or {}
+
+    local rows = {}
+    for _, item in ipairs(storeItems) do
+        if item and item.name and item.name ~= "" then
+            rows[#rows + 1] = {
+                entryIndex        = item.slotIndex,
+                slotIndex         = item.slotIndex,
+                name              = item.name,
+                icon              = item.icon,
+                stack             = item.stack,
+                price             = item.price,
+                sellPrice         = item.sellPrice,
+                meetsReqsToBuy    = item.meetsRequirementsToBuy,
+                requiredToBuyErrorText = item.requiredToBuyErrorText,
+                meetsRequirementsToEquip = item.meetsRequirementsToEquip,
+                displayQuality    = item.displayQuality or item.quality,
+                currencyType1     = item.currencyType1,
+                currencyQuantity1 = item.currencyQuantity1,
+                currencyType2     = item.currencyType2,
+                currencyQuantity2 = item.currencyQuantity2,
+                entryType         = item.entryType,
+                itemLink          = item.itemLink or GetStoreItemLink(item.slotIndex),
+                filterData        = item.filterData or {},
+                statValue         = item.statValue,
+                bestGamepadItemCategoryName = item.bestGamepadItemCategoryName,
+            }
+        end
+    end
+    return rows
+end
+
+local function BuildRowsFromStoreCount()
+    local numItems = (type(GetNumStoreItems) == "function") and GetNumStoreItems() or 0
     if numItems <= 0 then
-        return rows
+        return {}
     end
 
+    local rows = {}
     for entryIndex = 1, numItems do
         local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
             _, _, entryType = GetStoreEntryInfo(entryIndex)
@@ -156,6 +248,7 @@ local function BuildStoreRows()
         if name and name ~= "" then
             local itemLink = GetStoreItemLink(entryIndex)
             local filterData = GetStoreFilterData(entryIndex)
+            local statValue = (type(GetStoreEntryStatValue) == "function") and GetStoreEntryStatValue(entryIndex) or ""
             rows[#rows + 1] = {
                 entryIndex        = entryIndex,
                 slotIndex         = entryIndex,
@@ -175,8 +268,88 @@ local function BuildStoreRows()
                 entryType         = entryType,
                 itemLink          = itemLink,
                 filterData        = filterData,
+                statValue         = statValue,
             }
         end
+    end
+    return rows
+end
+
+local function BuildRowsFromIndexProbe()
+    if type(GetStoreEntryInfo) ~= "function" then
+        return {}
+    end
+
+    local rows = {}
+    local misses = 0
+    local hadAny = false
+
+    -- Defensive fallback: some clients report 0 from GetNumStoreItems while entries are still queryable.
+    for entryIndex = 1, 300 do
+        local icon, name, stack, price, sellPrice, meetsReqsToBuy, _, displayQuality, _, currencyType1, currencyQuantity1,
+            _, _, entryType = GetStoreEntryInfo(entryIndex)
+
+        if name and name ~= "" then
+            hadAny = true
+            misses = 0
+            local itemLink = (type(GetStoreItemLink) == "function") and GetStoreItemLink(entryIndex) or nil
+            local filterData = GetStoreFilterData(entryIndex)
+            local statValue = (type(GetStoreEntryStatValue) == "function") and GetStoreEntryStatValue(entryIndex) or ""
+            rows[#rows + 1] = {
+                entryIndex        = entryIndex,
+                slotIndex         = entryIndex,
+                name              = name,
+                icon              = icon,
+                stack             = stack,
+                price             = price,
+                sellPrice         = sellPrice,
+                meetsReqsToBuy    = meetsReqsToBuy,
+                requiredToBuyErrorText = nil,
+                meetsRequirementsToEquip = true,
+                displayQuality    = displayQuality,
+                currencyType1     = currencyType1,
+                currencyQuantity1 = currencyQuantity1,
+                currencyType2     = nil,
+                currencyQuantity2 = nil,
+                entryType         = entryType,
+                itemLink          = itemLink,
+                filterData        = filterData,
+                statValue         = statValue,
+            }
+        elseif hadAny then
+            misses = misses + 1
+            if misses >= 25 then
+                break
+            end
+        end
+    end
+
+    return rows
+end
+
+local function BuildStoreRows()
+    if BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
+        BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
+    end
+
+    local rows = BuildRowsFromNativeBuyComponent()
+    if #rows > 0 then
+        return rows
+    end
+
+    rows = BuildRowsFromStoreManager()
+    if #rows > 0 then
+        return rows
+    end
+
+    rows = BuildRowsFromStoreCount()
+    if #rows > 0 then
+        return rows
+    end
+
+    rows = BuildRowsFromIndexProbe()
+    if #rows > 0 then
+        return rows
     end
 
     return rows
@@ -251,6 +424,27 @@ function Buy:Activate(vendorInstance)
         vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
     end
     vendorInstance:RefreshList()
+
+    -- Opening/switching to Buy can race native store population.
+    -- Run one deferred pass after mode settles so rows are consistently visible.
+    if BETTERUI.Vendor and BETTERUI.Vendor.Tasks then
+        BETTERUI.Vendor.Tasks:Cancel("buyActivateRefresh")
+        BETTERUI.Vendor.Tasks:Schedule("buyActivateRefresh", 120, function()
+            if not vendorInstance then
+                return
+            end
+            if vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() ~= Vendor.MODE.BUY then
+                return
+            end
+            if vendorInstance.IsSceneActiveOrShowing and not vendorInstance:IsSceneActiveOrShowing() then
+                return
+            end
+            if vendorInstance.ApplyNativeStoreMode then
+                vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
+            end
+            vendorInstance:RefreshList()
+        end)
+    end
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -262,7 +456,7 @@ end
 
 ---@return string name Localized action label
 function Buy:GetPrimaryActionName()
-    return GetString(rawget(_G, "SI_TRADING_HOUSE_PURCHASE"))
+    return GetString(rawget(_G, "SI_ITEM_ACTION_BUY"))
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -325,6 +519,16 @@ function Buy:BuildList(vendorInstance)
     for _, row in ipairs(rows) do
         if MatchesCategory(row, activeCategory) then
             local bestCategoryName = GetStoreItemCategoryName(row.itemLink)
+            local currencyType1 = row.currencyType1 or CURT_MONEY
+            local currencyQuantity1 = row.currencyQuantity1
+            local price = row.price or 0
+            if currencyType1 ~= CURT_MONEY and currencyType1 ~= CURT_NONE then
+                if currencyQuantity1 and currencyQuantity1 > 0 then
+                    price = currencyQuantity1
+                end
+            elseif (not price or price <= 0) and currencyQuantity1 and currencyQuantity1 > 0 then
+                price = currencyQuantity1
+            end
             local itemData = {
                 entryIndex        = row.entryIndex,
                 slotIndex         = row.slotIndex or row.entryIndex,
@@ -332,10 +536,10 @@ function Buy:BuildList(vendorInstance)
                 icon              = row.icon,
                 stackCount        = row.stack or 1,
                 stack             = row.stack or 1,
-                price             = row.currencyQuantity1 or row.price or 0,
-                currencyType      = row.currencyType1 or CURT_MONEY,
-                currencyType1     = row.currencyType1 or CURT_MONEY,
-                currencyQuantity1 = row.currencyQuantity1 or row.price or 0,
+                price             = price,
+                currencyType      = currencyType1,
+                currencyType1     = currencyType1,
+                currencyQuantity1 = currencyQuantity1 or price,
                 currencyType2     = row.currencyType2,
                 currencyQuantity2 = row.currencyQuantity2,
                 sellPrice         = row.sellPrice or 0,
@@ -349,8 +553,8 @@ function Buy:BuildList(vendorInstance)
                 entryType         = row.entryType,
                 filterData        = row.filterData,
                 -- Trait/type info
-                bestGamepadItemCategoryName = bestCategoryName,
-                statValue         = "",
+                bestGamepadItemCategoryName = row.bestGamepadItemCategoryName or bestCategoryName,
+                statValue         = row.statValue or "",
             }
 
             -- Get trait info if available

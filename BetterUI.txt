@@ -244,7 +244,6 @@ Modules\Vendor\Components\RepairComponent.lua
 Modules\Vendor\Components\BuybackComponent.lua
 Modules\Vendor\Components\FenceSellComponent.lua
 Modules\Vendor\Components\FenceLaunderComponent.lua
-Modules\Vendor\Scene\VendorSceneLifecycle.lua
 Modules\Vendor\Vendor.lua
 Modules\Vendor\Settings\SettingsPanel.lua
 

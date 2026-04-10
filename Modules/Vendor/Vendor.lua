@@ -48,6 +48,42 @@ local FENCE_TABS = {
     { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
 }
 
+local function ResolveNativeModeForVendorMode(mode)
+    if mode == MODE.BUY then
+        return rawget(_G, "ZO_MODE_STORE_BUY")
+    elseif mode == MODE.SELL then
+        return rawget(_G, "ZO_MODE_STORE_SELL")
+    elseif mode == MODE.REPAIR then
+        return rawget(_G, "ZO_MODE_STORE_REPAIR")
+    elseif mode == MODE.BUYBACK then
+        return rawget(_G, "ZO_MODE_STORE_BUY_BACK")
+    elseif mode == MODE.FENCE_SELL then
+        return rawget(_G, "ZO_MODE_STORE_SELL_STOLEN")
+    elseif mode == MODE.FENCE_LAUNDER then
+        return rawget(_G, "ZO_MODE_STORE_LAUNDER")
+    end
+    return nil
+end
+
+local function GetNativeActiveModeSet()
+    local modeSet = {}
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    local activeComponents = storeManager and storeManager.activeComponents
+    if type(activeComponents) ~= "table" then
+        return modeSet
+    end
+
+    for _, component in ipairs(activeComponents) do
+        if component and type(component.GetStoreMode) == "function" then
+            local mode = component:GetStoreMode()
+            if mode then
+                modeSet[mode] = true
+            end
+        end
+    end
+    return modeSet
+end
+
 -- GET ACTIVE TABS
 
 --- Returns the tab list for the current interaction type.
@@ -67,7 +103,22 @@ local function GetActiveTabs()
         end
         return tabs
     end
-    return VENDOR_TABS
+
+    local activeModeSet = GetNativeActiveModeSet()
+    local tabs = {}
+    for _, tab in ipairs(VENDOR_TABS) do
+        local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
+        if nativeMode and activeModeSet[nativeMode] then
+            tabs[#tabs + 1] = tab
+        end
+    end
+
+    if #tabs == 0 then
+        -- Fall back to legacy behavior when native components are not ready yet.
+        return VENDOR_TABS
+    end
+
+    return tabs
 end
 
 local function SetStoreSceneAlias(sceneObject)
@@ -88,6 +139,110 @@ local function AliasStoreSceneToBetterUI()
         SetStoreSceneAlias(Vendor.instance.scene)
     end
 end
+
+local function SafeCall(context, fn, ...)
+    if type(fn) ~= "function" then
+        return false, nil
+    end
+
+    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
+        return BETTERUI.CIM.SafeExecute(context, fn, ...)
+    end
+
+    local ok, result = pcall(fn, ...)
+    return ok, result
+end
+
+local function EnsureNativeStoreComponents(searchContext)
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    if not storeManager or type(storeManager.SetActiveComponents) ~= "function" then
+        return
+    end
+
+    local buyMode = rawget(_G, "ZO_MODE_STORE_BUY")
+    local sellMode = rawget(_G, "ZO_MODE_STORE_SELL")
+    local sellVengeanceMode = rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
+    local buyBackMode = rawget(_G, "ZO_MODE_STORE_BUY_BACK")
+    local repairMode = rawget(_G, "ZO_MODE_STORE_REPAIR")
+    local availableComponents = storeManager.components or {}
+
+    local function GetActiveModes()
+        local modes = {}
+        local seen = {}
+        local activeComponents = storeManager.activeComponents
+        if type(activeComponents) ~= "table" then
+            return modes, seen
+        end
+        for _, component in ipairs(activeComponents) do
+            if component and type(component.GetStoreMode) == "function" then
+                local okMode, mode = SafeCall("Vendor.EnsureNativeStoreComponents:GetActiveMode", component.GetStoreMode, component)
+                if okMode and mode and not seen[mode] then
+                    seen[mode] = true
+                    modes[#modes + 1] = mode
+                end
+            end
+        end
+        return modes, seen
+    end
+
+    local componentTable, seenActiveModes = GetActiveModes()
+    local includeBuy = true
+    if type(IsStoreEmpty) == "function" then
+        local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.EnsureNativeStoreComponents:IsStoreEmpty", IsStoreEmpty)
+        includeBuy = okStoreEmpty and (not isStoreEmpty) or false
+    end
+
+    local needRebuild = (#componentTable == 0)
+        or (not isFenceInteraction and includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
+    if not needRebuild then
+        return
+    end
+
+    local modeSet = {}
+    local rebuiltModes = {}
+    local function AddMode(mode)
+        if mode and not modeSet[mode] and availableComponents[mode] then
+            modeSet[mode] = true
+            rebuiltModes[#rebuiltModes + 1] = mode
+        end
+    end
+
+    -- Rebuild from vanilla rules when active components are missing or incomplete.
+    if includeBuy then
+        AddMode(buyMode)
+    end
+    AddMode(sellMode)
+    if sellVengeanceMode and type(IsCurrentCampaignVengeanceRuleset) == "function"
+        and IsCurrentCampaignVengeanceRuleset() and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") then
+        AddMode(sellVengeanceMode)
+    end
+    AddMode(buyBackMode)
+    if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
+        AddMode(repairMode)
+    end
+
+    for _, mode in ipairs(componentTable) do
+        AddMode(mode)
+    end
+
+    if #rebuiltModes > 0 then
+        SafeCall("Vendor.EnsureNativeStoreComponents:SetActiveComponents",
+            storeManager.SetActiveComponents, storeManager, rebuiltModes, searchContext or "storeTextSearch")
+        if buyMode and modeSet[buyMode] then
+            if type(SetStoreMode) == "function" then
+                SafeCall("Vendor.EnsureNativeStoreComponents:SetStoreMode", SetStoreMode, buyMode)
+            end
+            if type(storeManager.SetMode) == "function" then
+                SafeCall("Vendor.EnsureNativeStoreComponents:StoreManagerSetMode", storeManager.SetMode, storeManager, buyMode)
+            end
+        end
+        if type(storeManager.InitializeStore) == "function" then
+            SafeCall("Vendor.EnsureNativeStoreComponents:InitializeStore", storeManager.InitializeStore, storeManager)
+        end
+    end
+end
+
+Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
 
 -- KEYBINDS
 
@@ -250,27 +405,8 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
         -- Carousel navigation wraps around at both ends.
         newIndex = ((currentIndex - 1 + direction) % #tabs) + 1
     end
+    self._preferredModeHeaderSelectionMode = tabs[newIndex].mode
     self:SetMode(tabs[newIndex].mode)
-
-    -- Update header to reflect new tab
-    self:UpdateTabHeader()
-end
-
---- Updates the header title to show the current tab name.
----@return nil
-function BETTERUI.Vendor.Class:UpdateTabHeader()
-    local tabs = GetActiveTabs()
-    local currentMode = self:GetCurrentMode()
-
-    for _, tab in ipairs(tabs) do
-        if tab.mode == currentMode then
-            local tabName = tab.name()
-            if self.header and self.header.SetTitle then
-                self.header:SetTitle(tabName)
-            end
-            break
-        end
-    end
 end
 
 -- EVENT HANDLERS
@@ -279,12 +415,19 @@ local function OnOpenStore()
     isFenceInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    Vendor._openStoreSyncAttempt = 0
 
     if not Vendor.instance then return end
+    if Vendor.Tasks then
+        Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+        Vendor.Tasks:Cancel("buyActivateRefresh")
+        Vendor.Tasks:Cancel("buyListRetry")
+    end
+
     local interactionType = GetInteractionType and GetInteractionType() or nil
 
-    -- Stable interactions share EVENT_OPEN_STORE and the gamepad_store scene.
-    -- Keep native scene wiring for stable to prevent cross-module UI bleed.
+    -- Stable shares EVENT_OPEN_STORE and the native store scene.
+    -- Leave native ownership in place for stable interactions.
     if interactionType == INTERACTION_STABLE then
         local customScene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
         if customScene and customScene.IsShowing and customScene:IsShowing() then
@@ -294,20 +437,76 @@ local function OnOpenStore()
         return
     end
 
-    -- Only take ownership for real vendor interactions.
     if interactionType and interactionType ~= INTERACTION_VENDOR then
         RestoreNativeStoreSceneAlias()
         return
     end
 
     AliasStoreSceneToBetterUI()
+    EnsureNativeStoreComponents("storeTextSearch")
 
-    -- Set mode to BUY (default for vendor)
-    Vendor.instance:SetMode(MODE.BUY)
-    -- Show the scene
-    local sceneName = BETTERUI_VENDOR_SCENE_NAME
+    local tabs = GetActiveTabs()
+    local hasBuyList = true
+    if type(IsStoreEmpty) == "function" then
+        local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.OnOpenStore:IsStoreEmpty", IsStoreEmpty)
+        hasBuyList = okStoreEmpty and (not isStoreEmpty) or true
+    end
+    local targetMode = (hasBuyList and MODE.BUY) or ((tabs[1] and tabs[1].mode) or MODE.SELL)
+    if Vendor.instance.GetCurrentMode and Vendor.instance:GetCurrentMode() ~= targetMode then
+        Vendor.instance:SetMode(targetMode)
+    else
+        Vendor.instance:ApplyNativeStoreMode(targetMode)
+    end
+
     if SCENE_MANAGER then
-        SCENE_MANAGER:Show(sceneName)
+        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
+    end
+
+    if Vendor.Tasks then
+        -- Keep one short native sync window after scene show so the buy component can
+        -- populate from the native store manager without fighting scene ownership.
+        Vendor.Tasks:Schedule("ensureStoreComponentsOnOpen", 120, function()
+            if not Vendor.instance then
+                return
+            end
+            if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
+                return
+            end
+            if not Vendor.instance:IsSceneActiveOrShowing() then
+                return
+            end
+
+            EnsureNativeStoreComponents("storeTextSearch")
+            Vendor.instance:ApplyNativeStoreMode(targetMode)
+            Vendor.instance:RefreshList()
+
+            local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+            local nativeCurrentMode = nil
+            if storeManager and type(storeManager.GetCurrentMode) == "function" then
+                local okMode, modeResult = SafeCall("Vendor.OnOpenStore:GetCurrentModeAfterRefresh", storeManager.GetCurrentMode, storeManager)
+                if okMode then
+                    nativeCurrentMode = modeResult
+                end
+            end
+
+            local targetNativeMode = ResolveNativeModeForVendorMode(targetMode)
+            if targetNativeMode ~= nil and nativeCurrentMode ~= targetNativeMode then
+                local syncAttempt = (Vendor._openStoreSyncAttempt or 0) + 1
+                Vendor._openStoreSyncAttempt = syncAttempt
+                if syncAttempt <= 4 and Vendor.Tasks then
+                    Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+                    Vendor.Tasks:Schedule("ensureStoreComponentsOnOpen", 140, function()
+                        if Vendor.instance and Vendor.instance:IsSceneActiveOrShowing() then
+                            EnsureNativeStoreComponents("storeTextSearch")
+                            Vendor.instance:ApplyNativeStoreMode(targetMode)
+                            Vendor.instance:RefreshList()
+                        end
+                    end)
+                end
+            else
+                Vendor._openStoreSyncAttempt = 0
+            end
+        end)
     end
 end
 
@@ -328,10 +527,9 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     elseif fenceEnableLaunder then
         Vendor.instance:SetMode(MODE.FENCE_LAUNDER)
     end
-    -- Show the scene
-    local sceneName = BETTERUI_VENDOR_SCENE_NAME
+    -- Show BetterUI vendor scene directly; native manager sceneName is remapped above.
     if SCENE_MANAGER then
-        SCENE_MANAGER:Show(sceneName)
+        SCENE_MANAGER:Show(BETTERUI_VENDOR_SCENE_NAME)
     end
 end
 
@@ -339,6 +537,13 @@ local function OnCloseStore()
     isFenceInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    Vendor._openStoreSyncAttempt = 0
+
+    if Vendor.Tasks then
+        Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
+        Vendor.Tasks:Cancel("buyActivateRefresh")
+        Vendor.Tasks:Cancel("buyListRetry")
+    end
 
     local sceneName = BETTERUI_VENDOR_SCENE_NAME
     if SCENE_MANAGER then
@@ -451,8 +656,8 @@ function BETTERUI.Vendor.Init()
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(Vendor.instance.footerFragment)
 
-    -- Register unified scene lifecycle with core keybind group.
-    -- Category navigation LB/RB comes from the header tab bar keybind descriptor.
+    -- Register unified scene lifecycle with the core vendor keybind group.
+    -- The header tab bar owns LB/RB navigation for categories and custom vendor entries.
     BETTERUI.CIM.SceneLifecycle.Register(Vendor.instance, {
         keybinds = { Vendor.instance.coreKeybinds },
         taskManager = Vendor.Tasks,
