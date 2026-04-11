@@ -27,8 +27,11 @@ local function IsInventoryDepositSupported(bagId, slotIndex, targetBankBag)
     if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
         return false
     end
+    -- Gemmable furniture check (stolen already verified by CanTransferItem above)
     if targetBankBag == FURNITURE_VAULT_BAG_ID
-        and not BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault(bagId, slotIndex) then
+        and CROWN_GEMIFICATION_MANAGER
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(bagId, slotIndex) then
         return false
     end
     return true

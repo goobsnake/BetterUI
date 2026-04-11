@@ -12,12 +12,17 @@ local Animations = BETTERUI.ResourceOrbFrames.Animations
 local NAME = "ResourceOrbFrames"
 local DEFAULT_SHIELD_ELECTRIC_COLOR = { 0.4, 0.9, 1, 1 }
 
--- TODO(doc): Document ORB_CONFIG table structure - indexes and {r, g, b, icon_path} format unclear
--- Constants
+--- ORB_CONFIG: Per-powertype orb visual configuration.
+--- Indexed by ESO POWERTYPE_* or ATTRIBUTE_VISUAL_* constants.
+--- Each entry is an array: { hue_offset, saturation, brightness, icon_path }
+---   [1] hue_offset  (number)     — hue rotation offset for the orb fill texture
+---   [2] saturation  (number)     — saturation multiplier (0–1)
+---   [3] brightness  (number)     — brightness value (0–1 for most types; Stamina uses 0–255 legacy scale)
+---   [4] icon_path   (string|nil) — alchemy reagent icon texture path, nil for non-resource types (e.g. shielding)
 local ORB_CONFIG = {
-    [POWERTYPE_HEALTH] = { 0, 1, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds' },
-    [POWERTYPE_MAGICKA] = { 0, 0.5, 0, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restoremagicka.dds' },
-    [POWERTYPE_STAMINA] = { 0.5, 0, 75, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorestamina.dds' },
+    [POWERTYPE_HEALTH]  = { 0,   1,   0,  'esoui/art/icons/alchemy/crafting_alchemy_trait_restorehealth.dds' },
+    [POWERTYPE_MAGICKA] = { 0,   0.5, 0,  'esoui/art/icons/alchemy/crafting_alchemy_trait_restoremagicka.dds' },
+    [POWERTYPE_STAMINA] = { 0.5, 0,   75, 'esoui/art/icons/alchemy/crafting_alchemy_trait_restorestamina.dds' },
     [ATTRIBUTE_VISUAL_POWER_SHIELDING] = { 1, 0, 0, nil },
 }
 
