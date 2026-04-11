@@ -420,9 +420,6 @@ end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:Activate(vendorInstance)
-    if vendorInstance and vendorInstance.ApplyNativeStoreMode then
-        vendorInstance:ApplyNativeStoreMode(Vendor.MODE.BUY)
-    end
     vendorInstance:RefreshList()
 
     -- Opening/switching to Buy can race native store population.
@@ -430,13 +427,8 @@ function Buy:Activate(vendorInstance)
     if BETTERUI.Vendor and BETTERUI.Vendor.Tasks then
         BETTERUI.Vendor.Tasks:Cancel("buyActivateRefresh")
         BETTERUI.Vendor.Tasks:Schedule("buyActivateRefresh", 120, function()
-            if not vendorInstance then
-                return
-            end
-            if vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() ~= Vendor.MODE.BUY then
-                return
-            end
-            if vendorInstance.IsSceneActiveOrShowing and not vendorInstance:IsSceneActiveOrShowing() then
+            if Vendor.ShouldAbortDeferredVendorRefresh
+                and Vendor.ShouldAbortDeferredVendorRefresh(vendorInstance, Vendor.MODE.BUY) then
                 return
             end
             if vendorInstance.ApplyNativeStoreMode then

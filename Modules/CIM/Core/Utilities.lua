@@ -112,10 +112,13 @@ end
 ---@param itemLink string Item link to find a stackable slot for
 ---@return number|nil slotIndex Index of a stackable slot, or nil if none found
 function BETTERUI.CIM.Utils.FindStackableSlotInBag(bagId, itemLink)
+    if not itemLink or itemLink == "" or not IsItemLinkStackable(itemLink) then
+        return nil
+    end
     local bagSize = GetBagSize(bagId)
     for i = 0, bagSize - 1 do
         local currentItemLink = GetItemLink(bagId, i)
-        if currentItemLink == itemLink and IsItemLinkStackable(currentItemLink) then
+        if currentItemLink == itemLink then
             local stackCount, maxStack = GetSlotStackSize(bagId, i)
             if stackCount < maxStack then
                 return i

@@ -36,6 +36,104 @@ function BETTERUI.Vendor.InitModule(m_options)
 	return m_options
 end
 
+---@param tabs table[]|nil
+---@return table<number, boolean> modeSet
+function BETTERUI.Vendor.BuildActiveModeSet(tabs)
+	local modeSet = {}
+	for _, tab in ipairs(tabs or {}) do
+		if tab and tab.mode then
+			modeSet[tab.mode] = true
+		end
+	end
+	return modeSet
+end
+
+---@param modeSet table<number, boolean>|nil
+---@param isFenceInteraction boolean|nil
+---@return boolean
+function BETTERUI.Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
+	if isFenceInteraction then
+		return false
+	end
+
+	local mode = BETTERUI.Vendor.MODE or {}
+	local sellMode = mode.SELL or 2
+	local buybackMode = mode.BUYBACK or 4
+	local buyMode = mode.BUY or 1
+	local repairMode = mode.REPAIR or 3
+
+	modeSet = modeSet or {}
+	local hasSell = modeSet[sellMode] == true
+	local hasBuyback = modeSet[buybackMode] == true
+	local hasBuy = modeSet[buyMode] == true
+	local hasRepair = modeSet[repairMode] == true
+	return hasSell and hasBuyback and not hasBuy and not hasRepair
+end
+
+---@param flagName string|nil
+---@return boolean
+function BETTERUI.Vendor.IsDebugFlagEnabled(flagName)
+	local debug = BETTERUI.CIM and BETTERUI.CIM.Debug
+	if not (debug and debug.IsEnabled and debug.IsEnabled()) then
+		return false
+	end
+	flagName = flagName or "DIRECTIONAL_INPUT"
+	return debug.FLAGS and debug.FLAGS[flagName] == true or false
+end
+
+---@param message string
+---@param flagName string|nil
+---@param category string|nil
+---@return nil
+function BETTERUI.Vendor.DebugLog(message, flagName, category)
+	if BETTERUI.Vendor.IsDebugFlagEnabled(flagName) and BETTERUI.CIM and BETTERUI.CIM.Debug and BETTERUI.CIM.Debug.Log then
+		BETTERUI.CIM.Debug.Log(message, category or "Vendor")
+	end
+end
+
+---@param obj table|nil
+---@return boolean
+function BETTERUI.Vendor.IsDirectionalInputListening(obj)
+	if not obj or not DIRECTIONAL_INPUT or not DIRECTIONAL_INPUT.IsListening then
+		return false
+	end
+	return DIRECTIONAL_INPUT:IsListening(obj)
+end
+
+---@param obj table|nil
+---@param includeMovementController boolean|nil
+---@return number releasedCount
+function BETTERUI.Vendor.ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+	if not obj or not DIRECTIONAL_INPUT or not DIRECTIONAL_INPUT.IsListening or not DIRECTIONAL_INPUT.Deactivate then
+		return 0
+	end
+
+	local releasedCount = 0
+	local releasedCandidates = {}
+	local function ReleaseCandidate(candidate)
+		if not candidate or releasedCandidates[candidate] then
+			return
+		end
+		releasedCandidates[candidate] = true
+		local safetyCounter = 0
+		while candidate and DIRECTIONAL_INPUT:IsListening(candidate) and safetyCounter < 8 do
+			DIRECTIONAL_INPUT:Deactivate(candidate)
+			releasedCount = releasedCount + 1
+			safetyCounter = safetyCounter + 1
+		end
+	end
+
+	ReleaseCandidate(obj)
+	ReleaseCandidate(obj.spinner)
+	if includeMovementController then
+		ReleaseCandidate(obj.movementController)
+		ReleaseCandidate(obj.horizontalMovementController)
+		ReleaseCandidate(obj.verticalMovementController)
+	end
+
+	return releasedCount
+end
+
 --- Gets junk sell value summary for batch sell UX.
 ---@return number totalValue Total gold value of all junk items
 ---@return number itemCount Number of junk items in backpack

@@ -110,11 +110,29 @@ local function MatchesCategory(slotData, category)
     return true
 end
 
+---@param itemCount number
+---@return table[]
+local function BuildAllOnlyCategory(itemCount)
+    return {
+        {
+            key = "all",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL") or "SI_BETTERUI_INV_ITEM_ALL"),
+            iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
+            itemCount = itemCount or 0,
+        },
+    }
+end
+
 ---@param _vendorInstance BETTERUI.Vendor.Class
 ---@return table[]
-function Sell:GetCategories(_vendorInstance)
+function Sell:GetCategories(vendorInstance)
     local rows = BuildSellableBagItems()
     local totalCount = #rows
+
+    if vendorInstance and vendorInstance.IsSellBuybackOnlyStore and vendorInstance:IsSellBuybackOnlyStore() then
+        return BuildAllOnlyCategory(totalCount)
+    end
+
     local categories = {}
 
     for _, def in ipairs(SELL_CATEGORY_DEFS) do
@@ -142,12 +160,7 @@ function Sell:GetCategories(_vendorInstance)
     end
 
     if #categories == 0 then
-        categories[1] = {
-            key = "all",
-            name = GetString(rawget(_G, "SI_BETTERUI_INV_ITEM_ALL") or "SI_BETTERUI_INV_ITEM_ALL"),
-            iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds",
-            itemCount = 0,
-        }
+        return BuildAllOnlyCategory(0)
     end
 
     return categories

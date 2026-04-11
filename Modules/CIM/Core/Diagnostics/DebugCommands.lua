@@ -9,6 +9,275 @@ Extracted from: DeveloperDebug.lua (command registration concern)
 
 local Debug = BETTERUI.CIM.Debug
 
+local function SetPersistentDebugLogging(enabled)
+    local featureFlags = BETTERUI.CIM and BETTERUI.CIM.FeatureFlags
+    if featureFlags and featureFlags.SetEnabled then
+        local flagName = featureFlags.FLAGS and featureFlags.FLAGS.DEBUG_LOGGING or "DEBUG_LOGGING"
+        featureFlags.SetEnabled(flagName, enabled)
+    else
+        BETTERUI_DEBUG = enabled or nil
+    end
+end
+
+local function SetDebugFlags(flagNames, enabled)
+    if not (Debug and Debug.SetFlag and flagNames) then
+        return
+    end
+
+    for _, flagName in ipairs(flagNames) do
+        if Debug.FLAGS and Debug.FLAGS[flagName] ~= nil then
+            Debug.SetFlag(flagName, enabled)
+        end
+    end
+end
+
+local function EnsureDebugModeForCommand(commandName, flagNames)
+    if Debug.IsEnabled and Debug.IsEnabled() then
+        return true
+    end
+
+    SetPersistentDebugLogging(true)
+    SetDebugFlags(flagNames, true)
+
+    if Debug.IsEnabled and Debug.IsEnabled() then
+        d(string.format("|c00ccff[BetterUI]|r Debug logging enabled for %s", commandName))
+        return true
+    end
+
+    d("|cff0000[BetterUI]|r Unable to enable debug logging for diagnostics")
+    return false
+end
+
+local function DisableDebugMode(flagNames)
+    SetDebugFlags(flagNames, false)
+    SetPersistentDebugLogging(false)
+    d("|c00ccff[BetterUI]|r Debug logging disabled")
+end
+
+local directionalTrace = {}
+local directionalTraceInstalled = false
+local MAX_DIRECTIONAL_TRACE = 40
+
+local function FindDirectionalInputControl(obj)
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputObjects and DIRECTIONAL_INPUT.inputControls) then
+        return nil
+    end
+
+    for index = #DIRECTIONAL_INPUT.inputObjects, 1, -1 do
+        if DIRECTIONAL_INPUT.inputObjects[index] == obj then
+            return DIRECTIONAL_INPUT.inputControls[index]
+        end
+    end
+
+    return nil
+end
+
+local function GetDirectionalTraceCallsite()
+    if not (debug and debug.traceback) then
+        return nil
+    end
+
+    local traceback = debug.traceback("", 4)
+    if type(traceback) ~= "string" then
+        return nil
+    end
+
+    for line in traceback:gmatch("[^\n]+") do
+        if not line:find("DebugCommands", 1, true) and not line:find("[C]", 1, true) then
+            line = line:gsub("^%s+", "")
+            if line ~= "" then
+                return line
+            end
+        end
+    end
+
+    return nil
+end
+
+local function ResolveDirectionalInputEntry(obj, control)
+    local controlName = control and control.GetName and control:GetName() or "nil"
+    local objType = "unknown"
+    local details = {}
+
+    local function AddDetail(label, value)
+        if value ~= nil and value ~= "" then
+            details[#details + 1] = string.format("%s=%s", label, tostring(value))
+        end
+    end
+
+    local function MatchesDirectionalOwner(owner, label)
+        if not owner or obj ~= owner then
+            return false
+        end
+        AddDetail("owner", label)
+        return true
+    end
+
+    local function MatchesControlOwner(owner, label)
+        if not control or control.owner ~= owner then
+            return false
+        end
+        AddDetail("controlOwner", label)
+        return true
+    end
+
+    local function MatchesHeaderOwners(header, prefix)
+        if not header then
+            return
+        end
+
+        MatchesDirectionalOwner(header.headerFocus, prefix .. ".headerFocus")
+        MatchesDirectionalOwner(header.headerFocusControl, prefix .. ".headerFocusControl")
+        MatchesDirectionalOwner(header.headerFocusControl and header.headerFocusControl.owner,
+            prefix .. ".headerFocusControl.owner")
+        MatchesDirectionalOwner(header.tabBar, prefix .. ".tabBar")
+        MatchesDirectionalOwner(header.tabBar and header.tabBar.control, prefix .. ".tabBar.control")
+
+        MatchesControlOwner(header.headerFocusControl, prefix .. ".headerFocusControl")
+        MatchesControlOwner(header.tabBar and header.tabBar.control, prefix .. ".tabBar.control")
+    end
+
+    if obj.list then
+        objType = "ScrollList"
+    elseif obj.tabBar then
+        objType = "Screen/Header"
+    elseif obj.movementController then
+        objType = "MovementController"
+    elseif obj.GetOwningWindow then
+        objType = "Control"
+    elseif obj.digits then
+        objType = "CurrencySelector"
+    elseif obj.direction and obj.CheckMovement and obj.GetMagnitude then
+        objType = "MovementController"
+    end
+
+    local vendor = BETTERUI and BETTERUI.Vendor and BETTERUI.Vendor.instance
+    if vendor then
+        MatchesDirectionalOwner(vendor, "Vendor.instance")
+        MatchesDirectionalOwner(vendor.list, "Vendor.list")
+        MatchesDirectionalOwner(vendor.movementController, "Vendor.movementController")
+        MatchesDirectionalOwner(vendor.spinner, "Vendor.spinner")
+        MatchesDirectionalOwner(vendor.spinner and vendor.spinner.spinner, "Vendor.spinner.spinner")
+        MatchesDirectionalOwner(vendor.headerFocus, "Vendor.headerFocus")
+        MatchesDirectionalOwner(vendor.headerFocus and vendor.headerFocus.movementController,
+            "Vendor.headerFocus.movementController")
+        MatchesDirectionalOwner(vendor.textSearchHeaderFocus, "Vendor.textSearchHeaderFocus")
+        MatchesDirectionalOwner(vendor.textSearchHeaderControl, "Vendor.textSearchHeaderControl")
+        MatchesDirectionalOwner(vendor.textSearchHeaderControl and vendor.textSearchHeaderControl.owner,
+            "Vendor.textSearchHeaderControl.owner")
+        MatchesDirectionalOwner(vendor.textSearchHeaderFocus and vendor.textSearchHeaderFocus.movementController,
+            "Vendor.textSearchHeaderFocus.movementController")
+        MatchesHeaderOwners(vendor.headerGeneric, "Vendor.headerGeneric")
+        MatchesDirectionalOwner(vendor.headerGeneric and vendor.headerGeneric.tabBar and vendor.headerGeneric.tabBar.movementController,
+            "Vendor.headerGeneric.tabBar.movementController")
+        MatchesHeaderOwners(vendor.header, "Vendor.header")
+
+        MatchesControlOwner(vendor.control, "Vendor.control")
+        MatchesControlOwner(vendor.textSearchHeaderControl, "Vendor.textSearchHeaderControl")
+    end
+
+    local nativeStore = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    if nativeStore then
+        MatchesDirectionalOwner(nativeStore, "NativeStore")
+        MatchesDirectionalOwner(nativeStore.spinner, "NativeStore.spinner")
+        MatchesDirectionalOwner(nativeStore.spinner and nativeStore.spinner.spinner, "NativeStore.spinner.spinner")
+        MatchesDirectionalOwner(nativeStore.headerFocus, "NativeStore.headerFocus")
+        MatchesDirectionalOwner(nativeStore.headerFocus and nativeStore.headerFocus.movementController,
+            "NativeStore.headerFocus.movementController")
+        MatchesHeaderOwners(nativeStore.header, "NativeStore.header")
+        MatchesDirectionalOwner(nativeStore.header and nativeStore.header.tabBar and nativeStore.header.tabBar.movementController,
+            "NativeStore.header.tabBar.movementController")
+        MatchesDirectionalOwner(nativeStore._currentList, "NativeStore.currentList")
+        MatchesDirectionalOwner(nativeStore._currentList and nativeStore._currentList.movementController,
+            "NativeStore.currentList.movementController")
+
+        MatchesControlOwner(nativeStore.control, "NativeStore.control")
+    end
+
+    if obj.direction then
+        AddDetail("direction", obj.direction)
+    end
+    if obj.owner then
+        AddDetail("controlOwner", obj.owner)
+    end
+    if control and control.owner and control.owner ~= obj then
+        AddDetail("controlOwnerObject", control.owner)
+    end
+    AddDetail("object", obj)
+
+    return objType, controlName, details
+end
+
+local function AppendDirectionalTrace(action, obj, control)
+    if not (Debug and Debug.IsEnabled and Debug.IsEnabled() and Debug.FLAGS and Debug.FLAGS.DIRECTIONAL_INPUT) then
+        return
+    end
+
+    local objType, controlName, details = ResolveDirectionalInputEntry(obj, control)
+    local entry = {
+        action = action,
+        objType = objType,
+        controlName = controlName,
+        details = details,
+        callsite = GetDirectionalTraceCallsite(),
+    }
+
+    directionalTrace[#directionalTrace + 1] = entry
+    if #directionalTrace > MAX_DIRECTIONAL_TRACE then
+        table.remove(directionalTrace, 1)
+    end
+end
+
+local function EnsureDirectionalInputTraceInstalled()
+    if directionalTraceInstalled or not DIRECTIONAL_INPUT then
+        return
+    end
+
+    local originalActivate = DIRECTIONAL_INPUT.Activate
+    local originalDeactivate = DIRECTIONAL_INPUT.Deactivate
+
+    if type(originalActivate) == "function" then
+        DIRECTIONAL_INPUT.Activate = function(self, obj, control, ...)
+            local results = { originalActivate(self, obj, control, ...) }
+            AppendDirectionalTrace("activate", obj, FindDirectionalInputControl(obj) or control)
+            return unpack(results)
+        end
+    end
+
+    if type(originalDeactivate) == "function" then
+        DIRECTIONAL_INPUT.Deactivate = function(self, obj, ...)
+            local controlForTrace = FindDirectionalInputControl(obj)
+            local results = { originalDeactivate(self, obj, ...) }
+            AppendDirectionalTrace("deactivate", obj, controlForTrace)
+            return unpack(results)
+        end
+    end
+
+    directionalTraceInstalled = true
+end
+
+local function PrintDirectionalTrace()
+    if #directionalTrace == 0 then
+        d("|c00ccff[BetterUI Debug]|r Recent DI mutations: none captured")
+        return
+    end
+
+    d("|c00ccff[BetterUI Debug]|r Recent DI mutations:")
+    local startIndex = math.max(1, #directionalTrace - 11)
+    for index = startIndex, #directionalTrace do
+        local entry = directionalTrace[index]
+        local detailText = (#entry.details > 0) and (" |c888888[" .. table.concat(entry.details, ", ") .. "]|r") or ""
+        local callsiteText = entry.callsite and (" |c666666{" .. entry.callsite .. "}|r") or ""
+        d(string.format("  |c888888[%d]|r %s %s - Control: %s%s%s",
+            index,
+            entry.action,
+            entry.objType,
+            entry.controlName,
+            detailText,
+            callsiteText))
+    end
+end
+
 -- DIAGNOSTIC INSPECTOR FUNCTIONS
 
 --[[
@@ -27,26 +296,16 @@ local function InspectDirectionalInput()
     d("|c00ccff[BetterUI Debug]|r DIRECTIONAL_INPUT - " .. #inputObjects .. " objects registered:")
     for i, obj in ipairs(inputObjects) do
         local control = inputControls[i]
-        local controlName = control and control:GetName() or "nil"
-        local objType = "unknown"
-
-        if obj.list then
-            objType = "ScrollList"
-        elseif obj.tabBar then
-            objType = "Screen/Header"
-        elseif obj.movementController then
-            objType = "MovementController"
-        elseif obj.digits then
-            objType = "CurrencySelector"
-        end
+        local objType, controlName, details = ResolveDirectionalInputEntry(obj, control)
 
         local isBetterUI = controlName and controlName:find("BETTERUI")
 
-        d(string.format("  |c888888[%d]|r %s - Control: %s %s",
+        d(string.format("  |c888888[%d]|r %s - Control: %s %s%s",
             i,
             objType,
             controlName,
-            isBetterUI and "|cffcc00(BETTERUI)|r" or ""))
+            isBetterUI and "|cffcc00(BETTERUI)|r" or "",
+            #details > 0 and (" |c888888[" .. table.concat(details, ", ") .. "]|r") or ""))
     end
 
     d("|c00ccff[BetterUI Debug]|r Input device consumed state:")
@@ -62,6 +321,8 @@ local function InspectDirectionalInput()
         local deviceName = deviceNames[device] or "UNKNOWN"
         d(string.format("  %s: %s", deviceName, consumed and "|cff0000CONSUMED|r" or "|c00ff00available|r"))
     end
+
+    PrintDirectionalTrace()
 end
 
 local function InspectScenes()
@@ -276,65 +537,68 @@ end
 
 function Debug.RegisterCommands()
     SLASH_COMMANDS["/buidebug"] = function(args)
-        if not Debug.IsEnabled() then
-            d(
-                "|cff6600[BetterUI]|r Debug mode is disabled. Enable 'Debug Logging' in BetterUI settings or set BETTERUI_DEBUG = true")
+        local normalizedArgs = args and zo_strlower and zo_strlower(args) or args or ""
+        normalizedArgs = normalizedArgs and normalizedArgs:gsub("^%s+", ""):gsub("%s+$", "") or ""
+
+        local debugFlags = { "DIRECTIONAL_INPUT", "SCENE_TRANSITIONS", "LIST_OPERATIONS" }
+        if normalizedArgs == "off" then
+            directionalTrace = {}
+            DisableDebugMode(debugFlags)
             return
         end
+
+        if not EnsureDebugModeForCommand("/buidebug", debugFlags) then
+            return
+        end
+        EnsureDirectionalInputTraceInstalled()
         InspectDirectionalInput()
     end
 
     SLASH_COMMANDS["/buiscene"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buiscene", { "SCENE_TRANSITIONS" }) then
             return
         end
+        EnsureDirectionalInputTraceInstalled()
         InspectScenes()
     end
 
     SLASH_COMMANDS["/buikeybinds"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buikeybinds", { "LIST_OPERATIONS" }) then
             return
         end
         InspectKeybinds()
     end
 
     SLASH_COMMANDS["/builist"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/builist", { "LIST_OPERATIONS" }) then
             return
         end
         InspectList(args)
     end
 
     SLASH_COMMANDS["/buievents"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buievents") then
             return
         end
         InspectEvents()
     end
 
     SLASH_COMMANDS["/buisettings"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buisettings") then
             return
         end
         DumpSettings()
     end
 
     SLASH_COMMANDS["/buicontrol"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buicontrol") then
             return
         end
         InspectControl(args)
     end
 
     SLASH_COMMANDS["/buiprofile"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buiprofile") then
             return
         end
 
@@ -363,8 +627,7 @@ function Debug.RegisterCommands()
     end
 
     SLASH_COMMANDS["/buiflag"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buiflag") then
             return
         end
 
@@ -395,16 +658,14 @@ function Debug.RegisterCommands()
     end
 
     SLASH_COMMANDS["/buimemory"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buimemory") then
             return
         end
         InspectMemory()
     end
 
     SLASH_COMMANDS["/buibatch"] = function(args)
-        if not Debug.IsEnabled() then
-            d("|cff6600[BetterUI]|r Debug mode is disabled.")
+        if not EnsureDebugModeForCommand("/buibatch") then
             return
         end
 

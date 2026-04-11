@@ -121,6 +121,129 @@ local function GetActiveTabs()
     return tabs
 end
 
+---@param tabs VendorTabDef[]|nil
+---@return table<number, boolean>
+local function BuildActiveModeSet(tabs)
+    if Vendor.BuildActiveModeSet then
+        return Vendor.BuildActiveModeSet(tabs)
+    end
+
+    local fallbackModeSet = {}
+    for _, tab in ipairs(tabs or {}) do
+        if tab and tab.mode then
+            fallbackModeSet[tab.mode] = true
+        end
+    end
+    return fallbackModeSet
+end
+
+---@param modeSet table<number, boolean>|nil
+---@return boolean
+local function IsSellBuybackOnlyModeSet(modeSet)
+    if Vendor.IsSellBuybackOnlyModeSet then
+        return Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
+    end
+
+    local fallback = modeSet or {}
+    local hasSell = fallback[MODE.SELL] == true
+    local hasBuyback = fallback[MODE.BUYBACK] == true
+    local hasBuy = fallback[MODE.BUY] == true
+    local hasRepair = fallback[MODE.REPAIR] == true
+    return (not isFenceInteraction) and hasSell and hasBuyback and not hasBuy and not hasRepair
+end
+
+---@return boolean
+local function IsSellBuybackOnlyStore()
+    local modeSet = BuildActiveModeSet(GetActiveTabs())
+    return IsSellBuybackOnlyModeSet(modeSet)
+end
+
+---@return number|nil firstMode
+---@return number|nil secondMode
+local function GetToggleModePair()
+    if isFenceInteraction then
+        return nil, nil
+    end
+
+    local modeSet = BuildActiveModeSet(GetActiveTabs())
+    if modeSet[MODE.BUY] and modeSet[MODE.SELL] then
+        return MODE.BUY, MODE.SELL
+    end
+    if IsSellBuybackOnlyModeSet(modeSet) then
+        return MODE.SELL, MODE.BUYBACK
+    end
+
+    return nil, nil
+end
+
+---@param tabs VendorTabDef[]|nil
+---@return number targetMode
+local function ResolveInitialStoreMode(tabs)
+    tabs = tabs or {}
+
+    local modeSet = BuildActiveModeSet(tabs)
+    local nativeModeSet = GetNativeActiveModeSet()
+    local nativeModesReady = next(nativeModeSet) ~= nil
+    if nativeModesReady then
+        modeSet = {}
+        for _, tab in ipairs(VENDOR_TABS) do
+            local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
+            if nativeMode and nativeModeSet[nativeMode] then
+                modeSet[tab.mode] = true
+            end
+        end
+    end
+
+    if IsSellBuybackOnlyModeSet(modeSet) then
+        return MODE.SELL
+    end
+
+    -- When native components are not ready yet, do not trust transient buy-state APIs.
+    -- Defaulting to SELL prevents opening personal vendors on an empty BUY list.
+    if not nativeModesReady then
+        if modeSet[MODE.SELL] then
+            return MODE.SELL
+        end
+        if modeSet[MODE.BUYBACK] then
+            return MODE.BUYBACK
+        end
+        if modeSet[MODE.REPAIR] then
+            return MODE.REPAIR
+        end
+    end
+
+    if nativeModesReady and modeSet[MODE.BUY] then
+        local hasBuyList = false
+        if type(IsStoreEmpty) == "function" then
+            local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.ResolveInitialStoreMode:IsStoreEmpty", IsStoreEmpty)
+            if okStoreEmpty then
+                hasBuyList = not isStoreEmpty
+            end
+        end
+        if not hasBuyList and type(GetNumStoreItems) == "function" then
+            local okStoreCount, storeCount = SafeCall("Vendor.ResolveInitialStoreMode:GetNumStoreItems", GetNumStoreItems)
+            if okStoreCount and type(storeCount) == "number" then
+                hasBuyList = storeCount > 0
+            end
+        end
+        if hasBuyList then
+            return MODE.BUY
+        end
+    end
+
+    if modeSet[MODE.SELL] then
+        return MODE.SELL
+    end
+    if modeSet[MODE.BUYBACK] then
+        return MODE.BUYBACK
+    end
+    if modeSet[MODE.REPAIR] then
+        return MODE.REPAIR
+    end
+
+    return (tabs[1] and tabs[1].mode) or MODE.SELL
+end
+
 local function SetStoreSceneAlias(sceneObject)
     if not SCENE_MANAGER or not SCENE_MANAGER.scenes then
         return
@@ -151,6 +274,37 @@ local function SafeCall(context, fn, ...)
 
     local ok, result = pcall(fn, ...)
     return ok, result
+end
+
+local function LogVendorDebug(flagName, category, message)
+    if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
+        BETTERUI.Vendor.DebugLog(message, flagName, category)
+    end
+end
+
+local function IsDirectionalInputListening(obj)
+    if BETTERUI.Vendor and BETTERUI.Vendor.IsDirectionalInputListening then
+        return BETTERUI.Vendor.IsDirectionalInputListening(obj)
+    end
+    return false
+end
+
+local function LogNativeStoreInputState(context, storeManager)
+    if not storeManager then
+        return
+    end
+
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format(
+            "%s store=%s headerFocus=%s currentList=%s",
+            context,
+            tostring(IsDirectionalInputListening(storeManager)),
+            tostring(IsDirectionalInputListening(storeManager.headerFocus)),
+            tostring(IsDirectionalInputListening(storeManager._currentList))
+        )
+    )
 end
 
 local function EnsureNativeStoreComponents(searchContext)
@@ -194,7 +348,28 @@ local function EnsureNativeStoreComponents(searchContext)
 
     local needRebuild = (#componentTable == 0)
         or (not isFenceInteraction and includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format(
+            "EnsureNativeStoreComponents(%s): rebuild=%s includeBuy=%s activeModes=%d",
+            tostring(searchContext or "storeTextSearch"),
+            tostring(needRebuild),
+            tostring(includeBuy),
+            #componentTable
+        )
+    )
     if not needRebuild then
+        -- Even when no rebuild is needed, sweep the storeManager off DI.
+        -- An earlier SetActiveComponents call or native code path may have
+        -- registered it via DIRECTIONAL_INPUT:Activate directly (bypassing the
+        -- object's active flag), so obj:Deactivate() alone is not reliable.
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Deactivate then
+            if DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(storeManager) then
+                DIRECTIONAL_INPUT:Deactivate(storeManager)
+            end
+        end
+        LogNativeStoreInputState("EnsureNativeStoreComponents:skipRebuild", storeManager)
         return
     end
 
@@ -226,8 +401,44 @@ local function EnsureNativeStoreComponents(searchContext)
     end
 
     if #rebuiltModes > 0 then
+        -- Ensure storeManager.sceneName is redirected before SetActiveComponents.
+        -- SetActiveComponents \u2192 RebuildHeaderTabs \u2192 Commit() triggers ShowComponent
+        -- via the SelectedDataChanged callback chain; the redirected sceneName makes
+        -- ShowComponent's IsShowing check fail so no native lists are activated on DI.
+        if storeManager.sceneName ~= "betterui_native_store_blocked" then
+            storeManager.sceneName = "betterui_native_store_blocked"
+        end
+
         SafeCall("Vendor.EnsureNativeStoreComponents:SetActiveComponents",
             storeManager.SetActiveComponents, storeManager, rebuiltModes, searchContext or "storeTextSearch")
+
+        -- Neutralize native tabBar callbacks that SetActiveComponents just installed.
+        -- RebuildHeaderTabs sets an activatedCallback (ShowComponent) and a
+        -- SelectedDataChanged callback (OnCategoryChanged \u2192 ShowComponent) on the
+        -- native header's tabBar. Clear both so no future activation/selection change
+        -- can re-activate native lists on DIRECTIONAL_INPUT.
+        local nativeHeader = storeManager.header
+        if nativeHeader and nativeHeader.tabBar then
+            local nativeTabBar = nativeHeader.tabBar
+            if nativeTabBar.SetOnActivatedChangedFunction then
+                nativeTabBar:SetOnActivatedChangedFunction(nil)
+            end
+            if nativeTabBar.RemoveAllOnSelectedDataChangedCallbacks then
+                nativeTabBar:RemoveAllOnSelectedDataChangedCallbacks()
+            end
+            -- Deactivate the native tabBar if SetActiveComponents activated it.
+            if nativeTabBar.IsActive and nativeTabBar:IsActive() and nativeTabBar.Deactivate then
+                nativeTabBar:Deactivate()
+            end
+        end
+        -- Deactivate any native list that ShowComponent may have activated before
+        -- the sceneName redirect took effect (timing edge on very first open).
+        if storeManager._currentList and storeManager._currentList.Deactivate then
+            if not storeManager._currentList.IsActive or storeManager._currentList:IsActive() then
+                storeManager._currentList:Deactivate()
+            end
+        end
+
         if buyMode and modeSet[buyMode] then
             if type(SetStoreMode) == "function" then
                 SafeCall("Vendor.EnsureNativeStoreComponents:SetStoreMode", SetStoreMode, buyMode)
@@ -239,10 +450,96 @@ local function EnsureNativeStoreComponents(searchContext)
         if type(storeManager.InitializeStore) == "function" then
             SafeCall("Vendor.EnsureNativeStoreComponents:InitializeStore", storeManager.InitializeStore, storeManager)
         end
+
+        -- Final DI sweep: deactivate the native storeManager and every native
+        -- component list from DIRECTIONAL_INPUT using direct API calls.  This
+        -- bypasses the objects' internal active-flag guards (Deactivate() is a
+        -- no-op when .active is already false) and catches any code path inside
+        -- SetActiveComponents / SetMode / InitializeStore that may have
+        -- registered objects via DIRECTIONAL_INPUT:Activate directly.
+        if DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.Deactivate then
+            if DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT:IsListening(storeManager) then
+                DIRECTIONAL_INPUT:Deactivate(storeManager)
+            end
+            -- Sweep native component lists — component:Refresh() may have
+            -- activated them via OnEffectivelyShown handlers.
+            local activeComps = storeManager.activeComponents
+            if type(activeComps) == "table" then
+                for _, comp in ipairs(activeComps) do
+                    if comp and comp.list and DIRECTIONAL_INPUT.IsListening
+                        and DIRECTIONAL_INPUT:IsListening(comp.list) then
+                        DIRECTIONAL_INPUT:Deactivate(comp.list)
+                    end
+                end
+            end
+            -- Also sweep _currentList if it differs from any component list.
+            if storeManager._currentList and DIRECTIONAL_INPUT.IsListening
+                and DIRECTIONAL_INPUT:IsListening(storeManager._currentList) then
+                DIRECTIONAL_INPUT:Deactivate(storeManager._currentList)
+            end
+            -- Sweep headerFocus.
+            if storeManager.headerFocus and DIRECTIONAL_INPUT.IsListening
+                and DIRECTIONAL_INPUT:IsListening(storeManager.headerFocus) then
+                DIRECTIONAL_INPUT:Deactivate(storeManager.headerFocus)
+            end
+        end
+        LogNativeStoreInputState("EnsureNativeStoreComponents:postSweep", storeManager)
     end
 end
 
 Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
+
+---@return boolean
+local function ShouldAbortOpenStoreSync()
+    if Vendor._isClosing then
+        return true
+    end
+    if not Vendor.instance then
+        return true
+    end
+    if isFenceInteraction then
+        return true
+    end
+    if Vendor.instance.IsSceneActiveOrShowing and not Vendor.instance:IsSceneActiveOrShowing() then
+        return true
+    end
+    return false
+end
+
+---@param vendorInstance BETTERUI.Vendor.Class|table|nil
+---@param expectedMode number|nil
+---@return boolean
+local function ShouldAbortDeferredVendorRefresh(vendorInstance, expectedMode)
+    if Vendor._isClosing then
+        LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "Deferred vendor refresh aborted: vendor is closing")
+        return true
+    end
+    if not vendorInstance then
+        LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "Deferred vendor refresh aborted: missing vendor instance")
+        return true
+    end
+    if expectedMode and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() ~= expectedMode then
+        LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "Deferred vendor refresh aborted: mode changed")
+        return true
+    end
+    if vendorInstance.IsSceneShowing then
+        local isShowing = vendorInstance:IsSceneShowing()
+        if not isShowing then
+            LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "Deferred vendor refresh aborted: scene is not fully showing")
+        end
+        return not isShowing
+    end
+    if vendorInstance.IsSceneActiveOrShowing then
+        local isActive = vendorInstance:IsSceneActiveOrShowing()
+        if not isActive then
+            LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "Deferred vendor refresh aborted: scene is no longer active")
+        end
+        return not isActive
+    end
+    return false
+end
+
+Vendor.ShouldAbortDeferredVendorRefresh = ShouldAbortDeferredVendorRefresh
 
 -- KEYBINDS
 
@@ -251,6 +548,26 @@ Vendor.EnsureNativeStoreComponents = EnsureNativeStoreComponents
 local function BuildCoreKeybinds(vendorInstance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
+        {
+            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
+            ethereal = true,
+            visible = function()
+                return #GetActiveTabs() > 1
+            end,
+            callback = function()
+                vendorInstance:CycleTabs(-1)
+            end,
+        },
+        {
+            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
+            ethereal = true,
+            visible = function()
+                return #GetActiveTabs() > 1
+            end,
+            callback = function()
+                vendorInstance:CycleTabs(1)
+            end,
+        },
         -- Primary action (keybind A / GAMEPAD_BUTTON_1)
         {
             name = function()
@@ -284,14 +601,22 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
-                local mode = vendorInstance:GetCurrentMode()
-                if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
+                local firstMode, secondMode = GetToggleModePair()
+                if not firstMode or not secondMode then
                     return false
                 end
-                return mode == MODE.BUY or mode == MODE.SELL
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == firstMode or mode == secondMode then
+                    return true
+                end
+                if vendorInstance.IsSellBuybackOnlyStore and vendorInstance:IsSellBuybackOnlyStore() then
+                    return true
+                end
+                return false
             end,
             enabled = function()
-                if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
+                local firstMode, secondMode = GetToggleModePair()
+                if not firstMode or not secondMode then
                     return false
                 end
                 return true
@@ -415,6 +740,7 @@ local function OnOpenStore()
     isFenceInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    Vendor._isClosing = false
     Vendor._openStoreSyncAttempt = 0
 
     if not Vendor.instance then return end
@@ -425,6 +751,11 @@ local function OnOpenStore()
     end
 
     local interactionType = GetInteractionType and GetInteractionType() or nil
+    LogVendorDebug(
+        "SCENE_TRANSITIONS",
+        "VendorScene",
+        string.format("OnOpenStore interaction=%s fence=%s", tostring(interactionType), tostring(isFenceInteraction))
+    )
 
     -- Stable shares EVENT_OPEN_STORE and the native store scene.
     -- Leave native ownership in place for stable interactions.
@@ -434,6 +765,9 @@ local function OnOpenStore()
             SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
         end
         RestoreNativeStoreSceneAlias()
+        if SCENE_MANAGER then
+            SCENE_MANAGER:Show("gamepad_store")
+        end
         return
     end
 
@@ -443,15 +777,18 @@ local function OnOpenStore()
     end
 
     AliasStoreSceneToBetterUI()
+    if Vendor.instance.ReleaseNativeStoreInputOwnership then
+        Vendor.instance:ReleaseNativeStoreInputOwnership()
+    end
     EnsureNativeStoreComponents("storeTextSearch")
 
     local tabs = GetActiveTabs()
-    local hasBuyList = true
-    if type(IsStoreEmpty) == "function" then
-        local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.OnOpenStore:IsStoreEmpty", IsStoreEmpty)
-        hasBuyList = okStoreEmpty and (not isStoreEmpty) or true
-    end
-    local targetMode = (hasBuyList and MODE.BUY) or ((tabs[1] and tabs[1].mode) or MODE.SELL)
+    local targetMode = ResolveInitialStoreMode(tabs)
+    LogVendorDebug(
+        "SCENE_TRANSITIONS",
+        "VendorScene",
+        string.format("OnOpenStore targetMode=%s tabs=%d", tostring(targetMode), #tabs)
+    )
     if Vendor.instance.GetCurrentMode and Vendor.instance:GetCurrentMode() ~= targetMode then
         Vendor.instance:SetMode(targetMode)
     else
@@ -466,18 +803,26 @@ local function OnOpenStore()
         -- Keep one short native sync window after scene show so the buy component can
         -- populate from the native store manager without fighting scene ownership.
         Vendor.Tasks:Schedule("ensureStoreComponentsOnOpen", 120, function()
-            if not Vendor.instance then
-                return
-            end
-            if Vendor.IsFenceInteraction and Vendor.IsFenceInteraction() then
-                return
-            end
-            if not Vendor.instance:IsSceneActiveOrShowing() then
+            if ShouldAbortOpenStoreSync() then
                 return
             end
 
             EnsureNativeStoreComponents("storeTextSearch")
-            Vendor.instance:ApplyNativeStoreMode(targetMode)
+            if ShouldAbortOpenStoreSync() then
+                return
+            end
+            local resolvedTargetMode = ResolveInitialStoreMode(GetActiveTabs())
+            if resolvedTargetMode ~= targetMode then
+                targetMode = resolvedTargetMode
+            end
+            if ShouldAbortOpenStoreSync() then
+                return
+            end
+            if Vendor.instance.GetCurrentMode and Vendor.instance:GetCurrentMode() ~= targetMode then
+                Vendor.instance:SetMode(targetMode)
+            else
+                Vendor.instance:ApplyNativeStoreMode(targetMode)
+            end
             Vendor.instance:RefreshList()
 
             local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
@@ -496,11 +841,26 @@ local function OnOpenStore()
                 if syncAttempt <= 4 and Vendor.Tasks then
                     Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
                     Vendor.Tasks:Schedule("ensureStoreComponentsOnOpen", 140, function()
-                        if Vendor.instance and Vendor.instance:IsSceneActiveOrShowing() then
-                            EnsureNativeStoreComponents("storeTextSearch")
-                            Vendor.instance:ApplyNativeStoreMode(targetMode)
-                            Vendor.instance:RefreshList()
+                        if ShouldAbortOpenStoreSync() then
+                            return
                         end
+                        EnsureNativeStoreComponents("storeTextSearch")
+                        if ShouldAbortOpenStoreSync() then
+                            return
+                        end
+                        local retriedTargetMode = ResolveInitialStoreMode(GetActiveTabs())
+                        if retriedTargetMode ~= targetMode then
+                            targetMode = retriedTargetMode
+                        end
+                        if ShouldAbortOpenStoreSync() then
+                            return
+                        end
+                        if Vendor.instance.GetCurrentMode and Vendor.instance:GetCurrentMode() ~= targetMode then
+                            Vendor.instance:SetMode(targetMode)
+                        else
+                            Vendor.instance:ApplyNativeStoreMode(targetMode)
+                        end
+                        Vendor.instance:RefreshList()
                     end)
                 end
             else
@@ -517,9 +877,18 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     isFenceInteraction = true
     fenceEnableSell = (enableSell ~= false)     -- default true
     fenceEnableLaunder = (enableLaunder ~= false) -- default true
+    Vendor._isClosing = false
+    LogVendorDebug(
+        "SCENE_TRANSITIONS",
+        "VendorScene",
+        string.format("OnOpenFence sell=%s launder=%s", tostring(fenceEnableSell), tostring(fenceEnableLaunder))
+    )
 
     if not Vendor.instance then return end
     AliasStoreSceneToBetterUI()
+    if Vendor.instance.ReleaseNativeStoreInputOwnership then
+        Vendor.instance:ReleaseNativeStoreInputOwnership()
+    end
 
     -- Set mode to first available fence tab
     if fenceEnableSell then
@@ -534,6 +903,7 @@ local function OnOpenFence(_, enableSell, enableLaunder)
 end
 
 local function OnCloseStore()
+    Vendor._isClosing = true
     isFenceInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
@@ -543,7 +913,11 @@ local function OnCloseStore()
         Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
         Vendor.Tasks:Cancel("buyActivateRefresh")
         Vendor.Tasks:Cancel("buyListRetry")
+        Vendor.Tasks:Cancel("listRefresh")
+        Vendor.Tasks:Cancel("directionalInputNormalize")
     end
+
+    LogVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore begin")
 
     local sceneName = BETTERUI_VENDOR_SCENE_NAME
     if SCENE_MANAGER then
@@ -553,7 +927,23 @@ local function OnCloseStore()
         end
     end
 
-    RestoreNativeStoreSceneAlias()
+    if Vendor.instance and Vendor.instance.ReleaseNativeStoreInputOwnership then
+        Vendor.instance:ReleaseNativeStoreInputOwnership()
+    end
+    if Vendor.instance and Vendor.instance.ForceReleaseDirectionalInput then
+        Vendor.instance:ForceReleaseDirectionalInput()
+    end
+
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    LogNativeStoreInputState("OnCloseStore:beforeSweep", storeManager)
+    if storeManager and type(storeManager.OnHide) == "function" then
+        SafeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
+    end
+    LogNativeStoreInputState("OnCloseStore:afterSweep", storeManager)
+    LogVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
+
+    -- Keep BetterUI as default owner so vendor opens route directly here.
+    AliasStoreSceneToBetterUI()
 end
 
 local function OnInventoryUpdated()
@@ -646,6 +1036,44 @@ function BETTERUI.Vendor.Init()
     -- Capture vanilla store scene once so we can safely restore it outside vendor/fence interactions.
     Vendor.nativeStoreScene = Vendor.nativeStoreScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_store"))
 
+    -- Suppress native store manager interference.
+    -- The native OnOpenStore handler calls SetActiveComponents → RebuildHeaderTabs →
+    -- tabBar:Commit() which triggers ShowComponent via the SelectedDataChanged callback
+    -- chain. ShowComponent checks SCENE_MANAGER:IsShowing(self.sceneName) — because
+    -- BetterUI aliases "gamepad_store" to its own scene, the check passes and native
+    -- component lists get activated on DIRECTIONAL_INPUT alongside BetterUI's lists,
+    -- causing joystick navigation lockup.
+    --
+    -- Fix: (1) Redirect sceneName so ShowComponent's scene check always fails.
+    --      (2) Unregister native event handlers so they cannot race BetterUI's handlers.
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    if storeManager then
+        storeManager.sceneName = "betterui_native_store_blocked"
+        if storeManager.control then
+            storeManager.control:UnregisterForEvent(EVENT_OPEN_STORE)
+            storeManager.control:UnregisterForEvent(EVENT_CLOSE_STORE)
+        end
+
+        -- Override native store manager's UpdateDirectionalInput to prevent it from
+        -- processing joystick input when BetterUI owns the vendor scene.  Even if 
+        -- the storeManager somehow registers on DIRECTIONAL_INPUT (via
+        -- ActivateCurrentList, SetQuantitySpinnerActive, OnShowing, or future ESO
+        -- updates), this no-op ensures it cannot cause doubled vertical movement
+        -- (fast scrolling symptom) or post-exit input lockup.
+        -- Pass through to the original when the native scene is explicitly showing
+        -- (non-BetterUI interactions such as stables).
+        local origStoreManagerUpdateDI = storeManager.UpdateDirectionalInput
+        storeManager.UpdateDirectionalInput = function(self, ...)
+            local nativeScene = Vendor.nativeStoreScene
+            if nativeScene and nativeScene.IsShowing and nativeScene:IsShowing() then
+                if origStoreManagerUpdateDI then
+                    return origStoreManagerUpdateDI(self, ...)
+                end
+            end
+            -- Suppress — BetterUI's list handles all directional input.
+        end
+    end
+
     -- Add required fragment groups (matching WindowClass.InitializeScene pattern)
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
@@ -663,24 +1091,44 @@ function BETTERUI.Vendor.Init()
         taskManager = Vendor.Tasks,
         onShowing = function(screen, wasPushed)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.WIDTH)
+            if screen.ReleaseNativeStoreInputOwnership then
+                screen:ReleaseNativeStoreInputOwnership()
+            end
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
             screen:ApplyNativeStoreMode(screen:GetCurrentMode())
             screen:RefreshVendorFooter()
             screen:InitializeScrollIndicator()
             screen:RefreshList()
             screen:EnsureHeaderKeybindsActive()
-            screen:EnsureListInputActive()
             screen:EnsureColumnHeadersVisible()
             if screen.list then
                 screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
                 screen:UpdateScrollIndicator(screen.list)
+            end
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
             end
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen._suppressListUpdates = false
             screen._isDirty = false
+            if screen.ReleaseNativeStoreInputOwnership then
+                screen:ReleaseNativeStoreInputOwnership()
+            end
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
             screen:DeactivateHeaderKeybinds()
             screen:DeactivateListInput()
+            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
+                -- Match Banking/Inventory cleanup so directional input is always released.
+                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
+                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
+                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
+            end
             if GAMEPAD_TOOLTIPS then
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
@@ -694,6 +1142,20 @@ function BETTERUI.Vendor.Init()
             end
         end,
         onHidden = function(screen)
+            -- Repeat the DI/search cleanup on HIDDEN as a last-chance sweep.
+            -- Native callbacks and deferred work can still re-register owners
+            -- after HIDING cleanup has already run during scene transition.
+            if screen.ReleaseNativeStoreInputOwnership then
+                screen:ReleaseNativeStoreInputOwnership()
+            end
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
+            if BETTERUI.CIM and BETTERUI.CIM.SceneCleanup then
+                BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
+                BETTERUI.CIM.SceneCleanup.DeactivateLists(screen, screen.list)
+                BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
+            end
             local component = screen:GetActiveComponent()
             if component and component.Deactivate then
                 component:Deactivate(screen)
@@ -701,8 +1163,9 @@ function BETTERUI.Vendor.Init()
         end,
     })
 
-    -- Keep the native alias by default; vendor/fence handlers switch ownership dynamically.
-    RestoreNativeStoreSceneAlias()
+    -- Keep BetterUI alias by default so EVENT_OPEN_STORE routes directly here,
+    -- preventing native scene input from claiming directional ownership first.
+    AliasStoreSceneToBetterUI()
 
     -- Set up vendor-specific footer labels (replace banking WITHDRAW/DEPOSIT with gold/capacity)
     Vendor.instance:InitVendorFooter()
@@ -734,7 +1197,18 @@ function BETTERUI.Vendor.Init()
 
     -- Expose helpers for use in Vendor module
     Vendor.GetActiveTabs = GetActiveTabs
+    Vendor.GetToggleModePair = GetToggleModePair
+    Vendor.IsSellBuybackOnlyStore = IsSellBuybackOnlyStore
     Vendor.IsFenceInteraction = function() return isFenceInteraction end
+
+    -- Register narration for Vendor scene (ACC-001)
+    if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_VENDOR_SCENE_NAME,
+            function() return Vendor.instance and Vendor.instance.list and Vendor.instance.list:GetTargetData() end,
+            function() return Vendor.instance and Vendor.instance:GetTitle() end
+        )
+    end
 
     Vendor.initialized = true
 end

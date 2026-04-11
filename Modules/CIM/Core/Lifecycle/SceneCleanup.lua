@@ -17,6 +17,9 @@ BETTERUI.CIM.SceneCleanup = {}
 function BETTERUI.CIM.SceneCleanup.CleanupInputState(screen)
     if not screen then return end
 
+    -- Clear spinner confirmation state so the next scene show does not remain in spinner mode.
+    screen.confirmationMode = false
+
     -- 1. Force-clear header sort mode unconditionally
     -- Mirrors the d403eeaa pattern: always clear state, don't rely on flag checks.
     -- We do NOT call ExitHeaderSortMode() because it re-activates the list,

@@ -83,13 +83,46 @@ local function ResolveModeIcon(mode)
     return DEFAULT_VENDOR_CATEGORY_ICON
 end
 
+---@param activeTabs table[]|nil
+---@return boolean
+local function IsSellBuybackOnlyTabs(activeTabs)
+    local modeSet
+    if BETTERUI.Vendor.BuildActiveModeSet then
+        modeSet = BETTERUI.Vendor.BuildActiveModeSet(activeTabs)
+    else
+        modeSet = {}
+        for _, tab in ipairs(activeTabs or {}) do
+            if tab and tab.mode then
+                modeSet[tab.mode] = true
+            end
+        end
+    end
+
+    if BETTERUI.Vendor.IsSellBuybackOnlyModeSet then
+        local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+        return BETTERUI.Vendor.IsSellBuybackOnlyModeSet(modeSet, isFenceInteraction)
+    end
+
+    modeSet = modeSet or {}
+    local hasSell = modeSet[BETTERUI.Vendor.MODE.SELL] == true
+    local hasBuyback = modeSet[BETTERUI.Vendor.MODE.BUYBACK] == true
+    local hasBuy = modeSet[BETTERUI.Vendor.MODE.BUY] == true
+    local hasRepair = modeSet[BETTERUI.Vendor.MODE.REPAIR] == true
+    return hasSell and hasBuyback and not hasBuy and not hasRepair
+end
+
 local function BuildHeaderModeTabs(activeTabs)
     local modeTabs = {}
     local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+    local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
 
     for _, tab in ipairs(activeTabs or {}) do
         if isFenceInteraction then
             modeTabs[#modeTabs + 1] = tab
+        elseif isSellBuybackOnly then
+            if tab.mode == BETTERUI.Vendor.MODE.SELL or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
+                modeTabs[#modeTabs + 1] = tab
+            end
         elseif tab.mode ~= BETTERUI.Vendor.MODE.BUY and tab.mode ~= BETTERUI.Vendor.MODE.SELL then
             modeTabs[#modeTabs + 1] = tab
         end
@@ -118,6 +151,152 @@ local function SafeCall(context, fn, ...)
 
     local ok, result = pcall(fn, ...)
     return ok, result
+end
+
+local function LogVendorDebug(flagName, category, message)
+    if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
+        BETTERUI.Vendor.DebugLog(message, flagName, category)
+    end
+end
+
+local function IsDirectionalInputListening(obj)
+    if BETTERUI.Vendor and BETTERUI.Vendor.IsDirectionalInputListening then
+        return BETTERUI.Vendor.IsDirectionalInputListening(obj)
+    end
+    return false
+end
+
+---@param obj table|nil
+---@return number registrationCount
+local function CountDirectionalInputRegistrations(obj)
+    if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputObjects) then
+        return 0
+    end
+
+    local registrationCount = 0
+    for _, registeredObject in ipairs(DIRECTIONAL_INPUT.inputObjects) do
+        if registeredObject == obj then
+            registrationCount = registrationCount + 1
+        end
+    end
+
+    return registrationCount
+end
+
+---@param tabBar table|nil
+---@param active boolean
+---@return nil
+local function SetTabBarVisualActive(tabBar, active)
+    if not tabBar or tabBar.active == active then
+        return
+    end
+
+    tabBar.active = active
+    tabBar.dirty = false
+
+    local onActivatedChanged = (tabBar.GetOnActivatedChangedFunction and tabBar:GetOnActivatedChangedFunction())
+        or tabBar.onActivatedChangedFunction
+    if onActivatedChanged then
+        onActivatedChanged(tabBar, active)
+    end
+
+    if tabBar.RefreshVisible then
+        tabBar:RefreshVisible()
+    end
+    if tabBar.Commit then
+        tabBar:Commit()
+    end
+end
+
+local function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+    if BETTERUI.Vendor and BETTERUI.Vendor.ReleaseDirectionalInputRegistrations then
+        return BETTERUI.Vendor.ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+    end
+    return 0
+end
+
+local function ReleaseSpinnerDirectionalInput(spinner)
+    if not spinner then
+        return
+    end
+
+    if spinner.DetachFromListEntry then
+        SafeCall("Vendor.ReleaseSpinnerDirectionalInput:DetachFromListEntry", spinner.DetachFromListEntry, spinner)
+    end
+    if spinner.Deactivate then
+        SafeCall("Vendor.ReleaseSpinnerDirectionalInput:Deactivate", spinner.Deactivate, spinner)
+    end
+    if spinner.SetHidden then
+        spinner:SetHidden(true)
+    end
+
+    ReleaseDirectionalInputRegistrations(spinner, true)
+
+    if spinner.spinner then
+        if spinner.spinner.Deactivate then
+            SafeCall("Vendor.ReleaseSpinnerDirectionalInput:DeactivateNestedSpinner", spinner.spinner.Deactivate, spinner.spinner)
+        end
+        ReleaseDirectionalInputRegistrations(spinner.spinner, true)
+    end
+end
+
+local function ForEachHeaderDirectionalInputCandidate(header, callback)
+    if not header or type(callback) ~= "function" then
+        return
+    end
+
+    local seen = {}
+    local function Visit(candidate)
+        if not candidate or seen[candidate] then
+            return
+        end
+        seen[candidate] = true
+        callback(candidate)
+    end
+
+    Visit(header.headerFocus)
+    Visit(header.headerFocusControl)
+    Visit(header.headerFocusControl and header.headerFocusControl.owner)
+    Visit(header.tabBar)
+    Visit(header.tabBar and header.tabBar.control)
+end
+
+local function ReleaseHeaderDirectionalInput(header, context)
+    local releasedCount = 0
+
+    ForEachHeaderDirectionalInputCandidate(header, function(candidate)
+        if candidate.Deactivate then
+            SafeCall(context or "Vendor.ReleaseHeaderDirectionalInput:Deactivate", candidate.Deactivate, candidate)
+        end
+        releasedCount = releasedCount + ReleaseDirectionalInputRegistrations(candidate, true)
+    end)
+
+    return releasedCount
+end
+
+local function HasVisibleGamepadDialog()
+    if not GetControl then
+        return false
+    end
+
+    local gamepadDialog = GetControl("ZO_DialogGamepad1")
+    return gamepadDialog and gamepadDialog.IsHidden and not gamepadDialog:IsHidden() or false
+end
+
+local function ShouldAllowVendorDeferredNormalization(screen)
+    return screen
+        and screen.IsSceneShowing and screen:IsSceneShowing()
+        and not screen.confirmationMode
+        and not screen._searchModeActive
+        and not screen._searchHeaderActive
+        and not HasVisibleGamepadDialog()
+end
+
+local function SupportsVendorHeaderSearch(screen)
+    return screen
+        and screen.textSearchKeybindStripDescriptor ~= nil
+        and screen.textSearchHeaderControl ~= nil
+        and screen.textSearchHeaderFocus ~= nil
 end
 
 local HEADER_COLUMN_KEYS = { "NAME", "TYPE", "TRAIT", "STAT", "VALUE" }
@@ -197,6 +376,348 @@ function BETTERUI.Vendor.Class:IsSceneActiveOrShowing()
     return scene:IsShowing()
 end
 
+---@return boolean
+function BETTERUI.Vendor.Class:IsSellBuybackOnlyStore()
+    if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
+        return false
+    end
+
+    if BETTERUI.Vendor.IsSellBuybackOnlyStore then
+        return BETTERUI.Vendor.IsSellBuybackOnlyStore()
+    end
+
+    local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
+    return IsSellBuybackOnlyTabs(activeTabs)
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:ReleaseNativeStoreInputOwnership()
+    local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
+    if not storeManager then
+        return
+    end
+
+    ReleaseSpinnerDirectionalInput(storeManager.spinner)
+
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format(
+            "ReleaseNativeStoreInputOwnership store=%s headerFocus=%s currentList=%s",
+            tostring(IsDirectionalInputListening(storeManager)),
+            tostring(IsDirectionalInputListening(storeManager.headerFocus)),
+            tostring(IsDirectionalInputListening(storeManager._currentList))
+        )
+    )
+
+    if type(storeManager.DeactivateActiveComponent) == "function" then
+        SafeCall(
+            "Vendor.ReleaseNativeStoreInputOwnership:DeactivateActiveComponent",
+            storeManager.DeactivateActiveComponent,
+            storeManager,
+            false
+        )
+    end
+
+    if type(storeManager.DeactivateTextSearch) == "function" then
+        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:DeactivateTextSearch", storeManager.DeactivateTextSearch, storeManager)
+    end
+
+    local headerFocus = storeManager.headerFocus
+    if headerFocus then
+        -- Deactivate unconditionally — headerFocus may be registered on DIRECTIONAL_INPUT
+        -- even when IsActive() returns false (inconsistent state from external deactivation).
+        -- ZO_GamepadFocus:SetActive(false) checks `self.active ~= active` and is a no-op
+        -- when active is already false, so also call DIRECTIONAL_INPUT:Deactivate directly.
+        if headerFocus.Deactivate then
+            SafeCall("Vendor.ReleaseNativeStoreInputOwnership:HeaderFocusDeactivate", headerFocus.Deactivate, headerFocus)
+        end
+        ReleaseDirectionalInputRegistrations(headerFocus)
+    end
+
+    if type(storeManager.RemoveListKeybinds) == "function" then
+        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:RemoveListKeybinds", storeManager.RemoveListKeybinds, storeManager)
+    end
+
+    if storeManager.keybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(storeManager.keybindStripDescriptor)
+    end
+
+    if type(storeManager.Deactivate) == "function" then
+        SafeCall("Vendor.ReleaseNativeStoreInputOwnership:Deactivate", storeManager.Deactivate, storeManager)
+    end
+
+    -- Direct DIRECTIONAL_INPUT:Deactivate on storeManager — bypasses the
+    -- DisableCurrentList → SetDirectionalInputEnabled chain which may have
+    -- already run, leaving the storeManager's active flag false while it
+    -- is still registered on the DI stack.
+    ReleaseDirectionalInputRegistrations(storeManager)
+
+    -- Deactivate the native store's header tabBar — the native scene's SCENE_HIDDEN
+    -- handler (which calls ZO_GamepadGenericHeader_Deactivate) never fires because
+    -- BetterUI replaces the scene alias, leaving the native tabBar orphaned on the
+    -- DIRECTIONAL_INPUT stack.
+    local nativeHeader = storeManager.header
+    if nativeHeader then
+        ReleaseHeaderDirectionalInput(nativeHeader, "Vendor.ReleaseNativeStoreInputOwnership:NativeHeader")
+
+        local nativeTabBar = nativeHeader.tabBar
+        if nativeTabBar then
+            if nativeTabBar.Deactivate then
+                nativeTabBar:Deactivate()
+            end
+            ReleaseDirectionalInputRegistrations(nativeTabBar)
+        end
+    end
+
+    -- Deactivate the native store's current list — use direct DI calls in case
+    -- the list's .active flag is already false (ZO_ParametricScrollList:Deactivate
+    -- is a no-op when self.active ~= false is false).
+    if storeManager._currentList then
+        if storeManager._currentList.Deactivate then
+            storeManager._currentList:Deactivate()
+        end
+        if storeManager._currentList.SetDirectionalInputEnabled then
+            storeManager._currentList:SetDirectionalInputEnabled(false)
+        end
+        ReleaseDirectionalInputRegistrations(storeManager._currentList, true)
+    end
+
+    -- Sweep all native component lists off DI — component:Refresh() during
+    -- SetActiveComponents may have triggered OnEffectivelyShown handlers that
+    -- call list:Activate(), registering them on the DI stack.
+    local activeComps = storeManager.activeComponents
+    if type(activeComps) == "table" then
+        for _, comp in ipairs(activeComps) do
+            if comp and comp.list then
+                if comp.list.SetDirectionalInputEnabled then
+                    comp.list:SetDirectionalInputEnabled(false)
+                end
+                ReleaseDirectionalInputRegistrations(comp.list, true)
+            end
+        end
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:ForceReleaseDirectionalInput()
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
+        return
+    end
+
+    LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "ForceReleaseDirectionalInput invoked")
+
+    -- Use proper Deactivate methods where possible so object state (e.g.
+    -- tabBar.active, list:IsActive()) stays consistent with DIRECTIONAL_INPUT.
+    local function SafeDeactivate(obj, includeMovementController, disableDirectionalInput)
+        if not obj then return end
+        if disableDirectionalInput and obj.SetDirectionalInputEnabled then
+            obj:SetDirectionalInputEnabled(false)
+        end
+        if obj.Deactivate then
+            if not obj.IsActive or obj:IsActive() or IsDirectionalInputListening(obj)
+                or (includeMovementController and IsDirectionalInputListening(obj.movementController)) then
+                obj:Deactivate()
+            end
+        end
+        ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+    end
+
+    SafeDeactivate(self, true)
+    SafeDeactivate(self.list, true, true)
+    ReleaseSpinnerDirectionalInput(self.spinner)
+    ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.ForceReleaseDirectionalInput:HeaderGeneric")
+    ReleaseHeaderDirectionalInput(self.header, "Vendor.ForceReleaseDirectionalInput:Header")
+    SafeDeactivate(self.textSearchHeaderFocus, true)
+    SafeDeactivate(self.headerFocus, true)
+    SafeDeactivate(self.textSearchHeaderControl, true)
+end
+
+---@param reason string|nil
+---@return boolean detached
+function BETTERUI.Vendor.Class:DetachUnexpectedSearchHeaderFocus(reason)
+    if SupportsVendorHeaderSearch(self) then
+        return false
+    end
+
+    local focusControl = self.textSearchHeaderControl
+    local focusObject = self.textSearchHeaderFocus
+    local hadSearchFocus = focusControl ~= nil or focusObject ~= nil or self.headerFocus ~= nil
+    if not hadSearchFocus then
+        return false
+    end
+
+    local function ClearHeader(header)
+        if not header then
+            return
+        end
+
+        if header.headerFocusControl == focusControl then
+            header.headerFocusControl = nil
+        end
+        if header.headerFocus == focusObject or header.headerFocus == focusControl then
+            header.headerFocus = nil
+        end
+
+        local tabBarControl = header.tabBar and header.tabBar.control
+        if tabBarControl then
+            if tabBarControl.headerFocusControl == focusControl then
+                tabBarControl.headerFocusControl = nil
+            end
+            if tabBarControl.headerFocus == focusObject or tabBarControl.headerFocus == focusControl then
+                tabBarControl.headerFocus = nil
+            end
+        end
+    end
+
+    if focusObject then
+        if focusObject.SetFocused then
+            SafeCall("Vendor.DetachUnexpectedSearchHeaderFocus:SetFocused", focusObject.SetFocused, focusObject, false)
+        end
+        if focusObject.Deactivate then
+            SafeCall("Vendor.DetachUnexpectedSearchHeaderFocus:DeactivateFocus", focusObject.Deactivate, focusObject)
+        end
+        ReleaseDirectionalInputRegistrations(focusObject, true)
+    end
+
+    if focusControl then
+        if focusControl.SetHidden then
+            focusControl:SetHidden(true)
+        end
+        ReleaseDirectionalInputRegistrations(focusControl, true)
+    end
+
+    ClearHeader(self.headerGeneric)
+    ClearHeader(self.header)
+
+    if self.headerFocus == focusObject or self.headerFocus == focusControl then
+        self.headerFocus = nil
+    end
+
+    self._searchModeActive = false
+    self._searchHeaderActive = false
+
+    if hadSearchFocus then
+        LogVendorDebug(
+            "DIRECTIONAL_INPUT",
+            "VendorDI",
+            string.format("DetachUnexpectedSearchHeaderFocus reason=%s", tostring(reason or "unknown"))
+        )
+    end
+
+    return hadSearchFocus
+end
+
+---@param reason string|nil
+---@return nil
+function BETTERUI.Vendor.Class:NormalizeDirectionalInputOwnership(reason)
+    if not (self.IsSceneShowing and self:IsSceneShowing()) then
+        return
+    end
+
+    if self.DetachUnexpectedSearchHeaderFocus then
+        self:DetachUnexpectedSearchHeaderFocus(reason)
+    end
+
+    if HasVisibleGamepadDialog() then
+        return
+    end
+
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputObjects) then
+        return
+    end
+
+    local allowed = {}
+    local function Allow(obj, includeMovementController)
+        if not obj then
+            return
+        end
+
+        allowed[obj] = true
+        if obj.spinner then
+            allowed[obj.spinner] = true
+        end
+
+        if includeMovementController then
+            if obj.movementController then
+                allowed[obj.movementController] = true
+            end
+            if obj.horizontalMovementController then
+                allowed[obj.horizontalMovementController] = true
+            end
+            if obj.verticalMovementController then
+                allowed[obj.verticalMovementController] = true
+            end
+            if obj.spinner and obj.spinner.spinner then
+                allowed[obj.spinner.spinner] = true
+            end
+        end
+    end
+
+    local function AllowHeader(header)
+        ForEachHeaderDirectionalInputCandidate(header, function(candidate)
+            Allow(candidate, true)
+        end)
+    end
+
+    if self.confirmationMode then
+        Allow(self.spinner, true)
+    elseif (self._searchModeActive or self._searchHeaderActive) and SupportsVendorHeaderSearch(self) then
+        Allow(self.textSearchHeaderFocus, true)
+        Allow(self.headerFocus, true)
+        Allow(self.textSearchHeaderControl, true)
+        AllowHeader(self.headerGeneric)
+        AllowHeader(self.header)
+    elseif self.isInHeaderSortMode then
+        Allow(self.headerGeneric and self.headerGeneric.tabBar, true)
+        AllowHeader(self.headerGeneric)
+        AllowHeader(self.header)
+    else
+        Allow(self.list, true)
+    end
+
+    local snapshot = {}
+    for i, obj in ipairs(DIRECTIONAL_INPUT.inputObjects) do
+        snapshot[i] = obj
+    end
+
+    local releasedCount = 0
+    for _, obj in ipairs(snapshot) do
+        if obj and not allowed[obj] then
+            releasedCount = releasedCount + ReleaseDirectionalInputRegistrations(obj, true)
+        end
+    end
+
+    if releasedCount > 0 then
+        LogVendorDebug(
+            "DIRECTIONAL_INPUT",
+            "VendorDI",
+            string.format("NormalizeDirectionalInputOwnership released=%d reason=%s", releasedCount, tostring(reason or "unknown"))
+        )
+    end
+end
+
+---@param reason string|nil
+---@param delayMs number|nil
+---@return nil
+function BETTERUI.Vendor.Class:ScheduleDirectionalInputNormalization(reason, delayMs)
+    if not (BETTERUI.Vendor and BETTERUI.Vendor.Tasks) then
+        return
+    end
+
+    if not ShouldAllowVendorDeferredNormalization(self) then
+        BETTERUI.Vendor.Tasks:Cancel("directionalInputNormalize")
+        return
+    end
+
+    BETTERUI.Vendor.Tasks:Cancel("directionalInputNormalize")
+    BETTERUI.Vendor.Tasks:Schedule("directionalInputNormalize", delayMs or 40, function()
+        if ShouldAllowVendorDeferredNormalization(self) and self.NormalizeDirectionalInputOwnership then
+            self:NormalizeDirectionalInputOwnership(string.format("%s:deferred", tostring(reason or "unknown")))
+        end
+    end)
+end
+
 -- MODE ROUTING
 
 ---@return number mode Current vendor mode constant
@@ -207,10 +728,22 @@ end
 ---@param mode number|nil
 ---@return nil
 function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
+    local function ReleaseNativeInputIfNeeded()
+        if self.IsSceneActiveOrShowing and self:IsSceneActiveOrShowing() and self.ReleaseNativeStoreInputOwnership then
+            self:ReleaseNativeStoreInputOwnership()
+        end
+    end
+
     local targetMode = ResolveNativeStoreMode(mode or self:GetCurrentMode())
     if targetMode == nil then
         return
     end
+
+    LogVendorDebug(
+        "SCENE_TRANSITIONS",
+        "VendorScene",
+        string.format("ApplyNativeStoreMode requested=%s native=%s", tostring(mode or self:GetCurrentMode()), tostring(targetMode))
+    )
 
     if type(SetStoreMode) == "function" then
         local currentMode = nil
@@ -227,10 +760,12 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
 
     local storeManager = rawget(_G, "STORE_WINDOW_GAMEPAD")
     if not storeManager then
+        ReleaseNativeInputIfNeeded()
         return
     end
 
     if type(storeManager.SetMode) ~= "function" then
+        ReleaseNativeInputIfNeeded()
         return
     end
 
@@ -241,6 +776,7 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
 
     local activeComponents = storeManager.activeComponents
     if type(activeComponents) ~= "table" or #activeComponents == 0 then
+        ReleaseNativeInputIfNeeded()
         return
     end
 
@@ -273,6 +809,7 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
         end
 
         if not hasTargetMode then
+            ReleaseNativeInputIfNeeded()
             return
         end
     end
@@ -288,6 +825,13 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
     if currentMode ~= targetMode then
         SafeCall("Vendor.ApplyNativeStoreMode:StoreManagerSetMode", storeManager.SetMode, storeManager, targetMode)
     end
+
+    ReleaseNativeInputIfNeeded()
+    LogVendorDebug(
+        "DIRECTIONAL_INPUT",
+        "VendorDI",
+        string.format("ApplyNativeStoreMode complete store=%s currentList=%s", tostring(IsDirectionalInputListening(storeManager)), tostring(IsDirectionalInputListening(storeManager._currentList)))
+    )
 end
 
 ---@return nil
@@ -355,18 +899,32 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
+    -- Guard against premature DIRECTIONAL_INPUT registration during scene
+    -- transitions — matches Banking pattern (prevents joystick lock-up).
+    if self.isInHeaderSortMode then
+        return
+    end
+    if self.scene and not self.scene:IsShowing() then
+        return
+    end
+
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if not tabBar then
         return
     end
 
-    if tabBar.Activate and not tabBar.active then
-        tabBar:Activate()
+    if self.DetachUnexpectedSearchHeaderFocus then
+        self:DetachUnexpectedSearchHeaderFocus("EnsureHeaderKeybindsActive")
     end
 
-    if tabBar.keybindStripDescriptor then
-        BETTERUI.Interface.EnsureKeybindGroupAdded(tabBar.keybindStripDescriptor)
+    -- Vendor uses core shoulder keybinds for tab cycling; do not register the
+    -- header tab bar on DIRECTIONAL_INPUT or it can steal focus from the item list.
+    ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGeneric")
+    ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:Header")
+    if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
     end
+    SetTabBarVisualActive(tabBar, true)
 end
 
 ---@return nil
@@ -402,17 +960,77 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:EnsureListInputActive()
+    -- Only activate list input when the scene is actually showing.
+    if self.scene and not self.scene:IsShowing() then
+        return
+    end
+
     local list = self.list
     if not list then
         return
     end
 
-    if list.SetDirectionalInputEnabled then
-        list:SetDirectionalInputEnabled(true)
+    if self.DetachUnexpectedSearchHeaderFocus then
+        self:DetachUnexpectedSearchHeaderFocus("EnsureListInputActive")
     end
 
-    if list.Activate and (not list.IsActive or not list:IsActive()) then
+    local listRegistrationCount = CountDirectionalInputRegistrations(list)
+    local controllerRegistrationCount = CountDirectionalInputRegistrations(list.movementController)
+    local listListening = listRegistrationCount > 0
+    local controllerListening = controllerRegistrationCount > 0
+    local shouldResetListInput = listRegistrationCount > 1 or controllerRegistrationCount > 1
+        or (controllerListening and not listListening)
+    local isListActive = not list.IsActive or list:IsActive()
+
+    if shouldResetListInput then
+        local releasedCount = ReleaseDirectionalInputRegistrations(list, true)
+        if releasedCount > 0 then
+            LogVendorDebug(
+                "DIRECTIONAL_INPUT",
+                "VendorDI",
+                string.format(
+                    "EnsureListInputActive cleared stale vendor list registrations=%d list=%d controller=%d",
+                    releasedCount,
+                    listRegistrationCount,
+                    controllerRegistrationCount
+                )
+            )
+        end
+
+        if list.SetActive then
+            list:SetActive(false)
+        elseif list.Deactivate and (not list.IsActive or list:IsActive()) then
+            list:Deactivate()
+        end
+
+        listListening = false
+        controllerListening = false
+        isListActive = false
+    end
+
+    local shouldActivateList = list.Activate and (shouldResetListInput or not isListActive)
+    if shouldActivateList then
+        -- ZO_ParametricScrollList:Activate() already registers the list when
+        -- directionalInputEnabled is true. Setting it via the public mutator here
+        -- would register the same list twice and accelerate scrolling.
+        list.directionalInputEnabled = true
+    elseif list.SetDirectionalInputEnabled and not listListening then
+        list:SetDirectionalInputEnabled(true)
+        listListening = CountDirectionalInputRegistrations(list) > 0
+    end
+
+    controllerListening = CountDirectionalInputRegistrations(list.movementController) > 0
+    if shouldActivateList then
+        LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "EnsureListInputActive activating vendor list")
         list:Activate()
+    end
+
+    if self.NormalizeDirectionalInputOwnership and not self.confirmationMode
+        and not self._searchModeActive and not self._searchHeaderActive then
+        self:NormalizeDirectionalInputOwnership("EnsureListInputActive")
+        if self.ScheduleDirectionalInputNormalization then
+            self:ScheduleDirectionalInputNormalization("EnsureListInputActive")
+        end
     end
 end
 
@@ -477,9 +1095,13 @@ function BETTERUI.Vendor.Class:DeactivateListInput()
     if not list then
         return
     end
+    if list.SetDirectionalInputEnabled then
+        list:SetDirectionalInputEnabled(false)
+    end
     if list.Deactivate and (not list.IsActive or list:IsActive()) then
         list:Deactivate()
     end
+    ReleaseDirectionalInputRegistrations(list, true)
 end
 
 ---@return nil
@@ -523,8 +1145,13 @@ function BETTERUI.Vendor.Class:DeactivateHeaderKeybinds()
     if not tabBar then
         return
     end
-    if tabBar.Deactivate and tabBar.active then
+    SetTabBarVisualActive(tabBar, false)
+    if tabBar.Deactivate then
         tabBar:Deactivate()
+    end
+    ReleaseDirectionalInputRegistrations(tabBar, true)
+    if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
     end
 end
 
@@ -539,6 +1166,11 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     local categories = self:GetModeCategories(mode)
     local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
     local modeTabs = BuildHeaderModeTabs(activeTabs)
+    local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
+    local showCategoryEntries = not isSellBuybackOnly
+    if not showCategoryEntries and #modeTabs == 0 then
+        showCategoryEntries = true
+    end
     local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[mode]) or 1
     selectedIndex = zo_clamp(selectedIndex, 1, #categories)
     self.categoryIndexByMode[mode] = selectedIndex
@@ -546,7 +1178,18 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
 
     local selectedCategory = categories[selectedIndex]
     local modeEntryCount = #modeTabs
-    local selectedHeaderIndex = modeEntryCount + selectedIndex
+    local selectedHeaderIndex
+    if showCategoryEntries then
+        selectedHeaderIndex = modeEntryCount + selectedIndex
+    else
+        selectedHeaderIndex = 1
+        for modeEntryIndex, tab in ipairs(modeTabs) do
+            if tab.mode == mode then
+                selectedHeaderIndex = modeEntryIndex
+                break
+            end
+        end
+    end
     local preferredModeSelection = self._preferredModeHeaderSelectionMode
     if preferredModeSelection and modeEntryCount > 0 then
         for modeEntryIndex, tab in ipairs(modeTabs) do
@@ -565,19 +1208,21 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
             iconFile = ResolveModeIcon(tab.mode),
         }
     end
-    for categoryIndex, category in ipairs(categories) do
-        headerEntries[#headerEntries + 1] = {
-            categoryIndex = categoryIndex,
-            name = category.name,
-            iconFile = category.iconFile or DEFAULT_VENDOR_CATEGORY_ICON,
-            filterType = category.filterType,
-            itemCount = category.itemCount,
-        }
+    if showCategoryEntries then
+        for categoryIndex, category in ipairs(categories) do
+            headerEntries[#headerEntries + 1] = {
+                categoryIndex = categoryIndex,
+                name = category.name,
+                iconFile = category.iconFile or DEFAULT_VENDOR_CATEGORY_ICON,
+                filterType = category.filterType,
+                itemCount = category.itemCount,
+            }
+        end
     end
 
     self.vendorHeaderData = self.vendorHeaderData or {}
     self.vendorHeaderData.titleText = function()
-        if selectedCategory and selectedCategory.name and selectedCategory.name ~= "" then
+        if showCategoryEntries and selectedCategory and selectedCategory.name and selectedCategory.name ~= "" then
             return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), selectedCategory.name)
         end
         return ResolveModeName(mode)
@@ -665,13 +1310,21 @@ function BETTERUI.Vendor.Class:ToggleBuySellMode()
         return
     end
 
-    local mode = self:GetCurrentMode()
-    if mode == BETTERUI.Vendor.MODE.BUY then
-        self:SetMode(BETTERUI.Vendor.MODE.SELL)
-    elseif mode == BETTERUI.Vendor.MODE.SELL then
-        self:SetMode(BETTERUI.Vendor.MODE.BUY)
-    else
+    local firstMode, secondMode = nil, nil
+    if BETTERUI.Vendor.GetToggleModePair then
+        firstMode, secondMode = BETTERUI.Vendor.GetToggleModePair()
+    end
+    if not firstMode or not secondMode then
         return
+    end
+
+    local mode = self:GetCurrentMode()
+    if mode == firstMode then
+        self:SetMode(secondMode)
+    elseif mode == secondMode then
+        self:SetMode(firstMode)
+    else
+        self:SetMode(firstMode)
     end
 end
 
@@ -755,6 +1408,9 @@ function BETTERUI.Vendor.Class:RefreshList()
     if self:IsSceneShowing() then
         self:EnsureListInputActive()
         self:OnItemSelectedChange(self.list, self.list:GetTargetData())
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end
     end
     self:UpdateScrollIndicator(self.list)
 
@@ -766,14 +1422,15 @@ function BETTERUI.Vendor.Class:RefreshList()
             if retryCount <= 20 then
                 BETTERUI.Vendor.Tasks:Cancel("buyListRetry")
                 BETTERUI.Vendor.Tasks:Schedule("buyListRetry", 180, function()
-                    if self and self.IsSceneActiveOrShowing and self:IsSceneActiveOrShowing()
-                        and self.GetCurrentMode and self:GetCurrentMode() == BETTERUI.Vendor.MODE.BUY then
-                        if BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
-                            BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
-                        end
-                        self:ApplyNativeStoreMode(BETTERUI.Vendor.MODE.BUY)
-                        self:RefreshList()
+                    if BETTERUI.Vendor and BETTERUI.Vendor.ShouldAbortDeferredVendorRefresh
+                        and BETTERUI.Vendor.ShouldAbortDeferredVendorRefresh(self, BETTERUI.Vendor.MODE.BUY) then
+                        return
                     end
+                    if BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
+                        BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
+                    end
+                    self:ApplyNativeStoreMode(BETTERUI.Vendor.MODE.BUY)
+                    self:RefreshList()
                 end)
             end
         else
