@@ -28,6 +28,7 @@ function BETTERUI.TradingHouse.InitModule(m_options)
         showIconUnknownRecipe = true,
         showIconUnknownBook = true,
         enableCarousel = true,
+        searchPresets = {},
     }
 
     m_options = BETTERUI.CIM.InitModuleDefaults("TradingHouse", m_options, defaults, fallbackDefaults)

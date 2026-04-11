@@ -634,3 +634,16 @@ ZO_CreateStringId("SI_BETTERUI_CLEAR_SORT", "Сбросить сортировк
 ZO_CreateStringId("SI_BETTERUI_BATCH_PARTIAL_SUCCESS", "Готово: обработано <<1>> из <<2>> предметов. Некоторые пропущены.")
 ZO_CreateStringId("SI_BETTERUI_BATCH_BAG_FULL", "Сумка полна: обработано <<1>> из <<2>> предметов.")
 ZO_CreateStringId("SI_BETTERUI_TEXT_SIZE", "Размер текста")
+
+-- Trading House Presets
+ZO_CreateStringId("SI_BETTERUI_TH_PRESETS", "Пресеты")
+ZO_CreateStringId("SI_BETTERUI_TH_SAVE_PRESET", "Сохранить пресет")
+ZO_CreateStringId("SI_BETTERUI_TH_SAVE_PRESET_TITLE", "Сохранить поисковый пресет")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_NAME_PLACEHOLDER", "Введите имя пресета...")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESETS_TITLE", "Поисковые пресеты")
+ZO_CreateStringId("SI_BETTERUI_TH_NO_SAVED_PRESETS", "Нет сохраненных пресетов")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_SAVED", "Поисковый пресет '<<1>>' сохранен")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_LOADED", "Пресет '<<1>>' загружен")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_DELETED", "Пресет '<<1>>' удален")
+ZO_CreateStringId("SI_BETTERUI_TH_DELETE", "Удалить")
+ZO_CreateStringId("SI_BETTERUI_TH_PRESET_GENERIC", "пресет")

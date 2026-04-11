@@ -231,6 +231,7 @@ Modules\TradingHouse\Core\TradingHouseRowSetup.lua
 Modules\TradingHouse\Components\BrowseComponent.lua
 Modules\TradingHouse\Components\SellComponent.lua
 Modules\TradingHouse\Components\ListingsComponent.lua
+Modules\TradingHouse\Components\SearchPresets.lua
 Modules\TradingHouse\TradingHouse.lua
 Modules\TradingHouse\Settings\SettingsPanel.lua
 

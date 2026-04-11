@@ -110,6 +110,44 @@ local function BuildCoreKeybinds(thInstance)
                 end
             end,
         },
+        -- Tertiary action (Y / GAMEPAD_BUTTON_4): Load Preset (Browse mode)
+        {
+            name = function()
+                if thInstance:GetCurrentMode() == MODE.BROWSE then
+                    return GetString(rawget(_G, "SI_BETTERUI_TH_PRESETS") or "SI_BETTERUI_TH_PRESETS")
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_TERTIARY",
+            visible = function()
+                return thInstance:GetCurrentMode() == MODE.BROWSE
+                    and TH.SearchPresets ~= nil
+            end,
+            callback = function()
+                if TH.SearchPresets then
+                    TH.SearchPresets.ShowLoadDialog()
+                end
+            end,
+        },
+        -- Right Stick: Save Preset (Browse mode)
+        {
+            name = function()
+                if thInstance:GetCurrentMode() == MODE.BROWSE then
+                    return GetString(rawget(_G, "SI_BETTERUI_TH_SAVE_PRESET") or "SI_BETTERUI_TH_SAVE_PRESET")
+                end
+                return ""
+            end,
+            keybind = "UI_SHORTCUT_RIGHT_STICK",
+            visible = function()
+                return thInstance:GetCurrentMode() == MODE.BROWSE
+                    and TH.SearchPresets ~= nil
+            end,
+            callback = function()
+                if TH.SearchPresets then
+                    TH.SearchPresets.ShowSaveDialog()
+                end
+            end,
+        },
         -- Back / Exit (B / GAMEPAD_BUTTON_2)
         {
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
@@ -547,6 +585,15 @@ function BETTERUI.TradingHouse.Init()
 
     -- Expose helpers
     TH.GetTabs = function() return TH_TABS end
+
+    -- Register narration for Trading House scene (ACC-001)
+    if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_TRADING_HOUSE_SCENE_NAME,
+            function() return TH.instance and TH.instance.list and TH.instance.list:GetTargetData() end,
+            function() return TH.instance and TH.instance:GetTitle() end
+        )
+    end
 
     TH.initialized = true
 end
