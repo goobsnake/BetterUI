@@ -19,9 +19,8 @@
 - [resource-orb-texture-guide.md](./guides/resource-orb-texture-guide.md) - texture pipeline and file contract for ResourceOrbFrames
 - [agent-collaboration-guide.md](./guides/agent-collaboration-guide.md) - request patterns and review expectations for coding-agent execution
 
-## Planning and Continuity
+## Planning
 
-- [continuity-ledger.md](./planning/continuity-ledger.md) - current working context and handoff notes
 - [feature-requests.md](./planning/feature-requests.md) - durable feature requests and parity gaps
 - [priority-backlog.md](./planning/priority-backlog.md) - active critical/high-priority execution backlog
 - [project-improvements.md](./planning/project-improvements.md) - phased implementation tracker
@@ -34,5 +33,5 @@
 ## Audience Map
 
 - Contributors: `guides/contributing-guide.md`, `guides/testing-guide.md`, `guides/agent-collaboration-guide.md`
-- Maintainers: `guides/iterative-improvement-guide.md`, `planning/priority-backlog.md`, `planning/project-improvements.md`, `planning/continuity-ledger.md`
+- Maintainers: `guides/iterative-improvement-guide.md`, `planning/priority-backlog.md`, `planning/project-improvements.md`
 - Release management: `publishing/addon-description.txt`, `publishing/changelog.txt`

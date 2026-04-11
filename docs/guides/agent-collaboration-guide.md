@@ -32,7 +32,7 @@ This guide standardizes how to request work from coding agents for BetterUI.
 - New durable capability request: `docs/planning/feature-requests.md`
 - Immediate critical/high execution item: `docs/planning/priority-backlog.md`
 - Active implementation steps: `docs/planning/project-improvements.md`
-- Session handoff state: `docs/planning/continuity-ledger.md`
+- Session handoff and completion context: `docs/planning/project-improvements.md` and `docs/planning/completed-improvements.md`
 
 ## Validation Minimums
 

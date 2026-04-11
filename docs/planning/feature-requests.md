@@ -1,6 +1,6 @@
 # Feature Requests Backlog
 
-Last Updated: 2026-03-14
+Last Updated: 2026-04-11
 Status: Active
 
 This document tracks durable BetterUI feature gaps and parity opportunities discovered from ESO gamepad workflow audits.
@@ -51,6 +51,7 @@ This document tracks durable BetterUI feature gaps and parity opportunities disc
 
 | ID | Date | Area | Request | Impact | Effort | Priority | Status | Notes |
 |---|---|---|---|---|---|---|---|---|
+| `PLAT-001` | 2026-04-11 | Tooling | Add a BetterUI-specific `test-runner` profile for Lua harnesses such as `tools/tests/test_vendor_tabs.lua` and syntax checks | High | Medium | `P2` | Open | MCP fallback used for vendor regression work because available `test-runner` profiles targeted an unrelated Node project; needed operation: focused Lua test execution, expected MCP action: BetterUI Lua unit profile, recovery attempted: `test_query(action=list_profiles)` only returned Node suites. Follow-up validation gap: `mcp_file-utils_process_run` now rejects Lua execution and points to `test_validate(action="lua_run")`, but that validation action is not exposed in the current tool surface, so direct `lua` execution remains the only available verification path for BetterUI harnesses. |
 
 ## Closed
 

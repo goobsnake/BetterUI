@@ -7,7 +7,7 @@ This guide defines a repeatable improvement loop for BetterUI so planning, imple
 - `docs/planning/feature-requests.md`: long-horizon capability backlog.
 - `docs/planning/priority-backlog.md`: active `P0/P1` execution backlog.
 - `docs/planning/project-improvements.md`: current implementation plan and phase journal.
-- `docs/planning/continuity-ledger.md`: short handoff state for active focus.
+- `docs/planning/completed-improvements.md`: archived completion history and prior phase closeout details.
 - `docs/publishing/changelog.txt`: user-facing release notes.
 
 ## Improvement Cycle

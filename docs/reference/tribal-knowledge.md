@@ -8,6 +8,7 @@
 ## Last Updated
 
 **2026-03-14**: Refreshed after codebase audit; corrected file references to match current module layout.
+**2026-04-11**: Added full vendor directional-input incident guidance covering joystick lock-up, dimmed lists, and accelerated scrolling.
 
 ---
 
@@ -157,6 +158,157 @@
 - Central location for all shared code
 - DeferredTaskManager handles async task cancellation
 - SceneLifecycleManager standardizes scene callbacks
+
+### Vendor
+
+#### Vendor Directional-Input Incident (2026-04-11)
+
+This incident took multiple passes to resolve because it was not one bug. It was a stack of separate failures that presented as one broken vendor scene:
+
+1. Joystick directional input sometimes locked after closing vendor.
+2. The vendor item list sometimes appeared dimmed or out of focus.
+3. The item list sometimes scrolled far too fast.
+4. The vendor header/tab-bar could appear dimmed even when the list itself was active.
+
+The final fix required separating those symptoms and treating them as different failure modes.
+
+#### Symptoms And What They Actually Meant
+
+- `Joystick lock after leaving vendor`: some object was still registered on the global `DIRECTIONAL_INPUT` stack after vendor closed.
+- `Item list dimmed`: the list control was visually inactive. In ZOS gamepad lists, dimming is an activation-state issue, not just a directional-input owner issue.
+- `Item list scrolls too fast`: the same BetterUI vendor list had been registered on `DIRECTIONAL_INPUT` more than once, so one stick/d-pad input was processed multiple times.
+- `Header/LB/RB dimmed while list works`: vendor intentionally stripped header tab-bar input ownership to stop lockups, but also accidentally stripped its visual active state.
+
+#### False Leads That Cost Time
+
+These looked plausible during investigation but were not the final cause:
+
+1. `GuiRoot` ownership by itself was not the end-state bug. Unknown `GuiRoot` owners did appear during earlier debugging, but once those were removed the vendor could still be broken.
+2. Native scene aliasing was not enough to explain the final symptom. Aliasing `gamepad_store` to the BetterUI scene mattered, but it was not the complete explanation for dimmed lists or fast scrolling.
+3. `ForceReleaseDirectionalInput()` was not the final culprit. It looked suspicious because it aggressively deactivated everything, but the real issue was whether later re-activation paths restored the correct state atomically.
+4. Search/header focus leaks were real during the middle of the investigation, but they were not the final explanation once the item list was active again.
+
+#### Actual Root Causes
+
+There were four durable root causes.
+
+##### 1. Premature Header Activation
+
+- `tabBar:Activate()` registers the tab bar on `DIRECTIONAL_INPUT`.
+- Vendor previously allowed header activation during scene transitions.
+- If the scene was not fully showing, the tab bar could claim directional ownership too early and survive into later transitions.
+
+Durable rule:
+
+- Never activate a directional-input owner unless `scene:IsShowing()` is true.
+- Banking already used this pattern and Vendor had to match it.
+
+##### 2. Stale `confirmationMode`
+
+- Spinner confirmation mode disables list input.
+- If the scene hid while spinner/confirmation mode was active, `confirmationMode` could survive into the next vendor open.
+- That left the list looking present but behaving like spinner mode was still active.
+
+Durable rule:
+
+- Every mode flag that changes input behavior must be cleared in shared scene cleanup.
+- `confirmationMode` now belongs in `BETTERUI.CIM.SceneCleanup.CleanupInputState()`.
+
+##### 3. List Activation And DI Enablement Diverged
+
+- On `ZO_ParametricScrollList`, visual active state and DI ownership are related but not identical.
+- `SetDirectionalInputEnabled(true)` changes directional-input registration.
+- `Activate()` changes active state and, when directional input is enabled, also registers on `DIRECTIONAL_INPUT`.
+- Calling only one of them, or calling them in the wrong order, can leave the list active-looking but unresponsive, or responsive but visually dimmed.
+
+Durable rule:
+
+- Treat list activation as one atomic state transition, not two unrelated method calls.
+- Never enable DI on a parametric list without ensuring the list is also activated into the intended visual/input state.
+
+##### 4. Duplicate BetterUI List Registrations Caused Fast Scrolling
+
+- This was the final scroll-speed bug.
+- For ZOS parametric lists, both `SetDirectionalInputEnabled(true)` and `Activate()` call `DIRECTIONAL_INPUT:Activate(self, self.control)`.
+- Vendor was doing both during one inactive-list activation path.
+- Result: the same BetterUI vendor list self-registered more than once, so a single movement input was processed multiple times.
+
+Durable rule:
+
+- For `ZO_ParametricScrollList`, do not call `SetDirectionalInputEnabled(true)` and then `Activate()` as if they were independent safe steps.
+- If an inactive list is about to be activated, set `directionalInputEnabled` state for the upcoming activation and let `Activate()` perform the single real DI registration.
+- Also dedupe stale registrations before re-activation if previous refreshes may have stacked them.
+
+#### ESO Engine Behaviors That Matter Here
+
+These behaviors must be remembered for future scenes:
+
+1. `DIRECTIONAL_INPUT` is a global stack. Any orphaned owner can block every later scene.
+2. `ZO_ParametricScrollList:SetDirectionalInputEnabled(true)` directly registers the list on `DIRECTIONAL_INPUT`.
+3. `ZO_ParametricScrollList:Activate()` also registers the list when `directionalInputEnabled` is true.
+4. `ZO_ParametricScrollList:Deactivate()` and some other ZOS deactivate paths rely on internal `active` flags. If those flags are already stale, a plain deactivate call may not actually release DI.
+5. `Commit()` and `OnEffectivelyShown` can trigger activation side effects during list rebuilds.
+6. Scene aliasing changes name lookups in `SCENE_MANAGER`, not every existing object callback bound to the original native scene object.
+7. Deferred work such as `zo_callLater` or task-manager callbacks can reintroduce native or BetterUI input ownership after a close/hide unless guarded.
+
+#### Final Fix Pattern We Kept
+
+The final stable fix kept these pieces:
+
+1. Scene-gated activation for list and header paths.
+2. Shared cleanup that resets `confirmationMode` and other mode flags.
+3. Native store DI release before BetterUI vendor activation work begins.
+4. BetterUI vendor list deduplication before re-activation.
+5. Single-registration parametric-list activation semantics in `EnsureListInputActive()`.
+6. Header visual activation restored without giving the header tab bar DI ownership again.
+7. Deferred vendor refresh guards using `_isClosing` and strict scene-state checks.
+
+#### Debugging Procedure That Worked
+
+When a future scene shows joystick lock, dimmed lists, or fast scrolling, use this exact process:
+
+1. Run `/buidebug` while the bug is active.
+2. Read the full `DIRECTIONAL_INPUT` stack, not just the top entry.
+3. Look for duplicates of the same BetterUI object as well as foreign/native owners.
+4. If the list is dimmed, assume an active-state problem first, not just a leaked owner.
+5. If scrolling is too fast, count duplicate registrations of the same BetterUI list/control.
+6. Compare item-list behavior separately from header/tab-bar behavior; they may be failing for different reasons.
+7. If closing the scene causes the bug, inspect every deferred task that can re-run after hide.
+
+Commands that proved useful:
+
+- `/buidebug`: dumps the DI stack plus recent DI mutation trace.
+- `/buiscene`: confirms scene-state transitions if activation/cleanup ordering is suspicious.
+- `/buikeybinds`: useful when tab-bar/button groups are suspected.
+- `/builist`: useful when the list exists but selection/active state is wrong.
+
+#### Future Scene Checklist
+
+Before shipping any new gamepad scene that uses BetterUI lists, headers, or scene aliasing, verify all of the following:
+
+1. Every DI owner activates only when `scene:IsShowing()` is true.
+2. Every scene has symmetric hide/hidden cleanup.
+3. Every mode flag that affects focus or input is reset in shared cleanup.
+4. No parametric list activation path performs a double DI registration.
+5. Any deferred refresh task aborts when the scene is closing or no longer fully showing.
+6. Header visuals and header DI ownership are treated separately if shoulder buttons are rerouted elsewhere.
+7. `/buidebug` after rapid open/close cycles shows no duplicate BetterUI list registrations and no leaked native owners.
+
+#### What Not To Remove Lightly
+
+The following patterns looked redundant during the investigation but are intentionally retained because they guard different failure modes:
+
+- Explicit native store DI release before BetterUI vendor activation.
+- Forced BetterUI/vendor cleanup on hide and hidden transitions.
+- Stale search/header focus detachment in Vendor even though Vendor does not intentionally expose full search today.
+- Deferred normalization after list activation settles.
+
+If any of these are revisited later, retest all of the original failure modes:
+
+1. close-time joystick lock
+2. dimmed item list
+3. accelerated item scroll
+4. dimmed header/tab bar
 
 ---
 

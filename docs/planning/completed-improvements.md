@@ -1,5 +1,10 @@
 # Completed Improvements
 
+## [Completed] March 14 Completion Audit + Feature Gap Fixes (2026-04-11)
+**Summary**: Audited all March 14, 2026 completion claims against actual codebase. Identified 5 partially-implemented features and 2 missing planning docs. Fixed all gaps: integrated StatComparison into Banking and Companion surfaces (INV-001 parity), added narration registration for Vendor and TradingHouse scenes (ACC-001 parity), implemented Trading House search presets (TH-001), documented ORB_CONFIG table, and removed dead planning doc references (continuity-ledger.md, console-readiness.md). PLT-001 console readiness postponed.
+**Source Issue/Phase**: Post-completion audit of March 14 items
+**Related Files/Tests**: `Modules/Inventory/Core/StatComparison.lua` (equipBagId param), `Modules/Banking/Lists/BankRowSetup.lua` (stat comparison), `Modules/Companions/Core/CompanionItemList.lua` (stat comparison), `Modules/Vendor/Vendor.lua` (narration), `Modules/TradingHouse/TradingHouse.lua` (narration + preset keybinds), `Modules/TradingHouse/Components/SearchPresets.lua` (new), `Modules/TradingHouse/Module.lua` (searchPresets default), `Modules/ResourceOrbFrames/Core/OrbVisuals.lua` (ORB_CONFIG docs), `docs/README.md`, `docs/planning/completed-improvements.md`, `BetterUI.txt`
+
 ## [Completed] Second-Pass Audit Closeout + Language Maintenance Fix (2026-03-28)
 **Summary**: Performed requested second-pass deep verification and fixed additional misses: scene lifecycle task-manager routing/cancellation for Banking and Inventory, stale CIM template icon path, and strict-mode PowerShell `$Matches` collision in localization maintenance tooling.
 **Source Issue/Phase**: Post-refactor follow-up audit pass
@@ -25,7 +30,6 @@
 - `INV-004` - Companion equipment management workspace with comparison and slot views
 - `ECO-002` - Vendor/store enhancements (sorting, price context, batch junk sell UX)
 - `TH-001` - Guild store/trading house overhaul with stronger search, presets, and unit-price ergonomics
-- `PLT-001` - Console add-on support and mod-browser readiness track (planning doc only)
 - XML Template Audit - `[Modules/CIM/ConstantsUI.lua]`
 - v3.2 Compat Removal - `[Modules/CIM/ConstantsUI.lua]`
 - EmmyLua Typing - `[Modules/CIM/Core/Utilities.lua]`
@@ -35,5 +39,4 @@
 - `DeveloperDebug.lua` Split - Split from 627 lines to 114 lines by extracting BatchConfig, BatchOverlay, and BatchActions helpers
 - Anti-Spam Implementation Plan - All 15 items verified complete (re-entry guard, pipeline token, weighted cost, adaptive delay, jitter, rate limiting, chunk cooldowns, post-batch cooldown, destination slot)
 - Batch Safety Test Coverage - `test_batch_safety.lua` covering re-entry guard, pipeline token invalidation, and adaptive backoff
-- Session Continuity Ledger - `continuity-ledger.md` operating procedures codified into project workflow
-- Console Readiness Planning - `console-readiness.md` requirements checklist documented for future PLT-001 execution
+
