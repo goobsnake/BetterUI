@@ -26,7 +26,7 @@ BETTERUI.Inventory = BETTERUI.Inventory or {}
 --- @field equippedSet string|nil Equipped set name
 
 --- @class StatComparisonModule
---- @field Compare fun(candidateLink: string, candidateBagId: number, candidateSlotIndex: number): StatComparisonResult|nil
+--- @field Compare fun(candidateLink: string, candidateBagId: number, candidateSlotIndex: number, equipBagId?: number): StatComparisonResult|nil
 --- @field FormatForTooltip fun(result: StatComparisonResult|nil): string
 BETTERUI.Inventory.StatComparison = {}
 
@@ -158,8 +158,10 @@ end
 --- @param candidateLink string Item link of the candidate item
 --- @param candidateBagId number Bag ID of the candidate
 --- @param candidateSlotIndex number Slot index of the candidate
+--- @param equipBagId number|nil Bag to compare against (default: BAG_WORN; use BAG_COMPANION_WORN for companions)
 --- @return StatComparisonResult|nil result Comparison result or nil if not applicable
-function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotIndex)
+function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotIndex, equipBagId)
+    equipBagId = equipBagId or BAG_WORN
     if not candidateLink or candidateLink == "" then return nil end
 
     -- 1. Determine the equip slot
@@ -167,7 +169,7 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     if not equipSlot then return nil end
 
     -- 2. Get the currently equipped item
-    local equippedLink = GetItemLink(BAG_WORN, equipSlot)
+    local equippedLink = GetItemLink(equipBagId, equipSlot)
     if not equippedLink or equippedLink == "" then
         -- Nothing equipped in this slot — show as pure upgrade
         local candidateStats = ExtractStats(candidateLink)
@@ -187,7 +189,7 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
         -- Same base item — check if same specific instance
         local candidateUniqueId = candidateBagId and candidateSlotIndex and
             GetItemUniqueId(candidateBagId, candidateSlotIndex)
-        local equippedUniqueId = GetItemUniqueId(BAG_WORN, equipSlot)
+        local equippedUniqueId = GetItemUniqueId(equipBagId, equipSlot)
         if candidateUniqueId and equippedUniqueId and
             Id64ToString(candidateUniqueId) == Id64ToString(equippedUniqueId) then
             return nil -- Same exact item

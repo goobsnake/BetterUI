@@ -32,18 +32,23 @@ local function IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
         and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
         and not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
     then
-        return false
+        return false, "furniture_vault_locked"
     end
 
     -- Use shared protection policy for transfer validation
-    if not BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag) then
-        return false
+    -- (checks HasItemAtSlot, IsItemStolen, GetItemBindType, guild-bank rules)
+    local canTransfer, denyReason = BETTERUI.CIM.ProtectionPolicy.CanTransferItem(bagId, slotIndex, targetBankBag)
+    if not canTransfer then
+        return false, denyReason
     end
 
-    -- Additional furniture vault check
+    -- Gemmable furniture check (stolen already verified by CanTransferItem above)
     if targetBankBag == FURNITURE_VAULT_BAG_ID
-        and not BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault(bagId, slotIndex) then
-        return false
+        and CROWN_GEMIFICATION_MANAGER
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
+        and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(bagId, slotIndex) then
+        local deny = BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY
+        return false, (deny and deny.CROWN_GEMMABLE) or "crown_gemmable"
     end
 
     return true

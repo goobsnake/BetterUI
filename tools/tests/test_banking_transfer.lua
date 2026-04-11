@@ -74,6 +74,10 @@ BETTERUI = {
     },
     CIM = {
         ProtectionPolicy = {
+            DENY = {
+                STOLEN = "stolen",
+                CROWN_GEMMABLE = "crown_gemmable",
+            },
             CanTransferItem = function() return true end,
             CanDepositToFurnitureVault = function() return true end,
         },
@@ -233,13 +237,17 @@ assertTrue(Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK), "Normal item can b
 
 resetState()
 print("\n-- ProtectionPolicy denies transfer --")
-BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false end
-assertFalse(Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK), "Denied by ProtectionPolicy")
+BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN end
+local allowed, reason = Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK)
+assertFalse(allowed, "Denied by ProtectionPolicy")
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.STOLEN, reason, "Returns deny reason from policy")
 
 resetState()
 print("\n-- Bind-on-pickup item blocked --")
-itemBindTypes["1:5"] = BIND_TYPE_ON_PICKUP_BACKPACK
-assertFalse(Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK), "BOP item cannot be deposited")
+BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function() return false, "bop_backpack" end
+allowed, reason = Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK)
+assertFalse(allowed, "BOP item cannot be deposited")
+assertEqual("bop_backpack", reason, "Returns BOP deny reason")
 
 resetState()
 print("\n-- Bind-on-equip item allowed --")
@@ -247,15 +255,20 @@ itemBindTypes["1:5"] = BIND_TYPE_ON_EQUIP
 assertTrue(Helpers.IsDepositSupportedForBank(1, 5, BAG_BANK), "BOE item can be deposited")
 
 resetState()
-print("\n-- Furniture vault denied by policy --")
-BETTERUI.CIM.ProtectionPolicy.CanDepositToFurnitureVault = function() return false end
-assertFalse(Helpers.IsDepositSupportedForBank(1, 5, BAG_FURNITURE_VAULT),
-    "Furniture vault deposit denied by vault policy")
+print("\n-- Furniture vault denied by gemmable check --")
+CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return true end }
+allowed, reason = Helpers.IsDepositSupportedForBank(1, 5, BAG_FURNITURE_VAULT)
+assertFalse(allowed, "Furniture vault deposit denied for gemmable item")
+assertEqual(BETTERUI.CIM.ProtectionPolicy.DENY.CROWN_GEMMABLE, reason,
+    "Returns crown gemmable deny reason")
+CROWN_GEMIFICATION_MANAGER = nil
 
 resetState()
-print("\n-- Furniture vault allowed when policy passes --")
+print("\n-- Furniture vault allowed when not gemmable --")
+CROWN_GEMIFICATION_MANAGER = { IsItemGemmable = function() return false end }
 assertTrue(Helpers.IsDepositSupportedForBank(1, 5, BAG_FURNITURE_VAULT),
-    "Furniture vault deposit allowed when policy passes")
+    "Furniture vault deposit allowed for non-gemmable item")
+CROWN_GEMIFICATION_MANAGER = nil
 
 -- ============================================================================
 -- TESTS: ResolveDepositTargetBag

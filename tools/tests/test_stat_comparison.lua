@@ -48,6 +48,7 @@ WEAPONTYPE_SWORD = 1
 ITEM_TRAIT_TYPE_NONE = 0
 
 BAG_WORN = 0
+BAG_COMPANION_WORN = 1
 
 -- ============================================================================
 -- ITEM DATABASE (mock inventory)
@@ -124,6 +125,7 @@ local itemDB = {
 
 -- Equipped items (keyed by equip slot)
 local equippedItems = {}
+local companionEquippedItems = {}
 
 local function getItemData(link)
     return link and itemDB[link]
@@ -138,6 +140,9 @@ end
 function GetItemLink(bagId, slotIndex)
     if bagId == BAG_WORN then
         return equippedItems[slotIndex] or ""
+    end
+    if bagId == BAG_COMPANION_WORN then
+        return companionEquippedItems[slotIndex] or ""
     end
     return ""
 end
@@ -262,6 +267,7 @@ end
 
 local function reset()
     equippedItems = {}
+    companionEquippedItems = {}
     assignedIds = {}
     uniqueIdCounter = 0
 end
@@ -377,6 +383,23 @@ for _, line in ipairs(result.lines) do
     end
 end
 assert_true(hasColorCode, "display lines contain color codes")
+
+-- Test 14: Companion equip bag uses BAG_COMPANION_WORN for comparisons
+print("\nTest: Companion equip bag comparison")
+reset()
+companionEquippedItems[EQUIP_SLOT_MAIN_HAND] = "iron_sword"
+result = StatComparison.Compare("steel_sword", 2, 1, BAG_COMPANION_WORN)
+assert_not_nil(result, "companion comparison returns result")
+assert_equal("iron_sword", result.equippedLink, "companion equipped item used")
+assert_equal(100, result.deltas.weaponDamage, "companion weapon damage delta = +100")
+
+-- Test 15: Companion equip bag empty slot reports upgrade
+print("\nTest: Companion equip bag empty slot")
+reset()
+result = StatComparison.Compare("iron_helm", 2, 1, BAG_COMPANION_WORN)
+assert_not_nil(result, "companion empty slot returns result")
+assert_true(result.isUpgrade, "companion empty slot is upgrade")
+assert_nil(result.equippedLink, "companion empty slot has no equipped link")
 
 -- ============================================================================
 -- SUMMARY

@@ -88,6 +88,10 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
     end
 
     if container then
+        if container._betterUiComparison then
+            container._betterUiComparison:SetHidden(true)
+            container._betterUiComparison:SetText("")
+        end
         local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
         local scrollTooltip = container:GetNamedChild("Tip")
         if bottomRail then
@@ -122,5 +126,4 @@ function BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
         GAMEPAD_TOOLTIPS:ClearStatusLabel(tooltipType)
     end
 end
-
 

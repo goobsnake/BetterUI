@@ -131,6 +131,11 @@ function BETTERUI.Banking.Class:OnSceneShowing(wasPushed)
             return
         end
 
+        -- A pending moveCoalesce already covers this refresh; skip to avoid a double rebuild.
+        if BETTERUI.Banking.Tasks:IsPending("moveCoalesce") then
+            return
+        end
+
         self.isDirty = true
         RebuildCategoriesAndRefreshList()
     end

@@ -53,12 +53,37 @@ local function IsActionableBankSlotEntry(entryData)
     return stackCount > 0
 end
 
-local function IsDepositAllowedForCurrentBank(bagId, slotIndex, targetBankBag)
-    local helpers = BETTERUI.Banking and BETTERUI.Banking._TransferHelpers
-    if helpers and type(helpers.IsDepositSupportedForBank) == "function" then
-        return helpers.IsDepositSupportedForBank(bagId, slotIndex, targetBankBag)
+-- MultiSelectActions.lua loads before this file (see BetterUI.txt manifest),
+-- so _TransferHelpers is already populated.
+local IsDepositAllowedForCurrentBank = BETTERUI.Banking._TransferHelpers.IsDepositSupportedForBank
+
+---@param targetBankBag number
+---@param denyReason string|nil
+---@return nil
+local function NotifyDepositBlocked(targetBankBag, denyReason)
+    if not denyReason then
+        return
     end
-    return true
+
+    local deny = BETTERUI.CIM and BETTERUI.CIM.ProtectionPolicy and BETTERUI.CIM.ProtectionPolicy.DENY or {}
+    local errorStringId = nil
+
+    if denyReason == "furniture_vault_locked" then
+        errorStringId = IsESOPlusSubscriber and IsESOPlusSubscriber()
+            and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
+            or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
+    elseif denyReason == deny.STOLEN then
+        local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
+        errorStringId = targetIsFurnitureVault
+            and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
+            or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
+    elseif denyReason == deny.CROWN_GEMMABLE then
+        errorStringId = SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE
+    end
+
+    if errorStringId ~= nil then
+        ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
+    end
 end
 
 -- Stack-finding logic now uses shared CIM helper: BETTERUI.CIM.Utils.FindStackableSlotInBag
@@ -151,43 +176,13 @@ function BETTERUI.Banking.Class:MoveItem(list, quantity)
     local toBagEmptyIndex
     local toBagIndex
 
-    if isDepositing then
-        local targetIsFurnitureVault = IsFurnitureVault and IsFurnitureVault(targetBankBag)
-        if targetIsFurnitureVault
-            and HOUSING_EDITOR_STATE
-            and HOUSING_EDITOR_STATE.CanDepositIntoFurnitureVault
-            and not HOUSING_EDITOR_STATE:CanDepositIntoFurnitureVault()
-        then
-            local blockedReason = IsESOPlusSubscriber and IsESOPlusSubscriber()
-                and SI_FURNITURE_VAULT_ERROR_NEED_COLLECTIBLE
-                or SI_FURNITURE_VAULT_ERROR_NEED_ESO_PLUS
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, blockedReason)
-            return
-        end
-
-        if IsItemStolen and IsItemStolen(fromBag, fromBagIndex) then
-            local errorStringId = targetIsFurnitureVault
-                and SI_FURNITURE_VAULT_ERROR_STOLEN_FURNITURE
-                or SI_STOLEN_ITEM_CANNOT_DEPOSIT_MESSAGE
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, errorStringId)
-            return
-        end
-
-        local isGemmableFurniture = targetIsFurnitureVault
-            and CROWN_GEMIFICATION_MANAGER
-            and CROWN_GEMIFICATION_MANAGER.IsItemGemmable
-            and CROWN_GEMIFICATION_MANAGER.IsItemGemmable(tonumber(fromBag), tonumber(fromBagIndex))
-        if isGemmableFurniture then
-            ZO_Alert(UI_ALERT_CATEGORY_ERROR, SOUNDS.NEGATIVE_CLICK, SI_FURNITURE_VAULT_ERROR_GEMMABLE_FURNITURE)
-            return
-        end
-    end
-
     if not isDepositing then
         toBag = BAG_BACKPACK
         toBagEmptyIndex = FindFirstEmptySlotInBag(toBag)
     else
-        if not IsDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag) then
+        local canDeposit, denyReason = IsDepositAllowedForCurrentBank(fromBag, fromBagIndex, targetBankBag)
+        if not canDeposit then
+            NotifyDepositBlocked(targetBankBag, denyReason)
             return
         end
         toBag, toBagEmptyIndex = FindEmptySlotInBank()
