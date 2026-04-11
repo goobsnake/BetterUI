@@ -92,7 +92,9 @@ function BETTERUI.Inventory.Class:InitializeItemList()
 
             self:PrepareNextClearNewStatus(selectedData)
 
-            -- Keybind Refresh - protected by RefreshKeybinds() override
+            -- Keybind Refresh - protected by RefreshKeybinds() override.
+            -- Let the override handle transition windows so settled reselection
+            -- can update the A-button in the same frame.
             self:RefreshKeybinds()
 
             -- Update scroll indicator position
@@ -416,6 +418,9 @@ function BETTERUI.Inventory.Class:RefreshItemList()
     -- Priority: _splitStackUniqueId > _preserveUniqueId > uniqueId > savedIndex
     local targetUniqueId = nil
     local targetIndex = nil
+    local hadActionPreserveContext = (self._splitStackUniqueId ~= nil) or (self._preserveUniqueId ~= nil) or
+        (self._preserveIndex ~= nil)
+    local preservedIndex = self._preserveIndex
 
     -- Priority 1: Split stack specific (set in dialog callback)
     if self._splitStackUniqueId then
@@ -436,16 +441,18 @@ function BETTERUI.Inventory.Class:RefreshItemList()
         end
     end
 
+    -- If the action flow provided an explicit preserved index, prefer that over
+    -- saved/current fallback indices (consumed items should advance to next row).
+    if preservedIndex and hadActionPreserveContext then
+        targetIndex = preservedIndex
+    end
+
     -- Capture current active index before clearing as an ultimate fallback
     -- Skip during category switches to prevent stale index from old category bleeding through
-    if not targetIndex and not self._categorySwitchInProgress and self.itemList:GetSelectedIndex() then
+    if not targetIndex and not hadActionPreserveContext and not self._categorySwitchInProgress and self.itemList:GetSelectedIndex() then
         targetIndex = self.itemList:GetSelectedIndex()
     end
 
-    -- Priority fallback: Global preserve index (when item leaves list after equip/consume)
-    if not targetIndex and self._preserveIndex then
-        targetIndex = self._preserveIndex
-    end
     self._preserveIndex = nil -- Clear after capturing
 
     -- Update empty-state text based on search context

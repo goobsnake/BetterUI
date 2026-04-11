@@ -7,6 +7,111 @@ Purpose: Hosts craft bag and cross-list keybind helpers used by the
 local InventoryKeybinds = BETTERUI.Inventory.Keybinds
 local InventoryConst = BETTERUI.Inventory.CONST
 local InventoryUtils = BETTERUI.Inventory.Utils
+local PRIMARY_ACTION_TRANSITION_WINDOW_MS = 250
+local PRIMARY_ACTION_EQUIP_TRANSITION_WINDOW_MS = 700
+
+local function GetNowMilliseconds()
+    return GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+end
+
+local function NormalizeActionName(actionName)
+    if type(actionName) ~= "string" then
+        return actionName
+    end
+    if actionName == "" then
+        return nil
+    end
+    return actionName
+end
+
+local function ResolvePrimaryActionState(self)
+    if not self or not self.itemActions then
+        return nil, nil
+    end
+
+    local slotActions = self.itemActions.slotActions
+    local actionName = NormalizeActionName(self.itemActions.actionName)
+    if not actionName and slotActions and slotActions.GetPrimaryActionName then
+        actionName = NormalizeActionName(slotActions:GetPrimaryActionName())
+    end
+    if not actionName and slotActions then
+        actionName = NormalizeActionName(slotActions._betterui_primaryName)
+    end
+    return actionName, slotActions
+end
+
+local function ClearStalePrimaryOverride(slotActions)
+    if not slotActions then
+        return
+    end
+    if slotActions._betterui_primaryOverride and not NormalizeActionName(slotActions._betterui_primaryName) then
+        slotActions._betterui_primaryOverride = nil
+        slotActions._betterui_primaryName = nil
+    end
+end
+
+local function ResolveMultiSelectActionName(self, target, isCraftBag, afterToggle)
+    if not self then
+        return nil
+    end
+    local manager = isCraftBag and self.craftBagMultiSelectManager or self.multiSelectManager
+    if not manager then
+        return nil
+    end
+
+    local isSelected = target and manager:IsSelected(target) or false
+    if afterToggle then
+        isSelected = not isSelected
+    end
+    if isSelected then
+        return GetString(SI_BETTERUI_DESELECT_ITEM)
+    end
+
+    local count = manager.GetSelectedCount and manager:GetSelectedCount() or 0
+    if afterToggle and target then
+        local currentlySelected = manager:IsSelected(target)
+        if currentlySelected then
+            count = math.max(0, count - 1)
+        else
+            count = count + 1
+        end
+    end
+    return zo_strformat(GetString(SI_BETTERUI_SELECT_WITH_COUNT), count)
+end
+
+local function IsPrimaryActionTransitionActive(self)
+    if not self or not self._primaryActionTransitionExpiresMs then
+        return false
+    end
+    return GetNowMilliseconds() <= self._primaryActionTransitionExpiresMs
+end
+
+local function GetPrimaryActionTransitionWindowMs(actionName)
+    local equipName = GetString(SI_ITEM_ACTION_EQUIP)
+    local unequipName = GetString(SI_ITEM_ACTION_UNEQUIP)
+    if actionName == equipName or actionName == unequipName then
+        return PRIMARY_ACTION_EQUIP_TRANSITION_WINDOW_MS
+    end
+    return PRIMARY_ACTION_TRANSITION_WINDOW_MS
+end
+
+local function StartPrimaryActionTransition(self, actionName)
+    if not self then
+        return
+    end
+    local resolvedActionName = NormalizeActionName(actionName)
+    if not resolvedActionName then
+        resolvedActionName = select(1, ResolvePrimaryActionState(self))
+    end
+    if not resolvedActionName then
+        resolvedActionName = NormalizeActionName(self._lastResolvedPrimaryActionName)
+    end
+    if resolvedActionName then
+        self._primaryActionTransitionName = resolvedActionName
+        self._lastResolvedPrimaryActionName = resolvedActionName
+    end
+    self._primaryActionTransitionExpiresMs = GetNowMilliseconds() + GetPrimaryActionTransitionWindowMs(resolvedActionName)
+end
 
 local function IsBagUpgradeAvailable()
     local currentUnlock = (GetCurrentBackpackUpgrade and GetCurrentBackpackUpgrade()) or 0
@@ -167,34 +272,43 @@ function InventoryKeybinds.GetPrimaryKeybindName(self)
         if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
             return ""
         end
-        if target and self.multiSelectManager:IsSelected(target) then
-            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
+        local multiSelectActionName = ResolveMultiSelectActionName(self, target, false, false)
+        if multiSelectActionName then
+            self._lastResolvedPrimaryActionName = multiSelectActionName
         end
-        local count = self.multiSelectManager:GetSelectedCount()
-        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
+        return multiSelectActionName or ""
     end
 
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
-        if target and self.craftBagMultiSelectManager:IsSelected(target) then
-            return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM"))
+        local multiSelectActionName = ResolveMultiSelectActionName(self, target, true, false)
+        if multiSelectActionName then
+            self._lastResolvedPrimaryActionName = multiSelectActionName
         end
-        local count = self.craftBagMultiSelectManager:GetSelectedCount()
-        return zo_strformat(GetString(rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")), count)
+        return multiSelectActionName or ""
     end
 
-    if self.itemActions and self.itemActions.actionName then
-        return self.itemActions.actionName
+    if IsPrimaryActionTransitionActive(self) and self._primaryActionTransitionName then
+        return self._primaryActionTransitionName
     end
 
-    if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG"))
+    local baseName = select(1, ResolvePrimaryActionState(self))
+    if not baseName then
+        if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
+            baseName = GetString(SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG)
+        elseif target and target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
+            baseName = GetString(SI_ITEM_ACTION_EQUIP)
+        elseif target then
+            baseName = GetString(SI_ITEM_ACTION_USE)
+        else
+            baseName = GetString(SI_ITEM_ACTION_USE)
+        end
     end
 
-    if target and target.bagId and target.slotIndex and IsEquipable(target.bagId, target.slotIndex) then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP"))
+    baseName = NormalizeActionName(baseName)
+    if baseName then
+        self._lastResolvedPrimaryActionName = baseName
     end
-
-    return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
+    return baseName or ""
 end
 
 ---@param self table Inventory class instance
@@ -209,12 +323,19 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
         return false
     end
 
+    if IsPrimaryActionTransitionActive(self) then
+        return true
+    end
+
     if IsBagUpgradeCategorySelected(self) then
         return true
     end
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
-        local target = self.itemList and self.itemList.selectedData
+        local target = InventoryUtils.SafeGetTargetData(self.itemList)
+        if not target and self.itemList then
+            target = self.itemList.selectedData
+        end
         if target and ZO_InventoryUtils_DoesNewItemMatchFilterType(target, ITEMFILTERTYPE_QUEST) then
             return false
         end
@@ -225,15 +346,28 @@ function InventoryKeybinds.IsPrimaryKeybindVisible(self)
         return true
     end
 
-    if self.itemActions and self.itemActions.slotActions and not self.itemActions.actionName then
-        return false
-    end
-
     if self.itemActions and self.itemActions.slotActions then
-        return self.itemActions.slotActions:CheckPrimaryActionVisibility()
+        local visible = self.itemActions.slotActions:CheckPrimaryActionVisibility()
+        if visible then
+            return true
+        end
+        if IsPrimaryActionTransitionActive(self) then
+            return true
+        end
     end
 
-    return GetCurrentTarget(self) ~= nil
+    if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
+        if InventoryUtils.SafeGetTargetData(self.craftBagList) ~= nil then
+            return true
+        end
+        return IsPrimaryActionTransitionActive(self)
+    end
+
+    if InventoryUtils.SafeGetTargetData(self.itemList) ~= nil then
+        return true
+    end
+
+    return IsPrimaryActionTransitionActive(self)
 end
 
 ---@param self table Inventory class instance
@@ -251,6 +385,7 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     if self.craftBagMultiSelectManager and self.craftBagMultiSelectManager:IsActive() then
         local target = InventoryUtils.SafeGetTargetData(self.craftBagList)
         if target then
+            StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, true, true))
             self.craftBagMultiSelectManager:ToggleSelection(target)
             self:RefreshCraftBagList()
         end
@@ -258,19 +393,19 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
     end
 
     if self.multiSelectManager and self.multiSelectManager:IsActive() then
-        local target = self.itemList and self.itemList.selectedData
+        local target = InventoryUtils.SafeGetTargetData(self.itemList)
+        if not target and self.itemList then
+            target = self.itemList.selectedData
+        end
         if target then
+            StartPrimaryActionTransition(self, ResolveMultiSelectActionName(self, target, false, true))
             self.multiSelectManager:ToggleSelection(target)
             self:RefreshItemList()
         end
         return
     end
 
-    local actionName
-    if self.itemActions then
-        actionName = self.itemActions.actionName
-        self.itemActions.actionName = nil
-    end
+    local actionName, slotActions = ResolvePrimaryActionState(self)
 
     local currentTarget = nil
     if self.actionMode == InventoryConst.ITEM_LIST_ACTION_MODE then
@@ -282,9 +417,79 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
         return
     end
 
-    if self.itemActions and self.itemActions.slotActions then
-        local slotActions = self.itemActions.slotActions
-        if slotActions._betterui_primaryOverride then
+    if self.itemActions and slotActions then
+        local function HasExecutablePrimaryAction(actions, expectedActionName)
+            if not actions then
+                return false
+            end
+
+            local overrideName = NormalizeActionName(actions._betterui_primaryName)
+            if type(actions._betterui_primaryOverride) == "function"
+                and overrideName
+                and (not expectedActionName or expectedActionName == overrideName) then
+                return true
+            end
+
+            if not actions.m_slotActions or #actions.m_slotActions == 0 then
+                return false
+            end
+
+            if expectedActionName then
+                for i = 1, #actions.m_slotActions do
+                    local actionEntry = actions.m_slotActions[i]
+                    if actionEntry and actionEntry[1] == expectedActionName and type(actionEntry[2]) == "function" then
+                        return true
+                    end
+                end
+            end
+
+            local primaryActionName = NormalizeActionName(actions:GetPrimaryActionName())
+            if primaryActionName then
+                for i = 1, #actions.m_slotActions do
+                    local actionEntry = actions.m_slotActions[i]
+                    if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
+                        return true
+                    end
+                end
+            end
+
+            local firstAction = actions.m_slotActions[1]
+            return firstAction and type(firstAction[2]) == "function"
+        end
+
+        local function ExecutePrimaryAction(actions, expectedActionName)
+            if not HasExecutablePrimaryAction(actions, expectedActionName) then
+                return false
+            end
+
+            local overrideName = NormalizeActionName(actions._betterui_primaryName)
+            if type(actions._betterui_primaryOverride) == "function"
+                and overrideName
+                and (not expectedActionName or expectedActionName == overrideName) then
+                actions._betterui_primaryOverride()
+            else
+                actions:DoPrimaryAction()
+            end
+            return true
+        end
+
+        if not actionName then
+            ClearStalePrimaryOverride(slotActions)
+            if self.RefreshItemActions then
+                self:RefreshItemActions()
+            end
+            actionName, slotActions = ResolvePrimaryActionState(self)
+        end
+
+        if not actionName or not slotActions then
+            return
+        end
+
+        StartPrimaryActionTransition(self, actionName)
+        local overrideName = NormalizeActionName(slotActions._betterui_primaryName)
+        if type(slotActions._betterui_primaryOverride) == "function"
+            and overrideName
+            and overrideName == actionName then
             slotActions._betterui_primaryOverride()
         elseif actionName == GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
             or actionName == GetString(rawget(_G, "SI_ITEM_ACTION_SHOW_MAP"))
@@ -298,48 +503,25 @@ function InventoryKeybinds.HandlePrimaryKeybind(self)
                 ZO_TryPlaceFurnitureFromInventorySlot(bag, slot)
             end
         else
-            local function HasExecutablePrimaryAction(actions)
-                if not actions then
-                    return false
-                end
-                if actions._betterui_primaryOverride then
-                    return true
-                end
-                if not actions.m_slotActions or #actions.m_slotActions == 0 then
-                    return false
-                end
-
-                local primaryActionName = actions:GetPrimaryActionName()
-                if primaryActionName then
-                    for i = 1, #actions.m_slotActions do
-                        local actionEntry = actions.m_slotActions[i]
-                        if actionEntry and actionEntry[1] == primaryActionName and type(actionEntry[2]) == "function" then
-                            return true
-                        end
-                    end
-                end
-
-                local firstAction = actions.m_slotActions[1]
-                return firstAction and type(firstAction[2]) == "function"
+            if ExecutePrimaryAction(slotActions, actionName) then
+                return
             end
 
-            if HasExecutablePrimaryAction(slotActions) then
-                slotActions:DoPrimaryAction()
-            else
+            if self.RefreshItemActions then
                 self:RefreshItemActions()
-                local refreshedSlotActions = self.itemActions and self.itemActions.slotActions
-                if refreshedSlotActions and HasExecutablePrimaryAction(refreshedSlotActions) then
-                    if refreshedSlotActions._betterui_primaryOverride then
-                        refreshedSlotActions._betterui_primaryOverride()
-                    else
-                        refreshedSlotActions:DoPrimaryAction()
-                    end
-                end
+            end
+            actionName, slotActions = ResolvePrimaryActionState(self)
+            if actionName and slotActions then
+                StartPrimaryActionTransition(self, actionName)
+                ExecutePrimaryAction(slotActions, actionName)
+            else
+                ClearStalePrimaryOverride(slotActions)
             end
         end
         return
     end
 
+    StartPrimaryActionTransition(self, actionName)
     local target = currentTarget
     if target and target.bagId and target.slotIndex then
         if IsEquipable(target.bagId, target.slotIndex) then
@@ -354,38 +536,50 @@ end
 ---@param self table Inventory class instance
 ---@return string name Localized keybind label for secondary action
 function InventoryKeybinds.GetSecondaryKeybindName(self)
+    if IsPrimaryActionTransitionActive(self) and self._lastSecondaryActionName then
+        return self._lastSecondaryActionName
+    end
+
+    local name = ""
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
-    end
-
-    local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
-    if not actionContext then
-        return ""
-    end
-
-    if actionContext.isQuickslottable then
-        local slotNum = GetAssignedQuickslot(actionContext.target, actionContext.isQuestItem)
-        if slotNum then
-            return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN"))
+        name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
+    else
+        local actionContext = InventoryKeybinds.GetXButtonActionContext(self)
+        if not actionContext then
+            return ""
         end
-        return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
+
+        if actionContext.isQuickslottable then
+            local slotNum = GetAssignedQuickslot(actionContext.target, actionContext.isQuestItem)
+            if slotNum then
+                name = GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_UNASSIGN"))
+            else
+                name = GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
+            end
+        elseif not actionContext.isQuestItem and actionContext.isEquipment then
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
+        elseif actionContext.isUsableQuest then
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
+        else
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
+        end
     end
 
-    if not actionContext.isQuestItem and actionContext.isEquipment then
-        return GetString(rawget(_G, "SI_BETTERUI_INV_SWITCH_INFO"))
+    name = name or ""
+    if name ~= "" then
+        self._lastSecondaryActionName = name
     end
-
-    if actionContext.isUsableQuest then
-        return GetString(rawget(_G, "SI_ITEM_ACTION_USE"))
-    end
-
-    return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
+    return name
 end
 
 ---@param self table Inventory class instance
 ---@return boolean visible Whether the secondary keybind should be shown
 function InventoryKeybinds.IsSecondaryKeybindVisible(self)
     if self:IsBatchProcessing() then
+        return false
+    end
+
+    if self.itemActions and self.itemActions.actionName == GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT")) then
         return false
     end
 
@@ -431,16 +625,35 @@ function InventoryKeybinds.HandleSecondaryKeybind(self)
                 PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
             end
 
-            local preserveId = actionContext.target and actionContext.target.uniqueId
-            zo_callLater(function()
-                if self.RefreshKeybinds and self.itemList then
-                    if preserveId then
-                        self._preserveUniqueId = preserveId
-                    end
-                    self:RefreshKeybinds()
-                    self:RefreshItemList()
+            StartPrimaryActionTransition(self, nil)
+            if actionContext.target and actionContext.target.uniqueId then
+                self._preserveUniqueId = actionContext.target.uniqueId
+            end
+
+            local function RefreshAfterQuickslotUnassign()
+                if self.control and self.control.IsHidden and self.control:IsHidden() then
+                    return
                 end
-            end, 100)
+                if self.actionMode ~= InventoryConst.ITEM_LIST_ACTION_MODE then
+                    return
+                end
+                local target = actionContext.target
+                if target and target.bagId and target.slotIndex and self.InvalidateItemMeta then
+                    self:InvalidateItemMeta(target.bagId, target.slotIndex)
+                end
+                if self.InvalidateSlotDataCache then
+                    self:InvalidateSlotDataCache()
+                end
+                self:RefreshKeybinds()
+                self:RefreshItemList()
+            end
+
+            RefreshAfterQuickslotUnassign()
+            if BETTERUI.Inventory.Tasks and BETTERUI.Inventory.Tasks.Schedule then
+                BETTERUI.Inventory.Tasks:Schedule("quickslotUnassignRefresh", 80, RefreshAfterQuickslotUnassign)
+            else
+                zo_callLater(RefreshAfterQuickslotUnassign, 80)
+            end
         else
             zo_callLater(function()
                 self:ShowQuickslot()

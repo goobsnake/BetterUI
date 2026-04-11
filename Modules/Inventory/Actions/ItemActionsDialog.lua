@@ -16,6 +16,7 @@ Purpose: Wires up the "Y-Action" menu (Action Dialog) for inventory items.
 ---@return nil
 function BETTERUI.Inventory.Class:InitializeItemActions()
     self.itemActions = BETTERUI.Inventory.SlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
+    self.itemActions:SetUseKeybindStrip(false)
 end
 
 -- ACTION DIALOG INITIALIZATION (Wiring Only)

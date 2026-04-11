@@ -138,9 +138,31 @@ function BETTERUI.Inventory.Class:RefreshKeybinds()
     if self:IsBatchProcessing() then
         return
     end
-    -- Call parent implementation
-    ZO_GamepadInventory.RefreshKeybinds(self)
+    local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+    local inPrimaryActionTransition = self._primaryActionTransitionExpiresMs
+        and nowMs <= self._primaryActionTransitionExpiresMs
+
+    -- During short action transitions (especially equip/unequip), avoid full
+    -- strip rebuild churn and only update labels/visibility in-place.
+    -- Do not coalesce transition-frame updates: the first refresh can happen
+    -- before list reselection settles, and the later same-frame refresh is what
+    -- corrects stale/blank A-button labels without waiting for another input.
+    if inPrimaryActionTransition then
+        if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+        end
+        return
+    end
+
+    -- Update our own keybind group directly instead of calling the parent
+    -- ZO_GamepadInventory.RefreshKeybinds updates ESO's base keybindStripDescriptor,
+    -- which may not be the active group. BetterUI uses mainKeybindStripDescriptor
+    -- set via SetActiveKeybinds, so we update that directly.
+    if self.mainKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.mainKeybindStripDescriptor)
+    end
 end
+
 
 --[[
 Function: SetSelectedInventoryData (Override)
@@ -153,6 +175,20 @@ References: Called on every selection change via selection callbacks.
 ]]
 --- Sets the selected inventory data (override with guards).
 function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
+    local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+    local inPrimaryActionTransition = self._primaryActionTransitionExpiresMs
+        and nowMs <= self._primaryActionTransitionExpiresMs
+    local dataSource = inventoryData and (inventoryData.dataSource or inventoryData) or nil
+    local uniqueId = dataSource and dataSource.uniqueId
+    local uniqueIdString = uniqueId and ((Id64ToString and Id64ToString(uniqueId)) or tostring(uniqueId)) or ""
+    local selectionFingerprint = string.format(
+        "%s|%s|%s|%s",
+        uniqueIdString,
+        tostring(dataSource and dataSource.bagId or ""),
+        tostring(dataSource and dataSource.slotIndex or ""),
+        tostring(dataSource and dataSource.slotType or "")
+    )
+
     -- Skip itemActions keybind updates when in header sort mode
     -- This is the REAL fix for the "A-Button Burn" flicker - itemActions:SetInventorySlot
     -- calls RefreshKeybindStrip() which directly manipulates KEYBIND_STRIP, bypassing
@@ -162,6 +198,38 @@ function BETTERUI.Inventory.Class:SetSelectedInventoryData(inventoryData)
         self:SetSelectedItemUniqueId(inventoryData)
         return
     end
+
+    -- ESO can issue multiple SetSelectedInventoryData calls in the same frame for the
+    -- same row during list rebuild + selection callback chains. Coalesce these duplicates
+    -- so itemActions doesn't churn KEYBIND_STRIP with identical remove/re-add cycles.
+    local previousFingerprint = self._lastSetSelectedInventoryDataFingerprint
+    if self._lastSetSelectedInventoryDataFrame == nowMs
+        and previousFingerprint == selectionFingerprint then
+        self:SetSelectedItemUniqueId(inventoryData)
+        return
+    end
+    self._lastSetSelectedInventoryDataFrame = nowMs
+    self._lastSetSelectedInventoryDataFingerprint = selectionFingerprint
+
+    -- Clear the primary action transition when the selection changes to a different
+    -- item. The transition name is specific to the item that started the action and
+    -- must not bleed to a newly-selected item's label (e.g., "Use" appearing for a
+    -- non-consumable, or "Mark as Junk" showing on the next item after junk removal).
+    if self._primaryActionTransitionExpiresMs and previousFingerprint
+        and previousFingerprint ~= selectionFingerprint then
+        self._primaryActionTransitionExpiresMs = nil
+        self._primaryActionTransitionName = nil
+        self._lastSecondaryActionName = nil
+    end
+
+    -- During short post-action windows, selection can transiently be nil while the
+    -- item list is rebuilding. Avoid clearing itemActions in that transient state
+    -- because it drops the A keybind and causes a visible remove/re-add flash.
+    if inPrimaryActionTransition and inventoryData == nil then
+        self:SetSelectedItemUniqueId(inventoryData)
+        return
+    end
+
     -- Call parent implementation (includes itemActions:SetInventorySlot)
     ZO_GamepadInventory.SetSelectedInventoryData(self, inventoryData)
 end
@@ -328,6 +396,11 @@ function BETTERUI.Inventory.Class:Initialize(control)
         self:InitializeItemActions()
     else
         self.itemActions = ZO_InventorySlotActions:New(KEYBIND_STRIP_ALIGN_LEFT)
+        -- Prevent ESO's slot-action controller from adding its own UI_SHORTCUT_PRIMARY
+        -- keybind group behind our back. BetterUI manages keybinds via mainKeybindStripDescriptor.
+        if self.itemActions.SetUseKeybindStrip then
+            self.itemActions:SetUseKeybindStrip(false)
+        end
     end
 
     -- Hook the Action Dialog (Y-Menu) logic

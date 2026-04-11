@@ -107,6 +107,13 @@ function ActionHandlers.OnSetup(self, dialog, data)
     self:RefreshItemActions()
 
     local titleText = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND"))
+    local markAsJunkName = GetString(SI_ITEM_ACTION_MARK_AS_JUNK)
+    local unmarkAsJunkName = GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
+    local betterMarkAsJunkName = GetString(SI_BETTERUI_ACTION_MARK_AS_JUNK)
+    local betterUnmarkAsJunkName = GetString(SI_BETTERUI_ACTION_UNMARK_AS_JUNK)
+    local showJunkToggleEntry = false
+    local junkToggleEntryText = nil
+    local junkToggleEntryCallback = nil
     local headerData = { titleText = titleText }
     ZO_GamepadGenericHeader_RefreshData(dialog.header, headerData)
 
@@ -128,15 +135,21 @@ function ActionHandlers.OnSetup(self, dialog, data)
     end
 
     if not isQuestItem then
-        local tmpCat = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
-        if tmpCat and tmpCat.showJunk ~= nil then
-            self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_UNMARK_AS_JUNK,
-                function() ToggleJunkState(self, false) end, "secondary")
-        else
-            if not isLocked and canMarkJunk then
-                self.itemActions.slotActions:AddSlotAction(SI_BETTERUI_ACTION_MARK_AS_JUNK,
-                    function() ToggleJunkState(self, true) end, "secondary")
-            end
+        local isJunk = false
+        if target and target.bagId and target.slotIndex and IsItemJunk then
+            isJunk = IsItemJunk(target.bagId, target.slotIndex) == true
+        end
+
+        -- Always expose a single synthetic junk-toggle entry in the Y menu.
+        -- Unmark remains available for junk items even if locked.
+        if isJunk then
+            showJunkToggleEntry = true
+            junkToggleEntryText = betterUnmarkAsJunkName
+            junkToggleEntryCallback = function() ToggleJunkState(self, false) end
+        elseif not isLocked and canMarkJunk then
+            showJunkToggleEntry = true
+            junkToggleEntryText = betterMarkAsJunkName
+            junkToggleEntryCallback = function() ToggleJunkState(self, true) end
         end
     end
 
@@ -189,14 +202,31 @@ function ActionHandlers.OnSetup(self, dialog, data)
             or (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG")))
         local isConvertStyle = (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_CONVERT_TO_IMPERIAL_STYLE")))
             or (actionName == GetString(rawget(_G, "SI_ITEM_ACTION_CONVERT_TO_MORAG_TONG_STYLE")))
+        local isJunkToggleAction = actionName == markAsJunkName
+            or actionName == unmarkAsJunkName
+            or actionName == betterMarkAsJunkName
+            or actionName == betterUnmarkAsJunkName
 
-        if not (hideDestroy and isDestroy) and not hideMarkJunk and not isStowOrRetrieve and not isConvertStyle then
+        if not (hideDestroy and isDestroy)
+            and not hideMarkJunk
+            and not isJunkToggleAction
+            and not isStowOrRetrieve
+            and not isConvertStyle then
             local entryData = ZO_GamepadEntryData:New(actionName)
             entryData:SetIconTintOnSelection(true)
             entryData.action = action
             entryData.setup = ZO_SharedGamepadEntry_OnSetup
             table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = entryData })
         end
+    end
+
+    if showJunkToggleEntry and junkToggleEntryText and junkToggleEntryCallback then
+        local junkToggleEntry = ZO_GamepadEntryData:New(junkToggleEntryText)
+        junkToggleEntry:SetIconTintOnSelection(true)
+        junkToggleEntry.isJunkToggleAction = true
+        junkToggleEntry.junkToggleCallback = junkToggleEntryCallback
+        junkToggleEntry.setup = ZO_SharedGamepadEntry_OnSetup
+        table.insert(parametricList, { template = "ZO_GamepadItemEntryTemplate", entryData = junkToggleEntry })
     end
 
     -- Stow Stack entry (Inventory mode)
@@ -402,6 +432,14 @@ function ActionHandlers.OnConfirm(self, dialog)
         local itemTarget = selectedRow.itemTarget
         if itemTarget then
             BETTERUI.CIM.TryCall("Inventory.Dialogs.RetrieveFullStack", itemTarget)
+        end
+        return
+    end
+
+    if selectedRow and selectedRow.isJunkToggleAction then
+        ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
+        if selectedRow.junkToggleCallback then
+            selectedRow.junkToggleCallback()
         end
         return
     end

@@ -34,7 +34,8 @@ end
 --- @class BETTERUI.CIM.MultiSelectManager.Manager : ZO_Object
 --- @field list table The parametric list this manager operates on
 --- @field isActive boolean Whether multi-select mode is currently active
---- @field selectedItems table<string, table> Map of uniqueId to selected item data
+--- @field selectedItems table<string, table> Map of primary selection key to selected item data
+--- @field selectedItemAliases table<string, string> Map of alias key to primary selection key
 --- @field selectionChangedCallback fun(count: integer)|nil Callback fired on selection changes
 local Manager = ZO_Object:Subclass()
 MultiSelectManager.Manager = Manager
@@ -54,7 +55,104 @@ function Manager:Initialize(list, selectionChangedCallback)
     self.list = list
     self.isActive = false
     self.selectedItems = {}
+    self.selectedItemAliases = {}
     self.selectionChangedCallback = selectionChangedCallback
+end
+
+local function AddSelectionKey(keys, seen, key)
+    if key and key ~= "" and not seen[key] then
+        seen[key] = true
+        keys[#keys + 1] = key
+    end
+end
+
+--- Gets all stable selection keys for an item.
+--- Some list rebuilds preserve only `uniqueId` or only `bagId/slotIndex`, so we retain both.
+--- @param itemData table The item data (may be ZO_GamepadEntryData or raw slot data)
+--- @return table keys Ordered array of selection keys
+function Manager:GetItemSelectionKeys(itemData)
+    if not itemData then
+        return {}
+    end
+
+    local rawData = itemData.dataSource or itemData
+    local keys = {}
+    local seen = {}
+
+    local uniqueId = rawData.uniqueId or itemData.uniqueId
+    if uniqueId then
+        if Id64ToString then
+            AddSelectionKey(keys, seen, Id64ToString(uniqueId))
+        else
+            AddSelectionKey(keys, seen, tostring(uniqueId))
+        end
+    end
+
+    local bagId = rawData.bagId or itemData.bagId
+    local slotIndex = rawData.slotIndex or itemData.slotIndex
+    if bagId ~= nil and slotIndex ~= nil then
+        AddSelectionKey(keys, seen, string.format("%d_%d", bagId, slotIndex))
+    end
+
+    return keys
+end
+
+--- Resolves the stored primary key for a selected item, or a stable default key when not selected.
+--- @param itemData table The item data to resolve
+--- @return string|nil primaryKey
+function Manager:GetPrimarySelectionKey(itemData)
+    local keys = self:GetItemSelectionKeys(itemData)
+    for _, key in ipairs(keys) do
+        local primaryKey = (self.selectedItemAliases and self.selectedItemAliases[key]) or key
+        if primaryKey and self.selectedItems[primaryKey] then
+            return primaryKey
+        end
+    end
+    return keys[1]
+end
+
+--- Stores a selected item and all of its lookup aliases.
+--- @param primaryKey string The canonical key for the selection
+--- @param itemData table The selected item data
+function Manager:RegisterSelectedItem(primaryKey, itemData)
+    if not primaryKey or not itemData then
+        return
+    end
+
+    self.selectedItems[primaryKey] = itemData
+    self.selectedItemAliases[primaryKey] = primaryKey
+    for _, key in ipairs(self:GetItemSelectionKeys(itemData)) do
+        self.selectedItemAliases[key] = primaryKey
+    end
+end
+
+--- Removes a selected item and all lookup aliases that point to it.
+--- @param primaryKey string The canonical key to remove
+--- @param itemData table|nil Optional current item data for alias cleanup
+function Manager:UnregisterSelectedItem(primaryKey, itemData)
+    if not primaryKey then
+        return
+    end
+
+    local storedItemData = itemData or self.selectedItems[primaryKey]
+    self.selectedItems[primaryKey] = nil
+
+    local keysToRemove = { primaryKey }
+    if storedItemData then
+        for _, key in ipairs(self:GetItemSelectionKeys(storedItemData)) do
+            keysToRemove[#keysToRemove + 1] = key
+        end
+    end
+    for key, mappedPrimaryKey in pairs(self.selectedItemAliases) do
+        if mappedPrimaryKey == primaryKey then
+            keysToRemove[#keysToRemove + 1] = key
+        end
+    end
+    for _, key in ipairs(keysToRemove) do
+        if self.selectedItemAliases[key] == primaryKey or key == primaryKey then
+            self.selectedItemAliases[key] = nil
+        end
+    end
 end
 
 -- SELECTION MODE CONTROL
@@ -65,6 +163,7 @@ function Manager:EnterSelectionMode()
 
     self.isActive = true
     self.selectedItems = {} -- Clear any previous selections
+    self.selectedItemAliases = {}
 
     -- Set as active instance for row setup queries
     MultiSelectManager.SetActiveInstance(self)
@@ -86,6 +185,7 @@ function Manager:ExitSelectionMode()
 
     self.isActive = false
     self.selectedItems = {} -- Clear selections
+    self.selectedItemAliases = {}
 
     -- Clear active instance
     MultiSelectManager.SetActiveInstance(nil)
@@ -114,16 +214,16 @@ end
 function Manager:ToggleSelection(itemData)
     if not itemData then return false end
 
-    local uniqueId = self:GetItemUniqueId(itemData)
-    if not uniqueId then return false end
+    local primaryKey = self:GetPrimarySelectionKey(itemData)
+    if not primaryKey then return false end
 
-    if self.selectedItems[uniqueId] then
+    if self.selectedItems[primaryKey] then
         -- Deselect
-        self.selectedItems[uniqueId] = nil
+        self:UnregisterSelectedItem(primaryKey, itemData)
         PlaySound(SOUNDS.GAMEPAD_MENU_BACKWARD)
     else
         -- Select
-        self.selectedItems[uniqueId] = itemData
+        self:RegisterSelectedItem(primaryKey, itemData)
         PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
     end
 
@@ -132,7 +232,7 @@ function Manager:ToggleSelection(itemData)
         self.selectionChangedCallback(self:GetSelectedCount())
     end
 
-    return self.selectedItems[uniqueId] ~= nil
+    return self.selectedItems[primaryKey] ~= nil
 end
 
 --- Checks if an item is currently selected
@@ -141,21 +241,21 @@ end
 function Manager:IsSelected(itemData)
     if not itemData then return false end
 
-    local uniqueId = self:GetItemUniqueId(itemData)
-    if not uniqueId then return false end
+    local primaryKey = self:GetPrimarySelectionKey(itemData)
+    if not primaryKey then return false end
 
-    return self.selectedItems[uniqueId] ~= nil
+    return self.selectedItems[primaryKey] ~= nil
 end
 
 --- Selects an item without toggling
 function Manager:Select(itemData)
     if not itemData then return end
 
-    local uniqueId = self:GetItemUniqueId(itemData)
-    if not uniqueId then return end
+    local primaryKey = self:GetPrimarySelectionKey(itemData)
+    if not primaryKey then return end
 
-    if not self.selectedItems[uniqueId] then
-        self.selectedItems[uniqueId] = itemData
+    if not self.selectedItems[primaryKey] then
+        self:RegisterSelectedItem(primaryKey, itemData)
         PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
 
         if self.selectionChangedCallback then
@@ -168,11 +268,11 @@ end
 function Manager:Deselect(itemData)
     if not itemData then return end
 
-    local uniqueId = self:GetItemUniqueId(itemData)
-    if not uniqueId then return end
+    local primaryKey = self:GetPrimarySelectionKey(itemData)
+    if not primaryKey then return end
 
-    if self.selectedItems[uniqueId] then
-        self.selectedItems[uniqueId] = nil
+    if self.selectedItems[primaryKey] then
+        self:UnregisterSelectedItem(primaryKey, itemData)
         PlaySound(SOUNDS.GAMEPAD_MENU_BACKWARD)
 
         if self.selectionChangedCallback then
@@ -184,6 +284,7 @@ end
 --- Clears all selections without exiting selection mode
 function Manager:ClearSelections()
     self.selectedItems = {}
+    self.selectedItemAliases = {}
 
     if self.selectionChangedCallback then
         self.selectionChangedCallback(0)
@@ -228,10 +329,10 @@ function Manager:SelectAll(listOverride)
             local slotIndex = rawData.slotIndex or data.slotIndex
 
             if bagId and slotIndex then
-                local uniqueId = self:GetItemUniqueId(data)
-                if uniqueId then
+                local primaryKey = self:GetPrimarySelectionKey(data)
+                if primaryKey then
                     -- Store the full data (including wrapper) for consistent id lookup later
-                    self.selectedItems[uniqueId] = data
+                    self:RegisterSelectedItem(primaryKey, data)
                 end
             end
         end
@@ -298,32 +399,8 @@ end
 --- @param itemData table The item data (raw or ZO_GamepadEntryData wrapper)
 --- @return string|nil uniqueId The unique identifier string, or nil if unresolvable
 function Manager:GetItemUniqueId(itemData)
-    if not itemData then return nil end
-
-    -- Check for dataSource (ZO_GamepadEntryData wraps raw item data)
-    local rawData = itemData.dataSource or itemData
-
-    -- Try uniqueId first (most reliable - use rawData for consistency)
-    local uniqueId = rawData.uniqueId or itemData.uniqueId
-    if uniqueId then
-        -- Use Id64ToString for ESO's Id64 userdata type.
-        -- Lua's tostring() produces inconsistent results for Id64.
-        if Id64ToString then
-            return Id64ToString(uniqueId)
-        else
-            return tostring(uniqueId)
-        end
-    end
-
-    -- Fall back to bagId + slotIndex combination
-    -- Check both rawData and itemData since properties might be copied to top level
-    local bagId = rawData.bagId or itemData.bagId
-    local slotIndex = rawData.slotIndex or itemData.slotIndex
-    if bagId and slotIndex then
-        return string.format("%d_%d", bagId, slotIndex)
-    end
-
-    return nil
+    local keys = self:GetItemSelectionKeys(itemData)
+    return keys[1]
 end
 
 --- Refreshes selection state after list data changes
@@ -331,33 +408,49 @@ end
 function Manager:RefreshSelections()
     if not self.list then return end
 
-    -- Build set of current uniqueIds in list
-    local currentIds = {}
+    -- Build lookup of every current alias key to the latest list data.
+    local currentItemsByKey = {}
     local numItems = self.list:GetNumItems()
     for i = 1, numItems do
         local data = self.list:GetDataForDataIndex(i)
         if data then
-            local uniqueId = self:GetItemUniqueId(data)
-            if uniqueId then
-                currentIds[uniqueId] = true
+            for _, key in ipairs(self:GetItemSelectionKeys(data)) do
+                currentItemsByKey[key] = data
             end
         end
     end
 
-    -- Remove selections for items no longer present
-    local toRemove = {}
-    for uniqueId, _ in pairs(self.selectedItems) do
-        if not currentIds[uniqueId] then
-            toRemove[#toRemove + 1] = uniqueId
+    -- Rebuild selection aliases against the latest list data and drop missing items.
+    local refreshedSelectedItems = {}
+    local refreshedAliases = {}
+    local removedCount = 0
+    for primaryKey, itemData in pairs(self.selectedItems) do
+        local matchedData = currentItemsByKey[primaryKey]
+        if not matchedData then
+            for _, key in ipairs(self:GetItemSelectionKeys(itemData)) do
+                matchedData = currentItemsByKey[key]
+                if matchedData then
+                    break
+                end
+            end
+        end
+
+        if matchedData then
+            refreshedSelectedItems[primaryKey] = matchedData
+            refreshedAliases[primaryKey] = primaryKey
+            for _, key in ipairs(self:GetItemSelectionKeys(matchedData)) do
+                refreshedAliases[key] = primaryKey
+            end
+        else
+            removedCount = removedCount + 1
         end
     end
 
-    for _, uniqueId in ipairs(toRemove) do
-        self.selectedItems[uniqueId] = nil
-    end
+    self.selectedItems = refreshedSelectedItems
+    self.selectedItemAliases = refreshedAliases
 
     -- Fire callback if anything was removed
-    if #toRemove > 0 and self.selectionChangedCallback then
+    if removedCount > 0 and self.selectionChangedCallback then
         self.selectionChangedCallback(self:GetSelectedCount())
     end
 end

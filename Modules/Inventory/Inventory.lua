@@ -105,6 +105,23 @@ end
 ---@param currentFrameTimeSeconds number|nil Frame timestamp, or nil for manual update
 ---@return nil
 function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
+	-- Post-transition refresh: when the primary action transition window expires,
+	-- refresh item actions and keybinds so the A-button label updates to the
+	-- post-action state (e.g., "Use" → "Split Stack" after cooldown, or
+	-- "Equip" → "Unequip" after the list rebuilds). This runs every frame
+	-- via the OnUpdate handler and costs nothing when no transition is active.
+	if self._primaryActionTransitionExpiresMs then
+		local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+		if nowMs > self._primaryActionTransitionExpiresMs then
+			self._primaryActionTransitionExpiresMs = nil
+			self._primaryActionTransitionName = nil
+			if self.RefreshItemActions then
+				self:RefreshItemActions()
+			end
+			self:RefreshKeybinds()
+		end
+	end
+
 	--if no currentFrameTimeSeconds a manual update was called from outside the update loop.
 	if
 		not currentFrameTimeSeconds
@@ -129,8 +146,14 @@ function BETTERUI.Inventory.Class:OnUpdate(currentFrameTimeSeconds)
 				-- don't refresh item actions if we are switching back to the category view
 				-- otherwise we get keybindstrip errors (Item actions will try to add an "A" keybind
 				-- and we already have an "A" keybind)
-
-				self:RefreshItemActions()
+				-- During list rebuild windows, target data can be transiently nil.
+				-- Skip action refresh in that state so A does not disappear/reappear.
+				if not self.pendingBatchData then
+					local selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+					if selectedData then
+						self:RefreshItemActions()
+					end
+				end
 			end
 		elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
 			self:RefreshCraftBagList()
@@ -208,7 +231,30 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 
 	local function RefreshSelectedData()
 		if not self.control:IsHidden() then
-			self:SetSelectedInventoryData(self.currentlySelectedData)
+			local selectedData = nil
+			local nowMs = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
+			local inPrimaryActionTransition = self._primaryActionTransitionExpiresMs
+				and nowMs <= self._primaryActionTransitionExpiresMs
+			if self.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+				selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.itemList)
+			elseif self.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+				selectedData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.craftBagList)
+			elseif self.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
+				local categoryData = BETTERUI.Inventory.Utils.SafeGetTargetData(self.categoryList)
+				if categoryData then
+					selectedData = self:GenerateItemSlotData(categoryData)
+				end
+			elseif self.currentlySelectedData then
+				selectedData = self.currentlySelectedData
+			end
+
+			-- Avoid transient clears while list rebuilds; selected-data callbacks will
+			-- sync itemActions as soon as a stable row exists.
+			if selectedData then
+				self:SetSelectedInventoryData(selectedData)
+			elseif not inPrimaryActionTransition then
+				self:SetSelectedInventoryData(nil)
+			end
 		end
 	end
 
@@ -295,11 +341,13 @@ function BETTERUI.Inventory.Class:OnDeferredInitialize()
 			if ZO_Dialogs_IsShowing(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG) then
 				self:OnUpdate() -- immediate to keep dialog/keybinds consistent
 			else
-				-- RefreshKeybinds() is protected by InventoryClass override
-				if currentList == self.itemList then
+				RefreshSelectedData()
+				-- RefreshKeybinds() is protected by InventoryClass override.
+				-- Run after selected-data sync and skip while item list batches are pending
+				-- to reduce remove/re-add keybind strip churn.
+				if currentList == self.itemList and not self.pendingBatchData then
 					self:RefreshKeybinds()
 				end
-				RefreshSelectedData()
 				self:RefreshHeader(BLOCK_TABBAR_CALLBACK)
 			end
 			-- Coalesce a category refresh so new tabs (Junk/Stolen) appear promptly.

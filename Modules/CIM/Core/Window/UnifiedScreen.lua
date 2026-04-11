@@ -155,6 +155,12 @@ function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     if self.isInHeaderSortMode then
         return
     end
+    if self.activeKeybindDescriptor == keybindDescriptor then
+        if keybindDescriptor and KEYBIND_STRIP then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(keybindDescriptor)
+        end
+        return
+    end
     if self.activeKeybindDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.activeKeybindDescriptor)
     end

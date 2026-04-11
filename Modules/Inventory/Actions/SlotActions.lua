@@ -65,20 +65,67 @@ local function BETTERUI_AddSlotPrimary(self, actionStringId, actionCallback, act
 end
 
 --- Attempts to unequip an item from the specified inventory slot.
+local function PreserveSelectionForAction(inventorySlot)
+    if not GAMEPAD_INVENTORY or not inventorySlot then
+        return
+    end
+
+    local slotData = inventorySlot.dataSource or inventorySlot
+    local uid = slotData.uniqueId
+    if uid then
+        GAMEPAD_INVENTORY._preserveUniqueId = uid
+    end
+    if GAMEPAD_INVENTORY.itemList and GAMEPAD_INVENTORY.itemList.selectedIndex then
+        GAMEPAD_INVENTORY._preserveIndex = GAMEPAD_INVENTORY.itemList.selectedIndex
+    end
+end
+
+local function CanMarkSlotAsJunk(inventorySlot)
+    if not inventorySlot or not CanItemBeMarkedAsJunk then
+        return false
+    end
+
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return false
+    end
+    if bag == BAG_VIRTUAL then
+        return false
+    end
+    if IsItemPlayerLocked and IsItemPlayerLocked(bag, slot) then
+        return false
+    end
+    if not CanItemBeMarkedAsJunk(bag, slot) then
+        return false
+    end
+
+    local companionJunkEnabled = BETTERUI
+        and BETTERUI.Settings
+        and BETTERUI.Settings.Modules
+        and BETTERUI.Settings.Modules["Inventory"]
+        and BETTERUI.Settings.Modules["Inventory"].enableCompanionJunk == true
+    local actorCategory = GetItemActorCategory and GetItemActorCategory(bag, slot)
+    if not companionJunkEnabled and actorCategory == GAMEPLAY_ACTOR_CATEGORY_COMPANION then
+        return false
+    end
+    return true
+end
+
+local function IsSlotMarkedAsJunk(inventorySlot)
+    if not inventorySlot or not IsItemJunk then
+        return false
+    end
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return false
+    end
+    return IsItemJunk(bag, slot) == true
+end
+
 local function TryUnequipItem(inventorySlot)
     if not inventorySlot then return end
 
-    -- POSITION PRESERVATION: Save uniqueId/index at action START before callbacks corrupt data
-    if GAMEPAD_INVENTORY then
-        local slotData = inventorySlot.dataSource or inventorySlot
-        local uid = slotData.uniqueId
-        if uid then
-            GAMEPAD_INVENTORY._preserveUniqueId = uid
-        end
-        if GAMEPAD_INVENTORY.itemList and GAMEPAD_INVENTORY.itemList.selectedIndex then
-            GAMEPAD_INVENTORY._preserveIndex = GAMEPAD_INVENTORY.itemList.selectedIndex
-        end
-    end
+    PreserveSelectionForAction(inventorySlot)
 
     local equipSlot = ZO_Inventory_GetSlotIndex(inventorySlot)
     if equipSlot then UnequipItem(equipSlot) end
@@ -88,19 +135,66 @@ end
 local function TryUseItem(inventorySlot)
     if not inventorySlot then return end
 
-    -- POSITION PRESERVATION: Save uniqueId/index at action START before callbacks corrupt data
-    if GAMEPAD_INVENTORY then
-        local slotData = inventorySlot.dataSource or inventorySlot
-        local uid = slotData.uniqueId
-        if uid then
-            GAMEPAD_INVENTORY._preserveUniqueId = uid
-        end
-        if GAMEPAD_INVENTORY.itemList and GAMEPAD_INVENTORY.itemList.selectedIndex then
-            GAMEPAD_INVENTORY._preserveIndex = GAMEPAD_INVENTORY.itemList.selectedIndex
-        end
-    end
+    PreserveSelectionForAction(inventorySlot)
 
     BETTERUI.CIM.TryUseItem(inventorySlot)
+end
+
+local function TryMarkAsJunk(inventorySlot)
+    if not CanMarkSlotAsJunk(inventorySlot) then
+        return
+    end
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return
+    end
+
+    PreserveSelectionForAction(inventorySlot)
+    SetItemIsJunk(bag, slot, true)
+    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
+        GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+    end
+end
+
+local function TryUnmarkAsJunk(inventorySlot)
+    if not IsSlotMarkedAsJunk(inventorySlot) then
+        return
+    end
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return
+    end
+
+    PreserveSelectionForAction(inventorySlot)
+    SetItemIsJunk(bag, slot, false)
+    if GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.InvalidateSlotDataCache then
+        GAMEPAD_INVENTORY:InvalidateSlotDataCache()
+    end
+end
+
+local function TryDestroyPrimaryAction(inventorySlot)
+    if not inventorySlot then
+        return
+    end
+
+    PreserveSelectionForAction(inventorySlot)
+    if ZO_InventorySlot_InitiateDestroyItem then
+        ZO_InventorySlot_InitiateDestroyItem(inventorySlot)
+        return
+    end
+
+    local bag, slot = ZO_Inventory_GetBagAndIndex(inventorySlot)
+    if not bag or not slot then
+        return
+    end
+
+    local quickDestroy = BETTERUI.GetSetting and BETTERUI.GetSetting("Inventory", "quickDestroy", false) == true
+    if quickDestroy then
+        BETTERUI.Inventory.TryDestroyItem(bag, slot, true)
+    else
+        ZO_Dialogs_ShowDialog("BETTERUI_CONFIRM_DESTROY_DIALOG",
+            { bagId = bag, slotIndex = slot, itemLink = GetItemLink(bag, slot) }, nil, true, true)
+    end
 end
 
 --- Handles banking actions (Deposit/Withdraw) for an item.
@@ -151,7 +245,13 @@ local PRIMARY_ACTION_REPLACEMENTS = {
     [SI_ITEM_ACTION_START_ATTRIBUTE_RESPEC] = true,
     [SI_ITEM_ACTION_PLACE_FURNITURE] = true,
     [SI_ITEM_ACTION_LINK_TO_CHAT] = true,
+    [SI_ITEM_ACTION_MARK_AS_JUNK] = true,
+    [SI_ITEM_ACTION_UNMARK_AS_JUNK] = true,
+    [SI_ITEM_ACTION_DESTROY] = true,
 }
+if SI_ITEM_ACTION_DELETE then
+    PRIMARY_ACTION_REPLACEMENTS[SI_ITEM_ACTION_DELETE] = true
+end
 
 local primaryActionReplacementLookup = nil
 
@@ -169,6 +269,85 @@ local function ShouldReplacePrimaryAction(primaryAction)
     return primaryActionReplacementLookup[primaryAction] == true
     -- Note: Split stack is intentionally NOT included so it remains
     -- available in the Y (actions) list.
+end
+
+local ACTION_KEY = 1
+local VISIBILITY_FUNCTION = 4
+
+local function IsActionEntryVisible(actionEntry)
+    local visibilityFunction = actionEntry and actionEntry[VISIBILITY_FUNCTION]
+    if not visibilityFunction then
+        return true
+    end
+    local ok, visible = pcall(visibilityFunction)
+    return ok and visible == true
+end
+
+local function HasVisibleActionByName(slotActions, actionName)
+    if not slotActions or not actionName or not slotActions.m_slotActions then
+        return false
+    end
+    for i = 1, #slotActions.m_slotActions do
+        local actionEntry = slotActions.m_slotActions[i]
+        if actionEntry and actionEntry[ACTION_KEY] == actionName and IsActionEntryVisible(actionEntry) then
+            return true
+        end
+    end
+    return false
+end
+
+local function ResolvePreferredPrimaryAction(slotActions, primaryAction, inventorySlot)
+    if not primaryAction then
+        return nil
+    end
+    if not IsPrimaryAction(primaryAction, SI_ITEM_ACTION_LINK_TO_CHAT) then
+        return primaryAction
+    end
+
+    if IsSlotMarkedAsJunk(inventorySlot) then
+        return GetActionString(SI_ITEM_ACTION_UNMARK_AS_JUNK)
+    end
+    if CanMarkSlotAsJunk(inventorySlot) then
+        return GetActionString(SI_ITEM_ACTION_MARK_AS_JUNK)
+    end
+
+    local destroyActionName = GetActionString(SI_ITEM_ACTION_DESTROY)
+    if destroyActionName and HasVisibleActionByName(slotActions, destroyActionName) then
+        return destroyActionName
+    end
+    if SI_ITEM_ACTION_DELETE then
+        local deleteActionName = GetActionString(SI_ITEM_ACTION_DELETE)
+        if deleteActionName and HasVisibleActionByName(slotActions, deleteActionName) then
+            return deleteActionName
+        end
+    end
+
+    if slotActions and slotActions.m_slotActions then
+        local linkToChatName = GetActionString(SI_ITEM_ACTION_LINK_TO_CHAT)
+        for i = 1, #slotActions.m_slotActions do
+            local actionEntry = slotActions.m_slotActions[i]
+            local discoveredActionName = actionEntry and actionEntry[ACTION_KEY]
+            if discoveredActionName and discoveredActionName ~= linkToChatName and IsActionEntryVisible(actionEntry) then
+                return discoveredActionName
+            end
+        end
+    end
+
+    return nil
+end
+
+local function RemoveSlotActionByName(slotActions, actionName)
+    if not slotActions or not actionName or not slotActions.m_slotActions then
+        return false
+    end
+    for i = 1, #slotActions.m_slotActions do
+        local actionEntry = slotActions.m_slotActions[i]
+        if actionEntry and actionEntry[ACTION_KEY] == actionName then
+            table.remove(slotActions.m_slotActions, i)
+            return true
+        end
+    end
+    return false
 end
 
 --- Sets up the primary action for a slot based on its action name.
@@ -220,6 +399,19 @@ local function SetupPrimaryAction(actionsList, actionName, inventorySlot)
                 end
             end
         end, inventorySlot)
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_MARK_AS_JUNK) then
+        actionsList:AddSlotPrimaryAction(actionName, function(...)
+            TryMarkAsJunk(inventorySlot)
+        end, "primary", nil, { visibleWhenDead = false })
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_UNMARK_AS_JUNK) then
+        actionsList:AddSlotPrimaryAction(actionName, function(...)
+            TryUnmarkAsJunk(inventorySlot)
+        end, "primary", nil, { visibleWhenDead = false })
+    elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_DESTROY)
+        or (SI_ITEM_ACTION_DELETE and IsPrimaryAction(actionName, SI_ITEM_ACTION_DELETE)) then
+        actionsList:AddSlotPrimaryAction(actionName, function(...)
+            TryDestroyPrimaryAction(inventorySlot)
+        end, "primary", nil, { visibleWhenDead = false })
     elseif IsPrimaryAction(actionName, SI_ITEM_ACTION_LINK_TO_CHAT) then
         BETTERUI.CIM.SetupSecureAction(actionsList, SI_ITEM_ACTION_LINK_TO_CHAT, function(...)
             if inventorySlot then
@@ -285,6 +477,8 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
     local slotActions = self.slotActions
     slotActions:Clear()
     slotActions:SetInventorySlot(inventorySlot)
+    slotActions._betterui_primaryOverride = nil
+    slotActions._betterui_primaryName = nil
     self.selectedAction = nil
 
     if not inventorySlot then
@@ -304,9 +498,13 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
         primaryAction = slotActions.m_slotActions[1][1]
     end
 
+    primaryAction = ResolvePreferredPrimaryAction(slotActions, primaryAction, inventorySlot)
+
     -- Handle primary action replacement logic
     if primaryAction and ShouldReplacePrimaryAction(primaryAction) then
-        table.remove(slotActions.m_slotActions, 1)
+        if not RemoveSlotActionByName(slotActions, primaryAction) and #slotActions.m_slotActions > 0 then
+            table.remove(slotActions.m_slotActions, 1)
+        end
 
         if not IsSlotInCraftBag(inventorySlot) and CanItemMoveToCraftBag(inventorySlot) and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_USE) then
             canUseItem = true
@@ -319,11 +517,14 @@ function BETTERUI.Inventory.SlotActions:ActivatePrimaryCommand(inventorySlot)
         end
     elseif not primaryAction then
         self.actionName = nil
+        slotActions._betterui_primaryOverride = nil
+        slotActions._betterui_primaryName = nil
         return
     end
 
     -- Split Stack Override
     if primaryAction and IsPrimaryAction(primaryAction, SI_ITEM_ACTION_SPLIT_STACK) then
+        slotActions._betterui_primaryName = primaryAction
         slotActions._betterui_primaryOverride = function()
             if ZO_InventorySlot_TrySplitStack then
                 ZO_InventorySlot_TrySplitStack(inventorySlot)
@@ -374,17 +575,37 @@ function BETTERUI.Inventory.SlotActions:Initialize(alignmentOverride, additional
             if selfRef.selectedAction then
                 n = slotActions:GetRawActionName(selfRef.selectedAction)
             end
-            return n or selfRef.actionName or ""
+            if not n then
+                n = selfRef.actionName
+            end
+            if (not n or n == "") and slotActions._betterui_primaryName and slotActions._betterui_primaryName ~= "" then
+                n = slotActions._betterui_primaryName
+            end
+            return n or ""
         end,
         keybind = "UI_SHORTCUT_PRIMARY",
         order = 500,
         callback = function()
+            local inventory = GAMEPAD_INVENTORY
+            local inventoryMultiSelectActive = inventory and inventory.multiSelectManager
+                and inventory.multiSelectManager.IsActive and inventory.multiSelectManager:IsActive()
+            local craftBagMultiSelectActive = inventory and inventory.craftBagMultiSelectManager
+                and inventory.craftBagMultiSelectManager.IsActive and inventory.craftBagMultiSelectManager:IsActive()
+            if inventoryMultiSelectActive or craftBagMultiSelectActive then
+                return
+            end
+
             if selfRef.selectedAction then
                 selfRef:DoSelectedAction()
-            elseif slotActions._betterui_primaryOverride then
-                slotActions._betterui_primaryOverride()
             else
-                slotActions:DoPrimaryAction()
+                local hasNamedOverride = type(slotActions._betterui_primaryOverride) == "function"
+                    and type(slotActions._betterui_primaryName) == "string"
+                    and slotActions._betterui_primaryName ~= ""
+                if hasNamedOverride then
+                    slotActions._betterui_primaryOverride()
+                else
+                    slotActions:DoPrimaryAction()
+                end
             end
         end,
         visible = function()
