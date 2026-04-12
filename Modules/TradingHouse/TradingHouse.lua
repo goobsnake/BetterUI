@@ -36,20 +36,36 @@ local TH_TABS = {
 
 -- SCENE ALIAS MANAGEMENT
 
+local TH_SYSTEM_NAME = rawget(_G, "ZO_TRADING_HOUSE_SYSTEM_NAME") or "tradingHouse"
+
 local function SetTHSceneAlias(sceneObject)
     if not SCENE_MANAGER or not SCENE_MANAGER.scenes then return end
     SCENE_MANAGER.scenes["gamepad_trading_house"] = sceneObject
+end
+
+local function SetTHSystemGamepadRootScene(sceneObject)
+    if not SYSTEMS or type(SYSTEMS.GetSystem) ~= "function" then return end
+    local system = SYSTEMS:GetSystem(TH_SYSTEM_NAME)
+    if not system then return end
+    if TH.nativeTHSystemGamepadRootScene == nil then
+        TH.nativeTHSystemGamepadRootScene = system.gamepadRootScene
+    end
+    system.gamepadRootScene = sceneObject
 end
 
 local function RestoreNativeTHSceneAlias()
     if TH.nativeTHScene then
         SetTHSceneAlias(TH.nativeTHScene)
     end
+    if TH.nativeTHSystemGamepadRootScene then
+        SetTHSystemGamepadRootScene(TH.nativeTHSystemGamepadRootScene)
+    end
 end
 
 local function AliasTHSceneToBetterUI()
     if TH.instance and TH.instance.scene then
         SetTHSceneAlias(TH.instance.scene)
+        SetTHSystemGamepadRootScene(TH.instance.scene)
     end
 end
 
@@ -368,7 +384,7 @@ local function OnOpenTradingHouse()
 
     -- Guard: only take ownership for genuine trading house interactions
     local interactionType = GetInteractionType and GetInteractionType() or nil
-    if interactionType ~= INTERACTION_TRADINGHOUSE then
+    if interactionType and interactionType ~= INTERACTION_TRADINGHOUSE then
         RestoreNativeTHSceneAlias()
         return
     end
@@ -389,9 +405,33 @@ local function OnOpenTradingHouse()
     if SCENE_MANAGER then
         SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
     end
+
+    -- Native trading-house handlers may also request a scene show in this event.
+    -- Re-assert ownership shortly after dispatch so BetterUI remains the active scene.
+    local function ReassertTradingHouseOwnership()
+        local currentInteraction = GetInteractionType and GetInteractionType() or nil
+        if currentInteraction and currentInteraction ~= INTERACTION_TRADINGHOUSE then
+            return
+        end
+        AliasTHSceneToBetterUI()
+        if SCENE_MANAGER then
+            SCENE_MANAGER:Show(BETTERUI_TRADING_HOUSE_SCENE_NAME)
+        end
+    end
+
+    if TH.Tasks then
+        TH.Tasks:Cancel("sceneOwnershipOpen")
+        TH.Tasks:Schedule("sceneOwnershipOpen", 30, ReassertTradingHouseOwnership)
+    elseif type(zo_callLater) == "function" then
+        zo_callLater(ReassertTradingHouseOwnership, 30)
+    end
 end
 
 local function OnCloseTradingHouse()
+    if TH.Tasks then
+        TH.Tasks:Cancel("sceneOwnershipOpen")
+    end
+
     local sceneName = BETTERUI_TRADING_HOUSE_SCENE_NAME
     if SCENE_MANAGER then
         local scene = SCENE_MANAGER:GetScene(sceneName)
@@ -400,7 +440,8 @@ local function OnCloseTradingHouse()
         end
     end
 
-    RestoreNativeTHSceneAlias()
+    -- Keep BetterUI ownership for the next open so native open handlers route here.
+    AliasTHSceneToBetterUI()
 end
 
 local function OnSearchResultsReceived()
@@ -515,6 +556,22 @@ function BETTERUI.TradingHouse.Init()
     -- Capture native TH scene so we can restore it if needed
     TH.nativeTHScene = TH.nativeTHScene or (SCENE_MANAGER and SCENE_MANAGER:GetScene("gamepad_trading_house"))
 
+    -- Suppress native trading house manager interference.
+    -- The native OnOpenTradingHouse handler shows the native scene which conflicts
+    -- with BetterUI's scene. Unregister native handlers and redirect sceneName
+    -- so the native system cannot show its UI.
+    local nativeTH = rawget(_G, "TRADING_HOUSE_GAMEPAD")
+    if nativeTH then
+        if nativeTH.control then
+            nativeTH.control:UnregisterForEvent(EVENT_OPEN_TRADING_HOUSE)
+            nativeTH.control:UnregisterForEvent(EVENT_CLOSE_TRADING_HOUSE)
+        end
+        -- Redirect native sceneName so any native ShowComponent checks fail
+        if nativeTH.sceneName then
+            nativeTH.sceneName = "betterui_native_th_blocked"
+        end
+    end
+
     -- Add standard fragment groups (matching Vendor/Banking pattern)
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
@@ -548,8 +605,8 @@ function BETTERUI.TradingHouse.Init()
         end,
     })
 
-    -- Keep native alias by default; OnOpenTradingHouse switches ownership
-    RestoreNativeTHSceneAlias()
+    -- Keep BetterUI alias by default so EVENT_OPEN_TRADING_HOUSE resolves here.
+    AliasTHSceneToBetterUI()
 
     -- Set up footer (gold + bag capacity)
     TH.instance:InitTHFooter()

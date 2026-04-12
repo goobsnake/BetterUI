@@ -32,6 +32,13 @@ function BETTERUI.TradingHouse.InitModule(m_options)
     }
 
     m_options = BETTERUI.CIM.InitModuleDefaults("TradingHouse", m_options, defaults, fallbackDefaults)
+
+    -- Backfill legacy saved vars that predate canonical module toggles.
+    -- Respect explicit user choices (false/true) when already present.
+    if m_options.m_enabled == nil then
+        m_options.m_enabled = true
+    end
+
     return m_options
 end
 
