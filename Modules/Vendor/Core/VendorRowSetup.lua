@@ -7,6 +7,60 @@ Purpose: Row setup callback for vendor list entries.
 
 local Vendor = BETTERUI.Vendor
 
+---@param ds table|nil
+---@return boolean
+local function IsStableTrainingRow(ds)
+    return ds and ds.trainingType ~= nil
+end
+
+---@param ds table
+---@return string
+local function ResolveStableTrainingTypeText(ds)
+    local typeName = ds.bestGamepadItemCategoryName
+        or GetString(rawget(_G, "SI_STATS_RIDING_SKILL") or "SI_STATS_RIDING_SKILL")
+        or ""
+    return string.upper(typeName)
+end
+
+---@param ds table
+---@return string
+local function ResolveStableTrainingTraitText(ds)
+    local traitText = ds.trainStateText
+    if traitText == nil or traitText == "" then
+        traitText = "-"
+    end
+    return traitText
+end
+
+---@param ds table
+---@return string
+local function ResolveStableTrainingStatText(ds)
+    local statText = ds.statValue
+    if statText == nil or statText == "" then
+        statText = "-"
+    end
+    return statText
+end
+
+---@param ds table
+---@return string
+local function ResolveStableTrainingValueText(ds)
+    if ds.valueText and ds.valueText ~= "" then
+        return ds.valueText
+    end
+
+    local displayValue = ds.price or 0
+    if displayValue <= 0 then
+        return "-"
+    end
+
+    if BETTERUI.FormatAbbreviatedNumber then
+        return BETTERUI.FormatAbbreviatedNumber(displayValue)
+    end
+
+    return tostring(displayValue)
+end
+
 --- Row setup function for vendor item entries.
 --- Registered as the setup callback for BETTERUI_GamepadItemSubEntryTemplate in the vendor list.
 ---@param control table UI control for the row
@@ -43,42 +97,50 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
         valueControl:SetFont(columnFont)
     end
 
-    -- ItemType column
-    local typeName = ds.bestGamepadItemCategoryName or ds.bestItemTypeName or ""
-    itemTypeControl:SetText(string.upper(typeName))
+    if IsStableTrainingRow(ds) then
+        itemTypeControl:SetText(ResolveStableTrainingTypeText(ds))
+        traitControl:SetText(ResolveStableTrainingTraitText(ds))
+        statControl:SetText(ResolveStableTrainingStatText(ds))
+        valueControl:SetColor(1, 1, 1, 1)
+        valueControl:SetText(ResolveStableTrainingValueText(ds))
+    else
+        -- ItemType column
+        local typeName = ds.bestGamepadItemCategoryName or ds.bestItemTypeName or ""
+        itemTypeControl:SetText(string.upper(typeName))
 
-    -- Trait column
-    local traitName = ds.traitName or ds.cached_traitName
-    if not traitName then
-        local itemLink = ds.itemLink or ds.cached_itemLink
-        if itemLink and GetItemLinkTraitInfo then
-            local traitType = GetItemLinkTraitInfo(itemLink)
-            if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE then
-                traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
+        -- Trait column
+        local traitName = ds.traitName or ds.cached_traitName
+        if not traitName then
+            local itemLink = ds.itemLink or ds.cached_itemLink
+            if itemLink and GetItemLinkTraitInfo then
+                local traitType = GetItemLinkTraitInfo(itemLink)
+                if traitType and traitType ~= ITEM_TRAIT_TYPE_NONE then
+                    traitName = string.upper(GetString("SI_ITEMTRAITTYPE", traitType))
+                end
             end
         end
-    end
-    traitControl:SetText(traitName or "-")
+        traitControl:SetText(traitName or "-")
 
-    -- Stat column
-    local statText = ds.statValue
-    if statText == nil or statText == "" then
-        statText = "-"
-    end
-    statControl:SetText(statText)
+        -- Stat column
+        local statText = ds.statValue
+        if statText == nil or statText == "" then
+            statText = "-"
+        end
+        statControl:SetText(statText)
 
-    -- Value column: prioritize vendor-specific price fields
-    local displayValue = ds.price
-        or ds.repairCost
-        or ds.launderCost
-        or ds.stackSellPrice
-        or ds.sellPrice
-        or 0
-    valueControl:SetColor(1, 1, 1, 1)
-    if BETTERUI.FormatAbbreviatedNumber then
-        valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(displayValue))
-    else
-        valueControl:SetText(tostring(displayValue))
+        -- Value column: prioritize vendor-specific price fields
+        local displayValue = ds.price
+            or ds.repairCost
+            or ds.launderCost
+            or ds.stackSellPrice
+            or ds.sellPrice
+            or 0
+        valueControl:SetColor(1, 1, 1, 1)
+        if BETTERUI.FormatAbbreviatedNumber then
+            valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(displayValue))
+        else
+            valueControl:SetText(tostring(displayValue))
+        end
     end
 
     -- Icon setup (shared)

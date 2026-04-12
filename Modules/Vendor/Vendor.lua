@@ -20,13 +20,16 @@ KEY MECHANICS:
 local Vendor      = BETTERUI.Vendor
 local MODE        = Vendor.MODE
 local EVENT_NS    = "BetterUI_Vendor"
+local SafeCall
 
 -- Tracks whether current interaction is fence (true) or regular store (false)
 local isFenceInteraction = false
+local isStableInteraction = false
 
 -- Tracks which fence modes are enabled for the current fence interaction
 local fenceEnableSell    = false
 local fenceEnableLaunder = false
+Vendor._sessionHasBuyMode = false
 
 -- TAB DEFINITIONS
 
@@ -38,7 +41,15 @@ local VENDOR_TABS = {
     { mode = MODE.BUY,     name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
     { mode = MODE.SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL")) end },
     { mode = MODE.REPAIR,  name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
+    { mode = MODE.STABLE,  name = function() return GetString(rawget(_G, "SI_STABLE_STABLES_TAB")) end },
     { mode = MODE.BUYBACK, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUYBACK")) end },
+}
+
+---@type VendorTabDef[]
+local STABLE_TABS = {
+    { mode = MODE.BUY,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
+    { mode = MODE.REPAIR, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
+    { mode = MODE.STABLE, name = function() return GetString(rawget(_G, "SI_STABLE_STABLES_TAB")) end },
 }
 
 -- Fence tabs (Sell Stolen, Launder)
@@ -61,6 +72,8 @@ local function ResolveNativeModeForVendorMode(mode)
         return rawget(_G, "ZO_MODE_STORE_SELL_STOLEN")
     elseif mode == MODE.FENCE_LAUNDER then
         return rawget(_G, "ZO_MODE_STORE_LAUNDER")
+    elseif mode == MODE.STABLE then
+        return rawget(_G, "ZO_MODE_STORE_STABLE")
     end
     return nil
 end
@@ -84,6 +97,16 @@ local function GetNativeActiveModeSet()
     return modeSet
 end
 
+---@return boolean
+local function IsNativeStableModeActive()
+    local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
+    if not stableMode then
+        return false
+    end
+    local nativeModeSet = GetNativeActiveModeSet()
+    return nativeModeSet[stableMode] == true
+end
+
 -- GET ACTIVE TABS
 
 --- Returns the tab list for the current interaction type.
@@ -105,16 +128,26 @@ local function GetActiveTabs()
     end
 
     local activeModeSet = GetNativeActiveModeSet()
+    local includeBuyFromSession = Vendor._sessionHasBuyMode == true
+    local sourceTabs = isStableInteraction and STABLE_TABS or VENDOR_TABS
     local tabs = {}
-    for _, tab in ipairs(VENDOR_TABS) do
+    for _, tab in ipairs(sourceTabs) do
         local nativeMode = ResolveNativeModeForVendorMode(tab.mode)
-        if nativeMode and activeModeSet[nativeMode] then
+        local includeStableRepair = isStableInteraction
+            and tab.mode == MODE.REPAIR
+            and (type(CanStoreRepair) ~= "function" or CanStoreRepair())
+        if (nativeMode and activeModeSet[nativeMode])
+            or (tab.mode == MODE.BUY and includeBuyFromSession)
+            or includeStableRepair then
             tabs[#tabs + 1] = tab
         end
     end
 
     if #tabs == 0 then
         -- Fall back to legacy behavior when native components are not ready yet.
+        if isStableInteraction then
+            return STABLE_TABS
+        end
         return VENDOR_TABS
     end
 
@@ -165,8 +198,15 @@ local function GetToggleModePair()
         return nil, nil
     end
 
+    if isStableInteraction then
+        return MODE.BUY, MODE.STABLE
+    end
+
     local modeSet = BuildActiveModeSet(GetActiveTabs())
     if modeSet[MODE.BUY] and modeSet[MODE.SELL] then
+        return MODE.BUY, MODE.SELL
+    end
+    if modeSet[MODE.SELL] and Vendor._sessionHasBuyMode == true then
         return MODE.BUY, MODE.SELL
     end
     if IsSellBuybackOnlyModeSet(modeSet) then
@@ -192,10 +232,28 @@ local function ResolveInitialStoreMode(tabs)
                 modeSet[tab.mode] = true
             end
         end
+        if modeSet[MODE.BUY] then
+            Vendor._sessionHasBuyMode = true
+        end
     end
 
     if IsSellBuybackOnlyModeSet(modeSet) then
         return MODE.SELL
+    end
+
+    if isStableInteraction then
+        if modeSet[MODE.BUY] then
+            Vendor._sessionHasBuyMode = true
+            return MODE.BUY
+        end
+        local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
+        if nativeModesReady and stableMode and nativeModeSet[stableMode] then
+            return MODE.STABLE
+        end
+        if modeSet[MODE.REPAIR] then
+            return MODE.REPAIR
+        end
+        return MODE.BUY
     end
 
     -- When native components are not ready yet, do not trust transient buy-state APIs.
@@ -227,6 +285,7 @@ local function ResolveInitialStoreMode(tabs)
             end
         end
         if hasBuyList then
+            Vendor._sessionHasBuyMode = true
             return MODE.BUY
         end
     end
@@ -263,7 +322,7 @@ local function AliasStoreSceneToBetterUI()
     end
 end
 
-local function SafeCall(context, fn, ...)
+function SafeCall(context, fn, ...)
     if type(fn) ~= "function" then
         return false, nil
     end
@@ -318,6 +377,7 @@ local function EnsureNativeStoreComponents(searchContext)
     local sellVengeanceMode = rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
     local buyBackMode = rawget(_G, "ZO_MODE_STORE_BUY_BACK")
     local repairMode = rawget(_G, "ZO_MODE_STORE_REPAIR")
+    local stableMode = rawget(_G, "ZO_MODE_STORE_STABLE")
     local availableComponents = storeManager.components or {}
 
     local function GetActiveModes()
@@ -340,14 +400,36 @@ local function EnsureNativeStoreComponents(searchContext)
     end
 
     local componentTable, seenActiveModes = GetActiveModes()
-    local includeBuy = true
-    if type(IsStoreEmpty) == "function" then
+    local includeBuy = Vendor._sessionHasBuyMode == true
+        or (buyMode ~= nil and seenActiveModes[buyMode] == true)
+    if not includeBuy and type(IsStoreEmpty) == "function" then
         local okStoreEmpty, isStoreEmpty = SafeCall("Vendor.EnsureNativeStoreComponents:IsStoreEmpty", IsStoreEmpty)
-        includeBuy = okStoreEmpty and (not isStoreEmpty) or false
+        if okStoreEmpty then
+            includeBuy = not isStoreEmpty
+        end
+    end
+    if not includeBuy and type(GetNumStoreItems) == "function" then
+        local okStoreCount, storeCount = SafeCall("Vendor.EnsureNativeStoreComponents:GetNumStoreItems", GetNumStoreItems)
+        if okStoreCount and type(storeCount) == "number" then
+            includeBuy = storeCount > 0
+        end
+    end
+    if includeBuy then
+        Vendor._sessionHasBuyMode = true
     end
 
-    local needRebuild = (#componentTable == 0)
-        or (not isFenceInteraction and includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
+    local needRebuild = false
+    if isStableInteraction then
+        needRebuild = (#componentTable == 0)
+            or (includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
+            or (stableMode ~= nil and not seenActiveModes[stableMode])
+            or (sellMode ~= nil and seenActiveModes[sellMode])
+            or (buyBackMode ~= nil and seenActiveModes[buyBackMode])
+    else
+        needRebuild = (#componentTable == 0)
+            or (not isFenceInteraction and includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
+            or (stableMode ~= nil and seenActiveModes[stableMode])
+    end
     LogVendorDebug(
         "DIRECTIONAL_INPUT",
         "VendorDI",
@@ -383,21 +465,39 @@ local function EnsureNativeStoreComponents(searchContext)
     end
 
     -- Rebuild from vanilla rules when active components are missing or incomplete.
-    if includeBuy then
-        AddMode(buyMode)
-    end
-    AddMode(sellMode)
-    if sellVengeanceMode and type(IsCurrentCampaignVengeanceRuleset) == "function"
-        and IsCurrentCampaignVengeanceRuleset() and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") then
-        AddMode(sellVengeanceMode)
-    end
-    AddMode(buyBackMode)
-    if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
-        AddMode(repairMode)
+    if isStableInteraction then
+        if includeBuy then
+            AddMode(buyMode)
+        end
+        AddMode(stableMode)
+        if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
+            AddMode(repairMode)
+        end
+    else
+        if includeBuy then
+            AddMode(buyMode)
+        end
+        AddMode(sellMode)
+        if sellVengeanceMode and type(IsCurrentCampaignVengeanceRuleset) == "function"
+            and IsCurrentCampaignVengeanceRuleset() and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") then
+            AddMode(sellVengeanceMode)
+        end
+        AddMode(buyBackMode)
+        if repairMode and (type(CanStoreRepair) ~= "function" or CanStoreRepair()) then
+            AddMode(repairMode)
+        end
     end
 
     for _, mode in ipairs(componentTable) do
-        AddMode(mode)
+        if isStableInteraction then
+            if mode == buyMode
+                or mode == repairMode
+                or mode == stableMode then
+                AddMode(mode)
+            end
+        elseif mode ~= stableMode then
+            AddMode(mode)
+        end
     end
 
     if #rebuiltModes > 0 then
@@ -505,8 +605,6 @@ local function ShouldAbortOpenStoreSync()
     end
     return false
 end
-
----@param vendorInstance BETTERUI.Vendor.Class|table|nil
 ---@param expectedMode number|nil
 ---@return boolean
 local function ShouldAbortDeferredVendorRefresh(vendorInstance, expectedMode)
@@ -541,6 +639,177 @@ end
 
 Vendor.ShouldAbortDeferredVendorRefresh = ShouldAbortDeferredVendorRefresh
 
+local STABLE_TRAIN_ORDER = {
+    RIDING_TRAIN_SPEED,
+    RIDING_TRAIN_STAMINA,
+    RIDING_TRAIN_CARRYING_CAPACITY,
+}
+
+local DEFAULT_STABLE_INTERACTION_ICON = "EsoUI/Art/Collections/Default/collections_default_mount.dds"
+
+local function ResolveStableInteractionIcon()
+    return DEFAULT_STABLE_INTERACTION_ICON
+end
+
+local function BuildStableTrainingIcon(trainingType)
+    if STABLE_TRAINING_TEXTURES_GAMEPAD then
+        return STABLE_TRAINING_TEXTURES_GAMEPAD[trainingType]
+    end
+    return nil
+end
+
+local function IsStableSkillTrainable(trainingType, bonus, maxBonus)
+    if not trainingType then
+        return false
+    end
+    if (bonus or 0) >= (maxBonus or 0) then
+        return false
+    end
+    if type(GetTimeUntilCanBeTrained) == "function" and GetTimeUntilCanBeTrained() ~= 0 then
+        return false
+    end
+    if STABLE_MANAGER and STABLE_MANAGER.CanAffordTraining then
+        return STABLE_MANAGER:CanAffordTraining()
+    end
+    return false
+end
+
+local function BuildStableTrainingStateText(isAtMax, timeUntilCanTrain)
+    if isAtMax then
+        return "MAX"
+    end
+    if (timeUntilCanTrain or 0) == 0 then
+        return GetString(rawget(_G, "SI_GAMEPAD_STABLE_TRAINABLE_READY") or "SI_GAMEPAD_STABLE_TRAINABLE_READY")
+    end
+    if ZO_FormatTimeMilliseconds then
+        return ZO_FormatTimeMilliseconds(
+            timeUntilCanTrain,
+            TIME_FORMAT_STYLE_COLONS,
+            TIME_FORMAT_PRECISION_TWELVE_HOUR
+        )
+    end
+    return "-"
+end
+
+local function BuildStableTrainingValueText(trainingCost, canAfford, isAtMax)
+    if isAtMax or (trainingCost or 0) <= 0 then
+        return "-"
+    end
+
+    if ZO_Currency_FormatGamepad then
+        local format = canAfford and ZO_CURRENCY_FORMAT_WHITE_AMOUNT_ICON or ZO_CURRENCY_FORMAT_ERROR_AMOUNT_ICON
+        return ZO_Currency_FormatGamepad(CURT_MONEY, trainingCost, format)
+    end
+
+    return tostring(trainingCost)
+end
+
+Vendor.StableTrainingComponent = Vendor.StableTrainingComponent or {}
+local StableTraining = Vendor.StableTrainingComponent
+
+function StableTraining:Activate(vendorInstance)
+    vendorInstance:RefreshList()
+end
+
+function StableTraining:Deactivate(_vendorInstance)
+    -- No teardown required.
+end
+
+function StableTraining:GetPrimaryActionName()
+    return GetString(rawget(_G, "SI_GAMEPAD_STABLE_TRAIN") or "SI_GAMEPAD_STABLE_TRAIN")
+end
+
+function StableTraining:IsPrimaryActionEnabled(vendorInstance)
+    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    if not selectedData then
+        return false
+    end
+    local ds = selectedData.dataSource or selectedData
+    return ds and ds.isSkillTrainable == true
+end
+
+---@param _vendorInstance BETTERUI.Vendor.Class
+---@return table[]
+function StableTraining:GetCategories(_vendorInstance)
+    return {
+        {
+            key = "stable_all",
+            name = GetString(rawget(_G, "SI_STATS_RIDING_SKILL") or "SI_STATS_RIDING_SKILL"),
+            iconFile = ResolveStableInteractionIcon(),
+            itemCount = #STABLE_TRAIN_ORDER,
+        },
+    }
+end
+
+function StableTraining:OnPrimaryAction(vendorInstance)
+    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    if not selectedData then
+        return
+    end
+    local ds = selectedData.dataSource or selectedData
+    if not (ds and ds.trainingType and ds.isSkillTrainable) then
+        return
+    end
+
+    TrainRiding(ds.trainingType)
+    vendorInstance:RefreshList()
+end
+
+function StableTraining:BuildList(vendorInstance)
+    local list = vendorInstance.list
+    if not list then
+        return
+    end
+
+    local skillHeader = GetString(rawget(_G, "SI_STATS_RIDING_SKILL") or "SI_STATS_RIDING_SKILL")
+    local trainingCost = (type(GetTrainingCost) == "function" and GetTrainingCost()) or 0
+    local timeUntilCanTrain = (type(GetTimeUntilCanBeTrained) == "function" and GetTimeUntilCanBeTrained()) or 0
+    local canAffordTraining = (STABLE_MANAGER and STABLE_MANAGER.CanAffordTraining and STABLE_MANAGER:CanAffordTraining()) or false
+    local isTrainWindowOpen = timeUntilCanTrain == 0
+
+    for _, trainingType in ipairs(STABLE_TRAIN_ORDER) do
+        local bonus, maxBonus = 0, 0
+        if STABLE_MANAGER and STABLE_MANAGER.GetStats then
+            bonus, maxBonus = STABLE_MANAGER:GetStats(trainingType)
+        end
+        local isAtMax = (bonus or 0) >= (maxBonus or 0)
+
+        local formatStringId = trainingType == RIDING_TRAIN_SPEED
+            and (rawget(_G, "SI_MOUNT_ATTRIBUTE_SPEED_FORMAT") or "SI_MOUNT_ATTRIBUTE_SPEED_FORMAT")
+            or (rawget(_G, "SI_MOUNT_ATTRIBUTE_SIMPLE_FORMAT") or "SI_MOUNT_ATTRIBUTE_SIMPLE_FORMAT")
+        local statText = zo_strformat(formatStringId, bonus or 0)
+        local trainingName = GetString("SI_RIDINGTRAINTYPE", trainingType)
+        local icon = BuildStableTrainingIcon(trainingType)
+        local trainable = IsStableSkillTrainable(trainingType, bonus, maxBonus)
+        local stableStateText = BuildStableTrainingStateText(isAtMax, timeUntilCanTrain)
+        local valueText = BuildStableTrainingValueText(trainingCost, canAffordTraining, isAtMax)
+
+        local rowData = {
+            name = trainingName,
+            icon = icon,
+            price = (isTrainWindowOpen and not isAtMax) and trainingCost or 0,
+            stackCount = 1,
+            stack = 1,
+            trainingType = trainingType,
+            bonus = bonus or 0,
+            maxBonus = maxBonus or 0,
+            isSkillTrainable = trainable,
+            trainStateText = stableStateText,
+            valueText = valueText,
+            bestGamepadItemCategoryName = skillHeader,
+            statValue = statText,
+        }
+
+        local entry = ZO_GamepadEntryData:New(rowData.name, rowData.icon)
+        entry:SetDataSource(rowData)
+        entry.narrationText = function()
+            return rowData.name
+        end
+
+        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+    end
+end
+
 -- KEYBINDS
 
 ---@param vendorInstance BETTERUI.Vendor.Class
@@ -552,6 +821,9 @@ local function BuildCoreKeybinds(vendorInstance)
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
             visible = function()
+                if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
+                    return true
+                end
                 return #GetActiveTabs() > 1
             end,
             callback = function()
@@ -562,6 +834,9 @@ local function BuildCoreKeybinds(vendorInstance)
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
             visible = function()
+                if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
+                    return true
+                end
                 return #GetActiveTabs() > 1
             end,
             callback = function()
@@ -605,14 +880,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 if not firstMode or not secondMode then
                     return false
                 end
-                local mode = vendorInstance:GetCurrentMode()
-                if mode == firstMode or mode == secondMode then
-                    return true
-                end
-                if vendorInstance.IsSellBuybackOnlyStore and vendorInstance:IsSellBuybackOnlyStore() then
-                    return true
-                end
-                return false
+                return true
             end,
             enabled = function()
                 local firstMode, secondMode = GetToggleModePair()
@@ -691,6 +959,45 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
             end,
         },
+        -- Stable-only preview toggle
+        {
+            name = function()
+                if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
+                    and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+                    return GetString(rawget(_G, "SI_CRAFTING_EXIT_PREVIEW_MODE") or "SI_CRAFTING_EXIT_PREVIEW_MODE")
+                end
+                return GetString(rawget(_G, "SI_CRAFTING_ENTER_PREVIEW_MODE") or "SI_CRAFTING_ENTER_PREVIEW_MODE")
+            end,
+            keybind = "UI_SHORTCUT_RIGHT_STICK",
+            visible = function()
+                if not isStableInteraction then
+                    return false
+                end
+                if not (vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() == MODE.BUY) then
+                    return false
+                end
+                if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
+                    and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+                    return true
+                end
+                if vendorInstance.CanPreviewStableStoreEntry then
+                    local selectedData = vendorInstance.list and vendorInstance.list:GetTargetData() or nil
+                    return vendorInstance:CanPreviewStableStoreEntry(selectedData)
+                end
+                return false
+            end,
+            enabled = function()
+                return true
+            end,
+            callback = function()
+                if vendorInstance.ToggleStablePreviewMode then
+                    vendorInstance:ToggleStablePreviewMode()
+                end
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
         -- Back / Exit (keybind B / GAMEPAD_BUTTON_2)
         {
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
@@ -707,6 +1014,24 @@ end
 
 ---@param direction number -1 for left, 1 for right
 function BETTERUI.Vendor.Class:CycleTabs(direction)
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    local headerEntryCount = self._vendorHeaderEntryCount or 0
+    if tabBar and headerEntryCount > 1 then
+        local currentIndex = tabBar.selectedIndex or 1
+        local newIndex
+        if Vendor.GetSetting("enableCarousel") == false then
+            newIndex = currentIndex + direction
+            if newIndex < 1 or newIndex > headerEntryCount then
+                return
+            end
+        else
+            newIndex = ((currentIndex - 1 + direction) % headerEntryCount) + 1
+        end
+
+        tabBar:SetSelectedIndexWithoutAnimation(newIndex, true, true)
+        return
+    end
+
     local tabs = GetActiveTabs()
     if #tabs <= 1 then return end
 
@@ -738,40 +1063,34 @@ end
 
 local function OnOpenStore()
     isFenceInteraction = false
+    isStableInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    Vendor._sessionHasBuyMode = false
     Vendor._isClosing = false
     Vendor._openStoreSyncAttempt = 0
 
     if not Vendor.instance then return end
+    Vendor.instance._cachedBuyCategories = nil
     if Vendor.Tasks then
         Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
         Vendor.Tasks:Cancel("buyActivateRefresh")
         Vendor.Tasks:Cancel("buyListRetry")
+        Vendor.Tasks:Cancel("footerRefresh")
     end
 
     local interactionType = GetInteractionType and GetInteractionType() or nil
+    local allowNativeStableFallback = interactionType == nil
+    isStableInteraction = isStableInteraction
+        or interactionType == INTERACTION_STABLE
+        or (allowNativeStableFallback and IsNativeStableModeActive())
     LogVendorDebug(
         "SCENE_TRANSITIONS",
         "VendorScene",
-        string.format("OnOpenStore interaction=%s fence=%s", tostring(interactionType), tostring(isFenceInteraction))
+        string.format("OnOpenStore interaction=%s fence=%s stable=%s", tostring(interactionType), tostring(isFenceInteraction), tostring(isStableInteraction))
     )
 
-    -- Stable shares EVENT_OPEN_STORE and the native store scene.
-    -- Leave native ownership in place for stable interactions.
-    if interactionType == INTERACTION_STABLE then
-        local customScene = SCENE_MANAGER and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME)
-        if customScene and customScene.IsShowing and customScene:IsShowing() then
-            SCENE_MANAGER:Hide(BETTERUI_VENDOR_SCENE_NAME)
-        end
-        RestoreNativeStoreSceneAlias()
-        if SCENE_MANAGER then
-            SCENE_MANAGER:Show("gamepad_store")
-        end
-        return
-    end
-
-    if interactionType and interactionType ~= INTERACTION_VENDOR then
+    if interactionType and interactionType ~= INTERACTION_VENDOR and interactionType ~= INTERACTION_STABLE then
         RestoreNativeStoreSceneAlias()
         return
     end
@@ -781,6 +1100,12 @@ local function OnOpenStore()
         Vendor.instance:ReleaseNativeStoreInputOwnership()
     end
     EnsureNativeStoreComponents("storeTextSearch")
+    if not isStableInteraction and allowNativeStableFallback and IsNativeStableModeActive() then
+        -- Some clients open stablemaster as generic vendor interaction.
+        -- Re-detect using native modes and rebuild with stable tab policy.
+        isStableInteraction = true
+        EnsureNativeStoreComponents("storeTextSearch")
+    end
 
     local tabs = GetActiveTabs()
     local targetMode = ResolveInitialStoreMode(tabs)
@@ -875,8 +1200,10 @@ end
 ---@param enableLaunder boolean|nil Whether fence launder is enabled (default true)
 local function OnOpenFence(_, enableSell, enableLaunder)
     isFenceInteraction = true
+    isStableInteraction = false
     fenceEnableSell = (enableSell ~= false)     -- default true
     fenceEnableLaunder = (enableLaunder ~= false) -- default true
+    Vendor._sessionHasBuyMode = false
     Vendor._isClosing = false
     LogVendorDebug(
         "SCENE_TRANSITIONS",
@@ -885,6 +1212,7 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     )
 
     if not Vendor.instance then return end
+    Vendor.instance._cachedBuyCategories = nil
     AliasStoreSceneToBetterUI()
     if Vendor.instance.ReleaseNativeStoreInputOwnership then
         Vendor.instance:ReleaseNativeStoreInputOwnership()
@@ -902,18 +1230,35 @@ local function OnOpenFence(_, enableSell, enableLaunder)
     end
 end
 
+local function OnStableInteractStart()
+    isStableInteraction = true
+end
+
+local function OnStableInteractEnd()
+    isStableInteraction = false
+end
+
 local function OnCloseStore()
     Vendor._isClosing = true
     isFenceInteraction = false
+    isStableInteraction = false
     fenceEnableSell = false
     fenceEnableLaunder = false
+    Vendor._sessionHasBuyMode = false
     Vendor._openStoreSyncAttempt = 0
+    if Vendor.instance then
+        Vendor.instance._cachedBuyCategories = nil
+        if Vendor.instance.DisableStablePreviewMode then
+            Vendor.instance:DisableStablePreviewMode()
+        end
+    end
 
     if Vendor.Tasks then
         Vendor.Tasks:Cancel("ensureStoreComponentsOnOpen")
         Vendor.Tasks:Cancel("buyActivateRefresh")
         Vendor.Tasks:Cancel("buyListRetry")
         Vendor.Tasks:Cancel("listRefresh")
+        Vendor.Tasks:Cancel("footerRefresh")
         Vendor.Tasks:Cancel("directionalInputNormalize")
     end
 
@@ -939,6 +1284,10 @@ local function OnCloseStore()
     if storeManager and type(storeManager.OnHide) == "function" then
         SafeCall("Vendor.OnCloseStore:NativeOnHide", storeManager.OnHide, storeManager)
     end
+    if storeManager then
+        -- Clear native mode residue so the next vendor open does not inherit stale stable tabs.
+        storeManager.activeComponents = {}
+    end
     LogNativeStoreInputState("OnCloseStore:afterSweep", storeManager)
     LogVendorDebug("SCENE_TRANSITIONS", "VendorScene", "OnCloseStore complete")
 
@@ -955,8 +1304,36 @@ local function OnInventoryUpdated()
     Vendor.Tasks:Schedule("listRefresh", 100, function()
         if Vendor.instance and Vendor.instance:IsSceneShowing() then
             Vendor.instance:RefreshList()
+            if Vendor.instance.RefreshVendorFooter then
+                Vendor.instance:RefreshVendorFooter()
+            end
         end
     end)
+end
+
+local function OnMoneyUpdated()
+    if not Vendor.instance then return end
+    if not Vendor.instance:IsSceneShowing() then return end
+
+    if Vendor.Tasks then
+        Vendor.Tasks:Cancel("footerRefresh")
+        Vendor.Tasks:Schedule("footerRefresh", 40, function()
+            if Vendor.instance and Vendor.instance:IsSceneShowing() and Vendor.instance.RefreshVendorFooter then
+                Vendor.instance:RefreshVendorFooter()
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end
+        end)
+        return
+    end
+
+    if Vendor.instance.RefreshVendorFooter then
+        Vendor.instance:RefreshVendorFooter()
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end
+    end
 end
 
 local function OnSellReceipt()
@@ -984,6 +1361,9 @@ function BETTERUI.Vendor.Init()
     end
     if Vendor.RepairComponent then
         Vendor.instance:RegisterComponent(MODE.REPAIR, Vendor.RepairComponent)
+    end
+    if Vendor.StableTrainingComponent then
+        Vendor.instance:RegisterComponent(MODE.STABLE, Vendor.StableTrainingComponent)
     end
     if Vendor.BuybackComponent then
         Vendor.instance:RegisterComponent(MODE.BUYBACK, Vendor.BuybackComponent)
@@ -1115,6 +1495,9 @@ function BETTERUI.Vendor.Init()
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen._suppressListUpdates = false
             screen._isDirty = false
+            if screen.DisableStablePreviewMode then
+                screen:DisableStablePreviewMode()
+            end
             if screen.ReleaseNativeStoreInputOwnership then
                 screen:ReleaseNativeStoreInputOwnership()
             end
@@ -1145,6 +1528,9 @@ function BETTERUI.Vendor.Init()
             -- Repeat the DI/search cleanup on HIDDEN as a last-chance sweep.
             -- Native callbacks and deferred work can still re-register owners
             -- after HIDING cleanup has already run during scene transition.
+            if screen.DisableStablePreviewMode then
+                screen:DisableStablePreviewMode()
+            end
             if screen.ReleaseNativeStoreInputOwnership then
                 screen:ReleaseNativeStoreInputOwnership()
             end
@@ -1173,6 +1559,12 @@ function BETTERUI.Vendor.Init()
     -- Register events
     local em = EVENT_MANAGER
     if em then
+        if EVENT_STABLE_INTERACT_START then
+            em:RegisterForEvent(EVENT_NS .. "_StableStart", EVENT_STABLE_INTERACT_START, OnStableInteractStart)
+        end
+        if EVENT_STABLE_INTERACT_END then
+            em:RegisterForEvent(EVENT_NS .. "_StableEnd", EVENT_STABLE_INTERACT_END, OnStableInteractEnd)
+        end
         em:RegisterForEvent(EVENT_NS .. "_Open", EVENT_OPEN_STORE, OnOpenStore)
         em:RegisterForEvent(EVENT_NS .. "_OpenFence", EVENT_OPEN_FENCE, OnOpenFence)
         em:RegisterForEvent(EVENT_NS .. "_Close", EVENT_CLOSE_STORE, OnCloseStore)
@@ -1193,6 +1585,12 @@ function BETTERUI.Vendor.Init()
             EVENT_ITEM_LAUNDER_RESULT, OnInventoryUpdated)
         em:RegisterForEvent(EVENT_NS .. "_FenceUpdate",
             EVENT_JUSTICE_FENCE_UPDATE, OnInventoryUpdated)
+        em:RegisterForEvent(EVENT_NS .. "_MoneyUpdate",
+            EVENT_MONEY_UPDATE, OnMoneyUpdated)
+        if EVENT_CURRENCY_UPDATE then
+            em:RegisterForEvent(EVENT_NS .. "_CurrencyUpdate",
+                EVENT_CURRENCY_UPDATE, OnMoneyUpdated)
+        end
     end
 
     -- Expose helpers for use in Vendor module
@@ -1200,6 +1598,8 @@ function BETTERUI.Vendor.Init()
     Vendor.GetToggleModePair = GetToggleModePair
     Vendor.IsSellBuybackOnlyStore = IsSellBuybackOnlyStore
     Vendor.IsFenceInteraction = function() return isFenceInteraction end
+    Vendor.GetStableInteractionIcon = ResolveStableInteractionIcon
+    Vendor.IsStableInteraction = function() return isStableInteraction end
 
     -- Register narration for Vendor scene (ACC-001)
     if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then

@@ -28,6 +28,7 @@ BETTERUI.Vendor.MODE = {
     BUYBACK       = 4,
     FENCE_SELL    = 5,
     FENCE_LAUNDER = 6,
+    STABLE        = 7,
 }
 
 local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
@@ -45,6 +46,8 @@ local function ResolveNativeStoreMode(mode)
         return rawget(_G, "ZO_MODE_STORE_SELL_STOLEN")
     elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
         return rawget(_G, "ZO_MODE_STORE_LAUNDER")
+    elseif mode == BETTERUI.Vendor.MODE.STABLE then
+        return rawget(_G, "ZO_MODE_STORE_STABLE")
     end
     return nil
 end
@@ -62,8 +65,17 @@ local function ResolveModeName(mode)
         return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL") or "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")
     elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
         return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER") or "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")
+    elseif mode == BETTERUI.Vendor.MODE.STABLE then
+        return GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
     end
     return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TITLE") or "SI_BETTERUI_VENDOR_TITLE")
+end
+
+local function ResolveStableInteractionIcon()
+    if BETTERUI.Vendor and BETTERUI.Vendor.GetStableInteractionIcon then
+        return BETTERUI.Vendor.GetStableInteractionIcon()
+    end
+    return "EsoUI/Art/Collections/Default/collections_default_mount.dds"
 end
 
 local function ResolveModeIcon(mode)
@@ -79,6 +91,8 @@ local function ResolveModeIcon(mode)
         return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
     elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then
         return "EsoUI/Art/Vendor/vendor_tabIcon_fence_up.dds"
+    elseif mode == BETTERUI.Vendor.MODE.STABLE then
+        return ResolveStableInteractionIcon()
     end
     return DEFAULT_VENDOR_CATEGORY_ICON
 end
@@ -111,10 +125,18 @@ local function IsSellBuybackOnlyTabs(activeTabs)
     return hasSell and hasBuyback and not hasBuy and not hasRepair
 end
 
-local function BuildHeaderModeTabs(activeTabs)
+-- Forward declare; BuildHeaderModeTabs is defined before the function body.
+local IsStableInteractionActive
+
+local function BuildHeaderModeTabs(activeTabs, currentMode)
     local modeTabs = {}
     local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+    local isStableInteraction = IsStableInteractionActive()
     local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
+    currentMode = currentMode or BETTERUI.Vendor.MODE.BUY
+    local onUnifiedBuyScene = currentMode == BETTERUI.Vendor.MODE.BUY
+        or currentMode == BETTERUI.Vendor.MODE.REPAIR
+        or currentMode == BETTERUI.Vendor.MODE.BUYBACK
 
     for _, tab in ipairs(activeTabs or {}) do
         if isFenceInteraction then
@@ -123,8 +145,15 @@ local function BuildHeaderModeTabs(activeTabs)
             if tab.mode == BETTERUI.Vendor.MODE.SELL or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
                 modeTabs[#modeTabs + 1] = tab
             end
-        elseif tab.mode ~= BETTERUI.Vendor.MODE.BUY and tab.mode ~= BETTERUI.Vendor.MODE.SELL then
-            modeTabs[#modeTabs + 1] = tab
+        elseif onUnifiedBuyScene then
+            if isStableInteraction then
+                if tab.mode == BETTERUI.Vendor.MODE.REPAIR then
+                    modeTabs[#modeTabs + 1] = tab
+                end
+            elseif tab.mode == BETTERUI.Vendor.MODE.REPAIR
+                or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
+                modeTabs[#modeTabs + 1] = tab
+            end
         end
     end
 
@@ -138,6 +167,10 @@ local function BuildFallbackCategory()
         iconFile = DEFAULT_VENDOR_CATEGORY_ICON,
         itemCount = 0,
     }
+end
+
+local function ShouldShowVendorHeaderTabBar(headerEntryCount)
+    return (headerEntryCount or 0) > 0
 end
 
 local function SafeCall(context, fn, ...)
@@ -157,6 +190,14 @@ local function LogVendorDebug(flagName, category, message)
     if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
         BETTERUI.Vendor.DebugLog(message, flagName, category)
     end
+end
+
+---@return boolean
+function IsStableInteractionActive()
+    return BETTERUI.Vendor
+        and BETTERUI.Vendor.IsStableInteraction
+        and BETTERUI.Vendor.IsStableInteraction()
+        or false
 end
 
 local function IsDirectionalInputListening(obj)
@@ -769,8 +810,10 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
         return
     end
 
-    local isBuyMode = (mode or self:GetCurrentMode()) == BETTERUI.Vendor.MODE.BUY
-    if isBuyMode and BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
+    local targetVendorMode = mode or self:GetCurrentMode()
+    local shouldEnsureNativeComponents = targetVendorMode == BETTERUI.Vendor.MODE.BUY
+        or targetVendorMode == BETTERUI.Vendor.MODE.STABLE
+    if shouldEnsureNativeComponents and BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
         BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
     end
 
@@ -792,7 +835,7 @@ function BETTERUI.Vendor.Class:ApplyNativeStoreMode(mode)
     end
 
     if not hasTargetMode then
-        if isBuyMode and BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
+        if shouldEnsureNativeComponents and BETTERUI.Vendor and BETTERUI.Vendor.EnsureNativeStoreComponents then
             BETTERUI.Vendor.EnsureNativeStoreComponents("storeTextSearch")
             activeComponents = storeManager.activeComponents
             if type(activeComponents) == "table" and #activeComponents > 0 then
@@ -871,6 +914,9 @@ function BETTERUI.Vendor.Class:SetModeCategories(mode, categories)
     end
 
     self.modeCategories[mode] = categories
+    if mode == BETTERUI.Vendor.MODE.BUY and #categories > 0 then
+        self._cachedBuyCategories = categories
+    end
 
     local selectedIndex = self.categoryIndexByMode[mode] or 1
     if selectedIndex < 1 or selectedIndex > #categories then
@@ -912,6 +958,12 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
     if not tabBar then
         return
     end
+    if not ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount) then
+        ReleaseHeaderDirectionalInput(self.headerGeneric, "Vendor.EnsureHeaderKeybindsActive:HeaderGenericHidden")
+        ReleaseHeaderDirectionalInput(self.header, "Vendor.EnsureHeaderKeybindsActive:HeaderHidden")
+        SetTabBarVisualActive(tabBar, false)
+        return
+    end
 
     if self.DetachUnexpectedSearchHeaderFocus then
         self:DetachUnexpectedSearchHeaderFocus("EnsureHeaderKeybindsActive")
@@ -933,6 +985,9 @@ function BETTERUI.Vendor.Class:BindHeaderMouseBumpers()
     local tabBar = headerGeneric and headerGeneric.tabBar
     local tabBarControl = headerGeneric and headerGeneric:GetNamedChild("TabBar")
     if not (tabBar and tabBarControl) then
+        return
+    end
+    if not ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount) then
         return
     end
 
@@ -1163,17 +1218,31 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     end
 
     local mode = self:GetCurrentMode()
-    local categories = self:GetModeCategories(mode)
     local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
-    local modeTabs = BuildHeaderModeTabs(activeTabs)
+    local modeTabs = BuildHeaderModeTabs(activeTabs, mode)
     local isSellBuybackOnly = IsSellBuybackOnlyTabs(activeTabs)
+    local useUnifiedBuyHeader = (not isSellBuybackOnly)
+        and mode ~= BETTERUI.Vendor.MODE.SELL
+        and mode ~= BETTERUI.Vendor.MODE.STABLE
+        and mode ~= BETTERUI.Vendor.MODE.FENCE_SELL
+        and mode ~= BETTERUI.Vendor.MODE.FENCE_LAUNDER
+    local categoryMode = useUnifiedBuyHeader and BETTERUI.Vendor.MODE.BUY or mode
+    local categories = self:GetModeCategories(categoryMode)
+    if useUnifiedBuyHeader
+        and categoryMode == BETTERUI.Vendor.MODE.BUY
+        and #categories <= 1
+        and self._cachedBuyCategories
+        and #self._cachedBuyCategories > 1 then
+        categories = self._cachedBuyCategories
+        self.modeCategories[BETTERUI.Vendor.MODE.BUY] = categories
+    end
     local showCategoryEntries = not isSellBuybackOnly
     if not showCategoryEntries and #modeTabs == 0 then
         showCategoryEntries = true
     end
-    local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[mode]) or 1
+    local selectedIndex = (self.categoryIndexByMode and self.categoryIndexByMode[categoryMode]) or 1
     selectedIndex = zo_clamp(selectedIndex, 1, #categories)
-    self.categoryIndexByMode[mode] = selectedIndex
+    self.categoryIndexByMode[categoryMode] = selectedIndex
     self.currentCategoryIndex = selectedIndex
 
     local selectedCategory = categories[selectedIndex]
@@ -1181,6 +1250,14 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     local selectedHeaderIndex
     if showCategoryEntries then
         selectedHeaderIndex = modeEntryCount + selectedIndex
+        if useUnifiedBuyHeader and mode ~= BETTERUI.Vendor.MODE.BUY then
+            for modeEntryIndex, tab in ipairs(modeTabs) do
+                if tab.mode == mode then
+                    selectedHeaderIndex = modeEntryIndex
+                    break
+                end
+            end
+        end
     else
         selectedHeaderIndex = 1
         for modeEntryIndex, tab in ipairs(modeTabs) do
@@ -1212,6 +1289,7 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
         for categoryIndex, category in ipairs(categories) do
             headerEntries[#headerEntries + 1] = {
                 categoryIndex = categoryIndex,
+                categoryMode = categoryMode,
                 name = category.name,
                 iconFile = category.iconFile or DEFAULT_VENDOR_CATEGORY_ICON,
                 filterType = category.filterType,
@@ -1219,9 +1297,17 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
             }
         end
     end
+    self._vendorHeaderEntryCount = #headerEntries
+    local shouldShowHeaderTabBar = ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount)
 
     self.vendorHeaderData = self.vendorHeaderData or {}
     self.vendorHeaderData.titleText = function()
+        if mode == BETTERUI.Vendor.MODE.STABLE then
+            return ResolveModeName(mode)
+        end
+        if mode == BETTERUI.Vendor.MODE.BUYBACK or mode == BETTERUI.Vendor.MODE.REPAIR then
+            return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), "Items")
+        end
         if showCategoryEntries and selectedCategory and selectedCategory.name and selectedCategory.name ~= "" then
             return zo_strformat("<<1>> - <<2>>", ResolveModeName(mode), selectedCategory.name)
         end
@@ -1261,12 +1347,20 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
         end
 
         local categoryIndex = selectedEntry.categoryIndex or 1
-        if self.categoryIndexByMode[mode] == categoryIndex then
+        local selectedCategoryMode = selectedEntry.categoryMode or mode
+        local shouldSwitchToBuy = useUnifiedBuyHeader
+            and mode ~= BETTERUI.Vendor.MODE.BUY
+            and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
+        if self.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
             return
         end
 
-        self.categoryIndexByMode[mode] = categoryIndex
+        self.categoryIndexByMode[selectedCategoryMode] = categoryIndex
         self.currentCategoryIndex = categoryIndex
+        if shouldSwitchToBuy then
+            self:SetMode(BETTERUI.Vendor.MODE.BUY)
+            return
+        end
         self:RefreshList()
     end
 
@@ -1282,6 +1376,7 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
         local entryData = ZO_GamepadEntryData:New(entryInfo.name, entryInfo.iconFile or DEFAULT_VENDOR_CATEGORY_ICON)
         entryData.filterType = entryInfo.filterType
         entryData.itemCount = entryInfo.itemCount
+        entryData.countBadgeOffsetY = 3
         entryData.modeSwitchMode = entryInfo.modeSwitchMode
         entryData.categoryIndex = entryInfo.categoryIndex
         entryData:SetIconTintOnSelection(true)
@@ -1290,8 +1385,16 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
 
     BETTERUI.GenericHeader.Refresh(headerGeneric, self.vendorHeaderData, false)
 
-    if headerGeneric.tabBar then
+    local tabBarControl = headerGeneric:GetNamedChild("TabBar")
+    if tabBarControl then
+        tabBarControl:SetHidden(not shouldShowHeaderTabBar)
+    end
+
+    if headerGeneric.tabBar and shouldShowHeaderTabBar then
         headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(selectedHeaderIndex, true, true)
+    elseif headerGeneric.tabBar then
+        SetTabBarVisualActive(headerGeneric.tabBar, false)
+        ReleaseDirectionalInputRegistrations(headerGeneric.tabBar, true)
     end
     self._suppressVendorHeaderSelection = false
     self:BindHeaderMouseBumpers()
@@ -1319,6 +1422,17 @@ function BETTERUI.Vendor.Class:ToggleBuySellMode()
     end
 
     local mode = self:GetCurrentMode()
+    if IsStableInteractionActive()
+        and firstMode == BETTERUI.Vendor.MODE.BUY
+        and secondMode == BETTERUI.Vendor.MODE.STABLE then
+        if mode == secondMode then
+            self:SetMode(firstMode)
+        else
+            self:SetMode(secondMode)
+        end
+        return
+    end
+
     if mode == firstMode then
         self:SetMode(secondMode)
     elseif mode == secondMode then
@@ -1340,6 +1454,10 @@ function BETTERUI.Vendor.Class:SetMode(mode)
     end
 
     self.currentMode = mode
+
+    if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableStablePreviewMode then
+        self:DisableStablePreviewMode()
+    end
 
     self:ApplyNativeStoreMode(mode)
 
@@ -1441,6 +1559,133 @@ function BETTERUI.Vendor.Class:RefreshList()
     end
 end
 
+---@param selectedData table|nil
+---@return boolean
+function BETTERUI.Vendor.Class:CanPreviewStableStoreEntry(selectedData)
+    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction and IsCharacterPreviewingAvailable) then
+        return false
+    end
+    if not IsCharacterPreviewingAvailable() then
+        return false
+    end
+
+    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+    local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
+    if not storeEntryIndex then
+        return false
+    end
+
+    local validateAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_VALIDATE")
+    if validateAction == nil then
+        return false
+    end
+    return ZO_StoreManager_DoPreviewAction(validateAction, storeEntryIndex) == true
+end
+
+---@param hidden boolean
+---@return nil
+function BETTERUI.Vendor.Class:SetStablePreviewUiHidden(hidden)
+    if self._stablePreviewUiHidden == hidden then
+        return
+    end
+    self._stablePreviewUiHidden = hidden
+
+    if self.control and self.control.SetHidden then
+        self.control:SetHidden(hidden)
+    end
+
+    local scene = self.scene
+        or (SCENE_MANAGER and SCENE_MANAGER.GetScene and SCENE_MANAGER:GetScene(BETTERUI_VENDOR_SCENE_NAME))
+    if scene and GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT then
+        if hidden then
+            scene:RemoveFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+        else
+            scene:AddFragment(GAMEPAD_NAV_QUADRANT_1_BACKGROUND_FRAGMENT)
+        end
+    end
+
+    if GAMEPAD_TOOLTIPS then
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        local leftTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+        local rightTooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        if leftTooltip and leftTooltip.SetHidden then
+            leftTooltip:SetHidden(hidden)
+        end
+        if rightTooltip and rightTooltip.SetHidden then
+            rightTooltip:SetHidden(hidden)
+        end
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:DisableStablePreviewMode()
+    self:SetStablePreviewUiHidden(false)
+
+    if not ITEM_PREVIEW_GAMEPAD then
+        return
+    end
+    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+        return
+    end
+
+    ITEM_PREVIEW_GAMEPAD:SetInteractionCameraPreviewEnabled(
+        false,
+        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
+        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
+        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
+    )
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:ToggleStablePreviewMode()
+    if not ITEM_PREVIEW_GAMEPAD then
+        return
+    end
+    if not IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
+        return
+    end
+
+    ITEM_PREVIEW_GAMEPAD:ToggleInteractionCameraPreview(
+        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
+        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
+        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
+    )
+
+    local isPreviewActive = ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled()
+    self:SetStablePreviewUiHidden(isPreviewActive)
+    self:UpdateStablePreview()
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:UpdateStablePreview()
+    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction) then
+        return
+    end
+    if not IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
+        self:DisableStablePreviewMode()
+        return
+    end
+
+    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+        self:SetStablePreviewUiHidden(false)
+        return
+    end
+
+    local selectedData = self.list and self.list:GetTargetData() or nil
+    if self:CanPreviewStableStoreEntry(selectedData) then
+        local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+        local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
+        local executeAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_EXECUTE")
+        if storeEntryIndex and executeAction ~= nil then
+            ZO_StoreManager_DoPreviewAction(executeAction, storeEntryIndex)
+        end
+        self:SetStablePreviewUiHidden(true)
+    else
+        self:DisableStablePreviewMode()
+    end
+end
+
 ---@param _list table
 ---@param selectedData table|nil
 ---@return nil
@@ -1456,6 +1701,7 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     if not ds then
+        self:UpdateStablePreview()
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
         return
@@ -1463,8 +1709,34 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
 
     local mode = self:GetCurrentMode()
     GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    if IsStableInteractionActive()
+        and mode == BETTERUI.Vendor.MODE.BUY
+        and ITEM_PREVIEW_GAMEPAD
+        and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
+        and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+        self:UpdateStablePreview()
+        GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        return
+    end
 
-    if (mode == BETTERUI.Vendor.MODE.BUY or mode == BETTERUI.Vendor.MODE.BUYBACK) and GAMEPAD_TOOLTIPS.LayoutStoreWindowItem then
+    if mode == BETTERUI.Vendor.MODE.STABLE and ds.trainingType and GAMEPAD_TOOLTIPS.LayoutRidingSkill then
+        GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_LEFT_TOOLTIP)
+        GAMEPAD_TOOLTIPS:LayoutRidingSkill(
+            GAMEPAD_LEFT_TOOLTIP,
+            ds.trainingType,
+            ds.bonus or 0,
+            ds.maxBonus or 0
+        )
+        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if tooltip then
+            tooltip._betterui_itemLink = nil
+            tooltip._betterui_bagId = nil
+            tooltip._betterui_slotIndex = nil
+            tooltip._betterui_storeStackCount = nil
+            tooltip._betterui_priceRendered = true
+        end
+    elseif (mode == BETTERUI.Vendor.MODE.BUY or mode == BETTERUI.Vendor.MODE.BUYBACK) and GAMEPAD_TOOLTIPS.LayoutStoreWindowItem then
         if ds.dataSource == nil then
             ds.dataSource = ds
         end
@@ -1509,6 +1781,7 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
     if GAMEPAD_TOOLTIPS.ClearStatusLabel then
         GAMEPAD_TOOLTIPS:ClearStatusLabel(GAMEPAD_RIGHT_TOOLTIP)
     end
+    self:UpdateStablePreview()
 end
 
 --- Suppresses list refreshes until FlushListUpdates is called.
@@ -1607,18 +1880,30 @@ function BETTERUI.Vendor.Class:InitVendorFooter()
                 if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
                     return
                 end
-                self:SetMode(BETTERUI.Vendor.MODE.SELL)
+                if IsStableInteractionActive() then
+                    self:SetMode(BETTERUI.Vendor.MODE.STABLE)
+                else
+                    self:SetMode(BETTERUI.Vendor.MODE.SELL)
+                end
             end)
 
             local label = btn:GetNamedChild("Label")
             if label then
-                label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
+                if IsStableInteractionActive() then
+                    label:SetText(GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB"))
+                else
+                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
+                end
             end
         end
         -- Keep current icon style.
         local icon = deposit:GetNamedChild("Icon")
         if icon then
-            icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
+            if IsStableInteractionActive() then
+                icon:SetTexture(ResolveStableInteractionIcon())
+            else
+                icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
+            end
         end
     end
 
@@ -1633,15 +1918,19 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
     if not footerRoot then return end
 
     local currentMode = self:GetCurrentMode()
-    local isBuySellMode = (currentMode == BETTERUI.Vendor.MODE.BUY) or (currentMode == BETTERUI.Vendor.MODE.SELL)
-    local isSellMode = (currentMode == BETTERUI.Vendor.MODE.SELL)
+    local isStableInteraction = IsStableInteractionActive()
+    local secondListMode = isStableInteraction and BETTERUI.Vendor.MODE.STABLE or BETTERUI.Vendor.MODE.SELL
+    local isSecondMode = currentMode == secondListMode
+    local isFirstListMode = currentMode == BETTERUI.Vendor.MODE.BUY
+        or (isStableInteraction and currentMode == BETTERUI.Vendor.MODE.REPAIR)
+    local isTwoPaneMode = isFirstListMode or isSecondMode
     local activeColor = { 1, 1, 1, 1 }
     local inactiveColor = BETTERUI_BANK_INACTIVE_LABEL_COLOR or { 0.35, 0.35, 0.35, 1 }
 
     local selectBg = footerRoot:GetNamedChild("SelectBg")
     if selectBg then
         local rotation = 0
-        if isSellMode then
+        if isSecondMode then
             rotation = BETTERUI_BANK_DEPOSIT_ARROW_ROTATION or 0
         end
         selectBg:SetTextureRotation(rotation)
@@ -1654,8 +1943,8 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
         if btn then
             local label = btn:GetNamedChild("Label")
             if label then
-                if isBuySellMode then
-                    label:SetColor(unpack(isSellMode and inactiveColor or activeColor))
+                if isTwoPaneMode then
+                    label:SetColor(unpack(isSecondMode and inactiveColor or activeColor))
                 else
                     label:SetColor(unpack(activeColor))
                 end
@@ -1677,8 +1966,11 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
         if btn then
             local label = btn:GetNamedChild("Label")
             if label then
-                if isBuySellMode then
-                    label:SetColor(unpack(isSellMode and activeColor or inactiveColor))
+                label:SetText(isStableInteraction
+                    and GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
+                    or GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
+                if isTwoPaneMode then
+                    label:SetColor(unpack(isSecondMode and activeColor or inactiveColor))
                 else
                     label:SetColor(unpack(activeColor))
                 end
@@ -1686,10 +1978,25 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
 
             local spaceLabel = btn:GetNamedChild("SpaceLabel")
             if spaceLabel then
-                spaceLabel:SetText(
-                    "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
-                    zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
-                        GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+                if isStableInteraction then
+                    spaceLabel:SetHidden(true)
+                    spaceLabel:SetText("")
+                else
+                    spaceLabel:SetHidden(false)
+                    spaceLabel:SetText(
+                        "|t24:24:/esoui/art/inventory/gamepad/gp_inventory_icon_all.dds|t " ..
+                        zo_strformat(SI_GAMEPAD_INVENTORY_CAPACITY_FORMAT,
+                            GetNumBagUsedSlots(BAG_BACKPACK), GetBagSize(BAG_BACKPACK)))
+                end
+            end
+        end
+
+        local icon = deposit:GetNamedChild("Icon")
+        if icon then
+            if isStableInteraction then
+                icon:SetTexture(ResolveStableInteractionIcon())
+            else
+                icon:SetTexture("esoui/art/inventory/gamepad/gp_inventory_icon_all.dds")
             end
         end
     end
