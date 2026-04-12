@@ -217,52 +217,93 @@ local function UpdateKeybindsForSelection(self, isCurrencyRow)
     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
 end
 
+local function ResolveSelectedSlotData(selectedData)
+    if not selectedData then
+        return nil
+    end
+    return selectedData.dataSource or selectedData
+end
+
+local function ResolveSelectedItemLink(selectedData, bagId, slotIndex)
+    local itemLink = nil
+
+    if bagId ~= nil and slotIndex ~= nil then
+        itemLink = GetItemLink(bagId, slotIndex)
+    end
+
+    if (itemLink == nil or itemLink == "") and selectedData then
+        itemLink = selectedData.cached_itemLink or selectedData.itemLink
+        local rawData = selectedData.dataSource
+        if (itemLink == nil or itemLink == "") and rawData then
+            itemLink = rawData.cached_itemLink or rawData.itemLink
+        end
+    end
+
+    if type(itemLink) ~= "string" or itemLink == "" then
+        return nil
+    end
+    return itemLink
+end
+
 local function HandleItemRowSelection(selectedData)
     GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
-    if selectedData.bagId and selectedData.slotIndex then
-        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, selectedData.bagId, selectedData.slotIndex)
-        local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
-        if tooltip then
-            tooltip._betterui_bagId = selectedData.bagId
-            tooltip._betterui_slotIndex = selectedData.slotIndex
-            tooltip._betterui_itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-        end
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
-        local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
-        if container and container._betterUiComparison then
-            container._betterUiComparison:SetHidden(true)
-        end
 
-        -- INV-001: Stat comparison for banking items
-        if BETTERUI.Inventory.StatComparison then
-            local itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-            local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, selectedData.bagId, selectedData.slotIndex)
-            if result and result.lines and #result.lines > 0 and container then
-                if not container._betterUiComparison then
-                    local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
-                    label:SetMaxLineCount(0)
-                    label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-                    label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-                    container._betterUiComparison = label
-                end
-                local compLabel = container._betterUiComparison
-                local fontSize = BETTERUI.GetTooltipFontSize()
-                local compFontSize = math.floor(fontSize * 0.75)
-                compLabel:SetFont("$(MEDIUM_FONT)|" .. compFontSize .. "|shadow")
-                compLabel:SetText(BETTERUI.Inventory.StatComparison.FormatForTooltip(result))
-                compLabel:ClearAnchors()
-                compLabel:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, 5, -5)
-                compLabel:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -5, -5)
-                compLabel:SetHidden(false)
-            elseif container and container._betterUiComparison then
-                container._betterUiComparison:SetHidden(true)
-            end
+    local data = ResolveSelectedSlotData(selectedData)
+    local bagId = data and data.bagId or nil
+    local slotIndex = data and data.slotIndex or nil
+    local itemLink = ResolveSelectedItemLink(selectedData, bagId, slotIndex)
+
+    if bagId ~= nil and slotIndex ~= nil then
+        local didLayout = GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, bagId, slotIndex)
+        if not didLayout and itemLink and GAMEPAD_TOOLTIPS.LayoutItem then
+            GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, itemLink)
         end
+    elseif itemLink and GAMEPAD_TOOLTIPS.LayoutItem then
+        GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, itemLink)
     else
         if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
             BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         end
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+        return
+    end
+
+    local tooltip = GAMEPAD_TOOLTIPS:GetTooltip(GAMEPAD_LEFT_TOOLTIP)
+    if tooltip then
+        tooltip._betterui_bagId = bagId
+        tooltip._betterui_slotIndex = slotIndex
+        tooltip._betterui_itemLink = itemLink
+    end
+
+    BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+    local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
+    if container and container._betterUiComparison then
+        container._betterUiComparison:SetHidden(true)
+    end
+
+    -- INV-001: Stat comparison for banking items
+    if BETTERUI.Inventory.StatComparison and bagId ~= nil and slotIndex ~= nil and itemLink then
+        local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, bagId, slotIndex)
+        if result and result.lines and #result.lines > 0 and container then
+            if not container._betterUiComparison then
+                local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
+                label:SetMaxLineCount(0)
+                label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
+                label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
+                container._betterUiComparison = label
+            end
+            local compLabel = container._betterUiComparison
+            local fontSize = BETTERUI.GetTooltipFontSize()
+            local compFontSize = math.floor(fontSize * 0.75)
+            compLabel:SetFont("$(MEDIUM_FONT)|" .. compFontSize .. "|shadow")
+            compLabel:SetText(BETTERUI.Inventory.StatComparison.FormatForTooltip(result))
+            compLabel:ClearAnchors()
+            compLabel:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, 5, -5)
+            compLabel:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -5, -5)
+            compLabel:SetHidden(false)
+        elseif container and container._betterUiComparison then
+            container._betterUiComparison:SetHidden(true)
+        end
     end
 end
 
