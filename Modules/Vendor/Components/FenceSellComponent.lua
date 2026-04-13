@@ -187,3 +187,28 @@ function FenceSell:GetFooterText()
 
     return text
 end
+
+
+-- CATEGORIES
+
+
+
+--- Returns the single "Stolen" category tab for the fence sell list.
+--- All items eligible for fencing are stolen, so no other categories are needed.
+---@return table categories Single-entry category list
+function FenceSell:GetCategories(_vendorInstance)
+    local count = 0
+    for slotIndex = 0, (GetBagSize(BAG_BACKPACK) or 0) - 1 do
+        if IsItemStolen(BAG_BACKPACK, slotIndex) then
+            count = count + 1
+        end
+    end
+    return {
+        {
+            key      = "all",
+            name     = GetString(SI_BETTERUI_STOLEN),
+            iconFile = "EsoUI/Art/Inventory/inventory_stolenItem_icon.dds",
+            itemCount = count,
+        }
+    }
+end
