@@ -773,6 +773,8 @@ ZO_CreateStringId("SI_BETTERUI_TH_GENERAL_DESC",
 ZO_CreateStringId("SI_BETTERUI_TH_FONT_HEADER", "Font Customization")
 ZO_CreateStringId("SI_BETTERUI_TH_FONT_DESC",
     "Customize fonts for the trading house item list.")
+ZO_CreateStringId("SI_BETTERUI_FONT_NAME_COLUMN", "Name Column Font")
+ZO_CreateStringId("SI_BETTERUI_FONT_OTHER_COLUMNS", "Other Columns Font")
 ZO_CreateStringId("SI_BETTERUI_TH_PRICE_LABEL", "Listing Price")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESETS", "Presets")
 ZO_CreateStringId("SI_BETTERUI_TH_SAVE_PRESET", "Save Preset")

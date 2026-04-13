@@ -1805,6 +1805,11 @@ function BETTERUI.Vendor.Init()
             storeManager.control:UnregisterForEvent(EVENT_OPEN_STORE)
             storeManager.control:UnregisterForEvent(EVENT_CLOSE_STORE)
         end
+        -- Fallback: some game builds register events via EVENT_MANAGER directly.
+        if EVENT_MANAGER then
+            EVENT_MANAGER:UnregisterForEvent("ZO_StoreWindow_Gamepad", EVENT_OPEN_STORE)
+            EVENT_MANAGER:UnregisterForEvent("ZO_StoreWindow_Gamepad", EVENT_CLOSE_STORE)
+        end
 
         -- Override native store manager's UpdateDirectionalInput to prevent it from
         -- processing joystick input when BetterUI owns the vendor scene.  Even if 
@@ -1824,6 +1829,16 @@ function BETTERUI.Vendor.Init()
             end
             -- Suppress — BetterUI's list handles all directional input.
         end
+    end
+
+    -- Defensive alias reassertion: if anything re-adds the native gamepad_store scene,
+    -- force it back to BetterUI's scene on every Show call.
+    if SCENE_MANAGER and ZO_PreHook then
+        ZO_PreHook(SCENE_MANAGER, "Show", function(self, sceneName, ...)
+            if sceneName == "gamepad_store" and Vendor.instance and Vendor.instance.scene then
+                self.scenes["gamepad_store"] = Vendor.instance.scene
+            end
+        end)
     end
 
     -- Add required fragment groups (matching WindowClass.InitializeScene pattern)
