@@ -72,13 +72,26 @@ function Sell:OnPrimaryAction(thInstance)
     local itemName = zo_strformat(SI_TOOLTIP_ITEM_NAME, GetItemName(bagId, slotIndex))
     local icon, _, _, _, _ = GetItemInfo(bagId, slotIndex)
 
+    -- Derive a default listing price hint from the item's vendor sell price
+    local defaultPrice = 100
+    if GetItemSellPriceWithBonus then
+        defaultPrice = GetItemSellPriceWithBonus(bagId, slotIndex) * stackCount
+    else
+        local _, _, sellPrice = GetItemInfo(bagId, slotIndex)
+        defaultPrice = (sellPrice or 0) * stackCount
+    end
+    if defaultPrice <= 0 then
+        defaultPrice = 100
+    end
+
     ZO_Dialogs_ShowGamepadDialog("BETTERUI_TRADING_HOUSE_CREATE_LISTING", {
-        bagId      = bagId,
-        slotIndex  = slotIndex,
-        stackCount = stackCount,
-        itemName   = itemName,
-        itemLink   = itemLink,
-        icon       = icon,
+        bagId        = bagId,
+        slotIndex    = slotIndex,
+        stackCount   = stackCount,
+        itemName     = itemName,
+        itemLink     = itemLink,
+        icon         = icon,
+        defaultPrice = defaultPrice,
     })
 end
 

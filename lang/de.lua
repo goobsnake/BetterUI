@@ -688,3 +688,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_LOADED", "Voreinstellung '<<1>>' gelade
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_DELETED", "Voreinstellung '<<1>>' gelöscht")
 ZO_CreateStringId("SI_BETTERUI_TH_DELETE", "Löschen")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_GENERIC", "Voreinstellung")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_PREV", "Previous Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_NEXT", "Next Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_NEXT_PAGE", "Next Page")
+ZO_CreateStringId("SI_BETTERUI_TH_PREV_PAGE", "Previous Page")

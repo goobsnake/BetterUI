@@ -172,6 +172,78 @@ local function BuildCoreKeybinds(thInstance)
                 SCENE_MANAGER:HideCurrentScene()
             end,
         },
+        -- Guild cycle: Left Trigger (previous guild)
+        {
+            name = function()
+                local id = rawget(_G, "SI_BETTERUI_TH_GUILD_PREV")
+                return id and GetString(id) or "Previous Guild"
+            end,
+            keybind = "UI_SHORTCUT_LEFT_TRIGGER",
+            ethereal = true,
+            visible = function()
+                return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
+            end,
+            callback = function()
+                thInstance:CycleGuild(-1)
+            end,
+        },
+        -- Guild cycle: Right Trigger (next guild)
+        {
+            name = function()
+                local id = rawget(_G, "SI_BETTERUI_TH_GUILD_NEXT")
+                return id and GetString(id) or "Next Guild"
+            end,
+            keybind = "UI_SHORTCUT_RIGHT_TRIGGER",
+            ethereal = true,
+            visible = function()
+                return GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() > 1
+            end,
+            callback = function()
+                thInstance:CycleGuild(1)
+            end,
+        },
+        -- Pagination: Next Page (Browse only)
+        {
+            name = function()
+                local id = rawget(_G, "SI_BETTERUI_TH_NEXT_PAGE")
+                return id and GetString(id) or "Next Page"
+            end,
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            visible = function()
+                return thInstance:GetCurrentMode() == MODE.BROWSE
+                    and TH.BrowseComponent
+                    and TH.BrowseComponent.hasMorePages == true
+            end,
+            enabled = function()
+                return TH.BrowseComponent and TH.BrowseComponent.hasMorePages == true
+            end,
+            callback = function()
+                if TH.BrowseComponent then
+                    TH.BrowseComponent:NextPage(thInstance)
+                end
+            end,
+        },
+        -- Pagination: Previous Page (Browse only)
+        {
+            name = function()
+                local id = rawget(_G, "SI_BETTERUI_TH_PREV_PAGE")
+                return id and GetString(id) or "Previous Page"
+            end,
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                return thInstance:GetCurrentMode() == MODE.BROWSE
+                    and TH.BrowseComponent
+                    and (TH.BrowseComponent.currentPage or 0) > 0
+            end,
+            enabled = function()
+                return TH.BrowseComponent and (TH.BrowseComponent.currentPage or 0) > 0
+            end,
+            callback = function()
+                if TH.BrowseComponent then
+                    TH.BrowseComponent:PrevPage(thInstance)
+                end
+            end,
+        },
     }
 end
 
@@ -566,9 +638,22 @@ function BETTERUI.TradingHouse.Init()
             nativeTH.control:UnregisterForEvent(EVENT_OPEN_TRADING_HOUSE)
             nativeTH.control:UnregisterForEvent(EVENT_CLOSE_TRADING_HOUSE)
         end
+        -- Also unregister the primary native handlers registered on EVENT_MANAGER
+        if ZO_TRADING_HOUSE_SYSTEM_NAME then
+            EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_OPEN_TRADING_HOUSE)
+            EVENT_MANAGER:UnregisterForEvent(ZO_TRADING_HOUSE_SYSTEM_NAME, EVENT_CLOSE_TRADING_HOUSE)
+        end
         -- Redirect native sceneName so any native ShowComponent checks fail
         if nativeTH.sceneName then
             nativeTH.sceneName = "betterui_native_th_blocked"
+        end
+        -- Override the native system object methods so any engine path that calls
+        -- OpenTradingHouse/CloseTradingHouse routes to BetterUI instead.
+        nativeTH.OpenTradingHouse = function(_)
+            OnOpenTradingHouse()
+        end
+        nativeTH.CloseTradingHouse = function(_)
+            OnCloseTradingHouse()
         end
     end
 

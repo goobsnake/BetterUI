@@ -695,3 +695,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_LOADED", "Préréglage '<<1>>' chargé"
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_DELETED", "Préréglage '<<1>>' supprimé")
 ZO_CreateStringId("SI_BETTERUI_TH_DELETE", "Supprimer")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_GENERIC", "préréglage")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_PREV", "Previous Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_NEXT", "Next Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_NEXT_PAGE", "Next Page")
+ZO_CreateStringId("SI_BETTERUI_TH_PREV_PAGE", "Previous Page")

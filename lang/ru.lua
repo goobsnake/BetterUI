@@ -685,3 +685,7 @@ ZO_CreateStringId("SI_BETTERUI_TH_PRESET_LOADED", "Пресет '<<1>>' загр
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_DELETED", "Пресет '<<1>>' удален")
 ZO_CreateStringId("SI_BETTERUI_TH_DELETE", "Удалить")
 ZO_CreateStringId("SI_BETTERUI_TH_PRESET_GENERIC", "пресет")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_PREV", "Previous Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_GUILD_NEXT", "Next Guild")
+ZO_CreateStringId("SI_BETTERUI_TH_NEXT_PAGE", "Next Page")
+ZO_CreateStringId("SI_BETTERUI_TH_PREV_PAGE", "Previous Page")
