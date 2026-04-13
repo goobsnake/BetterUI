@@ -105,141 +105,42 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         RefreshVendorWindow()
     end)
 
-    -- FONT SETTINGS
-    optionsData[#optionsData + 1] = {
-        type = "header",
-        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_FONT_HEADER")),
+    -- FONT SETTINGS (shared CIM factory for parity with Banking/Inventory)
+    local fontStrings = {
+        header = SI_BETTERUI_VENDOR_FONT_HEADER,
+        desc = SI_BETTERUI_VENDOR_FONT_DESC,
+        nameSubmenu = SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU,
+        nameFont = SI_BETTERUI_VENDOR_NAME_FONT,
+        nameFontTooltip = SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP,
+        nameFontSize = SI_BETTERUI_VENDOR_NAME_FONT_SIZE,
+        nameFontSizeTooltip = SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP,
+        nameFontStyle = SI_BETTERUI_VENDOR_NAME_FONT_STYLE,
+        nameFontStyleTooltip = SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP,
+        nameReset = SI_BETTERUI_NAME_FONT_RESET,
+        nameResetTooltip = SI_BETTERUI_NAME_FONT_RESET_TOOLTIP,
+        columnSubmenu = SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU,
+        columnFont = SI_BETTERUI_VENDOR_COLUMN_FONT,
+        columnFontTooltip = SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP,
+        columnFontSize = SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE,
+        columnFontSizeTooltip = SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP,
+        columnFontStyle = SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE,
+        columnFontStyleTooltip = SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP,
+        columnReset = SI_BETTERUI_COLUMN_FONT_RESET,
+        columnResetTooltip = SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP,
     }
-    optionsData[#optionsData + 1] = {
-        type = "description",
-        text = GetString(rawget(_G, "SI_BETTERUI_VENDOR_FONT_DESC")),
-    }
-
-    -- Name Column Font
-    optionsData[#optionsData + 1] = {
-        type = "submenu",
-        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SUBMENU")),
-        controls = {
-            {
-                type = "dropdown",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_TOOLTIP")),
-                choices = Vendor.FONT_CHOICES,
-                choicesValues = Vendor.FONT_VALUES,
-                getFunc = function()
-                    return Vendor.GetSetting("nameFont") or Vendor.DEFAULTS.nameFont
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("nameFont", value)
-                end,
-                width = "full",
-            },
-            {
-                type = "slider",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SIZE")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_SIZE_TOOLTIP")),
-                min = 10,
-                max = 32,
-                step = 1,
-                getFunc = function()
-                    return Vendor.GetSetting("nameFontSize") or Vendor.DEFAULTS.nameFontSize
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("nameFontSize", value)
-                end,
-                width = "full",
-            },
-            {
-                type = "dropdown",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_STYLE")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_NAME_FONT_STYLE_TOOLTIP")),
-                choices = Vendor.FONTSTYLE_CHOICES,
-                choicesValues = Vendor.FONTSTYLE_VALUES,
-                getFunc = function()
-                    return Vendor.GetSetting("nameFontStyle") or Vendor.DEFAULTS.nameFontStyle
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("nameFontStyle", value)
-                end,
-                width = "full",
-            },
-            -- Name Font Reset
-            {
-                type = "button",
-                name = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_NAME_FONT_RESET_TOOLTIP")),
-                func = function()
-                    Vendor.SetSetting("nameFont", Vendor.DEFAULTS.nameFont)
-                    Vendor.SetSetting("nameFontSize", Vendor.DEFAULTS.nameFontSize)
-                    Vendor.SetSetting("nameFontStyle", Vendor.DEFAULTS.nameFontStyle)
-                end,
-                width = "full",
-            },
-        },
-    }
-
-    -- Other Columns Font
-    optionsData[#optionsData + 1] = {
-        type = "submenu",
-        name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SUBMENU")),
-        controls = {
-            {
-                type = "dropdown",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_TOOLTIP")),
-                choices = Vendor.FONT_CHOICES,
-                choicesValues = Vendor.FONT_VALUES,
-                getFunc = function()
-                    return Vendor.GetSetting("columnFont") or Vendor.DEFAULTS.columnFont
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("columnFont", value)
-                end,
-                width = "full",
-            },
-            {
-                type = "slider",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_SIZE_TOOLTIP")),
-                min = 10,
-                max = 32,
-                step = 1,
-                getFunc = function()
-                    return Vendor.GetSetting("columnFontSize") or Vendor.DEFAULTS.columnFontSize
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("columnFontSize", value)
-                end,
-                width = "full",
-            },
-            {
-                type = "dropdown",
-                name = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_VENDOR_COLUMN_FONT_STYLE_TOOLTIP")),
-                choices = Vendor.FONTSTYLE_CHOICES,
-                choicesValues = Vendor.FONTSTYLE_VALUES,
-                getFunc = function()
-                    return Vendor.GetSetting("columnFontStyle") or Vendor.DEFAULTS.columnFontStyle
-                end,
-                setFunc = function(value)
-                    Vendor.SetSetting("columnFontStyle", value)
-                end,
-                width = "full",
-            },
-            -- Column Font Reset
-            {
-                type = "button",
-                name = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET")),
-                tooltip = GetString(rawget(_G, "SI_BETTERUI_COLUMN_FONT_RESET_TOOLTIP")),
-                func = function()
-                    Vendor.SetSetting("columnFont", Vendor.DEFAULTS.columnFont)
-                    Vendor.SetSetting("columnFontSize", Vendor.DEFAULTS.columnFontSize)
-                    Vendor.SetSetting("columnFontStyle", Vendor.DEFAULTS.columnFontStyle)
-                end,
-                width = "full",
-            },
-        },
-    }
+    local fontOptions = BETTERUI.CIM.Settings.CreateFontSubmenuOptions(
+        "Vendor",
+        Vendor.DEFAULTS,
+        Vendor.FONT_CHOICES,
+        Vendor.FONT_VALUES,
+        Vendor.FONTSTYLE_CHOICES,
+        Vendor.FONTSTYLE_VALUES,
+        fontStrings,
+        RefreshVendorWindow
+    )
+    for _, opt in ipairs(fontOptions) do
+        optionsData[#optionsData + 1] = opt
+    end
 
     -- Register panel with LibAddonMenu2
     BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsData, true)
