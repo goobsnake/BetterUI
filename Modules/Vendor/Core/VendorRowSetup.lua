@@ -54,8 +54,8 @@ local function ResolveStableTrainingValueText(ds)
         return "-"
     end
 
-    if BETTERUI.FormatAbbreviatedNumber then
-        return BETTERUI.FormatAbbreviatedNumber(displayValue)
+    if BETTERUI.Vendor.FormatCurrency then
+        return BETTERUI.Vendor.FormatCurrency(displayValue)
     end
 
     return tostring(displayValue)
@@ -136,8 +136,8 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
             or ds.sellPrice
             or 0
         valueControl:SetColor(1, 1, 1, 1)
-        if BETTERUI.FormatAbbreviatedNumber then
-            valueControl:SetText(BETTERUI.FormatAbbreviatedNumber(displayValue))
+        if BETTERUI.Vendor.FormatCurrency then
+            valueControl:SetText(BETTERUI.Vendor.FormatCurrency(displayValue))
         else
             valueControl:SetText(tostring(displayValue))
         end

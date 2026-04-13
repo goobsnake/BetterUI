@@ -1684,6 +1684,11 @@ function BETTERUI.Vendor.Class:SetMode(mode)
     if not mode then return end
     if self.currentMode == mode then return end
 
+    -- Save position for outgoing mode
+    if self.currentMode and self.list then
+        BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. self.currentMode, self.list)
+    end
+
     -- Deactivate the current component if any
     local oldComponent = self:GetActiveComponent()
     if oldComponent and oldComponent.Deactivate then
@@ -1691,6 +1696,10 @@ function BETTERUI.Vendor.Class:SetMode(mode)
     end
 
     self.currentMode = mode
+
+    if Vendor.multiSelectManager then
+        Vendor.multiSelectManager:ExitSelectionMode()
+    end
 
     if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableStablePreviewMode then
         self:DisableStablePreviewMode()
@@ -1729,6 +1738,78 @@ end
 
 -- LIST MANAGEMENT
 
+local VENDOR_SORT_COMPARATORS = {
+    name = function(a, b)
+        local nameA = (a.dataSource and a.dataSource.name) or a.name or ""
+        local nameB = (b.dataSource and b.dataSource.name) or b.name or ""
+        return nameA < nameB
+    end,
+    type = function(a, b)
+        local typeA = (a.dataSource and a.dataSource.bestItemTypeName) or ""
+        local typeB = (b.dataSource and b.dataSource.bestItemTypeName) or ""
+        if typeA == typeB then
+            return VENDOR_SORT_COMPARATORS.name(a, b)
+        end
+        return typeA < typeB
+    end,
+    trait = function(a, b)
+        local traitA = (a.dataSource and a.dataSource.traitName) or ""
+        local traitB = (b.dataSource and b.dataSource.traitName) or ""
+        local blankA = traitA == "" and 1 or 0
+        local blankB = traitB == "" and 1 or 0
+        if blankA ~= blankB then
+            return blankA < blankB
+        end
+        if traitA == traitB then
+            return VENDOR_SORT_COMPARATORS.name(a, b)
+        end
+        return traitA < traitB
+    end,
+    stat = function(a, b)
+        local statA = (a.dataSource and a.dataSource.statValue) or ""
+        local statB = (b.dataSource and b.dataSource.statValue) or ""
+        local numA = tonumber(statA)
+        local numB = tonumber(statB)
+        if numA and numB then
+            if numA ~= numB then
+                return numA > numB
+            end
+        elseif statA ~= statB then
+            return statA < statB
+        end
+        return VENDOR_SORT_COMPARATORS.name(a, b)
+    end,
+    value = function(a, b)
+        local valA = (a.dataSource and (a.dataSource.price or a.dataSource.repairCost or a.dataSource.launderCost or a.dataSource.stackSellPrice or a.dataSource.sellPrice or 0)) or 0
+        local valB = (b.dataSource and (b.dataSource.price or b.dataSource.repairCost or b.dataSource.launderCost or b.dataSource.stackSellPrice or b.dataSource.sellPrice or 0)) or 0
+        if valA ~= valB then
+            return valA > valB
+        end
+        return VENDOR_SORT_COMPARATORS.name(a, b)
+    end,
+}
+
+function BETTERUI.Vendor.Class:ApplySortToList()
+    if not self.list or not self.list.dataList then return end
+    local sortKey = "name"
+    local sortOrder = ZO_SORT_ORDER_UP
+    if self.sortController and self.sortController.GetActiveSortColumn then
+        local column, direction = self.sortController:GetActiveSortColumn()
+        if column and direction and direction ~= BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.NONE then
+            sortKey = column.key or sortKey
+            if direction == BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.DESCENDING then
+                sortOrder = ZO_SORT_ORDER_DOWN
+            end
+        end
+    end
+    local comparator = VENDOR_SORT_COMPARATORS[sortKey] or VENDOR_SORT_COMPARATORS.name
+    if sortOrder == ZO_SORT_ORDER_DOWN then
+        local base = comparator
+        comparator = function(a, b) return base(b, a) end
+    end
+    table.sort(self.list.dataList, comparator)
+end
+
 --- Clears and rebuilds the list from the active component's BuildList.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshList()
@@ -1765,8 +1846,22 @@ function BETTERUI.Vendor.Class:RefreshList()
         end
     end
 
+    self:ApplySortToList()
     self.list:Commit()
     self._isDirty = false
+
+    -- Restore list position for current mode
+    local currentMode = self:GetCurrentMode()
+    if currentMode and self.list and self.list.dataList then
+        local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Vendor", "mode_" .. currentMode, self.list, self.list.dataList)
+        if self.list.SetSelectedIndex then
+            self.list:SetSelectedIndex(targetIndex)
+        end
+    end
+
+    if Vendor.multiSelectManager then
+        Vendor.multiSelectManager:RefreshSelections()
+    end
 
     self:EnsureColumnHeadersVisible()
     if self:IsSceneShowing() then

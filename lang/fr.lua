@@ -738,3 +738,7 @@ ZO_CreateStringId("SI_BETTERUI_INV_HEADER_VALUE", "Value")
 ZO_CreateStringId("SI_BETTERUI_INV_BATCH_ACTIONS", "Batch Actions")
 ZO_CreateStringId("SI_BETTERUI_INV_ACTION_DESELECT_ALL", "Deselect All")
 ZO_CreateStringId("SI_BETTERUI_INV_MULTISELECT", "Multi-Select")
+
+-- Vendor Currency
+ZO_CreateStringId("SI_BETTERUI_ABBREVIATE_CURRENCY", "Abbreviate Currency")
+ZO_CreateStringId("SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP", "Show abbreviated currency values in vendor lists.")

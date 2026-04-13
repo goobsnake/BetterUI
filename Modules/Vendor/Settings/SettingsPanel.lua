@@ -90,6 +90,20 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         end,
         width = "full",
     }
+    -- Abbreviate Currency
+    optionsData[#optionsData + 1] = {
+        type = "checkbox",
+        name = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY") or "Abbreviate Currency"),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP") or "Show abbreviated currency values in vendor lists."),
+        getFunc = function()
+            return Vendor.GetSetting("abbreviateVendorCurrency") ~= false
+        end,
+        setFunc = function(value)
+            Vendor.SetSetting("abbreviateVendorCurrency", value)
+            RefreshVendorWindow()
+        end,
+        width = "full",
+    }
     optionsData[#optionsData + 1] = {
         type = "button",
         name = GetString(rawget(_G, "SI_BETTERUI_GENERAL_RESET")),

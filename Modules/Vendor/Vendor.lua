@@ -850,6 +850,10 @@ local function BuildCoreKeybinds(vendorInstance)
         -- Primary action (keybind A / GAMEPAD_BUTTON_1)
         {
             name = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                end
                 local component = vendorInstance:GetActiveComponent()
                 if component and component.GetPrimaryActionName then
                     return component:GetPrimaryActionName(vendorInstance)
@@ -858,17 +862,22 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+                    if selectedData then
+                        ms:ToggleSelection(selectedData)
+                        vendorInstance:RefreshList()
+                        vendorInstance:EnsureListInputActive()
+                    end
+                    return
+                end
                 local component = vendorInstance:GetActiveComponent()
                 if component and component.OnPrimaryAction then
                     component:OnPrimaryAction(vendorInstance)
                 end
             end,
             enabled = function()
-                local component = vendorInstance:GetActiveComponent()
-                if component and component.IsPrimaryActionEnabled then
-                    return component:IsPrimaryActionEnabled(vendorInstance)
-                end
-                -- Disabled if no list data
                 local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
                 return selectedData ~= nil
             end,
@@ -880,6 +889,8 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             keybind = "UI_SHORTCUT_SECONDARY",
             visible = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then return false end
                 local firstMode, secondMode = GetToggleModePair()
                 if not firstMode or not secondMode then
                     return false
@@ -911,15 +922,21 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
             end,
             function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then return false end
                 return vendorInstance.textSearchHeaderControl ~= nil and not vendorInstance.textSearchHeaderControl:IsHidden()
             end,
             function()
                 return vendorInstance.searchQuery and vendorInstance.searchQuery ~= ""
             end
         ),
-        -- Tertiary action (Sell All Junk / Repair All)
+        -- Tertiary action (Sell All Junk / Repair All / Batch Actions)
         {
             name = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() and ms:HasSelections() then
+                    return GetString(SI_BETTERUI_INV_BATCH_ACTIONS or "Batch Actions")
+                end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL then
                     return GetString(rawget(_G, "SI_SELL_ALL_JUNK_KEYBIND_TEXT") or "SI_SELL_ALL_JUNK_KEYBIND_TEXT")
@@ -942,6 +959,10 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    return CanMultiSelectInCurrentMode() and ms:HasSelections()
+                end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL then
                     return Vendor.GetSetting("enableBatchJunkSell") ~= false
@@ -953,6 +974,10 @@ local function BuildCoreKeybinds(vendorInstance)
                 return false
             end,
             enabled = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    return ms:HasSelections()
+                end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL then
                     local _, itemCount = Vendor.GetJunkSellSummary()
@@ -971,6 +996,12 @@ local function BuildCoreKeybinds(vendorInstance)
                 return false
             end,
             callback = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    RegisterVendorBatchDialog()
+                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
+                    return
+                end
                 local component = vendorInstance:GetActiveComponent()
                 if not component then return end
                 local mode = vendorInstance:GetCurrentMode()
@@ -980,6 +1011,28 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
                 if mode == MODE.REPAIR and component.RepairAll then
                     component:RepairAll(vendorInstance)
+                end
+            end,
+        },
+        -- Quinary: Enter/Exit Multi-Select
+        {
+            name = function() return GetMultiSelectKeybindName() end,
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                return CanMultiSelectInCurrentMode() and IsMultiSelectAvailable()
+            end,
+            callback = function()
+                local ms = Vendor.multiSelectManager
+                if not ms then return end
+                if ms:IsActive() then
+                    ms:ExitSelectionMode()
+                else
+                    ms:EnterSelectionMode()
+                end
+                vendorInstance:RefreshList()
+                vendorInstance:EnsureListInputActive()
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
             end,
         },
@@ -1041,11 +1094,181 @@ local function BuildCoreKeybinds(vendorInstance)
             name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    ms:ExitSelectionMode()
+                    vendorInstance:RefreshList()
+                    vendorInstance:EnsureListInputActive()
+                    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    end
+                    return
+                end
                 -- Close the interaction
                 SCENE_MANAGER:HideCurrentScene()
             end,
         },
     }
+end
+
+-- MULTI-SELECT HELPERS
+
+local function IsMultiSelectAvailable()
+    local instance = Vendor.instance
+    return instance and instance.list and instance.list:GetNumItems() > 0
+end
+
+local function GetMultiSelectKeybindName()
+    local ms = Vendor.multiSelectManager
+    if ms and ms:IsActive() then
+        return GetString(SI_GAMEPAD_BACK_OPTION)
+    end
+    return GetString(SI_BETTERUI_INV_MULTI_SELECT or "Multi-Select")
+end
+
+local function CanMultiSelectInCurrentMode()
+    local mode = Vendor.instance and Vendor.instance:GetCurrentMode()
+    if not mode then return false end
+    return mode == MODE.SELL
+        or mode == MODE.FENCE_SELL
+        or mode == MODE.FENCE_LAUNDER
+        or mode == MODE.BUYBACK
+end
+
+function Vendor.ExecuteBatchAction(mode, itemData)
+    local ds = itemData.dataSource or itemData
+    if mode == MODE.SELL then
+        local bagId = ds.bagId
+        local slotIndex = ds.slotIndex
+        if bagId and slotIndex then
+            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
+            if stackSize > 0 then
+                SellInventoryItem(bagId, slotIndex, stackSize)
+            end
+        end
+    elseif mode == MODE.FENCE_SELL then
+        local bagId = ds.bagId
+        local slotIndex = ds.slotIndex
+        if bagId and slotIndex then
+            local funcQuality = GetItemFunctionalQuality and GetItemFunctionalQuality(bagId, slotIndex)
+            if funcQuality and funcQuality >= ITEM_FUNCTIONAL_QUALITY_ARTIFACT then
+                return
+            end
+            local remaining = 0
+            if GetFenceSellTransactionInfo then
+                local totalSells, sellsUsed = GetFenceSellTransactionInfo()
+                remaining = zo_max((totalSells or 0) - (sellsUsed or 0), 0)
+            end
+            if remaining <= 0 then return end
+            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
+            if stackSize > 0 then
+                SellInventoryItem(bagId, slotIndex, stackSize)
+            end
+        end
+    elseif mode == MODE.FENCE_LAUNDER then
+        local bagId = ds.bagId
+        local slotIndex = ds.slotIndex
+        if bagId and slotIndex then
+            local remaining = 0
+            if GetFenceLaunderTransactionInfo then
+                local totalLaunders, laundersUsed = GetFenceLaunderTransactionInfo()
+                remaining = zo_max((totalLaunders or 0) - (laundersUsed or 0), 0)
+            end
+            if remaining <= 0 then return end
+            local cost = GetItemLaunderPrice and GetItemLaunderPrice(bagId, slotIndex) or 0
+            if Vendor.instance and not Vendor.instance:CanAfford(cost) then return end
+            local stackSize = GetSlotStackSize(bagId, slotIndex) or 0
+            if stackSize > 0 then
+                LaunderItem(bagId, slotIndex, stackSize)
+            end
+        end
+    elseif mode == MODE.BUYBACK then
+        local entryIndex = ds.entryIndex
+        if entryIndex then
+            BuybackItem(entryIndex)
+        end
+    end
+end
+
+local function RegisterVendorBatchDialog()
+    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_VENDOR_BATCH_DIALOG") then
+        return
+    end
+    ZO_Dialogs_RegisterCustomDialog("BETTERUI_VENDOR_BATCH_DIALOG", {
+        canQueue = true,
+        gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
+        title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
+        setup = function(dialog)
+            local parametricList = dialog.info.parametricList
+            ZO_ClearNumericallyIndexedTable(parametricList)
+            local function AddAction(name, actionId)
+                local entryData = ZO_GamepadEntryData:New(name)
+                entryData:SetIconTintOnSelection(true)
+                entryData.actionId = actionId
+                entryData.setup = ZO_SharedGamepadEntry_OnSetup
+                table.insert(parametricList, {
+                    template = "ZO_GamepadItemEntryTemplate",
+                    entryData = entryData,
+                })
+            end
+            local ms = Vendor.multiSelectManager
+            if ms then
+                local allSelected = ms:GetSelectedCount() > 0 and ms:GetSelectedCount() == (Vendor.instance.list and Vendor.instance.list:GetNumItems() or 0)
+                if not allSelected then
+                    AddAction(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll")
+                end
+                if ms:GetSelectedCount() > 0 then
+                    AddAction(GetString(SI_BETTERUI_INV_UNMARK_ALL or "Unmark All"), "deselectAll")
+                end
+                local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
+                if currentMode and ms:GetSelectedCount() > 0 then
+                    if currentMode == MODE.SELL or currentMode == MODE.FENCE_SELL then
+                        AddAction(GetString(SI_ITEM_ACTION_SELL or "Sell"), "batch")
+                    elseif currentMode == MODE.FENCE_LAUNDER then
+                        AddAction(GetString(SI_ITEM_ACTION_LAUNDER or "Launder"), "batch")
+                    elseif currentMode == MODE.BUYBACK then
+                        AddAction(GetString(SI_ITEM_ACTION_BUYBACK or "Buyback"), "batch")
+                    end
+                end
+            end
+            dialog:setupFunc()
+        end,
+        buttons = {
+            {
+                text = SI_DIALOG_CANCEL,
+                keybind = "DIALOG_NEGATIVE",
+            },
+            {
+                text = SI_GAMEPAD_SELECT_OPTION,
+                keybind = "DIALOG_PRIMARY",
+                callback = function(dialog)
+                    local selected = dialog.entryList and dialog.entryList:GetTargetData()
+                    if not selected or not selected.actionId then return end
+                    local ms = Vendor.multiSelectManager
+                    if not ms then return end
+                    local actionId = selected.actionId
+                    if actionId == "selectAll" then
+                        ms:SelectAll()
+                        if Vendor.instance then Vendor.instance:RefreshList() end
+                        return
+                    elseif actionId == "deselectAll" then
+                        ms:ClearSelections()
+                        if Vendor.instance then Vendor.instance:RefreshList() end
+                        return
+                    end
+                    local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
+                    local items = ms:GetSelectedItems()
+                    local delay = 0
+                    for i, itemData in ipairs(items) do
+                        zo_callLater(function()
+                            Vendor.ExecuteBatchAction(currentMode, itemData)
+                        end, delay)
+                        delay = delay + 80
+                    end
+                end,
+            },
+        },
+    })
 end
 
 -- TAB CYCLING
@@ -1507,8 +1730,45 @@ function BETTERUI.Vendor.Init()
         })
     end
 
+    -- Sort Controller
+    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
+        local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Vendor.instance)
+        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "Name"), "name")
+        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "Type"), "type")
+        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "Trait"), "trait")
+        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "Stat"), "stat")
+        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "Value"), "value")
+        sortController:SetSortChangedCallback(function()
+            Vendor.instance:RefreshList()
+        end)
+        Vendor.instance.sortController = sortController
+    end
+
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)
+
+    -- Multi-Select
+    Vendor.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Vendor.instance.list, function(count)
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end
+    end)
+    Vendor.instance.multiSelectManager = Vendor.multiSelectManager
+
+    -- Header Sort Integration
+    if Vendor.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
+        BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
+            Vendor.instance.list,
+            Vendor.instance.sortController,
+            {
+                keybindStrip = true,
+                mainKeybindDescriptor = Vendor.instance.coreKeybinds,
+                onSortChanged = function()
+                    Vendor.instance:RefreshList()
+                end,
+            }
+        )
+    end
 
     -- Initialize scene fragments manually — vendor does not use BETTERUI_BankingFooterBar
     Vendor.instance.fragment = ZO_SimpleSceneFragment:New(Vendor.instance.control)
@@ -1605,6 +1865,13 @@ function BETTERUI.Vendor.Init()
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            local currentMode = screen:GetCurrentMode()
+            if currentMode and screen.list then
+                BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. currentMode, screen.list)
+            end
+            if Vendor.multiSelectManager then
+                Vendor.multiSelectManager:ExitSelectionMode()
+            end
             screen._suppressListUpdates = false
             screen._isDirty = false
             if screen.DisableStablePreviewMode then

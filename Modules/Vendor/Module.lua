@@ -196,6 +196,18 @@ function BETTERUI.Vendor.GetJunkSellSummary()
 	return totalValue, itemCount
 end
 
+--- Formats a currency value for vendor displays based on user settings.
+---@param value number
+---@return string
+function BETTERUI.Vendor.FormatCurrency(value)
+	if BETTERUI.Vendor.GetSetting("abbreviateVendorCurrency") ~= false then
+		if BETTERUI.FormatAbbreviatedNumber then
+			return BETTERUI.FormatAbbreviatedNumber(value)
+		end
+	end
+	return tostring(value)
+end
+
 --[[
 Function: BETTERUI.Vendor.Setup
 Lifecycle hook to setup the Vendor module.
