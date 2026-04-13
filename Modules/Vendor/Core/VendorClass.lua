@@ -140,7 +140,7 @@ local function BuildHeaderModeTabs(activeTabs, currentMode)
 
     for _, tab in ipairs(activeTabs or {}) do
         if isFenceInteraction then
-            modeTabs[#modeTabs + 1] = tab
+            -- Fence uses footer buttons + keybind toggle; no mode tabs in header
         elseif isSellBuybackOnly then
             if tab.mode == BETTERUI.Vendor.MODE.SELL or tab.mode == BETTERUI.Vendor.MODE.BUYBACK then
                 modeTabs[#modeTabs + 1] = tab
@@ -1409,10 +1409,6 @@ end
 
 ---@return nil
 function BETTERUI.Vendor.Class:ToggleBuySellMode()
-    if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
-        return
-    end
-
     local firstMode, secondMode = nil, nil
     if BETTERUI.Vendor.GetToggleModePair then
         firstMode, secondMode = BETTERUI.Vendor.GetToggleModePair()
@@ -1854,6 +1850,7 @@ function BETTERUI.Vendor.Class:InitVendorFooter()
         if btn then
             btn:SetHandler("OnClicked", function()
                 if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
+                    self:SetMode(BETTERUI.Vendor.MODE.FENCE_SELL)
                     return
                 end
                 self:SetMode(BETTERUI.Vendor.MODE.BUY)
@@ -1878,6 +1875,7 @@ function BETTERUI.Vendor.Class:InitVendorFooter()
         if btn then
             btn:SetHandler("OnClicked", function()
                 if BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction() then
+                    self:SetMode(BETTERUI.Vendor.MODE.FENCE_LAUNDER)
                     return
                 end
                 if IsStableInteractionActive() then
@@ -1910,7 +1908,7 @@ function BETTERUI.Vendor.Class:InitVendorFooter()
     self:RefreshVendorFooter()
 end
 
---- Refreshes the vendor footer values (gold amount, bag capacity).
+--- Refreshes the vendor footer values (gold amount, bag capacity, or fence transaction counts).
 --- Called on scene showing and after inventory changes.
 ---@return nil
 function BETTERUI.Vendor.Class:RefreshVendorFooter()
@@ -1919,12 +1917,20 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
 
     local currentMode = self:GetCurrentMode()
     local isStableInteraction = IsStableInteractionActive()
-    local secondListMode = isStableInteraction and BETTERUI.Vendor.MODE.STABLE or BETTERUI.Vendor.MODE.SELL
-    local isSecondMode = currentMode == secondListMode
-    local isFirstListMode = currentMode == BETTERUI.Vendor.MODE.BUY
-        or (isStableInteraction and currentMode == BETTERUI.Vendor.MODE.REPAIR)
+    local isFenceInteraction = BETTERUI.Vendor.IsFenceInteraction and BETTERUI.Vendor.IsFenceInteraction()
+
+    local isSecondMode, isFirstListMode
+    if isFenceInteraction then
+        isSecondMode    = currentMode == BETTERUI.Vendor.MODE.FENCE_LAUNDER
+        isFirstListMode = currentMode == BETTERUI.Vendor.MODE.FENCE_SELL
+    else
+        local secondListMode = isStableInteraction and BETTERUI.Vendor.MODE.STABLE or BETTERUI.Vendor.MODE.SELL
+        isSecondMode    = currentMode == secondListMode
+        isFirstListMode = currentMode == BETTERUI.Vendor.MODE.BUY
+            or (isStableInteraction and currentMode == BETTERUI.Vendor.MODE.REPAIR)
+    end
     local isTwoPaneMode = isFirstListMode or isSecondMode
-    local activeColor = { 1, 1, 1, 1 }
+    local activeColor   = { 1, 1, 1, 1 }
     local inactiveColor = BETTERUI_BANK_INACTIVE_LABEL_COLOR or { 0.35, 0.35, 0.35, 1 }
 
     local selectBg = footerRoot:GetNamedChild("SelectBg")
@@ -1936,13 +1942,18 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
         selectBg:SetTextureRotation(rotation)
     end
 
-    -- LEFT SIDE: Gold amount
+    -- LEFT SIDE: Gold amount (regular/stable) or fence sell transaction count
     local withdraw = footerRoot:GetNamedChild("Withdraw")
     if withdraw then
         local btn = withdraw:GetNamedChild("Button")
         if btn then
             local label = btn:GetNamedChild("Label")
             if label then
+                if isFenceInteraction then
+                    label:SetText(GetString(SI_BETTERUI_VENDOR_TAB_FENCE_SELL))
+                else
+                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY"))
+                end
                 if isTwoPaneMode then
                     label:SetColor(unpack(isSecondMode and inactiveColor or activeColor))
                 else
@@ -1952,23 +1963,36 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
 
             local spaceLabel = btn:GetNamedChild("SpaceLabel")
             if spaceLabel then
-                local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
-                spaceLabel:SetText("|t24:24:esoui/art/currency/currency_gold_32.dds|t " ..
-                    BETTERUI.DisplayNumber(gold))
+                if isFenceInteraction then
+                    local fenceSellComp = self.components and self.components[BETTERUI.Vendor.MODE.FENCE_SELL]
+                    if fenceSellComp and fenceSellComp.GetFooterText then
+                        spaceLabel:SetText(fenceSellComp:GetFooterText())
+                    else
+                        spaceLabel:SetText("")
+                    end
+                else
+                    local gold = GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) or 0
+                    spaceLabel:SetText("|t24:24:esoui/art/currency/currency_gold_32.dds|t " ..
+                        BETTERUI.DisplayNumber(gold))
+                end
             end
         end
     end
 
-    -- RIGHT SIDE: Bag capacity
+    -- RIGHT SIDE: Bag capacity (regular/stable) or fence launder transaction count
     local deposit = footerRoot:GetNamedChild("Deposit")
     if deposit then
         local btn = deposit:GetNamedChild("Button")
         if btn then
             local label = btn:GetNamedChild("Label")
             if label then
-                label:SetText(isStableInteraction
-                    and GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
-                    or GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
+                if isFenceInteraction then
+                    label:SetText(GetString(SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER))
+                else
+                    label:SetText(isStableInteraction
+                        and GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
+                        or GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL"))
+                end
                 if isTwoPaneMode then
                     label:SetColor(unpack(isSecondMode and activeColor or inactiveColor))
                 else
@@ -1978,7 +2002,15 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
 
             local spaceLabel = btn:GetNamedChild("SpaceLabel")
             if spaceLabel then
-                if isStableInteraction then
+                if isFenceInteraction then
+                    spaceLabel:SetHidden(false)
+                    local fenceLaunderComp = self.components and self.components[BETTERUI.Vendor.MODE.FENCE_LAUNDER]
+                    if fenceLaunderComp and fenceLaunderComp.GetFooterText then
+                        spaceLabel:SetText(fenceLaunderComp:GetFooterText())
+                    else
+                        spaceLabel:SetText("")
+                    end
+                elseif isStableInteraction then
                     spaceLabel:SetHidden(true)
                     spaceLabel:SetText("")
                 else

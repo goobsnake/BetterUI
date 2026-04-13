@@ -195,7 +195,7 @@ end
 ---@return number|nil secondMode
 local function GetToggleModePair()
     if isFenceInteraction then
-        return nil, nil
+        return MODE.FENCE_SELL, MODE.FENCE_LAUNDER
     end
 
     if isStableInteraction then
@@ -996,6 +996,20 @@ local function BuildCoreKeybinds(vendorInstance)
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
+            end,
+        },
+        -- Fence-only: Stack All Items (left stick)
+        {
+            name = GetString(rawget(_G, "SI_ITEM_ACTION_STACK_ALL") or "SI_ITEM_ACTION_STACK_ALL"),
+            keybind = "UI_SHORTCUT_LEFT_STICK",
+            visible = function()
+                return isFenceInteraction
+            end,
+            enabled = function()
+                return isFenceInteraction
+            end,
+            callback = function()
+                StackBag(BAG_BACKPACK)
             end,
         },
         -- Back / Exit (keybind B / GAMEPAD_BUTTON_2)

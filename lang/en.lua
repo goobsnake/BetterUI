@@ -693,8 +693,8 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Launder")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Enhanced Vendor")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_JUNK", "No junk items to sell.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONDITION", "<<1>>%")
-ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Fence Sells Remaining: <<1>>/<<2>>")
-ZO_CreateStringId("SI_BETTERUI_FENCE_LAUNDERS_REMAINING", "Fence Launders Remaining: <<1>>/<<2>>")
+ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Remaining: <<1>>/<<2>>")
+ZO_CreateStringId("SI_BETTERUI_FENCE_LAUNDERS_REMAINING", "Remaining: <<1>>/<<2>>")
 
 -- Guild Bank Settings
 ZO_CreateStringId("SI_BETTERUI_GUILD_BANK_ENABLED", "Enable Enhanced Guild Bank")
