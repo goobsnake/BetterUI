@@ -96,6 +96,8 @@ function Repair:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
 
+    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
+
     -- Scan equipped and backpack items for damage
     local bags = { BAG_WORN, BAG_BACKPACK }
 
@@ -107,7 +109,9 @@ function Repair:BuildList(vendorInstance)
                 local icon, stackCount, _, _, _, _, _, quality = GetItemInfo(bagId, slotIndex)
                 local name = GetItemName(bagId, slotIndex)
 
-                if name and name ~= "" then
+                if name and name ~= ""
+                    and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, name))
+                then
                     name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
                     local repairCost = GetItemRepairCost(bagId, slotIndex) or 0
 
@@ -122,7 +126,10 @@ function Repair:BuildList(vendorInstance)
                         slotIndex        = slotIndex,
                         itemLink         = GetItemLink(bagId, slotIndex),
                         bestGamepadItemCategoryName = "",
-                        statValue        = zo_strformat(SI_BETTERUI_VENDOR_CONDITION, condition),
+                        statValue        = zo_strformat(
+                            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CONDITION") or "SI_BETTERUI_VENDOR_CONDITION"),
+                            condition
+                        ),
                     }
 
                     local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)

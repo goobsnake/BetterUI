@@ -761,6 +761,7 @@ function StableTraining:BuildList(vendorInstance)
         return
     end
 
+    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
     local skillHeader = GetString(rawget(_G, "SI_STATS_RIDING_SKILL") or "SI_STATS_RIDING_SKILL")
     local trainingCost = (type(GetTrainingCost) == "function" and GetTrainingCost()) or 0
     local timeUntilCanTrain = (type(GetTimeUntilCanBeTrained) == "function" and GetTimeUntilCanBeTrained()) or 0
@@ -783,30 +784,33 @@ function StableTraining:BuildList(vendorInstance)
         local trainable = IsStableSkillTrainable(trainingType, bonus, maxBonus)
         local stableStateText = BuildStableTrainingStateText(isAtMax, timeUntilCanTrain)
         local valueText = BuildStableTrainingValueText(trainingCost, canAffordTraining, isAtMax)
+        local matchesSearch = (not Vendor.MatchesSearchQuery) or Vendor.MatchesSearchQuery(searchQuery, trainingName)
 
-        local rowData = {
-            name = trainingName,
-            icon = icon,
-            price = (isTrainWindowOpen and not isAtMax) and trainingCost or 0,
-            stackCount = 1,
-            stack = 1,
-            trainingType = trainingType,
-            bonus = bonus or 0,
-            maxBonus = maxBonus or 0,
-            isSkillTrainable = trainable,
-            trainStateText = stableStateText,
-            valueText = valueText,
-            bestGamepadItemCategoryName = skillHeader,
-            statValue = statText,
-        }
+        if matchesSearch then
+            local rowData = {
+                name = trainingName,
+                icon = icon,
+                price = (isTrainWindowOpen and not isAtMax) and trainingCost or 0,
+                stackCount = 1,
+                stack = 1,
+                trainingType = trainingType,
+                bonus = bonus or 0,
+                maxBonus = maxBonus or 0,
+                isSkillTrainable = trainable,
+                trainStateText = stableStateText,
+                valueText = valueText,
+                bestGamepadItemCategoryName = skillHeader,
+                statValue = statText,
+            }
 
-        local entry = ZO_GamepadEntryData:New(rowData.name, rowData.icon)
-        entry:SetDataSource(rowData)
-        entry.narrationText = function()
-            return rowData.name
+            local entry = ZO_GamepadEntryData:New(rowData.name, rowData.icon)
+            entry:SetDataSource(rowData)
+            entry.narrationText = function()
+                return rowData.name
+            end
+
+            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
         end
-
-        list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
     end
 end
 
@@ -893,6 +897,26 @@ local function BuildCoreKeybinds(vendorInstance)
                 vendorInstance:ToggleBuySellMode()
             end,
         },
+        -- Quaternary action (Clear search when active)
+        BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
+            function()
+                if not (vendorInstance.textSearchHeaderControl and not vendorInstance.textSearchHeaderControl:IsHidden()) then
+                    return
+                end
+                if vendorInstance.ClearTextSearch then
+                    vendorInstance:ClearTextSearch()
+                end
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+            function()
+                return vendorInstance.textSearchHeaderControl ~= nil and not vendorInstance.textSearchHeaderControl:IsHidden()
+            end,
+            function()
+                return vendorInstance.searchQuery and vendorInstance.searchQuery ~= ""
+            end
+        ),
         -- Tertiary action (Sell All Junk / Repair All)
         {
             name = function()
@@ -1398,6 +1422,25 @@ function BETTERUI.Vendor.Init()
         Vendor.instance:OnItemSelectedChange(list, selectedData)
         Vendor.instance:UpdateScrollIndicator(list)
     end)
+    if Vendor.instance.list then
+        Vendor.instance.list.owner = Vendor.instance
+        if Vendor.instance.list.MovePrevious then
+            local originalMovePrevious = Vendor.instance.list.MovePrevious
+            Vendor.instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
+                local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
+                if didMove then
+                    return true
+                end
+
+                if Vendor.instance and Vendor.instance.OnHeaderEntered then
+                    Vendor.instance:OnHeaderEntered()
+                elseif Vendor.instance and Vendor.instance.RequestHeaderFocus then
+                    Vendor.instance:RequestHeaderFocus()
+                end
+                return true
+            end
+        end
+    end
 
     -- Add column headers (matching Inventory/Banking layout)
     local COL = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
@@ -1408,6 +1451,61 @@ function BETTERUI.Vendor.Init()
     Vendor.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), COL.VALUE)
     Vendor.instance:InitializeCategoryHeader()
     Vendor.instance:InitializeScrollIndicator()
+    Vendor.instance.searchQuery = ""
+
+    -- Tracks whether AddSearch's native callback already handled this text-change event.
+    -- SetupEditBoxHandlers runs after the original handler, so we can skip duplicate refreshes.
+    local searchCallbackRevision = 0
+    local searchHandlerRevision = 0
+
+    local function HandleVendorSearchChanged(editOrText)
+        if Vendor.instance.OnSearchTextChanged then
+            Vendor.instance:OnSearchTextChanged(editOrText)
+        else
+            Vendor.instance.searchQuery = tostring(editOrText or "")
+            Vendor.instance:RefreshList()
+        end
+        searchCallbackRevision = searchCallbackRevision + 1
+    end
+
+    Vendor.instance.textSearchKeybindStripDescriptor = BETTERUI.Interface.CreateSearchKeybindDescriptor(Vendor.instance)
+    if Vendor.instance.AddSearch then
+        Vendor.instance:AddSearch(Vendor.instance.textSearchKeybindStripDescriptor, HandleVendorSearchChanged)
+        if Vendor.instance.PositionSearchControl then
+            Vendor.instance:PositionSearchControl()
+        end
+    end
+    if BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers then
+        BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(Vendor.instance, {
+            isSceneShowing = function()
+                return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing() or false
+            end,
+            onTextChanged = function(window, txt)
+                -- Fallback: if the native AddSearch callback did not fire, refresh here.
+                if searchHandlerRevision == searchCallbackRevision then
+                    if window.OnSearchTextChanged then
+                        window:OnSearchTextChanged(txt or "")
+                    else
+                        window.searchQuery = txt or ""
+                        if window.RefreshList then
+                            window:RefreshList()
+                        end
+                    end
+                end
+                searchHandlerRevision = searchCallbackRevision
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+            enterHeaderFn = function(window)
+                if window.RequestHeaderFocus then
+                    window:RequestHeaderFocus()
+                else
+                    window:EnterSearchMode()
+                end
+            end,
+        })
+    end
 
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)

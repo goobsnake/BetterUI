@@ -258,8 +258,12 @@ function Sell:BuildList(vendorInstance)
     if #rows == 0 then return end
 
     local activeCategory = vendorInstance:GetCurrentCategory()
+    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
     for _, slot in ipairs(rows) do
-        if MatchesCategory(slot, activeCategory) then
+        local searchName = slot.name or GetItemName(slot.bagId, slot.slotIndex)
+        if MatchesCategory(slot, activeCategory)
+            and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, searchName))
+        then
             local sellPrice = slot.sellPrice or (slot.stackSellPrice and slot.stackSellPrice) or 0
 
             local name = slot.name or zo_strformat(SI_TOOLTIP_ITEM_NAME,

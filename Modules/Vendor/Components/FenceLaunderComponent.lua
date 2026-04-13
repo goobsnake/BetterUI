@@ -117,6 +117,7 @@ function FenceLaunder:BuildList(vendorInstance)
     local list = vendorInstance.list
     if not list then return end
 
+    local searchQuery = Vendor.GetNormalizedSearchQuery and Vendor.GetNormalizedSearchQuery(vendorInstance) or nil
     local bagSize = GetBagSize(BAG_BACKPACK) or 0
 
     for slotIndex = 0, bagSize - 1 do
@@ -125,7 +126,9 @@ function FenceLaunder:BuildList(vendorInstance)
             local icon, stackCount = GetItemInfo(BAG_BACKPACK, slotIndex)
             local name = GetItemName(BAG_BACKPACK, slotIndex)
 
-            if name and name ~= "" then
+            if name and name ~= ""
+                and (not Vendor.MatchesSearchQuery or Vendor.MatchesSearchQuery(searchQuery, name))
+            then
                 name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
                 local quality = GetItemDisplayQuality(BAG_BACKPACK, slotIndex)
                     or ITEM_DISPLAY_QUALITY_NORMAL
