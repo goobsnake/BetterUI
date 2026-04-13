@@ -36,6 +36,48 @@ function BETTERUI.Vendor.InitModule(m_options)
 	return m_options
 end
 
+--- Normalizes search text for case-insensitive list filtering.
+---@param query any
+---@return string|nil normalized
+function BETTERUI.Vendor.NormalizeSearchQuery(query)
+	if query == nil then
+		return nil
+	end
+
+	local text = tostring(query)
+	text = text:gsub("^%s+", ""):gsub("%s+$", "")
+	if text == "" then
+		return nil
+	end
+
+	return (zo_strlower and zo_strlower(text)) or string.lower(text)
+end
+
+--- Returns the active normalized search query for a vendor instance.
+---@param vendorInstance table|nil
+---@return string|nil normalized
+function BETTERUI.Vendor.GetNormalizedSearchQuery(vendorInstance)
+	return BETTERUI.Vendor.NormalizeSearchQuery(vendorInstance and vendorInstance.searchQuery)
+end
+
+--- Checks whether text matches the active normalized search query.
+---@param normalizedQuery string|nil
+---@param text any
+---@return boolean matched
+function BETTERUI.Vendor.MatchesSearchQuery(normalizedQuery, text)
+	if not normalizedQuery then
+		return true
+	end
+
+	local haystack = tostring(text or "")
+	if haystack == "" then
+		return false
+	end
+
+	haystack = (zo_strlower and zo_strlower(haystack)) or string.lower(haystack)
+	return string.find(haystack, normalizedQuery, 1, true) ~= nil
+end
+
 ---@param tabs table[]|nil
 ---@return table<number, boolean> modeSet
 function BETTERUI.Vendor.BuildActiveModeSet(tabs)

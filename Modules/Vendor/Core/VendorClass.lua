@@ -943,6 +943,242 @@ function BETTERUI.Vendor.Class:GetCurrentCategory()
     return categories[selectedIndex]
 end
 
+--- Clears the text search input and normalized query state.
+---@return nil
+function BETTERUI.Vendor.Class:ClearSearchInput()
+    self.searchQuery = ""
+    if not BETTERUI.CIM.TryCall("Interface.Window.ClearSearchText", self) then
+        if self.ClearSearchText then
+            self:ClearSearchText()
+        end
+    end
+end
+
+--- Backwards-compatible alias.
+---@return nil
+function BETTERUI.Vendor.Class:ClearTextSearch()
+    self:ClearSearchInput()
+end
+
+--- Checks whether search/header focus is active.
+---@return boolean focused
+function BETTERUI.Vendor.Class:IsHeaderFocused()
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
+        return self.textSearchHeaderFocus:IsActive()
+    end
+    return self._searchModeActive == true
+end
+
+--- Backwards-compatible alias.
+---@return boolean active
+function BETTERUI.Vendor.Class:IsHeaderActive()
+    return self:IsHeaderFocused()
+end
+
+--- Requests focus for the search header.
+---@return nil
+function BETTERUI.Vendor.Class:RequestHeaderFocus()
+    if self.OnHeaderEntered then
+        self:OnHeaderEntered()
+    else
+        self:EnterSearchMode()
+    end
+end
+
+--- Backwards-compatible alias for template hooks.
+---@return nil
+function BETTERUI.Vendor.Class:RequestEnterHeader()
+    self:RequestHeaderFocus()
+end
+
+--- Repositions the search control under the header title.
+---@return nil
+function BETTERUI.Vendor.Class:PositionSearchControl()
+    if not self.textSearchHeaderControl then
+        return
+    end
+
+    self.textSearchHeaderControl:ClearAnchors()
+    local anchorTarget = self.headerGeneric or self.header
+    local titleContainer = nil
+    if anchorTarget and anchorTarget.GetNamedChild then
+        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
+    end
+
+    local parentForAnchor = titleContainer or anchorTarget
+    local searchConst = BETTERUI.CIM.GetSearchBarConstants and BETTERUI.CIM.GetSearchBarConstants("BANKING")
+    local xOffset = (searchConst and searchConst.X_OFFSET) or 55
+    local yOffset = (searchConst and searchConst.Y_OFFSET) or 15
+    local rightInset = (searchConst and searchConst.RIGHT_INSET) or -8
+
+    if parentForAnchor then
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
+    else
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, rightInset, yOffset)
+    end
+
+    self.textSearchHeaderControl:SetHidden(false)
+    if ZO_GamepadGenericHeader_SetHeaderFocusControl then
+        local headerTarget
+        if self.headerGeneric and self.headerGeneric.tabBar and self.headerGeneric.tabBar.control then
+            headerTarget = self.headerGeneric.tabBar.control
+        else
+            headerTarget = self.headerGeneric or self.header
+        end
+        if headerTarget then
+            ZO_GamepadGenericHeader_SetHeaderFocusControl(headerTarget, self.textSearchHeaderControl)
+        end
+    end
+end
+
+--- Enters text-search mode and swaps active keybind groups.
+---@return nil
+function BETTERUI.Vendor.Class:EnterSearchMode()
+    if self._searchModeActive then
+        return
+    end
+    self._searchModeActive = true
+    self._searchHeaderActive = true
+
+    if self.coreKeybinds and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+    end
+
+    if self.textSearchKeybindStripDescriptor then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+    end
+
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Activate and not self.textSearchHeaderFocus:IsActive() then
+        self.textSearchHeaderFocus:Activate()
+    end
+    if self.SetTextSearchFocused then
+        self:SetTextSearchFocused(true)
+    end
+
+    if self.list and self.list.Deactivate and (not self.list.IsActive or self.list:IsActive()) then
+        self.list:Deactivate()
+    end
+
+    if self.NormalizeDirectionalInputOwnership then
+        self:NormalizeDirectionalInputOwnership("EnterSearchMode")
+    end
+end
+
+--- Exits text-search mode and restores list/core keybind ownership.
+---@return nil
+function BETTERUI.Vendor.Class:ExitSearchMode()
+    if not self._searchModeActive and not self._searchHeaderActive then
+        return
+    end
+    self._searchModeActive = false
+    self._searchHeaderActive = false
+
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.Deactivate and self.textSearchHeaderFocus:IsActive() then
+        self.textSearchHeaderFocus:Deactivate()
+    end
+    if self.SetTextSearchFocused then
+        self:SetTextSearchFocused(false)
+    end
+
+    if self.list and self.list.Activate and (not self.list.IsActive or not self.list:IsActive()) then
+        self.list:Activate()
+    end
+    if self.coreKeybinds then
+        BETTERUI.Interface.EnsureKeybindGroupAdded(self.coreKeybinds)
+    end
+
+    if self.EnsureHeaderKeybindsActive then
+        self:EnsureHeaderKeybindsActive()
+    end
+    if self.EnsureListInputActive then
+        self:EnsureListInputActive()
+    end
+    if self.NormalizeDirectionalInputOwnership then
+        self:NormalizeDirectionalInputOwnership("ExitSearchMode")
+    end
+end
+
+--- Backwards-compatible alias.
+---@return nil
+function BETTERUI.Vendor.Class:LeaveSearchMode()
+    self:ExitSearchMode()
+end
+
+--- Handles search focus loss.
+---@return nil
+function BETTERUI.Vendor.Class:OnSearchFocusLost()
+    self:ExitSearchMode()
+end
+
+--- Backwards-compatible alias.
+---@return nil
+function BETTERUI.Vendor.Class:ExitSearchFocus()
+    self:OnSearchFocusLost()
+end
+
+--- Callback when navigating from list into header/search.
+---@return nil
+function BETTERUI.Vendor.Class:OnHeaderEntered()
+    if self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden()) then
+        self:EnterSearchMode()
+
+        if BETTERUI.CIM.TryResolve("Interface.Window.OnEnterHeader") then
+            BETTERUI.Interface.Window.OnEnterHeader(self)
+        end
+
+        BETTERUI.Vendor.Tasks:Schedule("searchKeybindCleanup", 20, function()
+            if not self._searchModeActive or not KEYBIND_STRIP then
+                return
+            end
+
+            local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
+            if keybindGroups then
+                for i = #keybindGroups, 1, -1 do
+                    local group = keybindGroups[i]
+                    if group and group ~= self.textSearchKeybindStripDescriptor then
+                        KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+                    end
+                end
+            end
+
+            if self._searchModeActive and self.textSearchKeybindStripDescriptor then
+                BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+            end
+        end)
+    else
+        BETTERUI.CIM.TryCall("Interface.Window.OnEnterHeader", self)
+    end
+end
+
+--- Backwards-compatible alias.
+---@return nil
+function BETTERUI.Vendor.Class:OnEnterHeader()
+    self:OnHeaderEntered()
+end
+
+--- Handles text updates from search edit box callbacks.
+---@param editBox table|string|nil
+---@return nil
+function BETTERUI.Vendor.Class:OnSearchTextChanged(editBox)
+    local query
+    if type(editBox) == "string" then
+        query = editBox
+    elseif editBox and editBox.GetText then
+        query = editBox:GetText()
+    else
+        query = tostring(editBox or "")
+    end
+
+    self.searchQuery = query or ""
+    self:RefreshList()
+end
+
 ---@return nil
 function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
     -- Guard against premature DIRECTIONAL_INPUT registration during scene
@@ -1398,10 +1634,15 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     end
     self._suppressVendorHeaderSelection = false
     self:BindHeaderMouseBumpers()
+    if self.PositionSearchControl then
+        self:PositionSearchControl()
+    end
 
     if self:IsSceneShowing() then
         self:EnsureHeaderKeybindsActive()
-        self:EnsureListInputActive()
+        if not self._searchModeActive and not self._searchHeaderActive then
+            self:EnsureListInputActive()
+        end
     end
 
     self:EnsureColumnHeadersVisible()
@@ -1515,12 +1756,23 @@ function BETTERUI.Vendor.Class:RefreshList()
         component:BuildList(self)
     end
 
+    local hasSearchQuery = BETTERUI.Vendor.NormalizeSearchQuery and BETTERUI.Vendor.NormalizeSearchQuery(self.searchQuery) ~= nil
+    if self.list.SetNoItemText then
+        if hasSearchQuery then
+            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
+        else
+            self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
+        end
+    end
+
     self.list:Commit()
     self._isDirty = false
 
     self:EnsureColumnHeadersVisible()
     if self:IsSceneShowing() then
-        self:EnsureListInputActive()
+        if not self._searchModeActive and not self._searchHeaderActive then
+            self:EnsureListInputActive()
+        end
         self:OnItemSelectedChange(self.list, self.list:GetTargetData())
         if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
             KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
@@ -1950,7 +2202,8 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
             local label = btn:GetNamedChild("Label")
             if label then
                 if isFenceInteraction then
-                    label:SetText(GetString(SI_BETTERUI_VENDOR_TAB_FENCE_SELL))
+                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_SELL")
+                        or "SI_BETTERUI_VENDOR_TAB_FENCE_SELL"))
                 else
                     label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY"))
                 end
@@ -1987,7 +2240,8 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
             local label = btn:GetNamedChild("Label")
             if label then
                 if isFenceInteraction then
-                    label:SetText(GetString(SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER))
+                    label:SetText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")
+                        or "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER"))
                 else
                     label:SetText(isStableInteraction
                         and GetString(rawget(_G, "SI_STABLE_STABLES_TAB") or "SI_STABLE_STABLES_TAB")
