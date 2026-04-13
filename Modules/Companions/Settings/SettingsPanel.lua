@@ -66,6 +66,55 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
             end,
             width = "half",
         },
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_QUICK_DESTROY") or "Quick Destroy"),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_QUICK_DESTROY_TOOLTIP") or "Skip confirmation dialog when destroying companion items."),
+            getFunc = function()
+                return Companions.GetSetting("quickDestroy") == true
+            end,
+            setFunc = function(value)
+                Companions.SetSetting("quickDestroy", value)
+            end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_DESTROY") or "Batch Destroy"),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_DESTROY_TOOLTIP") or "Allow batch-destroying selected companion items."),
+            getFunc = function()
+                return Companions.GetSetting("batchDestroy") ~= false
+            end,
+            setFunc = function(value)
+                Companions.SetSetting("batchDestroy", value)
+            end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION") or "Bind-on-Equip Protection"),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_BOE_PROTECTION_TOOLTIP") or "Show a confirmation dialog before equipping tradable companion items."),
+            getFunc = function()
+                return Companions.GetSetting("bindOnEquipProtection") ~= false
+            end,
+            setFunc = function(value)
+                Companions.SetSetting("bindOnEquipProtection", value)
+            end,
+            width = "full",
+        },
+        {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_INV_COMPANION_JUNK") or "Enable Companion Junk"),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_INV_COMPANION_JUNK_TOOLTIP") or "Allow marking companion items as junk."),
+            getFunc = function()
+                return Companions.GetSetting("enableCompanionJunk") ~= false
+            end,
+            setFunc = function(value)
+                Companions.SetSetting("enableCompanionJunk", value)
+                RefreshCompanionWindow()
+            end,
+            width = "full",
+        },
     }
 
     optionsData[#optionsData + 1] = BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption("Companions", function()

@@ -12,8 +12,6 @@ ESO Reference: ZO_CompanionEquipment_Gamepad in
 
 BETTERUI.Companions = BETTERUI.Companions or {}
 
--- Constants are defined in Core/CompanionsClass.lua (loaded first)
-
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 if BETTERUI.CIM and BETTERUI.CIM.RegisterModuleAccessors then
     BETTERUI.CIM.RegisterModuleAccessors("Companions")
@@ -31,6 +29,10 @@ function BETTERUI.Companions.InitModule(m_options)
     local defaults = BETTERUI.Companions.DEFAULTS
     local fallbackDefaults = {
         enableCompanionEquipment = true,
+        quickDestroy = false,
+        batchDestroy = true,
+        bindOnEquipProtection = true,
+        enableCompanionJunk = true,
     }
 
     m_options = BETTERUI.CIM.InitModuleDefaults("Companions", m_options, defaults, fallbackDefaults)
@@ -53,68 +55,26 @@ end
 
 -- KEYBINDS
 
----@param bagId number
----@param slotIndex number
----@return number|nil equipSlot
-local function ResolveCompanionEquipSlot(bagId, slotIndex)
-    local equipType = GetItemEquipType and GetItemEquipType(bagId, slotIndex) or nil
-    if equipType == nil or equipType == 0 or equipType == EQUIP_TYPE_INVALID then
-        return nil
-    end
-
-    if not ZO_Character_EnumerateOrderedEquipSlots or not ZO_Character_DoesEquipSlotUseEquipType then
-        return nil
-    end
-
-    local firstCompatibleSlot = nil
-    for _, equipSlot in ZO_Character_EnumerateOrderedEquipSlots(BAG_COMPANION_WORN) do
-        if ZO_Character_DoesEquipSlotUseEquipType(equipSlot, equipType) then
-            if not firstCompatibleSlot then
-                firstCompatibleSlot = equipSlot
-            end
-            if not HasItemInSlot or not HasItemInSlot(BAG_COMPANION_WORN, equipSlot) then
-                return equipSlot
-            end
-        end
-    end
-
-    return firstCompatibleSlot
-end
-
----@param bagId number
----@param slotIndex number
----@return boolean equipped
-local function TryEquipCompanionItem(bagId, slotIndex)
-    if bagId == nil or slotIndex == nil then
-        return false
-    end
-
-    if GetItemActorCategory and GetItemActorCategory(bagId, slotIndex) ~= GAMEPLAY_ACTOR_CATEGORY_COMPANION then
-        return false
-    end
-
-    local equipSlot = ResolveCompanionEquipSlot(bagId, slotIndex)
-    if not equipSlot then
-        return false
-    end
-
-    if CallSecureProtected then
-        CallSecureProtected("RequestMoveItem", bagId, slotIndex, BAG_COMPANION_WORN, equipSlot, 1)
-        return true
-    end
-
-    return false
-end
-
 --- Compatibility entrypoint used by ESO's shared slot action pipeline.
 --- @param inventorySlot table
 function BETTERUI.Companions.Class:TryEquipItem(inventorySlot)
     if not inventorySlot or not ZO_Inventory_GetBagAndIndex then
         return
     end
-
     local bagId, slotIndex = ZO_Inventory_GetBagAndIndex(inventorySlot)
-    TryEquipCompanionItem(bagId, slotIndex)
+    Companions.TryEquipCompanionItem(bagId, slotIndex)
+end
+
+local function IsMultiSelectAvailable()
+    return Companions.instance and Companions.instance.list and Companions.instance.list:GetNumItems() > 0
+end
+
+local function GetMultiSelectKeybindName()
+    local ms = Companions.multiSelectManager
+    if ms and ms:IsActive() then
+        return GetString(SI_GAMEPAD_BACK_OPTION)
+    end
+    return GetString(SI_BETTERUI_INV_MULTI_SELECT or "Multi-Select")
 end
 
 ---@param instance BETTERUI.Companions.Class
@@ -122,40 +82,44 @@ end
 local function BuildCoreKeybinds(instance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
-        -- Primary action: Equip / Unequip
+        -- Primary action: Equip / Unequip (or Toggle Selection in multi-select)
         {
             name = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    return GetString(SI_GAMEPAD_SELECT_OPTION)
+                end
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if selectedData then
                     local ds = selectedData.dataSource or selectedData
                     if ds.isEquipped then
-                        return GetString(rawget(_G, "SI_ITEM_ACTION_UNEQUIP") or "SI_ITEM_ACTION_UNEQUIP")
+                        return GetString(SI_ITEM_ACTION_UNEQUIP)
                     end
                 end
-                return GetString(rawget(_G, "SI_ITEM_ACTION_EQUIP") or "SI_ITEM_ACTION_EQUIP")
+                return GetString(SI_ITEM_ACTION_EQUIP)
             end,
             keybind = "UI_SHORTCUT_PRIMARY",
             callback = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    local selectedData = instance.list and instance.list:GetSelectedData()
+                    if selectedData then
+                        ms:ToggleSelection(selectedData)
+                        instance:RefreshList()
+                        instance:EnsureListInputActive()
+                    end
+                    return
+                end
                 local selectedData = instance.list and instance.list:GetSelectedData()
                 if not selectedData then return end
                 local ds = selectedData.dataSource or selectedData
                 local bagId = ds.bagId
                 local slotIndex = ds.slotIndex
                 if bagId == nil or slotIndex == nil then return end
-
                 if ds.isEquipped then
-                    -- Unequip: move companion item to backpack
-                    if not GetNumBagFreeSlots(BAG_BACKPACK) or GetNumBagFreeSlots(BAG_BACKPACK) == 0 then
-                        BETTERUI.CIM.UserAlertText("Companions:BagFull",
-                            GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_CARRY") or "SI_BETTERUI_VENDOR_CANNOT_CARRY"))
-                        return
-                    end
-                    if CallSecureProtected then
-                        CallSecureProtected("RequestMoveItem",
-                            BAG_COMPANION_WORN, slotIndex, BAG_BACKPACK, 0, 1)
-                    end
+                    Companions.TryUnequipCompanionItem(slotIndex)
                 else
-                    TryEquipCompanionItem(bagId, slotIndex)
+                    Companions.TryEquipCompanionItem(bagId, slotIndex)
                 end
             end,
             enabled = function()
@@ -163,11 +127,107 @@ local function BuildCoreKeybinds(instance)
                 return selectedData ~= nil
             end,
         },
+        -- Tertiary: Y-Menu (Action Dialog) when not in multi-select; Batch dialog when in multi-select
+        {
+            name = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    return GetString(SI_BETTERUI_INV_BATCH_ACTIONS or "Batch Actions")
+                end
+                return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
+            end,
+            keybind = "UI_SHORTCUT_TERTIARY",
+            visible = function()
+                local selectedData = instance.list and instance.list:GetSelectedData()
+                if not selectedData then return false end
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    return ms:HasSelections()
+                end
+                return true
+            end,
+            callback = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    if ZO_Dialogs_ShowGamepadDialog then
+                        ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_BATCH_DIALOG")
+                    end
+                    return
+                end
+                local selectedData = instance.list and instance.list:GetSelectedData()
+                if selectedData and ZO_Dialogs_ShowGamepadDialog then
+                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_COMPANION_ACTION_DIALOG", { selectedData = selectedData })
+                end
+            end,
+        },
+        -- Quaternary: Clear Search (only when search active)
+        {
+            alignment = KEYBIND_STRIP_ALIGN_LEFT,
+            name = function()
+                if instance.searchQuery and instance.searchQuery ~= "" then
+                    return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH"))
+                end
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SEARCH") or "Search")
+            end,
+            keybind = "UI_SHORTCUT_QUATERNARY",
+            disabledDuringSceneHiding = true,
+            visible = function()
+                if instance._searchModeActive then return false end
+                if instance.sortController and instance.sortController:IsActive() then return false end
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then return false end
+                return instance.textSearchHeaderControl ~= nil and not instance.textSearchHeaderControl:IsHidden()
+            end,
+            callback = function()
+                if instance.searchQuery and instance.searchQuery ~= "" then
+                    if instance.ClearTextSearch then
+                        instance:ClearTextSearch()
+                    end
+                else
+                    instance:EnterSearchFocus()
+                end
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
+        -- Quinary: Enter/Exit Multi-Select
+        {
+            name = function() return GetMultiSelectKeybindName() end,
+            keybind = "UI_SHORTCUT_QUINARY",
+            visible = function()
+                return IsMultiSelectAvailable()
+            end,
+            callback = function()
+                local ms = Companions.multiSelectManager
+                if not ms then return end
+                if ms:IsActive() then
+                    ms:ExitSelectionMode()
+                else
+                    ms:EnterSelectionMode()
+                end
+                instance:RefreshList()
+                instance:EnsureListInputActive()
+                if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                end
+            end,
+        },
         -- Back / Exit
         {
-            name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION") or "SI_GAMEPAD_BACK_OPTION"),
+            name = GetString(SI_GAMEPAD_BACK_OPTION),
             keybind = "UI_SHORTCUT_NEGATIVE",
             callback = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then
+                    ms:ExitSelectionMode()
+                    instance:RefreshList()
+                    instance:EnsureListInputActive()
+                    if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                        KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                    end
+                    return
+                end
                 SCENE_MANAGER:HideCurrentScene()
             end,
         },
@@ -212,24 +272,22 @@ end
 
 -- INITIALIZATION
 
---- Core initialization: creates the companion equipment window and scene.
 function BETTERUI.Companions.Init()
     if Companions.initialized then return end
 
-    -- Guard: companion system may not be available on older API versions
     if not INTERACTION_COMPANION_MENU then
         BETTERUI.Debug("[Companions] INTERACTION_COMPANION_MENU not available — skipping init")
         Companions.initialized = true
         return
     end
 
-    -- Create the class instance
+    Companions.RegisterDialogs()
+
     Companions.instance = Companions.Class:New(
         "BETTERUI_CompanionWindow", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
     Companions.instance:SetTitle(
-        "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
+        "|c0066FF" .. GetString(SI_BETTERUI_COMPANIONS_TITLE or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
 
-    -- Register the item list template
     Companions.instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI_SharedGamepadEntry_OnSetup
@@ -237,20 +295,75 @@ function BETTERUI.Companions.Init()
     Companions.instance:InitializeListPresentation()
     Companions.instance:InitializeCategoryHeader()
 
-    -- Add column headers
     local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
-    Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_NAME")), COL[1])
-    Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TYPE")), COL[2])
-    Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_TRAIT")), COL[3])
-    Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_STAT")), COL[4])
-    Companions.instance:AddColumn(GetString(rawget(_G, "SI_BETTERUI_INV_HEADER_VALUE")), COL[5])
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), COL[1])
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), COL[2])
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), COL[3])
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), COL[4])
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), COL[5])
     Companions.instance:RefreshCategories()
     Companions.instance:EnsureColumnHeadersVisible()
 
-    -- Build keybinds
+    -- Multi-Select
+    Companions.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Companions.instance.list, function(count)
+        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+        end
+    end)
+
+    -- Search
+    if BETTERUI.CIM.SearchMixin and Companions.instance.AddSearch then
+        Companions.instance:AddSearch(
+            BETTERUI.Interface.CreateSearchKeybindDescriptor(Companions.instance),
+            function(query)
+                Companions.instance.searchQuery = query
+                Companions.instance:RefreshList()
+            end
+        )
+        -- Header sort integration handles SetOnHitBeginningOfListCallback for sort mode.
+        -- Search focus is entered via the Quaternary (X) keybind.
+        if BETTERUI.Interface.SearchMixin and BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers then
+            BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(Companions.instance, {
+                isSceneShowing = function()
+                    return Companions.instance and Companions.instance:IsSceneShowing()
+                end,
+            })
+        end
+    end
+
+    -- Sort Controller
+    if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
+        local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Companions.instance)
+        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
+        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
+        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
+        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
+        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
+        sortController:SetSortChangedCallback(function()
+            Companions.instance:RefreshList()
+        end)
+        Companions.instance.sortController = sortController
+    end
+
+    -- Keybinds
     Companions.instance.coreKeybinds = BuildCoreKeybinds(Companions.instance)
 
-    -- Initialize scene fragments (no banking footer overlay)
+    -- Header Sort Integration
+    if Companions.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
+        BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
+            Companions.instance.list,
+            Companions.instance.sortController,
+            {
+                keybindStrip = true,
+                mainKeybindDescriptor = Companions.instance.coreKeybinds,
+                onSortChanged = function()
+                    Companions.instance:RefreshList()
+                end,
+            }
+        )
+    end
+
+    -- Fragments
     Companions.instance.fragment = ZO_SimpleSceneFragment:New(Companions.instance.control)
     Companions.instance.fragment:SetHideOnSceneHidden(true)
     local companionFooterDummy = BETTERUI.WindowManager:CreateControl(
@@ -259,12 +372,11 @@ function BETTERUI.Companions.Init()
     Companions.instance.footerFragment = ZO_SimpleSceneFragment:New(companionFooterDummy)
     Companions.instance.footerFragment:SetHideOnSceneHidden(true)
 
-    -- Create the scene
+    -- Scene
     local sceneName = BETTERUI_COMPANION_EQUIP_SCENE_NAME
     local scene = ZO_InteractScene:New(sceneName, SCENE_MANAGER, Companions.COMPANION_INTERACTION)
     Companions.instance.scene = scene
 
-    -- Add fragment groups
     scene:AddFragmentGroup(FRAGMENT_GROUP.GAMEPAD_DRIVEN_UI_WINDOW)
     scene:AddFragmentGroup(FRAGMENT_GROUP.FRAME_TARGET_GAMEPAD)
     scene:AddFragment(Companions.instance.fragment)
@@ -274,7 +386,7 @@ function BETTERUI.Companions.Init()
     scene:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
     scene:AddFragment(Companions.instance.footerFragment)
 
-    -- Register unified scene lifecycle
+    -- Scene lifecycle
     BETTERUI.CIM.SceneLifecycle.Register(Companions.instance, {
         keybinds = { Companions.instance.coreKeybinds },
         taskManager = Companions.Tasks,
@@ -292,6 +404,16 @@ function BETTERUI.Companions.Init()
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen:DeactivateListInput()
             screen:DeactivateHeaderKeybinds()
+            if Companions.multiSelectManager then
+                Companions.multiSelectManager:ExitSelectionMode()
+            end
+            if Companions.instance and Companions.instance.ExitSearchFocus then
+                Companions.instance:ExitSearchFocus()
+            end
+            local category = screen:GetCurrentCategory()
+            if category and screen.list then
+                BETTERUI.CIM.PositionManager.SavePosition("Companions", category.key, screen.list)
+            end
             if GAMEPAD_TOOLTIPS then
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
@@ -303,10 +425,7 @@ function BETTERUI.Companions.Init()
     })
 
     scene:RegisterCallback("StateChange", function(_, newState)
-        if not Companions.instance then
-            return
-        end
-
+        if not Companions.instance then return end
         if newState == SCENE_SHOWN then
             Companions.instance:EnsureColumnHeadersVisible()
             Companions.instance:EnsureListInputActive()
@@ -314,15 +433,23 @@ function BETTERUI.Companions.Init()
         end
     end)
 
-    -- Alias to replace native companion equipment scene
+    -- Alias
     SCENE_MANAGER.scenes["companionEquipmentGamepad"] = scene
     COMPANION_EQUIPMENT_GAMEPAD_SCENE = scene
     COMPANION_EQUIPMENT_GAMEPAD = Companions.instance
 
-    -- Set up companion-specific footer labels
     Companions.instance:InitCompanionFooter()
 
-    -- Register events
+    -- Narration
+    if BETTERUI.CIM.Narration and BETTERUI.CIM.Narration.RegisterListNarration then
+        BETTERUI.CIM.Narration.RegisterListNarration(
+            BETTERUI_COMPANION_EQUIP_SCENE_NAME,
+            function() return Companions.instance and Companions.instance.list and Companions.instance.list:GetTargetData() end,
+            function() return Companions.instance and Companions.instance:GetTitle() end
+        )
+    end
+
+    -- Events
     local em = EVENT_MANAGER
     if em then
         if EVENT_COMPANION_ACTIVATED then

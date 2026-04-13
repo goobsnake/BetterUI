@@ -30,6 +30,48 @@ local CATEGORY_DEFINITIONS = {
         filterType = ITEMFILTERTYPE_JEWELRY,
         iconFile = "EsoUI/Art/Crafting/Gamepad/gp_jewelry_tabicon_icon.dds",
     },
+    {
+        key = "consumables",
+        nameStringId = SI_BETTERUI_INV_ITEM_CONSUMABLE,
+        filterType = ITEMFILTERTYPE_CONSUMABLE,
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_consumables.dds",
+    },
+    {
+        key = "materials",
+        nameStringId = SI_BETTERUI_INV_ITEM_MATERIALS,
+        filterType = ITEMFILTERTYPE_CRAFTING,
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_crafting.dds",
+    },
+    {
+        key = "furnishing",
+        nameStringId = SI_BETTERUI_INV_ITEM_FURNISHING,
+        filterType = ITEMFILTERTYPE_FURNISHING,
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_furnishings.dds",
+    },
+    {
+        key = "misc",
+        nameStringId = SI_BETTERUI_INV_ITEM_MISC,
+        filterType = ITEMFILTERTYPE_MISCELLANEOUS,
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_misc.dds",
+    },
+    {
+        key = "equipped",
+        nameStringId = SI_BETTERUI_INV_ITEM_EQUIPPED,
+        filterType = -1, -- custom handled in DoesSlotMatchFilterType
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_equipped.dds",
+    },
+    {
+        key = "junk",
+        nameStringId = SI_BETTERUI_INV_ITEM_JUNK,
+        filterType = -2, -- custom
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_junk.dds",
+    },
+    {
+        key = "stolen",
+        nameStringId = SI_BETTERUI_INV_ITEM_STOLEN,
+        filterType = -3, -- custom
+        iconFile = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_stolen.dds",
+    },
 }
 
 ---@param callback fun(bagId:number, slotIndex:number)
@@ -60,6 +102,23 @@ end
 function BETTERUI.Companions.Class:DoesSlotMatchFilterType(bagId, slotIndex, filterType)
     if not filterType then
         return true
+    end
+
+    -- Custom filters
+    if filterType == -1 then -- Equipped
+        return bagId == BAG_COMPANION_WORN
+    end
+    if filterType == -2 then -- Junk
+        if IsItemJunk then
+            return IsItemJunk(bagId, slotIndex)
+        end
+        return false
+    end
+    if filterType == -3 then -- Stolen
+        if IsItemStolen then
+            return IsItemStolen(bagId, slotIndex)
+        end
+        return false
     end
 
     if SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData and ZO_InventoryUtils_DoesNewItemMatchFilterType then
@@ -161,7 +220,7 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
     self.companionHeaderData.titleText = function()
         return GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
     end
-    self.companionHeaderData.tabBarData = { parent = self }
+    self.companionHeaderData.tabBarData = { parent = self, onNext = function(_, successful) if successful then self:OnTabNext() end end, onPrev = function(_, successful) if successful then self:OnTabPrev() end end }
     self.companionHeaderData.carouselConfig = {
         enabled = true,
         startOffset = BETTERUI.CIM.CONST.CAROUSEL.startOffset,
@@ -177,6 +236,12 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
         selectedIndex = zo_clamp(selectedIndex, 1, #categories)
         if selectedIndex == self.currentCategoryIndex then
             return
+        end
+
+        -- Save position for outgoing category
+        local outgoingCategory = self:GetCurrentCategory()
+        if outgoingCategory and self.list then
+            BETTERUI.CIM.PositionManager.SavePosition("Companions", outgoingCategory.key, self.list)
         end
 
         self.currentCategoryIndex = selectedIndex

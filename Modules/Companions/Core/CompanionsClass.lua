@@ -87,6 +87,46 @@ function BETTERUI.Companions.Class:InitCompanionFooter()
     self:RefreshCompanionFooter()
 end
 
+-- SEARCH FOCUS HELPERS
+
+function BETTERUI.Companions.Class:EnterSearchFocus()
+    if not self.textSearchHeaderControl or self.textSearchHeaderControl:IsHidden() then return end
+    if self.textSearchHeaderFocus then
+        self.textSearchHeaderFocus:Activate()
+        if self.SetTextSearchFocused then
+            self:SetTextSearchFocused(true)
+        end
+    end
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP and self.coreKeybinds then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.coreKeybinds)
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+    self._searchModeActive = true
+end
+
+function BETTERUI.Companions.Class:ExitSearchFocus()
+    if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
+    end
+    if self.coreKeybinds and KEYBIND_STRIP then
+        KEYBIND_STRIP:AddKeybindButtonGroup(self.coreKeybinds)
+    end
+    if self.textSearchHeaderFocus then
+        self.textSearchHeaderFocus:Deactivate()
+    end
+    if self.SetTextSearchFocused then
+        self:SetTextSearchFocused(false)
+    end
+    self._searchModeActive = false
+    self:EnsureListInputActive()
+end
+
+function BETTERUI.Companions.Class:ClearTextSearch()
+    if self.ClearSearchText then
+        self:ClearSearchText()
+    end
+end
+
 --- Refreshes companion footer values (companion name, bag capacity).
 function BETTERUI.Companions.Class:RefreshCompanionFooter()
     local footerRoot = self.footer and self.footer:GetNamedChild("Footer")
