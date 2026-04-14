@@ -597,6 +597,19 @@ function BETTERUI.TradingHouse.Init()
         "BETTERUI_GamepadItemSubEntryTemplate",
         BETTERUI.TradingHouse.THEntrySetup
     )
+    -- Wire tooltip update on list selection change (Sell tab items have bagId/slotIndex)
+    if TH.instance.list and TH.instance.list.SetOnSelectedDataChangedCallback then
+        TH.instance.list:SetOnSelectedDataChangedCallback(function(_, selectedData)
+            if not GAMEPAD_TOOLTIPS then return end
+            local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+            if ds and ds.bagId and ds.slotIndex then
+                GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+            else
+                GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            end
+            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        end)
+    end
 
     -- Add column headers (matching Inventory/Banking/Vendor layout)
     local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
@@ -676,6 +689,17 @@ function BETTERUI.TradingHouse.Init()
             screen:RefreshTHFooter()
             screen:RefreshList()
             screen:UpdateTabHeader()
+            -- Update tooltip for currently-selected item
+            if screen.list and GAMEPAD_TOOLTIPS then
+                local selectedData = screen.list:GetTargetData()
+                local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+                if ds and ds.bagId and ds.slotIndex then
+                    GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+                else
+                    GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+                end
+                GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            end
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
