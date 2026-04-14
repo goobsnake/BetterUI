@@ -94,6 +94,13 @@ function Manager:GetItemSelectionKeys(itemData)
         AddSelectionKey(keys, seen, string.format("%d_%d", bagId, slotIndex))
     end
 
+    -- Some scenes (for example Vendor Buyback) provide entryIndex rows without bag/slot ids.
+    -- Keep these selectable by deriving a stable key from entryIndex.
+    local entryIndex = rawData.entryIndex or itemData.entryIndex
+    if entryIndex ~= nil then
+        AddSelectionKey(keys, seen, string.format("entry_%s", tostring(entryIndex)))
+    end
+
     return keys
 end
 
@@ -323,17 +330,10 @@ function Manager:SelectAll(listOverride)
         end
 
         if data then
-            -- Handle ZO_GamepadEntryData which wraps raw item data in dataSource
-            local rawData = data.dataSource or data
-            local bagId = rawData.bagId or data.bagId
-            local slotIndex = rawData.slotIndex or data.slotIndex
-
-            if bagId and slotIndex then
-                local primaryKey = self:GetPrimarySelectionKey(data)
-                if primaryKey then
-                    -- Store the full data (including wrapper) for consistent id lookup later
-                    self:RegisterSelectedItem(primaryKey, data)
-                end
+            local primaryKey = self:GetPrimarySelectionKey(data)
+            if primaryKey then
+                -- Store the full data (including wrapper) for consistent id lookup later
+                self:RegisterSelectedItem(primaryKey, data)
             end
         end
     end
