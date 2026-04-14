@@ -77,11 +77,7 @@ local function IsMultiSelectAvailable()
 end
 
 local function GetMultiSelectKeybindName()
-    local ms = Companions.multiSelectManager
-    if ms and ms:IsActive() then
-        return GetString(SI_GAMEPAD_BACK_OPTION)
-    end
-    return GetString(rawget(_G, "SI_BETTERUI_INV_MULTI_SELECT") or "SI_BETTERUI_INV_MULTI_SELECT")
+    return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 
 ---@param instance BETTERUI.Companions.Class
@@ -203,6 +199,8 @@ local function BuildCoreKeybinds(instance)
             name = function() return GetMultiSelectKeybindName() end,
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
+                local ms = Companions.multiSelectManager
+                if ms and ms:IsActive() then return false end
                 return IsMultiSelectAvailable()
             end,
             callback = function()

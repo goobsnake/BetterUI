@@ -946,32 +946,11 @@ local function BuildCoreKeybinds(vendorInstance)
                 return vendorInstance.searchQuery and vendorInstance.searchQuery ~= ""
             end
         ),
-        -- Tertiary action (Sell All Junk / Repair All / Batch Actions)
+        -- Tertiary action (Item Actions / Batch Actions in multi-select)
+        -- Name is always SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND for parity with Banking/Inventory.
         {
             name = function()
-                local ms = Vendor.multiSelectManager
-                if ms and ms:IsActive() and ms:HasSelections() then
-                    return GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_ACTIONS") or "SI_BETTERUI_INV_BATCH_ACTIONS")
-                end
-                local mode = vendorInstance:GetCurrentMode()
-                if mode == MODE.SELL then
-                    return GetString(rawget(_G, "SI_SELL_ALL_JUNK_KEYBIND_TEXT") or "SI_SELL_ALL_JUNK_KEYBIND_TEXT")
-                end
-                if mode == MODE.REPAIR then
-                    local cost = GetRepairAllCost and GetRepairAllCost() or 0
-                    if cost > 0 and zo_strformat and ZO_Currency_FormatGamepad then
-                        local formatKind = ZO_CURRENCY_FORMAT_WHITE_AMOUNT_ICON
-                        if GetCurrencyAmount(CURT_MONEY, CURRENCY_LOCATION_CHARACTER) < cost then
-                            formatKind = ZO_CURRENCY_FORMAT_ERROR_AMOUNT_ICON
-                        end
-                        return zo_strformat(
-                            SI_REPAIR_ALL_KEYBIND_TEXT,
-                            ZO_Currency_FormatGamepad(CURT_MONEY, cost, formatKind)
-                        )
-                    end
-                    return GetString(rawget(_G, "SI_REPAIR_ALL_KEYBIND_TEXT") or "SI_REPAIR_ALL_KEYBIND_TEXT")
-                end
-                return ""
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND") or "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND")
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
