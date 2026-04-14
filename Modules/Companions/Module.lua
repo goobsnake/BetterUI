@@ -42,8 +42,15 @@ end
 --- Lifecycle hook: registers settings panel and initializes the module.
 --- Called by BETTERUI.LoadModules() via MODULE_REGISTRY.
 function BETTERUI.Companions.Setup()
-    if BETTERUI.Companions.Settings and BETTERUI.Companions.Settings.RegisterPanel then
-        BETTERUI.Companions.Settings.RegisterPanel("Companions", "Companions")
+    if not BETTERUI.Companions._panelRegistered
+        and BETTERUI.Companions.Settings
+        and BETTERUI.Companions.Settings.RegisterPanel then
+        local ok, err = pcall(BETTERUI.Companions.Settings.RegisterPanel, "Companions", "Companions")
+        if ok then
+            BETTERUI.Companions._panelRegistered = true
+        elseif BETTERUI.Debug then
+            BETTERUI.Debug("[Companions] Settings panel registration failed: " .. tostring(err))
+        end
     end
 
     if BETTERUI.Companions.GetSetting("enableCompanionEquipment") == false then
@@ -74,7 +81,7 @@ local function GetMultiSelectKeybindName()
     if ms and ms:IsActive() then
         return GetString(SI_GAMEPAD_BACK_OPTION)
     end
-    return GetString(SI_BETTERUI_INV_MULTI_SELECT or "Multi-Select")
+    return GetString(rawget(_G, "SI_BETTERUI_INV_MULTI_SELECT") or "SI_BETTERUI_INV_MULTI_SELECT")
 end
 
 ---@param instance BETTERUI.Companions.Class
@@ -132,7 +139,7 @@ local function BuildCoreKeybinds(instance)
             name = function()
                 local ms = Companions.multiSelectManager
                 if ms and ms:IsActive() then
-                    return GetString(SI_BETTERUI_INV_BATCH_ACTIONS or "Batch Actions")
+                    return GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_ACTIONS") or "SI_BETTERUI_INV_BATCH_ACTIONS")
                 end
                 return GetString(SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND)
             end,
@@ -167,7 +174,7 @@ local function BuildCoreKeybinds(instance)
                 if instance.searchQuery and instance.searchQuery ~= "" then
                     return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH"))
                 end
-                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SEARCH") or "Search")
+                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SEARCH") or "SI_GAMEPAD_INVENTORY_SEARCH")
             end,
             keybind = "UI_SHORTCUT_QUATERNARY",
             disabledDuringSceneHiding = true,
@@ -286,7 +293,7 @@ function BETTERUI.Companions.Init()
     Companions.instance = Companions.Class:New(
         "BETTERUI_CompanionWindow", BETTERUI_COMPANION_EQUIP_SCENE_NAME)
     Companions.instance:SetTitle(
-        "|c0066FF" .. GetString(SI_BETTERUI_COMPANIONS_TITLE or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
+        "|c0066FF" .. GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE") .. "|r")
 
     Companions.instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
@@ -305,11 +312,15 @@ function BETTERUI.Companions.Init()
     Companions.instance:EnsureColumnHeadersVisible()
 
     -- Multi-Select
-    Companions.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Companions.instance.list, function(count)
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        end
-    end)
+    if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
+        Companions.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Companions.instance.list, function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            end
+        end)
+    else
+        Companions.multiSelectManager = nil
+    end
 
     -- Search
     if BETTERUI.CIM.SearchMixin and Companions.instance.AddSearch then
@@ -333,16 +344,21 @@ function BETTERUI.Companions.Init()
 
     -- Sort Controller
     if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
-        local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Companions.instance)
-        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
-        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
-        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
-        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
-        sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
-        sortController:SetSortChangedCallback(function()
-            Companions.instance:RefreshList()
+        local ok, err = pcall(function()
+            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Companions.instance)
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
+            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
+            sortController:SetSortChangedCallback(function()
+                Companions.instance:RefreshList()
+            end)
+            Companions.instance.sortController = sortController
         end)
-        Companions.instance.sortController = sortController
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Companions] Sort controller init failed: " .. tostring(err))
+        end
     end
 
     -- Keybinds
@@ -350,17 +366,22 @@ function BETTERUI.Companions.Init()
 
     -- Header Sort Integration
     if Companions.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
-        BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
-            Companions.instance.list,
-            Companions.instance.sortController,
-            {
-                keybindStrip = true,
-                mainKeybindDescriptor = Companions.instance.coreKeybinds,
-                onSortChanged = function()
-                    Companions.instance:RefreshList()
-                end,
-            }
-        )
+        local ok, err = pcall(function()
+            BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
+                Companions.instance.list,
+                Companions.instance.sortController,
+                {
+                    keybindStrip = true,
+                    mainKeybindDescriptor = Companions.instance.coreKeybinds,
+                    onSortChanged = function()
+                        Companions.instance:RefreshList()
+                    end,
+                }
+            )
+        end)
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Companions] Header sort integration setup failed: " .. tostring(err))
+        end
     end
 
     -- Fragments

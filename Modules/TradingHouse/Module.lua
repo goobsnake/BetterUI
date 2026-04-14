@@ -59,6 +59,13 @@ References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 ---@return nil
 function BETTERUI.TradingHouse.Setup()
-    BETTERUI.TradingHouse.Settings.RegisterPanel("TradingHouse", "TradingHouse")
+    if not BETTERUI.TradingHouse._panelRegistered then
+        local ok, err = pcall(BETTERUI.TradingHouse.Settings.RegisterPanel, "TradingHouse", "TradingHouse")
+        if ok then
+            BETTERUI.TradingHouse._panelRegistered = true
+        elseif BETTERUI.Debug then
+            BETTERUI.Debug("[TradingHouse] Settings panel registration failed: " .. tostring(err))
+        end
+    end
     BETTERUI.TradingHouse.Init()
 end
