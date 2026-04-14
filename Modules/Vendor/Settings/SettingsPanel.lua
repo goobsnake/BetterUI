@@ -45,6 +45,7 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
         if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Vendor", "general") then
             Vendor.SetSetting("enableCarousel", true)
             Vendor.SetSetting("enableBatchJunkSell", true)
+            Vendor.SetSetting("abbreviateVendorCurrency", true)
         end
         RefreshVendorWindow()
     end
@@ -93,8 +94,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     -- Abbreviate Currency
     optionsData[#optionsData + 1] = {
         type = "checkbox",
-        name = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY") or "Abbreviate Currency"),
-        tooltip = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP") or "Show abbreviated currency values in vendor lists."),
+        name = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY") or "SI_BETTERUI_ABBREVIATE_CURRENCY"),
+        tooltip = GetString(rawget(_G, "SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP") or "SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP"),
         getFunc = function()
             return Vendor.GetSetting("abbreviateVendorCurrency") ~= false
         end,

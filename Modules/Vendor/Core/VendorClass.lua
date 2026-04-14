@@ -6,6 +6,7 @@
 
 -- NAMESPACE & GUARD
 if not BETTERUI.Vendor then BETTERUI.Vendor = {} end
+local Vendor = BETTERUI.Vendor
 
 -- SCENE CONSTANTS
 
@@ -1740,21 +1741,21 @@ end
 
 local VENDOR_SORT_COMPARATORS = {
     name = function(a, b)
-        local nameA = (a.dataSource and a.dataSource.name) or a.name or ""
-        local nameB = (b.dataSource and b.dataSource.name) or b.name or ""
+        local nameA = tostring((a.dataSource and a.dataSource.name) or a.name or "")
+        local nameB = tostring((b.dataSource and b.dataSource.name) or b.name or "")
         return nameA < nameB
     end,
     type = function(a, b)
-        local typeA = (a.dataSource and a.dataSource.bestItemTypeName) or ""
-        local typeB = (b.dataSource and b.dataSource.bestItemTypeName) or ""
+        local typeA = tostring((a.dataSource and a.dataSource.bestItemTypeName) or "")
+        local typeB = tostring((b.dataSource and b.dataSource.bestItemTypeName) or "")
         if typeA == typeB then
             return VENDOR_SORT_COMPARATORS.name(a, b)
         end
         return typeA < typeB
     end,
     trait = function(a, b)
-        local traitA = (a.dataSource and a.dataSource.traitName) or ""
-        local traitB = (b.dataSource and b.dataSource.traitName) or ""
+        local traitA = tostring((a.dataSource and a.dataSource.traitName) or "")
+        local traitB = tostring((b.dataSource and b.dataSource.traitName) or "")
         local blankA = traitA == "" and 1 or 0
         local blankB = traitB == "" and 1 or 0
         if blankA ~= blankB then
@@ -1775,7 +1776,7 @@ local VENDOR_SORT_COMPARATORS = {
                 return numA > numB
             end
         elseif statA ~= statB then
-            return statA < statB
+            return tostring(statA) < tostring(statB)
         end
         return VENDOR_SORT_COMPARATORS.name(a, b)
     end,

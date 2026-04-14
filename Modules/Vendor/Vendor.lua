@@ -816,6 +816,13 @@ end
 
 -- KEYBINDS
 
+-- Forward declarations for helper callbacks referenced from keybind descriptors.
+-- Without these declarations Lua resolves names as globals inside closures.
+local IsMultiSelectAvailable
+local GetMultiSelectKeybindName
+local CanMultiSelectInCurrentMode
+local RegisterVendorBatchDialog
+
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return table keybindGroup Core keybind descriptor group
 local function BuildCoreKeybinds(vendorInstance)
@@ -878,7 +885,16 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
             end,
             enabled = function()
+                local ms = Vendor.multiSelectManager
                 local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+                if ms and ms:IsActive() then
+                    return selectedData ~= nil
+                end
+
+                local component = vendorInstance:GetActiveComponent()
+                if component and component.IsPrimaryActionEnabled then
+                    return component:IsPrimaryActionEnabled(vendorInstance)
+                end
                 return selectedData ~= nil
             end,
         },
@@ -935,7 +951,7 @@ local function BuildCoreKeybinds(vendorInstance)
             name = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() and ms:HasSelections() then
-                    return GetString(SI_BETTERUI_INV_BATCH_ACTIONS or "Batch Actions")
+                    return GetString(rawget(_G, "SI_BETTERUI_INV_BATCH_ACTIONS") or "SI_BETTERUI_INV_BATCH_ACTIONS")
                 end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL then
@@ -998,8 +1014,10 @@ local function BuildCoreKeybinds(vendorInstance)
             callback = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    RegisterVendorBatchDialog()
-                    ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
+                    SafeCall("Vendor.RegisterBatchDialog", RegisterVendorBatchDialog)
+                    if ZO_Dialogs_ShowGamepadDialog then
+                        ZO_Dialogs_ShowGamepadDialog("BETTERUI_VENDOR_BATCH_DIALOG")
+                    end
                     return
                 end
                 local component = vendorInstance:GetActiveComponent()
@@ -1019,18 +1037,20 @@ local function BuildCoreKeybinds(vendorInstance)
             name = function() return GetMultiSelectKeybindName() end,
             keybind = "UI_SHORTCUT_QUINARY",
             visible = function()
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    return false
+                end
                 return CanMultiSelectInCurrentMode() and IsMultiSelectAvailable()
             end,
             callback = function()
                 local ms = Vendor.multiSelectManager
                 if not ms then return end
-                if ms:IsActive() then
-                    ms:ExitSelectionMode()
-                else
+                if not ms:IsActive() then
                     ms:EnterSelectionMode()
+                    vendorInstance:RefreshList()
+                    vendorInstance:EnsureListInputActive()
                 end
-                vendorInstance:RefreshList()
-                vendorInstance:EnsureListInputActive()
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
                 end
@@ -1113,20 +1133,16 @@ end
 
 -- MULTI-SELECT HELPERS
 
-local function IsMultiSelectAvailable()
+IsMultiSelectAvailable = function()
     local instance = Vendor.instance
     return instance and instance.list and instance.list:GetNumItems() > 0
 end
 
-local function GetMultiSelectKeybindName()
-    local ms = Vendor.multiSelectManager
-    if ms and ms:IsActive() then
-        return GetString(SI_GAMEPAD_BACK_OPTION)
-    end
-    return GetString(SI_BETTERUI_INV_MULTI_SELECT or "Multi-Select")
+GetMultiSelectKeybindName = function()
+    return GetString(rawget(_G, "SI_BETTERUI_MULTI_SELECT") or "SI_BETTERUI_MULTI_SELECT")
 end
 
-local function CanMultiSelectInCurrentMode()
+CanMultiSelectInCurrentMode = function()
     local mode = Vendor.instance and Vendor.instance:GetCurrentMode()
     if not mode then return false end
     return mode == MODE.SELL
@@ -1190,7 +1206,7 @@ function Vendor.ExecuteBatchAction(mode, itemData)
     end
 end
 
-local function RegisterVendorBatchDialog()
+RegisterVendorBatchDialog = function()
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_VENDOR_BATCH_DIALOG") then
         return
     end
@@ -1198,7 +1214,12 @@ local function RegisterVendorBatchDialog()
         canQueue = true,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
+        parametricList = {},
         setup = function(dialog)
+            dialog.info = dialog.info or {}
+            if type(dialog.info.parametricList) ~= "table" then
+                dialog.info.parametricList = {}
+            end
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
             local function AddAction(name, actionId)
@@ -1213,21 +1234,23 @@ local function RegisterVendorBatchDialog()
             end
             local ms = Vendor.multiSelectManager
             if ms then
-                local allSelected = ms:GetSelectedCount() > 0 and ms:GetSelectedCount() == (Vendor.instance.list and Vendor.instance.list:GetNumItems() or 0)
+                local selectedCount = ms:GetSelectedCount()
+                local totalItems = (Vendor.instance and Vendor.instance.list and Vendor.instance.list:GetNumItems()) or 0
+                local allSelected = selectedCount > 0 and selectedCount == totalItems
                 if not allSelected then
-                    AddAction(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll")
+                    AddAction(GetString(rawget(_G, "SI_BETTERUI_INV_MARK_ALL") or "SI_BETTERUI_INV_MARK_ALL"), "selectAll")
                 end
-                if ms:GetSelectedCount() > 0 then
-                    AddAction(GetString(SI_BETTERUI_INV_UNMARK_ALL or "Unmark All"), "deselectAll")
+                if selectedCount > 0 then
+                    AddAction(GetString(rawget(_G, "SI_BETTERUI_INV_UNMARK_ALL") or "SI_BETTERUI_INV_UNMARK_ALL"), "deselectAll")
                 end
                 local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
-                if currentMode and ms:GetSelectedCount() > 0 then
+                if currentMode and selectedCount > 0 then
                     if currentMode == MODE.SELL or currentMode == MODE.FENCE_SELL then
-                        AddAction(GetString(SI_ITEM_ACTION_SELL or "Sell"), "batch")
+                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL"), "batch")
                     elseif currentMode == MODE.FENCE_LAUNDER then
-                        AddAction(GetString(SI_ITEM_ACTION_LAUNDER or "Launder"), "batch")
+                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER"), "batch")
                     elseif currentMode == MODE.BUYBACK then
-                        AddAction(GetString(SI_ITEM_ACTION_BUYBACK or "Buyback"), "batch")
+                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK"), "batch")
                     end
                 end
             end
@@ -1259,7 +1282,7 @@ local function RegisterVendorBatchDialog()
                     local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                     local items = ms:GetSelectedItems()
                     local delay = 0
-                    for i, itemData in ipairs(items) do
+                    for _, itemData in ipairs(items) do
                         zo_callLater(function()
                             Vendor.ExecuteBatchAction(currentMode, itemData)
                         end, delay)
@@ -1732,42 +1755,56 @@ function BETTERUI.Vendor.Init()
 
     -- Sort Controller
     if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
-        local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Vendor.instance)
-        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "Name"), "name")
-        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "Type"), "type")
-        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "Trait"), "trait")
-        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "Stat"), "stat")
-        sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "Value"), "value")
-        sortController:SetSortChangedCallback(function()
-            Vendor.instance:RefreshList()
+        local ok, err = pcall(function()
+            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(Vendor.instance)
+            sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_NAME") or "SI_BETTERUI_BANKING_COLUMN_NAME"), "name")
+            sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TYPE") or "SI_BETTERUI_BANKING_COLUMN_TYPE"), "type")
+            sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_TRAIT") or "SI_BETTERUI_BANKING_COLUMN_TRAIT"), "trait")
+            sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_STAT") or "SI_BETTERUI_BANKING_COLUMN_STAT"), "stat")
+            sortController:AddColumn(GetString(rawget(_G, "SI_BETTERUI_BANKING_COLUMN_VALUE") or "SI_BETTERUI_BANKING_COLUMN_VALUE"), "value")
+            sortController:SetSortChangedCallback(function()
+                Vendor.instance:RefreshList()
+            end)
+            Vendor.instance.sortController = sortController
         end)
-        Vendor.instance.sortController = sortController
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Vendor] Sort controller init failed: " .. tostring(err))
+        end
     end
 
     -- Build keybinds
     Vendor.instance.coreKeybinds = BuildCoreKeybinds(Vendor.instance)
 
     -- Multi-Select
-    Vendor.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Vendor.instance.list, function(count)
-        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
-            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-        end
-    end)
+    if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
+        Vendor.multiSelectManager = BETTERUI.CIM.MultiSelectManager.Create(Vendor.instance.list, function()
+            if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+            end
+        end)
+    else
+        Vendor.multiSelectManager = nil
+    end
     Vendor.instance.multiSelectManager = Vendor.multiSelectManager
 
     -- Header Sort Integration
     if Vendor.instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
-        BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
-            Vendor.instance.list,
-            Vendor.instance.sortController,
-            {
-                keybindStrip = true,
-                mainKeybindDescriptor = Vendor.instance.coreKeybinds,
-                onSortChanged = function()
-                    Vendor.instance:RefreshList()
-                end,
-            }
-        )
+        local ok, err = pcall(function()
+            BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
+                Vendor.instance.list,
+                Vendor.instance.sortController,
+                {
+                    keybindStrip = true,
+                    mainKeybindDescriptor = Vendor.instance.coreKeybinds,
+                    onSortChanged = function()
+                        Vendor.instance:RefreshList()
+                    end,
+                }
+            )
+        end)
+        if not ok and BETTERUI.Debug then
+            BETTERUI.Debug("[Vendor] Header sort integration setup failed: " .. tostring(err))
+        end
     end
 
     -- Initialize scene fragments manually — vendor does not use BETTERUI_BankingFooterBar

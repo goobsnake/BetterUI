@@ -30,6 +30,7 @@ function BETTERUI.Vendor.InitModule(m_options)
 		showIconUnknownBook = true,
 		enableCarousel = true,
 		enableBatchJunkSell = true,
+		abbreviateVendorCurrency = true,
 	}
 
 	m_options = BETTERUI.CIM.InitModuleDefaults("Vendor", m_options, defaults, fallbackDefaults)
@@ -215,6 +216,16 @@ References: Called by BETTERUI.LoadModules() in BetterUI.lua.
 ]]
 ---@return nil
 function BETTERUI.Vendor.Setup()
-	BETTERUI.Vendor.Settings.RegisterPanel("Vendor", "Vendor")
+	-- Keep functional scene ownership resilient even when settings UI registration fails.
+	-- A panel error should not force fallback to the native vendor scene.
 	BETTERUI.Vendor.Init()
+
+	if not BETTERUI.Vendor._panelRegistered then
+		local ok, err = pcall(BETTERUI.Vendor.Settings.RegisterPanel, "Vendor", "Vendor")
+		if ok then
+			BETTERUI.Vendor._panelRegistered = true
+		elseif BETTERUI.Debug then
+			BETTERUI.Debug("[Vendor] Settings panel registration failed: " .. tostring(err))
+		end
+	end
 end

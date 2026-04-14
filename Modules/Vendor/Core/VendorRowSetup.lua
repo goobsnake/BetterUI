@@ -154,6 +154,35 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
     -- Apply gradient selection bar
     BETTERUI.CIM.SelectionHighlight.Setup(control, selected)
 
+    -- Show selection indicator for multi-selected entries (inventory/banking parity)
+    local selectionIndicator = control:GetNamedChild("SelectionIndicator")
+    local selectionBar = control:GetNamedChild("SelectionBar")
+    local isMultiSelected = false
+
+    local multiSelectManager = BETTERUI.CIM.MultiSelectManager
+    if multiSelectManager and multiSelectManager.GetActiveInstance then
+        local manager = multiSelectManager.GetActiveInstance()
+        if manager and manager:IsActive() then
+            isMultiSelected = manager:IsSelected(data)
+        end
+    end
+
+    if selectionIndicator then
+        selectionIndicator:SetHidden(not isMultiSelected)
+        if isMultiSelected then
+            selectionIndicator:SetColor(0.2, 0.9, 0.2, 1)
+        end
+    end
+
+    if selectionBar then
+        if isMultiSelected then
+            selectionBar:SetHidden(false)
+            selectionBar:SetColor(0.2, 0.8, 0.3, 0.6)
+        elseif selected then
+            selectionBar:SetColor(0.77, 0.65, 0.30, 0.45)
+        end
+    end
+
     -- Cooldown and status icons
     if BETTERUI_CooldownSetup then
         BETTERUI_CooldownSetup(control, data)
