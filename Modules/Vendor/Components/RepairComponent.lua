@@ -83,6 +83,7 @@ function Repair:RepairAll(vendorInstance)
 
     -- ESO's own store uses "REPAIR_ALL" dialog (storewindow_gamepad.lua:309)
     ZO_Dialogs_ShowGamepadDialog("REPAIR_ALL", {
+        cost = repairAllCost,
         callback = function()
             RepairAll()
         end,

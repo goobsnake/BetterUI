@@ -275,6 +275,31 @@ local function BuildRowsFromStoreCount()
     return rows
 end
 
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil
+local function GetFocusedStoreData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then
+        return nil
+    end
+
+    if BETTERUI.Utils and BETTERUI.Utils.SafeGetTargetData then
+        local targetData = BETTERUI.Utils.SafeGetTargetData(list)
+        if targetData then
+            return targetData
+        end
+    end
+
+    if list.GetSelectedData then
+        local selectedData = list:GetSelectedData()
+        if selectedData then
+            return selectedData
+        end
+    end
+
+    return list.selectedData
+end
+
 local function BuildRowsFromIndexProbe()
     if type(GetStoreEntryInfo) ~= "function" then
         return {}
@@ -454,20 +479,23 @@ end
 ---@param vendorInstance BETTERUI.Vendor.Class
 ---@return boolean enabled True if a buy action is possible
 function Buy:IsPrimaryActionEnabled(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetFocusedStoreData(vendorInstance)
     if not selectedData then return false end
     local ds = selectedData.dataSource or selectedData
 
     -- Check affordability using stored price
-    local price = ds.price or 0
-    local currencyType = ds.currencyType or CURT_MONEY
+    local price = ds.price or ds.currencyQuantity1 or 0
+    local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
+    if currencyType == CURT_NONE then
+        currencyType = CURT_MONEY
+    end
     return vendorInstance:CanAfford(price, currencyType)
         and vendorInstance:HasInventorySpace()
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
 function Buy:OnPrimaryAction(vendorInstance)
-    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+    local selectedData = GetFocusedStoreData(vendorInstance)
     if not selectedData then return end
     local ds = selectedData.dataSource or selectedData
 
@@ -475,8 +503,11 @@ function Buy:OnPrimaryAction(vendorInstance)
     if not entryIndex then return end
 
     -- Validate affordability one more time
-    local price = ds.price or 0
-    local currencyType = ds.currencyType or CURT_MONEY
+    local price = ds.price or ds.currencyQuantity1 or 0
+    local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
+    if currencyType == CURT_NONE then
+        currencyType = CURT_MONEY
+    end
     if not vendorInstance:CanAfford(price, currencyType) then
         BETTERUI.CIM.UserAlertText("Buy:CannotAfford",
             GetString(rawget(_G, "SI_BETTERUI_VENDOR_CANNOT_AFFORD")))
