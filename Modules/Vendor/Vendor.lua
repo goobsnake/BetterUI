@@ -1269,6 +1269,12 @@ function Vendor.ExecuteBatchAction(mode, itemData)
     elseif mode == MODE.BUYBACK then
         local entryIndex = ds.entryIndex
         if entryIndex then
+            local vendorInstance = Vendor.instance
+            if vendorInstance then
+                local price = ds.price or 0
+                if not vendorInstance:CanAfford(price) then return end
+                if not vendorInstance:HasInventorySpace() then return end
+            end
             BuybackItem(entryIndex)
         end
     end
@@ -1299,6 +1305,16 @@ function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
     if totalItems == 0 then
         if onComplete then onComplete() end
         return
+    end
+
+    -- BUYBACK FIX: Process highest entryIndex first so removals don't
+    -- invalidate lower indices that haven't been processed yet.
+    if mode == MODE.BUYBACK then
+        table.sort(items, function(a, b)
+            local dsA = a.dataSource or a
+            local dsB = b.dataSource or b
+            return (dsA.entryIndex or 0) > (dsB.entryIndex or 0)
+        end)
     end
 
     -- Prevent re-entry
@@ -1402,8 +1418,8 @@ function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
         Vendor.ExecuteBatchAction(mode, items[index])
         processedCount = processedCount + 1
 
-        -- Abort batch when bag is full during BUY operations
-        if mode == MODE.BUY then
+        -- Abort batch when bag is full during BUY or BUYBACK operations
+        if mode == MODE.BUY or mode == MODE.BUYBACK then
             local vi = Vendor.instance
             if vi and vi.HasInventorySpace and not vi:HasInventorySpace() then
                 stopReason = "bagFull"
@@ -1578,6 +1594,7 @@ RegisterVendorBatchDialog = function()
             local ms = Vendor.multiSelectManager
             if ms then
                 local selectedCount = ms:GetSelectedCount()
+                local selectedItems = ms.GetSelectedItems and ms:GetSelectedItems() or {}
                 local totalItems = (Vendor.instance and Vendor.instance.list and Vendor.instance.list:GetNumItems()) or 0
                 local allSelected = selectedCount > 0 and selectedCount == totalItems
                 if not allSelected then
@@ -1588,14 +1605,18 @@ RegisterVendorBatchDialog = function()
                 end
                 local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                 if currentMode and selectedCount > 0 then
-                    if currentMode == MODE.BUY then
-                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY"), selectedCount), "batch")
-                    elseif currentMode == MODE.SELL or currentMode == MODE.FENCE_SELL then
-                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL"), selectedCount), "batch")
-                    elseif currentMode == MODE.FENCE_LAUNDER then
-                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER"), selectedCount), "batch")
-                    elseif currentMode == MODE.BUYBACK then
-                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK"), selectedCount), "batch")
+                    local supportedCount = 0
+                    if Vendor.BatchActionCounts and Vendor.BatchActionCounts.GetSupportedActionCount then
+                        supportedCount = Vendor.BatchActionCounts.GetSupportedActionCount(currentMode, selectedItems, Vendor.instance)
+                    end
+
+                    local batchLabel = nil
+                    if Vendor.BatchActionCounts and Vendor.BatchActionCounts.BuildBatchActionLabel then
+                        batchLabel = Vendor.BatchActionCounts.BuildBatchActionLabel(currentMode, supportedCount)
+                    end
+
+                    if batchLabel then
+                        AddAction(batchLabel, "batch")
                     end
                 end
             end
@@ -2011,6 +2032,13 @@ function BETTERUI.Vendor.Init()
         BETTERUI.Vendor.VendorEntrySetup
     )
     Vendor.instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
+        if Vendor.instance._searchModeActive and Vendor.instance.list
+            and Vendor.instance.list.IsActive and Vendor.instance.list:IsActive() then
+            Vendor.instance:OnItemSelectedChange(list, selectedData)
+            Vendor.instance:UpdateScrollIndicator(list)
+            Vendor.instance:OnSearchFocusLost()
+            return
+        end
         Vendor.instance:OnItemSelectedChange(list, selectedData)
         Vendor.instance:UpdateScrollIndicator(list)
     end)

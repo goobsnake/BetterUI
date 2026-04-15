@@ -239,6 +239,7 @@ Modules\TradingHouse\Settings\SettingsPanel.lua
 Modules\Vendor\Module.lua
 Modules\Vendor\Core\VendorClass.lua
 Modules\Vendor\Core\VendorRowSetup.lua
+Modules\Vendor\Core\BatchActionCounts.lua
 Modules\Vendor\Components\BuyComponent.lua
 Modules\Vendor\Components\SellComponent.lua
 Modules\Vendor\Components\RepairComponent.lua

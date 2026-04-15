@@ -738,6 +738,7 @@ function BETTERUI.Vendor.Class:NormalizeDirectionalInputOwnership(reason)
         Allow(self.textSearchHeaderFocus, true)
         Allow(self.headerFocus, true)
         Allow(self.textSearchHeaderControl, true)
+        Allow(self.list, true)
         AllowHeader(self.headerGeneric)
         AllowHeader(self.header)
     elseif self.isInHeaderSortMode then
@@ -1118,10 +1119,6 @@ function BETTERUI.Vendor.Class:EnterSearchMode()
     end
     if self.SetTextSearchFocused then
         self:SetTextSearchFocused(true)
-    end
-
-    if self.list and self.list.Deactivate and (not self.list.IsActive or self.list:IsActive()) then
-        self.list:Deactivate()
     end
 
     if self.NormalizeDirectionalInputOwnership then
