@@ -669,6 +669,8 @@ ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_SELL", "Продать крад�
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER", "Отмыть")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_TITLE", "Расширенный торговец")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_JUNK", "Нет хлама для продажи.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS", "Нет предметов, нуждающихся в ремонте.")
+ZO_CreateStringId("SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS", "Нет предметов для выкупа.")
 ZO_CreateStringId("SI_BETTERUI_VENDOR_CONDITION", "<<1>>%")
 ZO_CreateStringId("SI_BETTERUI_FENCE_SELLS_REMAINING", "Осталось: <<1>>/<<2>>")
 ZO_CreateStringId("SI_BETTERUI_FENCE_LAUNDERS_REMAINING", "Осталось: <<1>>/<<2>>")
