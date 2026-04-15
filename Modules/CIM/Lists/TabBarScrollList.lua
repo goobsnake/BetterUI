@@ -16,6 +16,13 @@ local TABBAR_MOVEMENT_TYPES = (BETTERUI.CIM and BETTERUI.CIM.ListGlobals and BET
 -- Implements Carousel Mode where items rotate circularly.
 BETTERUI_TabBarScrollList = BETTERUI_HorizontalParametricScrollList:Subclass()
 
+---@return boolean
+function BETTERUI_TabBarScrollList:ShouldWrapShoulderNavigation()
+    -- Always allow wrapping so navigation cycles through all entries at
+    -- boundaries regardless of the visual carousel layout mode.
+    return true
+end
+
 --[[
 Function: BETTERUI_TabBarScrollList:New
 Creates a new tab bar scroll list instance with LB/RB navigation icons.
@@ -225,14 +232,14 @@ function BETTERUI_TabBarScrollList:InitializeKeybindStripDescriptors()
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
             callback = function()
-                if self.active then self:MovePrevious(true) end
+                if self.active then self:MovePrevious(self:ShouldWrapShoulderNavigation()) end
             end,
         },
         {
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
             callback = function()
-                if self.active then self:MoveNext(true) end
+                if self.active then self:MoveNext(self:ShouldWrapShoulderNavigation()) end
             end,
         },
     }
@@ -382,7 +389,13 @@ function BETTERUI_TabBar_OnLeftIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
     if scrollList and scrollList.MovePrevious then
-        scrollList:MovePrevious(true)
+        local allowWrapping = true
+        if scrollList.ShouldWrapShoulderNavigation then
+            allowWrapping = scrollList:ShouldWrapShoulderNavigation()
+        elseif scrollList.carouselMode == false then
+            allowWrapping = false
+        end
+        scrollList:MovePrevious(allowWrapping)
     end
 end
 
@@ -392,7 +405,13 @@ function BETTERUI_TabBar_OnRightIconClicked(buttonControl)
     local tabBar = buttonControl:GetParent()
     local scrollList = tabBar and tabBar.scrollList
     if scrollList and scrollList.MoveNext then
-        scrollList:MoveNext(true)
+        local allowWrapping = true
+        if scrollList.ShouldWrapShoulderNavigation then
+            allowWrapping = scrollList:ShouldWrapShoulderNavigation()
+        elseif scrollList.carouselMode == false then
+            allowWrapping = false
+        end
+        scrollList:MoveNext(allowWrapping)
     end
 end
 
