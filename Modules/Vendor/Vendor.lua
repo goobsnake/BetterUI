@@ -31,6 +31,8 @@ local fenceEnableSell    = false
 local fenceEnableLaunder = false
 Vendor._sessionHasBuyMode = false
 
+local SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME = "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG"
+
 -- TAB DEFINITIONS
 
 ---@alias VendorTabDef {mode: number, name: fun(): string}
@@ -214,6 +216,21 @@ local function GetToggleModePair()
     end
 
     return nil, nil
+end
+
+---@param vendorInstance BETTERUI.Vendor.Class|nil
+---@return table|nil
+local function GetCurrentVendorTargetData(vendorInstance)
+    local list = vendorInstance and vendorInstance.list
+    if not list then
+        return nil
+    end
+
+    if list.GetTargetData then
+        return list:GetTargetData()
+    end
+
+    return list.selectedData
 end
 
 ---@param tabs VendorTabDef[]|nil
@@ -832,6 +849,9 @@ local function BuildCoreKeybinds(vendorInstance)
             keybind = "UI_SHORTCUT_LEFT_SHOULDER",
             ethereal = true,
             visible = function()
+                if vendorInstance.headerGeneric and vendorInstance.headerGeneric.tabBar then
+                    return false
+                end
                 if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
                     return true
                 end
@@ -845,6 +865,9 @@ local function BuildCoreKeybinds(vendorInstance)
             keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
             ethereal = true,
             visible = function()
+                if vendorInstance.headerGeneric and vendorInstance.headerGeneric.tabBar then
+                    return false
+                end
                 if vendorInstance._vendorHeaderEntryCount and vendorInstance._vendorHeaderEntryCount > 1 then
                     return true
                 end
@@ -859,6 +882,17 @@ local function BuildCoreKeybinds(vendorInstance)
             name = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
+                    local selectedData = GetCurrentVendorTargetData(vendorInstance)
+                    if selectedData and ms:IsSelected(selectedData) then
+                        return GetString(rawget(_G, "SI_BETTERUI_DESELECT_ITEM") or "SI_BETTERUI_DESELECT_ITEM")
+                    end
+
+                    local selectedCount = ms.GetSelectedCount and ms:GetSelectedCount() or 0
+                    local selectWithCount = rawget(_G, "SI_BETTERUI_SELECT_WITH_COUNT")
+                    if selectWithCount then
+                        return zo_strformat(GetString(selectWithCount), selectedCount)
+                    end
+
                     return GetString(SI_GAMEPAD_SELECT_OPTION)
                 end
                 local component = vendorInstance:GetActiveComponent()
@@ -871,8 +905,9 @@ local function BuildCoreKeybinds(vendorInstance)
             callback = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
-                    local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+                    local selectedData = GetCurrentVendorTargetData(vendorInstance)
                     if selectedData then
+                        vendorInstance:SaveListPosition()
                         ms:ToggleSelection(selectedData)
                         vendorInstance:RefreshList()
                         vendorInstance:EnsureListInputActive()
@@ -886,7 +921,7 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             enabled = function()
                 local ms = Vendor.multiSelectManager
-                local selectedData = vendorInstance.list and vendorInstance.list:GetSelectedData()
+                local selectedData = GetCurrentVendorTargetData(vendorInstance)
                 if ms and ms:IsActive() then
                     return selectedData ~= nil
                 end
@@ -947,10 +982,27 @@ local function BuildCoreKeybinds(vendorInstance)
             end
         ),
         -- Tertiary action (Item Actions / Batch Actions in multi-select)
-        -- Name is always SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND for parity with Banking/Inventory.
         {
             name = function()
-                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND") or "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND")
+                local defaultActionLabel = GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND") or "SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND")
+                local ms = Vendor.multiSelectManager
+                if ms and ms:IsActive() then
+                    return defaultActionLabel
+                end
+
+                local mode = vendorInstance:GetCurrentMode()
+                if mode == MODE.REPAIR then
+                    local repairAllStringId = rawget(_G, "SI_BETTERUI_VENDOR_REPAIR_ALL")
+                    if repairAllStringId then
+                        return GetString(repairAllStringId)
+                    end
+                    return "Repair All"
+                end
+                if mode == MODE.SELL then
+                    return GetString(rawget(_G, "SI_SELL_ALL_JUNK_KEYBIND_TEXT") or "SI_SELL_ALL_JUNK_KEYBIND_TEXT")
+                end
+
+                return defaultActionLabel
             end,
             keybind = "UI_SHORTCUT_TERTIARY",
             visible = function()
@@ -991,6 +1043,11 @@ local function BuildCoreKeybinds(vendorInstance)
                 return false
             end,
             callback = function()
+                -- During batch processing, Y aborts
+                if Vendor._batchProcessing then
+                    Vendor.RequestBatchAbort()
+                    return
+                end
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
                     SafeCall("Vendor.RegisterBatchDialog", RegisterVendorBatchDialog)
@@ -1003,7 +1060,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 if not component then return end
                 local mode = vendorInstance:GetCurrentMode()
                 if mode == MODE.SELL and component.SellAllJunk then
-                    ZO_Dialogs_ShowGamepadDialog("SELL_ALL_JUNK")
+                    Vendor.ShowSellAllJunkDialog(vendorInstance, component)
                     return
                 end
                 if mode == MODE.REPAIR and component.RepairAll then
@@ -1026,7 +1083,14 @@ local function BuildCoreKeybinds(vendorInstance)
                 local ms = Vendor.multiSelectManager
                 if not ms then return end
                 if not ms:IsActive() then
+                    vendorInstance:SaveListPosition()
                     ms:EnterSelectionMode()
+                    local target = GetCurrentVendorTargetData(vendorInstance)
+                    if target and ms.Select then
+                        ms:Select(target)
+                    elseif target then
+                        ms:ToggleSelection(target)
+                    end
                     vendorInstance:RefreshList()
                     vendorInstance:EnsureListInputActive()
                 end
@@ -1035,7 +1099,7 @@ local function BuildCoreKeybinds(vendorInstance)
                 end
             end,
         },
-        -- Stable-only preview toggle
+        -- Preview toggle
         {
             name = function()
                 if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
@@ -1046,19 +1110,20 @@ local function BuildCoreKeybinds(vendorInstance)
             end,
             keybind = "UI_SHORTCUT_RIGHT_STICK",
             visible = function()
-                if not isStableInteraction then
-                    return false
-                end
                 if not (vendorInstance and vendorInstance.GetCurrentMode and vendorInstance:GetCurrentMode() == MODE.BUY) then
                     return false
                 end
-                if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
-                    and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
-                    return true
+
+                local selectedData = GetCurrentVendorTargetData(vendorInstance)
+                if isStableInteraction then
+                    if vendorInstance.CanPreviewStableStoreEntry then
+                        return vendorInstance:CanPreviewStableStoreEntry(selectedData)
+                    end
+                    return false
                 end
-                if vendorInstance.CanPreviewStableStoreEntry then
-                    local selectedData = vendorInstance.list and vendorInstance.list:GetTargetData() or nil
-                    return vendorInstance:CanPreviewStableStoreEntry(selectedData)
+
+                if vendorInstance.CanPreviewVendorStoreEntry then
+                    return vendorInstance:CanPreviewVendorStoreEntry(selectedData)
                 end
                 return false
             end,
@@ -1066,8 +1131,14 @@ local function BuildCoreKeybinds(vendorInstance)
                 return true
             end,
             callback = function()
-                if vendorInstance.ToggleStablePreviewMode then
-                    vendorInstance:ToggleStablePreviewMode()
+                if isStableInteraction then
+                    if vendorInstance.ToggleStablePreviewMode then
+                        vendorInstance:ToggleStablePreviewMode()
+                    end
+                else
+                    if vendorInstance.ToggleVendorStorePreviewMode then
+                        vendorInstance:ToggleVendorStorePreviewMode()
+                    end
                 end
                 if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
                     KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
@@ -1095,6 +1166,7 @@ local function BuildCoreKeybinds(vendorInstance)
             callback = function()
                 local ms = Vendor.multiSelectManager
                 if ms and ms:IsActive() then
+                    vendorInstance:SaveListPosition()
                     ms:ExitSelectionMode()
                     vendorInstance:RefreshList()
                     vendorInstance:EnsureListInputActive()
@@ -1124,6 +1196,9 @@ end
 CanMultiSelectInCurrentMode = function()
     local mode = Vendor.instance and Vendor.instance:GetCurrentMode()
     if not mode then return false end
+    if mode == MODE.BUY then
+        return not isStableInteraction
+    end
     return mode == MODE.SELL
         or mode == MODE.FENCE_SELL
         or mode == MODE.FENCE_LAUNDER
@@ -1132,7 +1207,21 @@ end
 
 function Vendor.ExecuteBatchAction(mode, itemData)
     local ds = itemData.dataSource or itemData
-    if mode == MODE.SELL then
+    if mode == MODE.BUY then
+        local entryIndex = ds.entryIndex or ds.slotIndex
+        if not entryIndex then return end
+        local vendorInstance = Vendor.instance
+        if vendorInstance then
+            local price = ds.price or 0
+            local currencyType = ds.currencyType or ds.currencyType1 or CURT_MONEY
+            if currencyType == CURT_NONE then
+                currencyType = CURT_MONEY
+            end
+            if not vendorInstance:CanAfford(price, currencyType) then return end
+            if not vendorInstance:HasInventorySpace() then return end
+        end
+        BuyStoreItem(entryIndex, 1)
+    elseif mode == MODE.SELL then
         local bagId = ds.bagId
         local slotIndex = ds.slotIndex
         if bagId and slotIndex then
@@ -1185,6 +1274,281 @@ function Vendor.ExecuteBatchAction(mode, itemData)
     end
 end
 
+-- VENDOR BATCH OPTIONS (server-bound throttling, matching banking/inventory pacing)
+local VENDOR_BATCH_OPTIONS = {
+    serverBound          = true,
+    minServerDelayMs     = 145,
+    maxServerDelayMs     = 330,
+    cooldownEvery        = 18,
+    cooldownMs           = 1200,
+    chunkCostUnits       = 32,
+    chunkPauseMs         = 1000,
+    jitterMs             = 18,
+}
+
+--- Processes vendor batch actions through a throttled pipeline with overlay progress.
+--- Works for all vendor modes including BUY/BUYBACK (which lack bagId/slotIndex).
+---@param mode number Vendor mode constant (MODE.BUY, MODE.SELL, etc.)
+---@param items table[] Array of selected item data tables
+---@param onComplete function|nil Callback invoked when processing finishes
+function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
+    local BatchOverlay = BETTERUI.CIM.BatchOverlay
+    local BatchConfig = BETTERUI.CIM.BatchConfig
+
+    local totalItems = #items
+    if totalItems == 0 then
+        if onComplete then onComplete() end
+        return
+    end
+
+    -- Prevent re-entry
+    if Vendor._batchProcessing then return end
+    Vendor._batchProcessing = true
+    Vendor._batchAbortRequested = false
+
+    -- Resolve display name for the overlay
+    local actionName
+    if mode == MODE.BUY then
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY")
+    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL")
+    elseif mode == MODE.FENCE_LAUNDER then
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER")
+    elseif mode == MODE.BUYBACK then
+        actionName = GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK")
+    else
+        actionName = GetString(rawget(_G, "SI_BETTERUI_BATCH_ACTIONS") or "SI_BETTERUI_BATCH_ACTIONS")
+    end
+
+    -- Resolve throttle profile
+    local throttleProfile = BatchConfig.ResolveBatchThrottleProfile(totalItems)
+    local baseDelayMs = throttleProfile.DELAY_MS or 100
+    local showProgress = throttleProfile.SHOW_PROGRESS == true or totalItems >= 10
+    local opts = VENDOR_BATCH_OPTIONS
+    local minDelay = opts.minServerDelayMs or 145
+    local maxDelay = opts.maxServerDelayMs or 330
+    local cooldownEvery = opts.cooldownEvery or 18
+    local cooldownMs = opts.cooldownMs or 1200
+    local chunkCostUnits = opts.chunkCostUnits or 32
+    local chunkPauseMs = opts.chunkPauseMs or 1000
+    local jitterMs = opts.jitterMs or 18
+    baseDelayMs = zo_max(baseDelayMs, minDelay)
+
+    local index = 0
+    local processedCount = 0
+    local stopReason = nil
+    local nextCooldownAt = cooldownEvery > 0 and cooldownEvery or nil
+    local nextChunkAt = chunkCostUnits > 0 and chunkCostUnits or nil
+
+    local function IsSceneActive()
+        return Vendor.instance and Vendor.instance.IsSceneShowing and Vendor.instance:IsSceneShowing()
+    end
+
+    local function BuildProgressMainText()
+        return string.format("Processing (%d/%d)", processedCount, totalItems)
+    end
+
+    local function BuildProgressSecondaryText()
+        return string.format("Please Wait - Press %s to abort", BatchConfig.ResolveBatchAbortBindingMarkup())
+    end
+
+    local function FinishBatch()
+        Vendor._batchProcessing = false
+        Vendor._batchAbortRequested = false
+
+        if showProgress or stopReason then
+            local completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PROCESSING_COMPLETE")), processedCount)
+            if stopReason == "bagFull" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_BAG_FULL")), processedCount, totalItems)
+            elseif stopReason == "sceneExit" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT")), "Vendor", processedCount, totalItems)
+            elseif stopReason == "aborted" then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_ABORTED_COMPLETE")), processedCount, totalItems)
+            elseif processedCount < totalItems then
+                completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")), processedCount, totalItems)
+            end
+            BatchOverlay.Show(actionName, completeText)
+            BatchOverlay.Hide((stopReason and 4000) or 2000)
+        else
+            BatchOverlay.Hide()
+        end
+
+        if onComplete then onComplete(stopReason) end
+    end
+
+    local processNext
+    processNext = function()
+        -- Scene exit check
+        if not IsSceneActive() then
+            stopReason = "sceneExit"
+            FinishBatch()
+            return
+        end
+
+        -- Abort check
+        if Vendor._batchAbortRequested then
+            stopReason = "aborted"
+            FinishBatch()
+            return
+        end
+
+        index = index + 1
+        if index > totalItems then
+            FinishBatch()
+            return
+        end
+
+        -- Execute the action for this item
+        Vendor.ExecuteBatchAction(mode, items[index])
+        processedCount = processedCount + 1
+
+        -- Abort batch when bag is full during BUY operations
+        if mode == MODE.BUY then
+            local vi = Vendor.instance
+            if vi and vi.HasInventorySpace and not vi:HasInventorySpace() then
+                stopReason = "bagFull"
+                FinishBatch()
+                return
+            end
+        end
+
+        -- Record server action for shared rate tracking
+        if BatchConfig.RecordServerAction then
+            BatchConfig.RecordServerAction(BatchConfig.GetNowMs(), BatchConfig.SERVER_RATE_WINDOW_MS)
+        end
+
+        -- Update progress overlay
+        if showProgress then
+            BatchOverlay.Show(actionName, BuildProgressMainText, BuildProgressSecondaryText)
+        end
+
+        -- Calculate delay with cooldown and chunk pauses
+        local delayMs = baseDelayMs
+        if jitterMs > 0 and BatchConfig.ResolveSignedJitter then
+            delayMs = zo_clamp(delayMs + BatchConfig.ResolveSignedJitter(jitterMs), minDelay, maxDelay)
+        else
+            delayMs = zo_clamp(delayMs, minDelay, maxDelay)
+        end
+
+        -- Cooldown pause every N items
+        if cooldownMs > 0 and nextCooldownAt and processedCount >= nextCooldownAt then
+            delayMs = delayMs + cooldownMs
+            while nextCooldownAt and processedCount >= nextCooldownAt do
+                nextCooldownAt = nextCooldownAt + cooldownEvery
+            end
+        end
+
+        -- Chunk pause at cost boundaries
+        if chunkPauseMs > 0 and nextChunkAt and processedCount >= nextChunkAt then
+            delayMs = delayMs + chunkPauseMs
+            while nextChunkAt and processedCount >= nextChunkAt do
+                nextChunkAt = nextChunkAt + chunkCostUnits
+            end
+        end
+
+        zo_callLater(processNext, delayMs)
+    end
+
+    -- Wait for the dialog to dismiss before starting
+    local function StartAfterDialogDismiss(remainingMs)
+        if not Vendor._batchProcessing then return end
+        if Vendor._batchAbortRequested then stopReason = "aborted"; FinishBatch(); return end
+        if not IsSceneActive() then stopReason = "sceneExit"; FinishBatch(); return end
+
+        if BatchOverlay.IsAnyBatchActionDialogShowing and BatchOverlay.IsAnyBatchActionDialogShowing() and remainingMs > 0 then
+            zo_callLater(function() StartAfterDialogDismiss(remainingMs - 25) end, 25)
+            return
+        end
+
+        -- Small settle delay after dialog closes
+        zo_callLater(function()
+            if not Vendor._batchProcessing then return end
+            if showProgress then
+                BatchOverlay.Show(actionName, BuildProgressMainText, BuildProgressSecondaryText)
+            end
+            processNext()
+        end, 160)
+    end
+
+    StartAfterDialogDismiss(1800)
+end
+
+--- Requests abort of the current vendor batch operation.
+function Vendor.RequestBatchAbort()
+    if Vendor._batchProcessing then
+        Vendor._batchAbortRequested = true
+    end
+end
+
+local function RegisterVendorSellAllJunkDialog()
+    if not (ZO_Dialogs_RegisterCustomDialog and GAMEPAD_DIALOGS and GAMEPAD_DIALOGS.BASIC) then
+        return false
+    end
+    if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME) then
+        return true
+    end
+
+    ZO_Dialogs_RegisterCustomDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, {
+        canQueue = true,
+        gamepadInfo = {
+            dialogType = GAMEPAD_DIALOGS.BASIC,
+        },
+        title = {
+            text = rawget(_G, "SI_PROMPT_TITLE_SELL_ITEMS") or rawget(_G, "SI_SELL_ALL_JUNK_KEYBIND_TEXT") or "SI_SELL_ALL_JUNK_KEYBIND_TEXT",
+        },
+        mainText = {
+            text = rawget(_G, "SI_SELL_ALL_JUNK") or "SI_SELL_ALL_JUNK",
+        },
+        buttons = {
+            [1] = {
+                text = rawget(_G, "SI_SELL_ALL_JUNK_CONFIRM") or "SI_SELL_ALL_JUNK_CONFIRM",
+                callback = function(dialog)
+                    local dialogData = dialog and dialog.data
+                    local vendorInstance = dialogData and dialogData.vendorInstance
+                    local component = dialogData and dialogData.component
+                    if vendorInstance and component and component.SellAllJunk then
+                        component:SellAllJunk(vendorInstance)
+                    end
+                end,
+            },
+            [2] = {
+                text = rawget(_G, "SI_DIALOG_CANCEL") or "SI_DIALOG_CANCEL",
+            },
+        },
+    })
+
+    return true
+end
+
+---@param vendorInstance BETTERUI.Vendor.Class
+---@param component table
+---@return boolean shown
+function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
+    if not vendorInstance or not component or type(component.SellAllJunk) ~= "function" then
+        return false
+    end
+
+    local dialogData = {
+        vendorInstance = vendorInstance,
+        component = component,
+    }
+
+    if ZO_Dialogs_ShowGamepadDialog then
+        local ok = SafeCall("Vendor.RegisterSellAllJunkDialog", RegisterVendorSellAllJunkDialog)
+        if ok and (not ZO_Dialogs_IsDialogRegistered or ZO_Dialogs_IsDialogRegistered(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME)) then
+            ZO_Dialogs_ShowGamepadDialog(SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME, dialogData)
+            return true
+        end
+    end
+
+    if ZO_Dialogs_ShowDialog then
+        ZO_Dialogs_ShowDialog("SELL_ALL_JUNK", dialogData)
+        return true
+    end
+
+    return false
+end
+
 RegisterVendorBatchDialog = function()
     if ZO_Dialogs_IsDialogRegistered and ZO_Dialogs_IsDialogRegistered("BETTERUI_VENDOR_BATCH_DIALOG") then
         return
@@ -1217,19 +1581,21 @@ RegisterVendorBatchDialog = function()
                 local totalItems = (Vendor.instance and Vendor.instance.list and Vendor.instance.list:GetNumItems()) or 0
                 local allSelected = selectedCount > 0 and selectedCount == totalItems
                 if not allSelected then
-                    AddAction(GetString(rawget(_G, "SI_BETTERUI_INV_MARK_ALL") or "SI_BETTERUI_INV_MARK_ALL"), "selectAll")
+                    AddAction(GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL"), "selectAll")
                 end
                 if selectedCount > 0 then
-                    AddAction(GetString(rawget(_G, "SI_BETTERUI_INV_UNMARK_ALL") or "SI_BETTERUI_INV_UNMARK_ALL"), "deselectAll")
+                    AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount), "deselectAll")
                 end
                 local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                 if currentMode and selectedCount > 0 then
-                    if currentMode == MODE.SELL or currentMode == MODE.FENCE_SELL then
-                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL"), "batch")
+                    if currentMode == MODE.BUY then
+                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY"), selectedCount), "batch")
+                    elseif currentMode == MODE.SELL or currentMode == MODE.FENCE_SELL then
+                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL"), selectedCount), "batch")
                     elseif currentMode == MODE.FENCE_LAUNDER then
-                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER"), "batch")
+                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER"), selectedCount), "batch")
                     elseif currentMode == MODE.BUYBACK then
-                        AddAction(GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK"), "batch")
+                        AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_ITEM_ACTION_BUYBACK") or "SI_ITEM_ACTION_BUYBACK"), selectedCount), "batch")
                     end
                 end
             end
@@ -1251,22 +1617,35 @@ RegisterVendorBatchDialog = function()
                     local actionId = selected.actionId
                     if actionId == "selectAll" then
                         ms:SelectAll()
-                        if Vendor.instance then Vendor.instance:RefreshList() end
+                        if Vendor.instance then
+                            Vendor.instance:SaveListPosition()
+                            Vendor.instance:RefreshList()
+                            Vendor.instance:EnsureListInputActive()
+                        end
                         return
                     elseif actionId == "deselectAll" then
                         ms:ClearSelections()
-                        if Vendor.instance then Vendor.instance:RefreshList() end
+                        if Vendor.instance then
+                            Vendor.instance:SaveListPosition()
+                            Vendor.instance:RefreshList()
+                            Vendor.instance:EnsureListInputActive()
+                        end
                         return
                     end
+
                     local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                     local items = ms:GetSelectedItems()
-                    local delay = 0
-                    for _, itemData in ipairs(items) do
-                        zo_callLater(function()
-                            Vendor.ExecuteBatchAction(currentMode, itemData)
-                        end, delay)
-                        delay = delay + 80
-                    end
+                    Vendor.ExecuteBatchThrottled(currentMode, items, function()
+                        if ms then ms:ClearSelections() end
+                        if Vendor.instance then
+                            Vendor.instance:SaveListPosition()
+                            Vendor.instance:RefreshList()
+                            Vendor.instance:EnsureListInputActive()
+                        end
+                        if KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                        end
+                    end)
                 end,
             },
         },
@@ -1275,30 +1654,11 @@ end
 
 -- TAB CYCLING
 
----@param direction number -1 for left, 1 for right
-function BETTERUI.Vendor.Class:CycleTabs(direction)
-    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
-    local headerEntryCount = self._vendorHeaderEntryCount or 0
-    if tabBar and headerEntryCount > 1 then
-        local currentIndex = tabBar.selectedIndex or 1
-        local newIndex
-        if Vendor.GetSetting("enableCarousel") == false then
-            newIndex = currentIndex + direction
-            if newIndex < 1 or newIndex > headerEntryCount then
-                return
-            end
-        else
-            newIndex = ((currentIndex - 1 + direction) % headerEntryCount) + 1
-        end
-
-        tabBar:SetSelectedIndexWithoutAnimation(newIndex, true, true)
-        return
-    end
-
+---@param direction number
+function BETTERUI.Vendor.Class:CycleModeTabs(direction)
     local tabs = GetActiveTabs()
     if #tabs <= 1 then return end
 
-    -- Find current tab index
     local currentMode = self:GetCurrentMode()
     local currentIndex = 1
     for i, tab in ipairs(tabs) do
@@ -1308,18 +1668,25 @@ function BETTERUI.Vendor.Class:CycleTabs(direction)
         end
     end
 
-    local newIndex
-    if Vendor.GetSetting("enableCarousel") == false then
-        newIndex = currentIndex + direction
-        if newIndex < 1 or newIndex > #tabs then
-            return
-        end
-    else
-        -- Carousel navigation wraps around at both ends.
-        newIndex = ((currentIndex - 1 + direction) % #tabs) + 1
-    end
+    local newIndex = ((currentIndex - 1 + direction) % #tabs) + 1
     self._preferredModeHeaderSelectionMode = tabs[newIndex].mode
     self:SetMode(tabs[newIndex].mode)
+end
+
+---@param direction number -1 for left, 1 for right
+function BETTERUI.Vendor.Class:CycleTabs(direction)
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    local headerEntryCount = self._vendorHeaderEntryCount or 0
+    if tabBar and headerEntryCount > 1 then
+        if direction < 0 then
+            tabBar:MovePrevious(true)
+        else
+            tabBar:MoveNext(true)
+        end
+        return
+    end
+
+    self:CycleModeTabs(direction)
 end
 
 -- EVENT HANDLERS
@@ -1886,6 +2253,18 @@ function BETTERUI.Vendor.Init()
             screen:RefreshList()
             screen:EnsureHeaderKeybindsActive()
             screen:EnsureColumnHeadersVisible()
+            if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.RegisterCallback then
+                if not screen.onItemPreviewRefreshActionsCallback then
+                    screen.onItemPreviewRefreshActionsCallback = function()
+                        if screen.RefreshVendorActionKeybinds then
+                            screen:RefreshVendorActionKeybinds()
+                        elseif KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups then
+                            KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+                        end
+                    end
+                end
+                ITEM_PREVIEW_GAMEPAD:RegisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
+            end
             if screen.list then
                 screen:OnItemSelectedChange(screen.list, screen.list:GetTargetData())
                 screen:UpdateScrollIndicator(screen.list)
@@ -1896,6 +2275,9 @@ function BETTERUI.Vendor.Init()
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
+            if ITEM_PREVIEW_GAMEPAD and ITEM_PREVIEW_GAMEPAD.UnregisterCallback and screen.onItemPreviewRefreshActionsCallback then
+                ITEM_PREVIEW_GAMEPAD:UnregisterCallback("RefreshActions", screen.onItemPreviewRefreshActionsCallback)
+            end
             local currentMode = screen:GetCurrentMode()
             if currentMode and screen.list then
                 BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. currentMode, screen.list)

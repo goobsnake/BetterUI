@@ -170,6 +170,36 @@ local function BuildFallbackCategory()
     }
 end
 
+---@param left table[]|nil
+---@param right table[]|nil
+---@return boolean
+local function AreVendorCategoriesEquivalent(left, right)
+    if left == right then
+        return true
+    end
+    if type(left) ~= "table" or type(right) ~= "table" then
+        return false
+    end
+    if #left ~= #right then
+        return false
+    end
+
+    for index = 1, #left do
+        local leftCategory = left[index] or {}
+        local rightCategory = right[index] or {}
+        if (leftCategory.key or leftCategory.name or index) ~= (rightCategory.key or rightCategory.name or index)
+            or leftCategory.name ~= rightCategory.name
+            or leftCategory.iconFile ~= rightCategory.iconFile
+            or leftCategory.filterType ~= rightCategory.filterType
+            or leftCategory.itemCount ~= rightCategory.itemCount
+            or leftCategory.special ~= rightCategory.special then
+            return false
+        end
+    end
+
+    return true
+end
+
 local function ShouldShowVendorHeaderTabBar(headerEntryCount)
     return (headerEntryCount or 0) > 0
 end
@@ -909,6 +939,7 @@ end
 function BETTERUI.Vendor.Class:SetModeCategories(mode, categories)
     self.modeCategories = self.modeCategories or {}
     self.categoryIndexByMode = self.categoryIndexByMode or {}
+    local previousCategories = self.modeCategories[mode]
 
     if not categories or #categories == 0 then
         categories = { BuildFallbackCategory() }
@@ -927,7 +958,12 @@ function BETTERUI.Vendor.Class:SetModeCategories(mode, categories)
 
     if mode == self:GetCurrentMode() then
         self.currentCategoryIndex = selectedIndex
-        self:RebuildCategoryHeader()
+        local shouldRebuildHeader = self.vendorHeaderData == nil or not AreVendorCategoriesEquivalent(previousCategories, categories)
+        if shouldRebuildHeader then
+            self:RebuildCategoryHeader()
+        elseif self.UpdateVendorHeaderTitle then
+            self:UpdateVendorHeaderTitle()
+        end
     end
 end
 
@@ -942,6 +978,32 @@ function BETTERUI.Vendor.Class:GetCurrentCategory()
     end
     self.currentCategoryIndex = selectedIndex
     return categories[selectedIndex]
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:SaveListPosition()
+    local currentMode = self:GetCurrentMode()
+    if not currentMode or not self.list then
+        return
+    end
+
+    BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. currentMode, self.list)
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:UpdateVendorHeaderTitle()
+    local headerGeneric = self.headerGeneric
+    local titleContainer = headerGeneric and headerGeneric.GetNamedChild and headerGeneric:GetNamedChild("TitleContainer")
+    local titleControl = titleContainer and titleContainer.GetNamedChild and titleContainer:GetNamedChild("Title")
+    if not (titleControl and self.vendorHeaderData and self.vendorHeaderData.titleText) then
+        return
+    end
+
+    titleControl:SetText(self.vendorHeaderData.titleText(self.vendorHeaderData.name))
+
+    if self.PositionSearchControl then
+        self:PositionSearchControl()
+    end
 end
 
 --- Clears the text search input and normalized query state.
@@ -1217,40 +1279,6 @@ function BETTERUI.Vendor.Class:EnsureHeaderKeybindsActive()
 end
 
 ---@return nil
-function BETTERUI.Vendor.Class:BindHeaderMouseBumpers()
-    local headerGeneric = self.headerGeneric
-    local tabBar = headerGeneric and headerGeneric.tabBar
-    local tabBarControl = headerGeneric and headerGeneric:GetNamedChild("TabBar")
-    if not (tabBar and tabBarControl) then
-        return
-    end
-    if not ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount) then
-        return
-    end
-
-    -- Keep XML click handlers targeting the current active tab-bar list.
-    -- Inventory/Banking rely on this scrollList link and let XML handlers fire.
-    tabBarControl.scrollList = tabBar
-
-    local function BindTabBarButton(buttonName)
-        local button = tabBarControl:GetNamedChild(buttonName)
-        if not button then
-            return
-        end
-
-        button:SetMouseEnabled(true)
-        -- GenericHeader.xml already wires OnClicked -> BETTERUI_TabBar_On*IconClicked().
-        -- Vendor previously added an extra OnMouseUp handler here, which caused one mouse
-        -- click to advance twice and could race against a header rebuild after a mode switch.
-        -- Clear any legacy runtime handler and let the shared XML path own bumper clicks.
-        button:SetHandler("OnMouseUp", nil)
-    end
-
-    BindTabBarButton("LeftIcon")
-    BindTabBarButton("RightIcon")
-end
-
----@return nil
 function BETTERUI.Vendor.Class:EnsureListInputActive()
     -- Only activate list input when the scene is actually showing.
     if self.scene and not self.scene:IsShowing() then
@@ -1448,11 +1476,40 @@ function BETTERUI.Vendor.Class:DeactivateHeaderKeybinds()
 end
 
 ---@return nil
+function BETTERUI.Vendor.Class:RefreshVendorActionKeybinds()
+    if not (KEYBIND_STRIP and KEYBIND_STRIP.UpdateCurrentKeybindButtonGroups) then
+        return
+    end
+    if self.IsSceneShowing and not self:IsSceneShowing() then
+        return
+    end
+    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:RefreshVendorHeaderCarouselLayout()
+    local tabBar = self.headerGeneric and self.headerGeneric.tabBar
+    if not tabBar then
+        return
+    end
+
+    tabBar.carouselMode = (not BETTERUI.Vendor.GetSetting) or (BETTERUI.Vendor.GetSetting("enableCarousel") ~= false)
+
+    if tabBar.UpdateAnchors then
+        local selectedIndex = tabBar.targetSelectedIndex or tabBar.selectedIndex or 1
+        tabBar:UpdateAnchors(selectedIndex, true, false, false)
+    end
+end
+
+---@return nil
 function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     local headerGeneric = self.headerGeneric
     if not headerGeneric then
         return
     end
+
+    local headerNavigation = BETTERUI.CIM and BETTERUI.CIM.HeaderNavigation or nil
+    local navigationState = BETTERUI.CIM and BETTERUI.CIM.NavigationState or nil
 
     local mode = self:GetCurrentMode()
     local activeTabs = (BETTERUI.Vendor.GetActiveTabs and BETTERUI.Vendor.GetActiveTabs()) or {}
@@ -1534,6 +1591,9 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
             }
         end
     end
+    self._vendorHeaderModeEntryCount = modeEntryCount
+    self._vendorHeaderCategoryCount = showCategoryEntries and #categories or 0
+    self._vendorHeaderCategoryMode = categoryMode
     self._vendorHeaderEntryCount = #headerEntries
     local shouldShowHeaderTabBar = ShouldShowVendorHeaderTabBar(self._vendorHeaderEntryCount)
 
@@ -1556,13 +1616,68 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     local carouselVerticalOffset = (BETTERUI.Banking and BETTERUI.Banking.CONST and BETTERUI.Banking.CONST.CAROUSEL and BETTERUI.Banking.CONST.CAROUSEL.verticalOffset)
         or BETTERUI.CIM.CONST.CAROUSEL.verticalOffset
     self.vendorHeaderData.carouselConfig = {
-        enabled = BETTERUI.Vendor.GetSetting and (BETTERUI.Vendor.GetSetting("enableCarousel") ~= false) or true,
+        enabled = (not BETTERUI.Vendor.GetSetting) or (BETTERUI.Vendor.GetSetting("enableCarousel") ~= false),
         startOffset = carouselStartOffset,
         verticalOffset = carouselVerticalOffset,
         itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
     }
+    local coalescedCategoryHandler = nil
+    if headerNavigation and headerNavigation.CreateCoalescedHandler then
+        coalescedCategoryHandler = headerNavigation.CreateCoalescedHandler({
+            delay = BETTERUI.CIM.CONST.TIMING.CATEGORY_CHANGE_DELAY_MS,
+            onSave = function(instance)
+                instance:SaveListPosition()
+            end,
+            onApply = function(instance, headerIndex)
+                local appliedHeaderIndex = zo_clamp(headerIndex or 1, 1, #headerEntries)
+                local appliedEntry = headerEntries[appliedHeaderIndex]
+                if not appliedEntry then
+                    return
+                end
+
+                local categoryIndex = appliedEntry.categoryIndex or 1
+                local selectedCategoryMode = appliedEntry.categoryMode or instance:GetCurrentMode()
+                local shouldSwitchToBuy = useUnifiedBuyHeader
+                    and instance:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY
+                    and selectedCategoryMode == BETTERUI.Vendor.MODE.BUY
+                if instance.categoryIndexByMode[selectedCategoryMode] == categoryIndex and not shouldSwitchToBuy then
+                    if instance.UpdateVendorHeaderTitle then
+                        instance:UpdateVendorHeaderTitle()
+                    end
+                    return
+                end
+
+                instance.categoryIndexByMode[selectedCategoryMode] = categoryIndex
+                instance.currentCategoryIndex = categoryIndex
+                if instance.UpdateVendorHeaderTitle then
+                    instance:UpdateVendorHeaderTitle()
+                end
+
+                if shouldSwitchToBuy then
+                    instance:SetMode(BETTERUI.Vendor.MODE.BUY)
+                    return
+                end
+
+                instance:RefreshList()
+            end,
+            sceneCheck = function()
+                if self.IsSceneShowing then
+                    return self:IsSceneShowing()
+                end
+                if self.IsSceneActiveOrShowing then
+                    return self:IsSceneActiveOrShowing()
+                end
+                return true
+            end,
+        })
+    end
     self.vendorHeaderData.onSelectedChanged = function(list)
         if self._suppressVendorHeaderSelection then
+            return
+        end
+
+        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
+        if navigationState and state and navigationState.ShouldSuppressCallback and navigationState.ShouldSuppressCallback(state) then
             return
         end
 
@@ -1580,6 +1695,11 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
                 self:SetMode(targetMode)
                 return
             end
+            return
+        end
+
+        if coalescedCategoryHandler then
+            coalescedCategoryHandler(self, list, selectedEntry)
             return
         end
 
@@ -1628,13 +1748,28 @@ function BETTERUI.Vendor.Class:RebuildCategoryHeader()
     end
 
     if headerGeneric.tabBar and shouldShowHeaderTabBar then
-        headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(selectedHeaderIndex, true, true)
+        local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
+        if state and state.justToggledMode then
+            headerGeneric.tabBar:SetSelectedIndexWithoutAnimation(selectedHeaderIndex, true, true)
+        else
+            if state then
+                state.suppressHeaderCallback = true
+            end
+            headerGeneric.tabBar:SetSelectedIndex(selectedHeaderIndex, true, true)
+            if state then
+                state.suppressHeaderCallback = false
+            end
+        end
+        self:RefreshVendorHeaderCarouselLayout()
     elseif headerGeneric.tabBar then
         SetTabBarVisualActive(headerGeneric.tabBar, false)
         ReleaseDirectionalInputRegistrations(headerGeneric.tabBar, true)
     end
+    local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
+    if state then
+        state.justToggledMode = false
+    end
     self._suppressVendorHeaderSelection = false
-    self:BindHeaderMouseBumpers()
     if self.PositionSearchControl then
         self:PositionSearchControl()
     end
@@ -1685,10 +1820,14 @@ function BETTERUI.Vendor.Class:SetMode(mode)
     if not mode then return end
     if self.currentMode == mode then return end
 
-    -- Save position for outgoing mode
-    if self.currentMode and self.list then
-        BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. self.currentMode, self.list)
+    local headerNavigation = BETTERUI.CIM and BETTERUI.CIM.HeaderNavigation or nil
+    local state = headerNavigation and headerNavigation.GetOrCreateState and headerNavigation.GetOrCreateState(self) or nil
+    if state then
+        state.justToggledMode = true
     end
+
+    -- Save position for outgoing mode
+    self:SaveListPosition()
 
     -- Deactivate the current component if any
     local oldComponent = self:GetActiveComponent()
@@ -1704,6 +1843,9 @@ function BETTERUI.Vendor.Class:SetMode(mode)
 
     if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableStablePreviewMode then
         self:DisableStablePreviewMode()
+    end
+    if mode ~= BETTERUI.Vendor.MODE.BUY and self.DisableVendorStorePreviewMode then
+        self:DisableVendorStorePreviewMode()
     end
 
     self:ApplyNativeStoreMode(mode)
@@ -1838,10 +1980,16 @@ function BETTERUI.Vendor.Class:RefreshList()
         component:BuildList(self)
     end
 
+    local currentMode = self:GetCurrentMode()
+
     local hasSearchQuery = BETTERUI.Vendor.NormalizeSearchQuery and BETTERUI.Vendor.NormalizeSearchQuery(self.searchQuery) ~= nil
     if self.list.SetNoItemText then
         if hasSearchQuery then
             self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_SEARCH_NO_RESULTS")))
+        elseif currentMode == BETTERUI.Vendor.MODE.REPAIR then
+            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_REPAIR_ITEMS")))
+        elseif currentMode == BETTERUI.Vendor.MODE.BUYBACK then
+            self.list:SetNoItemText(GetString(rawget(_G, "SI_BETTERUI_VENDOR_NO_BUYBACK_ITEMS")))
         else
             self.list:SetNoItemText(GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_EMPTY")))
         end
@@ -1852,10 +2000,11 @@ function BETTERUI.Vendor.Class:RefreshList()
     self._isDirty = false
 
     -- Restore list position for current mode
-    local currentMode = self:GetCurrentMode()
-    if currentMode and self.list and self.list.dataList then
+    if currentMode and self.list and self.list.dataList and #self.list.dataList > 0 then
         local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Vendor", "mode_" .. currentMode, self.list, self.list.dataList)
-        if self.list.SetSelectedIndex then
+        if self.list.SetSelectedIndexWithoutAnimation then
+            self.list:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
+        elseif self.list.SetSelectedIndex then
             self.list:SetSelectedIndex(targetIndex)
         end
     end
@@ -1924,6 +2073,125 @@ function BETTERUI.Vendor.Class:CanPreviewStableStoreEntry(selectedData)
         return false
     end
     return ZO_StoreManager_DoPreviewAction(validateAction, storeEntryIndex) == true
+end
+
+---@param shouldActivateVendorBlur boolean
+---@return nil
+function BETTERUI.Vendor.Class:SetVendorPreviewBlurActive(shouldActivateVendorBlur)
+    if not FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT then
+        return
+    end
+
+    if shouldActivateVendorBlur then
+        SCENE_MANAGER:AddFragment(FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT)
+    else
+        SCENE_MANAGER:RemoveFragmentImmediately(FRAME_TARGET_BLUR_QUADRANT_3_GAMEPAD_FRAGMENT)
+    end
+end
+
+---@param hidden boolean
+---@return nil
+function BETTERUI.Vendor.Class:SetVendorStorePreviewUiHidden(hidden)
+    if self.SetStablePreviewUiHidden then
+        self:SetStablePreviewUiHidden(hidden)
+    end
+end
+
+---@param selectedData table|nil
+---@return boolean
+function BETTERUI.Vendor.Class:CanPreviewVendorStoreEntry(selectedData)
+    if IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
+        return false
+    end
+    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction and IsCharacterPreviewingAvailable) then
+        return false
+    end
+    if not IsCharacterPreviewingAvailable() then
+        return false
+    end
+
+    local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+    local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
+    local validateAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_VALIDATE")
+    if not storeEntryIndex or validateAction == nil then
+        return false
+    end
+
+    return ZO_StoreManager_DoPreviewAction(validateAction, storeEntryIndex) == true
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:DisableVendorStorePreviewMode()
+    self:SetVendorPreviewBlurActive(false)
+    self:SetVendorStorePreviewUiHidden(false)
+
+    if not ITEM_PREVIEW_GAMEPAD or not ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled then
+        return
+    end
+    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+        return
+    end
+
+    ITEM_PREVIEW_GAMEPAD:SetInteractionCameraPreviewEnabled(
+        false,
+        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
+        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
+        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
+    )
+end
+
+---@param selectedData table|nil
+---@return nil
+function BETTERUI.Vendor.Class:UpdateVendorStorePreview(selectedData)
+    if IsStableInteractionActive() then
+        return
+    end
+    if not (ITEM_PREVIEW_GAMEPAD and ZO_StoreManager_DoPreviewAction) then
+        return
+    end
+    if self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
+        self:DisableVendorStorePreviewMode()
+        return
+    end
+    if not ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+        self:SetVendorPreviewBlurActive(false)
+        self:SetVendorStorePreviewUiHidden(false)
+        return
+    end
+
+    if self:CanPreviewVendorStoreEntry(selectedData) then
+        local ds = selectedData and (selectedData.dataSource or selectedData) or nil
+        local storeEntryIndex = ds and (ds.slotIndex or ds.entryIndex) or nil
+        local executeAction = rawget(_G, "ZO_STORE_MANAGER_PREVIEW_ACTION_EXECUTE")
+        if storeEntryIndex and executeAction ~= nil then
+            ZO_StoreManager_DoPreviewAction(executeAction, storeEntryIndex)
+        end
+        self:SetVendorPreviewBlurActive(true)
+        self:SetVendorStorePreviewUiHidden(true)
+    else
+        self:DisableVendorStorePreviewMode()
+    end
+end
+
+---@return nil
+function BETTERUI.Vendor.Class:ToggleVendorStorePreviewMode()
+    if IsStableInteractionActive() or self:GetCurrentMode() ~= BETTERUI.Vendor.MODE.BUY then
+        return
+    end
+    if not ITEM_PREVIEW_GAMEPAD then
+        return
+    end
+
+    local willPreviewBeDisabled = ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled()
+    self:SetVendorPreviewBlurActive(willPreviewBeDisabled)
+    ITEM_PREVIEW_GAMEPAD:ToggleInteractionCameraPreview(
+        FRAME_TARGET_STORE_GAMEPAD_FRAGMENT,
+        FRAME_PLAYER_ON_SCENE_HIDDEN_FRAGMENT,
+        GAMEPAD_NAV_QUADRANT_3_4_ITEM_PREVIEW_OPTIONS_FRAGMENT
+    )
+
+    local targetData = self.list and self.list.GetTargetData and self.list:GetTargetData() or nil
+    self:UpdateVendorStorePreview(targetData)
 end
 
 ---@param hidden boolean
@@ -2045,9 +2313,14 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     if not ds then
-        self:UpdateStablePreview()
+        if IsStableInteractionActive() then
+            self:UpdateStablePreview()
+        else
+            self:UpdateVendorStorePreview(nil)
+        end
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        self:RefreshVendorActionKeybinds()
         return
     end
 
@@ -2061,6 +2334,7 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
         self:UpdateStablePreview()
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+        self:RefreshVendorActionKeybinds()
         return
     end
 
@@ -2081,6 +2355,19 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
             tooltip._betterui_priceRendered = true
         end
     elseif (mode == BETTERUI.Vendor.MODE.BUY or mode == BETTERUI.Vendor.MODE.BUYBACK) and GAMEPAD_TOOLTIPS.LayoutStoreWindowItem then
+        if mode == BETTERUI.Vendor.MODE.BUY
+            and not IsStableInteractionActive()
+            and ITEM_PREVIEW_GAMEPAD
+            and ITEM_PREVIEW_GAMEPAD.IsInteractionCameraPreviewEnabled
+            and ITEM_PREVIEW_GAMEPAD:IsInteractionCameraPreviewEnabled() then
+            local targetData = self.list and self.list.GetTargetData and self.list:GetTargetData() or selectedData
+            self:UpdateVendorStorePreview(targetData)
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
+            GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            self:RefreshVendorActionKeybinds()
+            return
+        end
+
         if ds.dataSource == nil then
             ds.dataSource = ds
         end
@@ -2125,7 +2412,12 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
     if GAMEPAD_TOOLTIPS.ClearStatusLabel then
         GAMEPAD_TOOLTIPS:ClearStatusLabel(GAMEPAD_RIGHT_TOOLTIP)
     end
-    self:UpdateStablePreview()
+    if IsStableInteractionActive() then
+        self:UpdateStablePreview()
+    else
+        self:UpdateVendorStorePreview(selectedData)
+    end
+    self:RefreshVendorActionKeybinds()
 end
 
 --- Suppresses list refreshes until FlushListUpdates is called.
