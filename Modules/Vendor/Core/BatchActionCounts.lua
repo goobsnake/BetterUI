@@ -37,7 +37,7 @@ local function IsSupportedActionItem(mode, itemData, vendorInstance)
             end
         end
         return true
-    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL or mode == MODE.FENCE_LAUNDER then
+    elseif mode == MODE.SELL or mode == MODE.SELL_VENGEANCE or mode == MODE.FENCE_SELL or mode == MODE.FENCE_LAUNDER then
         return ds.bagId ~= nil and ds.slotIndex ~= nil
     elseif mode == MODE.BUYBACK then
         return ds.entryIndex ~= nil
@@ -49,7 +49,7 @@ end
 local function GetBatchActionStringId(mode)
     if mode == MODE.BUY then
         return rawget(_G, "SI_ITEM_ACTION_BUY") or "SI_ITEM_ACTION_BUY"
-    elseif mode == MODE.SELL or mode == MODE.FENCE_SELL then
+    elseif mode == MODE.SELL or mode == MODE.SELL_VENGEANCE or mode == MODE.FENCE_SELL then
         return rawget(_G, "SI_ITEM_ACTION_SELL") or "SI_ITEM_ACTION_SELL"
     elseif mode == MODE.FENCE_LAUNDER then
         return rawget(_G, "SI_ITEM_ACTION_LAUNDER") or "SI_ITEM_ACTION_LAUNDER"

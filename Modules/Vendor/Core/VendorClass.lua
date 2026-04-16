@@ -30,6 +30,7 @@ BETTERUI.Vendor.MODE = {
     FENCE_SELL    = 5,
     FENCE_LAUNDER = 6,
     STABLE        = 7,
+    SELL_VENGEANCE = 8,
 }
 
 local DEFAULT_VENDOR_CATEGORY_ICON = "EsoUI/Art/Inventory/Gamepad/gp_inventory_icon_all.dds"
@@ -39,6 +40,8 @@ local function ResolveNativeStoreMode(mode)
         return rawget(_G, "ZO_MODE_STORE_BUY")
     elseif mode == BETTERUI.Vendor.MODE.SELL then
         return rawget(_G, "ZO_MODE_STORE_SELL")
+    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
+        return rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
     elseif mode == BETTERUI.Vendor.MODE.REPAIR then
         return rawget(_G, "ZO_MODE_STORE_REPAIR")
     elseif mode == BETTERUI.Vendor.MODE.BUYBACK then
@@ -58,6 +61,8 @@ local function ResolveModeName(mode)
         return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY") or "SI_BETTERUI_VENDOR_TAB_BUY")
     elseif mode == BETTERUI.Vendor.MODE.SELL then
         return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL") or "SI_BETTERUI_VENDOR_TAB_SELL")
+    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
+        return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE") or "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE")
     elseif mode == BETTERUI.Vendor.MODE.REPAIR then
         return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR") or "SI_BETTERUI_VENDOR_TAB_REPAIR")
     elseif mode == BETTERUI.Vendor.MODE.BUYBACK then
@@ -83,6 +88,8 @@ local function ResolveModeIcon(mode)
     if mode == BETTERUI.Vendor.MODE.BUY then
         return "EsoUI/Art/Vendor/vendor_tabIcon_buy_up.dds"
     elseif mode == BETTERUI.Vendor.MODE.SELL then
+        return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
+    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then
         return "EsoUI/Art/Vendor/vendor_tabIcon_sell_up.dds"
     elseif mode == BETTERUI.Vendor.MODE.REPAIR then
         return "EsoUI/Art/Vendor/vendor_tabIcon_repair_up.dds"
@@ -987,6 +994,7 @@ local function GetVendorModeModuleKey(mode)
     local MODULES = BETTERUI.CIM.CONST.MODULES
     if mode == BETTERUI.Vendor.MODE.BUY then return MODULES.VENDOR_BUY
     elseif mode == BETTERUI.Vendor.MODE.SELL then return MODULES.VENDOR_SELL
+    elseif mode == BETTERUI.Vendor.MODE.SELL_VENGEANCE then return MODULES.VENDOR_SELL_VENGEANCE
     elseif mode == BETTERUI.Vendor.MODE.REPAIR then return MODULES.VENDOR_REPAIR
     elseif mode == BETTERUI.Vendor.MODE.BUYBACK then return MODULES.VENDOR_BUYBACK
     elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then return MODULES.VENDOR_FENCE_SELL
@@ -2590,6 +2598,7 @@ function BETTERUI.Vendor.Class:RefreshVendorFooter()
     else
         local secondListMode = isStableInteraction and BETTERUI.Vendor.MODE.STABLE or BETTERUI.Vendor.MODE.SELL
         isSecondMode    = currentMode == secondListMode
+            or (not isStableInteraction and currentMode == BETTERUI.Vendor.MODE.SELL_VENGEANCE)
         isFirstListMode = currentMode == BETTERUI.Vendor.MODE.BUY
             or (isStableInteraction and currentMode == BETTERUI.Vendor.MODE.REPAIR)
     end

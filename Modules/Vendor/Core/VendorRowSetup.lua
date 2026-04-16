@@ -61,6 +61,44 @@ local function ResolveStableTrainingValueText(ds)
     return tostring(displayValue)
 end
 
+---@param control table
+---@param ds table
+local function ConfigureStableTrainingProgress(control, ds)
+    local trainingProgress = control:GetNamedChild("TrainingProgress")
+    local trainingProgressBackdrop = control:GetNamedChild("TrainingProgressBackdrop")
+    if not trainingProgress then
+        return
+    end
+
+    local progressCurrent = tonumber(ds.progressCurrent or ds.bonus or 0) or 0
+    local progressMax = tonumber(ds.progressMax or ds.maxBonus or 0) or 0
+    local shouldShow = progressMax > 0
+
+    if trainingProgressBackdrop then
+        trainingProgressBackdrop:SetHidden(not shouldShow)
+    end
+    trainingProgress:SetHidden(not shouldShow)
+    if not shouldShow then
+        return
+    end
+
+    trainingProgress:SetMinMax(0, progressMax)
+    trainingProgress:SetValue(zo_min(progressCurrent, progressMax))
+    trainingProgress:SetColor(196 / 255, 166 / 255, 77 / 255, 1)
+end
+
+---@param control table
+local function ResetStableTrainingProgress(control)
+    local trainingProgress = control:GetNamedChild("TrainingProgress")
+    local trainingProgressBackdrop = control:GetNamedChild("TrainingProgressBackdrop")
+    if trainingProgress then
+        trainingProgress:SetHidden(true)
+    end
+    if trainingProgressBackdrop then
+        trainingProgressBackdrop:SetHidden(true)
+    end
+end
+
 --- Row setup function for vendor item entries.
 --- Registered as the setup callback for BETTERUI_GamepadItemSubEntryTemplate in the vendor list.
 ---@param control table UI control for the row
@@ -97,12 +135,15 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
         valueControl:SetFont(columnFont)
     end
 
+    ResetStableTrainingProgress(control)
+
     if IsStableTrainingRow(ds) then
         itemTypeControl:SetText(ResolveStableTrainingTypeText(ds))
         traitControl:SetText(ResolveStableTrainingTraitText(ds))
         statControl:SetText(ResolveStableTrainingStatText(ds))
         valueControl:SetColor(1, 1, 1, 1)
         valueControl:SetText(ResolveStableTrainingValueText(ds))
+        ConfigureStableTrainingProgress(control, ds)
     else
         -- ItemType column
         local typeName = ds.bestGamepadItemCategoryName or ds.bestItemTypeName or ""

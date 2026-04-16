@@ -33,6 +33,13 @@ Vendor._sessionHasBuyMode = false
 
 local SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME = "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG"
 
+local function IsSellVengeanceModeAvailable()
+    return rawget(_G, "BAG_VENGEANCE") ~= nil
+        and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") == true
+        and type(IsCurrentCampaignVengeanceRuleset) == "function"
+        and IsCurrentCampaignVengeanceRuleset()
+end
+
 -- TAB DEFINITIONS
 
 ---@alias VendorTabDef {mode: number, name: fun(): string}
@@ -42,6 +49,7 @@ local SELL_ALL_JUNK_GAMEPAD_DIALOG_NAME = "BETTERUI_VENDOR_SELL_ALL_JUNK_DIALOG"
 local VENDOR_TABS = {
     { mode = MODE.BUY,     name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUY")) end },
     { mode = MODE.SELL,    name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL")) end },
+    { mode = MODE.SELL_VENGEANCE, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_SELL_VENGEANCE")) end },
     { mode = MODE.REPAIR,  name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_REPAIR")) end },
     { mode = MODE.STABLE,  name = function() return GetString(rawget(_G, "SI_STABLE_STABLES_TAB")) end },
     { mode = MODE.BUYBACK, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_BUYBACK")) end },
@@ -61,11 +69,24 @@ local FENCE_TABS = {
     { mode = MODE.FENCE_LAUNDER, name = function() return GetString(rawget(_G, "SI_BETTERUI_VENDOR_TAB_FENCE_LAUNDER")) end },
 }
 
+---@return VendorTabDef[]
+local function BuildFallbackVendorTabs()
+    local tabs = {}
+    for _, tab in ipairs(VENDOR_TABS) do
+        if tab.mode ~= MODE.SELL_VENGEANCE or IsSellVengeanceModeAvailable() then
+            tabs[#tabs + 1] = tab
+        end
+    end
+    return tabs
+end
+
 local function ResolveNativeModeForVendorMode(mode)
     if mode == MODE.BUY then
         return rawget(_G, "ZO_MODE_STORE_BUY")
     elseif mode == MODE.SELL then
         return rawget(_G, "ZO_MODE_STORE_SELL")
+    elseif mode == MODE.SELL_VENGEANCE then
+        return rawget(_G, "ZO_MODE_STORE_SELL_VENGEANCE")
     elseif mode == MODE.REPAIR then
         return rawget(_G, "ZO_MODE_STORE_REPAIR")
     elseif mode == MODE.BUYBACK then
@@ -150,7 +171,7 @@ local function GetActiveTabs()
         if isStableInteraction then
             return STABLE_TABS
         end
-        return VENDOR_TABS
+        return BuildFallbackVendorTabs()
     end
 
     return tabs
@@ -309,6 +330,9 @@ local function ResolveInitialStoreMode(tabs)
 
     if modeSet[MODE.SELL] then
         return MODE.SELL
+    end
+    if modeSet[MODE.SELL_VENGEANCE] then
+        return MODE.SELL_VENGEANCE
     end
     if modeSet[MODE.BUYBACK] then
         return MODE.BUYBACK
@@ -495,8 +519,7 @@ local function EnsureNativeStoreComponents(searchContext)
             AddMode(buyMode)
         end
         AddMode(sellMode)
-        if sellVengeanceMode and type(IsCurrentCampaignVengeanceRuleset) == "function"
-            and IsCurrentCampaignVengeanceRuleset() and rawget(_G, "ZO_VENGEANCE_BAG_SELL_ENABLED") then
+        if sellVengeanceMode and IsSellVengeanceModeAvailable() then
             AddMode(sellVengeanceMode)
         end
         AddMode(buyBackMode)
@@ -816,6 +839,8 @@ function StableTraining:BuildList(vendorInstance)
                 isSkillTrainable = trainable,
                 trainStateText = stableStateText,
                 valueText = valueText,
+                progressCurrent = bonus or 0,
+                progressMax = maxBonus or 0,
                 bestGamepadItemCategoryName = skillHeader,
                 statValue = statText,
             }
@@ -826,7 +851,7 @@ function StableTraining:BuildList(vendorInstance)
                 return rowData.name
             end
 
-            list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
+            list:AddEntry("BETTERUI_GamepadStableTrainingEntryTemplate", entry)
         end
     end
 end
@@ -2010,6 +2035,9 @@ function BETTERUI.Vendor.Init()
     if Vendor.SellComponent then
         Vendor.instance:RegisterComponent(MODE.SELL, Vendor.SellComponent)
     end
+    if Vendor.SellVengeanceComponent then
+        Vendor.instance:RegisterComponent(MODE.SELL_VENGEANCE, Vendor.SellVengeanceComponent)
+    end
     if Vendor.RepairComponent then
         Vendor.instance:RegisterComponent(MODE.REPAIR, Vendor.RepairComponent)
     end
@@ -2029,6 +2057,10 @@ function BETTERUI.Vendor.Init()
     -- Register the item list template with our vendor-specific row setup
     Vendor.instance:SetupList(
         "BETTERUI_GamepadItemSubEntryTemplate",
+        BETTERUI.Vendor.VendorEntrySetup
+    )
+    Vendor.instance:AddTemplate(
+        "BETTERUI_GamepadStableTrainingEntryTemplate",
         BETTERUI.Vendor.VendorEntrySetup
     )
     Vendor.instance.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
