@@ -5,6 +5,19 @@ Current Release - v3.06 Changes:
 2. Fixed: Primary (A) and secondary (X) keybind labels no longer flicker or briefly show stale actions during equip/use/quickslot transitions
 3. Fixed: Y-menu now shows a single junk toggle entry (Mark or Unmark) and prevents duplicate junk actions in the action list
 4. Fixed: "Link to Chat" fallback handling has been refined to occur less often for the primary A button
+
+TOOLTIPS:
+5. Added: Item stat comparison can now be toggled independently within Enhanced Tooltip settings
+6. Fixed: Item stat comparison now uses consistent tooltip rendering across Inventory, Banking, and Companions, including correct two-handed off-hand suppression
+
+COMPANIONS:
+7. Improved: Companion equipment search/header refresh paths now restore safely after list rebuild errors and keep category header alignment notes accurate
+
+VENDOR:
+8. Fixed: Vendor scroll position persistence is now namespaced per mode and category instead of bleeding across tabs
+
+LOCALIZATION:
+9. Added: Item stat comparison setting strings across all 7 locales (de, en, es, fr, jp, ru, zh)
 [/INDENT]
 
 
