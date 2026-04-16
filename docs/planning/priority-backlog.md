@@ -1,6 +1,6 @@
 # Priority Backlog (P0/P1)
 
-Last Audited: 2026-04-11
+Last Audited: 2026-04-16
 Status: Active
 
 ## Purpose
@@ -22,8 +22,7 @@ Use this backlog for:
 
 | ID | Priority | Status | Source | Item | Acceptance Criteria |
 |---|---|---|---|---|---|
-| VND-002 | P1 | Open | ECO-002 Vendor phase 1 | **Stable integration**: Add Stable riding-training tab to BetterUI Vendor module (`ZO_MODE_STORE_STABLE`). Uses `STABLE_MANAGER` for stats/cost, distinct item template with progress bars, no interaction type needed (stable uses `INTERACTION_STABLE` via existing `STORE_INTERACTION`). | Stable tab visible when interacting with stable NPC; riding training (Speed, Stamina, Carry) displayed with progress bars; training triggers correctly via BetterUI scene. |
-| VND-003 | P1 | Open | ECO-002 Vendor phase 1 | **SellVengeance integration**: Add Sell Vengeance bag tab (`ZO_MODE_STORE_SELL_VENGEANCE`) to BetterUI Vendor module. Requires `IsCurrentCampaignVengeanceRuleset() and ZO_VENGEANCE_BAG_SELL_ENABLED` guard; uses `BAG_VENGEANCE`. | SellVengeance tab appears when Vengeance ruleset is active and bag sell is enabled; items from `BAG_VENGEANCE` list and sell correctly. |
+| PB-001 | P1 | Open | MCP compliance fallback audit | **Lua harness verification gap** (`tools/tests/run_all_tests.lua`, MCP `test_validate`/`process_run`): repository-wide Lua test harness cannot be verified end-to-end with current MCP surfaces because `test_validate(action=lua_run)` is file-scoped and `mcp_file-utils_process_run` blocks inline Python wrappers needed to execute `lua tools/tests/run_all_tests.lua` with bounded output. `est: 5m` | Provide an MCP-safe way to execute the aggregate Lua harness and return the real child-test exit status/output without shell fallback, or add a dedicated test-runner profile/action for BetterUI's standalone Lua suite. |
 
 ## Execution Rhythm
 

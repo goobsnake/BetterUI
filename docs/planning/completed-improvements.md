@@ -1,5 +1,10 @@
 # Completed Improvements
 
+## [Completed] ECO-002 Vendor Phase 1 Closeout (2026-04-16)
+**Summary**: Closed the remaining vendor phase 1 backlog by finishing stable riding-training progress bars and adding SellVengeance support. Stable training rows now use a dedicated BetterUI template with inline progress bars, and the vendor scene now exposes a BetterUI Sell Vengeance tab backed by `BAG_VENGEANCE` when the Vengeance ruleset and sell flag are active.
+**Source Issue/Phase**: ECO-002 Vendor phase 1 (`VND-002`, `VND-003`)
+**Related Files/Tests**: `Modules/CIM/Constants.lua`, `Modules/CIM/Templates/SharedTemplates.xml`, `Modules/Vendor/Core/BatchActionCounts.lua`, `Modules/Vendor/Core/VendorClass.lua`, `Modules/Vendor/Core/VendorRowSetup.lua`, `Modules/Vendor/Components/SellVengeanceComponent.lua`, `Modules/Vendor/Vendor.lua`, `lang/en.lua`, `BetterUI.txt`, `tools/tests/test_vendor_sell_vengeance_source.lua`, `tools/tests/test_vendor_stable_progress_source.lua`, `tools/tests/test_vendor_stable_transition.lua`, `tools/tests/test_vendor_stable_icons.lua`, `tools/tests/test_vendor_tabs.lua`
+
 ## [Completed] March 14 Completion Audit + Feature Gap Fixes (2026-04-11)
 **Summary**: Audited all March 14, 2026 completion claims against actual codebase. Identified 5 partially-implemented features and 2 missing planning docs. Fixed all gaps: integrated StatComparison into Banking and Companion surfaces (INV-001 parity), added narration registration for Vendor and TradingHouse scenes (ACC-001 parity), implemented Trading House search presets (TH-001), documented ORB_CONFIG table, and removed dead planning doc references (continuity-ledger.md, console-readiness.md). PLT-001 console readiness postponed.
 **Source Issue/Phase**: Post-completion audit of March 14 items
