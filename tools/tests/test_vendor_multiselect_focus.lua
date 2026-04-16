@@ -3,7 +3,21 @@ File: tools/tests/test_vendor_multiselect_focus.lua
 Purpose: Regression coverage for vendor multi-select focus retention.
 ]]
 
-BETTERUI = { CIM = {} }
+BETTERUI = {
+    CIM = {
+        CONST = {
+            MODULES = {
+                VENDOR_BUY = "Vendor_Buy",
+                VENDOR_SELL = "Vendor_Sell",
+                VENDOR_REPAIR = "Vendor_Repair",
+                VENDOR_BUYBACK = "Vendor_Buyback",
+                VENDOR_FENCE_SELL = "Vendor_FenceSell",
+                VENDOR_FENCE_LAUNDER = "Vendor_FenceLaunder",
+                VENDOR_STABLE = "Vendor_Stable",
+            },
+        },
+    },
+}
 local keybindRefreshCount = 0
 
 KEYBIND_STRIP = {
@@ -65,11 +79,16 @@ function VendorClass:New(mode, list)
     return setmetatable({
         currentMode = mode,
         list = list,
+        currentCategory = { key = "all" },
     }, self)
 end
 
 function VendorClass:GetCurrentMode()
     return self.currentMode
+end
+
+function VendorClass:GetCurrentCategory()
+    return self.currentCategory
 end
 
 function VendorClass:IsSceneShowing()
@@ -90,22 +109,51 @@ function VendorClass:OnItemSelectedChange()
     self:RefreshVendorActionKeybinds()
 end
 
+local function GetVendorModeModuleKey(mode)
+    local modules = BETTERUI.CIM.CONST.MODULES
+    if mode == 1 then return modules.VENDOR_BUY end
+    if mode == 2 then return modules.VENDOR_SELL end
+    if mode == 3 then return modules.VENDOR_REPAIR end
+    if mode == 4 then return modules.VENDOR_BUYBACK end
+    if mode == 5 then return modules.VENDOR_FENCE_SELL end
+    if mode == 6 then return modules.VENDOR_FENCE_LAUNDER end
+    return "Vendor"
+end
+
+local function GetVendorCategoryKey(self)
+    local category = self:GetCurrentCategory()
+    if not category then return "k:all" end
+    return PositionManager.GetCategoryKey(category) or "k:all"
+end
+
 function VendorClass:SaveListPosition()
     local currentMode = self:GetCurrentMode()
     if not currentMode or not self.list then
         return
     end
 
-    PositionManager.SavePosition("Vendor", "mode_" .. currentMode, self.list)
+    PositionManager.SavePosition(GetVendorModeModuleKey(currentMode), GetVendorCategoryKey(self), self.list)
 end
 
 function VendorClass:RefreshList()
     local currentMode = self:GetCurrentMode()
-    local targetIndex = PositionManager.RestorePosition("Vendor", "mode_" .. currentMode, self.list, self.list.dataList)
+    local targetIndex = PositionManager.RestorePosition(
+        GetVendorModeModuleKey(currentMode),
+        GetVendorCategoryKey(self),
+        self.list,
+        self.list.dataList
+    )
     if self.list.SetSelectedIndexWithoutAnimation then
         self.list:SetSelectedIndexWithoutAnimation(targetIndex)
     else
         self.list:SetSelectedIndex(targetIndex)
+    end
+end
+
+local function ClearVendorPositions()
+    PositionManager.ClearModule("Vendor")
+    for _, moduleKey in pairs(BETTERUI.CIM.CONST.MODULES) do
+        PositionManager.ClearModule(moduleKey)
     end
 end
 
@@ -169,7 +217,7 @@ local function getPrimaryMultiSelectLabel(list, manager)
     return "Select"
 end
 
-PositionManager.ClearModule("Vendor")
+ClearVendorPositions()
 
 local entryRows = {
     { dataSource = { entryIndex = 1, name = "Row One" } },
@@ -184,7 +232,7 @@ do
     assertEq(vendor.list.selectedIndex, 1, "unsaved refresh falls back to the top entry")
 end
 
-PositionManager.ClearModule("Vendor")
+ClearVendorPositions()
 
 do
     local vendor = VendorClass:New(1, buildList(entryRows, 2))
@@ -194,7 +242,27 @@ do
     assertEq(vendor.list.selectedIndex, 2, "saved entry-index rows restore the highlighted position")
 end
 
-PositionManager.ClearModule("Vendor")
+ClearVendorPositions()
+
+do
+    local vendor = VendorClass:New(1, buildList(entryRows, 2))
+    vendor.currentCategory = { key = "weapons" }
+    vendor:SaveListPosition()
+
+    vendor.currentCategory = { key = "apparel" }
+    vendor.list = buildList(entryRows, 3)
+    vendor:SaveListPosition()
+
+    vendor.currentCategory = { key = "weapons" }
+    vendor.list = buildList(entryRows, 1)
+    vendor:RefreshList()
+    assertEq(vendor.list.selectedIndex, 2, "vendor positions restore independently per category")
+
+    vendor.currentCategory = { key = "apparel" }
+    vendor.list = buildList(entryRows, 1)
+    vendor:RefreshList()
+    assertEq(vendor.list.selectedIndex, 3, "vendor category restore does not bleed across tabs")
+end
 
 do
     local originalRows = {

@@ -182,6 +182,15 @@ BETTERUI.CIM.CONST.MODULES = {
     BANKING = "Banking",
     BANKING_WITHDRAW = "Banking_Withdraw",
     BANKING_DEPOSIT = "Banking_Deposit",
+
+    -- Vendor module identifiers
+    VENDOR_BUY = "Vendor_Buy",
+    VENDOR_SELL = "Vendor_Sell",
+    VENDOR_REPAIR = "Vendor_Repair",
+    VENDOR_BUYBACK = "Vendor_Buyback",
+    VENDOR_FENCE_SELL = "Vendor_FenceSell",
+    VENDOR_FENCE_LAUNDER = "Vendor_FenceLaunder",
+    VENDOR_STABLE = "Vendor_Stable",
 }
 
 

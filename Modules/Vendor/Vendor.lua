@@ -2308,7 +2308,7 @@ function BETTERUI.Vendor.Init()
             end
             local currentMode = screen:GetCurrentMode()
             if currentMode and screen.list then
-                BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. currentMode, screen.list)
+                screen:SaveListPosition()
             end
             if Vendor.multiSelectManager then
                 Vendor.multiSelectManager:ExitSelectionMode()

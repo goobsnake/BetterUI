@@ -981,6 +981,29 @@ function BETTERUI.Vendor.Class:GetCurrentCategory()
     return categories[selectedIndex]
 end
 
+---@param mode number Vendor mode constant
+---@return string moduleKey PositionManager module key for this mode
+local function GetVendorModeModuleKey(mode)
+    local MODULES = BETTERUI.CIM.CONST.MODULES
+    if mode == BETTERUI.Vendor.MODE.BUY then return MODULES.VENDOR_BUY
+    elseif mode == BETTERUI.Vendor.MODE.SELL then return MODULES.VENDOR_SELL
+    elseif mode == BETTERUI.Vendor.MODE.REPAIR then return MODULES.VENDOR_REPAIR
+    elseif mode == BETTERUI.Vendor.MODE.BUYBACK then return MODULES.VENDOR_BUYBACK
+    elseif mode == BETTERUI.Vendor.MODE.FENCE_SELL then return MODULES.VENDOR_FENCE_SELL
+    elseif mode == BETTERUI.Vendor.MODE.FENCE_LAUNDER then return MODULES.VENDOR_FENCE_LAUNDER
+    elseif mode == BETTERUI.Vendor.MODE.STABLE then return MODULES.VENDOR_STABLE
+    end
+    return "Vendor"
+end
+
+---@param self BETTERUI.Vendor.Class
+---@return string categoryKey PositionManager category key for the active category
+local function GetVendorCategoryKey(self)
+    local category = self:GetCurrentCategory()
+    if not category then return "k:all" end
+    return BETTERUI.CIM.PositionManager.GetCategoryKey(category) or "k:all"
+end
+
 ---@return nil
 function BETTERUI.Vendor.Class:SaveListPosition()
     local currentMode = self:GetCurrentMode()
@@ -988,7 +1011,9 @@ function BETTERUI.Vendor.Class:SaveListPosition()
         return
     end
 
-    BETTERUI.CIM.PositionManager.SavePosition("Vendor", "mode_" .. currentMode, self.list)
+    local moduleKey = GetVendorModeModuleKey(currentMode)
+    local categoryKey = GetVendorCategoryKey(self)
+    BETTERUI.CIM.PositionManager.SavePosition(moduleKey, categoryKey, self.list)
 end
 
 ---@return nil
@@ -1996,9 +2021,11 @@ function BETTERUI.Vendor.Class:RefreshList()
     self.list:Commit()
     self._isDirty = false
 
-    -- Restore list position for current mode
+    -- Restore list position for current mode and category
     if currentMode and self.list and self.list.dataList and #self.list.dataList > 0 then
-        local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Vendor", "mode_" .. currentMode, self.list, self.list.dataList)
+        local moduleKey = GetVendorModeModuleKey(currentMode)
+        local categoryKey = GetVendorCategoryKey(self)
+        local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition(moduleKey, categoryKey, self.list, self.list.dataList)
         if self.list.SetSelectedIndexWithoutAnimation then
             self.list:SetSelectedIndexWithoutAnimation(targetIndex, true, false)
         elseif self.list.SetSelectedIndex then
