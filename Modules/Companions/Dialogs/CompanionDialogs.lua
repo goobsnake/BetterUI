@@ -28,6 +28,7 @@ local function RegisterCompanionActionDialog()
         canQueue = true,
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
+        parametricList = {},
         setup = function(dialog)
             local data = dialog.data
             local actions = Companions.BuildActionList(data and data.selectedData)

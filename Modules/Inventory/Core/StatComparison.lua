@@ -37,9 +37,21 @@ local StatComparison = BETTERUI.Inventory.StatComparison
 local COLOR_POSITIVE = "|c00FF00"  -- Green for upgrades
 local COLOR_NEGATIVE = "|cFF3333"  -- Red for downgrades
 local COLOR_NEUTRAL  = "|cCCCCCC"  -- Gray for no change
+local COLOR_WHITE    = "|cFFFFFF"  -- White for labels
 local COLOR_RESET    = "|r"
 
+-- ARROW ICONS (inline textures — Unicode arrows are not in the gamepad font)
+-- The :inheritcolor suffix makes the texture pick up the surrounding |cRRGGBB text color.
+local ARROW_UP   = "|t16:16:EsoUI/Art/Buttons/Gamepad/gp_upArrow.dds:inheritcolor|t"
+local ARROW_DOWN = "|t16:16:EsoUI/Art/Buttons/Gamepad/gp_downArrow.dds:inheritcolor|t"
+
 -- HELPERS
+
+--- Strip embedded ESO color codes from API-returned text so our colors take precedence.
+local function StripColorCodes(text)
+    if not text then return text end
+    return text:gsub("|c%x%x%x%x%x%x", ""):gsub("|r", "")
+end
 
 --- Determines the equip slot for an item link.
 --- Returns the primary equip slot, handling main-hand / off-hand / two-hand logic.
@@ -71,25 +83,37 @@ local function GetEquipSlotForItem(itemLink)
     return nil
 end
 
+--- Checks if the currently equipped main-hand item is a two-handed weapon.
+--- @param equipBagId number Bag ID to check (BAG_WORN or BAG_COMPANION_WORN)
+--- @return boolean isTwoHanded True if a two-handed weapon is equipped
+local function IsEquippedMainHandTwoHanded(equipBagId)
+    local mainHandLink = GetItemLink(equipBagId, EQUIP_SLOT_MAIN_HAND)
+    if not mainHandLink or mainHandLink == "" then return false end
+    local equipType = GetItemLinkEquipType(mainHandLink)
+    return equipType == EQUIP_TYPE_TWO_HAND
+end
+
 --- Formats a stat delta with color coding.
+--- Label is white, value is green (positive) or red (negative) with arrow.
 --- @param delta number The stat difference
 --- @param label string Display label for the stat
 --- @param isHigherBetter boolean Whether a positive delta is an improvement
 --- @return string coloredText Color-coded formatted text
 local function FormatDelta(delta, label, isHigherBetter)
     if delta == 0 then
-        return COLOR_NEUTRAL .. label .. ": " .. "0" .. COLOR_RESET
+        return COLOR_WHITE .. label .. ": " .. COLOR_RESET .. COLOR_NEUTRAL .. "0" .. COLOR_RESET
     end
 
-    local sign = delta > 0 and "+" or ""
-    local color
+    local color, arrow
     if isHigherBetter then
         color = delta > 0 and COLOR_POSITIVE or COLOR_NEGATIVE
+        arrow = delta > 0 and ARROW_UP or ARROW_DOWN
     else
         color = delta < 0 and COLOR_POSITIVE or COLOR_NEGATIVE
+        arrow = delta < 0 and ARROW_UP or ARROW_DOWN
     end
 
-    return color .. label .. ": " .. sign .. tostring(delta) .. COLOR_RESET
+    return COLOR_WHITE .. label .. ": " .. COLOR_RESET .. color .. tostring(math.abs(delta)) .. arrow .. COLOR_RESET
 end
 
 -- STAT EXTRACTION
@@ -126,14 +150,16 @@ end
 
 -- ENCHANTMENT EXTRACTION
 
---- Extracts enchantment summary from an item link.
+--- Extracts enchantment name (header) from an item link.
+--- Uses the header (2nd return) rather than the full description (3rd return)
+--- so the tooltip shows a concise glyph name instead of the effect text.
 --- @param itemLink string
---- @return string|nil description Enchantment description or nil
+--- @return string|nil enchantName Short enchant name or nil
 local function GetEnchantmentSummary(itemLink)
     if not itemLink or itemLink == "" then return nil end
-    local hasEnchant, _, enchantDesc = GetItemLinkEnchantInfo(itemLink)
-    if hasEnchant and enchantDesc and enchantDesc ~= "" then
-        return enchantDesc
+    local hasEnchant, enchantHeader = GetItemLinkEnchantInfo(itemLink)
+    if hasEnchant and enchantHeader and enchantHeader ~= "" then
+        return StripColorCodes(enchantHeader)
     end
     return nil
 end
@@ -147,7 +173,7 @@ local function GetSetName(itemLink)
     if not itemLink or itemLink == "" then return nil end
     local hasSet, setName = GetItemLinkSetInfo(itemLink)
     if hasSet and setName and setName ~= "" then
-        return setName
+        return StripColorCodes(setName)
     end
     return nil
 end
@@ -171,7 +197,12 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     -- 2. Get the currently equipped item
     local equippedLink = GetItemLink(equipBagId, equipSlot)
     if not equippedLink or equippedLink == "" then
-        -- Nothing equipped in this slot — show as pure upgrade
+        -- Nothing equipped in this slot — but check for 2H weapon blocking off-hand
+        if equipSlot == EQUIP_SLOT_OFF_HAND and IsEquippedMainHandTwoHanded(equipBagId) then
+            -- Player has a 2H weapon equipped; off-hand slot is not truly empty
+            return nil
+        end
+        -- Genuinely empty slot
         local candidateStats = ExtractStats(candidateLink)
         return {
             equipSlot = equipSlot,
@@ -232,9 +263,10 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
 
     -- Quality change
     if deltas.quality ~= 0 then
-        local qualityName = GetString("SI_ITEMDISPLAYQUALITY", candidateStats.quality)
-        local sign = deltas.quality > 0 and COLOR_POSITIVE or COLOR_NEGATIVE
-        table.insert(lines, sign .. "Quality: " .. qualityName .. COLOR_RESET)
+        local qualityName = StripColorCodes(GetString("SI_ITEMDISPLAYQUALITY", candidateStats.quality))
+        local color = deltas.quality > 0 and COLOR_POSITIVE or COLOR_NEGATIVE
+        local arrow = deltas.quality > 0 and ARROW_UP or ARROW_DOWN
+        table.insert(lines, COLOR_WHITE .. "Quality: " .. COLOR_RESET .. color .. qualityName .. arrow .. COLOR_RESET)
     end
 
     -- Set bonus change
@@ -242,11 +274,11 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     local equippedSet = GetSetName(equippedLink)
     if candidateSet ~= equippedSet then
         if candidateSet and equippedSet then
-            table.insert(lines, COLOR_NEUTRAL .. "Set: " .. equippedSet .. " → " .. candidateSet .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_NEUTRAL .. equippedSet .. " → " .. candidateSet .. COLOR_RESET)
         elseif candidateSet then
-            table.insert(lines, COLOR_POSITIVE .. "Set: +" .. candidateSet .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_POSITIVE .. candidateSet .. ARROW_UP .. COLOR_RESET)
         elseif equippedSet then
-            table.insert(lines, COLOR_NEGATIVE .. "Set: -" .. equippedSet .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Set: " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedSet .. ARROW_DOWN .. COLOR_RESET)
         end
     end
 
@@ -255,11 +287,11 @@ function StatComparison.Compare(candidateLink, candidateBagId, candidateSlotInde
     local equippedEnchant = GetEnchantmentSummary(equippedLink)
     if candidateEnchant ~= equippedEnchant then
         if candidateEnchant and equippedEnchant then
-            table.insert(lines, COLOR_NEUTRAL .. "Enchant changed" .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_NEUTRAL .. "changed" .. COLOR_RESET)
         elseif candidateEnchant then
-            table.insert(lines, COLOR_POSITIVE .. "Enchant: +" .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_POSITIVE .. candidateEnchant .. ARROW_UP .. COLOR_RESET)
         elseif equippedEnchant then
-            table.insert(lines, COLOR_NEGATIVE .. "Enchant: -" .. COLOR_RESET)
+            table.insert(lines, COLOR_WHITE .. "Enchant: " .. COLOR_RESET .. COLOR_NEGATIVE .. equippedEnchant .. ARROW_DOWN .. COLOR_RESET)
         end
     end
 

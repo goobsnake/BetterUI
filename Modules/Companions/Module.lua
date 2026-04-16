@@ -124,6 +124,12 @@ local function BuildCoreKeybinds(instance)
                 else
                     Companions.TryEquipCompanionItem(bagId, slotIndex)
                 end
+                -- Refresh keybinds after equip/unequip to update action label
+                Companions.Tasks:Schedule("keybindRefresh", 100, function()
+                    if Companions.instance and Companions.instance:IsSceneShowing() and Companions.instance.coreKeybinds then
+                        KEYBIND_STRIP:UpdateKeybindButtonGroup(Companions.instance.coreKeybinds)
+                    end
+                end)
             end,
             enabled = function()
                 local selectedData = instance.list and instance.list:GetSelectedData()
@@ -170,7 +176,7 @@ local function BuildCoreKeybinds(instance)
                 if instance.searchQuery and instance.searchQuery ~= "" then
                     return GetString(rawget(_G, "SI_BETTERUI_CLEAR_SEARCH"))
                 end
-                return GetString(rawget(_G, "SI_GAMEPAD_INVENTORY_SEARCH") or "SI_GAMEPAD_INVENTORY_SEARCH")
+                return GetString(rawget(_G, "SI_BETTERUI_INV_SEARCH") or "SI_BETTERUI_INV_SEARCH")
             end,
             keybind = "UI_SHORTCUT_QUATERNARY",
             disabledDuringSceneHiding = true,
@@ -298,16 +304,52 @@ function BETTERUI.Companions.Init()
         BETTERUI_SharedGamepadEntry_OnSetup
     )
     Companions.instance:InitializeListPresentation()
+
+    -- Monkeypatch MovePrevious to allow moving "up" from the top of the list into the header/search bar.
+    if Companions.instance.list and Companions.instance.list.MovePrevious then
+        local originalMovePrevious = Companions.instance.list.MovePrevious
+        Companions.instance.list.MovePrevious = function(list, allowWrapping, suppressFailSound)
+            local didMove = originalMovePrevious(list, allowWrapping, suppressFailSound)
+            if didMove then
+                return true
+            end
+            if Companions.instance and Companions.instance.OnHeaderEntered then
+                Companions.instance:OnHeaderEntered()
+            elseif Companions.instance and Companions.instance.RequestHeaderFocus then
+                Companions.instance:RequestHeaderFocus()
+            end
+            return true
+        end
+    end
+
     Companions.instance:InitializeCategoryHeader()
 
-    local COL = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
-    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), COL[1])
-    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), COL[2])
-    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), COL[3])
-    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), COL[4])
-    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), COL[5])
+    local HDR_COL = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), HDR_COL.NAME)
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), HDR_COL.TYPE)
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), HDR_COL.TRAIT)
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), HDR_COL.STAT)
+    Companions.instance:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), HDR_COL.VALUE)
     Companions.instance:RefreshCategories()
     Companions.instance:EnsureColumnHeadersVisible()
+
+    -- Adjust list left anchor: GenericInterface default offsetX=-27 clips equipped
+    -- icons past the panel edge; shift right to give icon margin.
+    do
+        local listControl = Companions.instance.list and Companions.instance.list.control
+        local headerGeneric = Companions.instance.headerGeneric
+        if listControl and headerGeneric then
+            local container = Companions.instance.control
+                and Companions.instance.control:GetNamedChild("Container")
+            local footer = container and container:GetNamedChild("Footer")
+            local footerFooter = footer and footer:GetNamedChild("Footer")
+            listControl:ClearAnchors()
+            listControl:SetAnchor(TOPLEFT, headerGeneric, BOTTOMLEFT, 20, 15)
+            if footerFooter then
+                listControl:SetAnchor(BOTTOMRIGHT, footerFooter, TOPRIGHT, 0, -8)
+            end
+        end
+    end
 
     -- Multi-Select
     if BETTERUI.CIM and BETTERUI.CIM.MultiSelectManager and BETTERUI.CIM.MultiSelectManager.Create then
@@ -321,10 +363,15 @@ function BETTERUI.Companions.Init()
     end
 
     -- Search
-    if BETTERUI.CIM.SearchMixin and Companions.instance.AddSearch then
+    if BETTERUI.Interface.SearchMixin and Companions.instance.AddSearch then
         Companions.instance:AddSearch(
             BETTERUI.Interface.CreateSearchKeybindDescriptor(Companions.instance),
-            function(query)
+            function(queryOrControl)
+                -- SetupEditBoxHandlers calls origOnTextChanged(editbox), so we may receive
+                -- an editbox control rather than a plain string. Extract text defensively.
+                local query = type(queryOrControl) == "string" and queryOrControl
+                    or (queryOrControl and queryOrControl.GetText and queryOrControl:GetText())
+                    or ""
                 Companions.instance.searchQuery = query
                 Companions.instance:RefreshList()
             end
@@ -335,6 +382,13 @@ function BETTERUI.Companions.Init()
             BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(Companions.instance, {
                 isSceneShowing = function()
                     return Companions.instance and Companions.instance:IsSceneShowing()
+                end,
+                enterHeaderFn = function(window)
+                    if window.RequestHeaderFocus then
+                        window:RequestHeaderFocus()
+                    else
+                        window:EnterSearchMode()
+                    end
                 end,
             })
         end
@@ -414,15 +468,22 @@ function BETTERUI.Companions.Init()
             screen:RefreshCategories()
             screen:RefreshList()
             screen:RefreshCompanionFooter()
+            screen:RefreshCategoryTitle()
             screen:EnsureColumnHeadersVisible()
             screen:EnsureHeaderKeybindsActive()
             screen:EnsureListInputActive()
+            if screen.PositionSearchControl then
+                screen:PositionSearchControl()
+            end
             screen:UpdateItemTooltips(screen.list and screen.list:GetTargetData())
         end,
         onHiding = function(screen)
             BETTERUI.CIM.SetTooltipWidth(BETTERUI.CIM.CONST.LAYOUT.PANEL.ZO_WIDTH)
             screen:DeactivateListInput()
             screen:DeactivateHeaderKeybinds()
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
             if Companions.multiSelectManager then
                 Companions.multiSelectManager:ExitSelectionMode()
             end
@@ -440,6 +501,10 @@ function BETTERUI.Companions.Init()
         end,
         onHidden = function(screen)
             screen:DeactivateListInput()
+            screen:DeactivateHeaderKeybinds()
+            if screen.ForceReleaseDirectionalInput then
+                screen:ForceReleaseDirectionalInput()
+            end
         end,
     })
 

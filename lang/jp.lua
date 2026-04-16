@@ -144,6 +144,7 @@ ZO_CreateStringId("SI_BETTERUI_STOLEN", "盗品")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "スタイル素材")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "付魔")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "検索をクリア")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "検索")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "既知")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "未知")
 
@@ -379,6 +380,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "強化ツールチッ
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "ツールチップ - レシピ・本の知識ステータス")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "強化ツールチップに、レシピ・モチーフ・ロア本が既知かまだ未知かを表示します。すべてのシーンで機能します。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "ツールチップ - アイテム性能比較")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "未装備のアイテムにカーソルを合わせたとき、ツールチップ下部にステータス比較データ（ダメージ、防御、品質、セット、付呪の変化）を表示します。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "チャットウィンドウ履歴サイズ")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "チャットバッファに保存する行数を変更、デフォルト=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "メール削除確認を省略")

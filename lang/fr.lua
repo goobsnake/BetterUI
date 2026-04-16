@@ -149,6 +149,7 @@ ZO_CreateStringId("SI_BETTERUI_STOLEN", "Volé")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Matériau de style")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "Enchantement")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Effacer la recherche")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "Rechercher")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "CONNU")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "INCONNU")
 
@@ -419,6 +420,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Infobulle – Statut de connaissance recette & livre")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "Indique si les recettes, motifs et livres de lore sont connus ou pas encore appris dans l'infobulle améliorée. Disponible dans toutes les scènes.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "Infobulle – Comparaison des statistiques d'objet")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "Affiche les données de comparaison des statistiques (dégâts, armure, qualité, ensemble et enchantement) en bas de l'infobulle lors du survol d'un objet non équipé.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Taille de l'historique de chat")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Modifie le nombre de lignes stockées dans le tampon de chat, par défaut=200")

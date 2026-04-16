@@ -99,6 +99,28 @@ local itemDB = {
         enchant = "Shock Damage",
         setName = "Mother's Sorrow",
     },
+    ["greatsword"] = {
+        equipType = EQUIP_TYPE_TWO_HAND,
+        armorRating = 0,
+        weaponType = WEAPONTYPE_SWORD,
+        weaponPower = 400,
+        quality = 3,
+        level = 25,
+        itemId = 2003,
+        enchant = nil,
+        setName = nil,
+    },
+    ["offhand_dagger"] = {
+        equipType = EQUIP_TYPE_OFF_HAND,
+        armorRating = 0,
+        weaponType = WEAPONTYPE_SWORD,
+        weaponPower = 125,
+        quality = 2,
+        level = 18,
+        itemId = 2004,
+        enchant = nil,
+        setName = nil,
+    },
     ["ring"] = {
         equipType = EQUIP_TYPE_RING,
         armorRating = 0,
@@ -194,7 +216,7 @@ end
 function GetItemLinkEnchantInfo(link)
     local data = getItemData(link)
     if data and data.enchant then
-        return true, nil, data.enchant
+        return true, "|cFFFFFF" .. data.enchant .. "|r", data.enchant
     end
     return false, nil, ""
 end
@@ -202,7 +224,7 @@ end
 function GetItemLinkSetInfo(link)
     local data = getItemData(link)
     if data and data.setName then
-        return true, data.setName
+        return true, "|cFFFFFF" .. data.setName .. "|r"
     end
     return false, nil
 end
@@ -400,6 +422,13 @@ result = StatComparison.Compare("iron_helm", 2, 1, BAG_COMPANION_WORN)
 assert_not_nil(result, "companion empty slot returns result")
 assert_true(result.isUpgrade, "companion empty slot is upgrade")
 assert_nil(result.equippedLink, "companion empty slot has no equipped link")
+
+-- Test 16: Off-hand compare suppressed when a two-handed weapon blocks the slot
+print("\nTest: Two-handed main hand blocks off-hand comparison")
+reset()
+equippedItems[EQUIP_SLOT_MAIN_HAND] = "greatsword"
+result = StatComparison.Compare("offhand_dagger", 2, 1)
+assert_nil(result, "off-hand compare returns nil when a two-handed main hand blocks the slot")
 
 -- ============================================================================
 -- SUMMARY

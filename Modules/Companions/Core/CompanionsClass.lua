@@ -105,6 +105,7 @@ function BETTERUI.Companions.Class:EnterSearchFocus()
 end
 
 function BETTERUI.Companions.Class:ExitSearchFocus()
+    if not self._searchModeActive then return end
     if self.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)
     end
@@ -119,6 +120,71 @@ function BETTERUI.Companions.Class:ExitSearchFocus()
     end
     self._searchModeActive = false
     self:EnsureListInputActive()
+    if self.coreKeybinds and KEYBIND_STRIP then
+        KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
+    end
+end
+
+-- Aliases matching Banking/Vendor pattern for SetupEditBoxHandlers compatibility
+function BETTERUI.Companions.Class:EnterSearchMode()
+    self:EnterSearchFocus()
+end
+
+function BETTERUI.Companions.Class:ExitSearchMode()
+    self:ExitSearchFocus()
+end
+
+function BETTERUI.Companions.Class:IsHeaderFocused()
+    if self.textSearchHeaderFocus and self.textSearchHeaderFocus.IsActive then
+        return self.textSearchHeaderFocus:IsActive()
+    end
+    return self._searchModeActive == true
+end
+
+function BETTERUI.Companions.Class:IsHeaderActive()
+    return self:IsHeaderFocused()
+end
+
+function BETTERUI.Companions.Class:RequestHeaderFocus()
+    if self.OnHeaderEntered then
+        self:OnHeaderEntered()
+    elseif self.EnterSearchFocus then
+        self:EnterSearchFocus()
+    end
+end
+
+function BETTERUI.Companions.Class:RequestEnterHeader()
+    self:RequestHeaderFocus()
+end
+
+--- Called when navigating up from the list into the header/search box.
+--- Enters search mode and schedules a keybind strip cleanup (matching Banking/Vendor).
+function BETTERUI.Companions.Class:OnHeaderEntered()
+    if not (self.textSearchHeaderControl and not self.textSearchHeaderControl:IsHidden()) then
+        return
+    end
+    self:EnterSearchFocus()
+
+    BETTERUI.Companions.Tasks:Schedule("searchKeybindCleanup", 20, function()
+        if not self._searchModeActive or not KEYBIND_STRIP then return end
+        local keybindGroups = KEYBIND_STRIP.keybindButtonGroups
+        if keybindGroups then
+            for i = #keybindGroups, 1, -1 do
+                local group = keybindGroups[i]
+                if group and group ~= self.textSearchKeybindStripDescriptor then
+                    KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
+                end
+            end
+        end
+        if self._searchModeActive and self.textSearchKeybindStripDescriptor then
+            BETTERUI.Interface.EnsureKeybindGroupAdded(self.textSearchKeybindStripDescriptor)
+        end
+    end)
+end
+
+--- Backwards-compatible alias.
+function BETTERUI.Companions.Class:OnEnterHeader()
+    self:OnHeaderEntered()
 end
 
 function BETTERUI.Companions.Class:ClearTextSearch()

@@ -417,6 +417,36 @@ function BETTERUI.GeneralInterface.GetSettingsOptions()
             default = GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true),
         },
         {
+            type = "checkbox",
+            name = GetString(rawget(_G, "SI_BETTERUI_SHOW_ITEM_COMPARISON")),
+            tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP")),
+            getFunc = function()
+                local settings = GetModuleSettings("GeneralInterface")
+                if not settings then
+                    return GetMetadataDefault("GeneralInterface", "showItemComparison", true)
+                end
+                local value = settings.showItemComparison
+                if value == nil then
+                    return GetMetadataDefault("GeneralInterface", "showItemComparison", true)
+                end
+                return value
+            end,
+            setFunc = function(value)
+                local settings = EnsureModuleSettings("GeneralInterface")
+                if settings then
+                    settings.showItemComparison = value
+                end
+            end,
+            disabled = function()
+                local cimSettings = GetModuleSettings("CIM")
+                if not cimSettings then return true end
+                if cimSettings.enableTooltipEnhancements == nil then return false end
+                return cimSettings.enableTooltipEnhancements ~= true
+            end,
+            width = "full",
+            default = GetMetadataDefault("GeneralInterface", "showItemComparison", true),
+        },
+        {
             type = "slider",
             name = GetString(rawget(_G, "SI_BETTERUI_TOOLTIP_FONT_SIZE")),
             tooltip = GetString(rawget(_G, "SI_BETTERUI_TOOLTIP_FONT_SIZE_TOOLTIP")),

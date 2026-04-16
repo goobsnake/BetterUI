@@ -127,6 +127,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "CONOCIDA")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "DESCONOCIDA")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Borrar búsqueda")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "Buscar")
 
 
 -- Crafting Bag Categories (Inventory/Banking)
@@ -401,6 +402,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip - Estado de conocimiento de receta y libro")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "Muestra si las recetas, motivos y libros de conocimiento son conocidos o aún no aprendidos en el tooltip mejorado. Disponible en todas las escenas.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "Tooltip - Comparación de estadísticas del objeto")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "Muestra datos de comparación de estadísticas (daño, armadura, calidad, conjunto y cambios de encantamiento) en la parte inferior del tooltip al pasar sobre un objeto no equipado.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Tamaño historial chat")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Cambia cuántas líneas se guardan en el búfer de chat, por defecto=200")

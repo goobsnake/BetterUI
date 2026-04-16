@@ -145,6 +145,7 @@ ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "附魔")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "已学会")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "未学会")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "清除搜索")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "搜索")
 
 
 -- Crafting Bag Categories (Inventory/Banking)
@@ -378,6 +379,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP", "在增强提示中显
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "提示 - 配方与书籍知识状态")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "在增强提示中显示配方、图案和传说书籍是否已学会。适用于所有场景。")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "提示 - 物品属性对比")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "将鼠标悬停在未装备物品上时，在提示框底部显示属性对比数据（伤害、护甲、品质、套装和附魔变化）。")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "聊天窗口历史记录大小")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "更改聊天缓存中存储的行数，默认=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "跳过邮件删除确认")

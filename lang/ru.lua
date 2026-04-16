@@ -148,6 +148,7 @@ ZO_CreateStringId("SI_BETTERUI_STOLEN", "Краденое")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Стилевой материал")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "Зачарование")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Очистить поиск")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "Поиск")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "Изучен")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "Не изучен")
 
@@ -411,6 +412,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Подсказка – статус знания рецепта и книги")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "Показывает в расширенной подсказке, изучены ли рецепты, мотивы и лор-книги или ещё нет. Работает во всех сценах.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "Подсказка – сравнение характеристик предмета")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "Показывает данные сравнения характеристик (урон, броня, качество, комплект и изменения зачарования) внизу подсказки при наведении на неэкипированный предмет.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Размер истории чата")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Изменяет количество строк, сохраняемых в буфере чата (по умолчанию 200)")

@@ -5,6 +5,80 @@ Purpose: Companion list, category tabs, tooltip updates, and scroll indicator wi
 
 if not BETTERUI.Companions or not BETTERUI.Companions.Class then return end
 
+-- ---------------------------------------------------------------------------
+-- Directional-Input Utilities
+-- Mirrors the proven patterns from Vendor (tribal-knowledge 2026-04-11).
+-- ---------------------------------------------------------------------------
+
+---@param obj table|nil
+---@return boolean
+local function IsDirectionalInputListening(obj)
+    if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening) then
+        return false
+    end
+    return DIRECTIONAL_INPUT:IsListening(obj)
+end
+
+---@param obj table|nil
+---@return number registrationCount
+local function CountDirectionalInputRegistrations(obj)
+    if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.inputObjects) then
+        return 0
+    end
+    local count = 0
+    for _, registered in ipairs(DIRECTIONAL_INPUT.inputObjects) do
+        if registered == obj then
+            count = count + 1
+        end
+    end
+    return count
+end
+
+---@param obj table|nil
+---@param includeMovementController boolean|nil
+---@return number releasedCount
+local function ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+    if not obj or not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
+        return 0
+    end
+    local releasedCount = 0
+    local seen = {}
+    local candidates = { obj }
+    if includeMovementController and obj.movementController then
+        candidates[#candidates + 1] = obj.movementController
+    end
+    for _, candidate in ipairs(candidates) do
+        if candidate and not seen[candidate] then
+            seen[candidate] = true
+            local safety = 0
+            while DIRECTIONAL_INPUT:IsListening(candidate) and safety < 8 do
+                DIRECTIONAL_INPUT:Deactivate(candidate)
+                releasedCount = releasedCount + 1
+                safety = safety + 1
+            end
+        end
+    end
+    return releasedCount
+end
+
+---@param header table|nil
+local function ReleaseHeaderDirectionalInput(header)
+    if not header then return end
+    local candidates = {
+        header.headerFocus,
+        header.tabBar,
+        header.tabBar and header.tabBar.control,
+    }
+    for _, candidate in ipairs(candidates) do
+        if candidate then
+            if candidate.Deactivate then
+                pcall(candidate.Deactivate, candidate)
+            end
+            ReleaseDirectionalInputRegistrations(candidate, true)
+        end
+    end
+end
+
 local CATEGORY_DEFINITIONS = {
     {
         key = "all",
@@ -159,6 +233,21 @@ function BETTERUI.Companions.Class:InitializeCategoryHeader()
 end
 
 ---@return nil
+function BETTERUI.Companions.Class:RefreshCategoryTitle()
+    if not self.headerGeneric then return end
+    local cat = self:GetCurrentCategory()
+    local titleText
+    if cat and cat.name and cat.key ~= "all" then
+        titleText = zo_strformat("<<1>>", cat.name)
+    else
+        titleText = GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
+    end
+    if BETTERUI.GenericHeader and BETTERUI.GenericHeader.SetTitleText then
+        BETTERUI.GenericHeader.SetTitleText(self.headerGeneric, titleText)
+    end
+end
+
+---@return nil
 function BETTERUI.Companions.Class:RefreshCategories()
     local previousCategory = self:GetCurrentCategory()
     local previousKey = previousCategory and previousCategory.key
@@ -218,14 +307,17 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
 
     self.companionHeaderData = self.companionHeaderData or {}
     self.companionHeaderData.titleText = function()
+        local cat = self:GetCurrentCategory()
+        if cat and cat.name and cat.key ~= "all" then
+            return zo_strformat("<<1>>", cat.name)
+        end
         return GetString(rawget(_G, "SI_BETTERUI_COMPANIONS_TITLE") or "SI_BETTERUI_COMPANIONS_TITLE")
     end
     self.companionHeaderData.tabBarData = { parent = self, onNext = function(_, successful) if successful then self:OnTabNext() end end, onPrev = function(_, successful) if successful then self:OnTabPrev() end end }
     self.companionHeaderData.carouselConfig = {
         enabled = true,
-        startOffset = BETTERUI.CIM.CONST.CAROUSEL.startOffset,
-        verticalOffset = BETTERUI.CIM.CONST.CAROUSEL.verticalOffset,
-        itemSpacing = BETTERUI.CIM.CONST.CAROUSEL.itemSpacing,
+        startOffset = 705,
+        verticalOffset = -1,
     }
     self.companionHeaderData.onSelectedChanged = function(list)
         if self._suppressCompanionHeaderSelection then
@@ -246,6 +338,7 @@ function BETTERUI.Companions.Class:RebuildCategoryHeader()
 
         self.currentCategoryIndex = selectedIndex
         self:RefreshList()
+        self:RefreshCategoryTitle()
 
         if self:IsSceneShowing() then
             self:EnsureListInputActive()
@@ -300,8 +393,11 @@ function BETTERUI.Companions.Class:CycleCategory(delta)
 
     self.currentCategoryIndex = nextIndex
     self:RefreshList()
-    self:EnsureListInputActive()
-    self:UpdateItemTooltips(self.list and self.list:GetTargetData())
+    self:RefreshCategoryTitle()
+    if self:IsSceneShowing() then
+        self:EnsureListInputActive()
+        self:UpdateItemTooltips(self.list and self.list:GetTargetData())
+    end
 
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
     if tabBar then
@@ -326,6 +422,12 @@ function BETTERUI.Companions.Class:EnsureHeaderKeybindsActive()
         return
     end
 
+    -- Scene-gate: never activate header DI owners unless scene is showing
+    -- (tribal-knowledge root cause #1: premature header activation).
+    if self.scene and not self.scene:IsShowing() then
+        return
+    end
+
     if tabBar.Activate and not tabBar.active then
         tabBar:Activate()
     end
@@ -338,9 +440,40 @@ end
 ---@return nil
 function BETTERUI.Companions.Class:DeactivateHeaderKeybinds()
     local tabBar = self.headerGeneric and self.headerGeneric.tabBar
-    if tabBar and tabBar.Deactivate and tabBar.active then
+    if not tabBar then return end
+    if tabBar.keybindStripDescriptor and KEYBIND_STRIP then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(tabBar.keybindStripDescriptor)
+    end
+    if tabBar.Deactivate and tabBar.active then
         tabBar:Deactivate()
     end
+end
+
+---@return nil
+function BETTERUI.Companions.Class:PositionSearchControl()
+    if not self.textSearchHeaderControl then return end
+
+    self.textSearchHeaderControl:ClearAnchors()
+    local anchorTarget = self.headerGeneric or self.header
+    local titleContainer = nil
+    if anchorTarget and anchorTarget.GetNamedChild then
+        titleContainer = anchorTarget:GetNamedChild("TitleContainer") or anchorTarget:GetNamedChild("Header")
+    end
+
+    local parentForAnchor = titleContainer or anchorTarget
+    local searchConst = BETTERUI.CIM.GetSearchBarConstants and BETTERUI.CIM.GetSearchBarConstants("BANKING")
+    local xOffset = searchConst and searchConst.X_OFFSET or 55
+    local yOffset = searchConst and searchConst.Y_OFFSET or 15
+    local rightInset = searchConst and searchConst.RIGHT_INSET or -8
+    if parentForAnchor then
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, parentForAnchor, BOTTOMLEFT, xOffset, yOffset)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, parentForAnchor, BOTTOMRIGHT, rightInset, yOffset)
+    else
+        self.textSearchHeaderControl:SetAnchor(TOPLEFT, self.header, BOTTOMLEFT, 0, 8)
+        self.textSearchHeaderControl:SetAnchor(TOPRIGHT, self.header, BOTTOMRIGHT, 0, 8)
+    end
+
+    self.textSearchHeaderControl:SetHidden(false)
 end
 
 ---@return nil
@@ -349,18 +482,24 @@ function BETTERUI.Companions.Class:EnsureColumnHeadersVisible()
         return
     end
 
-    local layoutColumns = BETTERUI.CIM.CONST.LAYOUT.COLUMNS
+    local HDR_COL = BETTERUI.CIM.CONST.HEADER_LAYOUT.COLUMNS
+    local COLUMN_KEYS = { "NAME", "TYPE", "TRAIT", "STAT", "VALUE" }
     local anchorTarget = (self.header and self.header:GetNamedChild("HeaderTabBar"))
         or (self.headerGeneric and self.headerGeneric:GetNamedChild("TabBar"))
         or (self.header and self.header:GetNamedChild("HeaderColumnBar"))
 
+    -- Companions uses a custom list anchor, so the header labels need an
+    -- additional empirical offset to stay aligned with the row content.
+    local COLUMN_OFFSET_DELTA = 24
+
     for _, label in ipairs(self.header.columns) do
         if label then
             local columnIndex = label.columnIndex
-            local xOffset = columnIndex and layoutColumns[columnIndex]
+            local key = columnIndex and COLUMN_KEYS[columnIndex]
+            local xOffset = key and HDR_COL[key]
             if anchorTarget and xOffset then
                 label:ClearAnchors()
-                label:SetAnchor(LEFT, anchorTarget, BOTTOMLEFT, xOffset, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
+                label:SetAnchor(LEFT, anchorTarget, BOTTOMLEFT, xOffset + COLUMN_OFFSET_DELTA, BETTERUI.CIM.CONST.LAYOUT.COLUMN_HEADER_Y_OFFSET)
             end
             label:SetHidden(false)
             label:SetAlpha(1)
@@ -378,21 +517,88 @@ function BETTERUI.Companions.Class:EnsureListInputActive()
         return
     end
 
-    if list.SetDirectionalInputEnabled then
-        list:SetDirectionalInputEnabled(true)
+    -- Scene-gate: never activate DI owners unless the scene is actually showing.
+    if self.scene and not self.scene:IsShowing() then
+        return
     end
 
-    if list.Activate and (not list.IsActive or not list:IsActive()) then
-        list:Activate()
+    -- Deduplicate stale DI registrations — only clear when there are DUPLICATES
+    -- (tribal-knowledge root cause #4: duplicate registrations = accelerated scrolling).
+    -- A single registration is the correct steady-state.
+    local listRegistrationCount = CountDirectionalInputRegistrations(list)
+    if listRegistrationCount > 1 then
+        ReleaseDirectionalInputRegistrations(list, true)
+        listRegistrationCount = 0
+    end
+
+    local isActive = list.IsActive and list:IsActive()
+    local listListening = listRegistrationCount > 0
+
+    if isActive then
+        -- List is already activated.
+        if listListening then
+            -- Exactly one registration — correct state. Ensure flag is set.
+            list.directionalInputEnabled = true
+        elseif list.SetDirectionalInputEnabled then
+            -- Active but not registered on DI (stale state after cleanup).
+            -- Use the public mutator to re-register.
+            list:SetDirectionalInputEnabled(true)
+        end
+    else
+        -- List needs activation. Set the internal field directly and let
+        -- Activate() perform the single DI registration (avoids the
+        -- double-register from calling SetDirectionalInputEnabled(true)
+        -- followed by Activate() — vendor incident root cause #4).
+        if list.SetDirectionalInputEnabled then
+            list.directionalInputEnabled = true
+        end
+        if list.Activate then
+            list:Activate()
+        end
     end
 end
 
 ---@return nil
 function BETTERUI.Companions.Class:DeactivateListInput()
     local list = self.list
-    if list and list.Deactivate and (not list.IsActive or list:IsActive()) then
+    if not list then return end
+    if list.SetDirectionalInputEnabled then
+        list:SetDirectionalInputEnabled(false)
+    end
+    if list.Deactivate and (not list.IsActive or list:IsActive()) then
         list:Deactivate()
     end
+    ReleaseDirectionalInputRegistrations(list, true)
+end
+
+--- Full directional-input release for the Companions scene.
+--- Sweeps self, list, header, tab bar, search focus — everything that could
+--- be orphaned on the global DIRECTIONAL_INPUT stack.
+---@return nil
+function BETTERUI.Companions.Class:ForceReleaseDirectionalInput()
+    if not (DIRECTIONAL_INPUT and DIRECTIONAL_INPUT.IsListening and DIRECTIONAL_INPUT.Deactivate) then
+        return
+    end
+
+    local function SafeDeactivate(obj, includeMovementController, disableDirectionalInput)
+        if not obj then return end
+        if disableDirectionalInput and obj.SetDirectionalInputEnabled then
+            obj:SetDirectionalInputEnabled(false)
+        end
+        if obj.Deactivate then
+            if not obj.IsActive or obj:IsActive() or IsDirectionalInputListening(obj) then
+                pcall(obj.Deactivate, obj)
+            end
+        end
+        ReleaseDirectionalInputRegistrations(obj, includeMovementController)
+    end
+
+    SafeDeactivate(self, true)
+    SafeDeactivate(self.list, true, true)
+    ReleaseHeaderDirectionalInput(self.headerGeneric)
+    ReleaseHeaderDirectionalInput(self.header)
+    SafeDeactivate(self.textSearchHeaderFocus, true)
+    SafeDeactivate(self.textSearchHeaderControl, true)
 end
 
 ---@return nil
@@ -411,9 +617,13 @@ function BETTERUI.Companions.Class:InitializeListPresentation()
 
     if self.list.SetOnSelectedDataChangedCallback then
         self.list:SetOnSelectedDataChangedCallback(function(list, selectedData)
+            if self._searchModeActive and not self._isRefreshing and self.list and self.list.IsActive and self.list:IsActive() then
+                self:ExitSearchFocus()
+                return
+            end
             if self:IsSceneShowing() then
                 self:UpdateItemTooltips(selectedData)
-                if self.coreKeybinds and KEYBIND_STRIP then
+                if self.coreKeybinds then
                     KEYBIND_STRIP:UpdateKeybindButtonGroup(self.coreKeybinds)
                 end
             end

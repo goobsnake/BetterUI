@@ -42,16 +42,24 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
     end
 
     GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, ds.bagId, ds.slotIndex)
+
+    -- Prevent GeneralInterface posthook from firing a second enhanced tooltip.
+    -- BETTERUI.Inventory.UpdateTooltipEquippedText sets _betterui_priceRendered = true
+    -- internally, which guards against the deferred LayoutItem posthook.
     if ds.bagId == BAG_COMPANION_WORN then
-        self:UpdateTooltipEquippedIndicatorText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
+        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
     else
-        self:UpdateTooltipEquippedIndicatorText(GAMEPAD_LEFT_TOOLTIP, nil)
+        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
     end
 
-    local compareSlot = self:GetComparisonEquipSlot(ds)
-    if compareSlot and HasItemInSlot and HasItemInSlot(BAG_COMPANION_WORN, compareSlot) then
-        GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_RIGHT_TOOLTIP, BAG_COMPANION_WORN, compareSlot)
-        self:UpdateTooltipEquippedIndicatorText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
+    if ds.bagId ~= BAG_COMPANION_WORN then
+        local compareSlot = self:GetComparisonEquipSlot(ds)
+        if compareSlot and HasItemInSlot and HasItemInSlot(BAG_COMPANION_WORN, compareSlot) then
+            GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_RIGHT_TOOLTIP, BAG_COMPANION_WORN, compareSlot)
+            BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
+        else
+            GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
+        end
     else
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
     end
@@ -61,29 +69,13 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
         container._betterUiComparison:SetHidden(true)
     end
 
-    if ds.bagId ~= BAG_COMPANION_WORN and BETTERUI.Inventory.StatComparison then
+    if ds.bagId ~= BAG_COMPANION_WORN and BETTERUI.Inventory.StatComparison
+        and BETTERUI.Inventory.IsItemComparisonEnabled() then
         local itemLink = GetItemLink(ds.bagId, ds.slotIndex)
         local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, ds.bagId, ds.slotIndex, BAG_COMPANION_WORN)
-        if result and result.lines and #result.lines > 0 and container then
-            if not container._betterUiComparison then
-                local label = WINDOW_MANAGER:CreateControl(nil, container, CT_LABEL)
-                label:SetMaxLineCount(0)
-                label:SetWrapMode(TEXT_WRAP_MODE_ELLIPSIS)
-                label:SetHorizontalAlignment(TEXT_ALIGN_LEFT)
-                container._betterUiComparison = label
-            end
-            local compLabel = container._betterUiComparison
-            local fontSize = BETTERUI.GetTooltipFontSize()
-            local compFontSize = math.floor(fontSize * 0.75)
-            compLabel:SetFont("$(MEDIUM_FONT)|" .. compFontSize .. "|shadow")
-            compLabel:SetText(BETTERUI.Inventory.StatComparison.FormatForTooltip(result))
-            compLabel:ClearAnchors()
-            compLabel:SetAnchor(BOTTOMLEFT, container, BOTTOMLEFT, 5, -5)
-            compLabel:SetAnchor(BOTTOMRIGHT, container, BOTTOMRIGHT, -5, -5)
-            compLabel:SetHidden(false)
-        elseif container and container._betterUiComparison then
-            container._betterUiComparison:SetHidden(true)
-        end
+        BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
+    else
+        BETTERUI.Inventory.ShowComparisonOnTooltip(container, nil)
     end
 end
 
@@ -163,30 +155,37 @@ end
 
 function BETTERUI.Companions.Class:RefreshList()
     if not self.list then return end
-    self.list:Clear()
+    self._isRefreshing = true
+    local ok, err = pcall(function()
+        self.list:Clear()
 
-    local currentCategory = self:GetCurrentCategory()
-    local filterType = currentCategory and currentCategory.filterType or nil
+        local currentCategory = self:GetCurrentCategory()
+        local filterType = currentCategory and currentCategory.filterType or nil
 
-    self:BuildEquippedItems(filterType)
-    self:BuildBackpackItems(filterType)
+        self:BuildEquippedItems(filterType)
+        self:BuildBackpackItems(filterType)
 
-    self:ApplySortToList()
-    self.list:Commit()
-    self:EnsureColumnHeadersVisible()
-    self:UpdateScrollIndicator(self.list)
+        self:ApplySortToList()
+        self.list:Commit()
+        self:EnsureColumnHeadersVisible()
+        self:UpdateScrollIndicator(self.list)
 
-    -- Restore selection
-    if currentCategory and self.list and self.list.dataList then
-        local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Companions", currentCategory.key, self.list, self.list.dataList)
-        if self.list.SetSelectedIndex then
-            self.list:SetSelectedIndex(targetIndex)
+        -- Restore selection
+        if currentCategory and self.list and self.list.dataList then
+            local targetIndex = BETTERUI.CIM.PositionManager.RestorePosition("Companions", currentCategory.key, self.list, self.list.dataList)
+            if self.list.SetSelectedIndex then
+                self.list:SetSelectedIndex(targetIndex)
+            end
         end
-    end
 
-    -- Refresh multi-select visuals
-    if Companions.multiSelectManager then
-        Companions.multiSelectManager:RefreshSelections()
+        -- Refresh multi-select visuals
+        if Companions.multiSelectManager then
+            Companions.multiSelectManager:RefreshSelections()
+        end
+    end)
+    self._isRefreshing = false
+    if not ok then
+        error(err)
     end
 end
 
@@ -198,6 +197,11 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
     local bagSize = GetBagSize(BAG_COMPANION_WORN)
     if not bagSize or bagSize == 0 then return end
 
+    local searchQuery = self.searchQuery
+    if searchQuery and searchQuery ~= "" then
+        searchQuery = zo_strlower(searchQuery)
+    end
+
     for slotIndex = 0, bagSize - 1 do
         if self:DoesSlotMatchFilterType(BAG_COMPANION_WORN, slotIndex, filterType) then
             local icon, stackCount, sellPrice, _locked, _equipType,
@@ -206,56 +210,59 @@ function BETTERUI.Companions.Class:BuildEquippedItems(filterType)
             local name = GetItemName(BAG_COMPANION_WORN, slotIndex) or ""
             if name ~= "" then
                 name = zo_strformat(SI_TOOLTIP_ITEM_NAME, name)
-                local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
-                local itemLink = GetItemLink(BAG_COMPANION_WORN, slotIndex)
-                local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
-                local slotData = SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
-                    and SHARED_INVENTORY:GenerateSingleSlotData(BAG_COMPANION_WORN, slotIndex)
+                if not searchQuery or zo_strlower(name):find(searchQuery, 1, true) then
+                    local quality = displayQuality or functionalQuality or ITEM_DISPLAY_QUALITY_NORMAL
+                    local itemLink = GetItemLink(BAG_COMPANION_WORN, slotIndex)
+                    local itemType = itemLink and GetItemLinkItemType(itemLink) or 0
+                    local slotData = SHARED_INVENTORY and SHARED_INVENTORY.GenerateSingleSlotData
+                        and SHARED_INVENTORY:GenerateSingleSlotData(BAG_COMPANION_WORN, slotIndex)
 
-                local entryData = {
-                    name = name,
-                    icon = icon,
-                    stackCount = stackCount or 1,
-                    sellPrice = sellPrice or 0,
-                    stackSellPrice = (sellPrice or 0) * (stackCount or 1),
-                    quality = quality,
-                    bagId = BAG_COMPANION_WORN,
-                    slotIndex = slotIndex,
-                    isEquipped = true,
-                    isCompanionItem = true,
-                    bestGamepadItemCategoryName = GetBestItemCategoryDescription
-                        and GetBestItemCategoryDescription({ bagId = BAG_COMPANION_WORN, slotIndex = slotIndex })
-                        or "",
-                    bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
-                    cached_itemLink = itemLink,
-                    cached_itemType = itemType,
-                    uniqueId = slotData and slotData.uniqueId or nil,
-                    isPlayerLocked = slotData and slotData.isPlayerLocked or false,
-                    isBoPTradeable = slotData and slotData.isBoPTradeable or false,
-                    equipType = slotData and slotData.equipType or _equipType,
-                    itemType = slotData and slotData.itemType or itemType,
-                    equipSlot = slotIndex,
-                    statValue = "",
-                }
+                    local entryData = {
+                        name = name,
+                        icon = icon,
+                        stackCount = stackCount or 1,
+                        sellPrice = sellPrice or 0,
+                        stackSellPrice = (sellPrice or 0) * (stackCount or 1),
+                        quality = quality,
+                        bagId = BAG_COMPANION_WORN,
+                        slotIndex = slotIndex,
+                        isEquipped = true,
+                        isEquippedInCurrentCategory = true,
+                        isCompanionItem = true,
+                        bestGamepadItemCategoryName = GetBestItemCategoryDescription
+                            and GetBestItemCategoryDescription({ bagId = BAG_COMPANION_WORN, slotIndex = slotIndex })
+                            or "",
+                        bestItemTypeName = GetString("SI_ITEMTYPE", itemType),
+                        cached_itemLink = itemLink,
+                        cached_itemType = itemType,
+                        uniqueId = slotData and slotData.uniqueId or nil,
+                        isPlayerLocked = slotData and slotData.isPlayerLocked or false,
+                        isBoPTradeable = slotData and slotData.isBoPTradeable or false,
+                        equipType = slotData and slotData.equipType or _equipType,
+                        itemType = slotData and slotData.itemType or itemType,
+                        equipSlot = slotIndex,
+                        statValue = "",
+                    }
 
-                if GetItemStatValue then
-                    local statValue = GetItemStatValue(BAG_COMPANION_WORN, slotIndex)
-                    if statValue and statValue > 0 then
-                        entryData.statValue = statValue
+                    if GetItemStatValue then
+                        local statValue = GetItemStatValue(BAG_COMPANION_WORN, slotIndex)
+                        if statValue and statValue > 0 then
+                            entryData.statValue = statValue
+                        end
                     end
+
+                    local entry = ZO_GamepadEntryData:New(entryData.name, entryData.icon)
+                    entry:SetDataSource(entryData)
+                    entry.narrationText = function() return entryData.name end
+
+                    if quality then
+                        local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
+                        entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
+                    end
+
+                    self:ApplyMultiSelectVisual(entry, entryData)
+                    list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
                 end
-
-                local entry = ZO_GamepadEntryData:New("|cFFD700[E]|r " .. entryData.name, entryData.icon)
-                entry:SetDataSource(entryData)
-                entry.narrationText = function() return entryData.name end
-
-                if quality then
-                    local r, g, b = GetItemQualityColor(quality):UnpackRGBA()
-                    entry:SetNameColors(ZO_ColorDef:New(r, g, b, 1), ZO_ColorDef:New(r, g, b, 0.7))
-                end
-
-                self:ApplyMultiSelectVisual(entry, entryData)
-                list:AddEntry("BETTERUI_GamepadItemSubEntryTemplate", entry)
             end
         end
     end

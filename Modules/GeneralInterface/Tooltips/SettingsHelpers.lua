@@ -184,6 +184,8 @@ local function ResetEnhancedTooltipSettings()
                 GetMetadataDefault("GeneralInterface", "showStyleTrait", true)
             generalInterfaceSettings.showKnowledgeStatus =
                 GetMetadataDefault("GeneralInterface", "showKnowledgeStatus", true)
+            generalInterfaceSettings.showItemComparison =
+                GetMetadataDefault("GeneralInterface", "showItemComparison", true)
         end
         if cimSettings then
             cimSettings.enableTooltipEnhancements =

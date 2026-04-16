@@ -150,6 +150,7 @@ ZO_CreateStringId("SI_BETTERUI_STOLEN", "Gestohlen")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_STYLE_MATERIAL", "Stilmaterial")
 ZO_CreateStringId("SI_BETTERUI_CATEGORY_ENCHANTING", "Verzauberung")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Suche löschen")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "Suchen")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "BEKANNT")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "UNBEKANNT")
 
@@ -418,6 +419,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip – Rezept- und Buchkenntnisstatus")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "Zeigt im erweiterten Tooltip an, ob Rezepte, Motive und Lore-Bücher bereits bekannt oder noch nicht erlernt sind. Gilt in allen Szenen.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "Tooltip – Gegenstands-Statvergleich")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "Zeigt Statvergleichsdaten (Schaden, Rüstung, Qualität, Set- und Verzauberungsänderungen) am unteren Rand des Tooltips an, wenn ein nicht ausgerüsteter Gegenstand hervorgehoben wird.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chatfenster-Verlauf Größe")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP",
     "Ändert, wie viele Zeilen im Chatpuffer gespeichert werden, Standard=200")

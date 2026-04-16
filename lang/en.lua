@@ -147,6 +147,7 @@ ZO_CreateStringId("SI_BETTERUI_ENABLE_COMPANION_JUNK_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_KNOWN", "KNOWN")
 ZO_CreateStringId("SI_BETTERUI_INV_RECIPE_UNKNOWN", "UNKNOWN")
 ZO_CreateStringId("SI_BETTERUI_CLEAR_SEARCH", "Clear Search")
+ZO_CreateStringId("SI_BETTERUI_INV_SEARCH", "Search")
 ZO_CreateStringId("SI_BETTERUI_HEADER_SORT", "Sort")
 
 -- Multi-Select Mode
@@ -470,6 +471,9 @@ ZO_CreateStringId("SI_BETTERUI_SHOW_STYLE_TRAIT_TOOLTIP",
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS", "Tooltip - Recipe & Book Knowledge Status")
 ZO_CreateStringId("SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP",
     "Shows whether recipes, motifs, and lore books are known or not yet learned in the enhanced tooltip. Appears across all scenes.")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON", "Tooltip - Item Stat Comparison")
+ZO_CreateStringId("SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP",
+    "Shows stat comparison data (damage, armor, quality, set, and enchantment changes) at the bottom of the tooltip when hovering over an unequipped item.")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY", "Chat window history size")
 ZO_CreateStringId("SI_BETTERUI_CHAT_HISTORY_TOOLTIP", "Alters how many lines to store in the chat buffer, default=200")
 ZO_CreateStringId("SI_BETTERUI_REMOVE_DELETE_MAIL_CONFIRM", "Skip Mail Delete Confirmation")
