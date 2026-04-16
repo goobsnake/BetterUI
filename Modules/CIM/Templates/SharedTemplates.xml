@@ -236,6 +236,30 @@
             </Controls>
         </Control>
 
+        <Control name="BETTERUI_GamepadStableTrainingEntryTemplate"
+            inherits="BETTERUI_GamepadItemSubEntryTemplate" virtual="true">
+            <Controls>
+                <Texture name="$(parent)TrainingProgressBackdrop"
+                    color="1A1A1A" alpha="0.85" hidden="true"
+                    excludeFromResizeToFitExtents="true">
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Stat" relativePoint="BOTTOMLEFT"
+                        offsetY="2" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Value" relativePoint="RIGHT" />
+                    <Dimensions y="8" />
+                </Texture>
+                <StatusBar name="$(parent)TrainingProgress"
+                    textureFile="EsoUI/Art/Miscellaneous/progressbar_genericfill_tall.dds"
+                    color="C4A64D" hidden="true" mouseEnabled="false"
+                    excludeFromResizeToFitExtents="true">
+                    <Limits min="0" max="100" />
+                    <Anchor point="TOPLEFT" relativeTo="$(parent)Stat" relativePoint="BOTTOMLEFT"
+                        offsetY="2" />
+                    <Anchor point="RIGHT" relativeTo="$(parent)Value" relativePoint="RIGHT" />
+                    <Dimensions y="8" />
+                </StatusBar>
+            </Controls>
+        </Control>
+
 
         <!-- 
             Template: Simple Menu Entry (Legacy/Basic)

@@ -127,6 +127,14 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 
     Banking = {
+        enableGuildBank = {
+            labelStringId = SI_BETTERUI_GUILD_BANK_ENABLED,
+            tooltipStringId = SI_BETTERUI_GUILD_BANK_ENABLED_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         enableCarousel = {
             labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
             tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
@@ -157,6 +165,14 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 
     Vendor = {
+        abbreviateVendorCurrency = {
+            labelStringId = SI_BETTERUI_ABBREVIATE_CURRENCY,
+            tooltipStringId = SI_BETTERUI_ABBREVIATE_CURRENCY_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         enableCarousel = {
             labelStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV,
             tooltipStringId = SI_BETTERUI_ENABLE_CAROUSEL_NAV_TOOLTIP,
@@ -176,6 +192,38 @@ local SETTINGS_METADATA_REGISTRY = {
     },
 
     Companions = {
+        quickDestroy = {
+            labelStringId = SI_BETTERUI_INV_QUICK_DESTROY,
+            tooltipStringId = SI_BETTERUI_INV_QUICK_DESTROY_TOOLTIP,
+            defaultValue = false,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        batchDestroy = {
+            labelStringId = SI_BETTERUI_INV_BATCH_DESTROY,
+            tooltipStringId = SI_BETTERUI_INV_BATCH_DESTROY_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        bindOnEquipProtection = {
+            labelStringId = SI_BETTERUI_INV_BOE_PROTECTION,
+            tooltipStringId = SI_BETTERUI_INV_BOE_PROTECTION_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
+        enableCompanionJunk = {
+            labelStringId = SI_BETTERUI_INV_COMPANION_JUNK,
+            tooltipStringId = SI_BETTERUI_INV_COMPANION_JUNK_TOOLTIP,
+            defaultValue = true,
+            dependency = nil,
+            sortGroup = "general",
+            resetGroup = "general",
+        },
         enableCompanionEquipment = {
             labelStringId = SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT,
             tooltipStringId = SI_BETTERUI_COMPANIONS_ENABLE_EQUIPMENT_TOOLTIP,

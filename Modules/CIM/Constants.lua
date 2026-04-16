@@ -186,6 +186,7 @@ BETTERUI.CIM.CONST.MODULES = {
     -- Vendor module identifiers
     VENDOR_BUY = "Vendor_Buy",
     VENDOR_SELL = "Vendor_Sell",
+    VENDOR_SELL_VENGEANCE = "Vendor_SellVengeance",
     VENDOR_REPAIR = "Vendor_Repair",
     VENDOR_BUYBACK = "Vendor_Buyback",
     VENDOR_FENCE_SELL = "Vendor_FenceSell",
