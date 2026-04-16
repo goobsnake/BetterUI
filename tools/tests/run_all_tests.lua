@@ -33,8 +33,8 @@ end
 local function listFiles(dir, pattern)
     local files = {}
 
-    -- Try Windows dir command
-    local handle = io.popen('dir /b "' .. dir .. '" 2>nul')
+    -- Try Unix ls first (dir on Linux is coreutils multi-column, not Windows dir)
+    local handle = io.popen('ls -1 "' .. dir .. '" 2>/dev/null')
     if handle then
         for file in handle:lines() do
             if file:match(pattern) then
@@ -44,9 +44,9 @@ local function listFiles(dir, pattern)
         handle:close()
     end
 
-    -- If empty, try Unix ls
+    -- If empty, try Windows dir /b
     if #files == 0 then
-        handle = io.popen('ls -1 "' .. dir .. '" 2>/dev/null')
+        handle = io.popen('dir /b "' .. dir .. '" 2>nul')
         if handle then
             for file in handle:lines() do
                 if file:match(pattern) then

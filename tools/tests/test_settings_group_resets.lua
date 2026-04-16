@@ -11,12 +11,23 @@ BETTERUI = {
         Modules = {
             Inventory = {},
             Banking = {},
+            Vendor = {},
+            Companions = {},
         },
     },
     CIM = {
         Settings = {},
     },
 }
+
+function BETTERUI.GetModuleSettings(moduleName)
+    BETTERUI.Settings.Modules[moduleName] = BETTERUI.Settings.Modules[moduleName] or {}
+    return BETTERUI.Settings.Modules[moduleName]
+end
+
+function BETTERUI.CIM.TryResolve(_)
+    return nil
+end
 
 local testsPassed = 0
 local testsFailed = 0
@@ -35,7 +46,7 @@ end
 
 print("\n=== Settings Group Reset Tests ===\n")
 
-dofile("Modules/CIM/Core/SettingsFactory.lua")
+dofile("Modules/CIM/Core/Settings/SettingsMetadata.lua")
 
 print("Test: Inventory general reset restores trigger settings")
 BETTERUI.Settings.Modules.Inventory = {
@@ -67,9 +78,40 @@ BETTERUI.Settings.Modules.Banking = {
 
 BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Banking", "general")
 
+assertEqual(true, BETTERUI.Settings.Modules.Banking.enableGuildBank, "Banking enableGuildBank reset")
 assertEqual(true, BETTERUI.Settings.Modules.Banking.enableCarousel, "Banking enableCarousel reset")
 assertEqual(false, BETTERUI.Settings.Modules.Banking.useTriggersForSkip, "Banking useTriggersForSkip reset")
 assertEqual(10, BETTERUI.Settings.Modules.Banking.triggerSpeed, "Banking triggerSpeed reset")
+
+print("\nTest: Vendor general reset restores currency and sell settings")
+BETTERUI.Settings.Modules.Vendor = {
+    enableCarousel = false,
+    enableBatchJunkSell = false,
+    abbreviateVendorCurrency = false,
+}
+
+BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Vendor", "general")
+
+assertEqual(true, BETTERUI.Settings.Modules.Vendor.enableCarousel, "Vendor enableCarousel reset")
+assertEqual(true, BETTERUI.Settings.Modules.Vendor.enableBatchJunkSell, "Vendor enableBatchJunkSell reset")
+assertEqual(true, BETTERUI.Settings.Modules.Vendor.abbreviateVendorCurrency, "Vendor abbreviateVendorCurrency reset")
+
+print("\nTest: Companions general reset restores equipment safety settings")
+BETTERUI.Settings.Modules.Companions = {
+    enableCompanionEquipment = false,
+    quickDestroy = true,
+    batchDestroy = false,
+    bindOnEquipProtection = false,
+    enableCompanionJunk = false,
+}
+
+BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Companions", "general")
+
+assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCompanionEquipment, "Companions enableCompanionEquipment reset")
+assertEqual(false, BETTERUI.Settings.Modules.Companions.quickDestroy, "Companions quickDestroy reset")
+assertEqual(true, BETTERUI.Settings.Modules.Companions.batchDestroy, "Companions batchDestroy reset")
+assertEqual(true, BETTERUI.Settings.Modules.Companions.bindOnEquipProtection, "Companions bindOnEquipProtection reset")
+assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCompanionJunk, "Companions enableCompanionJunk reset")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))

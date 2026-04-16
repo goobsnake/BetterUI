@@ -1,7 +1,7 @@
 --[[
 File: tools/tests/test_utilities.lua
 Purpose: Unit tests for core Utilities functions.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+                 Loads production Utilities helpers so tests guard the live module API.
 
 Usage:
   lua tools/tests/test_utilities.lua
@@ -11,40 +11,47 @@ Usage:
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
--- Mock BETTERUI namespace
-BETTERUI = { CIM = { Utils = {} } }
+local debugOutput = {}
 
-function BETTERUI.Debug(msg)
-    -- Silent in tests
+BETTERUI = {
+    CIM = {
+        Utils = {},
+        Debug = {
+            IsEnabled = function()
+                return true
+            end,
+        },
+        CONST = {
+            SORT_SCHEMA = {},
+        },
+    },
+    Settings = {
+        Modules = {
+            Inventory = { m_enabled = true },
+            Banking = { m_enabled = false },
+            Legacy = { enabled = true },
+        },
+    },
+}
+
+SCENE_MANAGER = { scenes = {} }
+
+function d(msg)
+    table.insert(debugOutput, msg)
+    return msg
 end
+
+function ZO_TableOrderingFunction()
+    return false
+end
+
+ZO_SORT_ORDER_UP = 1
 
 -- ============================================================================
--- IMPORT FUNCTIONS UNDER TEST
+-- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
--- WrapValue: Circular navigation
-function BETTERUI.CIM.Utils.WrapValue(value, minValue, maxValue)
-    if value < minValue then
-        return maxValue
-    elseif value > maxValue then
-        return minValue
-    end
-    return value
-end
-
--- SafeCall: Nil-safe method calling
-function BETTERUI.CIM.Utils.SafeCall(obj, methodName, ...)
-    if obj and type(obj[methodName]) == "function" then
-        return obj[methodName](obj, ...)
-    end
-    return nil
-end
-
--- SafeIcon: Icon path safety wrapper
-function BETTERUI.SafeIcon(iconPath)
-    if iconPath == nil then return "" end
-    return iconPath
-end
+dofile("Modules/CIM/Core/Utilities.lua")
 
 -- ============================================================================
 -- TEST HARNESS
@@ -74,6 +81,24 @@ local function assert_nil(value, message)
 end
 
 -- ============================================================================
+-- TESTS: Module enablement helpers
+-- ============================================================================
+
+print("\n=== Module Enablement Tests ===\n")
+
+print("Test: GetModuleEnabled uses canonical m_enabled flag")
+assert_true(BETTERUI.GetModuleEnabled("Inventory"), "Inventory enabled via m_enabled")
+assert_equal(false, BETTERUI.GetModuleEnabled("Banking"), "Banking disabled via m_enabled")
+assert_equal(false, BETTERUI.GetModuleEnabled("Legacy"), "Legacy enabled key is ignored")
+assert_equal(false, BETTERUI.GetModuleEnabled("Missing"), "Missing module defaults to disabled")
+
+print("\nTest: SetModuleEnabled applies session-only disable override")
+BETTERUI.SetModuleEnabled("Inventory", false)
+assert_equal(false, BETTERUI.GetModuleEnabled("Inventory"), "Session disable hides enabled module")
+BETTERUI.SetModuleEnabled("Inventory", true)
+assert_true(BETTERUI.GetModuleEnabled("Inventory"), "Session re-enable restores module")
+
+-- ============================================================================
 -- TESTS: WrapValue
 -- ============================================================================
 
@@ -81,23 +106,20 @@ print("\n=== WrapValue Tests ===\n")
 
 -- Test 1: Value below min wraps to max
 print("Test: Value below min wraps to max")
-assert_equal(5, BETTERUI.CIM.Utils.WrapValue(0, 1, 5), "0 wraps to 5 (min=1, max=5)")
+assert_equal(5, BETTERUI.CIM.Utils.WrapValue(0, 5), "0 wraps to 5 (max=5)")
 
 -- Test 2: Value above max wraps to min
 print("\nTest: Value above max wraps to min")
-assert_equal(1, BETTERUI.CIM.Utils.WrapValue(6, 1, 5), "6 wraps to 1 (min=1, max=5)")
+assert_equal(1, BETTERUI.CIM.Utils.WrapValue(6, 5), "6 wraps to 1 (max=5)")
 
 -- Test 3: Value within range unchanged
 print("\nTest: Value within range unchanged")
-assert_equal(3, BETTERUI.CIM.Utils.WrapValue(3, 1, 5), "3 stays 3 (min=1, max=5)")
+assert_equal(3, BETTERUI.CIM.Utils.WrapValue(3, 5), "3 stays 3 (max=5)")
 
--- Test 4: At min boundary unchanged
-print("\nTest: At min boundary unchanged")
-assert_equal(1, BETTERUI.CIM.Utils.WrapValue(1, 1, 5), "1 stays 1 (at min)")
-
--- Test 5: At max boundary unchanged
-print("\nTest: At max boundary unchanged")
-assert_equal(5, BETTERUI.CIM.Utils.WrapValue(5, 1, 5), "5 stays 5 (at max)")
+-- Test 4: Boundary values stay in range
+print("\nTest: Boundary values stay in range")
+assert_equal(1, BETTERUI.CIM.Utils.WrapValue(1, 5), "1 stays 1")
+assert_equal(5, BETTERUI.CIM.Utils.WrapValue(5, 5), "5 stays 5")
 
 -- ============================================================================
 -- TESTS: SafeCall
@@ -151,6 +173,11 @@ assert_equal(path, BETTERUI.SafeIcon(path), "Valid path unchanged")
 -- Test 12: Empty string unchanged
 print("\nTest: Empty string unchanged")
 assert_equal("", BETTERUI.SafeIcon(""), "Empty string unchanged")
+
+-- Test 13: Debug prefixes messages when enabled
+print("\nTest: Debug prefixes messages")
+local debugMessage = BETTERUI.Debug("hello")
+assert_true(debugMessage:find("BETTERUI") ~= nil, "Debug output contains addon prefix")
 
 -- ============================================================================
 -- SUMMARY

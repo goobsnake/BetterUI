@@ -1,7 +1,8 @@
 --[[
 File: tools/tests/test_deferred_task.lua
 Purpose: Unit tests for DeferredTask utility.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+                 Loads production code via dofile to ensure the public task manager API
+                 stays aligned with runtime behavior.
 
 Usage:
   lua tools/tests/test_deferred_task.lua
@@ -11,81 +12,58 @@ Usage:
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
-local scheduledUpdates = {}
+local scheduledCallbacks = {}
+local removedCallbacks = {}
 local nextId = 1
 
-EVENT_MANAGER = {
-    RegisterForUpdate = function(name, delay, callback)
-        scheduledUpdates[name] = { delay = delay, callback = callback }
-        return nextId
-    end,
-    UnregisterForUpdate = function(name)
-        scheduledUpdates[name] = nil
-    end
-}
+ZO_Object = {}
 
-function GetGameTimeMilliseconds()
-    return os.time() * 1000
+function ZO_Object:Subclass()
+    local subclass = {}
+    subclass.__index = subclass
+    return setmetatable(subclass, { __index = self })
 end
 
--- Mock BETTERUI namespace
+function ZO_Object.New(class)
+    return setmetatable({}, class)
+end
+
+function zo_callLater(callback, delayMs)
+    local id = nextId
+    nextId = nextId + 1
+    scheduledCallbacks[id] = {
+        callback = callback,
+        delayMs = delayMs,
+    }
+    return id
+end
+
+function zo_removeCallLater(id)
+    removedCallbacks[id] = true
+    scheduledCallbacks[id] = nil
+end
+
 BETTERUI = { CIM = {} }
 
-function BETTERUI.Debug(msg)
-    -- Silent in tests
-end
+function BETTERUI.Debug(_) end
 
 -- ============================================================================
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
--- Inline DeferredTask implementation for standalone testing
-local DeferredTask = {}
-DeferredTask.__index = DeferredTask
+dofile("Modules/CIM/Core/Lifecycle/DeferredTask.lua")
 
-function DeferredTask:New(prefix)
-    local obj = setmetatable({}, self)
-    obj._prefix = prefix or "DeferredTask"
-    obj._scheduled = {}
-    return obj
+local function resetScheduler()
+    scheduledCallbacks = {}
+    removedCallbacks = {}
+    nextId = 1
 end
 
-function DeferredTask:Schedule(name, delayMs, callback)
-    local fullName = self._prefix .. "_" .. name
-
-    -- Cancel existing if any
-    if self._scheduled[name] then
-        EVENT_MANAGER:UnregisterForUpdate(fullName)
+local function getOnlyScheduledId()
+    for id in pairs(scheduledCallbacks) do
+        return id
     end
-
-    self._scheduled[name] = true
-    EVENT_MANAGER:RegisterForUpdate(fullName, delayMs, function()
-        EVENT_MANAGER:UnregisterForUpdate(fullName)
-        self._scheduled[name] = nil
-        callback()
-    end)
-end
-
-function DeferredTask:Cancel(name)
-    if self._scheduled[name] then
-        local fullName = self._prefix .. "_" .. name
-        EVENT_MANAGER:UnregisterForUpdate(fullName)
-        self._scheduled[name] = nil
-        return true
-    end
-    return false
-end
-
-function DeferredTask:CancelAll()
-    for name, _ in pairs(self._scheduled) do
-        local fullName = self._prefix .. "_" .. name
-        EVENT_MANAGER:UnregisterForUpdate(fullName)
-    end
-    self._scheduled = {}
-end
-
-function DeferredTask:IsScheduled(name)
-    return self._scheduled[name] == true
+    return nil
 end
 
 -- ============================================================================
@@ -123,39 +101,75 @@ print("\n=== DeferredTask Tests ===\n")
 
 -- Test 1: Schedule creates pending task
 print("Test: Schedule creates pending task")
-local tasks = DeferredTask:New("Test")
+resetScheduler()
+local tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 tasks:Schedule("myTask", 100, function() end)
-assert_true(tasks:IsScheduled("myTask"), "Task is scheduled")
+local scheduledId = getOnlyScheduledId()
+assert_true(scheduledId ~= nil, "Task created a deferred callback")
+assert_true(tasks:IsPending("myTask"), "Task is pending")
+assert_equal(1, tasks:GetPendingCount(), "Pending count is 1")
 
--- Test 2: Cancel removes task
+-- Test 2: Pending task clears after callback runs
+print("\nTest: Pending task clears after callback runs")
+local callbackCount = 0
+resetScheduler()
+tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+tasks:Schedule("runTask", 75, function()
+    callbackCount = callbackCount + 1
+end)
+scheduledId = getOnlyScheduledId()
+scheduledCallbacks[scheduledId].callback()
+assert_equal(1, callbackCount, "Callback executed once")
+assert_false(tasks:IsPending("runTask"), "Task no longer pending after execution")
+assert_equal(0, tasks:GetPendingCount(), "Pending count returns to 0")
+
+-- Test 3: Cancel removes task
 print("\nTest: Cancel removes task")
-local cancelled = tasks:Cancel("myTask")
-assert_true(cancelled, "Cancel returns true")
-assert_false(tasks:IsScheduled("myTask"), "Task is no longer scheduled")
+resetScheduler()
+tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+tasks:Schedule("myTask", 100, function() end)
+scheduledId = getOnlyScheduledId()
+tasks:Cancel("myTask")
+assert_true(removedCallbacks[scheduledId] == true, "Cancel removes the scheduled callback")
+assert_false(tasks:IsPending("myTask"), "Task is no longer pending")
 
--- Test 3: Cancel non-existent task returns false
-print("\nTest: Cancel non-existent task returns false")
-local result = tasks:Cancel("nonexistent")
-assert_false(result, "Cancel returns false for non-existent")
+-- Test 4: Cancel non-existent task is harmless
+print("\nTest: Cancel non-existent task is harmless")
+tasks:Cancel("nonexistent")
+assert_equal(0, tasks:GetPendingCount(), "Cancel on missing task leaves state unchanged")
 
--- Test 4: CancelAll clears all tasks
+-- Test 5: CancelAll clears all tasks
 print("\nTest: CancelAll clears all tasks")
+resetScheduler()
+tasks = BETTERUI.CIM.DeferredTask.Manager:New()
 tasks:Schedule("task1", 100, function() end)
 tasks:Schedule("task2", 100, function() end)
 tasks:Schedule("task3", 100, function() end)
-assert_true(tasks:IsScheduled("task1"), "task1 is scheduled")
-assert_true(tasks:IsScheduled("task2"), "task2 is scheduled")
+assert_true(tasks:IsPending("task1"), "task1 is pending")
+assert_true(tasks:IsPending("task2"), "task2 is pending")
+assert_equal(3, tasks:GetPendingCount(), "Three tasks are pending before CancelAll")
 tasks:CancelAll()
-assert_false(tasks:IsScheduled("task1"), "task1 cleared")
-assert_false(tasks:IsScheduled("task2"), "task2 cleared")
-assert_false(tasks:IsScheduled("task3"), "task3 cleared")
+assert_false(tasks:IsPending("task1"), "task1 cleared")
+assert_false(tasks:IsPending("task2"), "task2 cleared")
+assert_false(tasks:IsPending("task3"), "task3 cleared")
+assert_equal(0, tasks:GetPendingCount(), "Pending count returns to 0 after CancelAll")
 
--- Test 5: Reschedule replaces existing
-print("\nTest: Reschedule replaces existing")
-local callCount = 0
-tasks:Schedule("replace", 100, function() callCount = callCount + 1 end)
-tasks:Schedule("replace", 100, function() callCount = callCount + 10 end)
-assert_true(tasks:IsScheduled("replace"), "Task still scheduled after replace")
+-- Test 6: Reschedule replaces existing callback
+print("\nTest: Reschedule replaces existing callback")
+resetScheduler()
+tasks = BETTERUI.CIM.DeferredTask.Manager:New()
+local firstCount = 0
+local secondCount = 0
+tasks:Schedule("replace", 100, function() firstCount = firstCount + 1 end)
+local firstId = getOnlyScheduledId()
+tasks:Schedule("replace", 250, function() secondCount = secondCount + 1 end)
+local secondId = getOnlyScheduledId()
+assert_true(firstId ~= secondId, "Reschedule creates a fresh callback id")
+assert_true(removedCallbacks[firstId] == true, "Previous callback removed during reschedule")
+assert_true(tasks:IsPending("replace"), "Replacement task remains pending")
+scheduledCallbacks[secondId].callback()
+assert_equal(0, firstCount, "Original callback never ran")
+assert_equal(1, secondCount, "Replacement callback ran once")
 
 -- ============================================================================
 -- SUMMARY

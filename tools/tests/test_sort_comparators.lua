@@ -1,51 +1,48 @@
 --[[
 File: tools/tests/test_sort_comparators.lua
-Purpose: Unit tests for sort comparator functions.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+Purpose: Unit tests for production comparator helpers in Utilities.lua.
+         Covers CompareNils and DefaultSortComparator wiring used by list sorting.
 
 Usage:
   lua tools/tests/test_sort_comparators.lua
-
-Note: This file stubs the ESO environment to test pure functions in isolation.
 ]]
 
 -- ============================================================================
--- SORT COMPARATOR FUNCTIONS (Extracted for Testing)
+-- MINIMAL ESO STUBS
 -- ============================================================================
 
--- Basic numeric comparator
-local function CompareNumbers(a, b, ascending)
-    if ascending then
-        return (a or 0) < (b or 0)
-    else
-        return (a or 0) > (b or 0)
-    end
+local recordedOrderingCall = nil
+
+BETTERUI = {
+    CIM = {
+        CONST = {
+            SORT_SCHEMA = { marker = "schema" },
+        },
+        Utils = {},
+        Debug = {
+            IsEnabled = function()
+                return true
+            end,
+        },
+    },
+}
+
+ZO_SORT_ORDER_UP = 1
+
+function d(_) end
+
+function ZO_TableOrderingFunction(left, right, key, schema, order)
+    recordedOrderingCall = {
+        left = left,
+        right = right,
+        key = key,
+        schema = schema,
+        order = order,
+    }
+    return left.sortPriorityName < right.sortPriorityName
 end
 
--- String comparator with nil handling
-local function CompareStrings(a, b, ascending)
-    a = a or ""
-    b = b or ""
-    if ascending then
-        return a < b
-    else
-        return a > b
-    end
-end
-
--- Multi-key comparator (name, then level)
-local function CompareItems(item1, item2)
-    -- First compare by name
-    local name1 = item1.name or ""
-    local name2 = item2.name or ""
-    if name1 ~= name2 then
-        return name1 < name2
-    end
-    -- Then by level
-    local level1 = item1.level or 0
-    local level2 = item2.level or 0
-    return level1 < level2
-end
+dofile("Modules/CIM/Core/Utilities.lua")
 
 -- ============================================================================
 -- TEST FRAMEWORK
@@ -53,6 +50,18 @@ end
 
 local tests_passed = 0
 local tests_failed = 0
+
+local function assert_equal(expected, actual, test_name)
+    if expected == actual then
+        tests_passed = tests_passed + 1
+        print("[PASS] " .. test_name)
+    else
+        tests_failed = tests_failed + 1
+        print("[FAIL] " .. test_name)
+        print("       Expected: " .. tostring(expected))
+        print("       Actual:   " .. tostring(actual))
+    end
+end
 
 local function assert_true(value, test_name)
     if value then
@@ -75,52 +84,32 @@ local function assert_false(value, test_name)
 end
 
 -- ============================================================================
--- TEST CASES: CompareNumbers
+-- TEST CASES: CompareNils
 -- ============================================================================
 
-print("\n=== CompareNumbers Tests ===\n")
+print("\n=== CompareNils Tests ===\n")
 
-assert_true(CompareNumbers(1, 2, true), "CompareNumbers: 1 < 2 ascending")
-assert_false(CompareNumbers(2, 1, true), "CompareNumbers: 2 not < 1 ascending")
-assert_true(CompareNumbers(2, 1, false), "CompareNumbers: 2 > 1 descending")
-assert_false(CompareNumbers(1, 2, false), "CompareNumbers: 1 not > 2 descending")
-assert_false(CompareNumbers(1, 1, true), "CompareNumbers: 1 not < 1 ascending")
-assert_true(CompareNumbers(nil, 1, true), "CompareNumbers: nil (0) < 1 ascending")
-assert_false(CompareNumbers(nil, nil, true), "CompareNumbers: nil not < nil ascending")
-
--- ============================================================================
--- TEST CASES: CompareStrings
--- ============================================================================
-
-print("\n=== CompareStrings Tests ===\n")
-
-assert_true(CompareStrings("apple", "banana", true), "CompareStrings: apple < banana ascending")
-assert_false(CompareStrings("banana", "apple", true), "CompareStrings: banana not < apple ascending")
-assert_true(CompareStrings("banana", "apple", false), "CompareStrings: banana > apple descending")
-assert_false(CompareStrings("apple", "banana", false), "CompareStrings: apple not > banana descending")
-assert_true(CompareStrings(nil, "apple", true), "CompareStrings: nil ('') < 'apple' ascending")
+assert_false(BETTERUI.CIM.Utils.CompareNils(nil, nil, true), "CompareNils: both nil returns false")
+assert_false(BETTERUI.CIM.Utils.CompareNils(nil, "value", true), "CompareNils: nil sorts last when nilGoesLast=true")
+assert_true(BETTERUI.CIM.Utils.CompareNils("value", nil, true), "CompareNils: non-nil sorts first when nilGoesLast=true")
+assert_true(BETTERUI.CIM.Utils.CompareNils(nil, "value", false), "CompareNils: nil sorts first when nilGoesLast=false")
+assert_false(BETTERUI.CIM.Utils.CompareNils("value", nil, false), "CompareNils: non-nil sorts last when nilGoesLast=false")
+assert_equal(nil, BETTERUI.CIM.Utils.CompareNils("a", "b", true), "CompareNils: non-nil pair defers to caller")
 
 -- ============================================================================
--- TEST CASES: CompareItems (Multi-key)
+-- TEST CASES: DefaultSortComparator
 -- ============================================================================
 
-print("\n=== CompareItems Tests ===\n")
+print("\n=== DefaultSortComparator Tests ===\n")
 
-local item1 = { name = "Sword", level = 10 }
-local item2 = { name = "Sword", level = 20 }
-local item3 = { name = "Axe", level = 30 }
-
-assert_true(CompareItems(item3, item1), "CompareItems: Axe < Sword (by name)")
-assert_false(CompareItems(item1, item3), "CompareItems: Sword not < Axe (by name)")
-assert_true(CompareItems(item1, item2), "CompareItems: Sword L10 < Sword L20 (same name, by level)")
-assert_false(CompareItems(item2, item1), "CompareItems: Sword L20 not < Sword L10 (same name)")
-
--- Nil handling
-local item_nil_name = { name = nil, level = 5 }
-local item_nil_level = { name = "Bow", level = nil }
-
-assert_true(CompareItems(item_nil_name, item1), "CompareItems: nil name < 'Sword'")
-assert_true(CompareItems(item_nil_level, item1), "CompareItems: 'Bow' < 'Sword' (by name)")
+local left = { sortPriorityName = "Alpha" }
+local right = { sortPriorityName = "Beta" }
+assert_true(BETTERUI.CIM.Utils.DefaultSortComparator(left, right), "DefaultSortComparator returns ordering result")
+assert_equal(left, recordedOrderingCall.left, "DefaultSortComparator forwards left item")
+assert_equal(right, recordedOrderingCall.right, "DefaultSortComparator forwards right item")
+assert_equal("sortPriorityName", recordedOrderingCall.key, "DefaultSortComparator uses sortPriorityName key")
+assert_equal(BETTERUI.CIM.CONST.SORT_SCHEMA, recordedOrderingCall.schema, "DefaultSortComparator forwards schema")
+assert_equal(ZO_SORT_ORDER_UP, recordedOrderingCall.order, "DefaultSortComparator uses ascending order constant")
 
 -- ============================================================================
 -- SUMMARY

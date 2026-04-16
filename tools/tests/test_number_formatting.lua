@@ -1,12 +1,10 @@
 --[[
 File: tools/tests/test_number_formatting.lua
-Purpose: Unit tests for NumberFormatting utility functions.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+Purpose: Unit tests for live NumberFormatting utility functions.
+                 Loads production code from CIM/Core/Presentation/NumberFormatting.lua.
 
 Usage:
   lua tools/tests/test_number_formatting.lua
-
-Note: This file stubs the ESO environment to test pure functions in isolation.
 ]]
 
 -- ============================================================================
@@ -14,43 +12,13 @@ Note: This file stubs the ESO environment to test pure functions in isolation.
 -- ============================================================================
 
 -- Stub ZO_CommaDelimitNumber (ESO API)
-function ZO_CommaDelimitNumber(number)
-    local formatted = tostring(math.floor(number))
-    local k
-    while true do
-        formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", "%1,%2")
-        if k == 0 then break end
-    end
-    return formatted
-end
+BETTERUI = {}
 
 -- ============================================================================
--- IMPORT FUNCTIONS UNDER TEST
+-- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
--- Simulate the FormatNumber function from NumberFormatting.lua
-local function FormatNumber(number)
-    if not number then return "0" end
-    return ZO_CommaDelimitNumber(number)
-end
-
-local function FormatNumberWithSuffix(number)
-    if not number then return "0" end
-    if number >= 1000000000 then
-        return string.format("%.1fB", number / 1000000000)
-    elseif number >= 1000000 then
-        return string.format("%.1fM", number / 1000000)
-    elseif number >= 1000 then
-        return string.format("%.1fK", number / 1000)
-    else
-        return tostring(number)
-    end
-end
-
-local function FormatPercentage(value, total)
-    if not total or total == 0 then return "0%" end
-    return string.format("%.0f%%", (value / total) * 100)
-end
+dofile("Modules/CIM/Core/Presentation/NumberFormatting.lua")
 
 -- ============================================================================
 -- TEST FRAMEWORK
@@ -72,42 +40,43 @@ local function assert_equal(expected, actual, test_name)
 end
 
 -- ============================================================================
+-- TEST CASES: DisplayNumber
+-- ============================================================================
+
+print("\n=== DisplayNumber Tests ===\n")
+
+assert_equal("0", BETTERUI.DisplayNumber(0), "DisplayNumber: 0 returns '0'")
+assert_equal("100", BETTERUI.DisplayNumber(100), "DisplayNumber: 100 returns '100'")
+assert_equal("1,000", BETTERUI.DisplayNumber(1000), "DisplayNumber: 1000 returns '1,000'")
+assert_equal("1,000,000", BETTERUI.DisplayNumber(1000000), "DisplayNumber: 1M returns '1,000,000'")
+assert_equal("12,345,678", BETTERUI.DisplayNumber(12345678), "DisplayNumber: 12345678 returns '12,345,678'")
+assert_equal("-1,234.5", BETTERUI.DisplayNumber(-1234.5), "DisplayNumber: preserves negative sign and fraction")
+
+-- ============================================================================
 -- TEST CASES: FormatNumber
 -- ============================================================================
 
 print("\n=== FormatNumber Tests ===\n")
 
-assert_equal("0", FormatNumber(nil), "FormatNumber: nil returns '0'")
-assert_equal("0", FormatNumber(0), "FormatNumber: 0 returns '0'")
-assert_equal("100", FormatNumber(100), "FormatNumber: 100 returns '100'")
-assert_equal("1,000", FormatNumber(1000), "FormatNumber: 1000 returns '1,000'")
-assert_equal("1,000,000", FormatNumber(1000000), "FormatNumber: 1M returns '1,000,000'")
-assert_equal("12,345,678", FormatNumber(12345678), "FormatNumber: 12345678 returns '12,345,678'")
+assert_equal("0", BETTERUI.FormatNumber(nil), "FormatNumber: nil returns '0'")
+assert_equal("0", BETTERUI.FormatNumber(0), "FormatNumber: 0 returns '0'")
+assert_equal("999", BETTERUI.FormatNumber(999, { case = "upper" }), "FormatNumber: <1000 upper-case keeps integer")
+assert_equal("1.50K", BETTERUI.FormatNumber(1500, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed uppercase K suffix")
+assert_equal("1.50k", BETTERUI.FormatNumber(1500, { case = "lower", style = "smart" }), "FormatNumber: smart lowercase K suffix")
+assert_equal("15.0K", BETTERUI.FormatNumber(15000, { case = "upper", style = "smart" }), "FormatNumber: smart decimals shrink at larger values")
+assert_equal("1.23M", BETTERUI.FormatNumber(1234567, { case = "upper", style = "fixed", decimals = 2 }), "FormatNumber: fixed uppercase M suffix")
+assert_equal("-1.50k", BETTERUI.FormatNumber(-1500, { case = "lower", style = "fixed", decimals = 2 }), "FormatNumber: preserves negative sign")
 
 -- ============================================================================
--- TEST CASES: FormatNumberWithSuffix
+-- TEST CASES: Legacy wrappers
 -- ============================================================================
 
-print("\n=== FormatNumberWithSuffix Tests ===\n")
+print("\n=== Legacy Wrapper Tests ===\n")
 
-assert_equal("0", FormatNumberWithSuffix(nil), "FormatNumberWithSuffix: nil returns '0'")
-assert_equal("100", FormatNumberWithSuffix(100), "FormatNumberWithSuffix: 100 returns '100'")
-assert_equal("1.0K", FormatNumberWithSuffix(1000), "FormatNumberWithSuffix: 1000 returns '1.0K'")
-assert_equal("1.5K", FormatNumberWithSuffix(1500), "FormatNumberWithSuffix: 1500 returns '1.5K'")
-assert_equal("1.0M", FormatNumberWithSuffix(1000000), "FormatNumberWithSuffix: 1M returns '1.0M'")
-assert_equal("1.0B", FormatNumberWithSuffix(1000000000), "FormatNumberWithSuffix: 1B returns '1.0B'")
-
--- ============================================================================
--- TEST CASES: FormatPercentage
--- ============================================================================
-
-print("\n=== FormatPercentage Tests ===\n")
-
-assert_equal("0%", FormatPercentage(0, 0), "FormatPercentage: 0/0 returns '0%'")
-assert_equal("0%", FormatPercentage(0, 100), "FormatPercentage: 0/100 returns '0%'")
-assert_equal("50%", FormatPercentage(50, 100), "FormatPercentage: 50/100 returns '50%'")
-assert_equal("100%", FormatPercentage(100, 100), "FormatPercentage: 100/100 returns '100%'")
-assert_equal("25%", FormatPercentage(1, 4), "FormatPercentage: 1/4 returns '25%'")
+assert_equal("1.50k", BETTERUI.AbbreviateNumber(1500), "AbbreviateNumber: legacy lowercase wrapper")
+assert_equal("1.50K", BETTERUI.FormatAbbreviatedNumber(1500), "FormatAbbreviatedNumber: legacy uppercase wrapper")
+assert_equal(0, BETTERUI.roundNumber(nil, 2), "roundNumber: nil input returns 0")
+assert_equal("1.23", BETTERUI.roundNumber(1.239, 2), "roundNumber: floors to requested precision")
 
 -- ============================================================================
 -- SUMMARY

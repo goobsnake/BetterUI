@@ -1,7 +1,7 @@
 --[[
 File: tools/tests/test_feature_flags.lua
 Purpose: Unit tests for FeatureFlags utility.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+         Loads production code via dofile to ensure tests track implementation.
 
 Usage:
   lua tools/tests/test_feature_flags.lua
@@ -11,13 +11,7 @@ Usage:
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
--- Mock BETTERUI namespace with Settings
-BETTERUI = {
-    CIM = {},
-    Settings = {
-        FeatureFlags = {}
-    }
-}
+BETTERUI = { CIM = {}, Settings = { FeatureFlags = {} } }
 
 function BETTERUI.Debug(msg)
     -- Silent in tests
@@ -27,96 +21,7 @@ end
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
--- Inline FeatureFlags implementation for standalone testing
-BETTERUI.CIM.FeatureFlags = {}
-
-local FLAG_DEFINITIONS = {
-    TEST_FLAG_ENABLED = {
-        name = "TEST_FLAG_ENABLED",
-        description = "Test flag that is enabled by default",
-        defaultEnabled = true,
-        version = "1.0",
-    },
-    TEST_FLAG_DISABLED = {
-        name = "TEST_FLAG_DISABLED",
-        description = "Test flag that is disabled by default",
-        defaultEnabled = false,
-        version = "1.0",
-    },
-}
-
-local flagStateCache = {}
-local flagOverrides = {}
-
-function BETTERUI.CIM.FeatureFlags.IsEnabled(flagName)
-    -- Check runtime override first
-    if flagOverrides[flagName] ~= nil then
-        return flagOverrides[flagName]
-    end
-
-    -- Check cached state
-    if flagStateCache[flagName] ~= nil then
-        return flagStateCache[flagName]
-    end
-
-    -- Check saved settings
-    local settings = BETTERUI.Settings and BETTERUI.Settings.FeatureFlags
-    if settings and settings[flagName] ~= nil then
-        flagStateCache[flagName] = settings[flagName]
-        return settings[flagName]
-    end
-
-    -- Fall back to default
-    local def = FLAG_DEFINITIONS[flagName]
-    if def then
-        flagStateCache[flagName] = def.defaultEnabled
-        return def.defaultEnabled
-    end
-
-    -- Unknown flag - disabled by default
-    return false
-end
-
-function BETTERUI.CIM.FeatureFlags.SetEnabled(flagName, enabled)
-    BETTERUI.Settings = BETTERUI.Settings or {}
-    BETTERUI.Settings.FeatureFlags = BETTERUI.Settings.FeatureFlags or {}
-    BETTERUI.Settings.FeatureFlags[flagName] = enabled
-    flagStateCache[flagName] = nil
-end
-
-function BETTERUI.CIM.FeatureFlags.SetOverride(flagName, enabled)
-    flagOverrides[flagName] = enabled
-end
-
-function BETTERUI.CIM.FeatureFlags.ClearOverrides()
-    flagOverrides = {}
-end
-
-function BETTERUI.CIM.FeatureFlags.GetAllFlags()
-    local result = {}
-    for name, def in pairs(FLAG_DEFINITIONS) do
-        result[name] = {
-            definition = def,
-            enabled = BETTERUI.CIM.FeatureFlags.IsEnabled(name),
-        }
-    end
-    return result
-end
-
-function BETTERUI.CIM.FeatureFlags.ResetToDefaults()
-    if BETTERUI.Settings then
-        BETTERUI.Settings.FeatureFlags = {}
-    end
-    flagStateCache = {}
-    flagOverrides = {}
-end
-
--- Reset helper for tests
-local function reset()
-    BETTERUI.Settings = { FeatureFlags = {} }
-    flagStateCache = {}
-    flagOverrides = {}
-end
+dofile("Modules/CIM/Core/Diagnostics/FeatureFlags.lua")
 
 -- ============================================================================
 -- TEST HARNESS
@@ -145,21 +50,41 @@ local function assert_false(value, message)
     assert_equal(false, value, message)
 end
 
+local function assert_not_nil(value, message)
+    if value ~= nil then
+        tests_passed = tests_passed + 1
+        print("  [OK] " .. message)
+    else
+        tests_failed = tests_failed + 1
+        print("  [X] " .. message .. " (got nil)")
+    end
+end
+
+local function reset()
+    BETTERUI.Settings = { FeatureFlags = {} }
+    BETTERUI.CIM.FeatureFlags.ClearOverrides()
+    BETTERUI.CIM.FeatureFlags.ResetToDefaults()
+end
+
 -- ============================================================================
 -- TESTS
 -- ============================================================================
 
 print("\n=== FeatureFlags Tests ===\n")
 
--- Test 1: Default enabled flag returns true
-print("Test: Default enabled flag returns true")
+-- Test 1: Default enabled flags return true
+print("Test: Default enabled flags return true")
 reset()
-assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_ENABLED"), "Enabled flag is true by default")
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("ENHANCED_TOOLTIPS"), "ENHANCED_TOOLTIPS is true by default")
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("POSITION_PERSISTENCE"), "POSITION_PERSISTENCE is true by default")
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("BATCH_PROCESSING"), "BATCH_PROCESSING is true by default")
 
--- Test 2: Default disabled flag returns false
-print("\nTest: Default disabled flag returns false")
+-- Test 2: Default disabled flags return false
+print("\nTest: Default disabled flags return false")
 reset()
-assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_DISABLED"), "Disabled flag is false by default")
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("DEBUG_LOGGING"), "DEBUG_LOGGING is false by default")
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("PERFORMANCE_METRICS"), "PERFORMANCE_METRICS is false by default")
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("SHIELD_DEBUG"), "SHIELD_DEBUG is false by default")
 
 -- Test 3: Unknown flag returns false
 print("\nTest: Unknown flag returns false")
@@ -169,48 +94,73 @@ assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("UNKNOWN_FLAG"), "Unknown flag 
 -- Test 4: SetEnabled persists to settings
 print("\nTest: SetEnabled persists to settings")
 reset()
-BETTERUI.CIM.FeatureFlags.SetEnabled("TEST_FLAG_DISABLED", true)
-assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_DISABLED"), "Flag is now enabled")
-assert_true(BETTERUI.Settings.FeatureFlags["TEST_FLAG_DISABLED"], "Setting was persisted")
+BETTERUI.CIM.FeatureFlags.SetEnabled("DEBUG_LOGGING", true)
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("DEBUG_LOGGING"), "Flag is now enabled")
+assert_true(BETTERUI.Settings.FeatureFlags["DEBUG_LOGGING"], "Setting was persisted")
 
 -- Test 5: Override takes precedence over default
 print("\nTest: Override takes precedence over default")
 reset()
-BETTERUI.CIM.FeatureFlags.SetOverride("TEST_FLAG_ENABLED", false)
-assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_ENABLED"), "Override disabled the flag")
+BETTERUI.CIM.FeatureFlags.SetOverride("ENHANCED_TOOLTIPS", false)
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("ENHANCED_TOOLTIPS"), "Override disabled the flag")
 
 -- Test 6: Override takes precedence over saved setting
 print("\nTest: Override takes precedence over saved setting")
 reset()
-BETTERUI.CIM.FeatureFlags.SetEnabled("TEST_FLAG_DISABLED", true)
-BETTERUI.CIM.FeatureFlags.SetOverride("TEST_FLAG_DISABLED", false)
-assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_DISABLED"), "Override takes precedence over setting")
+BETTERUI.CIM.FeatureFlags.SetEnabled("DEBUG_LOGGING", true)
+BETTERUI.CIM.FeatureFlags.SetOverride("DEBUG_LOGGING", false)
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("DEBUG_LOGGING"), "Override takes precedence over setting")
 
 -- Test 7: ClearOverrides restores to saved/default
 print("\nTest: ClearOverrides restores to saved/default")
 reset()
-BETTERUI.CIM.FeatureFlags.SetOverride("TEST_FLAG_ENABLED", false)
-assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_ENABLED"), "Override active")
+BETTERUI.CIM.FeatureFlags.SetOverride("ENHANCED_TOOLTIPS", false)
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("ENHANCED_TOOLTIPS"), "Override active")
 BETTERUI.CIM.FeatureFlags.ClearOverrides()
-assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_ENABLED"), "Restored to default after clear")
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("ENHANCED_TOOLTIPS"), "Restored to default after clear")
 
--- Test 8: GetAllFlags returns all defined flags
+-- Test 8: GetAllFlags returns all 6 defined flags
 print("\nTest: GetAllFlags returns all defined flags")
 reset()
 local allFlags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
 local count = 0
 for _ in pairs(allFlags) do count = count + 1 end
-assert_equal(2, count, "GetAllFlags returns 2 flags")
-assert_true(allFlags["TEST_FLAG_ENABLED"] ~= nil, "TEST_FLAG_ENABLED is in result")
-assert_true(allFlags["TEST_FLAG_DISABLED"] ~= nil, "TEST_FLAG_DISABLED is in result")
+assert_equal(6, count, "GetAllFlags returns 6 flags")
+assert_not_nil(allFlags["ENHANCED_TOOLTIPS"], "ENHANCED_TOOLTIPS present")
+assert_not_nil(allFlags["DEBUG_LOGGING"], "DEBUG_LOGGING present")
+assert_not_nil(allFlags["SHIELD_DEBUG"], "SHIELD_DEBUG present")
 
--- Test 9: ResetToDefaults clears everything
+-- Test 9: GetAllFlags entries contain definition and enabled state
+print("\nTest: GetAllFlags entries have correct structure")
+reset()
+local flags = BETTERUI.CIM.FeatureFlags.GetAllFlags()
+local tooltipEntry = flags["ENHANCED_TOOLTIPS"]
+assert_not_nil(tooltipEntry.definition, "Entry has definition")
+assert_equal("ENHANCED_TOOLTIPS", tooltipEntry.definition.name, "Definition has correct name")
+assert_true(tooltipEntry.enabled, "Entry reflects enabled state")
+
+-- Test 10: ResetToDefaults clears everything
 print("\nTest: ResetToDefaults clears everything")
-BETTERUI.CIM.FeatureFlags.SetEnabled("TEST_FLAG_DISABLED", true)
-BETTERUI.CIM.FeatureFlags.SetOverride("TEST_FLAG_ENABLED", false)
+BETTERUI.CIM.FeatureFlags.SetEnabled("DEBUG_LOGGING", true)
+BETTERUI.CIM.FeatureFlags.SetOverride("ENHANCED_TOOLTIPS", false)
 BETTERUI.CIM.FeatureFlags.ResetToDefaults()
-assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_ENABLED"), "Enabled flag back to default")
-assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("TEST_FLAG_DISABLED"), "Disabled flag back to default")
+assert_true(BETTERUI.CIM.FeatureFlags.IsEnabled("ENHANCED_TOOLTIPS"), "Enabled flag back to default")
+assert_false(BETTERUI.CIM.FeatureFlags.IsEnabled("DEBUG_LOGGING"), "Disabled flag back to default")
+
+-- Test 11: FLAGS constants match actual flag names
+print("\nTest: FLAGS constants match flag names")
+reset()
+assert_equal("ENHANCED_TOOLTIPS", BETTERUI.CIM.FeatureFlags.FLAGS.ENHANCED_TOOLTIPS, "ENHANCED_TOOLTIPS constant correct")
+assert_equal("DEBUG_LOGGING", BETTERUI.CIM.FeatureFlags.FLAGS.DEBUG_LOGGING, "DEBUG_LOGGING constant correct")
+assert_equal("SHIELD_DEBUG", BETTERUI.CIM.FeatureFlags.FLAGS.SHIELD_DEBUG, "SHIELD_DEBUG constant correct")
+
+-- Test 12: SetEnabled creates Settings tables if nil
+print("\nTest: SetEnabled creates Settings tables if nil")
+BETTERUI.Settings = nil
+BETTERUI.CIM.FeatureFlags.SetEnabled("DEBUG_LOGGING", true)
+assert_not_nil(BETTERUI.Settings, "Settings table created")
+assert_not_nil(BETTERUI.Settings.FeatureFlags, "FeatureFlags table created")
+assert_true(BETTERUI.Settings.FeatureFlags["DEBUG_LOGGING"], "Value was set")
 
 -- ============================================================================
 -- SUMMARY

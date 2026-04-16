@@ -1,7 +1,7 @@
 --[[
 File: tools/tests/test_event_registry.lua
 Purpose: Unit tests for EventRegistry utility.
-         These tests run standalone with a Lua interpreter (no ESO environment).
+         Loads production code via dofile to ensure tests track implementation.
 
 Usage:
   lua tools/tests/test_event_registry.lua
@@ -11,24 +11,25 @@ Usage:
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
--- Mock EVENT_MANAGER
 local registeredEvents = {}
+local addedFilters = {}
+
 EVENT_MANAGER = {
-    RegisterForEvent = function(namespace, eventId, callback)
+    RegisterForEvent = function(self, namespace, eventId, callback)
         registeredEvents[namespace] = registeredEvents[namespace] or {}
         registeredEvents[namespace][eventId] = callback
     end,
-    UnregisterForEvent = function(namespace, eventId)
+    UnregisterForEvent = function(self, namespace, eventId)
         if registeredEvents[namespace] then
             registeredEvents[namespace][eventId] = nil
         end
     end,
-    IsRegistered = function(namespace, eventId)
-        return registeredEvents[namespace] and registeredEvents[namespace][eventId] ~= nil
-    end
+    AddFilterForEvent = function(self, namespace, eventId, filterType, filterValue)
+        addedFilters[namespace] = addedFilters[namespace] or {}
+        addedFilters[namespace][eventId] = { filterType = filterType, filterValue = filterValue }
+    end,
 }
 
--- Mock BETTERUI namespace
 BETTERUI = { CIM = {} }
 
 function BETTERUI.Debug(msg)
@@ -39,42 +40,7 @@ end
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
--- Inline the EventRegistry implementation for standalone testing
-BETTERUI.CIM.EventRegistry = {
-    _registrations = {}
-}
-
-local registrations = BETTERUI.CIM.EventRegistry._registrations
-
-function BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, callback)
-    registrations[moduleName] = registrations[moduleName] or {}
-    registrations[moduleName][eventId] = registrations[moduleName][eventId] or {}
-    table.insert(registrations[moduleName][eventId], namespace)
-    EVENT_MANAGER:RegisterForEvent(namespace, eventId, callback)
-end
-
-function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName)
-    local moduleRegs = registrations[moduleName]
-    if not moduleRegs then return end
-
-    for eventId, namespaces in pairs(moduleRegs) do
-        for _, namespace in ipairs(namespaces) do
-            EVENT_MANAGER:UnregisterForEvent(namespace, eventId)
-        end
-    end
-    registrations[moduleName] = nil
-end
-
-function BETTERUI.CIM.EventRegistry.GetRegistrationCount(moduleName)
-    local moduleRegs = registrations[moduleName]
-    if not moduleRegs then return 0 end
-
-    local count = 0
-    for _, namespaces in pairs(moduleRegs) do
-        count = count + #namespaces
-    end
-    return count
-end
+dofile("Modules/CIM/Core/Lifecycle/EventRegistry.lua")
 
 -- ============================================================================
 -- TEST HARNESS
@@ -99,8 +65,18 @@ local function assert_true(value, message)
     assert_equal(true, value, message)
 end
 
-local function assert_false(value, message)
-    assert_equal(false, value, message)
+local function assert_nil(value, message)
+    assert_equal(nil, value, message)
+end
+
+local function resetAll()
+    registeredEvents = {}
+    addedFilters = {}
+    -- Unregister all known modules to clear internal state
+    BETTERUI.CIM.EventRegistry.UnregisterAll("TestModule", true)
+    BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleA", true)
+    BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleB", true)
+    BETTERUI.CIM.EventRegistry.UnregisterAll("FilterMod", true)
 end
 
 -- ============================================================================
@@ -111,6 +87,7 @@ print("\n=== EventRegistry Tests ===\n")
 
 -- Test 1: Register adds to tracking
 print("Test: Register adds to tracking")
+resetAll()
 BETTERUI.CIM.EventRegistry.Register("TestModule", "Test_Namespace", 100, function() end)
 assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Registration count is 1")
 
@@ -126,6 +103,7 @@ assert_equal(0, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "
 
 -- Test 4: Separate modules tracked independently
 print("\nTest: Separate modules tracked independently")
+resetAll()
 BETTERUI.CIM.EventRegistry.Register("ModuleA", "NS_A", 200, function() end)
 BETTERUI.CIM.EventRegistry.Register("ModuleB", "NS_B", 201, function() end)
 assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("ModuleA"), "ModuleA has 1 registration")
@@ -134,8 +112,52 @@ BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleA")
 assert_equal(0, BETTERUI.CIM.EventRegistry.GetRegistrationCount("ModuleA"), "ModuleA cleared")
 assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("ModuleB"), "ModuleB still has 1")
 
+-- Test 5: Unregister removes specific event
+print("\nTest: Unregister removes specific event")
+resetAll()
+BETTERUI.CIM.EventRegistry.Register("TestModule", "NS1", 300, function() end)
+BETTERUI.CIM.EventRegistry.Register("TestModule", "NS2", 301, function() end)
+assert_equal(2, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Starts with 2")
+BETTERUI.CIM.EventRegistry.Unregister("TestModule", "NS1", 300)
+assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Down to 1 after Unregister")
+
+-- Test 6: Unregister cleans up empty tables
+print("\nTest: Unregister cleans up empty tables")
+BETTERUI.CIM.EventRegistry.Unregister("TestModule", "NS2", 301)
+assert_equal(0, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Down to 0")
+
+-- Test 7: RegisterFiltered adds filter to EVENT_MANAGER
+print("\nTest: RegisterFiltered adds filter to EVENT_MANAGER")
+resetAll()
+BETTERUI.CIM.EventRegistry.RegisterFiltered("FilterMod", "FilterNS", 400, function() end, 1, 42)
+assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("FilterMod"), "Filtered registration tracked")
+assert_true(addedFilters["FilterNS"] ~= nil, "Filter was added")
+assert_equal(1, addedFilters["FilterNS"][400].filterType, "Filter type correct")
+assert_equal(42, addedFilters["FilterNS"][400].filterValue, "Filter value correct")
+
+-- Test 8: GetRegistrationCount returns 0 for unknown module
+print("\nTest: GetRegistrationCount returns 0 for unknown module")
+assert_equal(0, BETTERUI.CIM.EventRegistry.GetRegistrationCount("NonExistent"), "Unknown module returns 0")
+
+-- Test 9: Unregister for non-existent module does not crash
+print("\nTest: Unregister for non-existent module does not crash")
+BETTERUI.CIM.EventRegistry.Unregister("NoSuchModule", "NS", 999)
+tests_passed = tests_passed + 1
+print("  [OK] No crash on non-existent module unregister")
+
+-- Test 10: Multiple namespaces on same event tracked correctly
+print("\nTest: Multiple namespaces on same event tracked correctly")
+resetAll()
+BETTERUI.CIM.EventRegistry.Register("TestModule", "NS_A", 500, function() end)
+BETTERUI.CIM.EventRegistry.Register("TestModule", "NS_B", 500, function() end)
+assert_equal(2, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Two registrations on same event")
+BETTERUI.CIM.EventRegistry.Unregister("TestModule", "NS_A", 500)
+assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "One left after partial unregister")
+
 -- Cleanup
-BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleB")
+BETTERUI.CIM.EventRegistry.UnregisterAll("TestModule", true)
+BETTERUI.CIM.EventRegistry.UnregisterAll("FilterMod", true)
+BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleB", true)
 
 -- ============================================================================
 -- SUMMARY

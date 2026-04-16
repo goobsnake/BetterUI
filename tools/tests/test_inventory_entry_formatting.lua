@@ -1,43 +1,157 @@
 --[[
 File: tools/tests/test_inventory_entry_formatting.lua
-Purpose: Unit tests for pure helper functions in Inventory/Lists/InventoryEntryFormatting.lua.
-         Tests run standalone with a Lua interpreter (no ESO environment).
+Purpose: Unit tests for exported entry-formatting behavior in
+         Inventory/Lists/InventoryEntryFormatting.lua.
+         Loads production code and verifies label text/icon composition.
 ]]
 
 -- ============================================================================
 -- MINIMAL ESO STUBS
 -- ============================================================================
 
-BETTERUI = { Inventory = { CONST = { LIST_ENTRY_BASE_FONT_SIZE = 28 } } }
+local moduleSettings = {
+    Inventory = {
+        nameFontSize = 56,
+        showIconUnboundItem = true,
+    },
+    GeneralInterface = {
+        showMarketPrice = true,
+    },
+    Banking = {
+        nameFontSize = 28,
+    },
+}
+
+BETTERUI = {
+    Inventory = {
+        CONST = {
+            ICON_SIZE_SMALL = 16,
+            LIST_ENTRY_BASE_FONT_SIZE = 28,
+        },
+        GetNameFontDescriptor = function()
+            return "InventoryFont"
+        end,
+    },
+    Banking = {
+        GetNameFontDescriptor = function()
+            return "BankingFont"
+        end,
+    },
+    Vendor = {
+        GetNameFontDescriptor = function()
+            return "VendorFont"
+        end,
+    },
+    Companions = {
+        GetNameFontDescriptor = function()
+            return "CompanionsFont"
+        end,
+    },
+    TradingHouse = {
+        GetNameFontDescriptor = function()
+            return "TradingHouseFont"
+        end,
+    },
+    Utils = {
+        IsBankingSceneShowing = function()
+            return false
+        end,
+    },
+    CIM = {
+        CONST = {
+            ICONS = {
+                STOLEN = "stolen.dds",
+                UNBOUND = "unbound.dds",
+                ENCHANTED = "enchanted.dds",
+                SET_ITEM = "set-item.dds",
+                RESEARCHABLE_TRAIT = "trait.dds",
+                RECIPE_UNKNOWN = "recipe.dds",
+                BOOK_UNKNOWN = "book.dds",
+            },
+        },
+    },
+}
+
 function BETTERUI.Debug() end
+
+function BETTERUI.GetModuleSettings(moduleName)
+    return moduleSettings[moduleName] or {}
+end
 
 function zo_clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
 
--- Constants from the module
-local INLINE_STATUS_ICON_BASE_SIZE = 24
-local INLINE_STATUS_ICON_MIN_SIZE = 14
-local INLINE_STATUS_ICON_MAX_SIZE = 42
-
--- ============================================================================
--- FUNCTIONS UNDER TEST
--- ============================================================================
-
-local function GetScaledInlineIconSize(fontSize, weightMultiplier)
-    local baseFontSize = BETTERUI.Inventory.CONST.LIST_ENTRY_BASE_FONT_SIZE
-    local ratio = fontSize / baseFontSize
-    local scaled = math.floor((INLINE_STATUS_ICON_BASE_SIZE * ratio * (weightMultiplier or 1.0)) + 0.5)
-    return zo_clamp(scaled, INLINE_STATUS_ICON_MIN_SIZE, INLINE_STATUS_ICON_MAX_SIZE)
+function zo_strformat(formatString, value)
+    return formatString:gsub("<<1>>", tostring(value))
 end
 
-local function BuildInlineIconTag(texturePath, iconSize)
-    return "|t" .. iconSize .. ":" .. iconSize .. ":" .. texturePath .. "|t"
+function GetItemLinkSetInfo()
+    return false
 end
 
-local function GetIconToggleSetting(moduleSettings, key, defaultValue)
-    if moduleSettings and moduleSettings[key] ~= nil then
-        return moduleSettings[key]
+function GetItemLinkEnchantInfo()
+    return false
+end
+
+function GetItemLinkItemType()
+    return 0
+end
+
+SCENE_MANAGER = {
+    scenes = {},
+    GetScene = function(self, sceneName)
+        return self.scenes[sceneName]
+    end,
+}
+
+ZO_GAMEPAD_UNSELECTED_COLOR = {
+    UnpackRGBA = function()
+        return 1, 1, 1, 1
+    end,
+}
+
+ZO_GAMEPAD_LOCKED_ICON_32 = "locked.dds"
+ZO_TRADE_BOP_ICON = "bop.dds"
+ITEM_QUALITY_TRASH = -1
+
+-- ============================================================================
+-- IMPORT MODULE UNDER TEST
+-- ============================================================================
+
+dofile("Modules/Inventory/Lists/InventoryEntryFormatting.lua")
+
+local function makeColor(r, g, b, a)
+    return {
+        UnpackRGBA = function()
+            return r, g, b, a
+        end,
+    }
+end
+
+local function makeLabel()
+    local label = {
+        text = nil,
+        font = nil,
+        color = nil,
+        modifyTextType = nil,
+    }
+
+    function label:SetFont(font)
+        self.font = font
     end
-    return defaultValue
+
+    function label:SetModifyTextType(modifyTextType)
+        self.modifyTextType = modifyTextType
+    end
+
+    function label:SetText(text)
+        self.text = text
+    end
+
+    function label:SetColor(r, g, b, a)
+        self.color = { r, g, b, a }
+    end
+
+    return label
 end
 
 -- ============================================================================
@@ -63,61 +177,76 @@ local function assert_true(value, message)
     assert_equal(true, value, message)
 end
 
--- ============================================================================
--- TESTS: GetScaledInlineIconSize
--- ============================================================================
+local function assert_contains(haystack, needle, message)
+    assert_true(haystack:find(needle, 1, true) ~= nil, message)
+end
 
-print("\n=== GetScaledInlineIconSize Tests ===\n")
-
--- At base font size, icon = base size
-assert_equal(24, GetScaledInlineIconSize(28, 1.0), "base font -> base icon (24)")
-
--- Larger font scales up
-local icon = GetScaledInlineIconSize(56, 1.0)
-assert_true(icon > 24, "double font -> larger icon")
-assert_equal(42, icon, "double font -> clamped to max (42)")
-
--- Smaller font scales down
-icon = GetScaledInlineIconSize(14, 1.0)
-assert_equal(14, icon, "half font -> clamped to min (14)")
-
--- Weight multiplier scales
-icon = GetScaledInlineIconSize(28, 1.5)
-assert_equal(36, icon, "1.5x weight -> 36px icon")
-
--- Nil weight multiplier defaults to 1.0
-icon = GetScaledInlineIconSize(28, nil)
-assert_equal(24, icon, "nil weight -> default 1.0")
-
--- Very small font clamps to minimum
-icon = GetScaledInlineIconSize(7, 1.0)
-assert_equal(14, icon, "tiny font -> clamped to min")
+local function assert_not_contains(haystack, needle, message)
+    assert_true(haystack:find(needle, 1, true) == nil, message)
+end
 
 -- ============================================================================
--- TESTS: BuildInlineIconTag
+-- TESTS
 -- ============================================================================
 
-print("\n=== BuildInlineIconTag Tests ===\n")
+print("\n=== Inventory Entry Formatting Tests ===\n")
 
-local tag = BuildInlineIconTag("EsoUI/Art/icon.dds", 24)
-assert_equal("|t24:24:EsoUI/Art/icon.dds|t", tag, "basic icon tag")
+print("Test: Non-item entry uses fallback label text and color")
+local label = makeLabel()
+local nonItemData = {
+    text = "Currency Row",
+    labelColor = makeColor(0.2, 0.3, 0.4, 1),
+}
+BETTERUI_SharedGamepadEntryLabelSetup(label, nonItemData, false)
+assert_equal("Currency Row", label.text, "Non-item entry text preserved")
+assert_equal("InventoryFont", label.font, "Inventory font used for non-item inventory entries")
 
-tag = BuildInlineIconTag("path/to/texture.dds", 16)
-assert_equal("|t16:16:path/to/texture.dds|t", tag, "smaller icon tag")
+print("\nTest: Item entry composes scaled inline icons from production logic")
+label = makeLabel()
+local itemData = {
+    text = "Lockpick",
+    stolen = true,
+    stackCount = 2,
+    quality = 1,
+    cached_itemLink = "|H1:item:1|h",
+    cached_isRecipeAndUnknown = false,
+    cached_isBookAndUnknown = false,
+    cached_isTraitResearchable = false,
+    cached_isUnbound = true,
+    meetsUsageRequirements = true,
+    GetNameColor = function()
+        return makeColor(1, 1, 1, 1)
+    end,
+    dataSource = {
+        bagId = 1,
+        slotIndex = 2,
+    },
+}
+BETTERUI_SharedGamepadEntryLabelSetup(label, itemData, false)
+assert_equal("InventoryFont", label.font, "Inventory font used for item entries")
+assert_contains(label.text, "|t32:32:stolen.dds|t", "Stolen icon uses scaled production size")
+assert_contains(label.text, "|t32:32:unbound.dds|t", "Unbound icon uses scaled production size")
+assert_contains(label.text, "Lockpick", "Item name included in label")
+assert_contains(label.text, "|cFFFFFF(2)|r", "Stack count appended to label")
 
--- ============================================================================
--- TESTS: GetIconToggleSetting
--- ============================================================================
+print("\nTest: Icon toggle settings suppress disabled inline icons")
+moduleSettings.Inventory.showIconUnboundItem = false
+label = makeLabel()
+BETTERUI_SharedGamepadEntryLabelSetup(label, itemData, false)
+assert_not_contains(label.text, "unbound.dds", "Disabled unbound icon is omitted")
+moduleSettings.Inventory.showIconUnboundItem = true
 
-print("\n=== GetIconToggleSetting Tests ===\n")
-
-local settings = { showBound = true, showStolen = false }
-
-assert_equal(true, GetIconToggleSetting(settings, "showBound", false), "existing true key")
-assert_equal(false, GetIconToggleSetting(settings, "showStolen", true), "existing false key")
-assert_equal(true, GetIconToggleSetting(settings, "missing", true), "missing key -> true default")
-assert_equal(false, GetIconToggleSetting(settings, "missing", false), "missing key -> false default")
-assert_equal(true, GetIconToggleSetting(nil, "showBound", true), "nil settings -> default")
+print("\nTest: Banking scene switches font descriptor source")
+BETTERUI.Utils.IsBankingSceneShowing = function()
+    return true
+end
+moduleSettings.Banking.nameFontSize = 28
+label = makeLabel()
+BETTERUI_SharedGamepadEntryLabelSetup(label, itemData, false)
+assert_equal("BankingFont", label.font, "Banking font descriptor used when banking scene is active")
+BETTERUI.Utils.IsBankingSceneShowing = function()
+    return false
+end
 
 -- ============================================================================
 -- SUMMARY

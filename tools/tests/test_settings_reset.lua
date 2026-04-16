@@ -24,6 +24,9 @@ BETTERUI = {
     },
     Inventory = {},
     Banking = {},
+    Vendor = {},
+    TradingHouse = {},
+    Companions = {},
     Writs = {},
     GeneralInterface = {},
     Nameplates = {},
@@ -37,11 +40,38 @@ function BETTERUI.UpdateCIMState()
     updateCIMStateCount = updateCIMStateCount + 1
 end
 
+function BETTERUI.CIM.SafeExecute(_, fn, ...)
+    return true, fn(...)
+end
+
+function BETTERUI.CIM.TryResolve(name)
+    local resolvers = {
+        ["Defaults.ApplyFirstInstallDefaults"] = BETTERUI.Defaults.ApplyFirstInstallDefaults,
+        ["CIM.FeatureFlags.ResetToDefaults"] = BETTERUI.CIM.FeatureFlags.ResetToDefaults,
+        ["Nameplates.OnEnabledChanged"] = BETTERUI.Nameplates.OnEnabledChanged,
+    }
+    return resolvers[name]
+end
+
+function BETTERUI.CIM.TryCall(name, ...)
+    local fn = BETTERUI.CIM.TryResolve(name)
+    if not fn then
+        return false
+    end
+    return true, fn(...)
+end
+
 function BETTERUI.Defaults.ApplyFirstInstallDefaults(settings)
     settings.Modules.Inventory = settings.Modules.Inventory or {}
     settings.Modules.Inventory.m_enabled = true
     settings.Modules.Banking = settings.Modules.Banking or {}
     settings.Modules.Banking.m_enabled = true
+    settings.Modules.Vendor = settings.Modules.Vendor or {}
+    settings.Modules.Vendor.m_enabled = true
+    settings.Modules.TradingHouse = settings.Modules.TradingHouse or {}
+    settings.Modules.TradingHouse.m_enabled = false
+    settings.Modules.Companions = settings.Modules.Companions or {}
+    settings.Modules.Companions.m_enabled = true
     settings.Modules.Writs = settings.Modules.Writs or {}
     settings.Modules.Writs.m_enabled = false
 end
@@ -66,6 +96,24 @@ end
 
 function BETTERUI.Banking.InitModule(options)
     options.bankingDefault = 42
+    return options
+end
+
+function BETTERUI.Vendor.InitModule(options)
+    options.vendorDefault = "vendor"
+    options.enableBatchJunkSell = true
+    return options
+end
+
+function BETTERUI.TradingHouse.InitModule(options)
+    options.tradingHouseDefault = "trading"
+    options.enableCarousel = true
+    return options
+end
+
+function BETTERUI.Companions.InitModule(options)
+    options.companionsDefault = "companions"
+    options.enableCompanionEquipment = true
     return options
 end
 
@@ -105,6 +153,15 @@ local function buildStore(useAccountWideValue)
         Modules = {
             Inventory = {
                 staleInventoryValue = true,
+            },
+            Vendor = {
+                staleVendorValue = true,
+            },
+            TradingHouse = {
+                staleTradingValue = true,
+            },
+            Companions = {
+                staleCompanionValue = true,
             },
             Nameplates = {
                 m_enabled = true,
@@ -165,7 +222,7 @@ end
 print("\n=== Settings Reset Tests ===\n")
 
 resetFixture()
-dofile("Modules/CIM/Core/SettingsReset.lua")
+dofile("Modules/CIM/Core/Settings/SettingsReset.lua")
 BETTERUI.SavedVars.useAccountWide = false
 BETTERUI.Settings = BETTERUI.SavedVars
 
@@ -176,7 +233,13 @@ assertEqual(false, BETTERUI.SavedVars.useAccountWide, "Character settings reset 
 assertEqual(BETTERUI.SavedVars, BETTERUI.Settings, "Active settings switched to character defaults")
 assertEqual("inventory", BETTERUI.SavedVars.Modules.Inventory.inventoryDefault, "Inventory defaults restored")
 assertEqual(42, BETTERUI.SavedVars.Modules.Banking.bankingDefault, "Banking defaults restored")
+assertEqual("vendor", BETTERUI.SavedVars.Modules.Vendor.vendorDefault, "Vendor defaults restored")
+assertEqual("trading", BETTERUI.SavedVars.Modules.TradingHouse.tradingHouseDefault, "TradingHouse defaults restored")
+assertEqual("companions", BETTERUI.SavedVars.Modules.Companions.companionsDefault, "Companions defaults restored")
 assertEqual(true, BETTERUI.SavedVars.Modules.Inventory.m_enabled, "First-install enabled defaults re-applied")
+assertEqual(true, BETTERUI.SavedVars.Modules.Vendor.m_enabled, "Vendor enabled defaults re-applied")
+assertEqual(false, BETTERUI.SavedVars.Modules.TradingHouse.m_enabled, "TradingHouse disabled defaults re-applied")
+assertEqual(true, BETTERUI.SavedVars.Modules.Companions.m_enabled, "Companions enabled defaults re-applied")
 assertEqual(false, BETTERUI.SavedVars.Modules.Writs.m_enabled, "First-install disabled defaults re-applied")
 assertNil(BETTERUI.SavedVars.Modules.LegacyModule, "Legacy module settings cleared")
 assertNil(BETTERUI.SavedVars.LegacyTopLevel, "Legacy top-level settings cleared")
@@ -199,7 +262,13 @@ assertEqual(true, BETTERUI.SavedVars.useAccountWide, "Character scope keeps glob
 assertEqual(BETTERUI.GlobalVars, BETTERUI.Settings, "Active settings remain account-wide")
 assertEqual("inventory", BETTERUI.GlobalVars.Modules.Inventory.inventoryDefault, "Global inventory defaults restored")
 assertEqual(42, BETTERUI.GlobalVars.Modules.Banking.bankingDefault, "Global banking defaults restored")
+assertEqual("vendor", BETTERUI.GlobalVars.Modules.Vendor.vendorDefault, "Global vendor defaults restored")
+assertEqual("trading", BETTERUI.GlobalVars.Modules.TradingHouse.tradingHouseDefault, "Global trading defaults restored")
+assertEqual("companions", BETTERUI.GlobalVars.Modules.Companions.companionsDefault, "Global companions defaults restored")
 assertEqual(true, BETTERUI.GlobalVars.Modules.Inventory.m_enabled, "Global first-install enabled defaults re-applied")
+assertEqual(true, BETTERUI.GlobalVars.Modules.Vendor.m_enabled, "Global vendor enabled defaults re-applied")
+assertEqual(false, BETTERUI.GlobalVars.Modules.TradingHouse.m_enabled, "Global trading house disabled defaults re-applied")
+assertEqual(true, BETTERUI.GlobalVars.Modules.Companions.m_enabled, "Global companions enabled defaults re-applied")
 assertEqual(false, BETTERUI.GlobalVars.Modules.Writs.m_enabled, "Global first-install disabled defaults re-applied")
 assertNil(BETTERUI.GlobalVars.Modules.LegacyModule, "Global legacy module settings cleared")
 assertNil(BETTERUI.GlobalVars.LegacyTopLevel, "Global legacy top-level settings cleared")
