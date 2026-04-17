@@ -3,6 +3,7 @@ File: Modules/ResourceOrbFrames/SkillBar/FrontBarManager.lua
 Purpose: Manages the Front Bar layout, updates, keybinds, and usability.
 
 Related modules (loaded before this file):
+  CooldownUtils.lua         — Shared cooldown state and rendering helpers
   FrontBarPressFeedback.lua — Press feedback bounce/flash system
   FrontBarCooldowns.lua     — Cooldown smoothing and per-frame cooldown updates
 ]]
@@ -13,6 +14,17 @@ local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
 local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetSettings = Utils.GetSettings
+local CooldownUtils = SkillBar.CooldownUtils
+local CONST = SkillBar.CONST or {}
+local COOLDOWN_DURATION_THRESHOLD = CONST.COOLDOWN_DURATION_THRESHOLD or 1500
+local FRONT_BAR_SLOTS = CONST.FRONT_BAR_SLOTS or {
+    { buttonName = "Button1",        slot = 3 },
+    { buttonName = "Button2",        slot = 4 },
+    { buttonName = "Button3",        slot = 5 },
+    { buttonName = "Button4",        slot = 6 },
+    { buttonName = "Button5",        slot = 7 },
+    { buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 },
+}
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
@@ -29,10 +41,6 @@ local NON_COST_FAILURE_CAST_HOLD_MS = 250
 
 -- Expose button cache to sibling modules (FrontBarCooldowns, FrontBarPressFeedback)
 SkillBar._frontBarButtonCache = m_buttonCache
-
-local function BuildCooldownStateKey(slotIndex, hotbarCategory)
-    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
-end
 
 local function GetTargetOrRangeFailure(slotIndex, hotbarCategory)
     local hasTargetFailure = ActionSlotHasTargetFailure and ActionSlotHasTargetFailure(slotIndex, hotbarCategory) or false
@@ -66,6 +74,19 @@ local function ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure,
     return false
 end
 
+local function FindFrontBarOptionalButton(rootFrame, controlName)
+    if m_frontBarContainer then
+        local containerControl = FindControl(m_frontBarContainer, controlName)
+        if containerControl then
+            return containerControl
+        end
+    end
+    if not rootFrame then
+        return nil
+    end
+    return FindControl(rootFrame, controlName)
+end
+
 local function HasInsufficientUltimate(slotIndex, hotbarCategory)
     local ultimateSlotIndex = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or nil
     if slotIndex ~= ultimateSlotIndex then return false end
@@ -78,7 +99,7 @@ end
 
 local function ShouldSuppressUnusableOverlayForCooldown(slotIndex, hotbarCategory)
     local remainMs, durationMs, isGlobalCooldown = GetSlotCooldownInfo(slotIndex, hotbarCategory)
-    if remainMs and remainMs > 0 and durationMs and durationMs > 1500 and not isGlobalCooldown then
+    if remainMs and remainMs > 0 and durationMs and durationMs > COOLDOWN_DURATION_THRESHOLD and not isGlobalCooldown then
         return true
     end
     local effectRemaining = GetActionSlotEffectTimeRemaining(slotIndex, hotbarCategory)
@@ -94,8 +115,7 @@ local function CacheFrontBarControls(rootFrame)
     m_frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not m_frontBarContainer then return end
 
-    local CONST = SkillBar.CONST
-    for _, mapping in ipairs(CONST.FRONT_BAR_SLOTS) do
+    for _, mapping in ipairs(FRONT_BAR_SLOTS) do
         local btn = FindControl(m_frontBarContainer, mapping.buttonName)
         if btn then
             m_buttonCache[mapping.buttonName] = {
@@ -105,7 +125,7 @@ local function CacheFrontBarControls(rootFrame)
         end
     end
 
-    m_quickslotBtn = FindControl(m_frontBarContainer, 'QuickslotButton') or FindControl(rootFrame, 'QuickslotButton')
+    m_quickslotBtn = FindFrontBarOptionalButton(rootFrame, 'QuickslotButton')
     if m_quickslotBtn then
         m_buttonCache["QuickslotButton"] = {
             control = m_quickslotBtn,
@@ -113,7 +133,7 @@ local function CacheFrontBarControls(rootFrame)
         }
     end
 
-    m_companionBtn = FindControl(m_frontBarContainer, 'CompanionButton') or FindControl(rootFrame, 'CompanionButton')
+    m_companionBtn = FindFrontBarOptionalButton(rootFrame, 'CompanionButton')
     if m_companionBtn then
         m_buttonCache["CompanionButton"] = {
             control = m_companionBtn,
@@ -146,14 +166,7 @@ local function UpdateFrontBar(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
-    local slotMapping = {
-        { buttonName = "Button1",        slot = 3 },
-        { buttonName = "Button2",        slot = 4 },
-        { buttonName = "Button3",        slot = 5 },
-        { buttonName = "Button4",        slot = 6 },
-        { buttonName = "Button5",        slot = 7 },
-        { buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 },
-    }
+    local slotMapping = FRONT_BAR_SLOTS
 
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
@@ -196,14 +209,7 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
-    local slotMapping = {
-        { buttonName = "Button1",        slot = 3 },
-        { buttonName = "Button2",        slot = 4 },
-        { buttonName = "Button3",        slot = 5 },
-        { buttonName = "Button4",        slot = 6 },
-        { buttonName = "Button5",        slot = 7 },
-        { buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 },
-    }
+    local slotMapping = FRONT_BAR_SLOTS
 
     for _, mapping in ipairs(slotMapping) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
@@ -211,7 +217,7 @@ local function UpdateFrontBarUsability(rootFrame, isCasting)
             local iconControl = btn:GetNamedChild("Icon")
             local unusableOverlay = btn:GetNamedChild("UnusableOverlay")
             if iconControl and not iconControl:IsHidden() then
-                local slotStateKey = BuildCooldownStateKey(mapping.slot, activeCategory)
+                local slotStateKey = CooldownUtils.BuildStateKey(mapping.slot, activeCategory)
                 local hasCostFailure = ActionSlotHasCostFailure(mapping.slot, activeCategory)
                 local hasStateFailure = ActionSlotHasNonCostStateFailure(mapping.slot, activeCategory)
                 local hasLatchedStateFailure = ResolveNonCostFailureWithCastLatch(slotStateKey, hasStateFailure, isCasting, nowMs)
@@ -238,15 +244,7 @@ local function SetupFrontBarTooltips(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
 
-    local slotMapping = {
-        { buttonName = "Button1",        slot = 3 },
-        { buttonName = "Button2",        slot = 4 },
-        { buttonName = "Button3",        slot = 5 },
-        { buttonName = "Button4",        slot = 6 },
-        { buttonName = "Button5",        slot = 7 },
-        { buttonName = "UltimateButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1 },
-    }
-    for _, mapping in ipairs(slotMapping) do
+    for _, mapping in ipairs(FRONT_BAR_SLOTS) do
         local btn = FindControl(frontBarContainer, mapping.buttonName)
         if btn then
             SkillBar.SetupButtonTooltip(btn, mapping.slot, nil, RIGHT, -5, 0)
@@ -337,20 +335,23 @@ end
 --- Updates front bar button sizes, positions, and anchor layout.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarLayout(rootFrame)
-    local settingsCfg = GetSettings().customFrontBar
-    if not settingsCfg or not settingsCfg.m_enabled then return end
-    local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
-    if not frontBarCfg then return end
+    local frontBarSettings = GetSettings().customFrontBar
+    if not frontBarSettings or not frontBarSettings.m_enabled then return end
+    local frontBarLayoutConfig = BETTERUI_ORB_FRAMES.bars.customFrontBar
+    if not frontBarLayoutConfig then return end
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
     if not frontBarContainer then return end
+    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
 
     local isGamePad = IsInGamepadPreferredMode()
     local slotsConfig = isGamePad and BETTERUI_ORB_FRAMES.slots.gamepad or BETTERUI_ORB_FRAMES.slots.keyboard
-    local modeConfig = isGamePad and frontBarCfg.gamepad or frontBarCfg.keyboard
+    local modeConfig = isGamePad and frontBarLayoutConfig.gamepad or frontBarLayoutConfig.keyboard
 
     local buttonSize = modeConfig.buttonSize or slotsConfig.width
     local spacing = modeConfig.spacing or slotsConfig.spacing
     local ultimateSize = modeConfig.ultimateSize or (buttonSize + 6)
+    local buttonInnerSize = buttonSize - 3
+    local ultimateInnerSize = ultimateSize - 3
     local ultimateGap = BETTERUI_ORB_FRAMES.bars.ultimateGap
     local totalWidth = (5 * buttonSize) + (4 * spacing) + ultimateGap + ultimateSize
     local halfWidth = totalWidth / 2
@@ -373,18 +374,18 @@ local function UpdateFrontBarLayout(rootFrame)
                 btn:SetAnchor(LEFT, prevBtn, RIGHT, spacing, 0)
             end
             local flipCard = btn:GetNamedChild("FlipCard")
-            if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
+            if flipCard then flipCard:SetDimensions(buttonInnerSize, buttonInnerSize) end
             local icon = btn:GetNamedChild("Icon")
-            if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
-            SetPressFeedbackBaseSize(btn, buttonSize - 3, buttonSize - 3, buttonSize - 3, buttonSize - 3)
+            if icon then icon:SetDimensions(buttonInnerSize, buttonInnerSize) end
+            SetPressFeedbackBaseSize(btn, buttonInnerSize, buttonInnerSize, buttonInnerSize, buttonInnerSize)
         end
     end
 
     local ultBtn = FindControl(frontBarContainer, 'UltimateButton')
     if ultBtn then
         local btn5 = FindControl(frontBarContainer, 'Button5')
-        local ultOffsetX = frontBarCfg.ultimate.offsetX or 0
-        local ultOffsetY = frontBarCfg.ultimate.offsetY or 0
+        local ultOffsetX = frontBarLayoutConfig.ultimate.offsetX or 0
+        local ultOffsetY = frontBarLayoutConfig.ultimate.offsetY or 0
         ultBtn:SetDimensions(ultimateSize, ultimateSize)
         ultBtn.cooldownRevealWidth = ultimateSize
         ultBtn.cooldownRevealHeight = ultimateSize
@@ -398,20 +399,19 @@ local function UpdateFrontBarLayout(rootFrame)
             ultBtn.glowAnimation:SetMinMaxAlpha(0, 1)
         end
         local flipCard = ultBtn:GetNamedChild("FlipCard")
-        if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
+        if flipCard then flipCard:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
         local icon = ultBtn:GetNamedChild("Icon")
-        if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
-        SetPressFeedbackBaseSize(ultBtn, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3)
+        if icon then icon:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
+        SetPressFeedbackBaseSize(ultBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
     local qsBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "QuickslotButton")
     if qsBtn then
-        local quickslotCfg = frontBarCfg.quickslotButton
+        local quickslotCfg = frontBarLayoutConfig.quickslotButton
         local baseX = BETTERUI_ORB_FRAMES.bars.quickslot.x
         local baseY = BETTERUI_ORB_FRAMES.bars.quickslot.y
         local offsetX = quickslotCfg.offsetX or 0
         local offsetY = quickslotCfg.offsetY or 0
-        local bgMiddle = FindControl(rootFrame, 'BgMiddle')
         qsBtn:SetDimensions(buttonSize, buttonSize)
         qsBtn.cooldownRevealWidth = buttonSize
         qsBtn.cooldownRevealHeight = buttonSize
@@ -420,21 +420,20 @@ local function UpdateFrontBarLayout(rootFrame)
             qsBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
         end
         local flipCard = qsBtn:GetNamedChild("FlipCard")
-        if flipCard then flipCard:SetDimensions(buttonSize - 3, buttonSize - 3) end
+        if flipCard then flipCard:SetDimensions(buttonInnerSize, buttonInnerSize) end
         local icon = qsBtn:GetNamedChild("Icon")
-        if icon then icon:SetDimensions(buttonSize - 3, buttonSize - 3) end
-        SetPressFeedbackBaseSize(qsBtn, buttonSize - 3, buttonSize - 3, buttonSize - 3, buttonSize - 3)
+        if icon then icon:SetDimensions(buttonInnerSize, buttonInnerSize) end
+        SetPressFeedbackBaseSize(qsBtn, buttonInnerSize, buttonInnerSize, buttonInnerSize, buttonInnerSize)
         SkillBar.AnchorQuickslotCountText(qsBtn, qsBtn:GetNamedChild("CountText"))
     end
 
     local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")
     if compBtn then
-        local companionCfg = frontBarCfg.companionButton
+        local companionCfg = frontBarLayoutConfig.companionButton
         local baseX = BETTERUI_ORB_FRAMES.bars.companionUltimate.x
         local baseY = BETTERUI_ORB_FRAMES.bars.companionUltimate.y
         local offsetX = companionCfg.offsetX or 0
         local offsetY = companionCfg.offsetY or 0
-        local bgMiddle = FindControl(rootFrame, 'BgMiddle')
         compBtn:SetDimensions(ultimateSize, ultimateSize)
         compBtn.cooldownRevealWidth = ultimateSize
         compBtn.cooldownRevealHeight = ultimateSize
@@ -443,15 +442,14 @@ local function UpdateFrontBarLayout(rootFrame)
             compBtn:SetAnchor(CENTER, bgMiddle, BOTTOM, baseX + offsetX, baseY + offsetY)
         end
         local flipCard = compBtn:GetNamedChild("FlipCard")
-        if flipCard then flipCard:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
+        if flipCard then flipCard:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
         local icon = compBtn:GetNamedChild("Icon")
-        if icon then icon:SetDimensions(ultimateSize - 3, ultimateSize - 3) end
-        SetPressFeedbackBaseSize(compBtn, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3, ultimateSize - 3)
+        if icon then icon:SetDimensions(ultimateInnerSize, ultimateInnerSize) end
+        SetPressFeedbackBaseSize(compBtn, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize, ultimateInnerSize)
     end
 
-    local barOffsetX = frontBarCfg.offsetX or 0
-    local barOffsetY = frontBarCfg.offsetY or 0
-    local bgMiddle = FindControl(rootFrame, 'BgMiddle')
+    local barOffsetX = frontBarLayoutConfig.offsetX or 0
+    local barOffsetY = frontBarLayoutConfig.offsetY or 0
     if bgMiddle then
         frontBarContainer:ClearAnchors()
         frontBarContainer:SetAnchor(BOTTOM, bgMiddle, BOTTOM, barOffsetX + 10, -15 + barOffsetY)
@@ -492,6 +490,7 @@ end
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateFrontBarCompanion(rootFrame)
     local frontBarContainer = FindControl(rootFrame, 'FrontBarContainer')
+    if not frontBarContainer then return end
     local compBtn = GetFrontBarButtonControl(rootFrame, frontBarContainer, "CompanionButton")
     if not compBtn then return end
     local companionActive = DoesUnitExist("companion") and HasActiveCompanion()
@@ -534,3 +533,12 @@ SkillBar.SetupFrontBarKeybinds = SetupFrontBarKeybinds
 SkillBar.UpdateFrontBarLayout = UpdateFrontBarLayout
 SkillBar.UpdateFrontBarQuickslot = UpdateFrontBarQuickslot
 SkillBar.UpdateFrontBarCompanion = UpdateFrontBarCompanion
+SkillBar._FrontBarInternals = {
+    GetTargetOrRangeFailure = GetTargetOrRangeFailure,
+    ResolveTargetFailureWithCastLatch = ResolveTargetFailureWithCastLatch,
+    ResolveNonCostFailureWithCastLatch = ResolveNonCostFailureWithCastLatch,
+    HasInsufficientUltimate = HasInsufficientUltimate,
+    ShouldSuppressUnusableOverlayForCooldown = ShouldSuppressUnusableOverlayForCooldown,
+    TARGET_FAILURE_CAST_HOLD_MS = TARGET_FAILURE_CAST_HOLD_MS,
+    NON_COST_FAILURE_CAST_HOLD_MS = NON_COST_FAILURE_CAST_HOLD_MS,
+}

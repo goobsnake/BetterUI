@@ -1,60 +1,137 @@
 --[[
 File: tools/tests/test_front_bar_helpers.lua
-Purpose: Unit tests for pure functions in ResourceOrbFrames/SkillBar/
-         FrontBarPressFeedback.lua and FrontBarCooldowns.lua.
+Purpose: Unit tests for exported helpers in ResourceOrbFrames/SkillBar/
+         FrontBarCooldowns.lua using the actual module code.
          Tests run standalone with a Lua interpreter (no ESO environment).
 ]]
 
--- ============================================================================
--- MINIMAL ESO STUBS
--- ============================================================================
+BETTERUI = {
+    ResourceOrbFrames = {
+        SkillBar = {
+            CONST = {
+                FRONT_BAR_SLOTS = {},
+            },
+            CooldownUtils = {},
+        },
+        Utils = {},
+    },
+}
 
-BETTERUI = { ResourceOrbFrames = { SkillBar = {}, Utils = {} } }
+local moduleSettings = {
+    showQuickslotCount = true,
+    quickslotTextSize = 27,
+    quickslotTextColor = { 1, 1, 1, 1 },
+}
 
+function BETTERUI.ResourceOrbFrames.Utils.FindControl(parent, name)
+    if not parent then return nil end
+    if parent.GetNamedChild then
+        local child = parent:GetNamedChild(name)
+        if child then
+            return child
+        end
+    end
+    return parent.children and parent.children[name] or nil
+end
+
+function BETTERUI.ResourceOrbFrames.Utils.ClampTextSize(value, minValue, maxValue, fallback)
+    if type(value) ~= "number" then
+        return fallback
+    end
+    if value < minValue then
+        return minValue
+    end
+    if value > maxValue then
+        return maxValue
+    end
+    return value
+end
+
+function BETTERUI.ResourceOrbFrames.Utils.GetSettings()
+    return moduleSettings
+end
+
+function BETTERUI.ResourceOrbFrames.Utils.GetFrontBarButtonControl()
+    return nil
+end
+
+ACTION_TYPE_ITEM = 1
+TEXT_ALIGN_CENTER = "CENTER"
+TEXT_ALIGN_TOP = "TOP"
+TOP = "TOP"
+BOTTOM = "BOTTOM"
 HOTBAR_CATEGORY_QUICKSLOT_WHEEL = 9
 HOTBAR_CATEGORY_COMPANION = 10
 ACTION_BAR_ULTIMATE_SLOT_INDEX = 7
 
-function GetCurrentQuickslot() return 9 end
+local currentSlotType = ACTION_TYPE_ITEM
+local currentSlotCount = 0
 
--- ============================================================================
--- EXTRACT PURE FUNCTIONS UNDER TEST
--- ============================================================================
-
--- From FrontBarPressFeedback.lua
-local function ResolvePressFeedbackButtonName(slotIndex, hotbarCategory)
-    if hotbarCategory == HOTBAR_CATEGORY_QUICKSLOT_WHEEL then
-        return "QuickslotButton"
-    end
-    if hotbarCategory == HOTBAR_CATEGORY_COMPANION then
-        return "CompanionButton"
-    end
-    local ultimateSlot = ACTION_BAR_ULTIMATE_SLOT_INDEX and (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) or 8
-    if slotIndex == ultimateSlot then
-        return "UltimateButton"
-    end
-    local numericSlot = tonumber(slotIndex)
-    if numericSlot and numericSlot >= 3 and numericSlot <= 7 then
-        return "Button" .. tostring(numericSlot - 2)
-    end
-    if numericSlot and numericSlot == GetCurrentQuickslot() then
-        return "QuickslotButton"
-    end
-    return nil
+function GetSlotType()
+    return currentSlotType
 end
 
--- From FrontBarCooldowns.lua
-local function GetQuickslotCountAnchorOffsets()
-    local keybindOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X or 0
-    local keybindOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y or -2
-    local buttonOffsetX = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X or 0
-    local buttonOffsetY = BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y or 1
-    return keybindOffsetX, keybindOffsetY, buttonOffsetX, buttonOffsetY
+function GetSlotItemCount()
+    return currentSlotCount
 end
 
--- ============================================================================
--- TEST INFRASTRUCTURE
--- ============================================================================
+function GetCurrentQuickslot()
+    return 9
+end
+
+dofile("Modules/ResourceOrbFrames/SkillBar/FrontBarCooldowns.lua")
+
+local SkillBar = BETTERUI.ResourceOrbFrames.SkillBar
+
+local function NewLabel()
+    return {
+        hidden = nil,
+        text = nil,
+        font = nil,
+        color = nil,
+        anchor = nil,
+        horizontalAlignment = nil,
+        verticalAlignment = nil,
+        ClearAnchors = function(self)
+            self.anchor = nil
+        end,
+        SetAnchor = function(self, ...)
+            self.anchor = { ... }
+        end,
+        SetHorizontalAlignment = function(self, value)
+            self.horizontalAlignment = value
+        end,
+        SetVerticalAlignment = function(self, value)
+            self.verticalAlignment = value
+        end,
+        SetFont = function(self, value)
+            self.font = value
+        end,
+        SetColor = function(self, ...)
+            self.color = { ... }
+        end,
+        SetText = function(self, value)
+            self.text = value
+        end,
+        SetHidden = function(self, value)
+            self.hidden = value
+        end,
+    }
+end
+
+local function NewControl(children)
+    local control = {
+        children = children or {},
+        quickslotCount = nil,
+        quickslotEmpty = nil,
+    }
+
+    function control:GetNamedChild(name)
+        return self.children[name]
+    end
+
+    return control
+end
 
 local passed, failed = 0, 0
 
@@ -67,67 +144,101 @@ local function assert_eq(actual, expected, label)
     end
 end
 
-local function assert_nil(value, label)
-    if value == nil then
+local function assert_true(value, label)
+    if value then
         passed = passed + 1
     else
         failed = failed + 1
-        print(string.format("  FAIL: %s — expected nil, got %s", label, tostring(value)))
+        print(string.format("  FAIL: %s — expected true, got %s", label, tostring(value)))
     end
 end
 
--- ============================================================================
--- TESTS: ResolvePressFeedbackButtonName
--- ============================================================================
-
-print("[ResolvePressFeedbackButtonName]")
-assert_eq(ResolvePressFeedbackButtonName(3, HOTBAR_CATEGORY_QUICKSLOT_WHEEL), "QuickslotButton", "quickslot wheel → QuickslotButton")
-assert_eq(ResolvePressFeedbackButtonName(3, HOTBAR_CATEGORY_COMPANION), "CompanionButton", "companion → CompanionButton")
-assert_eq(ResolvePressFeedbackButtonName(8, 1), "UltimateButton", "ultimate slot → UltimateButton")
-assert_eq(ResolvePressFeedbackButtonName(3, 1), "Button1", "slot 3 → Button1")
-assert_eq(ResolvePressFeedbackButtonName(4, 1), "Button2", "slot 4 → Button2")
-assert_eq(ResolvePressFeedbackButtonName(5, 1), "Button3", "slot 5 → Button3")
-assert_eq(ResolvePressFeedbackButtonName(6, 1), "Button4", "slot 6 → Button4")
-assert_eq(ResolvePressFeedbackButtonName(7, 1), "Button5", "slot 7 → Button5")
-assert_eq(ResolvePressFeedbackButtonName(9, 1), "QuickslotButton", "current quickslot → QuickslotButton")
-assert_nil(ResolvePressFeedbackButtonName(1, 1), "slot 1 → nil")
-assert_nil(ResolvePressFeedbackButtonName(2, 1), "slot 2 → nil")
-assert_nil(ResolvePressFeedbackButtonName(nil, 1), "nil slot → nil")
-
--- ============================================================================
--- TESTS: GetQuickslotCountAnchorOffsets
--- ============================================================================
-
-print("[GetQuickslotCountAnchorOffsets]")
+print("[AnchorQuickslotCountText]")
 do
-    -- Without globals set, should use defaults
-    local kx, ky, bx, by = GetQuickslotCountAnchorOffsets()
-    assert_eq(kx, 0, "default keybindOffsetX")
-    assert_eq(ky, -2, "default keybindOffsetY")
-    assert_eq(bx, 0, "default buttonOffsetX")
-    assert_eq(by, 1, "default buttonOffsetY")
+    local label = NewLabel()
+    local buttonText = {}
+    local button = NewControl({
+        CountText = label,
+        ButtonText = buttonText,
+    })
 
-    -- With globals set
-    BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = 5
-    BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = -10
-    BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 3
-    BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 7
-    kx, ky, bx, by = GetQuickslotCountAnchorOffsets()
-    assert_eq(kx, 5, "custom keybindOffsetX")
-    assert_eq(ky, -10, "custom keybindOffsetY")
-    assert_eq(bx, 3, "custom buttonOffsetX")
-    assert_eq(by, 7, "custom buttonOffsetY")
+    SkillBar.AnchorQuickslotCountText(button, label)
 
-    -- Reset globals
-    BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_X = nil
-    BETTERUI_QUICKSLOT_COUNT_TEXT_KEYBIND_OFFSET_Y = nil
+    assert_eq(label.anchor[1], TOP, "count text anchor point uses TOP")
+    assert_eq(label.anchor[2], buttonText, "count text anchors to button text when present")
+    assert_eq(label.anchor[3], BOTTOM, "count text uses button text bottom anchor")
+    assert_eq(label.anchor[4], 0, "default keybind offset X")
+    assert_eq(label.anchor[5], -2, "default keybind offset Y")
+    assert_eq(label.horizontalAlignment, TEXT_ALIGN_CENTER, "count text horizontal alignment")
+    assert_eq(label.verticalAlignment, TEXT_ALIGN_TOP, "count text vertical alignment")
+
+    BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = 4
+    BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = 6
+
+    local fallbackLabel = NewLabel()
+    local fallbackButton = NewControl({
+        CountText = fallbackLabel,
+    })
+
+    SkillBar.AnchorQuickslotCountText(fallbackButton, fallbackLabel)
+
+    assert_eq(fallbackLabel.anchor[2], fallbackButton, "fallback anchors to button when button text missing")
+    assert_eq(fallbackLabel.anchor[4], 4, "fallback button offset X")
+    assert_eq(fallbackLabel.anchor[5], 6, "fallback button offset Y")
+
     BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_X = nil
     BETTERUI_QUICKSLOT_COUNT_TEXT_BUTTON_OFFSET_Y = nil
 end
 
--- ============================================================================
--- RESULTS
--- ============================================================================
+print("[UpdateQuickslotCountAndEmptyState]")
+do
+    local countText = NewLabel()
+    local overlay = {
+        hidden = nil,
+        SetHidden = function(self, value)
+            self.hidden = value
+        end,
+    }
+
+    local button = NewControl({
+        CountText = countText,
+        UnusableOverlay = overlay,
+    })
+
+    moduleSettings.showQuickslotCount = true
+    moduleSettings.quickslotTextSize = 99
+    moduleSettings.quickslotTextColor = { 0.2, 0.4, 0.6, 0.8 }
+    currentSlotType = ACTION_TYPE_ITEM
+    currentSlotCount = 5
+
+    local isEmpty = SkillBar.UpdateQuickslotCountAndEmptyState(button, nil, moduleSettings, 9, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    assert_eq(isEmpty, false, "filled quickslot reports non-empty")
+    assert_eq(countText.text, 5, "filled quickslot count text")
+    assert_eq(countText.hidden, false, "filled quickslot shows count")
+    assert_eq(countText.font, "$(BOLD_FONT)|30|thick-outline", "quickslot text size is clamped to max")
+    assert_eq(countText.color[1], 0.2, "quickslot text color red channel")
+    assert_eq(overlay.hidden, true, "filled quickslot hides unusable overlay")
+    assert_eq(button.quickslotCount, 5, "button caches quickslot count")
+    assert_eq(button.quickslotEmpty, false, "button caches non-empty state")
+
+    currentSlotCount = 0
+    isEmpty = SkillBar.UpdateQuickslotCountAndEmptyState(button, nil, moduleSettings, 9, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    assert_eq(isEmpty, true, "empty quickslot reports empty")
+    assert_eq(countText.text, 0, "empty quickslot still renders stack count text")
+    assert_eq(countText.hidden, false, "empty quickslot still shows count when enabled")
+    assert_eq(overlay.hidden, false, "empty quickslot shows unusable overlay")
+    assert_eq(button.quickslotEmpty, true, "button caches empty state")
+
+    moduleSettings.showQuickslotCount = false
+    currentSlotType = 99
+    currentSlotCount = 7
+    isEmpty = SkillBar.UpdateQuickslotCountAndEmptyState(button, nil, moduleSettings, 9, HOTBAR_CATEGORY_QUICKSLOT_WHEEL)
+    assert_eq(isEmpty, false, "non-item slot is not treated as empty quickslot")
+    assert_eq(countText.hidden, true, "non-item slot hides count text")
+    assert_eq(overlay.hidden, true, "non-item slot hides unusable overlay")
+    assert_eq(button.quickslotCount, nil, "non-item slot clears quickslot count cache")
+    assert_eq(button.quickslotEmpty, false, "non-item slot caches non-empty state")
+end
 
 print(string.format("\nResults: %d passed, %d failed", passed, failed))
 if failed > 0 then

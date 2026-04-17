@@ -15,6 +15,7 @@ local Events = nil
 
 local NAME = "ResourceOrbFrames"
 local BARS  -- resolved after Constants.lua loads (in Initialize)
+local XP_NO_ORNAMENT_FALLBACK_OFFSET_X = -350
 local MOUNT_NO_ORNAMENT_FALLBACK_OFFSET_X = 350
 local BAR_FALLBACK_OFFSET_Y = -20
 
@@ -43,10 +44,13 @@ assert(BETTERUI.CIM and BETTERUI.CIM.DeferredTask, "BetterUI: CIM.DeferredTask m
 local ROFTasks = BETTERUI.CIM.DeferredTask.Manager:New()
 ResourceOrbFrames.Tasks = ROFTasks
 
--- Use canonical Utils.GetSettings for the standard no-defaults path.
-local GetSettings = BETTERUI.ResourceOrbFrames.Utils.GetSettings
+local Utils = BETTERUI.ResourceOrbFrames.Utils
+local SettingsUtils = Utils.Settings
+local ControlUtils = Utils.Controls
 
-local FindControl = BETTERUI.ControlUtils.FindControl
+local GetSettings = SettingsUtils.Get
+local GetFrontBarConfig = SettingsUtils.GetCustomFrontBar
+local FindControl = ControlUtils.Find
 
 -- UPDATE HELPERS
 
@@ -91,7 +95,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
         end
 
         -- Custom Front Bar Updates
-        local frontBarCfg = BETTERUI_ORB_FRAMES.bars.customFrontBar
+        local frontBarCfg = GetFrontBarConfig()
         if frontBarCfg and frontBarCfg.m_enabled then
             if not SkillBar.IsWeaponSwapAnimating() then
                 SkillBar.UpdateFrontBarLayout(m_rootFrame)
@@ -111,7 +115,7 @@ local function ApplyLayout(updateOrbs, updateSkills)
     end
 
     -- Update Bar Frames Layout (Anchoring) - use cached control references
-    local settings = GetSettings()
+    local settings = GetSettings() or {}
 
 
     -- Lazily resolve BARS reference (Constants.lua loads before this runs)
@@ -128,7 +132,8 @@ local function ApplyLayout(updateOrbs, updateSkills)
                 m_experienceBar.control:SetAnchor(TOP, m_leftOrnament, BOTTOM, BARS.XP.OFFSET_X,
                     BARS.XP.OFFSET_Y)
             else
-                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, -350, -20) -- Fallback
+                m_experienceBar.control:SetAnchor(BOTTOM, m_bgMiddle, BOTTOM, XP_NO_ORNAMENT_FALLBACK_OFFSET_X,
+                    BAR_FALLBACK_OFFSET_Y)
             end
         end
         m_experienceBar:Update()
@@ -174,29 +179,31 @@ end
 
 -- INITIALIZATION HELPERS
 
---- Reads front bar config live from settings (avoids stale closure references).
----@return table|nil config Custom front bar configuration, or nil
-local function GetFrontBarConfig()
-    return BETTERUI_ORB_FRAMES and BETTERUI_ORB_FRAMES.bars and BETTERUI_ORB_FRAMES.bars.customFrontBar
+local function GetSkillBarModule()
+    return SkillBar or BETTERUI.ResourceOrbFrames.SkillBar
 end
 
 --- Replays front bar handlers (keybinds, press feedback, tooltips).
 ---@param control table Root ResourceOrbFrames control
 local function SetupFrontBarHandlers(control)
-    if SkillBar.SetupFrontBarKeybinds then
-        SkillBar.SetupFrontBarKeybinds(control)
+    local skillBar = GetSkillBarModule()
+    if skillBar.SetupFrontBarKeybinds then
+        skillBar.SetupFrontBarKeybinds(control)
     end
-    if SkillBar.SetupFrontBarPressFeedbackHooks then
-        SkillBar.SetupFrontBarPressFeedbackHooks(control)
+    if skillBar.SetupFrontBarPressFeedbackHooks then
+        skillBar.SetupFrontBarPressFeedbackHooks(control)
     end
-    if SkillBar.SetupFrontBarTooltips then
-        SkillBar.SetupFrontBarTooltips(control)
+    if skillBar.SetupFrontBarTooltips then
+        skillBar.SetupFrontBarTooltips(control)
     end
 end
 
 --- Suppresses native action bar and attribute bars.
 local function SuppressNativeBars()
-    SkillBar.HideNativeActionBar()
+    local skillBar = GetSkillBarModule()
+    if skillBar and skillBar.HideNativeActionBar then
+        skillBar.HideNativeActionBar()
+    end
     if PLAYER_ATTRIBUTE_BARS_FRAGMENT then
         PLAYER_ATTRIBUTE_BARS_FRAGMENT:SetHiddenForReason('ResourceOrbFrames', true)
     end
@@ -291,7 +298,7 @@ local function RegisterDynamicEvents(control)
     BETTERUI.CIM.EventRegistry.RegisterFiltered("ResourceOrbFrames", NAME .. "_FrontBarPressFeedbackAbilityUsed",
         EVENT_ACTION_SLOT_ABILITY_USED, function(_, slotIndex)
             if not slotIndex then return end
-            local frontBarSettings = GetSettings().customFrontBar
+            local frontBarSettings = GetFrontBarConfig()
             if not frontBarSettings or not frontBarSettings.m_enabled then return end
             if SkillBar.PlayFrontBarPressFeedbackForSlot then
                 SkillBar.PlayFrontBarPressFeedbackForSlot(control, slotIndex, nil, true)
@@ -392,7 +399,7 @@ function ResourceOrbFrames.Initialize(control)
 
         ROFTasks:Schedule("initModuleSetup", BETTERUI.CIM.CONST.TIMING.DEFERRED_INIT_MS, function()
             local settings = GetSettings()
-            if not settings.m_enabled then
+            if not settings or not settings.m_enabled then
                 m_rootFrame:SetHidden(true)
                 return
             end
@@ -420,6 +427,7 @@ end
 function ResourceOrbFrames.ApplySettings()
     local settings = GetSettings()
     if not m_rootFrame then return end
+    if not settings then return end
 
     if settings.m_enabled then
         if not m_isInitialized then
@@ -452,3 +460,8 @@ end
 function ResourceOrbFrames_Initialize(control)
     ResourceOrbFrames.Initialize(control)
 end
+
+ResourceOrbFrames._Internals = {
+    SetupFrontBarHandlers = SetupFrontBarHandlers,
+    SuppressNativeBars = SuppressNativeBars,
+}

@@ -9,25 +9,11 @@ local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local ClampTextSize = Utils.ClampTextSize
 local GetSettings = Utils.GetSettings
+local CooldownUtils = SkillBar.CooldownUtils
+local CONST = SkillBar.CONST or {}
 
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
-
--- Access shared caches
-local sharedCooldownCaches = SkillBar.SharedCooldownCaches
-if not sharedCooldownCaches then
-    sharedCooldownCaches = {
-        effectDurationBySlotCategory = {},
-        smoothedRemainBySlotCategory = {},
-    }
-    SkillBar.SharedCooldownCaches = sharedCooldownCaches
-end
-local m_effectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
-local m_cooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
-
-local function BuildCooldownStateKey(slotIndex, hotbarCategory)
-    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
-end
 
 local GetFrontBarButtonControl = Utils.GetFrontBarButtonControl
 
@@ -96,80 +82,31 @@ local function UpdateQuickslotCountAndEmptyState(buttonControl, children, settin
     return isEmpty
 end
 
--- SMOOTHED COOLDOWN
+-- COOLDOWN SLOT MAPPINGS
 
-local function ResetSmoothedCooldownRemaining(stateKey)
-    if stateKey then m_cooldownVisualState[stateKey] = nil end
-end
-
-local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
-    if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
-        return remainMs
-    end
-    local nowMs = GetGameTimeMilliseconds()
-    local state = m_cooldownVisualState[stateKey]
-    if not state or state.durationMs ~= durationMs
-        or remainMs > ((state.lastReportedRemainMs or remainMs) + 100) then
-        m_cooldownVisualState[stateKey] = {
-            durationMs = durationMs,
-            lastReportedRemainMs = remainMs,
-            smoothedRemainMs = remainMs,
-            lastUpdateMs = nowMs,
+local function BuildFrontBarCooldownMappings(activeCategory)
+    local slotMappings = {}
+    local frontBarSlots = CONST.FRONT_BAR_SLOTS or {}
+    for _, mapping in ipairs(frontBarSlots) do
+        slotMappings[#slotMappings + 1] = {
+            buttonName = mapping.buttonName,
+            slot = mapping.slot,
+            category = activeCategory,
         }
-        return remainMs
     end
-    local elapsedMs = nowMs - (state.lastUpdateMs or nowMs)
-    if elapsedMs < 0 then elapsedMs = 0 end
-    local smoothedRemainMs = (state.smoothedRemainMs or remainMs) - elapsedMs
-    if smoothedRemainMs < 0 then smoothedRemainMs = 0 end
-    if smoothedRemainMs > remainMs then smoothedRemainMs = remainMs end
-    state.lastReportedRemainMs = remainMs
-    state.smoothedRemainMs = smoothedRemainMs
-    state.lastUpdateMs = nowMs
-    return smoothedRemainMs
-end
 
--- LINEAR COOLDOWN VISUALS
+    slotMappings[#slotMappings + 1] = {
+        buttonName = "QuickslotButton",
+        slot = GetCurrentQuickslot(),
+        category = HOTBAR_CATEGORY_QUICKSLOT_WHEEL,
+    }
+    slotMappings[#slotMappings + 1] = {
+        buttonName = "CompanionButton",
+        slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1,
+        category = HOTBAR_CATEGORY_COMPANION,
+    }
 
-local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
-    if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
-        if cooldownEdge then cooldownEdge:SetHidden(true) end
-        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-        return nil
-    end
-    local revealWidth = revealControl.cooldownRevealWidth
-    local revealHeight = revealControl.cooldownRevealHeight
-    if not revealWidth or not revealHeight then
-        revealWidth, revealHeight = revealControl:GetDimensions()
-    end
-    if revealWidth <= 0 or revealHeight <= 0 then
-        if cooldownEdge then cooldownEdge:SetHidden(true) end
-        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-        return nil
-    end
-    if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-    local percentComplete = 1 - (remainMs / durationMs)
-    if percentComplete < 0 then percentComplete = 0 end
-    if percentComplete > 1 then percentComplete = 1 end
-    local edgeOffsetY = (1 - percentComplete) * revealHeight
-    cooldownEdge:ClearAnchors()
-    cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
-    cooldownEdge:SetWidth(revealWidth)
-    cooldownEdge:SetHidden(false)
-    cooldownEdge:SetDrawLayer(DL_OVERLAY)
-    cooldownEdge:SetDrawTier(DT_LOW)
-    cooldownEdge:SetDrawLevel(1)
-    if cooldownOverlay then
-        local unrevealedHeight = (1 - percentComplete) * revealHeight
-        cooldownOverlay:ClearAnchors()
-        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
-        cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
-        cooldownOverlay:SetHidden(false)
-        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
-        cooldownOverlay:SetDrawTier(DT_LOW)
-        cooldownOverlay:SetDrawLevel(0)
-    end
-    return percentComplete
+    return slotMappings
 end
 
 -- UPDATE FRONT BAR COOLDOWNS (per-frame)
@@ -184,16 +121,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
     if not frontBarContainer then return end
 
     local isGamepad = IsInGamepadPreferredMode()
-    local slotMapping = {
-        { buttonName = "Button1",         slot = 3,                                  category = activeCategory },
-        { buttonName = "Button2",         slot = 4,                                  category = activeCategory },
-        { buttonName = "Button3",         slot = 5,                                  category = activeCategory },
-        { buttonName = "Button4",         slot = 6,                                  category = activeCategory },
-        { buttonName = "Button5",         slot = 7,                                  category = activeCategory },
-        { buttonName = "UltimateButton",  slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = activeCategory },
-        { buttonName = "QuickslotButton", slot = GetCurrentQuickslot(),              category = HOTBAR_CATEGORY_QUICKSLOT_WHEEL },
-        { buttonName = "CompanionButton", slot = ACTION_BAR_ULTIMATE_SLOT_INDEX + 1, category = HOTBAR_CATEGORY_COMPANION },
-    }
+    local slotMapping = BuildFrontBarCooldownMappings(activeCategory)
 
     local settings = GetSettings()
     local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
@@ -204,7 +132,6 @@ local function UpdateFrontBarCooldowns(rootFrame)
 
     for _, mapping in ipairs(slotMapping) do
         local btn = GetFrontBarButtonControl(rootFrame, frontBarContainer, mapping.buttonName)
-        local cooldownStateKey = BuildCooldownStateKey(mapping.slot, mapping.category)
 
         if btn and not btn:IsHidden() then
             local cachedBtn = buttonCache and buttonCache[mapping.buttonName] or nil
@@ -216,27 +143,9 @@ local function UpdateFrontBarCooldowns(rootFrame)
                 if isQuickslotEmpty then baseDesaturation = 1 end
             end
 
-            local remainMs, durationMs = GetSlotCooldownInfo(mapping.slot, mapping.category)
-            local showCooldown = false
-            if remainMs and remainMs > 0 and durationMs and durationMs > 1500 then
-                showCooldown = true
-            end
-
-            if not showCooldown then
-                local effectRemaining = GetActionSlotEffectTimeRemaining(mapping.slot, mapping.category)
-                if effectRemaining and effectRemaining > 0 then
-                    remainMs = effectRemaining
-                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
-                    if not m_effectDurationCache[cacheKey] or m_effectDurationCache[cacheKey] < effectRemaining then
-                        m_effectDurationCache[cacheKey] = effectRemaining
-                    end
-                    durationMs = m_effectDurationCache[cacheKey]
-                    showCooldown = true
-                else
-                    local cacheKey = BuildCooldownStateKey(mapping.slot, mapping.category)
-                    m_effectDurationCache[cacheKey] = nil
-                end
-            end
+            local showCooldown, remainMs, durationMs, cooldownStateKey = CooldownUtils.ResolveCooldownWindow(
+                mapping.slot,
+                mapping.category)
 
             if mapping.buttonName == "QuickslotButton" and not settings.showQuickslotCooldown then
                 showCooldown = false
@@ -250,10 +159,10 @@ local function UpdateFrontBarCooldowns(rootFrame)
             local altTimerText = children.CooldownText or btn:GetNamedChild("CooldownText")
 
             if showCooldown then
-                local visualRemainMs = GetSmoothedCooldownRemaining(cooldownStateKey, remainMs, durationMs)
+                local visualRemainMs = CooldownUtils.GetSmoothedRemaining(cooldownStateKey, remainMs, durationMs)
                 if isGamepad then
                     if cooldown then cooldown:SetHidden(true) end
-                    local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs, durationMs)
+                    local percentComplete = CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, btn, visualRemainMs, durationMs)
                     if iconControl then
                         if percentComplete ~= nil then
                             local cooldownDesaturation = 1 - percentComplete
@@ -293,7 +202,7 @@ local function UpdateFrontBarCooldowns(rootFrame)
                     altTimerText:SetColor(unpack(cooldownColor))
                 end
             else
-                ResetSmoothedCooldownRemaining(cooldownStateKey)
+                CooldownUtils.ResetSmoothedRemaining(cooldownStateKey)
                 if iconControl then iconControl:SetDesaturation(baseDesaturation) end
                 if cooldownOverlay then cooldownOverlay:SetHidden(true) end
                 if cooldown then cooldown:SetHidden(true) end

@@ -10,29 +10,36 @@ local Utils = BETTERUI.ResourceOrbFrames.Utils
 local FindControl = Utils.FindControl
 local GetSettings = Utils.GetSettings
 local ClampTextSize = Utils.ClampTextSize
-
-local function CanUseBackupBar()
-    return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
-end
+local CooldownUtils = SkillBar.CooldownUtils
+local CONST = SkillBar.CONST or {}
 
 -- Cached control references (populated by CacheBackBarControls during addon init)
 local m_backBarButtonCache = {}
 local m_backBarContainer = nil
-local sharedCooldownCaches = SkillBar.SharedCooldownCaches
-if not sharedCooldownCaches then
-    sharedCooldownCaches = {
-        effectDurationBySlotCategory = {},
-        smoothedRemainBySlotCategory = {},
-    }
-    SkillBar.SharedCooldownCaches = sharedCooldownCaches
-end
-local m_backBarEffectDurationCache = sharedCooldownCaches.effectDurationBySlotCategory
-local m_backBarCooldownVisualState = sharedCooldownCaches.smoothedRemainBySlotCategory
+local BACK_BAR_SLOTS = CONST.BACK_BAR_SLOTS or { 3, 4, 5, 6, 7, 8 }
 local SKILL_TEXT_SIZE_MIN = 12
 local SKILL_TEXT_SIZE_MAX = 30
 
-local function BuildCooldownStateKey(slotIndex, hotbarCategory)
-    return string.format("%d_%d", slotIndex or -1, hotbarCategory or -1)
+local function CanUseBackBar()
+    return GetUnitLevel("player") >= GetWeaponSwapUnlockedLevel()
+end
+
+local function GetBackBarContainer(rootFrame)
+    if m_backBarContainer then
+        return m_backBarContainer
+    end
+    if not rootFrame then
+        return nil
+    end
+    m_backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    return m_backBarContainer
+end
+
+local function GetBackBarHotbarCategory()
+    if GetActiveWeaponPairInfo() == ACTIVE_WEAPON_PAIR_MAIN then
+        return HOTBAR_CATEGORY_BACKUP
+    end
+    return HOTBAR_CATEGORY_PRIMARY
 end
 
 --[[
@@ -45,7 +52,7 @@ param: rootFrame (control) - The root ResourceOrbFrames control
 local function CacheBackBarControls(rootFrame)
     if not rootFrame then return end
 
-    m_backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    m_backBarContainer = GetBackBarContainer(rootFrame)
     if not m_backBarContainer then return end
 
     -- Cache buttons 1-6 (slots 3-8)
@@ -65,100 +72,10 @@ local function GetCachedBackBarButton(index)
     return m_backBarButtonCache[index]
 end
 
-local function ResetSmoothedCooldownRemaining(stateKey)
-    if stateKey then
-        m_backBarCooldownVisualState[stateKey] = nil
-    end
-end
-
-local function GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
-    if not stateKey or not remainMs or remainMs <= 0 or not durationMs or durationMs <= 0 then
-        return remainMs
-    end
-
-    local nowMs = GetGameTimeMilliseconds()
-    local state = m_backBarCooldownVisualState[stateKey]
-    if not state
-        or state.durationMs ~= durationMs
-        or remainMs > ((state.lastReportedRemainMs or remainMs) + 100) then
-        m_backBarCooldownVisualState[stateKey] = {
-            durationMs = durationMs,
-            lastReportedRemainMs = remainMs,
-            smoothedRemainMs = remainMs,
-            lastUpdateMs = nowMs,
-        }
-        return remainMs
-    end
-
-    local elapsedMs = nowMs - (state.lastUpdateMs or nowMs)
-    if elapsedMs < 0 then
-        elapsedMs = 0
-    end
-
-    local smoothedRemainMs = (state.smoothedRemainMs or remainMs) - elapsedMs
-    if smoothedRemainMs < 0 then
-        smoothedRemainMs = 0
-    end
-    if smoothedRemainMs > remainMs then
-        smoothedRemainMs = remainMs
-    end
-
-    state.lastReportedRemainMs = remainMs
-    state.smoothedRemainMs = smoothedRemainMs
-    state.lastUpdateMs = nowMs
-    return smoothedRemainMs
-end
-
-local function ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, revealControl, remainMs, durationMs)
-    if not cooldownEdge or not revealControl or not remainMs or not durationMs or durationMs <= 0 then
-        if cooldownEdge then cooldownEdge:SetHidden(true) end
-        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-        return nil
-    end
-
-    local revealWidth = revealControl.cooldownRevealWidth
-    local revealHeight = revealControl.cooldownRevealHeight
-    if not revealWidth or not revealHeight then
-        revealWidth, revealHeight = revealControl:GetDimensions()
-    end
-    if revealWidth <= 0 or revealHeight <= 0 then
-        if cooldownEdge then cooldownEdge:SetHidden(true) end
-        if cooldownOverlay then cooldownOverlay:SetHidden(true) end
-        return nil
-    end
-
-    local percentComplete = 1 - (remainMs / durationMs)
-    if percentComplete < 0 then percentComplete = 0 end
-    if percentComplete > 1 then percentComplete = 1 end
-
-    local edgeOffsetY = (1 - percentComplete) * revealHeight
-
-    cooldownEdge:ClearAnchors()
-    cooldownEdge:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, edgeOffsetY)
-    cooldownEdge:SetWidth(revealWidth)
-    cooldownEdge:SetHidden(false)
-    cooldownEdge:SetDrawLayer(DL_OVERLAY)
-    cooldownEdge:SetDrawTier(DT_LOW)
-    cooldownEdge:SetDrawLevel(1)
-
-    if cooldownOverlay then
-        local unrevealedHeight = (1 - percentComplete) * revealHeight
-        cooldownOverlay:ClearAnchors()
-        cooldownOverlay:SetAnchor(TOPLEFT, revealControl, TOPLEFT, 0, 0)
-        cooldownOverlay:SetDimensions(revealWidth, unrevealedHeight)
-        cooldownOverlay:SetHidden(false)
-        cooldownOverlay:SetDrawLayer(DL_OVERLAY)
-        cooldownOverlay:SetDrawTier(DT_LOW)
-        cooldownOverlay:SetDrawLevel(0)
-    end
-
-    return percentComplete
-end
-
 --- Updates back bar button icons and visibility.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBar(rootFrame)
-    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
 
     local settings = GetSettings()
@@ -167,16 +84,15 @@ local function UpdateBackBar(rootFrame)
         return
     end
 
-    if not CanUseBackupBar() then
+    if not CanUseBackBar() then
         backBarContainer:SetHidden(true)
         return
     end
 
-    local activePair = GetActiveWeaponPairInfo()
-    local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
+    local backBarCategory = GetBackBarHotbarCategory()
     local backBarOpacity = settings.backBarOpacity or 1
 
-    local slots = { 3, 4, 5, 6, 7, 8 }
+    local slots = BACK_BAR_SLOTS
 
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
@@ -210,7 +126,7 @@ end
 --- Updates back bar button sizes, positions, and anchor layout.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBarLayout(rootFrame)
-    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
 
     local isGamePad = IsInGamepadPreferredMode()
@@ -303,10 +219,10 @@ end
 --- Sets up tooltip handlers for back bar buttons.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function SetupBackBarTooltips(rootFrame)
-    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
 
-    local slots = { 3, 4, 5, 6, 7, 8 }
+    local slots = BACK_BAR_SLOTS
     for i, slotIndex in ipairs(slots) do
         local btn = FindControl(backBarContainer, 'Button' .. i)
         if btn then
@@ -319,65 +235,37 @@ end
 --- Updates back bar cooldown overlays, text, and reveal animations.
 ---@param rootFrame table Root ResourceOrbFrames control
 local function UpdateBackBarCooldowns(rootFrame)
-    local activePair = GetActiveWeaponPairInfo()
-    local backBarCategory = (activePair == ACTIVE_WEAPON_PAIR_MAIN) and HOTBAR_CATEGORY_BACKUP or HOTBAR_CATEGORY_PRIMARY
-    local backBarContainer = FindControl(rootFrame, 'BackBarContainer')
+    local backBarCategory = GetBackBarHotbarCategory()
+    local backBarContainer = GetBackBarContainer(rootFrame)
     if not backBarContainer then return end
 
     local settings = GetSettings()
     local isGamePad = IsInGamepadPreferredMode()
     local cooldownSize = ClampTextSize(settings.cooldownTextSize, SKILL_TEXT_SIZE_MIN, SKILL_TEXT_SIZE_MAX, 27)
     local cooldownColor = settings.cooldownTextColor or { 0.86, 0.84, 0.13, 1 }
-    local slots = { 3, 4, 5, 6, 7, 8 }
+    local slots = BACK_BAR_SLOTS
     for i, slotIndex in ipairs(slots) do
         local cached = GetCachedBackBarButton(i)
-        local btn = (cached and cached.control) or FindControl(backBarContainer, 'Button' .. i)
-        if btn then
+        local button = (cached and cached.control) or FindControl(backBarContainer, 'Button' .. i)
+        if button then
             local children = cached and cached.children or {}
-            local cooldownOverlay = children.CooldownOverlay or btn:GetNamedChild("CooldownOverlay")
-            local cooldownEdge = children.CooldownEdge or btn:GetNamedChild("CooldownEdge")
-            local cooldownText = children.CooldownText or btn:GetNamedChild("CooldownText")
-            local icon = children.Icon or btn:GetNamedChild("Icon")
-
-            local remainMs = 0
-            local durationMs = 0
-            local showCooldown = false
-            local stateKey = BuildCooldownStateKey(slotIndex, backBarCategory)
-            local effectCacheKey = stateKey
+            local cooldownOverlay = children.CooldownOverlay or button:GetNamedChild("CooldownOverlay")
+            local cooldownEdge = children.CooldownEdge or button:GetNamedChild("CooldownEdge")
+            local cooldownText = children.CooldownText or button:GetNamedChild("CooldownText")
+            local icon = children.Icon or button:GetNamedChild("Icon")
 
             local abilityId = GetSlotBoundId(slotIndex, backBarCategory)
-            if abilityId and abilityId > 0 then
-                local remMs, durMs = GetSlotCooldownInfo(slotIndex, backBarCategory)
-                if remMs and remMs > 0 and durMs and durMs > 1500 then
-                    remainMs = remMs
-                    durationMs = durMs
-                    showCooldown = true
-                end
-
-                if not showCooldown then
-                    local effectRemaining = GetActionSlotEffectTimeRemaining(slotIndex, backBarCategory)
-                    if effectRemaining and effectRemaining > 0 then
-                        remainMs = effectRemaining
-                        if not m_backBarEffectDurationCache[effectCacheKey]
-                            or m_backBarEffectDurationCache[effectCacheKey] < effectRemaining then
-                            m_backBarEffectDurationCache[effectCacheKey] = effectRemaining
-                        end
-                        durationMs = m_backBarEffectDurationCache[effectCacheKey]
-                        showCooldown = true
-                    else
-                        m_backBarEffectDurationCache[effectCacheKey] = nil
-                    end
-                end
-            else
-                m_backBarEffectDurationCache[effectCacheKey] = nil
-            end
+            local showCooldown, remainMs, durationMs, stateKey = CooldownUtils.ResolveCooldownWindow(
+                slotIndex,
+                backBarCategory,
+                abilityId and abilityId > 0)
 
             if cooldownOverlay and cooldownText then
                 if showCooldown and remainMs > 0 and durationMs > 0 then
-                    local visualRemainMs = GetSmoothedCooldownRemaining(stateKey, remainMs, durationMs)
+                    local visualRemainMs = CooldownUtils.GetSmoothedRemaining(stateKey, remainMs, durationMs)
 
                     if isGamePad then
-                        local percentComplete = ApplyLinearCooldownVisuals(cooldownEdge, cooldownOverlay, btn,
+                        local percentComplete = CooldownUtils.ApplyLinearVisuals(cooldownEdge, cooldownOverlay, button,
                             visualRemainMs,
                             durationMs)
                         if icon then
@@ -391,8 +279,8 @@ local function UpdateBackBarCooldowns(rootFrame)
                         if cooldownEdge then cooldownEdge:SetHidden(true) end
                         if cooldownOverlay then
                             cooldownOverlay:ClearAnchors()
-                            cooldownOverlay:SetAnchor(TOPLEFT, btn, TOPLEFT, 0, 0)
-                            cooldownOverlay:SetAnchor(BOTTOMRIGHT, btn, BOTTOMRIGHT, 0, 0)
+                            cooldownOverlay:SetAnchor(TOPLEFT, button, TOPLEFT, 0, 0)
+                            cooldownOverlay:SetAnchor(BOTTOMRIGHT, button, BOTTOMRIGHT, 0, 0)
                             cooldownOverlay:SetHidden(false)
                         end
                         if icon then icon:SetDesaturation(1) end
@@ -406,7 +294,7 @@ local function UpdateBackBarCooldowns(rootFrame)
                     cooldownText:SetFont(string.format("$(BOLD_FONT)|%d|thick-outline", cooldownSize))
                     cooldownText:SetColor(unpack(cooldownColor))
                 else
-                    ResetSmoothedCooldownRemaining(stateKey)
+                    CooldownUtils.ResetSmoothedRemaining(stateKey)
                     cooldownOverlay:SetHidden(true)
                     if cooldownEdge then cooldownEdge:SetHidden(true) end
                     cooldownText:SetHidden(true)
@@ -423,3 +311,10 @@ SkillBar.UpdateBackBar = UpdateBackBar
 SkillBar.UpdateBackBarLayout = UpdateBackBarLayout
 SkillBar.SetupBackBarTooltips = SetupBackBarTooltips
 SkillBar.UpdateBackBarCooldowns = UpdateBackBarCooldowns
+SkillBar._BackBarInternals = {
+    CanUseBackBar = CanUseBackBar,
+    CanUseBackupBar = CanUseBackBar,
+    GetBackBarContainer = GetBackBarContainer,
+    GetBackBarHotbarCategory = GetBackBarHotbarCategory,
+    GetCachedBackBarButton = GetCachedBackBarButton,
+}

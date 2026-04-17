@@ -4,16 +4,41 @@ Purpose: Configuration module for Resource Orb Frames.
          Manages LibAddonMenu settings panel and default values.
 ]]
 
-local LAM = LibAddonMenu2
+---@type BetterUIModuleRoot
+BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
+local ResourceOrbFrames = BETTERUI.ResourceOrbFrames
 
--- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
-BETTERUI.CIM.RegisterModuleAccessors("ResourceOrbFrames")
+ResourceOrbFrames.ARCHETYPE = "settings-owner"
+---@type BetterUIModuleRootContract
+ResourceOrbFrames.ROOT_CONTRACT = {
+    name = "ResourceOrbFrames",
+    archetype = ResourceOrbFrames.ARCHETYPE,
+    initOwner = "Modules/ResourceOrbFrames/Module.lua",
+    setupOwner = "Modules/ResourceOrbFrames/Module.lua",
+    runtimeOwner = "Modules/ResourceOrbFrames/ResourceOrbFrames.lua + Modules/ResourceOrbFrames/SkillBar/",
+    settingsOwner = "Modules/ResourceOrbFrames/Module.lua + Modules/ResourceOrbFrames/Settings/",
+    notes = "Module.lua owns the public entrypoints and settings panel, while Settings/Defaults.lua owns defaults data and ResourceOrbFrames.lua/SkillBar/ own runtime behavior.",
+}
+
+--- Re-exposes the standard module init contract from Module.lua while delegating
+--- the actual defaults work to Settings/Defaults.lua.
+---@param m_options BetterUIModuleOptions|nil Module options table
+---@return BetterUIModuleOptions m_options Options table with defaults applied
+---@type BetterUIModuleInitHook
+function ResourceOrbFrames.InitModule(m_options)
+    local initializeDefaults = ResourceOrbFrames.InitializeDefaults
+    if type(initializeDefaults) == "function" then
+        return initializeDefaults(m_options)
+    end
+    return m_options or {}
+end
 
 --- Initializes the settings panel for Resource Orb Frames.
 ---
 --- Purpose: Creates a LibAddonMenu panel with all configurable options.
 --- Note: This is the LAM panel setup function, NOT the defaults-initialization
----       function. Defaults are handled by InitModule in Settings/Defaults.lua.
+---       function. Public InitModule is exposed from this file and delegates to
+---       Settings/Defaults.lua.
 --- Attributes:
 --- - Settings for scale, offset, and textures.
 --- - Toggle options for ornaments, skill bar features, and overlays.
@@ -38,11 +63,11 @@ local function InitSettingsPanel(mId, moduleName)
         return value
     end
 
-    local function GetResourceOrbSettings()
+    local SettingsUtils = ResourceOrbFrames.Utils and ResourceOrbFrames.Utils.Settings or {}
+    local GetResourceOrbSettings = SettingsUtils.Get or function()
         return BETTERUI.GetModuleSettings("ResourceOrbFrames")
     end
-
-    local function EnsureResourceOrbSettings()
+    local EnsureResourceOrbSettings = SettingsUtils.Ensure or function()
         return BETTERUI.EnsureModuleSettings("ResourceOrbFrames")
     end
 
@@ -71,67 +96,102 @@ local function InitSettingsPanel(mId, moduleName)
     local GetSet = BETTERUI.CreateSettingAccessors("ResourceOrbFrames", Apply)
     local GetColorSet = BETTERUI.CreateColorSettingAccessors("ResourceOrbFrames", Apply)
 
-    local getScale, setScale = GetSet("scale", Default("scale", 1))
-    local getOffsetX, setOffsetX = GetSet("offsetX", Default("offsetX", 0))
-    local getOffset, setOffset = GetSet("offsetY", Default("offsetY", 0))
+    local function CreateSettingContract(key, fallback)
+        local defaultValue = Default(key, fallback)
+        local getFunc, setFunc = GetSet(key, defaultValue)
+        return {
+            key = key,
+            default = defaultValue,
+            get = getFunc,
+            set = setFunc,
+        }
+    end
 
-    local getCooldownSize, setCooldownSize = GetSet("cooldownTextSize",
-        Default("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE))
-    local getCooldownColor, setCooldownColor = GetColorSet("cooldownTextColor",
-        CloneColor(Default("cooldownTextColor", nil), { 0.86, 0.84, 0.13, 1 }))
-    local getQuickslotSize, setQuickslotSize = GetSet("quickslotTextSize", Default("quickslotTextSize", 27))
-    local getQuickslotColor, setQuickslotColor = GetColorSet("quickslotTextColor",
-        CloneColor(Default("quickslotTextColor", nil), { 1, 1, 1, 1 }))
-    local getBackBarOpacity, setBackBarOpacity = GetSet("backBarOpacity", Default("backBarOpacity", 1))
-    local getHideBackBar, setHideBackBar = GetSet("hideBackBar", Default("hideBackBar", false))
-    local getWeaponAnim, setWeaponAnim = GetSet("weaponSwapAnimation", Default("weaponSwapAnimation", true))
+    local function CreateColorContract(key, fallback)
+        local defaultValue = CloneColor(Default(key, nil), fallback)
+        local getFunc, setFunc = GetColorSet(key, defaultValue)
+        return {
+            key = key,
+            default = defaultValue,
+            get = getFunc,
+            set = setFunc,
+        }
+    end
 
-    local getShowUlt, setShowUlt = GetSet("showUltimateNumber", Default("showUltimateNumber", true))
-    local getUltSize, setUltSize = GetSet("ultimateTextSize", Default("ultimateTextSize", 27))
-    local getUltColor, setUltColor = GetColorSet("ultimateTextColor",
-        CloneColor(Default("ultimateTextColor", nil), { 1, 1, 1, 1 }))
+    local function CreateTextContract(sizeKey, sizeFallback, colorKey, colorFallback)
+        return {
+            size = CreateSettingContract(sizeKey, sizeFallback),
+            color = CreateColorContract(colorKey, colorFallback),
+        }
+    end
 
-    local getShowQuickCool, setShowQuickCool = GetSet("showQuickslotCooldown", Default("showQuickslotCooldown", true))
-    local getShowQuickCount, setShowQuickCount = GetSet("showQuickslotCount", Default("showQuickslotCount", true))
+    local generalContracts = {
+        scale = CreateSettingContract("scale", 1),
+        offsetX = CreateSettingContract("offsetX", 0),
+        offsetY = CreateSettingContract("offsetY", 0),
+    }
 
-    local getShowGlow, setShowGlow = GetSet("showCombatGlow", Default("showCombatGlow", true))
-    local getShowCombatIcon, setShowCombatIcon = GetSet("showCombatIcon", Default("showCombatIcon", true))
-    local getPlayAudio, setPlayAudio = GetSet("playCombatAudio", Default("playCombatAudio", true))
+    local sharedContracts = {
+        getSettings = GetResourceOrbSettings,
+        resetSettingsGroup = ResetSettingsGroup,
+    }
 
-    local getOrbAnim, setOrbAnim = GetSet("orbAnimFlow", Default("orbAnimFlow", true))
-    local getHideLeft, setHideLeft = GetSet("hideLeftOrnament", Default("hideLeftOrnament", false))
-    local getLeftSize, setLeftSize = GetSet("leftOrbSizeScale", Default("leftOrbSizeScale", 1.0))
-    local getHideRight, setHideRight = GetSet("hideRightOrnament", Default("hideRightOrnament", false))
-    local getRightSize, setRightSize = GetSet("rightOrbSizeScale", Default("rightOrbSizeScale", 1.0))
-
-    local getHealthSize, setHealthSize = GetSet("healthTextSize", Default("healthTextSize", 20))
-    local getHealthColor, setHealthColor = GetColorSet("healthTextColor",
-        CloneColor(Default("healthTextColor", nil), { 1, 1, 1, 1 }))
-    local getMagSize, setMagSize = GetSet("magickaTextSize", Default("magickaTextSize", 20))
-    local getMagColor, setMagColor = GetColorSet("magickaTextColor",
-        CloneColor(Default("magickaTextColor", nil), { 1, 1, 1, 1 }))
-    local getStamSize, setStamSize = GetSet("staminaTextSize", Default("staminaTextSize", 20))
-    local getStamColor, setStamColor = GetColorSet("staminaTextColor",
-        CloneColor(Default("staminaTextColor", nil), { 1, 1, 1, 1 }))
-    local getShieldSize, setShieldSize = GetSet("shieldTextSize", Default("shieldTextSize", 20))
-    local getShieldColor, setShieldColor = GetColorSet("shieldTextColor",
-        CloneColor(Default("shieldTextColor", nil), { 0.4, 0.9, 1, 1 }))
-
-    local getXpEnabled, setXpEnabled = GetSet("xpBarEnabled", Default("xpBarEnabled", true))
-    local getXpSize, setXpSize = GetSet("xpBarTextSize", Default("xpBarTextSize", 16))
-    local getXpColor, setXpColor = GetColorSet("xpBarTextColor",
-        CloneColor(Default("xpBarTextColor", nil), { 1, 1, 1, 1 }))
-
-    local getCastEnabled, setCastEnabled = GetSet("castBarEnabled", Default("castBarEnabled", true))
-    local getCastAlways, setCastAlways = GetSet("castBarAlwaysShow", Default("castBarAlwaysShow", false))
-    local getCastSize, setCastSize = GetSet("castBarTextSize", Default("castBarTextSize", 16))
-    local getCastColor, setCastColor = GetColorSet("castBarTextColor",
-        CloneColor(Default("castBarTextColor", nil), { 1, 1, 1, 1 }))
-
-    local getMountEnabled, setMountEnabled = GetSet("mountStaminaBarEnabled", Default("mountStaminaBarEnabled", true))
-    local getMountSize, setMountSize = GetSet("mountStaminaBarTextSize", Default("mountStaminaBarTextSize", 16))
-    local getMountColor, setMountColor = GetColorSet("mountStaminaBarTextColor",
-        CloneColor(Default("mountStaminaBarTextColor", nil), { 1, 1, 1, 1 }))
+    local settingsContracts = {
+        skillBars = {
+            cooldownText = CreateTextContract("cooldownTextSize", BETTERUI_DEFAULT_SKILL_TEXT_SIZE, "cooldownTextColor",
+                { 0.86, 0.84, 0.13, 1 }),
+            quickslot = {
+                showCooldown = CreateSettingContract("showQuickslotCooldown", true),
+                showCount = CreateSettingContract("showQuickslotCount", true),
+                text = CreateTextContract("quickslotTextSize", 27, "quickslotTextColor", { 1, 1, 1, 1 }),
+            },
+            backBar = {
+                opacity = CreateSettingContract("backBarOpacity", 1),
+                hidden = CreateSettingContract("hideBackBar", false),
+                weaponSwapAnimation = CreateSettingContract("weaponSwapAnimation", true),
+            },
+            ultimate = {
+                showNumber = CreateSettingContract("showUltimateNumber", true),
+                text = CreateTextContract("ultimateTextSize", 27, "ultimateTextColor", { 1, 1, 1, 1 }),
+            },
+            combatIndicators = {
+                glow = CreateSettingContract("showCombatGlow", true),
+                icon = CreateSettingContract("showCombatIcon", true),
+                audio = CreateSettingContract("playCombatAudio", true),
+            },
+        },
+        orbText = {
+            visuals = {
+                animations = CreateSettingContract("orbAnimFlow", true),
+                leftOrnamentHidden = CreateSettingContract("hideLeftOrnament", false),
+                leftSizeScale = CreateSettingContract("leftOrbSizeScale", 1.0),
+                rightOrnamentHidden = CreateSettingContract("hideRightOrnament", false),
+                rightSizeScale = CreateSettingContract("rightOrbSizeScale", 1.0),
+            },
+            resourceText = {
+                health = CreateTextContract("healthTextSize", 20, "healthTextColor", { 1, 1, 1, 1 }),
+                magicka = CreateTextContract("magickaTextSize", 20, "magickaTextColor", { 1, 1, 1, 1 }),
+                stamina = CreateTextContract("staminaTextSize", 20, "staminaTextColor", { 1, 1, 1, 1 }),
+                shield = CreateTextContract("shieldTextSize", 20, "shieldTextColor", { 0.4, 0.9, 1, 1 }),
+            },
+        },
+        bars = {
+            xp = {
+                enabled = CreateSettingContract("xpBarEnabled", true),
+                text = CreateTextContract("xpBarTextSize", 16, "xpBarTextColor", { 1, 1, 1, 1 }),
+            },
+            cast = {
+                enabled = CreateSettingContract("castBarEnabled", true),
+                alwaysShow = CreateSettingContract("castBarAlwaysShow", false),
+                text = CreateTextContract("castBarTextSize", 16, "castBarTextColor", { 1, 1, 1, 1 }),
+            },
+            mount = {
+                enabled = CreateSettingContract("mountStaminaBarEnabled", true),
+                text = CreateTextContract("mountStaminaBarTextSize", 16, "mountStaminaBarTextColor",
+                    { 1, 1, 1, 1 }),
+            },
+        },
+    }
 
     local optionsTable = {
         {
@@ -153,10 +213,10 @@ local function InitSettingsPanel(mId, moduleName)
             max = 1.75,
             step = 0.05,
             decimals = 2,
-            getFunc = getScale,
-            setFunc = setScale,
+            getFunc = generalContracts.scale.get,
+            setFunc = generalContracts.scale.set,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = Default("scale", 1),
+            default = generalContracts.scale.default,
         },
         {
             type = "slider",
@@ -165,10 +225,10 @@ local function InitSettingsPanel(mId, moduleName)
             min = -300,
             max = 300,
             step = 5,
-            getFunc = getOffset,
-            setFunc = setOffset,
+            getFunc = generalContracts.offsetY.get,
+            setFunc = generalContracts.offsetY.set,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = Default("offsetY", 0),
+            default = generalContracts.offsetY.default,
         },
         {
             type = "slider",
@@ -177,10 +237,10 @@ local function InitSettingsPanel(mId, moduleName)
             min = -500,
             max = 500,
             step = 5,
-            getFunc = getOffsetX,
-            setFunc = setOffsetX,
+            getFunc = generalContracts.offsetX.get,
+            setFunc = generalContracts.offsetX.set,
             disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
-            default = Default("offsetX", 0),
+            default = generalContracts.offsetX.default,
         },
         {
             type = "button",
@@ -199,58 +259,10 @@ local function InitSettingsPanel(mId, moduleName)
     }
 
     local BuildSubmenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
-    local submenuAccessors = {
-        -- Settings helpers
-        GetSettings = GetResourceOrbSettings,
-        ResetSettingsGroup = ResetSettingsGroup,
-        -- Skill Bars
-        getCooldownSize = getCooldownSize, setCooldownSize = setCooldownSize,
-        getCooldownColor = getCooldownColor, setCooldownColor = setCooldownColor,
-        getQuickslotSize = getQuickslotSize, setQuickslotSize = setQuickslotSize,
-        getQuickslotColor = getQuickslotColor, setQuickslotColor = setQuickslotColor,
-        getBackBarOpacity = getBackBarOpacity, setBackBarOpacity = setBackBarOpacity,
-        getHideBackBar = getHideBackBar, setHideBackBar = setHideBackBar,
-        getWeaponAnim = getWeaponAnim, setWeaponAnim = setWeaponAnim,
-        getShowUlt = getShowUlt, setShowUlt = setShowUlt,
-        getUltSize = getUltSize, setUltSize = setUltSize,
-        getUltColor = getUltColor, setUltColor = setUltColor,
-        getShowQuickCool = getShowQuickCool, setShowQuickCool = setShowQuickCool,
-        getShowQuickCount = getShowQuickCount, setShowQuickCount = setShowQuickCount,
-        getShowGlow = getShowGlow, setShowGlow = setShowGlow,
-        getShowCombatIcon = getShowCombatIcon, setShowCombatIcon = setShowCombatIcon,
-        getPlayAudio = getPlayAudio, setPlayAudio = setPlayAudio,
-        -- Orb Text
-        getOrbAnim = getOrbAnim, setOrbAnim = setOrbAnim,
-        getHideLeft = getHideLeft, setHideLeft = setHideLeft,
-        getLeftSize = getLeftSize, setLeftSize = setLeftSize,
-        getHideRight = getHideRight, setHideRight = setHideRight,
-        getRightSize = getRightSize, setRightSize = setRightSize,
-        getHealthSize = getHealthSize, setHealthSize = setHealthSize,
-        getHealthColor = getHealthColor, setHealthColor = setHealthColor,
-        getMagSize = getMagSize, setMagSize = setMagSize,
-        getMagColor = getMagColor, setMagColor = setMagColor,
-        getStamSize = getStamSize, setStamSize = setStamSize,
-        getStamColor = getStamColor, setStamColor = setStamColor,
-        getShieldSize = getShieldSize, setShieldSize = setShieldSize,
-        getShieldColor = getShieldColor, setShieldColor = setShieldColor,
-        -- Bar submenus
-        getXpEnabled = getXpEnabled, setXpEnabled = setXpEnabled,
-        getXpSize = getXpSize, setXpSize = setXpSize,
-        getXpColor = getXpColor, setXpColor = setXpColor,
-        getCastEnabled = getCastEnabled, setCastEnabled = setCastEnabled,
-        getCastAlways = getCastAlways, setCastAlways = setCastAlways,
-        getCastSize = getCastSize, setCastSize = setCastSize,
-        getCastColor = getCastColor, setCastColor = setCastColor,
-        getMountEnabled = getMountEnabled, setMountEnabled = setMountEnabled,
-        getMountSize = getMountSize, setMountSize = setMountSize,
-        getMountColor = getMountColor, setMountColor = setMountColor,
-    }
-
-    -- Append all submenu tables from SettingsSubmenus.lua
-    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildSkillBarsSubmenu(submenuAccessors)
-    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildOrbTextSubmenu(submenuAccessors)
+    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildSkillBarsSubmenu(settingsContracts.skillBars, sharedContracts)
+    optionsTable[#optionsTable + 1] = BuildSubmenus.BuildOrbTextSubmenu(settingsContracts.orbText, sharedContracts)
     do
-        local xpSub, castSub, mountSub = BuildSubmenus.BuildBarSubmenus(submenuAccessors)
+        local xpSub, castSub, mountSub = BuildSubmenus.BuildBarSubmenus(settingsContracts.bars, sharedContracts)
         optionsTable[#optionsTable + 1] = xpSub
         optionsTable[#optionsTable + 1] = castSub
         optionsTable[#optionsTable + 1] = mountSub
@@ -259,18 +271,11 @@ local function InitSettingsPanel(mId, moduleName)
     -- Reorder section groups inside targeted submenus (e.g., Skill Bars) by header name.
     BuildSubmenus.ApplySubmenuSectionOrdering(optionsTable)
 
-    -- Alphabetize top-level submenu rows, then alphabetize settings inside each section/submenu.
-    BETTERUI.CIM.TryCall("CIM.Settings.SortTopLevelSubmenusAlphabetically", optionsTable)
-
-    -- Alphabetize top-level General settings and all submenu settings.
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsTable, true)
-
-    LAM:RegisterAddonPanel("BETTERUI_" .. mId, panelData)
-    LAM:RegisterOptionControls("BETTERUI_" .. mId, optionsTable)
+    BETTERUI.CIM.Settings.RegisterModulePanel(mId, panelData, optionsTable)
 end
 
 --- Sets up the Resource Orb Frames module.
----@return nil
-function BETTERUI.ResourceOrbFrames.Setup()
+---@type BetterUIModuleSetupHook
+function ResourceOrbFrames.Setup()
     InitSettingsPanel("ResourceOrbFrames", "Resource Orb Frames")
 end

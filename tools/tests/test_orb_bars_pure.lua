@@ -18,6 +18,40 @@ COMBAT_MECHANIC_FLAGS_HEALTH = 1
 COMBAT_MECHANIC_FLAGS_MAGICKA = 2
 COMBAT_MECHANIC_FLAGS_STAMINA = 4
 COMBAT_MECHANIC_FLAGS_ULTIMATE = 8
+COST_TYPE_HEALTH = COMBAT_MECHANIC_FLAGS_HEALTH
+COST_TYPE_MAGICKA = COMBAT_MECHANIC_FLAGS_MAGICKA
+COST_TYPE_STAMINA = COMBAT_MECHANIC_FLAGS_STAMINA
+COST_TYPE_ULTIMATE = COMBAT_MECHANIC_FLAGS_ULTIMATE
+ACTION_BAR_ULTIMATE_SLOT_INDEX = 7
+
+local abilityCostByType = {}
+local slotCostByType = {}
+local mechanicFlagsByAbilityId = {}
+local chainedAbilityIds = {}
+
+function GetAbilityCost(abilityId, costType)
+    local entry = abilityCostByType[abilityId]
+    return entry and entry[costType] or nil
+end
+
+function GetSlotAbilityCost(slotIndex, costType)
+    local entry = slotCostByType[slotIndex]
+    return entry and entry[costType] or nil
+end
+
+function GetAbilityBaseCostInfo(abilityId)
+    return nil, mechanicFlagsByAbilityId[abilityId]
+end
+
+function GetCurrentChainedAbility(abilityId)
+    return chainedAbilityIds[abilityId]
+end
+
+ZO_FlagHelpers = {
+    MaskHasFlag = function(flags, flag)
+        return math.floor(flags / flag) % 2 >= 1
+    end,
+}
 
 -- ============================================================================
 -- EXTRACT PURE FUNCTIONS UNDER TEST
@@ -62,6 +96,92 @@ local function GetCastBarFillStyle(styleKey)
         style = DEFAULT_CAST_BAR_FILL_STYLE
     end
     return CloneColor(style.fill), CloneColor(style.depth)
+end
+
+local function GetAbilityCostForType(abilityId, costType)
+    if type(abilityId) ~= "number" or abilityId <= 0 or type(costType) ~= "number" then
+        return 0
+    end
+    local cost = GetAbilityCost(abilityId, costType, nil, "player")
+    if type(cost) ~= "number" then
+        return 0
+    end
+    return cost
+end
+
+local function GetSlotCostForType(slotIndex, costType, hotbar)
+    if type(slotIndex) ~= "number" or type(costType) ~= "number" then
+        return 0
+    end
+    local cost = GetSlotAbilityCost(slotIndex, costType, hotbar)
+    if type(cost) ~= "number" then
+        return 0
+    end
+    return cost
+end
+
+local function ResolveCastBarFillColor(slotIndex, abilityId, hotbar)
+    if type(slotIndex) ~= "number" then
+        return GetCastBarFillStyle(nil)
+    end
+
+    if ACTION_BAR_ULTIMATE_SLOT_INDEX and slotIndex == (ACTION_BAR_ULTIMATE_SLOT_INDEX + 1) then
+        return GetCastBarFillStyle(nil)
+    end
+
+    if type(abilityId) ~= "number" or abilityId <= 0 then
+        return GetCastBarFillStyle(nil)
+    end
+
+    local costAbilityId = abilityId
+    local chained = GetCurrentChainedAbility(abilityId)
+    if type(chained) == "number" and chained > 0 then
+        costAbilityId = chained
+    end
+
+    local _, mechanicFlags = GetAbilityBaseCostInfo(costAbilityId, nil, "player")
+    if type(mechanicFlags) == "number" and mechanicFlags > 0 and ZO_FlagHelpers and ZO_FlagHelpers.MaskHasFlag then
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_ULTIMATE) then
+            return GetCastBarFillStyle(nil)
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_STAMINA) then
+            return GetCastBarFillStyle("stamina")
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_MAGICKA) then
+            return GetCastBarFillStyle("magicka")
+        end
+        if ZO_FlagHelpers.MaskHasFlag(mechanicFlags, COST_TYPE_HEALTH) then
+            return GetCastBarFillStyle("health")
+        end
+    end
+
+    if GetSlotCostForType(slotIndex, COST_TYPE_ULTIMATE, hotbar) > 0 then
+        return GetCastBarFillStyle(nil)
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_STAMINA, hotbar) > 0 then
+        return GetCastBarFillStyle("stamina")
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_MAGICKA, hotbar) > 0 then
+        return GetCastBarFillStyle("magicka")
+    end
+    if GetSlotCostForType(slotIndex, COST_TYPE_HEALTH, hotbar) > 0 then
+        return GetCastBarFillStyle("health")
+    end
+
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_ULTIMATE) > 0 then
+        return GetCastBarFillStyle(nil)
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_STAMINA) > 0 then
+        return GetCastBarFillStyle("stamina")
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_MAGICKA) > 0 then
+        return GetCastBarFillStyle("magicka")
+    end
+    if GetAbilityCostForType(costAbilityId, COST_TYPE_HEALTH) > 0 then
+        return GetCastBarFillStyle("health")
+    end
+
+    return GetCastBarFillStyle(nil)
 end
 
 local function ResolveCastBarFillColorByPowerType(powerType)
@@ -190,6 +310,48 @@ do
 
     fill, depth = ResolveCastBarFillColorByPowerType(999)
     assert_nil(fill, "unknown power → nil")
+end
+
+-- ============================================================================
+-- TESTS: GetAbilityCostForType / GetSlotCostForType / ResolveCastBarFillColor
+-- ============================================================================
+
+print("[ResolveCastBarFillColor]")
+do
+    abilityCostByType = {}
+    slotCostByType = {}
+    mechanicFlagsByAbilityId = {}
+    chainedAbilityIds = {}
+
+    assert_eq(GetAbilityCostForType(nil, COST_TYPE_STAMINA), 0, "invalid ability id returns zero")
+    assert_eq(GetSlotCostForType(nil, COST_TYPE_STAMINA, 1), 0, "invalid slot index returns zero")
+
+    local fill, depth = ResolveCastBarFillColor(nil, 100, 1)
+    assert_eq(fill[1], 1, "invalid slot defaults to fallback fill")
+    assert_eq(depth[1], 0.45, "invalid slot defaults to fallback depth")
+
+    fill, depth = ResolveCastBarFillColor(8, 100, 1)
+    assert_eq(fill[3], 0.4, "ultimate slot uses default fill")
+
+    mechanicFlagsByAbilityId[200] = COST_TYPE_STAMINA
+    chainedAbilityIds[100] = 200
+    fill = { ResolveCastBarFillColor(3, 100, 1) }
+    assert_eq(fill[1][2], 1, "chained stamina ability resolves green cast bar")
+
+    mechanicFlagsByAbilityId[200] = COST_TYPE_ULTIMATE
+    fill = { ResolveCastBarFillColor(3, 100, 1) }
+    assert_eq(fill[1][3], 0.4, "ultimate mechanic flag falls back to default cast bar fill")
+
+    mechanicFlagsByAbilityId[200] = nil
+    slotCostByType[3] = { [COST_TYPE_MAGICKA] = 15 }
+    fill = { ResolveCastBarFillColor(3, 100, 1) }
+    assert_eq(fill[1][3], 1, "slot magicka cost resolves blue cast bar")
+
+    slotCostByType[3] = nil
+    abilityCostByType[200] = { [COST_TYPE_HEALTH] = 22 }
+    fill = { ResolveCastBarFillColor(3, 100, 1) }
+    assert_eq(fill[1][1], 1, "ability health cost resolves red cast bar")
+    assert_eq(fill[1][2], 0, "ability health cost zeroes green channel")
 end
 
 -- ============================================================================

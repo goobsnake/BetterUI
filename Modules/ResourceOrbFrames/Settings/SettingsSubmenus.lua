@@ -11,10 +11,34 @@ if not ROF then return end
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {}
 local Submenus = BETTERUI.ResourceOrbFrames.SettingsSubmenus
 
----@param accessors table LAM settings accessor functions
+local function GetSharedSettings(shared)
+    return shared and shared.getSettings and shared.getSettings() or nil
+end
+
+local function ResetSharedSettingsGroup(shared, entries)
+    if shared and shared.resetSettingsGroup then
+        shared.resetSettingsGroup(entries)
+    end
+end
+
+local function WrapLayoutRefresh(setFunc)
+    return function(...)
+        setFunc(...)
+        if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
+            CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate")
+        end
+    end
+end
+
+---@param skillBars table Section-scoped skill bar contracts
+---@param shared table Shared settings helpers
 ---@return table submenu Skill bars submenu definition
-function Submenus.BuildSkillBarsSubmenu(accessors)
-    local a = accessors
+function Submenus.BuildSkillBarsSubmenu(skillBars, shared)
+    local cooldownText = skillBars.cooldownText
+    local quickslot = skillBars.quickslot
+    local backBar = skillBars.backBar
+    local ultimate = skillBars.ultimate
+    local combatIndicators = skillBars.combatIndicators
     return {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_SKILL_BARS_SUBMENU")),
@@ -28,14 +52,14 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_TEXT_SIZE")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_SKILL_COOLDOWN_SCALE_TOOLTIP")),
                 min = 12, max = 30, step = 1,
-                getFunc = a.getCooldownSize, setFunc = a.setCooldownSize,
+                getFunc = cooldownText.size.get, setFunc = cooldownText.size.set,
                 width = "full",
             },
             {
                 type = "colorpicker",
                 name = GetString(rawget(_G, "SI_BETTERUI_FONT_COLOR")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_SKILL_COOLDOWN_COLOR_TOOLTIP")),
-                getFunc = a.getCooldownColor, setFunc = a.setCooldownColor,
+                getFunc = cooldownText.color.get, setFunc = cooldownText.color.set,
                 width = "full",
             },
             {
@@ -46,14 +70,14 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_QUICKSLOT_COOLDOWN_TOOLTIP")),
-                getFunc = a.getShowQuickCool, setFunc = a.setShowQuickCool,
+                getFunc = quickslot.showCooldown.get, setFunc = quickslot.showCooldown.set,
                 width = "full",
             },
             {
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_QUICKSLOT_QUANTITY_TOOLTIP")),
-                getFunc = a.getShowQuickCount, setFunc = a.setShowQuickCount,
+                getFunc = quickslot.showCount.get, setFunc = quickslot.showCount.set,
                 width = "full",
             },
             {
@@ -61,14 +85,14 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_TEXT_SIZE")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_QUICKSLOT_SCALE_TOOLTIP")),
                 min = 12, max = 30, step = 1,
-                getFunc = a.getQuickslotSize, setFunc = a.setQuickslotSize,
+                getFunc = quickslot.text.size.get, setFunc = quickslot.text.size.set,
                 width = "full",
             },
             {
                 type = "colorpicker",
                 name = GetString(rawget(_G, "SI_BETTERUI_FONT_COLOR")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_QUICKSLOT_COLOR_TOOLTIP")),
-                getFunc = a.getQuickslotColor, setFunc = a.setQuickslotColor,
+                getFunc = quickslot.text.color.get, setFunc = quickslot.text.color.set,
                 width = "full",
             },
             {
@@ -80,9 +104,9 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_BACK_BAR_OPACITY")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_BACK_BAR_OPACITY_TOOLTIP")),
                 min = 0.3, max = 1.0, step = 0.05, decimals = 2,
-                getFunc = a.getBackBarOpacity, setFunc = a.setBackBarOpacity,
+                getFunc = backBar.opacity.get, setFunc = backBar.opacity.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
                         or (s and s.hideBackBar)
                 end,
@@ -92,7 +116,7 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_HIDE_BACK_BAR")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_HIDE_BACK_BAR_TOOLTIP")),
-                getFunc = a.getHideBackBar, setFunc = a.setHideBackBar,
+                getFunc = backBar.hidden.get, setFunc = backBar.hidden.set,
                 disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                 width = "full",
             },
@@ -100,9 +124,9 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_WEAPON_SWAP_ANIMATION_TOOLTIP")),
-                getFunc = a.getWeaponAnim, setFunc = a.setWeaponAnim,
+                getFunc = backBar.weaponSwapAnimation.get, setFunc = backBar.weaponSwapAnimation.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
                         or (s and s.hideBackBar)
                 end,
@@ -116,7 +140,7 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_SHOW_ULTIMATE_NUMBER")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_SHOW_ULTIMATE_NUMBER_TOOLTIP")),
-                getFunc = a.getShowUlt, setFunc = a.setShowUlt,
+                getFunc = ultimate.showNumber.get, setFunc = ultimate.showNumber.set,
                 width = "full",
             },
             {
@@ -124,9 +148,9 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_TEXT_SIZE")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_TEXT_SIZE_TOOLTIP")),
                 min = 12, max = 30, step = 1,
-                getFunc = a.getUltSize, setFunc = a.setUltSize,
+                getFunc = ultimate.text.size.get, setFunc = ultimate.text.size.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not s or not s.showUltimateNumber
                 end,
                 width = "full",
@@ -135,9 +159,9 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "colorpicker",
                 name = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_TEXT_COLOR")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_ULTIMATE_TEXT_COLOR_TOOLTIP")),
-                getFunc = a.getUltColor, setFunc = a.setUltColor,
+                getFunc = ultimate.text.color.get, setFunc = ultimate.text.color.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not s or not s.showUltimateNumber
                 end,
                 width = "full",
@@ -150,28 +174,28 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_COMBAT_GLOW_ENABLED")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_COMBAT_GLOW_ENABLED_TOOLTIP")),
-                getFunc = a.getShowGlow, setFunc = a.setShowGlow,
+                getFunc = combatIndicators.glow.get, setFunc = combatIndicators.glow.set,
                 width = "full",
             },
             {
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_COMBAT_ICON_ENABLED")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_COMBAT_ICON_ENABLED_TOOLTIP")),
-                getFunc = a.getShowCombatIcon, setFunc = a.setShowCombatIcon,
+                getFunc = combatIndicators.icon.get, setFunc = combatIndicators.icon.set,
                 width = "full",
             },
             {
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_COMBAT_AUDIO_ENABLED")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_COMBAT_AUDIO_ENABLED_TOOLTIP")),
-                getFunc = a.getPlayAudio, setFunc = a.setPlayAudio,
+                getFunc = combatIndicators.audio.get, setFunc = combatIndicators.audio.set,
                 width = "full",
             },
             {
                 type = "button",
                 name = GetString(rawget(_G, "SI_BETTERUI_RESET_SKILL_BAR")),
                 func = function()
-                    a.ResetSettingsGroup({
+                    ResetSharedSettingsGroup(shared, {
                         { key = "cooldownTextSize", value = 27 },
                         { key = "cooldownTextColor", isColor = true, colorFallback = { 0.86, 0.84, 0.13, 1 } },
                         { key = "quickslotTextSize", value = 27 },
@@ -196,10 +220,13 @@ function Submenus.BuildSkillBarsSubmenu(accessors)
     }
 end
 
----@param accessors table LAM settings accessor functions
+---@param orbText table Section-scoped orb text contracts
+---@param shared table Shared settings helpers
 ---@return table submenu Orb text submenu definition
-function Submenus.BuildOrbTextSubmenu(accessors)
-    local a = accessors
+function Submenus.BuildOrbTextSubmenu(orbText, shared)
+    local visuals = orbText.visuals
+    local resourceText = orbText.resourceText
+    local refreshLayout = WrapLayoutRefresh
     return {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SUBMENU")),
@@ -212,7 +239,7 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_ROF_ORB_ANIMATIONS")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_ROF_ORB_ANIMATIONS_TOOLTIP")),
-                getFunc = a.getOrbAnim, setFunc = a.setOrbAnim,
+                getFunc = visuals.animations.get, setFunc = visuals.animations.set,
                 disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                 width = "full",
             },
@@ -220,7 +247,7 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_HIDE_LEFT_ORNAMENT")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_HIDE_LEFT_ORNAMENT_TOOLTIP")),
-                getFunc = a.getHideLeft, setFunc = a.setHideLeft,
+                getFunc = visuals.leftOrnamentHidden.get, setFunc = visuals.leftOrnamentHidden.set,
                 disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                 width = "full",
             },
@@ -229,9 +256,9 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_LEFT_ORB_SIZE")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_LEFT_ORB_SIZE_TOOLTIP")),
                 min = 1.0, max = 1.2, step = 0.1, decimals = 1,
-                getFunc = a.getLeftSize, setFunc = a.setLeftSize,
+                getFunc = visuals.leftSizeScale.get, setFunc = visuals.leftSizeScale.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
                         or not (s and s.hideLeftOrnament)
                 end,
@@ -241,7 +268,7 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 type = "checkbox",
                 name = GetString(rawget(_G, "SI_BETTERUI_HIDE_RIGHT_ORNAMENT")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_HIDE_RIGHT_ORNAMENT_TOOLTIP")),
-                getFunc = a.getHideRight, setFunc = a.setHideRight,
+                getFunc = visuals.rightOrnamentHidden.get, setFunc = visuals.rightOrnamentHidden.set,
                 disabled = function() return not BETTERUI.GetModuleEnabled("ResourceOrbFrames") end,
                 width = "full",
             },
@@ -250,9 +277,9 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 name = GetString(rawget(_G, "SI_BETTERUI_RIGHT_ORB_SIZE")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_RIGHT_ORB_SIZE_TOOLTIP")),
                 min = 1.0, max = 1.2, step = 0.1, decimals = 1,
-                getFunc = a.getRightSize, setFunc = a.setRightSize,
+                getFunc = visuals.rightSizeScale.get, setFunc = visuals.rightSizeScale.set,
                 disabled = function()
-                    local s = a.GetSettings()
+                    local s = GetSharedSettings(shared)
                     return not BETTERUI.GetModuleEnabled("ResourceOrbFrames")
                         or not (s and s.hideRightOrnament)
                 end,
@@ -262,20 +289,20 @@ function Submenus.BuildOrbTextSubmenu(accessors)
                 type = "header",
                 name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SETTINGS_HEADER")),
             },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = a.getHealthSize, setFunc = function(v) a.setHealthSize(v); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP")), getFunc = a.getHealthColor, setFunc = function(r,g,b,aa) a.setHealthColor(r,g,b,aa); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = a.getMagSize, setFunc = function(v) a.setMagSize(v); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP")), getFunc = a.getMagColor, setFunc = function(r,g,b,aa) a.setMagColor(r,g,b,aa); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = a.getStamSize, setFunc = function(v) a.setStamSize(v); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP")), getFunc = a.getStamColor, setFunc = function(r,g,b,aa) a.setStamColor(r,g,b,aa); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = a.getShieldSize, setFunc = function(v) a.setShieldSize(v); CALLBACK_MANAGER:FireCallbacks("BetterUI_ForceLayoutUpdate") end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP")), getFunc = a.getShieldColor, setFunc = a.setShieldColor, width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = resourceText.health.size.get, setFunc = refreshLayout(resourceText.health.size.set), width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_HEALTH_COLOR_TOOLTIP")), getFunc = resourceText.health.color.get, setFunc = refreshLayout(resourceText.health.color.set), width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = resourceText.magicka.size.get, setFunc = refreshLayout(resourceText.magicka.size.set), width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_MAGICKA_COLOR_TOOLTIP")), getFunc = resourceText.magicka.color.get, setFunc = refreshLayout(resourceText.magicka.color.set), width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = resourceText.stamina.size.get, setFunc = refreshLayout(resourceText.stamina.size.set), width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_STAMINA_COLOR_TOOLTIP")), getFunc = resourceText.stamina.color.get, setFunc = refreshLayout(resourceText.stamina.color.set), width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_SIZE_TOOLTIP")), min = 12, max = 26, step = 1, getFunc = resourceText.shield.size.get, setFunc = refreshLayout(resourceText.shield.size.set), width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_SHIELD_COLOR_TOOLTIP")), getFunc = resourceText.shield.color.get, setFunc = resourceText.shield.color.set, width = "full" },
             {
                 type = "button",
                 name = GetString(rawget(_G, "SI_BETTERUI_ORB_TEXT_RESET")),
                 tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
                 func = function()
-                    a.ResetSettingsGroup({
+                    ResetSharedSettingsGroup(shared, {
                         { key = "hideLeftOrnament", value = false },
                         { key = "hideRightOrnament", value = false },
                         { key = "leftOrbSizeScale", value = 1.0 },
@@ -297,47 +324,50 @@ function Submenus.BuildOrbTextSubmenu(accessors)
     }
 end
 
----@param accessors table LAM settings accessor functions
+---@param bars table Section-scoped bar contracts
+---@param shared table Shared settings helpers
 ---@return table xpSubmenu XP bar submenu
 ---@return table castSubmenu Cast bar submenu
 ---@return table mountSubmenu Mount stamina bar submenu
-function Submenus.BuildBarSubmenus(accessors)
-    local a = accessors
+function Submenus.BuildBarSubmenus(bars, shared)
+    local xp = bars.xp
+    local cast = bars.cast
+    local mount = bars.mount
     local xpSubmenu = {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_SUBMENU")),
         controls = {
-            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = a.getXpEnabled, setFunc = a.setXpEnabled, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = a.getXpSize, setFunc = a.setXpSize, disabled = function() local s = a.GetSettings(); return not (s and s.xpBarEnabled == true) end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP")), getFunc = a.getXpColor, setFunc = a.setXpColor, disabled = function() local s = a.GetSettings(); return not (s and s.xpBarEnabled == true) end, width = "full" },
+            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = xp.enabled.get, setFunc = xp.enabled.set, width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = xp.text.size.get, setFunc = xp.text.size.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.xpBarEnabled == true) end, width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_TEXT_COLOR_TOOLTIP")), getFunc = xp.text.color.get, setFunc = xp.text.color.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.xpBarEnabled == true) end, width = "full" },
             { type = "button", name = GetString(rawget(_G, "SI_BETTERUI_XP_BAR_RESET")), tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
-                func = function() a.ResetSettingsGroup({ { key = "xpBarTextSize", value = 16 }, { key = "xpBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
-                disabled = function() local s = a.GetSettings(); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.xpBarEnabled == true) end, width = "half" },
+                func = function() ResetSharedSettingsGroup(shared, { { key = "xpBarTextSize", value = 16 }, { key = "xpBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
+                disabled = function() local s = GetSharedSettings(shared); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.xpBarEnabled == true) end, width = "half" },
         },
     }
     local castSubmenu = {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_SUBMENU")),
         controls = {
-            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = a.getCastEnabled, setFunc = a.setCastEnabled, width = "full" },
-            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ALWAYS_SHOW")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP")), getFunc = a.getCastAlways, setFunc = a.setCastAlways, disabled = function() local s = a.GetSettings(); return not (s and s.castBarEnabled == true) end, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = a.getCastSize, setFunc = a.setCastSize, disabled = function() local s = a.GetSettings(); return not (s and s.castBarEnabled == true) end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP")), getFunc = a.getCastColor, setFunc = a.setCastColor, disabled = function() local s = a.GetSettings(); return not (s and s.castBarEnabled == true) end, width = "full" },
+            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = cast.enabled.get, setFunc = cast.enabled.set, width = "full" },
+            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ALWAYS_SHOW")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_ALWAYS_SHOW_TOOLTIP")), getFunc = cast.alwaysShow.get, setFunc = cast.alwaysShow.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.castBarEnabled == true) end, width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = cast.text.size.get, setFunc = cast.text.size.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.castBarEnabled == true) end, width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_TEXT_COLOR_TOOLTIP")), getFunc = cast.text.color.get, setFunc = cast.text.color.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.castBarEnabled == true) end, width = "full" },
             { type = "button", name = GetString(rawget(_G, "SI_BETTERUI_CAST_BAR_RESET")), tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
-                func = function() a.ResetSettingsGroup({ { key = "castBarTextSize", value = 16 }, { key = "castBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
-                disabled = function() local s = a.GetSettings(); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.castBarEnabled == true) end, width = "half" },
+                func = function() ResetSharedSettingsGroup(shared, { { key = "castBarTextSize", value = 16 }, { key = "castBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
+                disabled = function() local s = GetSharedSettings(shared); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.castBarEnabled == true) end, width = "half" },
         },
     }
     local mountSubmenu = {
         type = "submenu",
         name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_STAMINA_BAR_SUBMENU")),
         controls = {
-            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = a.getMountEnabled, setFunc = a.setMountEnabled, width = "full" },
-            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = a.getMountSize, setFunc = a.setMountSize, disabled = function() local s = a.GetSettings(); return not (s and s.mountStaminaBarEnabled == true) end, width = "full" },
-            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_COLOR_TOOLTIP")), getFunc = a.getMountColor, setFunc = a.setMountColor, disabled = function() local s = a.GetSettings(); return not (s and s.mountStaminaBarEnabled == true) end, width = "full" },
+            { type = "checkbox", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_ENABLED")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_ENABLED_TOOLTIP")), sortAlwaysFirst = true, getFunc = mount.enabled.get, setFunc = mount.enabled.set, width = "full" },
+            { type = "slider", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_SIZE")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_SIZE_TOOLTIP")), min = 5, max = 20, step = 1, getFunc = mount.text.size.get, setFunc = mount.text.size.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.mountStaminaBarEnabled == true) end, width = "full" },
+            { type = "colorpicker", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_COLOR")), tooltip = GetString(rawget(_G, "SI_BETTERUI_MOUNT_BAR_TEXT_COLOR_TOOLTIP")), getFunc = mount.text.color.get, setFunc = mount.text.color.set, disabled = function() local s = GetSharedSettings(shared); return not (s and s.mountStaminaBarEnabled == true) end, width = "full" },
             { type = "button", name = GetString(rawget(_G, "SI_BETTERUI_MOUNT_STAMINA_BAR_RESET")), tooltip = GetString(rawget(_G, "SI_BETTERUI_RESOURCE_ORB_FRAMES_RESET_TOOLTIP")),
-                func = function() a.ResetSettingsGroup({ { key = "mountStaminaBarTextSize", value = 16 }, { key = "mountStaminaBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
-                disabled = function() local s = a.GetSettings(); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.mountStaminaBarEnabled == true) end, width = "half" },
+                func = function() ResetSharedSettingsGroup(shared, { { key = "mountStaminaBarTextSize", value = 16 }, { key = "mountStaminaBarTextColor", isColor = true, colorFallback = { 1, 1, 1, 1 } } }) end,
+                disabled = function() local s = GetSharedSettings(shared); return not (BETTERUI.GetModuleEnabled("ResourceOrbFrames") and s and s.mountStaminaBarEnabled == true) end, width = "half" },
         },
     }
     return xpSubmenu, castSubmenu, mountSubmenu

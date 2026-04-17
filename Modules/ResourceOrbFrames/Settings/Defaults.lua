@@ -6,6 +6,9 @@ Purpose: Default settings for Resource Orb Frames module.
 BETTERUI.ResourceOrbFrames = BETTERUI.ResourceOrbFrames or {}
 
 --- Default values for all ResourceOrbFrames settings.
+--- This module keeps the canonical InitModule defaults path because it needs
+--- nested-table backfills plus numeric/color normalization that DefaultsRegistry
+--- intentionally does not duplicate.
 local function GetDefaults()
     return {
         m_enabled = true,
@@ -68,6 +71,34 @@ end
 local ClampInteger = BETTERUI.ClampInteger
 local ClampNumber = BETTERUI.ClampNumber
 
+local function CloneTable(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local copy = {}
+    for key, nestedValue in pairs(value) do
+        copy[key] = CloneTable(nestedValue)
+    end
+    return copy
+end
+
+local function MergeMissingDefaults(target, defaults)
+    if type(target) ~= "table" or type(defaults) ~= "table" then
+        return target
+    end
+
+    for key, value in pairs(defaults) do
+        if target[key] == nil then
+            target[key] = CloneTable(value)
+        elseif type(target[key]) == "table" and type(value) == "table" then
+            MergeMissingDefaults(target[key], value)
+        end
+    end
+
+    return target
+end
+
 local function NormalizeNumericSettings(m_options, defaults)
     if type(m_options) ~= "table" then
         return
@@ -116,7 +147,7 @@ end
 ---
 ---@param m_options table|nil Module options table (created if nil)
 ---@return table m_options Options table with defaults applied
-function BETTERUI.ResourceOrbFrames.InitModule(m_options)
+local function InitializeDefaults(m_options)
     m_options = m_options or {}
     local defaults = GetDefaults()
 
@@ -132,18 +163,9 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
 
     -- Deep merge for customFrontBar
     if m_options.customFrontBar == nil then
-        m_options.customFrontBar = defaults.customFrontBar
+        m_options.customFrontBar = CloneTable(defaults.customFrontBar)
     else
-        local cfb = m_options.customFrontBar
-        local d_cfb = defaults.customFrontBar
-        if cfb.m_enabled == nil then cfb.m_enabled = d_cfb.m_enabled end
-        if cfb.offsetX == nil then cfb.offsetX = d_cfb.offsetX end
-        if cfb.offsetY == nil then cfb.offsetY = d_cfb.offsetY end
-        if cfb.ultimate == nil then cfb.ultimate = d_cfb.ultimate end
-        if cfb.quickslotButton == nil then cfb.quickslotButton = d_cfb.quickslotButton end
-        if cfb.companionButton == nil then cfb.companionButton = d_cfb.companionButton end
-        if cfb.gamepad == nil then cfb.gamepad = d_cfb.gamepad end
-        if cfb.keyboard == nil then cfb.keyboard = d_cfb.keyboard end
+        MergeMissingDefaults(m_options.customFrontBar, defaults.customFrontBar)
     end
 
     -- Migration/sanitization: normalize persisted numeric settings to current slider limits.
@@ -153,4 +175,6 @@ function BETTERUI.ResourceOrbFrames.InitModule(m_options)
 end
 
 -- Export defaults for use by OptionsBuilder
+BETTERUI.ResourceOrbFrames.InitializeDefaults = InitializeDefaults
 BETTERUI.ResourceOrbFrames.GetDefaults = GetDefaults
+BETTERUI.CIM.RegisterModuleAccessors(BETTERUI.ResourceOrbFrames, "ResourceOrbFrames")
