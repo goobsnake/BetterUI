@@ -271,20 +271,20 @@ function BETTERUI.Inventory.Class:UpdateItemLeftTooltip(selectedData)
 
     if selectedData.isEquippedInCurrentCategory or selectedData.isEquippedInAnotherCategory or selectedData.equipSlot then
         local slotIndex = selectedData.bagId == BAG_WORN and selectedData.slotIndex or nil
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, slotIndex)
     else
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
 
         -- INV-001: Inject stat comparison for non-equipped items
-        if BETTERUI.Inventory.StatComparison and BETTERUI.Inventory.IsItemComparisonEnabled()
+        if BETTERUI.CIM.SharedItemSupport.IsItemComparisonEnabled()
             and selectedData.bagId and selectedData.slotIndex then
             local itemLink = GetItemLink(selectedData.bagId, selectedData.slotIndex)
-            local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, selectedData.bagId, selectedData.slotIndex)
+            local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, selectedData.bagId, selectedData.slotIndex)
             local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
-            BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
+            BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, result)
         else
             local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
-            BETTERUI.Inventory.ShowComparisonOnTooltip(container, nil)
+            BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, nil)
         end
     end
 end
@@ -322,6 +322,6 @@ function BETTERUI.Inventory.Class:UpdateRightTooltip(selectedData)
         -- Reset switchInfo since this item can't be compared
         self.switchInfo = false
     elseif selectedEquipSlot and GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_LEFT_TOOLTIP, BAG_WORN, selectedEquipSlot) then
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, selectedEquipSlot)
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, selectedEquipSlot)
     end
 end

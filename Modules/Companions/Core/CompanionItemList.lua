@@ -40,8 +40,8 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
     if not ds or ds.bagId == nil or ds.slotIndex == nil then
-        if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
-            BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
+            BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         end
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
@@ -54,16 +54,16 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
     -- BETTERUI.Inventory.UpdateTooltipEquippedText sets _betterui_priceRendered = true
     -- internally, which guards against the deferred LayoutItem posthook.
     if ds.bagId == BAG_COMPANION_WORN then
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, ds.slotIndex)
     else
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
     end
 
     if ds.bagId ~= BAG_COMPANION_WORN then
         local compareSlot = self:GetComparisonEquipSlot(ds)
         if compareSlot and HasItemInSlot and HasItemInSlot(BAG_COMPANION_WORN, compareSlot) then
             GAMEPAD_TOOLTIPS:LayoutBagItem(GAMEPAD_RIGHT_TOOLTIP, BAG_COMPANION_WORN, compareSlot)
-            BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
+            BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_RIGHT_TOOLTIP, compareSlot)
         else
             GAMEPAD_TOOLTIPS:Reset(GAMEPAD_RIGHT_TOOLTIP)
         end
@@ -76,13 +76,12 @@ function BETTERUI.Companions.Class:UpdateItemTooltips(selectedData)
         container._betterUiComparison:SetHidden(true)
     end
 
-    if ds.bagId ~= BAG_COMPANION_WORN and BETTERUI.Inventory.StatComparison
-        and BETTERUI.Inventory.IsItemComparisonEnabled() then
+    if ds.bagId ~= BAG_COMPANION_WORN and BETTERUI.CIM.SharedItemSupport.IsItemComparisonEnabled() then
         local itemLink = GetItemLink(ds.bagId, ds.slotIndex)
-        local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, ds.bagId, ds.slotIndex, BAG_COMPANION_WORN)
-        BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
+        local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, ds.bagId, ds.slotIndex, BAG_COMPANION_WORN)
+        BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, result)
     else
-        BETTERUI.Inventory.ShowComparisonOnTooltip(container, nil)
+        BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, nil)
     end
 end
 

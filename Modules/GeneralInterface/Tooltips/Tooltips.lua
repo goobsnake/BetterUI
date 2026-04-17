@@ -78,6 +78,10 @@ function BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, b
     return (ResearchableTraitCache[bagId] and ResearchableTraitCache[bagId][traitType]) or 0
 end
 
+if BETTERUI.CIM and BETTERUI.CIM.Utils and BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher then
+    BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches)
+end
+
 --- Invalidates the researchable trait cache for a specific bag or all bags.
 ---
 --- Purpose: Ensures cache coherency after inventory updates.
@@ -382,8 +386,8 @@ local function ClearTooltipEnhancementState(tooltipControl, tooltipType)
         tooltipControl._betterui_priceRendered = nil
     end
 
-    if tooltipType and BETTERUI.Inventory and type(BETTERUI.Inventory.CleanupEnhancedTooltip) == "function" then
-        BETTERUI.Inventory.CleanupEnhancedTooltip(tooltipType)
+    if tooltipType and BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) == "function" then
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(tooltipType)
     end
 end
 
@@ -599,8 +603,8 @@ function Tooltips.InventoryHook(config)
                 if IsIncompatibleSceneActive() then return end
                 if tooltipRef._betterui_itemLink ~= capturedItemLink then return end
 
-                if BETTERUI.Inventory and type(BETTERUI.Inventory.UpdateTooltipEquippedText) == "function" then
-                    BETTERUI.Inventory.UpdateTooltipEquippedText(tonumber(capturedTooltipType) or 0, nil)
+                if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText) == "function" then
+                    BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(tonumber(capturedTooltipType) or 0, nil)
                 end
             end, 1)
         end

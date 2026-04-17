@@ -130,18 +130,10 @@ function BETTERUI_SharedGamepadEntry_OnSetup(control, data, selected, reselectin
         or (itemLink and GetItemLinkItemType(itemLink))
 
     -- Determine which scene is active and use appropriate column font settings
-    local columnFont
-    if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetColumnFontDescriptor then
-        columnFont = BETTERUI.Banking.GetColumnFontDescriptor()
-    elseif moduleName == "Companions" and BETTERUI.Companions and BETTERUI.Companions.GetColumnFontDescriptor then
-        columnFont = BETTERUI.Companions.GetColumnFontDescriptor()
-    elseif moduleName == "TradingHouse" and BETTERUI.TradingHouse and BETTERUI.TradingHouse.GetColumnFontDescriptor then
-        columnFont = BETTERUI.TradingHouse.GetColumnFontDescriptor()
-    elseif moduleName == "Vendor" and BETTERUI.Vendor and BETTERUI.Vendor.GetColumnFontDescriptor then
-        columnFont = BETTERUI.Vendor.GetColumnFontDescriptor()
-    else
-        columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
-    end
+    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+    local columnFont = sharedItemSupport
+        and sharedItemSupport.ResolveColumnFontDescriptor(moduleName, "Inventory")
+        or BETTERUI.Inventory.GetColumnFontDescriptor()
 
     local itemTypeControl = control:GetNamedChild("ItemType")
     local traitControl = control:GetNamedChild("Trait")
@@ -300,6 +292,10 @@ end
 
 --- Determines the best display category for an item (e.g., "One-Handed", "Heavy Armor").
 function GetBestItemCategoryDescription(itemData)
+    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+    if sharedItemSupport and sharedItemSupport.GetBestItemCategoryDescription then
+        return sharedItemSupport.GetBestItemCategoryDescription(itemData)
+    end
     return BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 end
 
@@ -428,7 +424,7 @@ function BETTERUI.Inventory.List:Initialize(control, inventoryType, slotType, se
                 local itemData = SHARED_INVENTORY:GenerateSingleSlotData(bagId, slotIndex)
                 if itemData then
                     local categorizationFunction = self.categorizationFunction or
-                        BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+                        GetBestItemCategoryDescription
                     ApplyInventoryCategoryFields(itemData, categorizationFunction)
                     SetEntryListModuleName(itemData, self.listModuleName)
                     if bagId ~= BAG_VIRTUAL then -- virtual items don't have any champion points associated with them
@@ -463,7 +459,7 @@ end
 function BETTERUI.Inventory.List:AddSlotDataToTable(slotsTable, inventoryType, slotIndex)
     local itemFilterFunction = self.itemFilterFunction
     local categorizationFunction = self.categorizationFunction or
-        BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+        GetBestItemCategoryDescription
     local slotData = SHARED_INVENTORY:GenerateSingleSlotData(inventoryType, slotIndex)
     if slotData then
         if (not itemFilterFunction) or itemFilterFunction(slotData) then

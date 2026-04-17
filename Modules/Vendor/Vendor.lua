@@ -2369,9 +2369,9 @@ function BETTERUI.Vendor.Init()
                 GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
                 GAMEPAD_TOOLTIPS:ClearTooltip(GAMEPAD_RIGHT_TOOLTIP)
             end
-            if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
-                BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-                BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+            if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
+                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+                BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
             end
             if screen.list and screen.list.control and BETTERUI.CIM and BETTERUI.CIM.ScrollIndicator then
                 BETTERUI.CIM.ScrollIndicator.Hide(screen.list.control)

@@ -282,3 +282,10 @@ function BETTERUI.Inventory.Categories.GetBestItemCategoryDescription(itemData)
 
     return fullDesc
 end
+
+if BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport then
+    BETTERUI.CIM.SharedItemSupport.RegisterCategorySupport({
+        doesItemMatchCategory = BETTERUI.Inventory.Categories.DoesItemMatchCategory,
+        getBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription,
+    })
+end

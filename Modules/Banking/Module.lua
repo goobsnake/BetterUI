@@ -26,6 +26,15 @@ Banking.ROOT_CONTRACT = {
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Banking")
+if BETTERUI.CIM
+    and BETTERUI.CIM.Narration
+    and BETTERUI.CIM.Narration.RegisterBankingModeLabels
+then
+    BETTERUI.CIM.Narration.RegisterBankingModeLabels({
+        [Banking.LIST_DEPOSIT] = rawget(_G, "SI_BANK_DEPOSIT"),
+        [Banking.LIST_WITHDRAW] = rawget(_G, "SI_BANK_WITHDRAW"),
+    })
+end
 
 --- Initializes defaults and migrates legacy settings for the Banking module.
 ---

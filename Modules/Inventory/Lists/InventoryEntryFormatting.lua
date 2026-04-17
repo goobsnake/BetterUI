@@ -144,18 +144,10 @@ function BETTERUI_SharedGamepadEntryLabelSetup(label, data, selected)
         local nameFontSize = GetActiveNameFontSize(moduleName)
 
         -- Determine which scene is active and use appropriate font settings
-        local font
-        if moduleName == "Banking" and BETTERUI.Banking and BETTERUI.Banking.GetNameFontDescriptor then
-            font = BETTERUI.Banking.GetNameFontDescriptor()
-        elseif moduleName == "Vendor" and BETTERUI.Vendor and BETTERUI.Vendor.GetNameFontDescriptor then
-            font = BETTERUI.Vendor.GetNameFontDescriptor()
-        elseif moduleName == "Companions" and BETTERUI.Companions and BETTERUI.Companions.GetNameFontDescriptor then
-            font = BETTERUI.Companions.GetNameFontDescriptor()
-        elseif moduleName == "TradingHouse" and BETTERUI.TradingHouse and BETTERUI.TradingHouse.GetNameFontDescriptor then
-            font = BETTERUI.TradingHouse.GetNameFontDescriptor()
-        else
-            font = BETTERUI.Inventory.GetNameFontDescriptor()
-        end
+        local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+        local font = sharedItemSupport
+            and sharedItemSupport.ResolveNameFontDescriptor(moduleName, "Inventory")
+            or BETTERUI.Inventory.GetNameFontDescriptor()
         label:SetFont(font)
 
         if data.modifyTextType then

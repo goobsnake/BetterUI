@@ -122,12 +122,7 @@ function BETTERUI.Vendor.VendorEntrySetup(control, data, selected, reselectingDu
     if not itemTypeControl or not traitControl or not statControl or not valueControl then return end
 
     -- Column font
-    local columnFont
-    if Vendor.GetColumnFontDescriptor then
-        columnFont = Vendor.GetColumnFontDescriptor()
-    elseif BETTERUI.Inventory and BETTERUI.Inventory.GetColumnFontDescriptor then
-        columnFont = BETTERUI.Inventory.GetColumnFontDescriptor()
-    end
+    local columnFont = BETTERUI.CIM.SharedItemSupport.ResolveColumnFontDescriptor("Vendor", "Inventory")
     if columnFont then
         itemTypeControl:SetFont(columnFont)
         traitControl:SetFont(columnFont)

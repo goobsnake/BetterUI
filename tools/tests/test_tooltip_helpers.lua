@@ -163,6 +163,7 @@ BETTERUI = {
         SafeExecute = function(_, fn, ...)
             return pcall(fn, ...)
         end,
+        SharedItemSupport = {},
     },
     CONST = {
         TOOLTIP = {
@@ -317,7 +318,7 @@ assertEqual(true, ttcNoDataLine ~= nil, "TTC no-data has a TTC fallback line")
 assertContains(ttcNoDataLine, "No Price Data", "TTC no-data shows fallback message")
 
 print("\nTest: Inventory hook preserves tooltip-seeded store stack counts")
-BETTERUI.Inventory.UpdateTooltipEquippedText = function() end
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = function() end
 
 local tooltipControl = {
     LayoutItem = function() end,
@@ -359,14 +360,14 @@ assertEqual(4, tooltipControl._betterui_storeStackCount, "Hook reuses tooltip-se
 print("\nTest: Inventory hook clears stale enhancement state for non-item layouts")
 local cleanupCalls = 0
 local updateCalls = 0
-local origCleanup = BETTERUI.Inventory.CleanupEnhancedTooltip
-local origUpdateForStateTest = BETTERUI.Inventory.UpdateTooltipEquippedText
+local origCleanup = BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip
+local origUpdateForStateTest = BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText
 
-BETTERUI.Inventory.CleanupEnhancedTooltip = function()
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = function()
     cleanupCalls = cleanupCalls + 1
 end
 
-BETTERUI.Inventory.UpdateTooltipEquippedText = function()
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = function()
     updateCalls = updateCalls + 1
 end
 
@@ -408,8 +409,8 @@ assertEqual(true, cleanupCalls >= 1, "Non-item layout requests enhanced tooltip 
 staleStateTooltip:ClearLines()
 assertEqual(true, cleanupCalls >= 2, "ClearLines hook resets BetterUI tooltip state")
 
-BETTERUI.Inventory.CleanupEnhancedTooltip = origCleanup
-BETTERUI.Inventory.UpdateTooltipEquippedText = origUpdateForStateTest
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = origCleanup
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = origUpdateForStateTest
 
 print("\nTest: Knowledge helper reports recipe state and respects setting toggle")
 local unknownRecipeLines = BETTERUI.GetInventoryKnowledgeInfo("recipe:unknown")
@@ -530,8 +531,8 @@ print("\nTest: Deferred callback skipped when housing scene becomes active mid-f
 -- Simulate: deferred callback was scheduled while inventory was active,
 -- but by the time it fires, the housing scene has become active (race condition)
 local updateCalled = false
-local origUpdate = BETTERUI.Inventory.UpdateTooltipEquippedText
-BETTERUI.Inventory.UpdateTooltipEquippedText = function()
+local origUpdate = BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = function()
     updateCalled = true
 end
 
@@ -567,7 +568,7 @@ raceTooltip:LayoutItem("test:item")
 assertEqual(false, updateCalled, "Deferred header injection skipped when housing scene is active")
 
 -- Restore
-BETTERUI.Inventory.UpdateTooltipEquippedText = origUpdate
+BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText = origUpdate
 GAMEPAD_HOUSING_FURNITURE_BROWSER_SCENE = nil
 
 print("\nTest: Tooltip settings helpers expose reset-safe utility behavior")
@@ -682,11 +683,11 @@ BETTERUI.CIM.Font = {
     end,
 }
 
-BETTERUI.Inventory.ApplyTooltipStyles = function()
+BETTERUI.CIM.SharedItemSupport.ApplyTooltipStyles = function()
     tooltipApplyCalls = tooltipApplyCalls + 1
 end
 
-BETTERUI.Inventory.CleanupEnhancedTooltip = function()
+BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip = function()
     tooltipCleanupCalls = tooltipCleanupCalls + 1
 end
 

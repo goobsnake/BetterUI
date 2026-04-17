@@ -18,6 +18,18 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 BETTERUI.CIM.Narration = {}
 
 local Narration = BETTERUI.CIM.Narration
+local bankingModeLabels = {}
+
+function Narration.RegisterBankingModeLabels(labelsByMode)
+    bankingModeLabels = {}
+    if type(labelsByMode) ~= "table" then
+        return
+    end
+
+    for mode, stringId in pairs(labelsByMode) do
+        bankingModeLabels[mode] = stringId
+    end
+end
 
 -- HELPERS
 
@@ -129,10 +141,9 @@ end
 ---@return table[] narrations
 function Narration.NarrateBankingMode(mode)
     local narrations = {}
-    if mode == BETTERUI.Banking.LIST_DEPOSIT then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_BANK_DEPOSIT"))))
-    elseif mode == BETTERUI.Banking.LIST_WITHDRAW then
-        ZO_AppendNarration(narrations, SafeNarrate(GetString(rawget(_G, "SI_BANK_WITHDRAW"))))
+    local stringId = bankingModeLabels[mode]
+    if stringId ~= nil then
+        ZO_AppendNarration(narrations, SafeNarrate(GetString(stringId)))
     end
     return narrations
 end

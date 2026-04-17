@@ -38,11 +38,9 @@ local function MatchesCategory(slotData, category)
         return true
     end
 
-    local matcher = BETTERUI.Inventory
-        and BETTERUI.Inventory.Categories
-        and BETTERUI.Inventory.Categories.DoesItemMatchCategory
-    if type(matcher) == "function" then
-        return matcher(slotData, category)
+    local sharedItemSupport = BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport
+    if sharedItemSupport and sharedItemSupport.DoesItemMatchCategory then
+        return sharedItemSupport.DoesItemMatchCategory(slotData, category)
     end
 
     if category.special == "junk" then

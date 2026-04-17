@@ -261,8 +261,8 @@ local function HandleItemRowSelection(selectedData)
     elseif itemLink and GAMEPAD_TOOLTIPS.LayoutItem then
         GAMEPAD_TOOLTIPS:LayoutItem(GAMEPAD_LEFT_TOOLTIP, itemLink)
     else
-        if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
-            BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+        if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
+            BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         end
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         return
@@ -275,25 +275,25 @@ local function HandleItemRowSelection(selectedData)
         tooltip._betterui_itemLink = itemLink
     end
 
-    BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+    BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
     local container = GAMEPAD_TOOLTIPS:GetTooltipContainer(GAMEPAD_LEFT_TOOLTIP)
     if container and container._betterUiComparison then
         container._betterUiComparison:SetHidden(true)
     end
 
     -- INV-001: Stat comparison for banking items
-    if BETTERUI.Inventory.StatComparison and BETTERUI.Inventory.IsItemComparisonEnabled()
+    if BETTERUI.CIM.SharedItemSupport.IsItemComparisonEnabled()
         and bagId ~= nil and slotIndex ~= nil and itemLink then
-        local result = BETTERUI.Inventory.StatComparison.Compare(itemLink, bagId, slotIndex)
-        BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
+        local result = BETTERUI.CIM.SharedItemSupport.CompareItem(itemLink, bagId, slotIndex)
+        BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, result)
     else
-        BETTERUI.Inventory.ShowComparisonOnTooltip(container, nil)
+        BETTERUI.CIM.SharedItemSupport.ShowComparisonOnTooltip(container, nil)
     end
 end
 
 local function HandleCurrencyRowSelection(self)
     UpdateKeybindsForSelection(self, true)
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
     self:RefreshCurrencyTooltip()
 end
 
@@ -309,7 +309,7 @@ function BETTERUI.Banking.Class.OnItemSelectedChange(self, list, selectedData)
         UpdateKeybindsForSelection(self, false)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
         GAMEPAD_TOOLTIPS:ClearLines(GAMEPAD_RIGHT_TOOLTIP)
-        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
         self:UpdateActions()
         return
     end

@@ -7,7 +7,7 @@ Purpose: Manages the main item list (Backpack) for the Inventory module.
 -- Localize frequently used globals
 local ZO_InventorySlot_SetType = ZO_InventorySlot_SetType
 local zo_strformat = zo_strformat
-local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription
 local WouldEquipmentBeHidden = WouldEquipmentBeHidden
 local FindActionSlotMatchingItem = FindActionSlotMatchingItem
 local Id64ToString = Id64ToString

@@ -13,6 +13,32 @@ BETTERUI.CIM.Keybinds = BETTERUI.CIM.Keybinds or {}
 
 local cachedFrame = -1    -- Frame number when cache was last computed
 local cachedContext = nil -- The cached context data
+local inventoryActionLists = {}
+
+function BETTERUI.CIM.Keybinds.RegisterInventoryActionModes(actionModes)
+    inventoryActionLists = {}
+    if type(actionModes) ~= "table" then
+        return
+    end
+
+    if actionModes.itemList ~= nil then
+        inventoryActionLists[actionModes.itemList] = "itemList"
+    end
+    if actionModes.craftBag ~= nil then
+        inventoryActionLists[actionModes.craftBag] = "craftBagList"
+    end
+    if actionModes.category ~= nil then
+        inventoryActionLists[actionModes.category] = "categoryList"
+    end
+end
+
+local function GetInventoryActionList(self, actionMode)
+    local listKey = inventoryActionLists[actionMode]
+    if not listKey then
+        return nil, nil
+    end
+    return self[listKey], listKey
+end
 
 function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
     local currentFrame = GetFrameTimeMilliseconds and GetFrameTimeMilliseconds() or 0
@@ -28,16 +54,11 @@ function BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
     local ctx = cachedContext
     ctx.actionMode = self.actionMode
+    ctx.actionListKey = nil
 
     -- Determine which list to query based on action mode
-    local targetList = nil
-    if ctx.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
-        targetList = self.itemList
-    elseif ctx.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
-        targetList = self.craftBagList
-    elseif ctx.actionMode == BETTERUI.Inventory.CONST.CATEGORY_ITEM_ACTION_MODE then
-        targetList = self.categoryList
-    end
+    local targetList, actionListKey = GetInventoryActionList(self, ctx.actionMode)
+    ctx.actionListKey = actionListKey
 
     -- Get target data
     ctx.target = targetList and targetList.selectedData or nil
@@ -92,7 +113,7 @@ end
 function BETTERUI.CIM.Keybinds.GetXButtonName(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
-    if ctx.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+    if ctx.actionListKey == "itemList" then
         if ctx.isQuickslottable then
             return GetString(rawget(_G, "SI_BETTERUI_INV_ACTION_QUICKSLOT_ASSIGN"))
         elseif not ctx.isQuestItem and ctx.isGear then
@@ -102,7 +123,7 @@ function BETTERUI.CIM.Keybinds.GetXButtonName(self)
         else
             return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
         end
-    elseif ctx.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+    elseif ctx.actionListKey == "craftBagList" then
         return GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     end
 
@@ -112,10 +133,10 @@ end
 function BETTERUI.CIM.Keybinds.GetXButtonVisible(self)
     local ctx = BETTERUI.CIM.Keybinds.GetXButtonActionContext(self)
 
-    if ctx.actionMode == BETTERUI.Inventory.CONST.ITEM_LIST_ACTION_MODE then
+    if ctx.actionListKey == "itemList" then
         if not ctx.target then return false end
         return not ctx.isQuestItem or ctx.meetsUsage
-    elseif ctx.actionMode == BETTERUI.Inventory.CONST.CRAFT_BAG_ACTION_MODE then
+    elseif ctx.actionListKey == "craftBagList" then
         return true
     end
 

@@ -53,6 +53,11 @@ BETTERUI = {
     CIM = {
         Keybinds = {},
         ScrollIndicator = {},
+        SharedItemSupport = {
+            GetBestItemCategoryDescription = function(itemData)
+                return itemData.categoryDescription or itemData.category or itemData.name or "Unknown"
+            end,
+        },
     },
     GenericHeader = {},
 }

@@ -22,6 +22,16 @@ Inventory.ROOT_CONTRACT = {
 
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Inventory")
+if BETTERUI.CIM
+    and BETTERUI.CIM.Keybinds
+    and BETTERUI.CIM.Keybinds.RegisterInventoryActionModes
+then
+    BETTERUI.CIM.Keybinds.RegisterInventoryActionModes({
+        itemList = Inventory.CONST.ITEM_LIST_ACTION_MODE,
+        craftBag = Inventory.CONST.CRAFT_BAG_ACTION_MODE,
+        category = Inventory.CONST.CATEGORY_ITEM_ACTION_MODE,
+    })
+end
 
 --- Initializes defaults and migrates legacy settings for the Inventory module.
 ---

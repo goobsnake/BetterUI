@@ -508,3 +508,9 @@ function BETTERUI.Inventory.UpdateTooltipEquippedText(tooltipType, equipSlot)
         end
     end
 end
+
+if BETTERUI.CIM and BETTERUI.CIM.SharedItemSupport then
+    BETTERUI.CIM.SharedItemSupport.RegisterTooltipSupport({
+        updateTooltipEquippedText = BETTERUI.Inventory.UpdateTooltipEquippedText,
+    })
+end

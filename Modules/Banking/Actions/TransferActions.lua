@@ -327,8 +327,8 @@ function BETTERUI.Banking.Class:ShowActions()
     self:RemoveKeybinds()
 
     -- Clean up enhanced tooltip to prevent border artifacts when action dialog shows
-    if BETTERUI.Inventory.CleanupEnhancedTooltip then
-        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
     end
 
     -- finishedCallback no longer needs to add keybinds since BETTERUI_EVENT_ACTION_DIALOG_FINISH

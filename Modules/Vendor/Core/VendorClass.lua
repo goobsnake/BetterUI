@@ -2414,9 +2414,9 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
         return
     end
 
-    if BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip then
-        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-        BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip then
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+        BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
     end
 
     local ds = selectedData and (selectedData.dataSource or selectedData) or nil
@@ -2503,8 +2503,8 @@ function BETTERUI.Vendor.Class:OnItemSelectedChange(_list, selectedData)
         GAMEPAD_TOOLTIPS:Reset(GAMEPAD_LEFT_TOOLTIP)
     end
 
-    if BETTERUI.Inventory and BETTERUI.Inventory.UpdateTooltipEquippedText then
-        BETTERUI.Inventory.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
+    if BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText then
+        BETTERUI.CIM.SharedItemSupport.UpdateTooltipEquippedText(GAMEPAD_LEFT_TOOLTIP, nil)
     end
 
     -- Vendor uses a single visible tooltip panel. Force the right tooltip

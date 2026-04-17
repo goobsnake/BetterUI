@@ -71,10 +71,10 @@ local function DoesItemMatchBankCategory(itemData, category)
         return false
     end
 
-    return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
+    return BETTERUI.CIM.SharedItemSupport.DoesItemMatchCategory(itemData, category)
 end
 
-local GetBestItemCategoryDescription = BETTERUI.Inventory.Categories.GetBestItemCategoryDescription
+local GetBestItemCategoryDescription = BETTERUI.CIM.SharedItemSupport.GetBestItemCategoryDescription
 
 local function ResolveBagsAndSlotType(self)
     local isWithdraw = (self.currentMode == LIST_WITHDRAW)

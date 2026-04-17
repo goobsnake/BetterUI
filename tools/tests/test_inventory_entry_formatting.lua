@@ -69,6 +69,16 @@ BETTERUI = {
                 BOOK_UNKNOWN = "book.dds",
             },
         },
+        SharedItemSupport = {
+            ResolveNameFontDescriptor = function(moduleName, fallbackModuleName)
+                local target = BETTERUI[moduleName]
+                if target and target.GetNameFontDescriptor then
+                    return target.GetNameFontDescriptor()
+                end
+                local fallback = BETTERUI[fallbackModuleName]
+                return fallback and fallback.GetNameFontDescriptor and fallback.GetNameFontDescriptor() or nil
+            end,
+        },
     },
 }
 

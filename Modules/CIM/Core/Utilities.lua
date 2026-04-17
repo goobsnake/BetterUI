@@ -65,6 +65,19 @@ BETTERUI.CIM = BETTERUI.CIM or {}
 --- Provides scene checks, sort comparators, safe accessors, and bag helpers.
 --- All functions below are individually annotated with EmmyLua param/return tags.
 BETTERUI.CIM.Utils = BETTERUI.CIM.Utils or {}
+local researchableTraitMatcher = function()
+    return 0
+end
+
+function BETTERUI.CIM.Utils.RegisterResearchableTraitMatcher(matcher)
+    if type(matcher) == "function" then
+        researchableTraitMatcher = matcher
+    else
+        researchableTraitMatcher = function()
+            return 0
+        end
+    end
+end
 
 ---@param list table|nil List control with GetTargetData method or selectedData field
 ---@return table|nil data The target data from the list, or nil
@@ -164,7 +177,7 @@ function BETTERUI.CIM.Utils.GetHouseBankTraitMatches(itemLink)
     }
     local total = 0
     for _, bagId in ipairs(houseBanks) do
-        total = total + BETTERUI.GeneralInterface.GetCachedResearchableTraitMatches(itemLink, bagId)
+        total = total + researchableTraitMatcher(itemLink, bagId)
     end
     return total
 end

@@ -38,9 +38,6 @@ BETTERUI = {
         },
         Settings = {},
     },
-    GeneralInterface = {
-        _SettingsHelpers = {},
-    },
 }
 
 function GetString(value)
@@ -59,11 +56,11 @@ BETTERUI.CIM.Settings.ResetModuleSettingsByGroup = function(_moduleName, _groupN
     return false
 end
 
-BETTERUI.GeneralInterface._SettingsHelpers.GetModuleSettings = function()
+BETTERUI.GetModuleSettings = function()
     return moduleSettings
 end
 
-BETTERUI.GeneralInterface._SettingsHelpers.EnsureModuleSettings = function()
+BETTERUI.EnsureModuleSettings = function()
     return moduleSettings
 end
 

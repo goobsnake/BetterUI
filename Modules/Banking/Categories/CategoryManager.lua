@@ -8,7 +8,7 @@ BETTERUI.Banking.CategoryManager = BETTERUI.Banking.CategoryManager or {}
 local CategoryManager = BETTERUI.Banking.CategoryManager
 
 local function DoesItemMatchBankCategory(itemData, category)
-    return BETTERUI.Inventory.Categories.DoesItemMatchCategory(itemData, category)
+    return BETTERUI.CIM.SharedItemSupport.DoesItemMatchCategory(itemData, category)
 end
 
 function CategoryManager.ComputeVisibleBankCategories(self)

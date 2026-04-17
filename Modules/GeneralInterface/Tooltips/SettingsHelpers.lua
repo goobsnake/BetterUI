@@ -14,17 +14,17 @@ assert(SettingsApi and SettingsApi.GetSettingDefault and SettingsApi.ResetModule
 
 --- Applies tooltip visual settings from the current configuration.
 local function ApplyTooltipVisualSettings()
-    if BETTERUI.Inventory and type(BETTERUI.Inventory.ApplyTooltipStyles) == "function" then
-        BETTERUI.Inventory.ApplyTooltipStyles()
+    if BETTERUI.CIM.SharedItemSupport and type(BETTERUI.CIM.SharedItemSupport.ApplyTooltipStyles) == "function" then
+        BETTERUI.CIM.SharedItemSupport.ApplyTooltipStyles()
     end
 end
 
 --- Cleans up tooltip enhancement artifacts from all tooltip controls.
 local function CleanupTooltipEnhancementArtifacts()
-    if not (BETTERUI.Inventory and BETTERUI.Inventory.CleanupEnhancedTooltip) then return end
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
-    BETTERUI.Inventory.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
+    if not (BETTERUI.CIM.SharedItemSupport and BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip) then return end
+    BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_LEFT_TOOLTIP)
+    BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_RIGHT_TOOLTIP)
+    BETTERUI.CIM.SharedItemSupport.CleanupEnhancedTooltip(GAMEPAD_MOVABLE_TOOLTIP)
 end
 
 --- Refreshes the inventory and banking lists if their scenes are showing.
