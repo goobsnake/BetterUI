@@ -110,18 +110,7 @@ local function MatchesCategory(itemData, category)
     return true
 end
 
-local function SafeCall(context, fn, ...)
-    if type(fn) ~= "function" then
-        return false, nil
-    end
-
-    if BETTERUI and BETTERUI.CIM and BETTERUI.CIM.SafeExecute then
-        return BETTERUI.CIM.SafeExecute(context, fn, ...)
-    end
-
-    local ok, result = pcall(fn, ...)
-    return ok, result
-end
+local SafeCall = Vendor.SafeCall
 
 local function BuildStoreRowFromDataSource(ds)
     if not ds then

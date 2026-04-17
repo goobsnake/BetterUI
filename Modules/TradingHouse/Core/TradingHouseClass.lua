@@ -178,7 +178,7 @@ function BETTERUI.TradingHouse.Class:GetCurrentGuildName()
     -- Fallback: iterate guild details
     local numGuilds = GetNumTradingHouseGuilds and GetNumTradingHouseGuilds() or 0
     for i = 1, numGuilds do
-        local guildId, guildName = GetTradingHouseGuildDetails(i)
+        local _, guildName = GetTradingHouseGuildDetails(i)
         if guildName and guildName ~= "" then
             return guildName
         end

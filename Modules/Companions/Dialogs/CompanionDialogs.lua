@@ -82,45 +82,40 @@ local function RegisterCompanionBatchDialog()
         gamepadInfo = { dialogType = GAMEPAD_DIALOGS.PARAMETRIC },
         title = { text = SI_BETTERUI_INV_BATCH_ACTIONS or SI_GAMEPAD_INVENTORY_ACTION_LIST_KEYBIND },
         setup = function(dialog)
-            local data = dialog.data
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
-
-            local function AddAction(name, actionId)
-                local entryData = ZO_GamepadEntryData:New(name)
-                entryData:SetIconTintOnSelection(true)
-                entryData.actionId = actionId
-                entryData.setup = ZO_SharedGamepadEntry_OnSetup
-                table.insert(parametricList, {
-                    template = "ZO_GamepadItemEntryTemplate",
-                    entryData = entryData,
-                })
-            end
 
             local ms = Companions.multiSelectManager
             if ms then
                 local items = ms:GetSelectedItems()
                 local allSelected = #items > 0 and ms:GetSelectedCount() == (Companions.instance.list and Companions.instance.list:GetNumItems() or 0)
                 if not allSelected then
-                    AddAction(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_MARK_ALL or "Mark All"), "selectAll"))
                 end
                 if ms:GetSelectedCount() > 0 then
-                    AddAction(GetString(SI_BETTERUI_INV_ACTION_DESELECT_ALL or "Deselect All"), "deselectAll")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_BETTERUI_INV_ACTION_DESELECT_ALL or "Deselect All"), "deselectAll"))
                 end
 
                 -- Junk toggle
                 if Companions.GetSetting("enableCompanionJunk") ~= false then
-                    AddAction(GetString(SI_ITEM_ACTION_MARK_AS_JUNK), "junk")
-                    AddAction(GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), "unjunk")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_MARK_AS_JUNK), "junk"))
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_JUNK), "unjunk"))
                 end
 
                 -- Lock toggle
-                AddAction(GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), "lock")
-                AddAction(GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), "unlock")
+                table.insert(parametricList,
+                    BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_MARK_AS_LOCKED), "lock"))
+                table.insert(parametricList,
+                    BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_UNMARK_AS_LOCKED), "unlock"))
 
                 -- Destroy
                 if Companions.GetSetting("batchDestroy") ~= false then
-                    AddAction(GetString(SI_ITEM_ACTION_DESTROY), "destroy")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(GetString(SI_ITEM_ACTION_DESTROY), "destroy"))
                 end
             end
 

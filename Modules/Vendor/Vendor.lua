@@ -459,7 +459,7 @@ local function EnsureNativeStoreComponents(searchContext)
         Vendor._sessionHasBuyMode = true
     end
 
-    local needRebuild = false
+    local needRebuild
     if isStableInteraction then
         needRebuild = (#componentTable == 0)
             or (includeBuy and buyMode ~= nil and not seenActiveModes[buyMode])
@@ -1606,16 +1606,6 @@ RegisterVendorBatchDialog = function()
             end
             local parametricList = dialog.info.parametricList
             ZO_ClearNumericallyIndexedTable(parametricList)
-            local function AddAction(name, actionId)
-                local entryData = ZO_GamepadEntryData:New(name)
-                entryData:SetIconTintOnSelection(true)
-                entryData.actionId = actionId
-                entryData.setup = ZO_SharedGamepadEntry_OnSetup
-                table.insert(parametricList, {
-                    template = "ZO_GamepadItemEntryTemplate",
-                    entryData = entryData,
-                })
-            end
             local ms = Vendor.multiSelectManager
             if ms then
                 local selectedCount = ms:GetSelectedCount()
@@ -1623,10 +1613,18 @@ RegisterVendorBatchDialog = function()
                 local totalItems = (Vendor.instance and Vendor.instance.list and Vendor.instance.list:GetNumItems()) or 0
                 local allSelected = selectedCount > 0 and selectedCount == totalItems
                 if not allSelected then
-                    AddAction(GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL"), "selectAll")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                            GetString(rawget(_G, "SI_BETTERUI_SELECT_ALL") or "SI_BETTERUI_SELECT_ALL"),
+                            "selectAll"
+                        ))
                 end
                 if selectedCount > 0 then
-                    AddAction(zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount), "deselectAll")
+                    table.insert(parametricList,
+                        BETTERUI.CIM.Dialogs.CreateParametricActionEntry(
+                            zo_strformat("<<1>> (<<2>>)", GetString(rawget(_G, "SI_BETTERUI_DESELECT_ALL") or "SI_BETTERUI_DESELECT_ALL"), selectedCount),
+                            "deselectAll"
+                        ))
                 end
                 local currentMode = Vendor.instance and Vendor.instance:GetCurrentMode()
                 if currentMode and selectedCount > 0 then
@@ -1641,7 +1639,8 @@ RegisterVendorBatchDialog = function()
                     end
 
                     if batchLabel then
-                        AddAction(batchLabel, "batch")
+                        table.insert(parametricList,
+                            BETTERUI.CIM.Dialogs.CreateParametricActionEntry(batchLabel, "batch"))
                     end
                 end
             end
@@ -2255,7 +2254,7 @@ function BETTERUI.Vendor.Init()
         end
 
         -- Override native store manager's UpdateDirectionalInput to prevent it from
-        -- processing joystick input when BetterUI owns the vendor scene.  Even if 
+        -- processing joystick input when BetterUI owns the vendor scene. Even if
         -- the storeManager somehow registers on DIRECTIONAL_INPUT (via
         -- ActivateCurrentList, SetQuantitySpinnerActive, OnShowing, or future ESO
         -- updates), this no-op ensures it cannot cause doubled vertical movement
@@ -2277,8 +2276,8 @@ function BETTERUI.Vendor.Init()
     -- Defensive alias reassertion: if anything re-adds the native gamepad_store scene,
     -- force it back to BetterUI's scene on every Show call.
     if SCENE_MANAGER and ZO_PreHook then
-        ZO_PreHook(SCENE_MANAGER, "Show", function(self, sceneName, ...)
-            if sceneName == "gamepad_store" and Vendor.instance and Vendor.instance.scene then
+        ZO_PreHook(SCENE_MANAGER, "Show", function(self, shownSceneName, ...)
+            if shownSceneName == "gamepad_store" and Vendor.instance and Vendor.instance.scene then
                 self.scenes["gamepad_store"] = Vendor.instance.scene
             end
         end)

@@ -540,7 +540,7 @@ function InventoryKeybinds.GetSecondaryKeybindName(self)
         return self._lastSecondaryActionName
     end
 
-    local name = ""
+    local name
     if self.actionMode == InventoryConst.CRAFT_BAG_ACTION_MODE then
         name = GetString(rawget(_G, "SI_ITEM_ACTION_LINK_TO_CHAT"))
     else

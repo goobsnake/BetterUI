@@ -80,6 +80,20 @@ function BETTERUI.CIM.Dialogs.Show(dialogName, data)
     end
 end
 
+---@param label string
+---@param actionId string
+---@return table
+function BETTERUI.CIM.Dialogs.CreateParametricActionEntry(label, actionId)
+    local entryData = ZO_GamepadEntryData:New(label)
+    entryData:SetIconTintOnSelection(true)
+    entryData.actionId = actionId
+    entryData.setup = ZO_SharedGamepadEntry_OnSetup
+    return {
+        template = "ZO_GamepadItemEntryTemplate",
+        entryData = entryData,
+    }
+end
+
 ---@return string[]
 function BETTERUI.CIM.Dialogs.GetAll()
     local names = {}

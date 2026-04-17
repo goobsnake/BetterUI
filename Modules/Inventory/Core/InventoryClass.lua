@@ -293,7 +293,7 @@ function BETTERUI.Inventory.Class:RestoreStateAfterDialog(taskName)
             local innerList = selectedList.list or selectedList
             local dataList = innerList and innerList.dataList
             if dataList and #dataList > 0 then
-                local selectedIndex = nil
+                local selectedIndex
                 if innerList.GetSelectedIndex then
                     selectedIndex = innerList:GetSelectedIndex()
                 else

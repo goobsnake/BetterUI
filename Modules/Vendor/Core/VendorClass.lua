@@ -224,6 +224,8 @@ local function SafeCall(context, fn, ...)
     return ok, result
 end
 
+Vendor.SafeCall = SafeCall
+
 local function LogVendorDebug(flagName, category, message)
     if BETTERUI.Vendor and BETTERUI.Vendor.DebugLog then
         BETTERUI.Vendor.DebugLog(message, flagName, category)
@@ -1354,7 +1356,6 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
         end
 
         listListening = false
-        controllerListening = false
         isListActive = false
     end
 
@@ -1366,10 +1367,8 @@ function BETTERUI.Vendor.Class:EnsureListInputActive()
         list.directionalInputEnabled = true
     elseif list.SetDirectionalInputEnabled and not listListening then
         list:SetDirectionalInputEnabled(true)
-        listListening = CountDirectionalInputRegistrations(list) > 0
     end
 
-    controllerListening = CountDirectionalInputRegistrations(list.movementController) > 0
     if shouldActivateList then
         LogVendorDebug("DIRECTIONAL_INPUT", "VendorDI", "EnsureListInputActive activating vendor list")
         list:Activate()

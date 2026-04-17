@@ -73,7 +73,7 @@ function Sell:OnPrimaryAction(thInstance)
     local icon, _, _, _, _ = GetItemInfo(bagId, slotIndex)
 
     -- Derive a default listing price hint from the item's vendor sell price
-    local defaultPrice = 100
+    local defaultPrice
     if GetItemSellPriceWithBonus then
         defaultPrice = GetItemSellPriceWithBonus(bagId, slotIndex) * stackCount
     else
@@ -109,8 +109,8 @@ function Sell:BuildList(thInstance)
         -- Skip empty slots
         local stackCount = GetSlotStackSize(bagId, slotIndex)
         if stackCount and stackCount > 0 then
-            local icon, stack, sellPrice, meetsUsageRequirement, locked,
-                  equipType, itemStyle, displayQuality = GetItemInfo(bagId, slotIndex)
+            local icon, stack, sellPrice, _, locked,
+                _, _, displayQuality = GetItemInfo(bagId, slotIndex)
 
             -- Skip bound/locked/stolen items
             local isBound = IsItemBound and IsItemBound(bagId, slotIndex) or false

@@ -225,7 +225,6 @@ function BETTERUI.Inventory.ShowComparisonOnTooltip(container, result)
 
         -- Shrink scroll tooltip body so it stops above the divider
         if scrollTooltip then
-            local bottomAnchor = scrollTooltip:GetBottom()  -- current pixel bottom
             scrollTooltip:ClearAnchors()
             local bottomRail = container.bottomRail or container:GetNamedChild("BottomRail")
             if bottomRail and not bottomRail:IsHidden() then
