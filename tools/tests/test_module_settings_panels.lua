@@ -12,6 +12,7 @@ local optionControls = {}
 local registeredModulePanel = nil
 local keybindUpdates = 0
 local bankingSceneShowing = true
+local sortAlphabetizeCalls = 0
 
 local bankingState = {
     enableGuildBank = false,
@@ -224,13 +225,15 @@ function BETTERUI.Companions.SetSetting(key, value)
 end
 
 function BETTERUI.CIM.TryCall(name, ...)
-    if name == "CIM.Settings.ResetModuleSettingsByGroup" then
-        return false
-    end
-    if name == "CIM.Settings.SortSettingsAlphabetically" then
-        return true
-    end
+    error("Settings panels should not depend on TryCall for stable CIM.Settings seam: " .. tostring(name))
+end
+
+function BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(_moduleName, _groupName)
     return false
+end
+
+function BETTERUI.CIM.Settings.SortSettingsAlphabetically(_optionsData, _recursive)
+    sortAlphabetizeCalls = sortAlphabetizeCalls + 1
 end
 
 function BETTERUI.CIM.Settings.CreateIconCustomizationSubmenuOption(moduleName, refreshFn)
@@ -354,6 +357,7 @@ assertEqual(true, bankingState.enableGuildBank, "Banking reset restores guild ba
 assertEqual(true, bankingState.enableCarousel, "Banking reset restores carousel")
 assertEqual(false, bankingState.useTriggersForSkip, "Banking reset restores trigger mode")
 assertEqual(10, bankingState.triggerSpeed, "Banking reset restores trigger speed")
+assertTrue(sortAlphabetizeCalls > 0, "Settings panels use direct CIM.Settings sort helper")
 
 print("\nTest: Vendor settings panel refreshes scene and fallback reset restores general settings")
 BETTERUI.Vendor.Settings.RegisterPanel("Vendor", "Vendor")

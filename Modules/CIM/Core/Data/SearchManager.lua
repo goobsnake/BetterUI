@@ -208,14 +208,6 @@ local SEARCH_LIFECYCLE_CANONICAL_METHODS = {
     onEnter = "OnHeaderEntered",
 }
 
-local SEARCH_LIFECYCLE_FALLBACK_METHODS = {
-    clear = { "ClearTextSearch", "ClearSearchText" },
-    exit = { "ExitSearchFocus", "LeaveSearchMode" },
-    headerActive = { "IsHeaderActive", "IsSearchHeaderActive" },
-    requestEnter = { "RequestEnterHeader" },
-    onEnter = { "OnEnterHeader" },
-}
-
 --- Resolves a search lifecycle method from the canonical contract or legacy aliases.
 ---@param self table
 ---@param action string
@@ -234,15 +226,6 @@ function BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, action)
 
     if methodName and type(self[methodName]) == "function" then
         return self[methodName], methodName
-    end
-
-    local fallbackNames = SEARCH_LIFECYCLE_FALLBACK_METHODS[action]
-    if fallbackNames then
-        for _, fallbackName in ipairs(fallbackNames) do
-            if type(self[fallbackName]) == "function" then
-                return self[fallbackName], fallbackName
-            end
-        end
     end
 
     return nil, methodName

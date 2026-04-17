@@ -111,7 +111,8 @@ local GetModuleSettings = _H.GetModuleSettings or function() return nil end
 local EnsureModuleSettings = _H.EnsureModuleSettings or function() return nil end
 
 local function ResetIconCustomizationSettings(moduleName, refreshFn)
-    if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", moduleName, "iconCustomization") then
+    if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
+            and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup(moduleName, "iconCustomization")) then
         local settings = EnsureModuleSettings(moduleName)
         if settings then
             for _, iconDef in ipairs(ICON_DEFINITIONS) do

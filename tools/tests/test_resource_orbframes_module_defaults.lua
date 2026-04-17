@@ -53,14 +53,7 @@ BETTERUI.CIM.Settings.RegisterModulePanel = function(moduleId, panelData, option
 end
 
 BETTERUI.CIM.TryCall = function(path)
-    if path == "ResourceOrbFrames.GetDefaults" then
-        return true, BETTERUI.ResourceOrbFrames.GetDefaults()
-    end
-    if path == "ResourceOrbFrames.ApplySettings" then
-        applySettingsCalls = applySettingsCalls + 1
-        return true
-    end
-    return false, nil
+    error("ResourceOrbFrames module settings should not use TryCall for stable module-owned seams: " .. tostring(path))
 end
 
 BETTERUI.ClampInteger = function(value, _, _, fallback)
@@ -133,6 +126,10 @@ end
 BETTERUI.ResourceOrbFrames.Utils = {
     Settings = {},
 }
+
+BETTERUI.ResourceOrbFrames.ApplySettings = function()
+    applySettingsCalls = applySettingsCalls + 1
+end
 
 BETTERUI.ResourceOrbFrames.SettingsSubmenus = {
     BuildSkillBarsSubmenu = function(contracts, sharedContracts)

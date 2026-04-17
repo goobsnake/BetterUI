@@ -145,13 +145,11 @@ function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
         return
     end
 
-    -- Call module's LeaveSearchMode if available
-    if screen.LeaveSearchMode then
-        screen:LeaveSearchMode()
+    if screen.ExitSearchMode then
+        screen:ExitSearchMode()
     end
 
-    -- Call module's ClearTextSearch if available
-    if screen.ClearTextSearch then
-        screen:ClearTextSearch()
+    if screen.ClearSearchInput then
+        screen:ClearSearchInput()
     end
 end

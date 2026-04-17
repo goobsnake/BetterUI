@@ -22,6 +22,10 @@ function BETTERUI.Inventory.ApplyAllMixins()
         BETTERUI.Inventory.Class[name] = func
     end
 
+    if type(BETTERUI.Inventory.SEARCH_LIFECYCLE) == "table" then
+        BETTERUI.Inventory.Class.SEARCH_LIFECYCLE = BETTERUI.Inventory.SEARCH_LIFECYCLE
+    end
+
     -- Clear to prevent double-application
     BETTERUI.Inventory.ClassMixins = nil
 end

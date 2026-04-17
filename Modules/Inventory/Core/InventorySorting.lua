@@ -225,8 +225,8 @@ function Class:InitializeHeaderSortController()
     self.horizontalMovementController = ZO_MovementController:New(MOVEMENT_CONTROLLER_DIRECTION_HORIZONTAL)
 
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
-    if HeaderSortIntegration and HeaderSortIntegration.ApplyMixin then
-        HeaderSortIntegration.ApplyMixin(self, {
+    if HeaderSortIntegration and HeaderSortIntegration.Install then
+        HeaderSortIntegration.Install(self, {
             listFn = function() return self:GetCurrentList() end,
             keybindDescriptor = self.mainKeybindStripDescriptor,
             headerControllerFn = function()

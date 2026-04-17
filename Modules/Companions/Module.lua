@@ -90,15 +90,20 @@ end
 local function SetupCompanionSort(instance)
     if BETTERUI.CIM.UI and BETTERUI.CIM.UI.HeaderSortController then
         local ok, err = pcall(function()
-            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(instance)
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_NAME), "name")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TYPE), "type")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_TRAIT), "trait")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_STAT), "stat")
-            sortController:AddColumn(GetString(SI_BETTERUI_INV_HEADER_VALUE), "value")
-            sortController:SetSortChangedCallback(function()
-                instance:RefreshList()
-            end)
+            local sortColumns = {
+                { name = GetString(SI_BETTERUI_INV_HEADER_NAME),  key = "name" },
+                { name = GetString(SI_BETTERUI_INV_HEADER_TYPE),  key = "type" },
+                { name = GetString(SI_BETTERUI_INV_HEADER_TRAIT), key = "trait" },
+                { name = GetString(SI_BETTERUI_INV_HEADER_STAT),  key = "stat" },
+                { name = GetString(SI_BETTERUI_INV_HEADER_VALUE), key = "value", defaultDirection = "descending" },
+            }
+            local sortController = BETTERUI.CIM.UI.HeaderSortController:New(
+                instance.list,
+                sortColumns,
+                function()
+                    instance:RefreshList()
+                end
+            )
             instance.sortController = sortController
         end)
         if not ok and BETTERUI.Debug then
@@ -106,19 +111,14 @@ local function SetupCompanionSort(instance)
         end
     end
 
-    if instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Setup then
+    if instance.sortController and BETTERUI.CIM.UI.HeaderSortIntegration and BETTERUI.CIM.UI.HeaderSortIntegration.Install then
         local ok, err = pcall(function()
-            BETTERUI.CIM.UI.HeaderSortIntegration.Setup(
-                instance.list,
-                instance.sortController,
-                {
-                    keybindStrip = true,
-                    mainKeybindDescriptor = instance.coreKeybinds,
-                    onSortChanged = function()
-                        instance:RefreshList()
-                    end,
-                }
-            )
+            BETTERUI.CIM.UI.HeaderSortIntegration.Install(instance, {
+                list = instance.list,
+                controller = instance.sortController,
+                keybindDescriptor = instance.coreKeybinds,
+                autoEnterOnListStart = true,
+            })
         end)
         if not ok and BETTERUI.Debug then
             BETTERUI.Debug("[Companions] Header sort integration setup failed: " .. tostring(err))
@@ -186,8 +186,11 @@ local function RegisterCompanionSceneLifecycle(instance)
             if Companions.multiSelectManager then
                 Companions.multiSelectManager:ExitSelectionMode()
             end
-            if Companions.instance and Companions.instance.ExitSearchFocus then
-                Companions.instance:ExitSearchFocus()
+            local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+            if searchMixin and searchMixin.CallSearchLifecycle and Companions.instance then
+                searchMixin.CallSearchLifecycle(Companions.instance, "exit")
+            elseif Companions.instance and Companions.instance.ExitSearchMode then
+                Companions.instance:ExitSearchMode()
             end
             local category = screen:GetCurrentCategory()
             if category and screen.list then

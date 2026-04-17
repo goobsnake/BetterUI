@@ -141,8 +141,11 @@ function BETTERUI.CIM.UnifiedScreen:HandleSceneHidden()
     BETTERUI.CIM.Utils.SetExternalToolbarHidden(false)
 
     -- Clear search state if applicable
-    if self.ClearTextSearch then
-        self:ClearTextSearch()
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.CallSearchLifecycle then
+        searchMixin.CallSearchLifecycle(self, "clear")
+    elseif self.ClearSearchInput then
+        self:ClearSearchInput()
     end
 end
 

@@ -339,57 +339,31 @@ function BETTERUI.Banking.Class:InitializeHeaderSortController()
 
     -- Apply CIM mixin to inject EnterHeaderSortMode and ExitHeaderSortMode methods
     local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
-    if HeaderSortIntegration and HeaderSortIntegration.ApplyMixin then
-        HeaderSortIntegration.ApplyMixin(self, {
+    if HeaderSortIntegration and HeaderSortIntegration.Install then
+        HeaderSortIntegration.Install(self, {
             list = self.list,
             keybindDescriptor = self.coreKeybinds,
             headerControllerFn = function() return self.headerSortController end,
             initControllerFn = function() self:InitializeHeaderSortController() end,
+            deactivateNavigationFn = function(instance)
+                local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
+                instance._reactivateTabBarAfterHeaderSort = false
+                if tabBar and tabBar.active and tabBar.Deactivate then
+                    tabBar:Deactivate()
+                    instance._reactivateTabBarAfterHeaderSort = true
+                end
+            end,
+            reactivateNavigationFn = function(instance)
+                if not instance._reactivateTabBarAfterHeaderSort then
+                    return
+                end
+                instance._reactivateTabBarAfterHeaderSort = false
+                local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
+                if tabBar and tabBar.Activate then
+                    tabBar:Activate()
+                end
+            end,
         })
-
-        if not self._headerSortTabBarWrapInstalled then
-            self._headerSortTabBarWrapInstalled = true
-            local originalEnterHeaderSortMode = self.EnterHeaderSortMode
-            local originalExitHeaderSortMode = self.ExitHeaderSortMode
-
-            if originalEnterHeaderSortMode and originalExitHeaderSortMode then
-                self.EnterHeaderSortMode = function(instance, ...)
-                    local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
-                    instance._reactivateTabBarAfterHeaderSort = false
-
-                    if tabBar and tabBar.active and tabBar.Deactivate then
-                        tabBar:Deactivate()
-                        instance._reactivateTabBarAfterHeaderSort = true
-                    end
-
-                    originalEnterHeaderSortMode(instance, ...)
-
-                    if instance._reactivateTabBarAfterHeaderSort and not instance.isInHeaderSortMode then
-                        instance._reactivateTabBarAfterHeaderSort = false
-                        if tabBar and tabBar.Activate then
-                            tabBar:Activate()
-                        end
-                    end
-                end
-
-                self.ExitHeaderSortMode = function(instance, ...)
-                    local shouldReactivateTabBar = instance._reactivateTabBarAfterHeaderSort == true
-                    originalExitHeaderSortMode(instance, ...)
-
-                    if shouldReactivateTabBar then
-                        instance._reactivateTabBarAfterHeaderSort = false
-                        if instance.EnsureHeaderKeybindsActive then
-                            instance:EnsureHeaderKeybindsActive()
-                        else
-                            local tabBar = instance.headerGeneric and instance.headerGeneric.tabBar
-                            if tabBar and tabBar.Activate then
-                                tabBar:Activate()
-                            end
-                        end
-                    end
-                end
-            end
-        end
     end
 
     -- Note: Column labels are linked separately via LinkColumnLabels() after AddColumn() calls

@@ -212,7 +212,8 @@ do
     assert_contains(calls, "clear", "scene cleanup clears via canonical contract")
 end
 
--- Legacy alias-only screens still resolve for backward compatibility.
+-- Legacy alias-only screens should no longer resolve once every module speaks
+-- the canonical SEARCH_LIFECYCLE contract.
 do
     local calls = {}
     local legacyScreen = {
@@ -245,18 +246,33 @@ do
         },
     }
 
-    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "clear")
-    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "exit")
-    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "requestEnter")
-    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "onEnter")
+    local clearMethod = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "clear")
+    local exitMethod = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "exit")
+    local requestEnterMethod = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "requestEnter")
+    local onEnterMethod = BETTERUI.Interface.SearchMixin.CallSearchLifecycle(legacyScreen, "onEnter")
 
-    assert_contains(calls, "clear", "legacy clear alias still resolves")
-    assert_contains(calls, "exit", "legacy exit alias still resolves")
-    assert_contains(calls, "requestEnter", "legacy request-enter alias still resolves")
-    assert_contains(calls, "onEnter", "legacy on-enter alias still resolves")
+    assert_eq(clearMethod, nil, "legacy clear alias no longer resolves without SEARCH_LIFECYCLE")
+    assert_eq(exitMethod, nil, "legacy exit alias no longer resolves without SEARCH_LIFECYCLE")
+    assert_eq(requestEnterMethod, nil, "legacy request-enter alias no longer resolves without SEARCH_LIFECYCLE")
+    assert_eq(onEnterMethod, nil, "legacy on-enter alias no longer resolves without SEARCH_LIFECYCLE")
+    assert_eq(#calls, 0, "legacy alias-only screen callbacks stay unused")
 end
 
 do
+    local searchManagerSource = read_file("Modules/CIM/Core/Data/SearchManager.lua")
+    assert_true(searchManagerSource:find("SEARCH_LIFECYCLE_FALLBACK_METHODS") == nil,
+        "search manager no longer keeps legacy alias fallback tables")
+
+    local sceneCleanupSource = read_file("Modules/CIM/Core/Lifecycle/SceneCleanup.lua")
+    assert_true(sceneCleanupSource:find("screen:LeaveSearchMode", 1, true) == nil,
+        "scene cleanup clears search through canonical lifecycle helpers")
+    assert_true(sceneCleanupSource:find("screen:ClearTextSearch", 1, true) == nil,
+        "scene cleanup avoids direct legacy clear calls")
+
+    local unifiedScreenSource = read_file("Modules/CIM/Core/Window/UnifiedScreen.lua")
+    assert_true(unifiedScreenSource:find("self:ClearTextSearch()", 1, true) == nil,
+        "unified screen shutdown avoids direct legacy clear calls")
+
     local bankingSource = read_file("Modules/Banking/Search/SearchManager.lua")
     assert_true(bankingSource:find('BETTERUI%.CIM%.TryCall%("Interface%.Window%.ClearSearchText"') == nil,
         "Banking search manager avoids string-path clear dispatch")

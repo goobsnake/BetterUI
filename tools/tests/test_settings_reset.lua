@@ -45,20 +45,11 @@ function BETTERUI.CIM.SafeExecute(_, fn, ...)
 end
 
 function BETTERUI.CIM.TryResolve(name)
-    local resolvers = {
-        ["Defaults.ApplyFirstInstallDefaults"] = BETTERUI.Defaults.ApplyFirstInstallDefaults,
-        ["CIM.FeatureFlags.ResetToDefaults"] = BETTERUI.CIM.FeatureFlags.ResetToDefaults,
-        ["Nameplates.OnEnabledChanged"] = BETTERUI.Nameplates.OnEnabledChanged,
-    }
-    return resolvers[name]
+    error("SettingsReset should not depend on TryResolve for stable internal seam: " .. tostring(name))
 end
 
 function BETTERUI.CIM.TryCall(name, ...)
-    local fn = BETTERUI.CIM.TryResolve(name)
-    if not fn then
-        return false
-    end
-    return true, fn(...)
+    error("SettingsReset should not depend on TryCall for stable internal seam: " .. tostring(name))
 end
 
 function BETTERUI.Defaults.ApplyFirstInstallDefaults(settings)

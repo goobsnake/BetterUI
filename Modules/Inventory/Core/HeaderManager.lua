@@ -7,6 +7,14 @@ local INVENTORY_CATEGORY_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CATEGORY
 local INVENTORY_ITEM_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.ITEM
 local INVENTORY_CRAFT_BAG_LIST = BETTERUI.Inventory.CONST.LIST_TYPES.CRAFT_BAG
 
+BETTERUI.Inventory.SEARCH_LIFECYCLE = {
+    clear = "ClearSearchInput",
+    exit = "ExitSearchMode",
+    headerActive = "IsHeaderFocused",
+    requestEnter = "RequestHeaderFocus",
+    onEnter = "OnHeaderEntered",
+}
+
 --- @param self BetterUI_InventoryClass
 --- @return integer stringId
 local function GetActiveInventoryActionStringId(self)
@@ -200,13 +208,83 @@ local function ExitSearchFocus(self)
     end
 end
 
+--- @param self BetterUI_InventoryClass
+local function ClearSearchInput(self)
+    if self.ClearTextSearch then
+        self:ClearTextSearch()
+        return
+    end
+
+    self.searchQuery = ""
+
+    local textSearchHeaderFocus = self.textSearchHeaderFocus
+    if textSearchHeaderFocus and textSearchHeaderFocus.ClearText then
+        textSearchHeaderFocus:ClearText()
+    end
+end
+
+--- @param self BetterUI_InventoryClass
+local function ExitSearchMode(self)
+    if self.ExitSearchFocus then
+        self:ExitSearchFocus()
+        return
+    end
+
+    ExitSearchFocus(self)
+end
+
+--- @param self BetterUI_InventoryClass
+--- @return boolean
+local function IsHeaderFocused(self)
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    if searchMixin and searchMixin.IsSearchHeaderActive then
+        return searchMixin.IsSearchHeaderActive(self) == true
+    end
+
+    if self.IsHeaderActive then
+        return self:IsHeaderActive() == true
+    end
+
+    return false
+end
+
+--- @param self BetterUI_InventoryClass
+local function RequestHeaderFocus(self)
+    if self.RequestEnterHeader then
+        self:RequestEnterHeader()
+        return
+    end
+
+    if self.OnEnterHeader then
+        self:OnEnterHeader()
+        return
+    end
+
+    OnEnterHeader(self)
+end
+
+--- @param self BetterUI_InventoryClass
+local function OnHeaderEntered(self)
+    if self.OnEnterHeader then
+        self:OnEnterHeader()
+        return
+    end
+
+    OnEnterHeader(self)
+end
+
 -- Register mixins
 if BETTERUI.Inventory.RegisterMixin then
     BETTERUI.Inventory.RegisterMixin("InitializeHeader", InitializeHeader)
     BETTERUI.Inventory.RegisterMixin("OnCategoryClicked", OnCategoryClicked)
     BETTERUI.Inventory.RegisterMixin("ActivateHeader", ActivateHeader)
     BETTERUI.Inventory.RegisterMixin("OnEnterHeader", OnEnterHeader)
+    BETTERUI.Inventory.RegisterMixin("OnHeaderEntered", OnHeaderEntered)
     BETTERUI.Inventory.RegisterMixin("OnLeaveHeader", OnLeaveHeader)
     BETTERUI.Inventory.RegisterMixin("EnsureHeaderKeybindsActive", EnsureHeaderKeybindsActive)
+    BETTERUI.Inventory.RegisterMixin("ClearSearchInput", ClearSearchInput)
+    BETTERUI.Inventory.RegisterMixin("ExitSearchMode", ExitSearchMode)
+    BETTERUI.Inventory.RegisterMixin("IsHeaderFocused", IsHeaderFocused)
+    BETTERUI.Inventory.RegisterMixin("RequestHeaderFocus", RequestHeaderFocus)
     BETTERUI.Inventory.RegisterMixin("ExitSearchFocus", ExitSearchFocus)
 end

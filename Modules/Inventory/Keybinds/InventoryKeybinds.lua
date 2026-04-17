@@ -195,12 +195,19 @@ function BETTERUI.Inventory.Class:InitializeKeybindStrip()
                     return
                 end
 
-                if self.ClearTextSearch then
-                    self:ClearTextSearch()
+                local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+                if searchMixin and searchMixin.CallSearchLifecycle then
+                    searchMixin.CallSearchLifecycle(self, "clear")
+                elseif self.ClearSearchInput then
+                    self:ClearSearchInput()
                 end
 
                 if self._searchModeActive then
-                    self:ExitSearchFocus()
+                    if searchMixin and searchMixin.CallSearchLifecycle then
+                        searchMixin.CallSearchLifecycle(self, "exit")
+                    elseif self.ExitSearchMode then
+                        self:ExitSearchMode()
+                    end
                 elseif not self.isInHeaderSortMode then
                     self:RefreshKeybinds()
                 end

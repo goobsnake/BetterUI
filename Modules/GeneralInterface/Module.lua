@@ -35,9 +35,9 @@ GeneralInterface.ROOT_CONTRACT = {
 function GeneralInterface.InitModule(m_options)
     m_options = m_options or {}
     ---@cast m_options BetterUIModuleOptions
-    local ok2, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", "GeneralInterface", m_options)
-    if ok2 then
-        m_options = result
+    local defaultsApi = BETTERUI.Defaults
+    if defaultsApi and type(defaultsApi.ApplyModuleDefaults) == "function" then
+        m_options = defaultsApi.ApplyModuleDefaults("GeneralInterface", m_options)
     else
         if m_options["chatHistory"] == nil then m_options["chatHistory"] = 200 end
         if m_options["showMarketPrice"] == nil then m_options["showMarketPrice"] = true end

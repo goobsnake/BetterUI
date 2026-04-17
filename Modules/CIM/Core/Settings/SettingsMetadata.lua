@@ -429,9 +429,9 @@ function BETTERUI.CIM.Settings.GetSettingDefault(moduleName, settingKey, fallbac
         return CloneDefaultValue(metadata.defaultValue)
     end
 
-    local getDefault = BETTERUI.CIM.TryResolve("Defaults.GetDefault")
-    if getDefault then
-        local registryDefault = getDefault(moduleName, settingKey)
+    local defaultsApi = BETTERUI.Defaults
+    if defaultsApi and type(defaultsApi.GetDefault) == "function" then
+        local registryDefault = defaultsApi.GetDefault(moduleName, settingKey)
         if registryDefault ~= nil then
             return CloneDefaultValue(registryDefault)
         end

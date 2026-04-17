@@ -48,12 +48,15 @@ local function InitSettingsPanel(mId, moduleName)
     local panelData = BETTERUI.Init_ModulePanel(moduleName, "Resource Orb Frames Settings")
 
     local function Apply()
-        BETTERUI.CIM.TryCall("ResourceOrbFrames.ApplySettings")
+        if type(ResourceOrbFrames.ApplySettings) == "function" then
+            ResourceOrbFrames.ApplySettings()
+        end
     end
 
     local moduleDefaults = {}
-    local ok, defaults = BETTERUI.CIM.TryCall("ResourceOrbFrames.GetDefaults")
-    if ok then moduleDefaults = defaults end
+    if type(ResourceOrbFrames.GetDefaults) == "function" then
+        moduleDefaults = ResourceOrbFrames.GetDefaults() or {}
+    end
 
     local function Default(key, fallback)
         local value = moduleDefaults[key]
@@ -89,7 +92,7 @@ local function InitSettingsPanel(mId, moduleName)
                 settings[entry.key] = Default(entry.key, entry.value)
             end
         end
-        BETTERUI.CIM.TryCall("ResourceOrbFrames.ApplySettings")
+        Apply()
     end
 
     -- Accessor with live update

@@ -42,7 +42,8 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     end
 
     local function ResetVendorGeneralSettings()
-        if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Vendor", "general") then
+        if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
+                and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Vendor", "general")) then
             Vendor.SetSetting("enableCarousel", true)
             Vendor.SetSetting("enableBatchJunkSell", true)
             Vendor.SetSetting("abbreviateVendorCurrency", true)
@@ -158,7 +159,9 @@ function Vendor.Settings.RegisterPanel(mId, moduleName)
     end
 
     -- Register panel with LibAddonMenu2
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsData, true)
+    if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
+    end
 
     local LAM = LibAddonMenu2
     if LAM then

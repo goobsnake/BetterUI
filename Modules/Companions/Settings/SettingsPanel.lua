@@ -27,7 +27,8 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
     end
 
     local function ResetCompanionGeneralSettings()
-        if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "Companions", "general") then
+        if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
+                and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("Companions", "general")) then
             Companions.SetSetting("enableCompanionEquipment", true)
         end
         RefreshCompanionWindow()
@@ -157,7 +158,9 @@ function Companions.Settings.RegisterPanel(mId, moduleName)
         optionsData[#optionsData + 1] = opt
     end
 
-    BETTERUI.CIM.TryCall("CIM.Settings.SortSettingsAlphabetically", optionsData, true)
+    if BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.SortSettingsAlphabetically then
+        BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
+    end
 
     local LAM = LibAddonMenu2
     if LAM then

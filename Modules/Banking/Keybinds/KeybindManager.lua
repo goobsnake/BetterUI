@@ -142,8 +142,11 @@ function BETTERUI.Banking.Class:InitializeKeybind()
         BETTERUI.CIM.Keybinds.CreateClearSearchKeybind(
             function()
                 if not (self.textSearchHeaderControl and (not self.textSearchHeaderControl:IsHidden())) then return end
-                if self.ClearTextSearch then
-                    self:ClearTextSearch()
+                local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+                if searchMixin and searchMixin.CallSearchLifecycle then
+                    searchMixin.CallSearchLifecycle(self, "clear")
+                elseif self.ClearSearchInput then
+                    self:ClearSearchInput()
                 end
                 if self.textSearchKeybindStripDescriptor then
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(self.textSearchKeybindStripDescriptor)

@@ -1,12 +1,8 @@
 --[[
 File: Modules/CIM/UI/HeaderSortIntegration.lua
-Purpose: Integrates HeaderSortController with parametric scroll lists.
-         Hooks HitBeginningOfList callback to enter header sort mode.
-
-USAGE:
-    1. Create HeaderSortController with column definitions
-    2. Call BETTERUI.CIM.UI.HeaderSortIntegration.Setup(listInstance, headerController, options)
-    3. List will now support D-pad Up at first item → header mode
+Purpose: Installs the shared header-sort owner contract.
+         One integration object now owns owner methods, keybind swapping,
+         optional list-start entry, and navigation suspension hooks.
 ]]
 
 if not BETTERUI.CIM then BETTERUI.CIM = {} end
@@ -16,303 +12,225 @@ BETTERUI.CIM.UI.HeaderSortIntegration = {}
 
 local HeaderSortIntegration = BETTERUI.CIM.UI.HeaderSortIntegration
 
--- CONSTANTS
+local function ResolveList(integration)
+    if integration.listFn then
+        return integration.listFn(integration.owner)
+    end
 
-
--- KEYBIND DESCRIPTORS
-
---- Creates keybind descriptors for header sort navigation mode.
----
-local function CreateHeaderModeKeybinds(controller, onExitCallback, onSortCallback)
-    return {
-        alignment = KEYBIND_STRIP_ALIGN_CENTER,
-        -- A Button - Toggle Sort
-        {
-            name = GetString(rawget(_G, "SI_BETTERUI_HEADER_SORT")), -- "SORT"
-            keybind = "UI_SHORTCUT_PRIMARY",
-            visible = function()
-                return controller:IsActive()
-            end,
-            callback = function()
-                if controller:ToggleSort() then
-                    if onSortCallback then
-                        onSortCallback()
-                    end
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
-            end,
-        },
-        -- B Button - Exit Header Mode
-        {
-            name = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
-            keybind = "UI_SHORTCUT_NEGATIVE",
-            visible = function()
-                return controller:IsActive()
-            end,
-            callback = function()
-                if onExitCallback then
-                    onExitCallback()
-                end
-            end,
-        },
-        -- X Button - Clear Sort
-        {
-            name = GetString(rawget(_G, "SI_BETTERUI_CLEAR_SORT")),
-            keybind = "UI_SHORTCUT_SECONDARY",
-            visible = function()
-                if not controller:IsActive() then return false end
-                local currentDirection = controller.sortDirections[controller:GetCurrentColumnIndex()]
-                return currentDirection and currentDirection ~= BETTERUI.CIM.UI.HeaderSortController.SORT_DIRECTION.NONE
-            end,
-            callback = function()
-                if controller:ClearSort() then
-                    if onSortCallback then
-                        onSortCallback()
-                    end
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
-            end,
-        },
-        -- LB: Navigate to previous column (visible on keybind strip)
-        {
-            order = 40,
-            name = function()
-                local idx = controller:GetCurrentColumnIndex()
-                if idx > 1 then
-                    local col = controller.columns[idx - 1]
-                    return col and (col.originalText or col.name) or ""
-                end
-                return ""
-            end,
-            keybind = "UI_SHORTCUT_LEFT_SHOULDER",
-            visible = function()
-                return controller:IsActive() and controller:GetCurrentColumnIndex() > 1
-            end,
-            callback = function()
-                if controller:IsActive() and controller:NavigateLeft() then
-                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
-            end,
-        },
-        -- RB: Navigate to next column (visible on keybind strip)
-        {
-            order = 50,
-            name = function()
-                local idx = controller:GetCurrentColumnIndex()
-                local count = #controller.columns
-                if idx < count then
-                    local col = controller.columns[idx + 1]
-                    return col and (col.originalText or col.name) or ""
-                end
-                return ""
-            end,
-            keybind = "UI_SHORTCUT_RIGHT_SHOULDER",
-            visible = function()
-                return controller:IsActive() and controller:GetCurrentColumnIndex() < #controller.columns
-            end,
-            callback = function()
-                if controller:IsActive() and controller:NavigateRight() then
-                    PlaySound(SOUNDS.HOR_LIST_ITEM_SELECTED)
-                    KEYBIND_STRIP:UpdateCurrentKeybindButtonGroups()
-                end
-            end,
-        },
-        -- Stick-direction keybinds (UI_SHORTCUT_LEFT_STICK_*) do not work in
-        -- header sort mode because DIRECTIONAL_INPUT routes stick input to the game
-        -- world when no list is actively consuming it. B button is the reliable exit.
-    }
+    return integration.list or (integration.owner and (integration.owner.list or integration.owner.itemList))
 end
 
--- INTEGRATION SETUP
+local function ResolveController(integration)
+    if integration.initControllerFn then
+        integration.initControllerFn(integration.owner)
+    end
 
---- Sets up header sort integration for a parametric scroll list.
----
+    if integration.headerControllerFn then
+        return integration.headerControllerFn(integration.owner)
+    end
+
+    return integration.controller
+end
+
+local function GetHeaderKeybindDescriptor(integration, controller)
+    if not controller then
+        return nil
+    end
+
+    if not controller._headerSortKeybindDescriptor and controller.CreateKeybindDescriptor then
+        controller._headerSortKeybindDescriptor = controller:CreateKeybindDescriptor(function()
+            HeaderSortIntegration.ExitHeaderMode(integration)
+        end)
+    end
+
+    return controller._headerSortKeybindDescriptor
+end
+
+--- Installs the shared header sort owner contract.
+---@param owner table
+---@param options table?
+---@return table integration
+function HeaderSortIntegration.Install(owner, options)
+    options = options or {}
+
+    local integration = {
+        owner = owner,
+        list = options.list,
+        listFn = options.listFn,
+        controller = options.controller,
+        headerControllerFn = options.headerControllerFn,
+        initControllerFn = options.initControllerFn,
+        keybindDescriptor = options.keybindDescriptor or options.mainKeybindDescriptor,
+        deactivateNavigationFn = options.deactivateNavigationFn,
+        reactivateNavigationFn = options.reactivateNavigationFn,
+        onEnterHeaderMode = options.onEnterHeaderMode,
+        onExitHeaderMode = options.onExitHeaderMode,
+        autoEnterOnListStart = options.autoEnterOnListStart == true,
+        isActive = false,
+        activeKeybindDescriptor = nil,
+    }
+
+    owner._headerSortIntegration = integration
+
+    function owner:EnterHeaderSortMode()
+        return HeaderSortIntegration.EnterHeaderMode(integration)
+    end
+
+    function owner:ExitHeaderSortMode()
+        return HeaderSortIntegration.ExitHeaderMode(integration)
+    end
+
+    if integration.autoEnterOnListStart then
+        local list = ResolveList(integration)
+        if list and list.SetOnHitBeginningOfListCallback then
+            list:SetOnHitBeginningOfListCallback(function()
+                if not integration.isActive then
+                    owner:EnterHeaderSortMode()
+                end
+            end)
+        end
+    end
+
+    return integration
+end
+
+--- Backward-compatible wrapper for older static-list callers.
 ---@param list table
 ---@param controller table
 ---@param options table?
 ---@return table integration
 function HeaderSortIntegration.Setup(list, controller, options)
     options = options or {}
-
-    local integration = {
-        list = list,
-        controller = controller,
-        isActive = false,
-        headerModeKeybinds = nil,
-        originalDirectionalInput = nil,
-    }
-
-    -- Create header mode keybinds
-    integration.headerModeKeybinds = CreateHeaderModeKeybinds(
-        controller,
-        function() -- onExit
-            HeaderSortIntegration.ExitHeaderMode(integration, options)
-        end,
-        function() -- onSort
-            if options.onSortChanged then
-                local column, direction = controller:GetActiveSortColumn()
-                if column then
-                    options.onSortChanged(column.key, direction, column.sortFn)
-                end
-            end
-        end
-    )
-
-    -- Hook HitBeginningOfList callback to enter header mode
-    list:SetOnHitBeginningOfListCallback(function()
-        if not integration.isActive then
-            HeaderSortIntegration.EnterHeaderMode(integration, options)
-        end
-    end)
-
-    -- Store reference on list for external access
-    list._headerSortIntegration = integration
-
-    return integration
+    local owner = options.owner or { list = list }
+    options.list = list
+    options.controller = controller
+    if options.autoEnterOnListStart == nil then
+        options.autoEnterOnListStart = true
+    end
+    return HeaderSortIntegration.Install(owner, options)
 end
 
 --- Enters header sort navigation mode.
----
 ---@param integration table
----@param options table?
----@return nil
-function HeaderSortIntegration.EnterHeaderMode(integration, options)
-    if integration.isActive then return end
+---@return boolean
+function HeaderSortIntegration.EnterHeaderMode(integration)
+    if integration.isActive then
+        return false
+    end
 
+    local owner = integration.owner
+    local navigationSuspended = false
+    if integration.deactivateNavigationFn then
+        integration.deactivateNavigationFn(owner)
+        navigationSuspended = true
+    end
+
+    local list = ResolveList(integration)
+    if not list or not list.GetNumItems or list:GetNumItems() == 0 then
+        if navigationSuspended and integration.reactivateNavigationFn then
+            integration.reactivateNavigationFn(owner)
+        end
+        return false
+    end
+
+    local controller = ResolveController(integration)
+    if not controller or not controller.EnterHeaderMode then
+        if navigationSuspended and integration.reactivateNavigationFn then
+            integration.reactivateNavigationFn(owner)
+        end
+        return false
+    end
+
+    if controller:EnterHeaderMode() == false then
+        if navigationSuspended and integration.reactivateNavigationFn then
+            integration.reactivateNavigationFn(owner)
+        end
+        return false
+    end
+
+    integration.controller = controller
     integration.isActive = true
-    integration.controller:EnterHeaderMode()
+    owner.isInHeaderSortMode = true
 
-    -- Swap keybind strip (navigation is now handled via ethereal keybinds)
-    if options.keybindStrip and options.mainKeybindDescriptor then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(options.mainKeybindDescriptor)
-        KEYBIND_STRIP:AddKeybindButtonGroup(integration.headerModeKeybinds)
+    PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
+
+    if KEYBIND_STRIP and KEYBIND_STRIP.RemoveAllKeyButtonGroups then
+        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
     end
 
-    -- Callback
-    if options.onEnterHeaderMode then
-        options.onEnterHeaderMode()
+    integration.activeKeybindDescriptor = GetHeaderKeybindDescriptor(integration, controller)
+    if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+        KEYBIND_STRIP:AddKeybindButtonGroup(integration.activeKeybindDescriptor)
     end
+
+    if integration.onEnterHeaderMode then
+        integration.onEnterHeaderMode(owner, controller, list)
+    end
+
+    return true
 end
 
---- Exits header sort navigation mode and returns to list.
----
+--- Exits header sort navigation mode and returns to the list.
 ---@param integration table
----@param options table?
----@return nil
-function HeaderSortIntegration.ExitHeaderMode(integration, options)
-    if not integration.isActive then return end
+---@return boolean
+function HeaderSortIntegration.ExitHeaderMode(integration)
+    if not integration.isActive then
+        return false
+    end
+
+    local owner = integration.owner
+    local controller = integration.controller or ResolveController(integration)
 
     integration.isActive = false
-    integration.controller:ExitHeaderMode()
+    owner.isInHeaderSortMode = false
 
-    -- Swap keybind strip back
-    if options.keybindStrip and options.mainKeybindDescriptor then
-        KEYBIND_STRIP:RemoveKeybindButtonGroup(integration.headerModeKeybinds)
-        KEYBIND_STRIP:AddKeybindButtonGroup(options.mainKeybindDescriptor)
+    if controller and controller.ExitHeaderMode then
+        controller:ExitHeaderMode()
     end
 
-    -- Callback
-    if options.onExitHeaderMode then
-        options.onExitHeaderMode()
+    PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
+
+    if integration.activeKeybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.RemoveKeybindButtonGroup then
+        KEYBIND_STRIP:RemoveKeybindButtonGroup(integration.activeKeybindDescriptor)
+        integration.activeKeybindDescriptor = nil
     end
+
+    if integration.keybindDescriptor and KEYBIND_STRIP and KEYBIND_STRIP.AddKeybindButtonGroup then
+        KEYBIND_STRIP:AddKeybindButtonGroup(integration.keybindDescriptor)
+        if KEYBIND_STRIP.UpdateKeybindButtonGroup then
+            KEYBIND_STRIP:UpdateKeybindButtonGroup(integration.keybindDescriptor)
+        end
+    end
+
+    if owner.EnsureHeaderKeybindsActive then
+        owner:EnsureHeaderKeybindsActive()
+    end
+
+    if integration.reactivateNavigationFn then
+        integration.reactivateNavigationFn(owner)
+    end
+
+    if integration.onExitHeaderMode then
+        integration.onExitHeaderMode(owner, controller)
+    end
+
+    return true
 end
 
---- Returns whether header mode is currently active for an integration.
----
 ---@param integration table?
 ---@return boolean
 function HeaderSortIntegration.IsActive(integration)
-    return integration and integration.isActive
+    return integration and integration.isActive or false
 end
 
--- MIXIN PATTERN
-
---- Injects EnterHeaderSortMode() and ExitHeaderSortMode() methods into an instance.
----
---- Purpose: This eliminates duplicate code across Inventory and Banking modules.
----
+--- Backward-compatible wrapper around the unified installer.
 ---@param instance table
 ---@param config table
----@return nil
+---@return table?
 function HeaderSortIntegration.ApplyMixin(instance, config)
-    if not instance or not config then return end
-
-    --- Enters header sort navigation mode.
-    --- Called when user presses D-pad Up at the first item in the list.
-    function instance:EnterHeaderSortMode()
-        if self.isInHeaderSortMode then return end
-
-        -- Support both static list and dynamic listFn for screens with multiple lists (e.g., Inventory + CraftBag)
-        local list = (config.listFn and config.listFn()) or config.list or self.list or self.itemList
-        if not list or list:GetNumItems() == 0 then
-            return
-        end
-
-        -- Initialize controller if needed
-        if config.initControllerFn then
-            config.initControllerFn()
-        end
-
-        local controller = config.headerControllerFn and config.headerControllerFn()
-        if not controller then return end
-
-        self.isInHeaderSortMode = true
-
-        -- Enter header mode on controller
-        controller:EnterHeaderMode()
-
-        -- Play sound for entering header mode
-        PlaySound(SOUNDS.GAMEPAD_MENU_FORWARD)
-
-        -- Swap keybinds to header mode
-        -- First, clear all keybind groups to prevent stale action names showing
-        -- (e.g., "Equip"/"Use" lingering from rapid button presses before entering sort mode)
-        KEYBIND_STRIP:RemoveAllKeyButtonGroups()
-
-        -- Create header mode keybinds via shared CIM factory
-        -- Cache descriptor on the controller itself to support multiple independent lists (Inventory/CraftBag)
-        if not controller._headerSortKeybindDescriptor then
-            controller._headerSortKeybindDescriptor = controller:CreateKeybindDescriptor(
-                function() self:ExitHeaderSortMode() end
-            )
-        end
-        self._activeHeaderSortKeybindDescriptor = controller._headerSortKeybindDescriptor
-        KEYBIND_STRIP:AddKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
+    if not instance or not config then
+        return nil
     end
 
-    --- Exits header sort navigation mode.
-    --- Returns focus to the item list.
-    function instance:ExitHeaderSortMode()
-        if not self.isInHeaderSortMode then return end
-
-        self.isInHeaderSortMode = false
-
-        local controller = config.headerControllerFn and config.headerControllerFn()
-        if controller then
-            controller:ExitHeaderMode()
-        end
-
-        -- Play sound for exiting header mode
-        PlaySound(SOUNDS.GAMEPAD_MENU_BACK)
-
-        -- Restore keybinds
-        if self._activeHeaderSortKeybindDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self._activeHeaderSortKeybindDescriptor)
-            self._activeHeaderSortKeybindDescriptor = nil
-        elseif self.headerSortKeybindDescriptor then
-            KEYBIND_STRIP:RemoveKeybindButtonGroup(self.headerSortKeybindDescriptor)
-        end
-
-        local mainKeybinds = config.keybindDescriptor or self.mainKeybindStripDescriptor or self.coreKeybinds
-        if mainKeybinds then
-            KEYBIND_STRIP:AddKeybindButtonGroup(mainKeybinds)
-            KEYBIND_STRIP:UpdateKeybindButtonGroup(mainKeybinds)
-        end
-
-        local instanceObj = self
-        if instanceObj.EnsureHeaderKeybindsActive then
-            instanceObj:EnsureHeaderKeybindsActive()
-        end
-    end
+    return HeaderSortIntegration.Install(instance, config)
 end

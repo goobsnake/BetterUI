@@ -42,7 +42,8 @@ function TH.Settings.RegisterPanel(mId, moduleName)
     end
 
     local function ResetTHGeneralSettings()
-        if not BETTERUI.CIM.TryCall("CIM.Settings.ResetModuleSettingsByGroup", "TradingHouse", "general") then
+        if not (BETTERUI.CIM.Settings and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup
+                and BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("TradingHouse", "general")) then
             TH.SetSetting("enableCarousel", true)
         end
         RefreshTHWindow()

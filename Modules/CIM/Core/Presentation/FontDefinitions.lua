@@ -174,9 +174,9 @@ function BETTERUI.CIM.InitModuleDefaults(moduleKey, m_options, defaults, fallbac
         m_options = {}
     end
 
-    local ok, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", moduleKey, m_options)
-    if ok then
-        m_options = result
+    local defaultsApi = BETTERUI.Defaults
+    if defaultsApi and type(defaultsApi.ApplyModuleDefaults) == "function" then
+        m_options = defaultsApi.ApplyModuleDefaults(moduleKey, m_options)
     elseif type(fallbackDefaults) == "table" then
         d("[BetterUI] " .. tostring(moduleKey) .. ": ApplyModuleDefaults unavailable, using fallbacks")
         for key, value in pairs(fallbackDefaults) do
