@@ -57,6 +57,7 @@ local function resetScheduler()
     scheduledCallbacks = {}
     removedCallbacks = {}
     nextId = 1
+    BETTERUI.CIM.Tasks = nil
 end
 
 local function getOnlyScheduledId()
@@ -98,6 +99,14 @@ end
 -- ============================================================================
 
 print("\n=== DeferredTask Tests ===\n")
+
+-- Test 0: Shared manager stays lazy until runtime setup asks for it
+print("Test: Shared manager is lazy")
+resetScheduler()
+assert_equal(nil, BETTERUI.CIM.DeferredTask.GetSharedManager(), "Shared manager is absent immediately after import")
+local sharedTasks = BETTERUI.CIM.DeferredTask.EnsureSharedManager()
+assert_true(sharedTasks ~= nil, "EnsureSharedManager creates the shared manager")
+assert_equal(sharedTasks, BETTERUI.CIM.DeferredTask.GetSharedManager(), "Shared manager becomes discoverable")
 
 -- Test 1: Schedule creates pending task
 print("Test: Schedule creates pending task")
@@ -170,6 +179,13 @@ assert_true(tasks:IsPending("replace"), "Replacement task remains pending")
 scheduledCallbacks[secondId].callback()
 assert_equal(0, firstCount, "Original callback never ran")
 assert_equal(1, secondCount, "Replacement callback ran once")
+
+-- Test 7: EnsureSharedManager is idempotent
+print("\nTest: EnsureSharedManager reuses the same shared manager")
+resetScheduler()
+local firstShared = BETTERUI.CIM.DeferredTask.EnsureSharedManager()
+local secondShared = BETTERUI.CIM.DeferredTask.EnsureSharedManager()
+assert_equal(firstShared, secondShared, "Shared manager instance is reused")
 
 -- ============================================================================
 -- SUMMARY

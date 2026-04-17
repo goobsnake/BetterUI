@@ -157,6 +157,22 @@ assert_true(called10, "TryCall returns true")
 assert_equal(10, result10, "Arguments forwarded correctly (3 + 7 = 10)")
 BETTERUI.TestArgs = nil
 
+-- Test 11: SafeCall mirrors TryCall for optional dispatch
+print("\nTest: SafeCall mirrors TryCall for optional dispatch")
+reset()
+BETTERUI.TestSafeCall = { GetValue = function() return "ok" end }
+local called11, result11 = BETTERUI.CIM.SafeCall("TestSafeCall.GetValue")
+assert_true(called11, "SafeCall returns true for existing path")
+assert_equal("ok", result11, "SafeCall returns resolved function result")
+BETTERUI.TestSafeCall = nil
+
+-- Test 12: SafeCall returns false for missing path
+print("\nTest: SafeCall returns false for missing path")
+reset()
+local called12, result12 = BETTERUI.CIM.SafeCall("Missing.Module")
+assert_false(called12, "SafeCall returns false when the path is missing")
+assert_equal(nil, result12, "SafeCall returns nil result for missing path")
+
 -- ============================================================================
 -- SUMMARY
 -- ============================================================================

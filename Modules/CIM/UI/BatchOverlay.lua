@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/BatchOverlay.lua
+File: Modules/CIM/UI/BatchOverlay.lua
 Purpose: Batch status overlay UI for multi-select operations.
          Creates, lays out, shows, and hides the on-screen progress indicator
          during throttled batch processing.
@@ -220,6 +220,22 @@ local function ResolveBatchStatusTextValue(value)
     return tostring(value)
 end
 
+function BatchOverlay.CreateDisplayRequest(displayName, bodyText, secondaryText)
+    if type(displayName) == "table" then
+        return {
+            displayName = displayName.displayName,
+            bodyText = displayName.bodyText,
+            secondaryText = displayName.secondaryText,
+        }
+    end
+
+    return {
+        displayName = displayName,
+        bodyText = bodyText,
+        secondaryText = secondaryText,
+    }
+end
+
 -- OVERLAY CREATION
 
 local function EnsureBatchStatusOverlay()
@@ -416,7 +432,8 @@ end
 -- PUBLIC API
 
 --- Shows the batch status overlay with the given text content.
-function BatchOverlay.Show(displayName, bodyText, secondaryText)
+function BatchOverlay.ShowStatus(displayRequest)
+    local request = BatchOverlay.CreateDisplayRequest(displayRequest)
     local overlay = EnsureBatchStatusOverlay()
     if not overlay then
         return
@@ -427,9 +444,9 @@ function BatchOverlay.Show(displayName, bodyText, secondaryText)
     local updateToken = overlay.updateToken
     local suppressRetryCount = 8
 
-    local hasDynamicText = type(bodyText) == "function" or type(secondaryText) == "function"
-    local expectsSecondary = secondaryText ~= nil and secondaryText ~= ""
-    if type(secondaryText) == "function" then
+    local hasDynamicText = type(request.bodyText) == "function" or type(request.secondaryText) == "function"
+    local expectsSecondary = request.secondaryText ~= nil and request.secondaryText ~= ""
+    if type(request.secondaryText) == "function" then
         expectsSecondary = true
     end
     local lastResolvedSecondaryText = ""
@@ -450,8 +467,8 @@ function BatchOverlay.Show(displayName, bodyText, secondaryText)
             return
         end
 
-        local resolvedBodyText = ResolveBatchStatusTextValue(bodyText)
-        local resolvedSecondaryText = ResolveBatchStatusTextValue(secondaryText)
+        local resolvedBodyText = ResolveBatchStatusTextValue(request.bodyText)
+        local resolvedSecondaryText = ResolveBatchStatusTextValue(request.secondaryText)
         if expectsSecondary then
             if resolvedSecondaryText == "" then
                 resolvedSecondaryText = (lastResolvedSecondaryText ~= "" and lastResolvedSecondaryText) or " "
@@ -464,7 +481,7 @@ function BatchOverlay.Show(displayName, bodyText, secondaryText)
             overlay.control:SetHidden(true)
         end
 
-        local mainText = zo_strformat("<<1>>: <<2>>", displayName or "", resolvedBodyText)
+        local mainText = zo_strformat("<<1>>: <<2>>", request.displayName or "", resolvedBodyText)
         overlay.mainLabel:SetText(string.format("|c%s%s|r", BATCH_ANNOUNCE_TEXT_COLOR_HEX, mainText))
 
         local hasSecondary = expectsSecondary or resolvedSecondaryText ~= ""
@@ -493,6 +510,10 @@ function BatchOverlay.Show(displayName, bodyText, secondaryText)
     end
 
     UpdateOverlayText()
+end
+
+function BatchOverlay.Show(displayName, bodyText, secondaryText)
+    return BatchOverlay.ShowStatus(BatchOverlay.CreateDisplayRequest(displayName, bodyText, secondaryText))
 end
 
 --- Hides the batch status overlay, optionally with a delay.
@@ -528,3 +549,21 @@ function BatchOverlay.StopLayoutPulse()
     local overlay = BATCH_STATUS_OVERLAY
     overlay.updateToken = overlay.updateToken + 1
 end
+
+BatchOverlay._Internals = {
+    EnsureBatchStatusOverlay = EnsureBatchStatusOverlay,
+    ApplyBatchStatusOverlayLayout = ApplyBatchStatusOverlayLayout,
+    ResolveBatchStatusTextValue = ResolveBatchStatusTextValue,
+    GetOverlayState = function()
+        return BATCH_STATUS_OVERLAY
+    end,
+    ResetOverlayState = function()
+        for key in pairs(BATCH_STATUS_OVERLAY) do
+            if key == "updateToken" or key == "hideToken" then
+                BATCH_STATUS_OVERLAY[key] = 0
+            else
+                BATCH_STATUS_OVERLAY[key] = nil
+            end
+        end
+    end,
+}

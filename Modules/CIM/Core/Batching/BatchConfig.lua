@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/BatchConfig.lua
+File: Modules/CIM/Core/Batching/BatchConfig.lua
 Purpose: Server pacing configuration, timing constants, and shared utility
          helpers for the multi-select batch processing pipeline.
 

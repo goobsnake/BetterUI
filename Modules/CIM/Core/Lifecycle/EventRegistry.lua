@@ -13,11 +13,32 @@ Usage:
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
-BETTERUI.CIM.EventRegistry = {}
+BETTERUI.CIM.EventRegistry = BETTERUI.CIM.EventRegistry or {}
+
+local EventRegistry = BETTERUI.CIM.EventRegistry
 
 -- INTERNAL STATE
 
-local registrations = {}
+local function EnsureRuntimeState()
+    EventRegistry._registrations = EventRegistry._registrations or {}
+    return EventRegistry._registrations
+end
+
+local function CopyRegistrations(registrations)
+    local snapshot = {}
+    for moduleName, moduleRegs in pairs(registrations) do
+        local moduleSnapshot = {}
+        for eventId, namespaces in pairs(moduleRegs) do
+            local namespaceSnapshot = {}
+            for i = 1, #namespaces do
+                namespaceSnapshot[i] = namespaces[i]
+            end
+            moduleSnapshot[eventId] = namespaceSnapshot
+        end
+        snapshot[moduleName] = moduleSnapshot
+    end
+    return snapshot
+end
 
 -- CORE API
 
@@ -26,15 +47,13 @@ local registrations = {}
 ---@param namespace string Unique namespace for EVENT_MANAGER registration
 ---@param eventId number ESO event constant
 ---@param callback function Event handler function
-function BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, callback)
-    -- Initialize module tracking if needed
+function EventRegistry.Register(moduleName, namespace, eventId, callback)
+    local registrations = EnsureRuntimeState()
     registrations[moduleName] = registrations[moduleName] or {}
     registrations[moduleName][eventId] = registrations[moduleName][eventId] or {}
 
-    -- Track the namespace for this event
     table.insert(registrations[moduleName][eventId], namespace)
 
-    -- Perform the actual registration
     EVENT_MANAGER:RegisterForEvent(namespace, eventId, callback)
 end
 
@@ -45,18 +64,17 @@ end
 ---@param callback function Event handler
 ---@param filterType number ESO filter type constant
 ---@param filterValue any Filter value
-function BETTERUI.CIM.EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
-    -- Register the event first
-    BETTERUI.CIM.EventRegistry.Register(moduleName, namespace, eventId, callback)
+function EventRegistry.RegisterFiltered(moduleName, namespace, eventId, callback, filterType, filterValue)
+    EventRegistry.Register(moduleName, namespace, eventId, callback)
 
-    -- Add the filter
     EVENT_MANAGER:AddFilterForEvent(namespace, eventId, filterType, filterValue)
 end
 
 --- Unregister all events for a specific module.
 ---@param moduleName string Module name to clean up
 ---@param suppressLog boolean|nil When true, skip debug logging
-function BETTERUI.CIM.EventRegistry.UnregisterAll(moduleName, suppressLog)
+function EventRegistry.UnregisterAll(moduleName, suppressLog)
+    local registrations = EnsureRuntimeState()
     local moduleRegs = registrations[moduleName]
     if not moduleRegs then return end
 
@@ -77,11 +95,11 @@ end
 ---@param moduleName string Module name
 ---@param namespace string Original namespace used in Register
 ---@param eventId number ESO event constant
-function BETTERUI.CIM.EventRegistry.Unregister(moduleName, namespace, eventId)
+function EventRegistry.Unregister(moduleName, namespace, eventId)
+    local registrations = EnsureRuntimeState()
     local moduleRegs = registrations[moduleName]
     if not moduleRegs or not moduleRegs[eventId] then return end
 
-    -- Remove from tracking
     local namespaces = moduleRegs[eventId]
     for i = #namespaces, 1, -1 do
         if namespaces[i] == namespace then
@@ -90,7 +108,6 @@ function BETTERUI.CIM.EventRegistry.Unregister(moduleName, namespace, eventId)
         end
     end
 
-    -- Clean up empty tables
     if #namespaces == 0 then
         moduleRegs[eventId] = nil
     end
@@ -98,14 +115,14 @@ function BETTERUI.CIM.EventRegistry.Unregister(moduleName, namespace, eventId)
         registrations[moduleName] = nil
     end
 
-    -- Unregister from EVENT_MANAGER
     EVENT_MANAGER:UnregisterForEvent(namespace, eventId)
 end
 
 --- Get the count of registered events for a module.
 ---@param moduleName string Module name to count
 ---@return number count Total registered event handlers
-function BETTERUI.CIM.EventRegistry.GetRegistrationCount(moduleName)
+function EventRegistry.GetRegistrationCount(moduleName)
+    local registrations = EnsureRuntimeState()
     local count = 0
     local moduleRegs = registrations[moduleName]
     if moduleRegs then
@@ -116,3 +133,8 @@ function BETTERUI.CIM.EventRegistry.GetRegistrationCount(moduleName)
     return count
 end
 
+function EventRegistry.GetRegisteredEvents()
+    return CopyRegistrations(EnsureRuntimeState())
+end
+
+EventRegistry.EnsureRuntimeState = EnsureRuntimeState

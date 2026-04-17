@@ -17,6 +17,7 @@ lang\$(language).lua
 Modules\CIM\Constants.lua
 Modules\CIM\ConstantsUI.lua
 Modules\CIM\Core\Data\Types.lua
+Modules\CIM\Core\Data\ItemTaxonomy.lua
 Modules\CIM\Core\Settings\DefaultsRegistry.lua
 Modules\CIM\Core\Utilities.lua
 Modules\CIM\Core\Lifecycle\DeferredTask.lua
@@ -47,11 +48,11 @@ Modules\CIM\Core\Data\SortManager.lua
 Modules\CIM\Core\Diagnostics\SafeExecute.lua
 Modules\CIM\Core\Diagnostics\DeprecationRegistry.lua
 Modules\CIM\Core\Lifecycle\SceneLifecycleManager.lua
-Modules\CIM\Core\Data\MultiSelectManager.lua
-Modules\CIM\Core\Data\BatchConfig.lua
-Modules\CIM\Core\Data\BatchOverlay.lua
-Modules\CIM\Core\Data\BatchActions.lua
-Modules\CIM\Core\Data\MultiSelectMixin.lua
+Modules\CIM\Core\Batching\MultiSelectManager.lua
+Modules\CIM\Core\Batching\BatchConfig.lua
+Modules\CIM\UI\BatchOverlay.lua
+Modules\CIM\Core\Batching\BatchActions.lua
+Modules\CIM\Core\Batching\MultiSelectMixin.lua
 Modules\CIM\Core\Lifecycle\SceneCleanup.lua
 Modules\CIM\Images\inv_equip.dds
 Modules\CIM\Images\inv_equip_backup.dds
@@ -134,6 +135,7 @@ Modules\ResourceOrbFrames\Core\OrbOverlays.lua
 Modules\ResourceOrbFrames\Core\OrbBars.lua
 Modules\ResourceOrbFrames\Core\OrbBarUpdates.lua
 Modules\ResourceOrbFrames\SkillBar\Constants.lua
+Modules\ResourceOrbFrames\SkillBar\CooldownUtils.lua
 Modules\ResourceOrbFrames\SkillBar\TooltipManager.lua
 Modules\ResourceOrbFrames\SkillBar\UltimateManager.lua
 Modules\ResourceOrbFrames\SkillBar\BackBarManager.lua
@@ -211,7 +213,6 @@ Modules\Banking\Images\selectbg.dds
 Modules\Banking\Dialogs\QuantityDialog.lua
 Modules\Banking\Actions\BankingActions.lua
 Modules\Banking\Scene\BankingSceneLifecycle.lua
-Modules\Banking\Keybinds\KeybindSetup.lua
 Modules\Banking\Categories\CategoryManager.lua
 Modules\Banking\Currency\CurrencySelector.lua
 Modules\Banking\Banking.lua

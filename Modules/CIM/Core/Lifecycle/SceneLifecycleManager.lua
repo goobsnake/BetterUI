@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/SceneLifecycleManager.lua
+File: Modules/CIM/Core/Lifecycle/SceneLifecycleManager.lua
 Purpose: Unified scene lifecycle management for all BetterUI modules.
          Consolidates scene state change handling, keybind management,
          task cleanup, and event registry management.
@@ -38,42 +38,34 @@ function BETTERUI.CIM.SceneLifecycle.Register(screen, config)
 
     scene:RegisterCallback("StateChange", function(oldState, newState)
         if newState == SCENE_SHOWING then
-            -- Add keybinds
             if config.keybinds then
                 for _, group in ipairs(config.keybinds) do
                     KEYBIND_STRIP:AddKeybindButtonGroup(group)
                 end
             end
-            -- Call showing handler
             if config.onShowing then
                 local wasPushed = (oldState == SCENE_HIDDEN)
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onShowing", config.onShowing, screen, wasPushed)
             end
         elseif newState == SCENE_HIDING then
-            -- Remove keybinds
             if config.keybinds then
                 for _, group in ipairs(config.keybinds) do
                     KEYBIND_STRIP:RemoveKeybindButtonGroup(group)
                 end
             end
-            -- Cancel pending tasks
             if config.taskManager and config.taskManager.CancelAll then
                 config.taskManager:CancelAll()
             end
-            -- Call hiding handler
             if config.onHiding then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHiding", config.onHiding, screen)
             end
         elseif newState == SCENE_HIDDEN then
-            -- Unregister events
             if config.eventRegistryModule and BETTERUI.CIM.EventRegistry then
                 BETTERUI.CIM.EventRegistry.UnregisterAll(config.eventRegistryModule)
             end
-            -- Call hidden handler
             if config.onHidden then
                 BETTERUI.CIM.SafeExecute("SceneLifecycle:onHidden", config.onHidden, screen)
             end
         end
     end)
 end
-

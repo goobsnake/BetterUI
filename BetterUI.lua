@@ -53,8 +53,12 @@ local MODULE_REGISTRY = {
 		dependsOnCIM = true,
 		preSetup = function()
 			-- Pre-Setup hooks (must run before Setup)
-			BETTERUI.CIM.TryCall("Inventory.HookDestroyItem")
-			BETTERUI.CIM.TryCall("Inventory.HookActionDialog")
+			if BETTERUI.Inventory and BETTERUI.Inventory.HookDestroyItem then
+				BETTERUI.Inventory.HookDestroyItem()
+			end
+			if BETTERUI.Inventory and BETTERUI.Inventory.HookActionDialog then
+				BETTERUI.Inventory.HookActionDialog()
+			end
 			return true
 		end
 	},
@@ -129,6 +133,117 @@ function BETTERUI.UpdateCIMState()
 	BETTERUI.SetSetting("CIM", "m_enabled", shouldEnable)
 end
 
+---@class ModuleToggleBlueprint
+---@field moduleName string
+---@field nameStringId string
+---@field tooltipStringId string
+---@field updatesCIM boolean|nil
+
+---@type ModuleToggleBlueprint[]
+local MODULE_TOGGLE_BLUEPRINTS = {
+	{ moduleName = "Banking", nameStringId = "SI_BETTERUI_ENABLE_BANKING", tooltipStringId = "SI_BETTERUI_ENABLE_BANKING_TOOLTIP", updatesCIM = true },
+	{ moduleName = "Vendor", nameStringId = "SI_BETTERUI_ENABLE_VENDOR", tooltipStringId = "SI_BETTERUI_ENABLE_VENDOR_TOOLTIP", updatesCIM = true },
+	{ moduleName = "Companions", nameStringId = "SI_BETTERUI_ENABLE_COMPANIONS", tooltipStringId = "SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP", updatesCIM = true },
+	{ moduleName = "TradingHouse", nameStringId = "SI_BETTERUI_ENABLE_TRADING_HOUSE", tooltipStringId = "SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP", updatesCIM = true },
+	{ moduleName = "GeneralInterface", nameStringId = "SI_BETTERUI_ENABLE_TOOLTIPS", tooltipStringId = "SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP", updatesCIM = true },
+	{ moduleName = "Inventory", nameStringId = "SI_BETTERUI_ENABLE_INVENTORY", tooltipStringId = "SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP", updatesCIM = true },
+	{ moduleName = "ResourceOrbFrames", nameStringId = "SI_BETTERUI_ENABLE_ORBS", tooltipStringId = "SI_BETTERUI_ENABLE_ORBS_TOOLTIP" },
+	{ moduleName = "Writs", nameStringId = "SI_BETTERUI_ENABLE_WRITS", tooltipStringId = "SI_BETTERUI_ENABLE_WRITS_TOOLTIP" },
+}
+
+local function SetModuleToggleEnabled(moduleName, value, updatesCIM)
+	BETTERUI.SetSetting(moduleName, "m_enabled", value)
+	if updatesCIM then
+		BETTERUI.UpdateCIMState()
+	end
+end
+
+--- Normalizes a module toggle name for sorting by removing color codes, textures,
+--- whitespace, and language-specific "Enable" prefixes.
+--- @param name string|nil The raw toggle name to normalize
+--- @return string normalized The normalized sort key
+local function NormalizeModuleToggleSortName(name)
+	if type(name) ~= "string" then
+		return ""
+	end
+
+	local normalized = name
+	normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
+	normalized = normalized:gsub("|r", "")
+	normalized = normalized:gsub("|t[^|]+|t", "")
+	normalized = normalized:gsub("^%s+", "")
+	normalized = normalized:gsub("%s+$", "")
+
+	-- Sort by the feature wording after "Enable ..." for consistency.
+	normalized = normalized:gsub("^Enable%s+", "")
+	normalized = normalized:gsub("^Activer%s+", "")
+	normalized = normalized:gsub("^Activar%s+", "")
+	normalized = normalized:gsub("^Aktivieren%s+", "")
+	normalized = normalized:gsub("^Включить%s+", "")
+	normalized = normalized:gsub("^启用", "")
+	normalized = normalized:gsub("^有効にする%s*", "")
+
+	if ZO_STRLOWER then
+		return ZO_STRLOWER(normalized)
+	end
+	return string.lower(normalized)
+end
+
+local function BuildModuleToggleOptions()
+	local moduleToggleOptions = {}
+
+	for _, blueprint in ipairs(MODULE_TOGGLE_BLUEPRINTS) do
+		local moduleName = blueprint.moduleName
+		local updatesCIM = blueprint.updatesCIM
+		local toggleName = GetStringByName(blueprint.nameStringId)
+		local tooltip = GetStringByName(blueprint.tooltipStringId)
+
+		moduleToggleOptions[#moduleToggleOptions + 1] = {
+			type = "checkbox",
+			name = toggleName,
+			tooltip = tooltip,
+			getFunc = function()
+				return BETTERUI.GetModuleEnabled(moduleName)
+			end,
+			setFunc = function(value)
+				SetModuleToggleEnabled(moduleName, value, updatesCIM)
+			end,
+			width = "full",
+			requiresReload = true,
+		}
+	end
+
+	for _, control in ipairs(moduleToggleOptions) do
+		control.sortKey = NormalizeModuleToggleSortName(control.name)
+	end
+
+	table.sort(moduleToggleOptions, function(left, right)
+		if left.sortKey == right.sortKey then
+			return tostring(left.name) < tostring(right.name)
+		end
+		return left.sortKey < right.sortKey
+	end)
+
+	for _, control in ipairs(moduleToggleOptions) do
+		control.sortKey = nil
+	end
+
+	return moduleToggleOptions
+end
+
+local function InitializeRegisteredModuleSettings()
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		local moduleName, moduleNamespace = entry.name, BETTERUI[entry.namespace]
+		if moduleNamespace then
+			local moduleSettings = BETTERUI.EnsureModuleSettings(moduleName)
+			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, moduleSettings, moduleName)
+			if not moduleInitResult then
+				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
+			end
+		end
+	end
+end
+
 --- Initializes the module options panel in the settings menu.
 function BETTERUI.InitModuleOptions()
 	local panelData = BETTERUI.Init_ModulePanel("Master", GetStringByName("SI_BETTERUI_MASTER_SETTINGS_TITLE"))
@@ -152,180 +267,22 @@ function BETTERUI.InitModuleOptions()
 		},
 	}
 
---- Normalizes a module toggle name for sorting by removing color codes, textures,
---- whitespace, and language-specific "Enable" prefixes.
---- @param name string|nil The raw toggle name to normalize
---- @return string normalized The normalized sort key
-local function NormalizeModuleToggleSortName(name)
-		if type(name) ~= "string" then
-			return ""
-		end
-
-		local normalized = name
-		normalized = normalized:gsub("|c%x%x%x%x%x%x", "")
-		normalized = normalized:gsub("|r", "")
-		normalized = normalized:gsub("|t[^|]+|t", "")
-		normalized = normalized:gsub("^%s+", "")
-		normalized = normalized:gsub("%s+$", "")
-
-		-- Sort by the feature wording after "Enable ..." for consistency.
-		normalized = normalized:gsub("^Enable%s+", "")
-		normalized = normalized:gsub("^Activer%s+", "")
-		normalized = normalized:gsub("^Activar%s+", "")
-		normalized = normalized:gsub("^Aktivieren%s+", "")
-		normalized = normalized:gsub("^Включить%s+", "")
-		normalized = normalized:gsub("^启用", "")
-		normalized = normalized:gsub("^有効にする%s*", "")
-
-		if ZO_STRLOWER then
-			return ZO_STRLOWER(normalized)
-		end
-		return string.lower(normalized)
-	end
-
-	-- Keep "Use Global Settings" first, then sort module toggles by displayed label content.
-	local moduleToggleOptions = {
-		{
-			sortKey = "Banking",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_BANKING"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_BANKING_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("Banking")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("Banking", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Vendor",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_VENDOR"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_VENDOR_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("Vendor")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("Vendor", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Companions",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_COMPANIONS"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_COMPANIONS_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("Companions")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("Companions", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Trading House",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_TRADING_HOUSE"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_TRADING_HOUSE_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("TradingHouse")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("TradingHouse", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "General Interface",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_TOOLTIPS_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("GeneralInterface")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("GeneralInterface", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Inventory",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_INVENTORY_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("Inventory")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("Inventory", "m_enabled", value)
-				BETTERUI.UpdateCIMState()
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Resource Orb Frames",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_ORBS"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_ORBS_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("ResourceOrbFrames")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("ResourceOrbFrames", "m_enabled", value)
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-		{
-			sortKey = "Writs",
-			type = "checkbox",
-			name = GetStringByName("SI_BETTERUI_ENABLE_WRITS"),
-			tooltip = GetStringByName("SI_BETTERUI_ENABLE_WRITS_TOOLTIP"),
-			getFunc = function()
-				return BETTERUI.GetModuleEnabled("Writs")
-			end,
-			setFunc = function(value)
-				BETTERUI.SetSetting("Writs", "m_enabled", value)
-			end,
-			width = "full",
-			requiresReload = true,
-		},
-	}
+	local moduleToggleOptions = BuildModuleToggleOptions()
 
 	for _, control in ipairs(moduleToggleOptions) do
-		control.sortKey = NormalizeModuleToggleSortName(control.name)
-	end
-
-	table.sort(moduleToggleOptions, function(left, right)
-		if left.sortKey == right.sortKey then
-			return tostring(left.name) < tostring(right.name)
-		end
-		return left.sortKey < right.sortKey
-	end)
-
-	for _, control in ipairs(moduleToggleOptions) do
-		control.sortKey = nil
 		table.insert(optionsTable, control)
 	end
 
 	-- Developer-only feature flag controls (hidden for normal users)
-	local _, showDeveloperSettings = BETTERUI.CIM.TryCall("CIM.Debug.ShouldShowDeveloperSettings")
+	local cimDebug = BETTERUI.CIM and BETTERUI.CIM.Debug
+	local showDeveloperSettings = cimDebug
+		and cimDebug.ShouldShowDeveloperSettings
+		and cimDebug.ShouldShowDeveloperSettings()
+		or false
 
 	if showDeveloperSettings then
-		local _, allFlags = BETTERUI.CIM.TryCall("CIM.FeatureFlags.GetAllFlags")
+		local featureFlags = BETTERUI.CIM and BETTERUI.CIM.FeatureFlags
+		local allFlags = featureFlags and featureFlags.GetAllFlags and featureFlags.GetAllFlags()
 		if allFlags then
 			local flagControls = {
 				{
@@ -381,7 +338,10 @@ local function NormalizeModuleToggleSortName(name)
 		name = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL"),
 		tooltip = GetStringByName("SI_BETTERUI_MASTER_RESET_ALL_TOOLTIP"),
 		func = function()
-			BETTERUI.CIM.TryCall("CIM.Settings.ResetAllSettingsToDefaults")
+			local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+			if settingsApi and settingsApi.ResetAllSettingsToDefaults then
+				settingsApi.ResetAllSettingsToDefaults()
+			end
 		end,
 		width = "full",
 	})
@@ -447,9 +407,31 @@ function BETTERUI.ModuleOptions(m_namespace, m_options, moduleName)
 end
 
 --- Validates and calls Setup() on a module. Falls back to basic check if CIM validation unavailable.
-local function ValidateAndSetupModule(moduleName, moduleNamespace)
+local function RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+	if moduleNamespace then
+		moduleNamespace._setupComplete = nil
+	end
+
+	if type(BETTERUI.SetModuleEnabled) == "function" then
+		BETTERUI.SetModuleEnabled(moduleName, false)
+	else
+		BETTERUI._sessionDisabledModules = BETTERUI._sessionDisabledModules or {}
+		BETTERUI._sessionDisabledModules[moduleName] = true
+	end
+
+	if failedModules then
+		failedModules._seen = failedModules._seen or {}
+		if not failedModules._seen[moduleName] then
+			failedModules._seen[moduleName] = true
+			failedModules[#failedModules + 1] = moduleName
+		end
+	end
+end
+
+local function ValidateAndSetupModule(moduleName, moduleNamespace, failedModules)
 	if not moduleNamespace then
 		BETTERUI.Debug(string.format("[Validation] Module '%s' namespace is nil", moduleName))
+		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 		return false
 	end
 
@@ -457,32 +439,88 @@ local function ValidateAndSetupModule(moduleName, moduleNamespace)
 	if moduleNamespace._setupComplete then return true end
 
 	-- Validate using CIM interface validation if available
-	local validateFn = BETTERUI.CIM.TryResolve("CIM.Interfaces.ValidateModule")
+	local interfaces = BETTERUI.CIM and BETTERUI.CIM.Interfaces
+	local validateFn = interfaces and interfaces.ValidateModule
 	if validateFn then
 		-- Temporarily add name for validation (modules don't store their own name)
 		local tempModule = { name = moduleName, Setup = moduleNamespace.Setup }
 		local valid, err = validateFn(tempModule)
 		if not valid then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' failed validation: %s", moduleName, tostring(err)))
+			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 			return false
 		end
 	else
 		-- Fallback: basic Setup check
 		if type(moduleNamespace.Setup) ~= "function" then
 			BETTERUI.Debug(string.format("[Validation] Module '%s' has no Setup function", moduleName))
+			RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 			return false
 		end
 	end
 
 	-- Module is valid, call Setup
 	-- Wrap in pcall so one module failure doesn't cascade-kill subsequent modules
-	local success, err = pcall(moduleNamespace.Setup)
+	local success, setupResult, setupDetail = pcall(moduleNamespace.Setup)
 	if not success then
-		BETTERUI.Debug(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(err)))
+		BETTERUI.Debug(string.format("[Error] Setup() failed for '%s': %s", moduleName, tostring(setupResult)))
+		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
+		return false
+	end
+
+	if setupResult == false then
+		local detail = setupDetail ~= nil and tostring(setupDetail) or "setup returned false"
+		BETTERUI.Debug(string.format("[Error] Setup() returned false for '%s': %s", moduleName, detail))
+		RecordModuleSetupFailure(failedModules, moduleName, moduleNamespace)
 		return false
 	end
 	moduleNamespace._setupComplete = true
 	return true
+end
+
+local function ReportModuleSetupFailures(failedModules, contextLabel)
+	if not failedModules or #failedModules == 0 then
+		return false
+	end
+
+	BETTERUI.Debug(string.format("[Recovery] Modules disabled after setup failure (%s): %s",
+		contextLabel,
+		table.concat(failedModules, ", ")))
+	return true
+end
+
+local function ShouldSetupKeyboardModeModule(entry)
+	if entry.name == "CIM" then
+		return false
+	end
+
+	if not BETTERUI.GetModuleEnabled(entry.name) then
+		return false
+	end
+
+	if not BETTERUI[entry.namespace] then
+		return false
+	end
+
+	if entry.name == "Nameplates" and not BETTERUI.GetModuleEnabled("GeneralInterface") then
+		return false
+	end
+
+	return true
+end
+
+local function SetupKeyboardModeModules()
+	local failedModules = {}
+	local allModulesLoaded = true
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		if ShouldSetupKeyboardModeModule(entry) then
+			local setupSucceeded = ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace], failedModules)
+			if not setupSucceeded then
+				allModulesLoaded = false
+			end
+		end
+	end
+	return allModulesLoaded, failedModules
 end
 
 --- Checks if a module should be loaded based on registry entry.
@@ -525,6 +563,32 @@ local function ShouldLoadModule(entry)
 	return true
 end
 
+local function LoadConfiguredModules()
+	local failedModules = {}
+	local allModulesLoaded = true
+	for _, entry in ipairs(MODULE_REGISTRY) do
+		if ShouldLoadModule(entry) then
+			local moduleLoaded = true
+			local moduleNamespace = BETTERUI[entry.namespace]
+			if entry.preSetup then
+				local preSetupSucceeded, preSetupErr = pcall(entry.preSetup)
+				if not preSetupSucceeded then
+					BETTERUI.Debug(string.format("[Error] preSetup() failed for '%s': %s", entry.name, tostring(preSetupErr)))
+					RecordModuleSetupFailure(failedModules, entry.name, moduleNamespace)
+					moduleLoaded = false
+				end
+			end
+			if moduleLoaded then
+				moduleLoaded = ValidateAndSetupModule(entry.name, moduleNamespace, failedModules)
+			end
+			if not moduleLoaded then
+				allModulesLoaded = false
+			end
+		end
+	end
+	return allModulesLoaded, failedModules
+end
+
 --- Loads and initializes all enabled modules.
 ---
 --- Purpose: Orchestrates the loading of sub-modules when in Gamepad mode.
@@ -534,34 +598,26 @@ end
 --- References: Called on initialization and when switching to Gamepad mode.
 ---
 function BETTERUI.LoadModules()
-	if BETTERUI._initialized then return end
+	if BETTERUI._initialized then return true end
 
 	BETTERUI.Debug("Initializing BETTERUI...")
 
 	-- Apply runtime safety patches and settings migrations
 	-- (Extracted to Modules/CIM/RuntimeSetup.lua for cleaner separation)
-	BETTERUI.CIM.TryCall("CIM.RuntimeSetup.Apply", BETTERUI.Settings)
+	local runtimeSetup = BETTERUI.CIM and BETTERUI.CIM.RuntimeSetup
+	if runtimeSetup and runtimeSetup.Apply then
+		runtimeSetup.Apply(BETTERUI.Settings)
+	end
 
 	-- Initialize research data once
 	BETTERUI.GetResearch()
 
-	-- Iterate the module registry for declarative loading
-	for _, entry in ipairs(MODULE_REGISTRY) do
-		if ShouldLoadModule(entry) then
-			local moduleNamespace = BETTERUI[entry.namespace]
-
-			-- Run pre-setup hooks if defined
-			if entry.preSetup then
-				entry.preSetup()
-			end
-
-			-- Validate and setup the module
-			ValidateAndSetupModule(entry.name, moduleNamespace)
-		end
-	end
+	local allModulesLoaded, failedModules = LoadConfiguredModules()
+	ReportModuleSetupFailures(failedModules, "load")
 
 	BETTERUI.Debug("Finished! BETTERUI is loaded")
 	BETTERUI._initialized = true
+	return allModulesLoaded
 end
 
 --- Main addon initialization handler.
@@ -594,22 +650,14 @@ function BETTERUI.Initialize(event, addon)
 
 	-- Initialize or update module settings with defaults
 	-- This runs for EVERYONE to ensure new settings (like showStyleTrait) are merged into existing SavedVars
-	for _, entry in ipairs(MODULE_REGISTRY) do
-		local moduleName, moduleNamespace = entry.name, BETTERUI[entry.namespace]
-		if moduleNamespace then
-			-- Ensure the settings table exists before initializing
-			local moduleSettings = BETTERUI.EnsureModuleSettings(moduleName)
-			local moduleInitResult = BETTERUI.ModuleOptions(moduleNamespace, moduleSettings, moduleName)
-			if not moduleInitResult then
-				BETTERUI.Debug("[Warning] Skipping broken module: " .. moduleName)
-			end
-		end
-	end
+	InitializeRegisteredModuleSettings()
 
 	-- Apply first-install defaults and mark as complete
 	if BETTERUI.Settings.firstInstall then
 		-- Apply module enable defaults from centralized registry
-		BETTERUI.CIM.TryCall("Defaults.ApplyFirstInstallDefaults", BETTERUI.Settings)
+		if BETTERUI.Defaults and BETTERUI.Defaults.ApplyFirstInstallDefaults then
+			BETTERUI.Defaults.ApplyFirstInstallDefaults(BETTERUI.Settings)
+		end
 		BETTERUI.Debug("First install detected - applied default module states")
 		BETTERUI.Settings.firstInstall = false
 	end
@@ -626,9 +674,11 @@ function BETTERUI.Initialize(event, addon)
 	BETTERUI.InitModuleOptions()
 	BETTERUI.UpdateCIMState()
 
+	local setupSucceeded = true
+
 	-- Load modules if in gamepad mode
 	if IsInGamepadPreferredMode() then
-		BETTERUI.LoadModules()
+		setupSucceeded = BETTERUI.LoadModules()
 	else
 		BETTERUI._initialized = false
 		-- Keyboard mode: register ALL module settings panels so users on "Automatic"
@@ -636,23 +686,16 @@ function BETTERUI.Initialize(event, addon)
 		-- NOTE: Only LAM settings panels are registered here. Gameplay hooks (inventory
 		-- destroy/action hooks, etc.) remain in LoadModules() and only activate
 		-- when gamepad mode is entered.
-		for _, entry in ipairs(MODULE_REGISTRY) do
-			if entry.name ~= "CIM" then -- Skip CIM, it's internal
-				if BETTERUI.GetModuleEnabled(entry.name) and BETTERUI[entry.namespace] then
-					-- For Nameplates, also check GeneralInterface dependency
-					if entry.name == "Nameplates" then
-						if BETTERUI.GetModuleEnabled("GeneralInterface") then
-							ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace])
-						end
-					else
-						ValidateAndSetupModule(entry.name, BETTERUI[entry.namespace])
-					end
-				end
-			end
-		end
+		local failedModules
+		setupSucceeded, failedModules = SetupKeyboardModeModules()
+		ReportModuleSetupFailures(failedModules, "keyboard")
 	end
+
 	-- Ensure companion equip patch is queued even if modules didn't hook above
-	BETTERUI.CIM.TryCall("Inventory.EnsureCompanionEquipPatched")
+	if BETTERUI.Inventory and BETTERUI.Inventory.EnsureCompanionEquipPatched then
+		BETTERUI.Inventory.EnsureCompanionEquipPatched()
+	end
+	return setupSucceeded
 end
 
 -- Event handlers for initialization and gamepad mode changes

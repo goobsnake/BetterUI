@@ -1,13 +1,13 @@
 # BetterUI Architecture Overview
 
 > **Audience**: Developers working on the BetterUI codebase.
-> **Last Updated**: 2026-04-07
+> **Last Updated**: 2026-04-17
 
 ---
 
 ## 1. Project Summary
 
-**BetterUI** is an Elder Scrolls Online (ESO) addon that enhances the gamepad interface. It provides improved Inventory, Banking, Tooltip, and Writ tracking experiences through custom UI components and streamlined interactions.
+**BetterUI** is an Elder Scrolls Online (ESO) addon that enhances the gamepad interface. It provides improved Inventory, Banking, Vendor, Tooltip, Resource Orb, and Writ tracking experiences through custom UI components and streamlined interactions.
 
 **Key Technologies**:
 - **Lua 5.1** (ESO's embedded scripting language)
@@ -25,32 +25,44 @@
 │  Entry Point: BetterUI.lua                                              │
 │  ├── EVENT_ADD_ON_LOADED → BETTERUI.Initialize()                        │
 │  ├── Loads SavedVariables (BetterUISavedVars)                           │
-│  └── Calls Module.Setup() for each enabled module                       │
+│  ├── Applies CIM.RuntimeSetup.Apply()                                   │
+│  └── Walks MODULE_REGISTRY → ValidateAndSetupModule()                   │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Load Manifest: BetterUI.txt                                            │
+│  ├── CIM shared infrastructure loads first                              │
+│  ├── GeneralInterface loads tooltip/nameplate services                  │
+│  └── Feature modules load in manifest order, then setup is registry-led │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Core Layer (inside CIM module)                                         │
 │  ├── CIM/Constants.lua    (Namespace init, constants, timing)           │
 │  ├── CIM/ConstantsUI.lua  (UI const, currency config, header layouts)   │
-│  └── CIM/Templates/SharedTemplates.xml (Shared XML templates & styles)  │
+│  ├── Core/Batching/      (BatchConfig, BatchActions, MultiSelect*)      │
+│  ├── Core/Integration/   (MarketIntegration, ResearchCache, Hooks)      │
+│  ├── UI/BatchOverlay.lua (Batch status overlay UI)                      │
+│  └── Templates/SharedTemplates.xml (Shared XML templates & styles)      │
 ├─────────────────────────────────────────────────────────────────────────┤
 │  Common Interface Module (CIM)  [Modules/CIM/]                          │
-│  ├── Constants.lua + Module.lua (Root - minimal entry points)           │
-│  ├── Core/       (47 files: RuntimeSetup, FeatureFlags, Utilities, etc.)│
-│  ├── UI/         (GenericHeader, GenericFooter)                         │
-│  ├── Lists/      (10 files: ItemDataProcessor, ListRefreshManager, etc.)│
-│  ├── Tooltips/   (Enhanced item tooltip rendering)                      │
-│  ├── Nameplates/ (Font customization)                                   │
+│  ├── Constants.lua + Module.lua (root contract + shared init)           │
+│  ├── Core/       (Batching, Data, Diagnostics, Lifecycle, Window, etc.) │
+│  ├── UI/         (BatchOverlay, headers, footers, sort/scroll helpers)  │
+│  ├── Lists/      (ItemDataProcessor, ListRefreshManager, templates)     │
 │  ├── Actions/    (GenericSlotActions, ActionDialogUtils)                │
-│  ├── Keybinds/   (Keybind helpers)                                      │
+│  ├── Keybinds/   (Generic keybind helpers)                              │
 │  └── Templates/  (Shared XML templates)                                 │
 ├─────────────────────────────────────────────────────────────────────────┤
-│  Feature Modules (all follow Minimal Root pattern)                      │
+│  Interface Enhancements [Modules/GeneralInterface/]                      │
+│  ├── Tooltips/   (BETTERUI.GeneralInterface.Tooltips runtime/settings)  │
+│  ├── Nameplates/ (BETTERUI.Nameplates runtime/settings)                 │
+│  └── Setup.lua   (Aggregates settings + runtime hooks)                  │
+├─────────────────────────────────────────────────────────────────────────┤
+│  Feature Modules                                                         │
 │  ├── Inventory/         (Enhanced inventory with categories, search)    │
 │  ├── Banking/           (Bank/Guild Bank/House Bank interface)          │
 │  ├── Vendor/            (Store/fence interface enhancements)            │
+│  ├── TradingHouse/      (Trading House scaffold/runtime surface)        │
 │  ├── Companions/        (Companion gear and inventory surfaces)         │
 │  ├── ResourceOrbFrames/ (Custom Health/Magicka/Stamina Orbs + SkillBar) │
-│  ├── WritUnit/          (Writ quest tracking panel)                     │
-│  └── Scaffold/          TradingHouse (disabled placeholder)             │
+│  └── WritUnit/          (Writ quest tracking panel; registry key=Writs) │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -58,12 +70,26 @@
 
 ## 3. Minimal Root Module Structure
 
-All feature modules follow the **Minimal Root** organizational pattern. Only essential files remain at the module root:
+Modules now document root ownership explicitly. Runtime-facing roots that opt into the standard contract expose:
+
+| Metadata | Purpose |
+|----------|---------|
+| `ARCHETYPE` | Declares the module's root role (`runtime-coordinator`, `settings-owner`, `thin-entrypoint`) |
+| `ROOT_CONTRACT` | Records who owns init, setup, runtime, and settings responsibilities |
+
+Current examples in the repo:
+
+- **`runtime-coordinator`** — `CIM`, `Inventory`, `Banking`
+- **`settings-owner`** — `ResourceOrbFrames`
+- **`thin-entrypoint`** — `GeneralInterface`
+
+The root remains intentionally small, but a module may keep one public runtime façade at the root when that file is the canonical owner of gameplay flow.
 
 | Root Files | Purpose |
 |------------|---------|
-| `Constants.lua` | Module-specific constants and configuration |
-| `Module.lua` | Entry point, settings registration, initialization |
+| `Module.lua` | Public init/setup hook, root contract, settings registration |
+| `Constants.lua` | Module-specific constants and configuration (when needed) |
+| `<Module>.lua` | Public runtime façade/class when the module keeps one at the root |
 
 All other files are organized into subfolders by responsibility:
 
@@ -85,75 +111,75 @@ All other files are organized into subfolders by responsibility:
 **CIM Module** (`Modules/CIM/`):
 ```
 CIM/
-├── Constants.lua          # CIM-specific constants (TIMING, MODULES, SCREEN)
+├── Constants.lua          # Namespace init and shared constants
 ├── ConstantsUI.lua        # UI layout constants, currency config
-├── Module.lua             # Entry point
-├── Core/                  # 47 files (see Core Reference below)
-│   ├── FeatureFlags.lua   # Runtime feature flag system
-│   ├── ControlCache.lua   # Cached control references
-│   ├── Interfaces.lua     # EmmyLua interface contracts
-│   ├── NavigationState.lua# Category/position state tracking
-│   ├── PositionManager.lua# List position persistence
-│   ├── SearchManager.lua  # Unified search logic
-│   ├── RuntimeSetup.lua   # API patches, migrations
-│   ├── WindowClass.lua    # Base Window implementation
-│   ├── Utilities.lua      # General helpers (SafeIcon, Debug)
-│   └── ...                # HookFactory, SettingsFactory, BatchConfig, etc.
-├── UI/                    # GenericHeader.lua, GenericFooter.lua, ScrollIndicator, etc.
-├── Lists/                 # 10 files: ItemDataProcessor, ListRefreshManager, etc.
-├── Tooltips/              # Tooltip enhancement logic
-├── Nameplates/            # Font customization
+├── Module.lua             # runtime-coordinator root contract + shared init
+├── Core/
+│   ├── Batching/          # BatchActions, BatchConfig, MultiSelectManager/Mixin
+│   ├── Data/              # Types, SearchManager, SortManager, navigation state
+│   ├── Diagnostics/       # SafeExecute, FeatureFlags, DebugCommands
+│   ├── Integration/       # HookFactory, MarketIntegration, ResearchCache
+│   ├── Lifecycle/         # RuntimeSetup, EventRegistry, scene helpers
+│   ├── Presentation/      # Fonts, number formatting, keybind helpers
+│   ├── Settings/          # DefaultsRegistry, metadata, factory, accessor
+│   └── Window/            # WindowClass, GenericWindow, UnifiedScreen
+├── UI/                    # BatchOverlay, GenericHeader/Footer, sort + scroll helpers
+├── Lists/                 # ItemDataProcessor, BatchProcessor, list managers
 ├── Actions/               # GenericSlotActions.lua, ActionDialogUtils.lua
-├── Keybinds/              # Keybind helpers
+├── Keybinds/              # Generic keybind helpers
 ├── Dialogs/               # DialogRegistry.lua
 ├── Templates/             # Shared XML templates
-└── Images/                # UI assets
+└── Images/                # Shared UI assets
 ```
 
-**Inventory Module** (`Modules/Inventory/`):
+**GeneralInterface Module** (`Modules/GeneralInterface/`):
 ```
-Inventory/
-├── Constants.lua          # Inventory constants
-├── Module.lua             # Entry point
-├── Inventory.lua          # Main inventory class
-├── Loader.lua             # Module initialization
-├── Core/                  # InventoryClass, Sorting, BatchOps, MultiSelect, etc. (9 files)
-├── UI/                    # TooltipUtils.lua, TooltipEquipped.lua (2 files)
-├── Lists/                 # ItemListManager, InventoryList, CraftList, etc. (7 files)
-├── Actions/               # SlotActions, ActionDialogHooks, EquipAction, etc. (6 files)
-├── Keybinds/              # InventoryKeybinds.lua, CraftBagKeybinds.lua
-├── State/                 # PositionManager.lua, ListStateManager.lua (2 files)
-├── Dialogs/               # CraftBagQuantityDialog.lua, InventoryDialogs.lua (2 files)
-├── Scene/                 # InventorySceneLifecycle.lua
-├── Settings/              # CurrencySettings, FontSettings, SettingsPanel (3 files)
-└── Templates/             # XML templates
+GeneralInterface/
+├── Module.lua             # thin-entrypoint root contract + defaults
+├── Setup.lua              # Aggregates Setup() and settings panels
+├── Tooltips/              # BETTERUI.GeneralInterface.Tooltips runtime/settings
+│   ├── Tooltips.lua       # Tooltip rendering, market price, research display
+│   ├── Settings.lua       # Tooltip settings definitions
+│   └── SettingsHelpers.lua# Tooltip settings helpers
+└── Nameplates/            # BETTERUI.Nameplates runtime/settings
 ```
 
 **Banking Module** (`Modules/Banking/`):
 ```
 Banking/
 ├── Constants.lua          # Banking constants (delegates to CIM.CONST.SCREEN)
-├── Module.lua             # Entry point
-├── Banking.lua            # Main banking class
-├── Core/                  # Core utilities
-├── UI/                    # HeaderManager.lua, FooterManager.lua (2 files)
-├── Lists/                 # BankListManager.lua
-├── Actions/               # TransferActions.lua
-├── Keybinds/              # KeybindManager.lua
-├── State/                 # StateManager.lua
-├── Settings/              # CurrencySettings.lua
+├── Module.lua             # runtime-coordinator root contract + Setup()
+├── Banking.lua            # Main banking runtime façade
+├── Core/                  # BankingClass, MultiSelectActions, GuildBankAdapter
+├── Actions/               # BankingActions.lua, TransferActions.lua
+├── Keybinds/              # KeybindManager.lua (sole banking keybind entry point)
 ├── Search/                # SearchManager.lua
+├── State/                 # StateManager.lua
+├── Scene/                 # BankingSceneLifecycle.lua
+├── UI/                    # HeaderManager.lua, FooterManager.lua
+├── Dialogs/               # QuantityDialog.lua
 └── Images/                # UI assets
+```
+
+**Vendor Module** (`Modules/Vendor/`):
+```
+Vendor/
+├── Module.lua             # Settings registration + shared vendor helpers
+├── Vendor.lua             # Main vendor runtime façade
+├── Core/                  # VendorClass, VendorRowSetup, BatchActionCounts
+├── Components/            # Buy/Sell/Repair/Fence component surfaces
+└── Settings/              # SettingsPanel.lua
 ```
 
 **ResourceOrbFrames Module** (`Modules/ResourceOrbFrames/`):
 ```
 ResourceOrbFrames/
 ├── Constants.lua          # Orb/bar constants
-├── Module.lua             # Entry point
-├── ResourceOrbFrames.lua  # Main orb rendering
-├── Core/                  # OrbManagement.lua, etc.
-├── SkillBar/              # Coordinator.lua, FrontBarManager.lua, BackBarManager.lua
+├── Module.lua             # settings-owner root contract + panel wiring
+├── ResourceOrbFrames.lua  # Main orb runtime/controller
+├── Core/                  # OrbAnimations, OrbBars, OrbEvents, OrbVisuals, Utils
+├── SkillBar/              # Coordinator, CooldownUtils, FrontBarCooldowns, managers
+├── Settings/              # Defaults.lua, SettingsSubmenus.lua
 ├── Templates/             # XML templates
 └── Textures/              # Orb texture assets
 ```
@@ -166,79 +192,74 @@ The ESO client loads files in the order specified in `BetterUI.txt`. **Order mat
 
 | Load Phase | Files | Purpose |
 |------------|-------|---------|
-| 1. Entry Point | `BetterUI.lua` | `EVENT_ADD_ON_LOADED` handler |
+| 1. Entry Point | `BetterUI.lua` | SavedVariables, module registry, event wiring |
 | 2. Localization | `lang/en.lua`, `lang/$(language).lua` | String tables |
-| 3. CIM Module | `CIM/Constants.lua` → `CIM/ConstantsUI.lua` → `Core/*` → `UI/*` → ... | Namespace init, shared UI |
-| 4. Feature Modules | ResourceOrbFrames, Inventory, Banking, Vendor, Companions, WritUnit | Dependent on CIM |
-| 5. Disabled Scaffold | TradingHouse | Placeholder stub |
+| 3. Shared Infrastructure | `Modules/CIM/*` | Namespace init, runtime setup, batching, shared UI/services |
+| 4. Interface Enhancements | `Modules/GeneralInterface/*` | Tooltip + nameplate surfaces |
+| 5. Feature Modules | `ResourceOrbFrames` → `Inventory` → `Banking` → `WritUnit` → `TradingHouse` → `Vendor` → `Companions` | Runtime surfaces loaded in manifest order |
 
-> **Critical**: `BetterUI.lua` loads first (contains `EVENT_ADD_ON_LOADED` handler). CIM must load before Inventory/Banking because they inherit from CIM templates.
+> **Critical**: `BetterUI.lua` loads first, then `BETTERUI.LoadModules()` applies `CIM.RuntimeSetup.Apply()`, walks `MODULE_REGISTRY`, and validates each `Setup()` hook before invoking it. `SetupKeyboardModeModules()` only wires keyboard-safe modules, while `ResourceOrbFrames` handles its own keyboard/gamepad transition after setup.
 
 ---
 
 ## 5. Namespace Structure
 
-All addon code lives under the global `BETTERUI` table, defined in `CIM/Constants.lua`.
+All addon code lives under the global `BETTERUI` table. `BetterUI.lua` creates the top-level namespaces up front, then module files populate them.
 
 ```lua
 BETTERUI = {
-    -- Metadata
     name = "BetterUI",
-    version = "3.02",
-
-    -- ESO API Caches
+    version = "3.06",
     WindowManager = GetWindowManager(),
     EventManager = GetEventManager(),
+    DefaultSettings = { Modules = {} },
+    Settings = {},
+    SavedVars = {},
 
-    -- Core Subsystems
-    CONST = {},              -- Constants (CIM/ConstantsUI.lua)
-    CIM = {                  -- Common Interface Module
-        CONST = {},          -- CIM-specific constants
+    CIM = {
+        CONST = {},
+        BatchOverlay = {},
+        MarketIntegration = {},
+        RuntimeSetup = {},
     },
-    Interface = {            -- Base UI utilities
-        Window = {},         -- Window class (Core/WindowClass.lua)
-    },
-    GenericHeader = {},      -- Header management (UI/GenericHeader.lua)
-    GenericFooter = {},      -- Footer/currency display (UI/GenericFooter.lua)
-    ControlUtils = {},       -- Control utilities (Core/ControlUtils.lua)
 
-    -- Feature Modules
-    Inventory = {
-        Class = {},          -- Main inventory logic
-        List = {},           -- List rendering
-        Utils = {},          -- Utilities (Core/Utils.lua)
-        Categories = {},     -- Category logic (Core/Categories.lua)
+    Inventory = {},
+    Banking = {},
+    Vendor = {},
+    TradingHouse = {},
+    Companions = {},
+    Writs = {},
+    GeneralInterface = {
+        Tooltips = {},
     },
-    Banking = {
-        Class = {},          -- Banking logic
-        LIST_WITHDRAW = 1,   -- Mode constant
-        LIST_DEPOSIT = 2,    -- Mode constant
+    Nameplates = {},
+    ResourceOrbFrames = {
+        SkillBar = {},
     },
-    Tooltips = {},           -- Tooltip enhancements
-    Nameplates = {},         -- Nameplate customization
-    Writs = {
-        List = {},           -- Writ tracking
-    },
-    ROF = {},                -- ResourceOrbFrames
 
-    -- Settings
-    Settings = {},           -- Runtime settings (loaded from SavedVariables)
-    DefaultSettings = {},    -- Default values template
-    SavedVars = {},          -- Raw SavedVariables reference
+    GenericHeader = {},
+    GenericFooter = {},
+    Interface = {},
 }
 ```
+
+> **Note**: `Nameplates` remains a sibling namespace even though its files live under `Modules/GeneralInterface/Nameplates/`.
 
 ---
 
 ## 6. Module Quick Reference
 
-| Module | Root Files | Key Subfolders | Dependencies | Purpose |
-|--------|------------|----------------|--------------|---------|
-| **CIM** | Constants, ConstantsUI, Module | Core (47), UI (13), Lists (10), Tooltips, Actions, Dialogs | None | Shared UI, runtime patches, tooltips, feature flags |
-| **Inventory** | Constants, Module, Inventory, Loader | Core (9), UI (2), Lists (7), Actions (6), State (2), Dialogs (2), Scene, Keybinds, Settings (3) | CIM | Enhanced inventory with categories |
-| **Banking** | Constants, Module, Banking | Core (4), UI (2), Lists (2), Actions (2), State, Settings, Search, Dialogs, Scene | CIM | Bank/House Bank interface |
-| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core (7), SkillBar (7), Settings (2), Templates, Textures | CIM | Custom resource orbs + skill bar |
-| **WritUnit** | Constants, Module | Core, Templates | CIM | Writ quest tracker |
+| Module | Root Files | Key Subfolders | Load / Runtime Dependency | Purpose |
+|--------|------------|----------------|---------------------------|---------|
+| **CIM** | Constants, ConstantsUI, Module | Core/{Batching, Data, Diagnostics, Integration, Lifecycle, Presentation, Settings, Window}, UI, Lists, Actions, Dialogs, Keybinds | Required | Shared infrastructure, runtime setup, batch orchestration, market/research services |
+| **GeneralInterface** | Module, Setup | Tooltips, Nameplates | Registry-independent; consumes CIM helpers | Tooltip enhancements, market-price display, nameplate customization |
+| **Inventory** | Constants, Module, Inventory, Loader | Core, UI, Lists, Actions, Keybinds, State, Dialogs, Scene, Settings | Requires CIM | Enhanced inventory with categories/search |
+| **Banking** | Constants, Module, Banking | Core, Lists, Actions, Keybinds, Search, State, Scene, UI, Dialogs | Requires CIM | Bank/house/guild bank interface |
+| **Vendor** | Module, Vendor | Core, Components, Settings | Requires CIM | Store/fence workflows plus namespaced vendor helpers |
+| **TradingHouse** | Module, TradingHouse | Core, Components, Settings | Requires CIM | Trading House scaffold/runtime surface |
+| **Companions** | Module | Core, Actions, Dialogs, Settings | Requires CIM | Companion gear and inventory surfaces |
+| **ResourceOrbFrames** | Constants, Module, ResourceOrbFrames | Core, SkillBar, Settings, Templates, Textures | Requires CIM | Custom resource orbs and skill bar runtime |
+| **Writs / WritUnit** | Constants, Module | Core, Templates | Registry-independent | Writ quest tracker |
 
 ---
 
@@ -471,11 +492,14 @@ end
 | `FeatureFlags.lua` | CIM/Core/ | Runtime feature flag system |
 | `SettingsAccessor.lua` | CIM/Core/ | Settings get/set factory |
 | `WindowClass.lua` | CIM/Core/ | Base Window class implementation |
+| `BatchOverlay.lua` | CIM/UI/ | Batch progress overlay extracted from multi-select runtime |
+| `MarketIntegration.lua` | CIM/Core/Integration/ | Namespaced market-price integration service |
 | `GenericSlotActions.lua` | CIM/Actions/ | Shared item slot action utilities |
 | `GenericHeader.lua` | CIM/UI/ | Tab bar header with LB/RB navigation |
 | `GenericFooter.lua` | CIM/UI/ | Currency display footer |
 | `Coordinator.lua` | ResourceOrbFrames/SkillBar/ | Skill bar orchestration |
-| `TooltipUtils.lua` | Inventory/UI/ | Enhanced tooltip rendering |
+| `CooldownUtils.lua` | ResourceOrbFrames/SkillBar/ | Shared cooldown state/timing helpers |
+| `Tooltips.lua` | GeneralInterface/Tooltips/ | Tooltip rendering, market prices, research display |
 | `BankListManager.lua` | Banking/Lists/ | Banking list and keybind management |
 
 ---
@@ -486,35 +510,23 @@ end
 
 ```mermaid
 graph TD
-    A[BetterUI.lua] --> B[Globals.lua]
-    A --> C[BetterUI.CONST.lua]
-    A --> D[CIM Module]
-    D --> E[Inventory Module]
-    D --> F[Banking Module]
-    D --> G[WritUnit Module]
-    D --> L[ResourceOrbFrames Module]
-    
-    subgraph CIM[CIM Module]
-        D1[Constants.lua]
-        D2[Core/RuntimeSetup.lua]
-        D3[Core/WindowClass.lua]
-        D4[UI/GenericHeader.lua]
-        D5[UI/GenericFooter.lua]
-    end
-    
-    subgraph Inventory[Inventory Module]
-        E1[Constants.lua]
-        E2[Inventory.lua]
-        E3[Core/Utils.lua]
-        E4[Lists/ItemListManager.lua]
-    end
-    
-    subgraph Banking[Banking Module]
-        F1[Constants.lua]
-        F2[Banking.lua]
-        F3[Lists/BankListManager.lua]
-        F4[Keybinds/KeybindManager.lua]
-    end
+    A[BetterUI.lua] --> B[MODULE_REGISTRY]
+    A --> C[BetterUI.txt]
+    B --> D[CIM Module]
+    B --> E[GeneralInterface]
+    B --> F[Inventory]
+    B --> G[Banking]
+    B --> H[Vendor]
+    B --> I[TradingHouse]
+    B --> J[Companions]
+    B --> K[Writs]
+    B --> L[ResourceOrbFrames]
+    E --> E1[Tooltips namespace]
+    E --> E2[Nameplates namespace]
+    D --> D1[Core/Batching]
+    D --> D2[Core/Integration]
+    D --> D3[UI/BatchOverlay]
+    L --> L1[SkillBar/CooldownUtils]
 ```
 
 ### Minimal Root Module Structure
@@ -522,19 +534,21 @@ graph TD
 ```mermaid
 graph LR
     subgraph ModuleRoot[Module Root]
-        A[Constants.lua]
-        B[Module.lua]
+        A[Module.lua]
+        B[Constants.lua (optional)]
+        C[<Module>.lua runtime facade (optional)]
+        D[ARCHETYPE + ROOT_CONTRACT]
     end
     
     subgraph Subfolders
-        C[Core/]
-        D[UI/]
-        E[Lists/]
-        F[Actions/]
-        G[Keybinds/]
-        H[State/]
-        I[Settings/]
-        J[Templates/]
+        E[Core/]
+        F[UI/]
+        G[Lists/]
+        H[Actions/]
+        I[Keybinds/]
+        J[State/]
+        K[Settings/]
+        L[Templates/]
     end
     
     ModuleRoot --> Subfolders

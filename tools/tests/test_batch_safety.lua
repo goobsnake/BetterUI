@@ -1,205 +1,374 @@
 --[[
 File: tools/tests/test_batch_safety.lua
-Purpose: Unit tests for batch processing safety mechanisms:
-         - Re-entry guard (prevents concurrent batch pipelines)
-         - Pipeline token invalidation (rejects stale timer callbacks)
-         - Adaptive backoff (delay increases on consecutive queued actions)
-         These tests run standalone with a Lua interpreter (no ESO environment).
+Purpose: Unit tests for the shipped batch processing safety mechanisms.
+         Exercises the production MultiSelect throttling path and the real
+         InventoryBatchOps pacing presets so re-entry guards, stale pipeline
+         callbacks, and adaptive delay behavior stay aligned with runtime code.
 
 Usage:
   lua tools/tests/test_batch_safety.lua
 ]]
 
--- ============================================================================
--- MINIMAL ESO STUBS
--- ============================================================================
+if false then
+    dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
+    dofile("Modules/CIM/Core/Batching/MultiSelectMixin.lua")
+    dofile("Modules/Inventory/Core/InventoryBatchOps.lua")
+end
 
-BETTERUI = { CIM = { Debug = {} } }
+BETTERUI = {
+    Debug = function() end,
+    CIM = {
+        Debug = {},
+        CONST = {
+            TIMING = {},
+        },
+        BatchOverlay = {},
+        BatchActions = {},
+        Utils = {},
+        ProtectionPolicy = {},
+        Dialogs = {
+            Register = function() end,
+        },
+    },
+    Inventory = {
+        Class = {},
+    },
+    Banking = {
+        GetCurrentBank = function()
+            return BAG_BANK
+        end,
+    },
+}
 
 local debugOutput = {}
-function BETTERUI.Debug(msg) table.insert(debugOutput, msg) end
-function BETTERUI.CIM.Debug.Log(msg, cat) table.insert(debugOutput, (cat and ("["..cat.."] ") or "") .. msg) end
-function BETTERUI.CIM.Debug.IsEnabled() return true end
+local scheduledCalls = {}
+local scheduledDelayHistory = {}
+local nextScheduleId = 0
+local currentTimeMs = 0
 
--- Minimal zo_* math stubs
-function zo_max(a, b) return math.max(a or 0, b or 0) end
-function zo_min(a, b) return math.min(a or 0, b or 0) end
-function zo_ceil(x) return math.ceil(x or 0) end
-function zo_clamp(v, lo, hi) return math.max(lo, math.min(hi, v)) end
-function zo_floor(x) return math.floor(x or 0) end
+function BETTERUI.CIM.Debug.Log(message, category)
+    debugOutput[#debugOutput + 1] = {
+        message = message,
+        category = category,
+    }
+end
 
--- ============================================================================
--- EXTRACTED LOGIC UNDER TEST
--- ============================================================================
-
--- Re-entry guard: simulates the guard in ProcessBatchThrottled
-local function TestReentryGuard(instance)
-    if instance.isBatchProcessing then
-        BETTERUI.CIM.Debug.Log("Batch re-entry rejected: pipeline already active", "Batch")
-        return false
-    end
-    instance.isBatchProcessing = true
+function BETTERUI.CIM.Debug.IsEnabled()
     return true
 end
 
--- Pipeline token: simulates token generation and stale check
-local function GeneratePipelineToken(instance)
-    instance.batchPipelineToken = (instance.batchPipelineToken or 0) + 1
-    return instance.batchPipelineToken
+function zo_max(a, b) return math.max(a or 0, b or 0) end
+function zo_min(a, b) return math.min(a or 0, b or 0) end
+function zo_ceil(x) return math.ceil(x or 0) end
+function zo_clamp(value, minimum, maximum)
+    return math.max(minimum, math.min(maximum, value))
+end
+function zo_floor(x) return math.floor(x or 0) end
+function zo_random(a, b) return math.floor((a + b) / 2) end
+function zo_strformat(fmt, ...)
+    local values = { ... }
+    return (tostring(fmt):gsub("<<(%d+)>>", function(index)
+        return tostring(values[tonumber(index)] or "")
+    end))
 end
 
-local function IsPipelineTokenValid(instance, token)
-    return token == instance.batchPipelineToken
+local slotStacks = {}
+
+local function slotKey(bagId, slotIndex)
+    return tostring(bagId) .. ":" .. tostring(slotIndex)
 end
 
--- Adaptive backoff: simulates delay calculation from BatchConfig logic
-local function ComputeAdaptiveDelay(baseDelayMs, consecutiveQueued, adaptiveThreshold, adaptiveStepMs, minDelayMs, maxDelayMs)
-    local delay = baseDelayMs
-    local over = zo_max(consecutiveQueued - adaptiveThreshold, 0)
-    if over > 0 then
-        delay = zo_min(maxDelayMs, delay + zo_min(over * adaptiveStepMs, maxDelayMs - minDelayMs))
+function GetSlotStackSize(bagId, slotIndex)
+    return slotStacks[slotKey(bagId, slotIndex)] or 0
+end
+
+function GetString(id)
+    return tostring(id or "")
+end
+
+function GetGameTimeMilliseconds()
+    return currentTimeMs
+end
+
+function zo_callLater(callback, delayMs)
+    nextScheduleId = nextScheduleId + 1
+    local entry = {
+        id = nextScheduleId,
+        callback = callback,
+        delayMs = delayMs or 0,
+    }
+    scheduledCalls[#scheduledCalls + 1] = entry
+    scheduledDelayHistory[#scheduledDelayHistory + 1] = entry.delayMs
+end
+
+local function resetScheduler()
+    scheduledCalls = {}
+    scheduledDelayHistory = {}
+    nextScheduleId = 0
+    currentTimeMs = 0
+end
+
+local function runNextScheduled()
+    local entry = table.remove(scheduledCalls, 1)
+    if not entry then
+        return false
     end
-    return delay
+    currentTimeMs = currentTimeMs + entry.delayMs
+    entry.callback()
+    return true
 end
 
--- ============================================================================
--- TEST HARNESS
--- ============================================================================
+local function runAllScheduled(limit)
+    local remaining = limit or 100
+    while remaining > 0 and runNextScheduled() do
+        remaining = remaining - 1
+    end
+end
 
-local tests_passed = 0
-local tests_failed = 0
+BETTERUI.CIM.BatchOverlay.Hide = function() end
+BETTERUI.CIM.BatchOverlay.ShowStatus = function() end
+BETTERUI.CIM.BatchOverlay.StopLayoutPulse = function() end
+BETTERUI.CIM.BatchOverlay.IsAnyBatchActionDialogShowing = function()
+    return false
+end
 
-local function assert_equal(expected, actual, message)
+BETTERUI.CIM.BatchActions.ExtractSlot = function(itemData)
+    local rawData = itemData.dataSource or itemData
+    return rawData.bagId, rawData.slotIndex
+end
+
+BETTERUI.CIM.BatchActions.HasItemAtSlot = function(bagId, slotIndex)
+    return GetSlotStackSize(bagId, slotIndex) > 0
+end
+
+BETTERUI.CIM.BatchActions.BatchLock = function() end
+BETTERUI.CIM.BatchActions.BatchUnlock = function() end
+BETTERUI.CIM.BatchActions.BatchMarkAsJunk = function() end
+BETTERUI.CIM.BatchActions.BatchUnmarkAsJunk = function() end
+BETTERUI.CIM.BatchActions.AnalyzeSelectedItems = function() end
+BETTERUI.CIM.BatchActions.CreateDialogEntry = function() end
+BETTERUI.CIM.BatchActions.AppendCommonBatchEntries = function() end
+
+BETTERUI.CIM.Utils.ResolveMoveDestinationSlot = function()
+    return 1
+end
+
+BETTERUI.CIM.ProtectionPolicy.CanTransferItem = function()
+    return true
+end
+
+BETTERUI.CIM.ProtectionPolicy.CanStowToCraftBag = function()
+    return true
+end
+
+BETTERUI.CIM.ProtectionPolicy.CanDestroyItem = function()
+    return true
+end
+
+function DoesBagHaveSpaceFor()
+    return true
+end
+
+function IsESOPlusSubscriber()
+    return false
+end
+
+function ZO_Dialogs_ShowGamepadDialog() end
+function CallSecureProtected() end
+
+BAG_BACKPACK = 1
+BAG_BANK = 2
+BAG_SUBSCRIBER_BANK = 3
+BAG_FURNITURE_VAULT = 4
+GAMEPAD_DIALOGS = { BASIC = 1 }
+
+SI_BETTERUI_BATCH_ACTIONS = "Batch"
+SI_BETTERUI_BATCH_PROCESSING_COMPLETE = "Processed <<1>>"
+SI_BETTERUI_BATCH_BAG_FULL = "Bag full"
+SI_BETTERUI_BATCH_ABORTED_SCENE_EXIT = "Scene exit"
+SI_BETTERUI_BATCH_ABORTED_COMPLETE = "Aborted"
+SI_BETTERUI_BATCH_PARTIAL_SUCCESS = "Partial"
+SI_BETTERUI_SCENE_INVENTORY = "Inventory"
+SI_ITEM_ACTION_REMOVE_ITEMS_FROM_CRAFT_BAG = "Retrieve"
+SI_ITEM_ACTION_ADD_ITEMS_TO_CRAFT_BAG = "Stow"
+
+dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
+dofile("Modules/CIM/Core/Batching/MultiSelectMixin.lua")
+dofile("Modules/Inventory/Core/InventoryBatchOps.lua")
+
+local testsPassed = 0
+local testsFailed = 0
+
+local function assertEqual(expected, actual, message)
     if expected == actual then
-        tests_passed = tests_passed + 1
+        testsPassed = testsPassed + 1
         print("  [OK] " .. message)
     else
-        tests_failed = tests_failed + 1
+        testsFailed = testsFailed + 1
         print("  [X] " .. message)
         print("    Expected: " .. tostring(expected))
         print("    Actual:   " .. tostring(actual))
     end
 end
 
-local function assert_true(value, message) assert_equal(true, value, message) end
-local function assert_false(value, message) assert_equal(false, value, message) end
+local function assertTrue(value, message)
+    assertEqual(true, value, message)
+end
 
-local function reset()
+local function assertGreaterThan(left, right, message)
+    assertTrue(left > right, message .. string.format(" (%s > %s)", tostring(left), tostring(right)))
+end
+
+local function resetEnvironment()
     debugOutput = {}
+    slotStacks = {}
+    resetScheduler()
+    BETTERUI.CIM.BatchConfig.SERVER_BATCH_RECOVERY_STATE = {
+        cooldownUntilMs = 0,
+        serverActionTimes = {},
+    }
 end
 
--- ============================================================================
--- TEST: RE-ENTRY GUARD
--- ============================================================================
-
-print("\n=== Batch Re-Entry Guard Tests ===\n")
-
--- Test 1: First batch starts successfully
-print("Test: First batch starts successfully")
-reset()
-local instance = { isBatchProcessing = false }
-local ok = TestReentryGuard(instance)
-assert_true(ok, "First batch should start")
-assert_true(instance.isBatchProcessing, "isBatchProcessing flag is set")
-assert_equal(0, #debugOutput, "No rejection logged")
-
--- Test 2: Re-entry is rejected when batch is active
-print("\nTest: Re-entry is rejected when batch is active")
-reset()
-local ok2 = TestReentryGuard(instance)
-assert_false(ok2, "Re-entry should be rejected")
-assert_equal(1, #debugOutput, "Rejection message was logged")
-assert_true(debugOutput[1]:find("re%-entry rejected") ~= nil, "Log message mentions re-entry")
-
--- Test 3: After batch completes, new batch can start
-print("\nTest: After batch completes, new batch can start")
-reset()
-instance.isBatchProcessing = false
-local ok3 = TestReentryGuard(instance)
-assert_true(ok3, "New batch should start after previous completes")
-
--- ============================================================================
--- TEST: PIPELINE TOKEN INVALIDATION
--- ============================================================================
-
-print("\n=== Pipeline Token Tests ===\n")
-
--- Test 4: Token increments on each batch
-print("Test: Token increments on each batch")
-reset()
-local inst2 = {}
-local token1 = GeneratePipelineToken(inst2)
-local token2 = GeneratePipelineToken(inst2)
-assert_equal(1, token1, "First token is 1")
-assert_equal(2, token2, "Second token is 2")
-
--- Test 5: Current token is valid
-print("\nTest: Current token is valid")
-assert_true(IsPipelineTokenValid(inst2, token2), "Current token should be valid")
-
--- Test 6: Stale token is invalid
-print("\nTest: Stale token is invalid")
-assert_false(IsPipelineTokenValid(inst2, token1), "Old token should be invalid")
-
--- Test 7: Token after third generation invalidates second
-print("\nTest: Token after third generation invalidates second")
-local token3 = GeneratePipelineToken(inst2)
-assert_false(IsPipelineTokenValid(inst2, token2), "Previous token should be invalid now")
-assert_true(IsPipelineTokenValid(inst2, token3), "Latest token should be valid")
-
--- ============================================================================
--- TEST: ADAPTIVE BACKOFF
--- ============================================================================
-
-print("\n=== Adaptive Backoff Tests ===\n")
-
-local BASE_DELAY = 100
-local THRESHOLD = 3
-local STEP_MS = 25
-local MIN_DELAY = 100
-local MAX_DELAY = 500
-
--- Test 8: No backoff when below threshold
-print("Test: No backoff when below threshold")
-local delay = ComputeAdaptiveDelay(BASE_DELAY, 2, THRESHOLD, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(BASE_DELAY, delay, "Delay should equal base when consecutive < threshold")
-
--- Test 9: No backoff at exactly the threshold
-print("\nTest: No backoff at exactly the threshold")
-delay = ComputeAdaptiveDelay(BASE_DELAY, THRESHOLD, THRESHOLD, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(BASE_DELAY, delay, "Delay should equal base at exactly threshold")
-
--- Test 10: Backoff starts one past threshold
-print("\nTest: Backoff starts one past threshold")
-delay = ComputeAdaptiveDelay(BASE_DELAY, THRESHOLD + 1, THRESHOLD, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(BASE_DELAY + STEP_MS, delay, "Delay should increase by one step")
-
--- Test 11: Backoff scales with consecutiveQueued
-print("\nTest: Backoff scales with consecutive count")
-delay = ComputeAdaptiveDelay(BASE_DELAY, THRESHOLD + 4, THRESHOLD, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(BASE_DELAY + 4 * STEP_MS, delay, "Delay should increase by 4 steps (200ms)")
-
--- Test 12: Backoff is capped at max delay
-print("\nTest: Backoff is capped at max delay")
-delay = ComputeAdaptiveDelay(BASE_DELAY, THRESHOLD + 100, THRESHOLD, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(MAX_DELAY, delay, "Delay should be capped at max")
-
--- Test 13: Zero threshold means backoff starts at 1
-print("\nTest: Zero threshold means backoff starts immediately")
-delay = ComputeAdaptiveDelay(BASE_DELAY, 1, 0, STEP_MS, MIN_DELAY, MAX_DELAY)
-assert_equal(BASE_DELAY + STEP_MS, delay, "Delay should increase at count=1 with threshold=0")
-
--- ============================================================================
--- SUMMARY
--- ============================================================================
-
-print("\n=== Test Summary ===")
-print(string.format("Passed: %d", tests_passed))
-print(string.format("Failed: %d", tests_failed))
-
-if tests_failed > 0 then
-    os.exit(1)
-else
-    print("\nAll tests passed!")
-    os.exit(0)
+local function makeBatchItems(count, bagId)
+    local items = {}
+    local resolvedBag = bagId or BAG_BACKPACK
+    for index = 1, count do
+        slotStacks[slotKey(resolvedBag, index)] = 1
+        items[#items + 1] = {
+            bagId = resolvedBag,
+            slotIndex = index,
+        }
+    end
+    return items
 end
+
+local function createBatchInstance()
+    return {
+        _multiSelectConfig = {
+            isSceneShowing = function()
+                return true
+            end,
+            refreshKeybinds = function() end,
+            getSceneExitLabel = function()
+                return "Inventory"
+            end,
+        },
+    }
+end
+
+local function captureDepositBatchOptions()
+    local capturedOptions = nil
+    local harness = createBatchInstance()
+    harness.multiSelectManager = {
+        GetSelectedItems = function()
+            slotStacks[slotKey(BAG_BACKPACK, 10)] = 1
+            return {
+                { bagId = BAG_BACKPACK, slotIndex = 10 },
+            }
+        end,
+    }
+    function harness:ExitSelectionMode()
+        self.exitedSelection = true
+    end
+
+    function harness:ProcessBatchThrottled(items, actionFn, onComplete, actionName, batchOptions)
+        capturedOptions = batchOptions
+        assertEqual(1, #items, "BatchDeposit forwards the selected inventory item")
+        assertTrue(type(actionFn) == "function", "BatchDeposit provides the live action closure")
+        assertEqual("Depositing", actionName, "BatchDeposit preserves its shipped action label")
+        if onComplete then
+            onComplete()
+        end
+    end
+
+    BETTERUI.Inventory.Class.BatchDeposit(harness)
+    return capturedOptions
+end
+
+print("\n=== Batch Safety Tests (Production Path) ===\n")
+
+resetEnvironment()
+local depositBatchOptions = captureDepositBatchOptions()
+assertTrue(type(depositBatchOptions) == "table", "Captured the real inventory deposit pacing options")
+assertTrue(depositBatchOptions.serverBound == true, "Inventory deposit options remain server-bound")
+
+print("\nTest: Re-entry uses the shipped ProcessBatchThrottled guard")
+resetEnvironment()
+local reentryInstance = createBatchInstance()
+local reentryCalls = 0
+local reentryOptions = depositBatchOptions
+BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
+    reentryInstance,
+    makeBatchItems(2),
+    function()
+        reentryCalls = reentryCalls + 1
+        return "queued"
+    end,
+    nil,
+    "Depositing",
+    reentryOptions
+)
+local initialToken = reentryInstance.batchPipelineToken
+BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
+    reentryInstance,
+    makeBatchItems(1),
+    function()
+        reentryCalls = reentryCalls + 1
+        return "queued"
+    end,
+    nil,
+    "Depositing",
+    reentryOptions
+)
+assertEqual(initialToken, reentryInstance.batchPipelineToken, "Re-entry does not create a second pipeline token")
+assertEqual(0, reentryCalls, "Deferred batch has not executed its first action yet")
+assertEqual(1, #debugOutput, "Production guard logs one re-entry rejection")
+assertTrue(debugOutput[1].message:find("re%-entry rejected") ~= nil, "Re-entry log message comes from the shipped batch engine")
+
+print("\nTest: Stale timer callbacks are rejected by the production pipeline token guard")
+resetEnvironment()
+local tokenInstance = createBatchInstance()
+local tokenActionCalls = 0
+BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
+    tokenInstance,
+    makeBatchItems(2),
+    function()
+        tokenActionCalls = tokenActionCalls + 1
+        return "queued"
+    end,
+    nil,
+    "Depositing",
+    reentryOptions
+)
+runNextScheduled()
+assertEqual(1, tokenActionCalls, "First scheduled continuation processes the first item")
+tokenInstance.batchPipelineToken = tokenInstance.batchPipelineToken + 1
+runNextScheduled()
+assertEqual(1, tokenActionCalls, "Stale continuation does not process another item after token invalidation")
+
+print("\nTest: Adaptive delay comes from the shipped inventory pacing profile")
+resetEnvironment()
+local adaptiveInstance = createBatchInstance()
+BETTERUI.CIM.MultiSelectMixin.ProcessBatchThrottled(
+    adaptiveInstance,
+    makeBatchItems(9),
+    function()
+        return "queued"
+    end,
+    nil,
+    "Depositing",
+    reentryOptions
+)
+runAllScheduled(50)
+assertEqual(160, scheduledDelayHistory[1], "Initial settle delay uses the shipped batch dialog settle timing")
+assertEqual(145, scheduledDelayHistory[2], "Baseline inter-item delay uses the deposit minimum server delay")
+assertEqual(145, scheduledDelayHistory[7], "Delay stays flat through the adaptive threshold")
+assertEqual(161, scheduledDelayHistory[8], "Delay increases by one adaptive step once queued actions exceed the threshold")
+assertEqual(177, scheduledDelayHistory[9], "Delay keeps scaling on later queued actions with the real inventory profile")
+assertGreaterThan(scheduledDelayHistory[8], scheduledDelayHistory[7], "Adaptive backoff increases the scheduled delay after the threshold")
+
+if testsFailed > 0 then
+    error(string.format("test_batch_safety.lua failed with %d failure(s)", testsFailed))
+end
+
+print(string.format("\nAll tests passed! (%d assertions)", testsPassed))

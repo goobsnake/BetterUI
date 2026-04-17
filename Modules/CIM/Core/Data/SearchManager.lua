@@ -152,9 +152,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
                 return HasVisibleSearchControl()
             end,
             callback = function()
-                if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus()
-                end
+                BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
             end,
         },
         {
@@ -174,13 +172,9 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
             callback = function()
                 local hasText = HasSearchText()
                 if hasText then
-                    if context and context.ClearTextSearch then
-                        context:ClearTextSearch()
-                    end
+                    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "clear")
                 else
-                    if context and context.ExitSearchFocus then
-                        context:ExitSearchFocus()
-                    end
+                    BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
                 end
             end,
         },
@@ -195,9 +189,7 @@ function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
                 return HasVisibleSearchControl()
             end,
             callback = function()
-                if context and context.ExitSearchFocus then
-                    context:ExitSearchFocus()
-                end
+                BETTERUI.Interface.SearchMixin.CallSearchLifecycle(context, "exit")
             end,
         },
     }
@@ -207,6 +199,78 @@ end
 -- These methods are applied to BETTERUI.Interface.Window by WindowClass.lua
 
 BETTERUI.Interface.SearchMixin = {}
+
+local SEARCH_LIFECYCLE_CANONICAL_METHODS = {
+    clear = "ClearSearchInput",
+    exit = "ExitSearchMode",
+    headerActive = "IsHeaderFocused",
+    requestEnter = "RequestHeaderFocus",
+    onEnter = "OnHeaderEntered",
+}
+
+local SEARCH_LIFECYCLE_FALLBACK_METHODS = {
+    clear = { "ClearTextSearch", "ClearSearchText" },
+    exit = { "ExitSearchFocus", "LeaveSearchMode" },
+    headerActive = { "IsHeaderActive", "IsSearchHeaderActive" },
+    requestEnter = { "RequestEnterHeader" },
+    onEnter = { "OnEnterHeader" },
+}
+
+--- Resolves a search lifecycle method from the canonical contract or legacy aliases.
+---@param self table
+---@param action string
+---@return function|nil method
+---@return string|nil methodName
+function BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, action)
+    if not self or not action then
+        return nil, nil
+    end
+
+    local lifecycle = self.SEARCH_LIFECYCLE
+    local methodName = SEARCH_LIFECYCLE_CANONICAL_METHODS[action]
+    if type(lifecycle) == "table" and type(lifecycle[action]) == "string" then
+        methodName = lifecycle[action]
+    end
+
+    if methodName and type(self[methodName]) == "function" then
+        return self[methodName], methodName
+    end
+
+    local fallbackNames = SEARCH_LIFECYCLE_FALLBACK_METHODS[action]
+    if fallbackNames then
+        for _, fallbackName in ipairs(fallbackNames) do
+            if type(self[fallbackName]) == "function" then
+                return self[fallbackName], fallbackName
+            end
+        end
+    end
+
+    return nil, methodName
+end
+
+--- Invokes a search lifecycle action when implemented on the receiver.
+---@param self table
+---@param action string
+---@param ... any
+---@return any
+function BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, action, ...)
+    local method = BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, action)
+    if method then
+        return method(self, ...)
+    end
+    return nil
+end
+
+--- Checks whether the canonical search/header lifecycle is already active.
+---@param self table
+---@return boolean
+function BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self)
+    local method = BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, "headerActive")
+    if method then
+        return method(self) == true
+    end
+    return self and (self._searchHeaderActive == true or self._searchModeActive == true) or false
+end
 
 --- Integrates text search capability into the window.
 ---
@@ -376,7 +440,9 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     options = options or {}
     local isSceneShowing = options.isSceneShowing or function() return true end
     local onTextChanged = options.onTextChanged
-    local onExitFocus = options.onExitFocus or function(_) self:ExitSearchFocus() end
+    local onExitFocus = options.onExitFocus or function(_)
+        BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, "exit")
+    end
     local enterHeaderFn = options.enterHeaderFn
 
     -- Preserve original handlers
@@ -392,8 +458,8 @@ function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
         if not isSceneShowing() then return end
         if enterHeaderFn then
             enterHeaderFn(self)
-        elseif self.IsHeaderActive and self.RequestEnterHeader then
-            if not self:IsHeaderActive() then self:RequestEnterHeader() end
+        elseif not BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self) then
+            BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, "requestEnter")
         end
     end)
 

@@ -110,6 +110,7 @@ print("\nTest: Banking defaults")
 local bank = BETTERUI.Defaults.Modules.Banking
 assert_true(bank.enableCarousel, "Banking.enableCarousel defaults true")
 assert_true(bank.showIconSetGear, "Banking.showIconSetGear defaults true")
+assert_true(bank.enableGuildBank, "Banking.enableGuildBank defaults true")
 
 print("\nTest: GeneralInterface defaults")
 local gi = BETTERUI.Defaults.Modules.GeneralInterface
@@ -138,10 +139,21 @@ print("\nTest: Vendor defaults")
 local vendor = BETTERUI.Defaults.Modules.Vendor
 assert_true(vendor.enableCarousel, "Vendor.enableCarousel defaults true")
 assert_true(vendor.enableBatchJunkSell, "Vendor.enableBatchJunkSell defaults true")
+assert_true(vendor.abbreviateVendorCurrency, "Vendor.abbreviateVendorCurrency defaults true")
+
+print("\nTest: TradingHouse defaults")
+local th = BETTERUI.Defaults.Modules.TradingHouse
+assert_true(th.enableCarousel, "TradingHouse.enableCarousel defaults true")
+assert_not_nil(th.searchPresets, "TradingHouse.searchPresets defaults table exists")
+assert_nil(next(th.searchPresets), "TradingHouse.searchPresets starts empty")
 
 print("\nTest: Companions defaults")
 local comp = BETTERUI.Defaults.Modules.Companions
 assert_true(comp.enableCompanionEquipment, "Companions.enableCompanionEquipment defaults true")
+assert_false(comp.quickDestroy, "Companions.quickDestroy defaults false")
+assert_true(comp.batchDestroy, "Companions.batchDestroy defaults true")
+assert_true(comp.bindOnEquipProtection, "Companions.bindOnEquipProtection defaults true")
+assert_true(comp.enableCompanionJunk, "Companions.enableCompanionJunk defaults true")
 
 -- ============================================================================
 -- TESTS: DestructiveSettings
@@ -169,6 +181,11 @@ print("\nTest: GetModuleDefaults returns module table")
 local invDefaults = BETTERUI.Defaults.GetModuleDefaults("Inventory")
 assert_not_nil(invDefaults, "GetModuleDefaults returns table")
 assert_true(invDefaults.enableCarousel, "Module defaults contain expected key")
+
+print("\nTest: GetModuleDefaults clones nested table defaults")
+local tradingDefaults = BETTERUI.Defaults.GetModuleDefaults("TradingHouse")
+tradingDefaults.searchPresets.favorite = true
+assert_nil(BETTERUI.Defaults.Modules.TradingHouse.searchPresets.favorite, "Registry search presets stay immutable")
 
 print("\nTest: GetModuleDefaults returns empty table for unknown module")
 local unknown = BETTERUI.Defaults.GetModuleDefaults("NonExistent")
@@ -207,6 +224,11 @@ assert_true(result2.enableCarousel, "Defaults applied to new table")
 print("\nTest: ApplyModuleDefaults with unknown module")
 local result3 = BETTERUI.Defaults.ApplyModuleDefaults("NonExistent", { x = 1 })
 assert_equal(1, result3.x, "Original value preserved")
+
+print("\nTest: ApplyModuleDefaults clones table values when backfilling")
+local tradingApplied = BETTERUI.Defaults.ApplyModuleDefaults("TradingHouse", {})
+tradingApplied.searchPresets.favorite = true
+assert_nil(BETTERUI.Defaults.Modules.TradingHouse.searchPresets.favorite, "Backfilled search presets use cloned tables")
 
 -- ============================================================================
 -- SUMMARY

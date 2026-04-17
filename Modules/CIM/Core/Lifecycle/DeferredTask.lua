@@ -1,19 +1,16 @@
 --[[
-File: Modules/CIM/Core/DeferredTask.lua
+File: Modules/CIM/Core/Lifecycle/DeferredTask.lua
 Purpose: Managed deferred task execution with automatic cancellation.
          Replaces raw zo_callLater with trackable, cancellable tasks.
 
 Usage:
-    -- Schedule a task (auto-cancels previous task with same ID)
-    BETTERUI.CIM.Tasks:Schedule("refreshList", 100, function()
+    local tasks = BETTERUI.CIM.DeferredTask.EnsureSharedManager()
+    tasks:Schedule("refreshList", 100, function()
         self:RefreshList()
     end)
 
-    -- Cancel a specific task
-    BETTERUI.CIM.Tasks:Cancel("refreshList")
-
-    -- Cancel all tasks (call on scene exit)
-    BETTERUI.CIM.Tasks:CancelAll()
+    tasks:Cancel("refreshList")
+    tasks:CancelAll()
 ]]
 
 BETTERUI.CIM = BETTERUI.CIM or {}
@@ -38,14 +35,10 @@ end
 ---@param delayMs number Delay in milliseconds before execution
 ---@param callback function Function to execute after delay
 function DeferredTaskManager:Schedule(taskId, delayMs, callback)
-    -- Cancel any existing task with this ID to prevent duplicates
     self:Cancel(taskId)
 
-    -- Schedule new task and store its ID
     self._tasks[taskId] = zo_callLater(function()
-        -- Clear from tracking before execution
         self._tasks[taskId] = nil
-        -- Execute the callback
         callback()
     end, delayMs)
 end
@@ -55,7 +48,6 @@ end
 function DeferredTaskManager:Cancel(taskId)
     local existingId = self._tasks[taskId]
     if existingId then
-        -- zo_removeCallLater is the correct API for cancelling zo_callLater tasks
         zo_removeCallLater(existingId)
         self._tasks[taskId] = nil
     end
@@ -88,8 +80,20 @@ end
 
 -- GLOBAL INSTANCE
 
--- Create the global shared instance for use across all modules
-BETTERUI.CIM.Tasks = DeferredTaskManager:New()
-
--- Export the class for modules that need their own instances
 BETTERUI.CIM.DeferredTask.Manager = DeferredTaskManager
+
+function BETTERUI.CIM.DeferredTask.CreateManager()
+    return DeferredTaskManager:New()
+end
+
+function BETTERUI.CIM.DeferredTask.GetSharedManager()
+    return BETTERUI.CIM.Tasks
+end
+
+function BETTERUI.CIM.DeferredTask.EnsureSharedManager()
+    if not BETTERUI.CIM.Tasks then
+        BETTERUI.CIM.Tasks = BETTERUI.CIM.DeferredTask.CreateManager()
+    end
+
+    return BETTERUI.CIM.Tasks
+end

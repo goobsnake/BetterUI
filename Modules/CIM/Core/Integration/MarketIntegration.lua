@@ -63,61 +63,71 @@ local function GetPriorityKey(settings)
     return key
 end
 
+local function CreateMarketPriceInfo(price, sourceKey, isAverage)
+    return {
+        price = price or 0,
+        sourceKey = sourceKey,
+        isAverage = isAverage == true,
+    }
+end
+
+local EMPTY_MARKET_PRICE_INFO = CreateMarketPriceInfo(0, nil, false)
+
 local function FetchMasterMerchantPrice(itemLink, stackCount, settings)
     if MasterMerchant == nil or not IsModuleToggleEnabled(settings, "mmIntegration") then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     local mmData = MasterMerchant:itemStats(itemLink, false)
     if mmData and mmData.avgPrice and mmData.avgPrice > 0 then
-        return mmData.avgPrice * stackCount
+        return CreateMarketPriceInfo(mmData.avgPrice * stackCount, "mm", true)
     end
 
-    return 0
+    return EMPTY_MARKET_PRICE_INFO
 end
 
 local function FetchArkadiusPrice(itemLink, stackCount, settings)
     if ArkadiusTradeTools == nil or not IsModuleToggleEnabled(settings, "attIntegration") then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     local modules = ArkadiusTradeTools.Modules
     local salesModule = modules and modules.Sales
     if not salesModule or type(salesModule.GetAveragePricePerItem) ~= "function" then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     local avgPrice = salesModule:GetAveragePricePerItem(itemLink, nil, nil)
     if avgPrice and avgPrice > 0 then
-        return avgPrice * stackCount
+        return CreateMarketPriceInfo(avgPrice * stackCount, "att", true)
     end
 
-    return 0
+    return EMPTY_MARKET_PRICE_INFO
 end
 
 local function FetchTTCPrice(itemLink, stackCount, settings)
     if TamrielTradeCentre == nil or not IsModuleToggleEnabled(settings, "ttcIntegration") then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     if TamrielTradeCentrePrice == nil or type(TamrielTradeCentrePrice.GetPriceInfo) ~= "function" then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     local priceInfo = TamrielTradeCentrePrice:GetPriceInfo(itemLink)
     if not priceInfo then
-        return 0
+        return EMPTY_MARKET_PRICE_INFO
     end
 
     if priceInfo.Avg and priceInfo.Avg > 0 then
-        return priceInfo.Avg * stackCount
+        return CreateMarketPriceInfo(priceInfo.Avg * stackCount, "ttc", true)
     end
 
     if priceInfo.SuggestedPrice and priceInfo.SuggestedPrice > 0 then
-        return priceInfo.SuggestedPrice * stackCount
+        return CreateMarketPriceInfo(priceInfo.SuggestedPrice * stackCount, "ttc", false)
     end
 
-    return 0
+    return EMPTY_MARKET_PRICE_INFO
 end
 
 local SOURCE_FETCHERS = {
@@ -151,9 +161,11 @@ end
 
 ---@param itemLink string?
 ---@param stackCount integer?
----@return number
-function BETTERUI.GetMarketPrice(itemLink, stackCount)
-    if not itemLink then return 0 end
+---@return table
+function MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
+    if not itemLink then
+        return EMPTY_MARKET_PRICE_INFO
+    end
     -- Support both GeneralInterface (new) and Tooltips (legacy) settings keys
     local tooltipSettings = BETTERUI.GetModuleSettings("GeneralInterface")
     if not tooltipSettings or not next(tooltipSettings) then
@@ -165,12 +177,24 @@ function BETTERUI.GetMarketPrice(itemLink, stackCount)
     for _, sourceKey in ipairs(sourceOrder) do
         local fetcher = SOURCE_FETCHERS[sourceKey]
         if type(fetcher) == "function" then
-            local price = fetcher(itemLink, stackCount, tooltipSettings)
-            if price and price > 0 then
-                return price
+            local priceInfo = fetcher(itemLink, stackCount, tooltipSettings)
+            if priceInfo and priceInfo.price and priceInfo.price > 0 then
+                return priceInfo
             end
         end
     end
 
-    return 0
+    return EMPTY_MARKET_PRICE_INFO
 end
+
+---@param itemLink string?
+---@param stackCount integer?
+---@return number
+---@return boolean
+---@return string|nil
+function MarketIntegration.GetMarketPrice(itemLink, stackCount)
+    local priceInfo = MarketIntegration.GetMarketPriceInfo(itemLink, stackCount)
+    return priceInfo.price or 0, priceInfo.isAverage == true, priceInfo.sourceKey
+end
+
+BETTERUI.GetMarketPrice = MarketIntegration.GetMarketPrice

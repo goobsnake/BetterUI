@@ -34,6 +34,26 @@ function BETTERUI.EnsureModuleSettings(moduleName)
     return BETTERUI.Settings.Modules[moduleName]
 end
 
+local function ResolveSettingDefault(moduleName, key, fallback)
+    local settingsApi = BETTERUI.CIM and BETTERUI.CIM.Settings
+    if settingsApi and settingsApi.GetSettingDefault then
+        local defaultValue = settingsApi.GetSettingDefault(moduleName, key, fallback)
+        if defaultValue ~= nil then
+            return defaultValue
+        end
+    end
+
+    local defaultsApi = BETTERUI.Defaults
+    if defaultsApi and defaultsApi.GetDefault then
+        local defaultValue = defaultsApi.GetDefault(moduleName, key)
+        if defaultValue ~= nil then
+            return defaultValue
+        end
+    end
+
+    return fallback
+end
+
 ---@param moduleName string Module name key
 ---@param key string Setting key within the module
 ---@param default any Fallback value if the setting is nil
@@ -49,19 +69,20 @@ end
 ---@param moduleName string Module name key
 ---@param key string Setting key to write (must not be nil)
 ---@param value any Value to store
+---@return boolean success True when the value was written
 function BETTERUI.SetSetting(moduleName, key, value)
-    if key == nil then return end
-    if not BETTERUI.Settings or not BETTERUI.Settings.Modules then return end
-
-    if not BETTERUI.Settings.Modules[moduleName] then
-        BETTERUI.Settings.Modules[moduleName] = {}
+    if type(moduleName) ~= "string" or moduleName == "" or key == nil then
+        return false
     end
 
-    BETTERUI.Settings.Modules[moduleName][key] = value
+    local settings = BETTERUI.EnsureModuleSettings(moduleName)
+    settings[key] = value
 
     if CALLBACK_MANAGER and CALLBACK_MANAGER.FireCallbacks then
         CALLBACK_MANAGER:FireCallbacks("BETTERUI_EVENT_SETTING_CHANGED", moduleName, key, value)
     end
+
+    return true
 end
 
 --- Creates a factory for generating get/set functions for LAM controls.
@@ -74,17 +95,13 @@ end
 function BETTERUI.CreateSettingAccessors(moduleName, callback)
     return function(key, default)
         local getFunc = function()
-            local settings = BETTERUI.Settings.Modules[moduleName]
-            if not settings or settings[key] == nil then return default end
-            return settings[key]
+            return BETTERUI.GetSetting(moduleName, key, default)
         end
 
         local setFunc = function(value)
-            -- Use the unified SetSetting helper to ensure event emission
-            BETTERUI.SetSetting(moduleName, key, value)
-
-            -- Run callback if provided
-            if callback then callback() end
+            local success = BETTERUI.SetSetting(moduleName, key, value)
+            if success and callback then callback() end
+            return success
         end
 
         return getFunc, setFunc
@@ -172,11 +189,24 @@ end
 --- Usage (in Module.lua):
 ---   BETTERUI.CIM.RegisterModuleAccessors("Banking")
 ---
-function BETTERUI.CIM.RegisterModuleAccessors(moduleName)
-    local ns = BETTERUI[moduleName]
-    if not ns then return end
+local function ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
+    if type(moduleOrNamespace) == "table" then
+        return moduleOrNamespace, moduleName
+    end
+    if type(moduleOrNamespace) == "string" then
+        return BETTERUI[moduleOrNamespace], moduleOrNamespace
+    end
+    return nil, moduleName
+end
 
-    assert(BETTERUI.CIM.Font, "BetterUI: CIM.Font must load before RegisterModuleAccessors is called for " .. moduleName)
+function BETTERUI.CIM.RegisterModuleAccessors(moduleOrNamespace, moduleName)
+    local ns, resolvedModuleName = ResolveModuleRegistrationScope(moduleOrNamespace, moduleName)
+    if not ns or type(resolvedModuleName) ~= "string" or resolvedModuleName == "" then
+        return
+    end
+
+    assert(BETTERUI.CIM.Font,
+        "BetterUI: CIM.Font must load before RegisterModuleAccessors is called for " .. resolvedModuleName)
 
     -- Font aliases
     ns.FONT_CHOICES = BETTERUI.CIM.Font.CHOICES
@@ -186,18 +216,18 @@ function BETTERUI.CIM.RegisterModuleAccessors(moduleName)
     ns.DEFAULTS = BETTERUI.CIM.Font.DEFAULTS
 
     -- Font descriptor closures
-    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors(moduleName)
+    local descriptors = BETTERUI.CIM.Font.CreateModuleDescriptors(resolvedModuleName)
     ns.GetNameFontDescriptor = descriptors.name
     ns.GetColumnFontDescriptor = descriptors.column
 
     -- Settings accessors
     ns.GetSetting = function(key)
         if key == nil then return nil end
-        local defaultValue = BETTERUI.Defaults and BETTERUI.Defaults.GetDefault and BETTERUI.Defaults.GetDefault(moduleName, key) or nil
-        return BETTERUI.GetSetting(moduleName, key, defaultValue)
+        local defaultValue = ResolveSettingDefault(resolvedModuleName, key, nil)
+        return BETTERUI.GetSetting(resolvedModuleName, key, defaultValue)
     end
 
     ns.SetSetting = function(key, value)
-        BETTERUI.SetSetting(moduleName, key, value)
+        return BETTERUI.SetSetting(resolvedModuleName, key, value)
     end
 end

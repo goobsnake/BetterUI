@@ -22,17 +22,34 @@ Domain-specific features (Tooltips, Nameplates) have been extracted to
 Modules/GeneralInterface/ — CIM provides only cross-cutting infrastructure.
 ]]
 
-local ClampInteger = BETTERUI.ClampInteger
+BETTERUI.CIM = BETTERUI.CIM or {}
 
----@param m_options table|nil Raw settings table to initialize
----@return table Modified options with defaults applied
-function BETTERUI.CIM.InitModule(m_options)
+local ClampInteger = BETTERUI.ClampInteger
+local CIM = BETTERUI.CIM
+
+CIM.ARCHETYPE = "runtime-coordinator"
+---@type BetterUIModuleRootContract
+CIM.ROOT_CONTRACT = {
+    name = "CIM",
+    archetype = CIM.ARCHETYPE,
+    initOwner = "Modules/CIM/Module.lua",
+    setupOwner = nil,
+    runtimeOwner = "Modules/CIM/Core/",
+    settingsOwner = "Modules/CIM/Core/Settings/",
+    notes = "Module.lua owns saved-variable normalization for shared infrastructure; Core/ owns runtime helpers and public services.",
+}
+
+---@param m_options BetterUIModuleOptions|nil Raw settings table to initialize
+---@return BetterUIModuleOptions m_options Modified options with defaults applied
+---@type BetterUIModuleInitHook
+function CIM.InitModule(m_options)
     m_options = m_options or {}
+    ---@cast m_options BetterUIModuleOptions
     local defaults = BETTERUI.CIM.CONST.DEFAULTS
 
-    local ok, result = BETTERUI.CIM.TryCall("Defaults.ApplyModuleDefaults", "CIM", m_options)
-    if ok then
-        m_options = result
+    local defaultsApi = BETTERUI.Defaults
+    if defaultsApi and defaultsApi.ApplyModuleDefaults then
+        m_options = defaultsApi.ApplyModuleDefaults("CIM", m_options)
     else
         if m_options["enhanceCompat"] == nil then m_options["enhanceCompat"] = false end
         if m_options["rhScrollSpeed"] == nil then m_options["rhScrollSpeed"] = defaults.DEFAULT_RH_SCROLL_SPEED end
@@ -40,8 +57,9 @@ function BETTERUI.CIM.InitModule(m_options)
         if m_options["enableTooltipEnhancements"] == nil then m_options["enableTooltipEnhancements"] = true end
     end
 
-    local minFontSize = BETTERUI.CIM.TryResolve("CIM.Font.SIZE_MIN") or 12
-    local maxFontSize = BETTERUI.CIM.TryResolve("CIM.Font.SIZE_MAX") or 48
+    local font = BETTERUI.CIM and BETTERUI.CIM.Font or {}
+    local minFontSize = font.SIZE_MIN or 12
+    local maxFontSize = font.SIZE_MAX or 48
     m_options["rhScrollSpeed"] = ClampInteger(m_options["rhScrollSpeed"], 1, 1000, defaults.DEFAULT_RH_SCROLL_SPEED)
     m_options["tooltipSize"] = ClampInteger(m_options["tooltipSize"], minFontSize, maxFontSize, defaults.DEFAULT_TOOLTIP_SIZE)
 

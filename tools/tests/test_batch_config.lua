@@ -30,7 +30,7 @@ function GetString(key) return key or "" end
 -- IMPORT MODULE UNDER TEST
 -- ============================================================================
 
-dofile("Modules/CIM/Core/Data/BatchConfig.lua")
+dofile("Modules/CIM/Core/Batching/BatchConfig.lua")
 
 local BC = BETTERUI.CIM.BatchConfig
 

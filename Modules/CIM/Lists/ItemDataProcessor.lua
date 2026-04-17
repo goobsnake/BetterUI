@@ -23,7 +23,7 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     local data = ZO_GamepadEntryData:New(itemName, itemIcon)
 
     -- Initialize visual data (quality colors, icons, etc.)
-    local visualInit = options.visualDataInit or BETTERUI.Inventory.Class.InitializeInventoryVisualData
+    local visualInit = options.visualDataInit
     if visualInit then
         data.InitializeInventoryVisualData = visualInit
         data:InitializeInventoryVisualData(itemData)
@@ -49,8 +49,12 @@ function BETTERUI.CIM.CreateItemEntryData(itemData, options)
     end
 
     -- Copy category metadata
-    data.bestItemCategoryName = itemData.bestItemCategoryName
-    data.bestGamepadItemCategoryName = itemData.bestItemCategoryName
+    local categoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
+    data.bestItemCategoryName = itemData.bestItemCategoryName or categoryName
+    data.itemCategoryName = itemData.itemCategoryName or data.bestItemCategoryName
+    data.bestGamepadItemCategoryName = categoryName or data.bestItemCategoryName
+    data.bestItemTypeName = itemData.bestItemTypeName
+    data.listModuleName = itemData.listModuleName
 
     -- Copy equipped/junk status
     data.isEquippedInCurrentCategory = itemData.isEquippedInCurrentCategory

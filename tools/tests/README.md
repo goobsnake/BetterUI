@@ -62,6 +62,7 @@ BetterUI follows a 4-level testing strategy:
 | Feature Flags | `test_feature_flags.lua` | Toggle system testing |
 | Deprecation | `test_deprecation_registry.lua` | Migration path validation |
 | Batch Safety | `test_batch_safety.lua` | Multi-select operation safety |
+| Inventory Scene Harness | `test_inventory_scene_harness.lua` | Production-backed inventory filtering, tooltips, and batch actions |
 | Number Formatting | `test_number_formatting.lua` | Localization formatting |
 | Sort Comparators | `test_sort_comparators.lua` | Sort function validation |
 | Settings Reset | `test_settings_reset.lua` | Settings reset validation |
@@ -139,6 +140,14 @@ os.exit(failed > 0 and 1 or 0)
 ```
 
 3. Add the test to `run_all_tests.lua` if it should run in the batch
+
+### Coverage wiring for delayed imports
+
+If a test needs a long stub/setup section before it can safely `dofile` the
+production module, add an early non-executing coverage block such as
+`if false then dofile("Modules/Foo.lua") end` near the top of the test file.
+This keeps desloppify's static test-coverage reconciliation aligned with the
+runtime test that imports the module later in the file.
 
 ## Coverage Goals
 

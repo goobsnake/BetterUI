@@ -72,6 +72,33 @@ BETTERUI.CIM.Types = {}
 ---| "Vendor"
 ---| "GeneralInterface"
 
+---@alias BetterUIModuleArchetype
+---| "runtime-coordinator"
+---| "settings-owner"
+---| "thin-entrypoint"
+
+---@alias BetterUIModuleOptions table<string, any>
+---@alias BetterUIModuleInitHook fun(m_options: BetterUIModuleOptions|nil): BetterUIModuleOptions
+---@alias BetterUIModuleSetupHook fun()
+
+---@class BetterUIModuleRootContract
+---@field name ModuleName
+---@field archetype BetterUIModuleArchetype
+---@field initOwner string
+---@field setupOwner string|nil
+---@field runtimeOwner string
+---@field settingsOwner string|nil
+---@field notes string
+
+---@class BetterUIModuleRoot
+---@field ARCHETYPE BetterUIModuleArchetype
+---@field ROOT_CONTRACT BetterUIModuleRootContract
+---@field InitModule BetterUIModuleInitHook|nil
+---@field Setup BetterUIModuleSetupHook|nil
+---@field GetSetting fun(key: string): any|nil
+---@field SetSetting fun(key: string, value: any)|nil
+---@field DEFAULTS table|nil
+
 -- SCENE & LIFECYCLE TYPES
 
 ---@alias SceneState "showing"|"shown"|"hiding"|"hidden"
@@ -116,5 +143,4 @@ BETTERUI.CIM.Types = {}
 ---@field FONTSTYLE_CHOICES string[] Available font style names
 ---@field FONTSTYLE_VALUES string[] Font style identifiers
 ---@field DEFAULTS table Default font settings
-
 

@@ -120,6 +120,9 @@ end
 function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     if not screen then return end
 
+    local searchMixin = BETTERUI.Interface and BETTERUI.Interface.SearchMixin
+    local callSearchLifecycle = searchMixin and searchMixin.CallSearchLifecycle
+
     -- Clear search query
     screen.searchQuery = ""
 
@@ -134,6 +137,12 @@ function BETTERUI.CIM.SceneCleanup.ClearSearchState(screen)
     -- Remove search keybinds if present
     if screen.textSearchKeybindStripDescriptor and KEYBIND_STRIP then
         KEYBIND_STRIP:RemoveKeybindButtonGroup(screen.textSearchKeybindStripDescriptor)
+    end
+
+    if callSearchLifecycle then
+        callSearchLifecycle(screen, "exit")
+        callSearchLifecycle(screen, "clear")
+        return
     end
 
     -- Call module's LeaveSearchMode if available

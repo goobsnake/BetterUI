@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/MultiSelectManager.lua
+File: Modules/CIM/Core/Batching/MultiSelectManager.lua
 Purpose: Manages multi-selection state for inventory and banking lists.
          Provides selection mode entry/exit, item toggle, and batch operations.
 ]]

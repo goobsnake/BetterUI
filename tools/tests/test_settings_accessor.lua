@@ -9,7 +9,31 @@ Usage: lua tools/tests/test_settings_accessor.lua
 -- STUBS
 -- ============================================================================
 
-BETTERUI = { CIM = {} }
+BETTERUI = {
+    CIM = {
+        Font = {
+            CHOICES = {},
+            VALUES = {},
+            STYLE_CHOICES = {},
+            STYLE_VALUES = {},
+            DEFAULTS = {},
+            CreateModuleDescriptors = function()
+                return {
+                    name = function() return "name-font" end,
+                    column = function() return "column-font" end,
+                }
+            end,
+        },
+        Settings = {
+            GetSettingDefault = function(moduleName, key)
+                if moduleName == "Mod" and key == "missingViaMetadata" then
+                    return 77
+                end
+                return nil
+            end,
+        },
+    },
+}
 CALLBACK_MANAGER = {
     _fired = {},
     FireCallbacks = function(self, event, ...)
@@ -154,9 +178,9 @@ end
 
 do
     BETTERUI.Settings = nil
-    BETTERUI.SetSetting("CIM", "x", 1)
-    tests_passed = tests_passed + 1
-    print("  [OK] nil Settings does not crash")
+    local ok = BETTERUI.SetSetting("CIM", "x", 1)
+    assert_equal(true, ok, "SetSetting reports success when creating root settings table")
+    assert_equal(1, BETTERUI.Settings.Modules["CIM"].x, "nil Settings auto-creates settings tree")
 end
 
 -- ============================================================================
@@ -198,6 +222,20 @@ do
     local factory = BETTERUI.CreateSettingAccessors("Mod")
     local getFunc, _ = factory("flag", true)
     assert_equal(false, getFunc(), "getter returns false (not default)")
+end
+
+do
+    BETTERUI.Settings = nil
+    local factory = BETTERUI.CreateSettingAccessors("Mod")
+    local getFunc, _ = factory("missing", 12)
+    assert_equal(12, getFunc(), "getter returns default when settings tree is absent")
+end
+
+do
+    reset_settings()
+    BETTERUI.Mod = {}
+    BETTERUI.CIM.RegisterModuleAccessors("Mod")
+    assert_equal(77, BETTERUI.Mod.GetSetting("missingViaMetadata"), "module accessor reads metadata-backed default")
 end
 
 -- ============================================================================

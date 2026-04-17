@@ -37,7 +37,7 @@ function BETTERUI.CIM.SafeExecuteCallback(eventName, callback, ...)
     return BETTERUI.CIM.SafeExecute("Callback: " .. eventName, callback, ...)
 end
 
----@param path string Dot-separated path relative to BETTERUI (e.g. "CIM.Font.DEFAULTS")
+---@param path string Dot-separated path relative to BETTERUI for optional lookup only (e.g. "ExternalAddon.Callback")
 ---@return any|nil value The resolved value, or nil if any segment is missing
 function BETTERUI.CIM.TryResolve(path)
     local node = BETTERUI
@@ -48,7 +48,7 @@ function BETTERUI.CIM.TryResolve(path)
     return node
 end
 
----@param path string Dot-separated path to a function on BETTERUI
+---@param path string Dot-separated path to an optional function on BETTERUI
 ---@param ... any Arguments to pass to the resolved function
 ---@return boolean ok true if the function was found and called
 ---@return any|nil result The function's return value, or nil if not found
@@ -56,6 +56,17 @@ function BETTERUI.CIM.TryCall(path, ...)
     local fn = BETTERUI.CIM.TryResolve(path)
     if type(fn) ~= "function" then return false, nil end
     return true, fn(...)
+end
+
+--- Optional dispatch helper for BETTERUI path lookups.
+--- Stable internal BetterUI seams should be invoked directly instead of by string path.
+--- Unlike SafeExecute, this only skips missing targets; it does not wrap errors.
+---@param path string Dot-separated path to an optional function on BETTERUI
+---@param ... any Arguments to pass to the resolved function
+---@return boolean ok true if the function was found and called
+---@return any|nil result The function's return value, or nil if not found
+function BETTERUI.CIM.SafeCall(path, ...)
+    return BETTERUI.CIM.TryCall(path, ...)
 end
 
 --- Unified user-facing error notification with structured logging.

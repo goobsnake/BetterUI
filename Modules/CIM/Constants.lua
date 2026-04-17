@@ -234,17 +234,33 @@ BETTERUI.CIM.CONST.SEARCH_BAR = {
     },
 }
 
+BETTERUI.CIM.SearchBar = BETTERUI.CIM.SearchBar or {}
+local SearchBar = BETTERUI.CIM.SearchBar
+
+local function CopySearchBarConstants(constants)
+    return {
+        X_OFFSET = constants.X_OFFSET,
+        Y_OFFSET = constants.Y_OFFSET,
+        RIGHT_INSET = constants.RIGHT_INSET,
+    }
+end
+
 --[[
 Function: BETTERUI.CIM.GetSearchBarConstants
 Description: Returns search bar positioning constants for a specific module.
 param: module (string) - "INVENTORY" or "BANKING" (defaults to INVENTORY)
 return: table - The search bar constants { X_OFFSET, Y_OFFSET, RIGHT_INSET }
 ]]
-function BETTERUI.CIM.GetSearchBarConstants(module)
-    if module == "BANKING" then
-        return BETTERUI.CIM.CONST.SEARCH_BAR.BANKING
+function SearchBar.GetConstants(module)
+    local moduleKey = type(module) == "string" and string.upper(module) or "INVENTORY"
+    if moduleKey == "BANKING" then
+        return CopySearchBarConstants(BETTERUI.CIM.CONST.SEARCH_BAR.BANKING)
     end
-    return BETTERUI.CIM.CONST.SEARCH_BAR.BASE
+    return CopySearchBarConstants(BETTERUI.CIM.CONST.SEARCH_BAR.BASE)
+end
+
+function BETTERUI.CIM.GetSearchBarConstants(module)
+    return SearchBar.GetConstants(module)
 end
 
 -- CURRENCY FOOTER CONFIGURATION
@@ -781,4 +797,3 @@ BETTERUI.CIM.CONST.HEADER_LAYOUT = {
         BACKUP_HAND_X = -155
     }
 }
-

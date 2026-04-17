@@ -32,6 +32,21 @@ BETTERUI.Defaults.FirstInstall = {
 -- MODULE SETTING DEFAULTS
 -- Default values for individual settings within each module
 -- Used by InitModule functions to initialize missing settings
+-- Banking, Vendor, TradingHouse, and Companions consume these tables as their
+-- canonical module-setting defaults. Their Module.DEFAULTS aliases continue to
+-- refer to shared font defaults wired by RegisterModuleAccessors.
+
+local function CloneDefaultValue(value)
+    if type(value) ~= "table" then
+        return value
+    end
+
+    local copy = {}
+    for key, nestedValue in pairs(value) do
+        copy[key] = CloneDefaultValue(nestedValue)
+    end
+    return copy
+end
 
 BETTERUI.Defaults.Modules = {
     -- INVENTORY MODULE
@@ -74,6 +89,7 @@ BETTERUI.Defaults.Modules = {
         showIconUnknownBook = true,
 
         -- Optional Features
+        enableGuildBank = true,
         useTriggersForSkip = false,  -- Personal preference
         triggerSpeed = 10,           -- Lines to skip with triggers
     },
@@ -112,6 +128,10 @@ BETTERUI.Defaults.Modules = {
     },
 
     -- RESOURCE ORB FRAMES MODULE
+    -- This registry keeps the flat reset/metadata defaults that other shared
+    -- settings helpers consume. Modules/ResourceOrbFrames/Settings/Defaults.lua
+    -- remains the canonical InitModule owner because it deep-merges nested
+    -- defaults and normalizes persisted slider/color values.
     ResourceOrbFrames = {
         -- Core Settings
         scale = 1.0,
@@ -190,6 +210,7 @@ BETTERUI.Defaults.Modules = {
         -- Display Features
         enableCarousel = true, -- Modern tab navigation
         enableBatchJunkSell = true, -- Batch sell-all-junk confirmation
+        abbreviateVendorCurrency = true,
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,
@@ -212,11 +233,16 @@ BETTERUI.Defaults.Modules = {
         showIconResearchableTrait = true,
         showIconUnknownRecipe = true,
         showIconUnknownBook = true,
+        searchPresets = {},
     },
 
     -- COMPANIONS MODULE
     Companions = {
         enableCompanionEquipment = true,
+        quickDestroy = false,
+        batchDestroy = true,
+        bindOnEquipProtection = true,
+        enableCompanionJunk = true,
 
         -- Icon Visibility (all on by default)
         showIconEnchantment = true,
@@ -257,7 +283,7 @@ end
 
 --- Gets all default values for a module.
 function BETTERUI.Defaults.GetModuleDefaults(moduleName)
-    return BETTERUI.Defaults.Modules[moduleName] or {}
+    return CloneDefaultValue(BETTERUI.Defaults.Modules[moduleName] or {})
 end
 
 --- Applies first-install defaults to the settings.
@@ -283,7 +309,7 @@ function BETTERUI.Defaults.ApplyModuleDefaults(moduleName, m_options)
     if defaults then
         for key, value in pairs(defaults) do
             if m_options[key] == nil then
-                m_options[key] = value
+                m_options[key] = CloneDefaultValue(value)
             end
         end
     end

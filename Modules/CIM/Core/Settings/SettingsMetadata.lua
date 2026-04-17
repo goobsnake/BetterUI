@@ -320,6 +320,17 @@ local SETTINGS_METADATA_REGISTRY = {
             sortGroup = "enhancedTooltips",
             resetGroup = "enhancedTooltips",
         },
+        showKnowledgeStatus = {
+            labelStringId = SI_BETTERUI_SHOW_KNOWLEDGE_STATUS,
+            tooltipStringId = SI_BETTERUI_SHOW_KNOWLEDGE_STATUS_TOOLTIP,
+            defaultValue = true,
+            dependency = {
+                module = "CIM",
+                key = "enableTooltipEnhancements",
+            },
+            sortGroup = "enhancedTooltips",
+            resetGroup = "enhancedTooltips",
+        },
         showItemComparison = {
             labelStringId = SI_BETTERUI_SHOW_ITEM_COMPARISON,
             tooltipStringId = SI_BETTERUI_SHOW_ITEM_COMPARISON_TOOLTIP,

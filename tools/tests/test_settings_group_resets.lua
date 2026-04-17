@@ -13,6 +13,7 @@ BETTERUI = {
             Banking = {},
             Vendor = {},
             Companions = {},
+            GeneralInterface = {},
         },
     },
     CIM = {
@@ -112,6 +113,21 @@ assertEqual(false, BETTERUI.Settings.Modules.Companions.quickDestroy, "Companion
 assertEqual(true, BETTERUI.Settings.Modules.Companions.batchDestroy, "Companions batchDestroy reset")
 assertEqual(true, BETTERUI.Settings.Modules.Companions.bindOnEquipProtection, "Companions bindOnEquipProtection reset")
 assertEqual(true, BETTERUI.Settings.Modules.Companions.enableCompanionJunk, "Companions enableCompanionJunk reset")
+
+print("\nTest: GeneralInterface enhanced tooltip reset restores migrated tooltip defaults")
+BETTERUI.Settings.Modules.GeneralInterface = {
+    showStyleTrait = false,
+    showKnowledgeStatus = false,
+    showItemComparison = false,
+}
+
+BETTERUI.CIM.Settings.ResetModuleSettingsByGroup("GeneralInterface", "enhancedTooltips")
+
+assertEqual(true, BETTERUI.Settings.Modules.GeneralInterface.showStyleTrait, "GeneralInterface showStyleTrait reset")
+assertEqual(true, BETTERUI.Settings.Modules.GeneralInterface.showKnowledgeStatus,
+    "GeneralInterface showKnowledgeStatus reset")
+assertEqual(true, BETTERUI.Settings.Modules.GeneralInterface.showItemComparison,
+    "GeneralInterface showItemComparison reset")
 
 print("\n=== Test Summary ===")
 print(string.format("Passed: %d", testsPassed))

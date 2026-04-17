@@ -235,6 +235,36 @@ function BETTERUI.Init_ModulePanel(moduleName, moduleDesc)
     }
 end
 
+local function NormalizePanelRegistrationId(panelIdOrModuleName)
+    if type(panelIdOrModuleName) ~= "string" or panelIdOrModuleName == "" then
+        return nil
+    end
+    if panelIdOrModuleName:find("^BETTERUI_") then
+        return panelIdOrModuleName
+    end
+    return "BETTERUI_" .. panelIdOrModuleName
+end
+
+function BETTERUI.CIM.Settings.RegisterModulePanel(panelIdOrModuleName, panelData, optionsData)
+    local panelId = NormalizePanelRegistrationId(panelIdOrModuleName)
+    if not panelId or type(panelData) ~= "table" then
+        return nil
+    end
+
+    optionsData = type(optionsData) == "table" and optionsData or {}
+    BETTERUI.CIM.Settings.SortTopLevelSubmenusAlphabetically(optionsData)
+    BETTERUI.CIM.Settings.SortSettingsAlphabetically(optionsData, true)
+
+    local lam = LibAddonMenu2
+    if not lam or not lam.RegisterAddonPanel or not lam.RegisterOptionControls then
+        return nil
+    end
+
+    lam:RegisterAddonPanel(panelId, panelData)
+    lam:RegisterOptionControls(panelId, optionsData)
+    return panelId
+end
+
 -- FONT SETTINGS FACTORY
 
 --[[

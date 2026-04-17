@@ -1,4 +1,4 @@
--- Modules/CIM/Core/MultiSelectMixin.lua
+-- Modules/CIM/Core/Batching/MultiSelectMixin.lua
 -- Shared multi-select mixin: selection lifecycle + throttled batch pipeline.
 -- Delegates to BatchConfig (pacing), BatchOverlay (UI), BatchActions (operations).
 
@@ -366,7 +366,10 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
             elseif processedCount < totalItems then
                 completeText = zo_strformat(GetString(rawget(_G, "SI_BETTERUI_BATCH_PARTIAL_SUCCESS")), processedCount, totalItems)
             end
-            BatchOverlay.Show(displayName, completeText)
+            BatchOverlay.ShowStatus({
+                displayName = displayName,
+                bodyText = completeText,
+            })
             BatchOverlay.Hide((stopReason and 4000) or 2000)
         else
             BatchOverlay.Hide()
@@ -457,7 +460,11 @@ function Mixin.ProcessBatchThrottled(self, items, actionFn, onComplete, actionNa
         if waitMs and waitMs > 0 then ResolveStillProcessingWaitMs(BatchConfig.GetNowMs(), waitMs) end
         if stillProcessingAnnouncementActive and not forceRecreate then return end
         if forceRecreate then ClearQueuedStillProcessingAnnouncements() end
-        BatchOverlay.Show(displayName, BuildStillProcessingMainText, BuildStillProcessingSecondaryText)
+        BatchOverlay.ShowStatus({
+            displayName = displayName,
+            bodyText = BuildStillProcessingMainText,
+            secondaryText = BuildStillProcessingSecondaryText,
+        })
         stillProcessingAnnouncementActive = true
     end
 

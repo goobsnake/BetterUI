@@ -72,11 +72,7 @@ end
 local function resetAll()
     registeredEvents = {}
     addedFilters = {}
-    -- Unregister all known modules to clear internal state
-    BETTERUI.CIM.EventRegistry.UnregisterAll("TestModule", true)
-    BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleA", true)
-    BETTERUI.CIM.EventRegistry.UnregisterAll("ModuleB", true)
-    BETTERUI.CIM.EventRegistry.UnregisterAll("FilterMod", true)
+    BETTERUI.CIM.EventRegistry._registrations = {}
 end
 
 -- ============================================================================
@@ -90,6 +86,7 @@ print("Test: Register adds to tracking")
 resetAll()
 BETTERUI.CIM.EventRegistry.Register("TestModule", "Test_Namespace", 100, function() end)
 assert_equal(1, BETTERUI.CIM.EventRegistry.GetRegistrationCount("TestModule"), "Registration count is 1")
+assert_true(BETTERUI.CIM.EventRegistry.GetRegisteredEvents()["TestModule"] ~= nil, "Runtime registry tracks module registrations")
 
 -- Test 2: Multiple registrations tracked
 print("\nTest: Multiple registrations tracked")

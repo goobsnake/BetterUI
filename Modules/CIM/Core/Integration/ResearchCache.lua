@@ -4,30 +4,52 @@ Purpose: Caches player's crafting research knowledge for efficient lookup.
          Avoids expensive API calls during list rendering.
 ]]
 
--- Initialize research traits table if not already present
-if not BETTERUI.ResearchTraits then
-    BETTERUI.ResearchTraits = {}
+BETTERUI.CIM = BETTERUI.CIM or {}
+BETTERUI.CIM.ResearchCache = BETTERUI.CIM.ResearchCache or {}
+
+local ResearchCache = BETTERUI.CIM.ResearchCache
+
+local function SyncResearchTraits(traits)
+    ResearchCache._traits = traits or {}
+    BETTERUI.ResearchTraits = ResearchCache._traits
+    return ResearchCache._traits
+end
+
+local function EnsureResearchTraits()
+    return SyncResearchTraits(ResearchCache._traits or BETTERUI.ResearchTraits or {})
 end
 
 -- RESEARCH CACHE
 
-function BETTERUI.GetResearch(forceRefresh)
-    if not forceRefresh and BETTERUI.ResearchTraits and next(BETTERUI.ResearchTraits) then
-        return -- Use cached data
+function ResearchCache.GetResearch(forceRefresh)
+    local traits = EnsureResearchTraits()
+    if not forceRefresh and next(traits) then
+        return traits
     end
 
-    BETTERUI.ResearchTraits = {}
+    traits = {}
     local craftTypes = BETTERUI.CIM and BETTERUI.CIM.CONST and BETTERUI.CIM.CONST.CraftingSkillTypes
-    if not craftTypes then return end
-    for i, craftType in pairs(craftTypes) do
-        BETTERUI.ResearchTraits[craftType] = {}
+    if not craftTypes then
+        return SyncResearchTraits(traits)
+    end
+    for _, craftType in pairs(craftTypes) do
+        traits[craftType] = {}
         for researchIndex = 1, GetNumSmithingResearchLines(craftType) do
             local _, _, numTraits = GetSmithingResearchLineInfo(craftType, researchIndex)
-            BETTERUI.ResearchTraits[craftType][researchIndex] = {}
+            traits[craftType][researchIndex] = {}
             for traitIndex = 1, numTraits do
                 local _, _, known = GetSmithingResearchLineTraitInfo(craftType, researchIndex, traitIndex)
-                BETTERUI.ResearchTraits[craftType][researchIndex][traitIndex] = known
+                traits[craftType][researchIndex][traitIndex] = known
             end
         end
     end
+
+    return SyncResearchTraits(traits)
 end
+
+function ResearchCache.GetTraits()
+    return EnsureResearchTraits()
+end
+
+BETTERUI.GetResearch = ResearchCache.GetResearch
+EnsureResearchTraits()

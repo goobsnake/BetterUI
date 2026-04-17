@@ -9,7 +9,8 @@ Purpose: Consolidates early-initialization logic for BetterUI.
 Mechanics:
     1. ApplyAPIPatches(): Installs targeted runtime guards without replacing engine globals.
     2. RunSettingsMigrations(): Migrates legacy settings keys to current standards.
-    3. Apply(): Main entry point called once from BetterUI.Initialize().
+    3. EnsureLifecycleRuntimeState(): Creates shared runtime-owned lifecycle state.
+    4. Apply(): Main entry point called once from BetterUI.Initialize().
 
 Migration History:
     See MIGRATIONS section below for detailed migration documentation.
@@ -28,6 +29,33 @@ local RuntimeSetup = BETTERUI.CIM.RuntimeSetup
 local patchesApplied = false
 local tamrielTomesSelectionGuardInstalled = false
 local TAMRIEL_TOMES_GUARD_RETRY_EVENT = "BETTERUI_RuntimeSetup_TamrielTomesGuardRetry"
+
+local function EnsureSharedTaskManager()
+    local deferredTask = BETTERUI.CIM and BETTERUI.CIM.DeferredTask
+    if type(deferredTask) ~= "table" then
+        return BETTERUI.CIM and BETTERUI.CIM.Tasks or nil
+    end
+
+    if type(deferredTask.EnsureSharedManager) == "function" then
+        return deferredTask.EnsureSharedManager()
+    end
+
+    local managerClass = deferredTask.Manager
+    if not BETTERUI.CIM.Tasks and managerClass and type(managerClass.New) == "function" then
+        BETTERUI.CIM.Tasks = managerClass:New()
+    end
+
+    return BETTERUI.CIM.Tasks
+end
+
+local function EnsureLifecycleRuntimeState()
+    EnsureSharedTaskManager()
+
+    local eventRegistry = BETTERUI.CIM and BETTERUI.CIM.EventRegistry
+    if eventRegistry and type(eventRegistry.EnsureRuntimeState) == "function" then
+        eventRegistry.EnsureRuntimeState()
+    end
+end
 
 -- MIGRATIONS
 --[[
@@ -323,14 +351,18 @@ end
 ---
 --- Purpose: Applies runtime API patches and runs settings migrations.
 --- Mechanics:
---- 1. Applies API patches (once).
---- 2. Runs settings migrations on the provided settings table.
+--- 1. Ensures shared lifecycle runtime state exists.
+--- 2. Applies API patches (once).
+--- 3. Runs settings migrations on the provided settings table.
 ---
 function RuntimeSetup.Apply(settings)
+    EnsureLifecycleRuntimeState()
     ApplyAPIPatches()
     RunSettingsMigrations(settings)
 end
 
 -- Export for testing/debugging
+RuntimeSetup.EnsureSharedTaskManager = EnsureSharedTaskManager
+RuntimeSetup.EnsureLifecycleRuntimeState = EnsureLifecycleRuntimeState
 RuntimeSetup.ApplyAPIPatches = ApplyAPIPatches
 RuntimeSetup.RunSettingsMigrations = RunSettingsMigrations

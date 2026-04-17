@@ -1,5 +1,5 @@
 --[[
-File: Modules/CIM/Core/BatchActions.lua
+File: Modules/CIM/Core/Batching/BatchActions.lua
 Purpose: Common batch operations (Lock, Unlock, Junk, Unjunk) and
          dialog/analysis helpers for the multi-select system.
          Each operation pre-filters selected items to valid candidates,
