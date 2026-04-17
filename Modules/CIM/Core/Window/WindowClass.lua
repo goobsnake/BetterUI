@@ -12,6 +12,25 @@ create its own scene and call InitializeFragment/InitializeScene.
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
+---@alias BetterUIWindowList table
+
+---@class BetterUIWindow : ZO_Object
+---@field windowName string
+---@field sceneName string
+---@field control table
+---@field header BETTERUI_WindowHeader
+---@field footer table|nil
+---@field list table|nil
+---@field scene table|nil
+---@field fragment table|nil
+---@field footerFragment table|nil
+---@field spinner table|nil
+---@field headerSortController table|nil
+---@field sortController table|nil
+---@field mainKeybindStripDescriptor BetterUIKeybindDescriptorGroup|nil
+---@field coreKeybinds BetterUIKeybindDescriptorGroup|nil
+---@field triggerSpinnerBinds BetterUIKeybindDescriptorGroup|nil
+
 --- Wraps an integer value within min/max bounds
 --- @private
 local function WrapInt(value, min, max)
@@ -23,7 +42,7 @@ BETTERUI.Interface.Window = ZO_Object:Subclass()
 
 --- Constructor for the Base Window class.
 ---@param ... any
----@return table
+---@return BetterUIWindow
 function BETTERUI.Interface.Window:New(...)
     local object = ZO_Object.New(self)
     object:Initialize(...)
@@ -141,7 +160,7 @@ function BETTERUI.Interface.Window:ApplySpinnerMinMax(toggleValue)
 end
 
 --- Gets the current primary list.
----@return table?
+---@return BetterUIWindowList|nil
 function BETTERUI.Interface.Window:GetList()
     return self.list
 end

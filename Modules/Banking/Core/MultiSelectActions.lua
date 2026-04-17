@@ -29,6 +29,10 @@ local function GetCurrentBank()
     return ResolveBankBag(BETTERUI.Banking.currentUsedBank)
 end
 
+local function GetBankingWindow()
+    return BETTERUI.Banking and BETTERUI.Banking.Window
+end
+
 local ExtractSlot = BETTERUI.CIM.BatchActions.ExtractSlot
 local HasItemAtSlot = BETTERUI.CIM.BatchActions.HasItemAtSlot
 
@@ -335,7 +339,7 @@ function BETTERUI.Banking.Class:ShowBatchActionsMenu()
                     text = GetString(rawget(_G, "SI_GAMEPAD_BACK_OPTION")),
                     callback = function()
                         zo_callLater(function()
-                            local window = BETTERUI.CIM.TryResolve("Banking.Window")
+                            local window = GetBankingWindow()
                             if window then
                                 KEYBIND_STRIP:UpdateKeybindButtonGroup(window.coreKeybinds)
                             end

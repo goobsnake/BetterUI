@@ -84,6 +84,19 @@ end
 -- TAB DEFINITIONS
 
 ---@alias VendorTabDef {mode: number, name: fun(): string}
+---@alias BetterUIVendorModeSet table<number, boolean>
+---@alias BetterUIVendorTargetData table
+
+---@class BetterUIVendorBatchItem
+---@field dataSource BetterUIVendorBatchItem|nil
+---@field entryIndex integer|nil
+---@field bagId integer|nil
+---@field slotIndex integer|nil
+---@field stackCount integer|nil
+---@field uniqueId integer|string|nil
+
+---@class BetterUIVendorSellAllJunkComponent
+---@field SellAllJunk fun(self: BetterUIVendorSellAllJunkComponent, vendorInstance: BETTERUI.Vendor.Class)
 
 local function ResolveNativeModeForVendorMode(mode)
     if Vendor.ResolveNativeStoreMode then
@@ -224,7 +237,7 @@ local function GetActiveTabs()
 end
 
 ---@param tabs VendorTabDef[]|nil
----@return table<number, boolean>
+---@return BetterUIVendorModeSet
 local function BuildActiveModeSet(tabs)
     local fallbackModeSet = {}
     for _, tab in ipairs(tabs or {}) do
@@ -235,7 +248,7 @@ local function BuildActiveModeSet(tabs)
     return fallbackModeSet
 end
 
----@param modeSet table<number, boolean>|nil
+---@param modeSet BetterUIVendorModeSet|nil
 ---@return boolean
 local function IsSellBuybackOnlyModeSet(modeSet)
     local fallback = modeSet or {}
@@ -278,7 +291,7 @@ local function GetToggleModePair()
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class|nil
----@return table|nil
+---@return BetterUIVendorTargetData|nil
 local function GetCurrentVendorTargetData(vendorInstance)
     local list = vendorInstance and vendorInstance.list
     if not list then
@@ -771,7 +784,7 @@ function StableTraining:IsPrimaryActionEnabled(vendorInstance)
 end
 
 ---@param _vendorInstance BETTERUI.Vendor.Class
----@return table[]
+---@return BetterUIKeybindDescriptorGroup
 function StableTraining:GetCategories(_vendorInstance)
     return {
         {
@@ -868,7 +881,7 @@ local CanMultiSelectInCurrentMode
 local RegisterVendorBatchDialog
 
 ---@param vendorInstance BETTERUI.Vendor.Class
----@return table keybindGroup Core keybind descriptor group
+---@return BetterUIKeybindDescriptorGroup keybindGroup Core keybind descriptor group
 local function BuildCoreKeybinds(vendorInstance)
     return {
         alignment = KEYBIND_STRIP_ALIGN_LEFT,
@@ -1325,7 +1338,7 @@ local VENDOR_BATCH_OPTIONS = {
 --- Processes vendor batch actions through a throttled pipeline with overlay progress.
 --- Works for all vendor modes including BUY/BUYBACK (which lack bagId/slotIndex).
 ---@param mode number Vendor mode constant (MODE.BUY, MODE.SELL, etc.)
----@param items table[] Array of selected item data tables
+---@param items BetterUIVendorBatchItem[] Array of selected item data tables
 ---@param onComplete function|nil Callback invoked when processing finishes
 function Vendor.ExecuteBatchThrottled(mode, items, onComplete)
     local BatchOverlay = BETTERUI.CIM.BatchOverlay
@@ -1570,7 +1583,7 @@ local function RegisterVendorSellAllJunkDialog()
 end
 
 ---@param vendorInstance BETTERUI.Vendor.Class
----@param component table
+---@param component BetterUIVendorSellAllJunkComponent
 ---@return boolean shown
 function Vendor.ShowSellAllJunkDialog(vendorInstance, component)
     if not vendorInstance or not component or type(component.SellAllJunk) ~= "function" then

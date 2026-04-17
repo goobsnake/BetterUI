@@ -20,6 +20,28 @@ Inventory.ROOT_CONTRACT = {
     notes = "Module.lua owns defaults and scene bootstrap, while list behavior, dialogs, and reusable helpers live under Core/, Lists/, and Dialogs/.",
 }
 
+local function TryInitializeCraftBagQuantityDialog()
+    local dialogs = Inventory.Dialogs
+    local initializeDialog = dialogs and dialogs.InitializeCraftBagQuantityDialog
+    if type(initializeDialog) ~= "function" then
+        return false
+    end
+
+    initializeDialog()
+    return true
+end
+
+local function TryRegisterInventoryNarration(...)
+    local narration = BETTERUI.CIM and BETTERUI.CIM.Narration
+    local registerNarration = narration and narration.RegisterListNarration
+    if type(registerNarration) ~= "function" then
+        return false
+    end
+
+    registerNarration(...)
+    return true
+end
+
 -- Wire standard font aliases, font descriptors, and GetSetting/SetSetting accessors
 BETTERUI.CIM.RegisterModuleAccessors("Inventory")
 if BETTERUI.CIM
@@ -170,7 +192,7 @@ function Inventory.Setup()
 	GAMEPAD_INVENTORY_ROOT_SCENE:AddFragment(GAMEPAD_MENU_SOUND_FRAGMENT)
 
 	-- Initialize the Craft Bag quantity dialog for stow/retrieve operations
-	local dialogOk = BETTERUI.CIM.TryCall("Inventory.Dialogs.InitializeCraftBagQuantityDialog")
+	local dialogOk = TryInitializeCraftBagQuantityDialog()
 	if not dialogOk then
 		d("[BetterUI] Inventory: CraftBagQuantityDialog init failed")
 	end
@@ -261,7 +283,7 @@ function Inventory.Setup()
 	end
 
 	-- Register narration for Inventory scene (ACC-001)
-	local narrOk = BETTERUI.CIM.TryCall("CIM.Narration.RegisterListNarration",
+	local narrOk = TryRegisterInventoryNarration(
 		"gamepadInventory",
 		function()
 			return GAMEPAD_INVENTORY and GAMEPAD_INVENTORY.currentlySelectedData

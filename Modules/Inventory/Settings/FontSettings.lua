@@ -27,9 +27,9 @@ local function RefreshInventoryList()
         return
     end
 
-    local ok, isShowing = BETTERUI.CIM.TryCall("CIM.Utils.IsInventorySceneShowing")
-    if ok then
-        if not isShowing then return end
+    local isInventorySceneShowing = BETTERUI.Utils and BETTERUI.Utils.IsInventorySceneShowing
+    if type(isInventorySceneShowing) == "function" then
+        if not isInventorySceneShowing() then return end
     elseif inv.scene and inv.scene.IsShowing and not inv.scene:IsShowing() then
         return
     end

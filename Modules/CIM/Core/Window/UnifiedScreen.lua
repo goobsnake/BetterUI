@@ -10,14 +10,21 @@ Purpose: Unified base class for Inventory and Banking screens.
 -- CLASS: BETTERUI.CIM.UnifiedScreen
 -- Common parent for Inventory and Banking implementing shared patterns.
 
--- Class: BETTERUI.CIM.UnifiedScreen (extends BETTERUI_Gamepad_ParametricList_Screen)
+---@class BetterUIUnifiedScreen : BETTERUI_Gamepad_ParametricList_Screen
+---@field control table
+---@field footerMode integer
+---@field unifiedFooterController table|nil
+---@field activeKeybindDescriptor BetterUIKeybindDescriptorGroup|nil
+---@field searchKeybindDescriptor BetterUIKeybindDescriptorGroup|nil
+---@field _searchModeActive boolean|nil
+---@field isInHeaderSortMode boolean|nil
 BETTERUI.CIM.UnifiedScreen = BETTERUI_Gamepad_ParametricList_Screen:Subclass()
 
 local MODE = BETTERUI.CIM.UnifiedFooter.MODE
 
 --- Creates a new UnifiedScreen instance.
 ---@param ... any
----@return table
+---@return BetterUIUnifiedScreen
 function BETTERUI.CIM.UnifiedScreen:New(...)
     return BETTERUI_Gamepad_ParametricList_Screen.New(self, ...)
 end
@@ -152,7 +159,7 @@ end
 -- KEYBIND MANAGEMENT METHODS
 
 --- Sets the active keybind group, removing any previous one.
----@param keybindDescriptor table?
+---@param keybindDescriptor BetterUIKeybindDescriptorGroup?
 function BETTERUI.CIM.UnifiedScreen:SetActiveKeybinds(keybindDescriptor)
     -- Skip keybind changes if in header sort mode to preserve header mode keybinds
     if self.isInHeaderSortMode then
@@ -208,7 +215,7 @@ end
 -- SEARCH FOCUS LOGIC
 
 --- Initializes search focus behavior for the screen.
----@param searchKeybindDescriptor table
+---@param searchKeybindDescriptor BetterUIKeybindDescriptorGroup
 function BETTERUI.CIM.UnifiedScreen:SetupSearchFocus(searchKeybindDescriptor)
     self.searchKeybindDescriptor = searchKeybindDescriptor
     self._searchModeActive = false

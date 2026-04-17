@@ -6,6 +6,23 @@ Purpose: Shared factory for creating item entry data for inventory/banking lists
 
 -- ITEM ENTRY DATA FACTORY
 
+--- Applies shared visual metadata to a CIM item entry row.
+---@param row table
+---@param itemData table
+---@return nil
+function BETTERUI.CIM.InitializeSharedItemVisualData(row, itemData)
+    row.uniqueId = itemData.uniqueId
+    row.bestItemCategoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
+    row:SetDataSource(itemData)
+    row.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
+    row:AddIcon(itemData.icon)
+    if not itemData.questIndex then
+        row:SetNameColors(row:GetColorsBasedOnQuality(row.quality))
+    end
+    row.cooldownIcon = itemData.icon or itemData.iconFile
+    row:SetFontScaleOnSelection(false)
+end
+
 ---@param itemData table
 ---@param options {visualDataInit: fun(self: table, data: table)?, isQuestItem: boolean?}?
 ---@return table?

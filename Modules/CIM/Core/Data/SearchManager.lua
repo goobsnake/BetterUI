@@ -11,6 +11,31 @@ Contains:
 
 BETTERUI.Interface = BETTERUI.Interface or {}
 
+---@alias BetterUIKeybindDescriptor table
+---@alias BetterUIKeybindDescriptorGroup BetterUIKeybindDescriptor[]
+
+---@class BetterUISearchContext
+---@field SEARCH_LIFECYCLE table<string, string>|nil
+---@field searchQuery string|nil
+---@field textSearchHeaderControl table|nil
+---@field textSearchHeaderFocus table|nil
+---@field textSearchKeybindStripDescriptor BetterUIKeybindDescriptorGroup|nil
+---@field header table|nil
+---@field headerGeneric table|nil
+---@field movementController table|nil
+---@field headerFocus table|nil
+---@field textSearchCallback fun(text: string)?|nil
+---@field _searchHeaderActive boolean|nil
+---@field _searchModeActive boolean|nil
+---@field GetHeaderNarration fun(self: BetterUISearchContext): table?|nil
+---@field GetList fun(self: BetterUISearchContext): table?|nil
+---@field GetCurrentList fun(self: BetterUISearchContext): table?|nil
+---@field ClearSearchInput fun(self: BetterUISearchContext)|nil
+---@field ExitSearchMode fun(self: BetterUISearchContext)|nil
+---@field IsHeaderFocused fun(self: BetterUISearchContext): boolean|nil
+---@field RequestHeaderFocus fun(self: BetterUISearchContext)|nil
+---@field OnHeaderEntered fun(self: BetterUISearchContext)|nil
+
 -- LOCAL HELPERS
 
 --- Makes the search control and its children interactive for mouse users.
@@ -126,8 +151,8 @@ end
 -- PUBLIC API
 
 --- Creates keybind descriptors for text search functionality.
----@param context table
----@return table[]
+---@param context BetterUISearchContext
+---@return BetterUIKeybindDescriptorGroup
 function BETTERUI.Interface.CreateSearchKeybindDescriptor(context)
     local function HasVisibleSearchControl()
         if not context or not context.textSearchHeaderControl then return false end
@@ -208,8 +233,8 @@ local SEARCH_LIFECYCLE_CANONICAL_METHODS = {
     onEnter = "OnHeaderEntered",
 }
 
---- Resolves a search lifecycle method from the canonical contract or legacy aliases.
----@param self table
+--- Resolves a search lifecycle method from the canonical contract.
+---@param self BetterUISearchContext
 ---@param action string
 ---@return function|nil method
 ---@return string|nil methodName
@@ -232,7 +257,7 @@ function BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, action)
 end
 
 --- Invokes a search lifecycle action when implemented on the receiver.
----@param self table
+---@param self BetterUISearchContext
 ---@param action string
 ---@param ... any
 ---@return any
@@ -245,7 +270,7 @@ function BETTERUI.Interface.SearchMixin.CallSearchLifecycle(self, action, ...)
 end
 
 --- Checks whether the canonical search/header lifecycle is already active.
----@param self table
+---@param self BetterUISearchContext
 ---@return boolean
 function BETTERUI.Interface.SearchMixin.IsSearchLifecycleHeaderActive(self)
     local method = BETTERUI.Interface.SearchMixin.GetSearchLifecycleMethod(self, "headerActive")
@@ -265,8 +290,8 @@ end
 --- 4. Patches the control to be mouse-interactive using `PatchMouseInteractivity`.
 --- 5. Registers with SCREEN_NARRATION_MANAGER using `RegisterNarrationHandler`.
 --- Integrates text search capability into the window.
----@param self table
----@param textSearchKeybindStripDescriptor table
+---@param self BetterUISearchContext
+---@param textSearchKeybindStripDescriptor BetterUIKeybindDescriptorGroup
 ---@param onTextSearchTextChangedCallback fun(text: string)?
 function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDescriptor, onTextSearchTextChangedCallback)
     -- Create the header editbox control from the common virtual template
@@ -316,7 +341,7 @@ function BETTERUI.Interface.SearchMixin.AddSearch(self, textSearchKeybindStripDe
 end
 
 --- Checks if the search entry field is hidden.
----@param self table
+---@param self BetterUISearchContext
 ---@return boolean
 function BETTERUI.Interface.SearchMixin.IsTextSearchEntryHidden(self)
     if self.textSearchHeaderControl then
@@ -326,7 +351,7 @@ function BETTERUI.Interface.SearchMixin.IsTextSearchEntryHidden(self)
 end
 
 --- Sets the visibility of the search entry field.
----@param self table
+---@param self BetterUISearchContext
 ---@param isHidden boolean
 function BETTERUI.Interface.SearchMixin.SetTextSearchEntryHidden(self, isHidden)
     if self.textSearchHeaderControl then
@@ -335,7 +360,7 @@ function BETTERUI.Interface.SearchMixin.SetTextSearchEntryHidden(self, isHidden)
 end
 
 --- Sets focus state of the search entry.
----@param self table
+---@param self BetterUISearchContext
 ---@param isFocused boolean
 function BETTERUI.Interface.SearchMixin.SetTextSearchFocused(self, isFocused)
     if self.textSearchHeaderFocus and self.headerFocus then
@@ -348,7 +373,7 @@ function BETTERUI.Interface.SearchMixin.SetTextSearchFocused(self, isFocused)
 end
 
 --- Gets the currently active list.
----@param self table
+---@param self BetterUISearchContext
 ---@return table?
 function BETTERUI.Interface.SearchMixin.GetActiveList(self)
     -- Use type check instead of pcall to avoid hiding real errors
@@ -360,7 +385,7 @@ function BETTERUI.Interface.SearchMixin.GetActiveList(self)
 end
 
 --- Activates the search header mode.
----@param self table
+---@param self BetterUISearchContext
 function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
     if self.textSearchHeaderFocus and not self._searchHeaderActive then
         self._searchHeaderActive = true
@@ -373,7 +398,7 @@ function BETTERUI.Interface.SearchMixin.ActivateSearchHeader(self)
 end
 
 --- Deactivates the search header mode.
----@param self table
+---@param self BetterUISearchContext
 function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
     if self.textSearchHeaderFocus and self._searchHeaderActive then
         self._searchHeaderActive = false
@@ -382,14 +407,14 @@ function BETTERUI.Interface.SearchMixin.DeactivateSearchHeader(self)
 end
 
 --- Checks if search header is currently active.
----@param self table
+---@param self BetterUISearchContext
 ---@return boolean
 function BETTERUI.Interface.SearchMixin.IsSearchHeaderActive(self)
     return self._searchHeaderActive == true
 end
 
 --- Clears the current search query.
----@param self table
+---@param self BetterUISearchContext
 function BETTERUI.Interface.SearchMixin.ClearSearchText(self)
     if self.textSearchHeaderFocus then
         self.textSearchHeaderFocus:ClearText()
@@ -397,7 +422,7 @@ function BETTERUI.Interface.SearchMixin.ClearSearchText(self)
 end
 
 --- Checks if the search box has input focus.
----@param self table
+---@param self BetterUISearchContext
 ---@return boolean
 function BETTERUI.Interface.SearchMixin.IsSearchFocused(self)
     return self.textSearchHeaderFocus and self.textSearchHeaderFocus:HasFocus()
@@ -413,8 +438,8 @@ end
 --- 1. Wraps existing handlers to preserve original behavior.
 --- 2. Adds scene guards to prevent processing when scene is hidden.
 --- 3. Handles D-pad/stick navigation to exit search on Down press.
----@param self table
----@param options {isSceneShowing: fun(): boolean, onTextChanged: fun(self: table, text: string)?, onExitFocus: fun(self: table)?, enterHeaderFn: fun(self: table)?}?
+---@param self BetterUISearchContext
+---@param options {isSceneShowing: fun(): boolean, onTextChanged: fun(self: BetterUISearchContext, text: string)?, onExitFocus: fun(self: BetterUISearchContext)?, enterHeaderFn: fun(self: BetterUISearchContext)?}?
 function BETTERUI.Interface.SearchMixin.SetupEditBoxHandlers(self, options)
     if not self.textSearchHeaderFocus then return end
     local editBox = self.textSearchHeaderFocus:GetEditBox()

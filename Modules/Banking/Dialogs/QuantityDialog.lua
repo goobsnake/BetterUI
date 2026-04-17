@@ -18,6 +18,10 @@ References: Called by Banking keybinds when partial stack move is requested.
 
 BETTERUI_BANK_QUANTITY_DIALOG = "BETTERUI_BANK_QUANTITY_DIALOG"
 
+local function GetBankingWindow()
+    return BETTERUI.Banking and BETTERUI.Banking.Window
+end
+
 --[[
 Function: BETTERUI.Banking.InitializeQuantityDialog
 Description: Registers the quantity selection dialog for banking operations.
@@ -179,7 +183,7 @@ function BETTERUI.Banking.InitializeQuantityDialog()
 
                     local quantity = ZO_GenericGamepadItemSliderDialogTemplate_GetSliderValue(dialog)
 
-                    local window = BETTERUI.CIM.TryResolve("Banking.Window")
+                    local window = GetBankingWindow()
                     if window and window.MoveItem then
                         window:MoveItem(window.list, quantity)
                     end

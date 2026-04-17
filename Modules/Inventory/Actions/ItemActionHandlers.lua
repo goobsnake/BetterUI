@@ -12,6 +12,17 @@ local ActionHandlers = BETTERUI.Inventory.ActionHandlers
 
 -- LOCAL HELPERS (shared by all handlers)
 
+local function InvokeInventoryDialog(methodName, ...)
+    local dialogs = BETTERUI.Inventory and BETTERUI.Inventory.Dialogs
+    local dialogFn = dialogs and dialogs[methodName]
+    if type(dialogFn) ~= "function" then
+        return false
+    end
+
+    dialogFn(...)
+    return true
+end
+
 --- Silently toggle junk state for an item target and update UI.
 ---@param self table Inventory class instance
 ---@param isJunk boolean Whether to mark or unmark as junk
@@ -421,7 +432,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
         if itemTarget then
-            BETTERUI.CIM.TryCall("Inventory.Dialogs.StowFullStack", itemTarget)
+            InvokeInventoryDialog("StowFullStack", itemTarget)
         end
         return
     end
@@ -431,7 +442,7 @@ function ActionHandlers.OnConfirm(self, dialog)
         ZO_Dialogs_ReleaseDialogOnButtonPress(ZO_GAMEPAD_INVENTORY_ACTION_DIALOG)
         local itemTarget = selectedRow.itemTarget
         if itemTarget then
-            BETTERUI.CIM.TryCall("Inventory.Dialogs.RetrieveFullStack", itemTarget)
+            InvokeInventoryDialog("RetrieveFullStack", itemTarget)
         end
         return
     end

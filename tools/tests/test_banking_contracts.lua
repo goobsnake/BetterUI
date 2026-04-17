@@ -34,6 +34,14 @@ BETTERUI = {
                     return {}
                 end,
             },
+            CreateManager = function()
+                return {}
+            end,
+            CreateLazyManagerProxy = function(factory)
+                return {
+                    __factory = factory,
+                }
+            end,
         },
         Utils = {
             CompareNils = function()
@@ -232,6 +240,22 @@ assertTrue(bankListManager:match("local currentUsedBank = BETTERUI%.Banking%.Get
     "BankListManager resolves bank bags through GetCurrentBank")
 assertTrue(bankListManager:match("BETTERUI%.Banking%.currentUsedBank") == nil,
     "BankListManager no longer reads the raw currentUsedBank field directly")
+assertTrue(bankListManager:match("BETTERUI%.CIM%.Utils%.DefaultSortComparator") ~= nil,
+    "BankListManager sorts through the neutral CIM comparator")
+assertTrue(bankListManager:match("BETTERUI%.Inventory%.DefaultSortComparator") == nil,
+    "BankListManager no longer reaches through Inventory for sort comparison")
+assertTrue(bankListManager:match("BETTERUI%.CIM%.InitializeSharedItemVisualData") ~= nil,
+    "BankListManager uses the neutral shared item visual initializer")
+assertTrue(bankListManager:match("BETTERUI%.Inventory%.Class%.InitializeInventoryVisualData") == nil,
+    "BankListManager no longer reaches through Inventory for row visual setup")
+
+local itemDataProcessor = readFile("Modules/CIM/Lists/ItemDataProcessor.lua")
+assertTrue(itemDataProcessor:match("function BETTERUI%.CIM%.InitializeSharedItemVisualData") ~= nil,
+    "CIM exposes the shared item visual initializer")
+
+local inventoryListManager = readFile("Modules/Inventory/Lists/ItemListManager.lua")
+assertTrue(inventoryListManager:match("BETTERUI%.CIM%.InitializeSharedItemVisualData%(self, itemData%)") ~= nil,
+    "Inventory visual initialization delegates to the shared CIM helper")
 
 print("\n=== Test Summary ===")
 print("Passed: " .. testsPassed)

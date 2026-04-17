@@ -370,7 +370,10 @@ local function SetupModule(control)
             if qsBtn then qsBtn:SetParent(control) end
             local compBtn = FindControl(frontBarContainer, 'CompanionButton')
             if compBtn then compBtn:SetParent(control) end
-            BETTERUI.CIM.TryCall("ControlUtils.InvalidateControlCache")
+            local invalidateControlCache = BETTERUI.ControlUtils and BETTERUI.ControlUtils.InvalidateControlCache
+            if type(invalidateControlCache) == "function" then
+                invalidateControlCache()
+            end
         end
         SkillBar.UpdateFrontBar(control)
         SetupFrontBarHandlers(control)

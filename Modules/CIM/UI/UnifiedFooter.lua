@@ -69,8 +69,8 @@ function UnifiedFooterController:Refresh()
     }
 
     -- Reuse GenericFooter's refresh implementation
-    local refreshFn = BETTERUI.CIM.TryResolve("GenericFooter.Refresh")
-    if refreshFn then
+    local refreshFn = BETTERUI.GenericFooter and BETTERUI.GenericFooter.Refresh
+    if type(refreshFn) == "function" then
         setmetatable(footerData, { __index = BETTERUI.GenericFooter })
         refreshFn(footerData)
     end

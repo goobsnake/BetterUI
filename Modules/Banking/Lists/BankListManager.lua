@@ -283,7 +283,7 @@ function BETTERUI.Banking.Class:RefreshList()
         filteredDataTable = matches
     end
 
-    table.sort(filteredDataTable, self.itemSortComparator or BETTERUI.Inventory.DefaultSortComparator)
+    table.sort(filteredDataTable, self.itemSortComparator or BETTERUI.CIM.Utils.DefaultSortComparator)
 
     local currentBestCategoryName
     local useHeaders = AutoCategory
@@ -291,7 +291,7 @@ function BETTERUI.Banking.Class:RefreshList()
 
     for _, itemData in ipairs(filteredDataTable) do
         local entryData = BETTERUI.CIM.CreateItemEntryData(itemData, {
-            visualDataInit = BETTERUI.Inventory.Class.InitializeInventoryVisualData
+            visualDataInit = BETTERUI.CIM.InitializeSharedItemVisualData
         })
 
         if entryData and ((not entryData.isJunk and not showJunkCategory) or (entryData.isJunk and showJunkCategory)) then

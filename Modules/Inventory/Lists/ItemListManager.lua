@@ -246,17 +246,7 @@ end
 
 --- Sets up visual data (name, icon, coloring) for an inventory row.
 function BETTERUI.Inventory.Class:InitializeInventoryVisualData(itemData)
-    self.uniqueId = itemData.uniqueId
-    self.bestItemCategoryName = itemData.bestGamepadItemCategoryName or itemData.bestItemCategoryName
-    self:SetDataSource(itemData)
-    self.dataSource.requiredChampionPoints = GetItemRequiredChampionPoints(itemData.bagId, itemData.slotIndex)
-    self:AddIcon(itemData.icon)
-    if not itemData.questIndex then
-        self:SetNameColors(self:GetColorsBasedOnQuality(self.quality))
-    end
-    self.cooldownIcon = itemData.icon or itemData.iconFile
-
-    self:SetFontScaleOnSelection(false)
+    BETTERUI.CIM.InitializeSharedItemVisualData(self, itemData)
 end
 
 --- Populates the canonical category and sort metadata used by inventory rows.
